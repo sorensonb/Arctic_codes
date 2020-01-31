@@ -9,59 +9,13 @@ import numpy.ma as ma
 import sys
 import matplotlib.pyplot as plt
 import matplotlib.colors as cm
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+import cartopy
+import cartopy.crs as ccrs
 import glob
 import subprocess
-from scipy import stats
+from IceLib import read_ice,ice_trendCalc
 
-def plot_data(ice_dict,index):
-    data = ice_dict['data'][index,:,:]
-    plt.pcolormesh(data.T)
-    plt.gca().invert_xaxis()
-    plt.gca().invert_yaxis()
-    plt.title(ice_dict['titles'][index])
-    plt.show()
-
-def trend_calc(ice_dict,x_ind,y_ind,thielsen=False):
-    temp_data = ice_dict['data'][:,x_ind,y_ind]
-    avg_ice = np.average(temp_data)
-    interpx = np.arange(len(temp_data))
-    #interpx = years
-    ##interper = np.poly1d(np.polyfit(interpx,temp_data,1)) 
-    ### Normalize trend by dividing by number of years
-    ##trend = (interper(interpx[-1])-interper(interpx[0]))
-
-    slope, intercept, r_value, p_value, std_err = stats.linregress(interpx,temp_data)
-    ##print(slope/len(test_dict[dictkey].keys())
-    regress_y = interpx*slope+intercept
-    trend = regress_y[-1] - regress_y[0]
-
-    if(thielsen==True):
-        #The slope
-        S=0
-        sm=0
-        nx = len(temp_data)
-        num_d=int(nx*(nx-1)/2)  # The number of elements in avgs
-        Sn=np.zeros(num_d)
-        for si in range(0,nx-1):
-            for sj in range(si+1,nx):
-                # Find the slope between the two points
-                Sn[sm] = (temp_data[si]-temp_data[sj])/(si-sj) 
-                sm=sm+1
-            # Endfor
-        # Endfor
-        Snsorted=sorted(Sn)
-        sm=int(num_d/2.)
-        if(2*sm    == num_d):
-            tsslope=0.5*(Snsorted[sm]+Snsorted[sm+1])
-        if(2*sm+1 == num_d): 
-            tsslope=Snsorted[sm+1]
-        regress_ts = interpx*tsslope+intercept
-        trend = regress_ts[-1]-regress_ts[0]
-
-
-    pcnt_change = (trend/avg_ice)*100.
-    # Find the percent change per decade
-    return trend,pcnt_change
 
 data_loc = '/home/bsorenson/HighLatitudeStudy/Ice_Analysis/data/'
 
@@ -70,8 +24,18 @@ if(len(sys.argv)!=2):
     print("        season = 'spring','summer','autumn','winter','all'")
     sys.exit()
 
-thielSen=True 
+thielSen=False
 season=sys.argv[1]
+
+season_adder = ' '+season
+file_adder = '_'+season
+if(season=='all'):
+    season_adder = ''
+    file_adder = ''
+
+ice_data = read_ice(season)
+
+"""
 spring=False
 summer=False
 autumn=False
@@ -80,37 +44,51 @@ season_adder = ' '+season
 file_adder = '_'+season
 if(season=='spring'):
     spring=True
-    ls_check = '{03,04,05}'
+    ls_check = ['03','04','05']
 elif(season=='summer'):
     summer=True
-    ls_check = '{06,07,08}'
+    ls_check = ['06','07','08']
 elif(season=='autumn'):
     autumn=True
-    ls_check = '{09,10,11}'
+    ls_check = ['09','10','11']
 elif(season=='winter'):
     winter=True
-    ls_check = '{12,01,02}'
+    ls_check = ['12','01','02']
 else:
     season_adder = ''
     file_adder = ''
-    ls_check=''
+    ls_check=['01','02','03','04','05','06','07','08','09','10','11','12']
 
 
 # Grab all the ice files
 #file_names = glob.glob(data_loc+'*.bin')
 # Using this syntax, ignores 2000
-cmnd = "ls /home/bsorenson/HighLatitudeStudy/Ice_Analysis/data/nt_*"+ls_check+"*"
+cmnd = "ls /home/bsorenson/Research/Ice_analysis/data/nt_*.bin"
+#status,output = commands.getstatusoutput(cmnd)
+#file_initial = output.strip().split('\n')
+#
+#file_names = []
+#for fname in file_initial:
+#    if(fname[50:52] in ls_check):
+#        file_names.append(fname)
+
+
 file_names = subprocess.check_output(cmnd,shell=True).decode('utf-8').strip().split('\n')
 
 # Read in the latitude and longitude data
-latfileo = open('/home/bsorenson/HighLatitudeStudy/Ice_Analysis/fortran_codes/psn25lats_v3.dat','r')
+latfileo = open('/home/bsorenson/Research/Ice_analysis/psn25lats_v3.dat','r')
 lats = np.reshape(np.fromfile(latfileo,dtype=np.uint32)/100000.,(448,304))
-lonfileo = open('/home/bsorenson/HighLatitudeStudy/Ice_Analysis/fortran_codes/psn25lons_v3.dat','r')
-lons = np.reshape(np.fromfile(lonfileo,dtype=np.uint32)/100000.,(448,304))
+lonfileo = open('/home/bsorenson/Research/Ice_analysis/psn25lons_v3.dat','r')
+tlons = np.fromfile(lonfileo,dtype=np.uint32)/100000.
+tlons[tlons>180.] = tlons[tlons>180.]-42949.67296
+lons = np.reshape(tlons,(448,304))
+#lons = np.reshape(np.fromfile(lonfileo,dtype=np.uint32)/100000.,(448,304))
 
 num_files = len(file_names)
 ice_data = {}
 ice_data['data'] = np.full((num_files,448,304),-9.)
+ice_data['lat']  = lats
+ice_data['lon']  = lons
 ice_data['trends'] = np.full((448,304),-9.)
 ice_data['land_trends'] = np.full((448,304),-9.)
 ice_data['titles'] = []
@@ -169,7 +147,11 @@ for fname in file_names:
     ice_data['titles'].append(file_name)
 #    total_data[:,:,count] = data[:,:]
     count+=1
+"""
 
+ice_data = ice_trendCalc(ice_data,thielSen=thielSen)
+
+"""
 # Loop over the data and calculate trends
 for i in range(448):
     print(i)
@@ -190,7 +172,7 @@ for i in range(448):
     land_indices = np.where(ice_data['data'][0,i,:]>=251.)
     ice_data['trends'][i,land_indices] = np.nan
     ice_data['land_trends'][i,good_indices] = np.nan
-
+"""
 
 #data = ice_data['trends']
 plot_good_data = ma.masked_invalid(ice_data['trends'].T)
