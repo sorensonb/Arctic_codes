@@ -80,26 +80,26 @@ def read_ice(season):
     file_adder = '_'+season
     if(season=='spring'):
         spring=True
-        ls_check = ['03','04','05']
+        ls_check = ['03_','04_','05_']
     elif(season=='summer'):
         summer=True
-        ls_check = ['06','07','08']
+        ls_check = ['06_','07_','08_']
     elif(season=='autumn'):
         autumn=True
-        ls_check = ['09','10','11']
+        ls_check = ['09_','10_','11_']
     elif(season=='winter'):
         winter=True
-        ls_check = ['12','01','02']
+        ls_check = ['12_','01_','02_']
     else:
         season_adder = ''
         file_adder = ''
-        ls_check=['01','02','03','04','05','06','07','08','09','10','11','12']
+        ls_check=['01_','02_','03_','04_','05_','06_','07_','08_','09_','10_','11_','12_']
     
     
     # Grab all the ice files
     #file_names = glob.glob(data_loc+'*.bin')
     # Using this syntax, ignores 2000
-    cmnd = "ls /home/bsorenson/Research/Ice_analysis/data/nt_*.bin"
+    cmnd = "ls /home/bsorenson/data/NSIDC/nt_*.bin"
     #status,output = commands.getstatusoutput(cmnd)
     #file_initial = output.strip().split('\n')
     #
@@ -109,7 +109,11 @@ def read_ice(season):
     #        file_names.append(fname)
     
     
-    file_names = subprocess.check_output(cmnd,shell=True).decode('utf-8').strip().split('\n')
+    file_initial = subprocess.check_output(cmnd,shell=True).decode('utf-8').strip().split('\n')
+    file_names = []
+    for fname in file_initial:
+        if(fname[-17:-14] in ls_check):
+            file_names.append(fname)
     
     # Read in the latitude and longitude data
     latfileo = open('/home/bsorenson/Research/Ice_analysis/psn25lats_v3.dat','r')
@@ -232,9 +236,11 @@ def grid_data(ice_dict):
                     grid_ice_cc[lat_index,lon_index]+=1
     ice_dict['grid_ice'] = grid_ice
     ice_dict['grid_ice_cc'] = grid_ice_cc
+    ice_dict['grid_lat'] = lat_ranges
+    ice_dict['grid_lon'] = lon_ranges
     return ice_dict
 
-def plot_grid_data(ice_dict,adjusted=False):
+def plot_grid_data(ice_dict,adjusted=False,save=False):
     lon_ranges  = np.arange(-180.,180.,1.0)
     lat_ranges  = np.arange(30.,90.,1.0)
 
@@ -249,7 +255,9 @@ def plot_grid_data(ice_dict,adjusted=False):
     colormap = plt.cm.bwr
     #coolwarm = plt.cm.coolwarm
     #ax = plt.axes(projection=ccrs.NorthPolarStereo())
+    file_adder=''
     if(adjusted==True):
+        file_adder='_adjusted'
         fig1 = plt.figure(figsize=(8,5))
         ax = plt.axes(projection=ccrs.NorthPolarStereo(central_longitude=45.))
     else:
@@ -281,8 +289,10 @@ def plot_grid_data(ice_dict,adjusted=False):
     #plt.gca().invert_xaxis()
     #plt.gca().invert_yaxis()
     plt.title('NSIDC Sea Ice Concentration Trends\nJan 2001 to Dec 2018')
-    #plt.savefig('ice_trend_200101_201812'+file_adder+'.png',dpi=300)
-    #print("Saved image ice_trend_200101_201812"+file_adder+".png")
-    plt.show()
+    if(save==True):
+        plt.savefig('ice_trend_gridded_200101_201812'+file_adder+'.png',dpi=300)
+        print("Saved image ice_trend_gridded_200101_201812"+file_adder+".png")
+    else:
+        plt.show()
     
 

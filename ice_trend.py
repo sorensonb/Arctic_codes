@@ -14,7 +14,7 @@ import cartopy
 import cartopy.crs as ccrs
 import glob
 import subprocess
-from IceLib import read_ice,ice_trendCalc
+from IceLib import read_ice,ice_trendCalc,grid_data,plot_grid_data
 
 
 data_loc = '/home/bsorenson/HighLatitudeStudy/Ice_Analysis/data/'
