@@ -101,12 +101,15 @@ from comparelib import plot_fourscatter
 ###    plt.show()
 
 
-if(len(sys.argv)!=2):
-    print("SYNTAX: ./compare_ceres_ice.py season")
+if(len(sys.argv)!=3):
+    print("SYNTAX: ./compare_ceres_ice.py type season")
+    print("        type   = 'clr','all''")
     print("        season = 'spring','summer','autumn','winter','all'")
     sys.exit()
 
-inseason = sys.argv[1]
+adj=False
+dtype = sys.argv[1]
+inseason = sys.argv[2]
 
 # Read in NSIDC ice data
 ice_data = read_ice(inseason)
@@ -115,14 +118,14 @@ ice_data = grid_data(ice_data)
 
 
 # Read in CERES data
-CERES_lw_dict = readgridCERES(200101,201812,'toa_lw_clr_mon',minlat=30.5,season=inseason)
-calc_CERES_trend(CERES_lw_dict,save=True)
-CERES_sw_dict = readgridCERES(200101,201812,'toa_sw_clr_mon',minlat=30.5,season=inseason)
-calc_CERES_trend(CERES_sw_dict,save=True)
-CERES_alb_dict = readgridCERES(200101,201812,'toa_alb_clr_mon',minlat=30.5,season=inseason)
-calc_CERES_trend(CERES_alb_dict,save=True)
-CERES_net_dict = readgridCERES(200101,201812,'toa_net_clr_mon',minlat=30.5,season=inseason)
-calc_CERES_trend(CERES_net_dict,save=True)
+CERES_lw_dict = readgridCERES(200101,201812,'toa_lw_'+dtype+'_mon',minlat=30.5,season=inseason)
+calc_CERES_trend(CERES_lw_dict,adjusted=adj,save=True)
+CERES_sw_dict = readgridCERES(200101,201812,'toa_sw_'+dtype+'_mon',minlat=30.5,season=inseason)
+calc_CERES_trend(CERES_sw_dict,adjusted=adj,save=True)
+CERES_alb_dict = readgridCERES(200101,201812,'toa_alb_'+dtype+'_mon',minlat=30.5,season=inseason)
+calc_CERES_trend(CERES_alb_dict,adjusted=adj,save=True)
+CERES_net_dict = readgridCERES(200101,201812,'toa_net_'+dtype+'_mon',minlat=30.5,season=inseason)
+calc_CERES_trend(CERES_net_dict,adjusted=adj,save=True)
 
 # Reshape the CERES data
 templon = CERES_lw_dict['lon']
@@ -140,7 +143,7 @@ for xi in range(len(CERES_lw_dict['lat'])):
 
 
 # Start comparisons
-plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_net_dict,inseason)
+plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_net_dict,inseason,dtype)
 
 # Quick comparison
 

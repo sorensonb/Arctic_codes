@@ -24,7 +24,11 @@ def correlation(x,y):
         corr = cov/(std_x*std_y)
         return(corr)
 
-def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_net_dict,inseason):
+def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_net_dict,inseason,dtype):
+    if(dtype=='clr'):
+        dtype_adder = "clear"
+    else:
+        dtype_adder = "all"
     # Quick comparison
     markersize=6
     fig, axs = plt.subplots(2,2)
@@ -39,7 +43,7 @@ def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_n
     print("LWF correlation: ",corr_lwf)
     axs[0,0].scatter(plotx,ploty,s=markersize,color='black')
     axs[0,0].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='red')
-    axs[0,0].set_title('Clear-Sky LWF Trends')
+    axs[0,0].set_title(dtype_adder.title()+'-Sky LWF'+ice_data['season_adder'].title()+' Trends')
     axs[0,0].set_xlabel('Ice Trends')
     axs[0,0].set_ylabel('LWF Trends')
     x_pos = ((axs[0,0].get_xlim()[1]-axs[0,0].get_xlim()[0])/8)+axs[0,0].get_xlim()[0]
@@ -55,7 +59,7 @@ def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_n
     print("SWF correlation: ",corr_swf)
     axs[0,1].scatter(plotx,ploty,s=markersize,color='black')
     axs[0,1].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='red')
-    axs[0,1].set_title('Clear-Sky SWF Trends')
+    axs[0,1].set_title(dtype_adder.title()+'-Sky SWF'+ice_data['season_adder'].title()+' Trends')
     axs[0,1].set_xlabel('Ice Trends')
     axs[0,1].set_ylabel('SWF Trends')
     x_pos = ((axs[0,1].get_xlim()[1]-axs[0,1].get_xlim()[0])/8)+axs[0,1].get_xlim()[0]
@@ -71,7 +75,7 @@ def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_n
     print("Albedo correlation: ",corr_alb)
     axs[1,0].scatter(plotx,ploty,s=markersize,color='black')
     axs[1,0].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='red')
-    axs[1,0].set_title('Clear-Sky Albedo Trends')
+    axs[1,0].set_title(dtype_adder.title()+'-Sky Albedo'+ice_data['season_adder'].title()+' Trends')
     axs[1,0].set_xlabel('Ice Trends')
     axs[1,0].set_ylabel('Albedo Trends')
     x_pos = ((axs[1,0].get_xlim()[1]-axs[1,0].get_xlim()[0])/8)+axs[1,0].get_xlim()[0]
@@ -87,7 +91,7 @@ def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_n
     print("Net flux correlation: ",corr_net)
     axs[1,1].scatter(plotx,ploty,s=markersize,color='black')
     axs[1,1].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='red')
-    axs[1,1].set_title('Clear-Sky Net Flux Trends')
+    axs[1,1].set_title(dtype_adder.title()+'-Sky Net Flux'+ice_data['season_adder'].title()+' Trends')
     axs[1,1].set_xlabel('Ice Trends')
     axs[1,1].set_ylabel('Net Flux Trends')
     x_pos = ((axs[1,1].get_xlim()[1]-axs[1,1].get_xlim()[0])/8)+axs[1,1].get_xlim()[0]
@@ -96,7 +100,7 @@ def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_n
     ##print("  y_max = ",axs[1,1].get_ylim()[1],"  y_min = ",axs[1,1].get_ylim()[0])
     ##print("  x_pos = ",x_pos)
     ##print("  y_pos = ",y_pos)
-    outname = "ceres_nsidc_trends_four_panel_"+inseason+".png"
+    outname = "ceres_nsidc_trends_four_panel_"+inseason+"_"+dtype+"sky.png"
     plt.savefig(outname,dpi=300)
     print("Saved image "+outname)
     plt.show()

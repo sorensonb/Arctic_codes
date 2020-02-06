@@ -71,7 +71,6 @@ def trend_calc(ice_dict,x_ind,y_ind,thielsen=False):
     return trend,pcnt_change
 
 def read_ice(season):
-    season=sys.argv[1]
     spring=False
     summer=False
     autumn=False
@@ -91,6 +90,7 @@ def read_ice(season):
         winter=True
         ls_check = ['12_','01_','02_']
     else:
+        print("Analyzing all seasons. Option given was",season)
         season_adder = ''
         file_adder = ''
         ls_check=['01_','02_','03_','04_','05_','06_','07_','08_','09_','10_','11_','12_']
@@ -272,13 +272,13 @@ def plot_grid_data(ice_dict,adjusted=False,save=False):
         axins = inset_axes(ax,width="5%",height="100%",loc='lower left',\
                     bbox_to_anchor=(1.05,0.,1,1),bbox_transform=ax.transAxes,\
                     borderpad=0)
-        cbar = plt.colorbar(mesh,cax=axins,cmap=colormap,label='Ice Concentration Trend')
+        cbar = plt.colorbar(mesh,cax=axins,cmap=colormap,label='Ice Concentration Trend [%]')
         ax.set_xlim(-5170748.535086173,5167222.438879491)
         ax.set_ylim(-3913488.8763307533,3943353.899053069)
         #ender = '_adjusted'+ender
     else:
         plt.pcolormesh(plot_land_data,cmap=plt.cm.Greys,vmin=-10,vmax=10)
-        cbar = plt.colorbar(mesh,cmap=colormap,label='Ice Concentration Trend')
+        cbar = plt.colorbar(mesh,cmap=colormap,label='Ice Concentration Trend [%]')
     ax.coastlines()
 
 
@@ -288,10 +288,15 @@ def plot_grid_data(ice_dict,adjusted=False,save=False):
     #plt.pcolormesh(plot_land_data,cmap=plt.cm.Greys,vmin=-10,vmax=10)
     #plt.gca().invert_xaxis()
     #plt.gca().invert_yaxis()
-    plt.title('NSIDC Sea Ice Concentration Trends\nJan 2001 to Dec 2018')
+    if(ice_dict['season_adder']!=''):
+        ax.set_title('NSIDC Sea Ice Concentration'+ice_dict['season_adder'].title()+\
+            ' Trends\nJan 2001 to Dec 2018')
+    else:
+        ax.set_title('NSIDC Sea Ice Concentration Trends\nJan 2001 to Dec 2018')
     if(save==True):
-        plt.savefig('ice_trend_gridded_200101_201812'+file_adder+'.png',dpi=300)
-        print("Saved image ice_trend_gridded_200101_201812"+file_adder+".png")
+        outname = 'ice_trend_gridded_200101_201812'+ice_dict['file_adder']+file_adder+'.png'
+        plt.savefig(outname,dpi=300)
+        print("Saved image ",outname)
     else:
         plt.show()
     
