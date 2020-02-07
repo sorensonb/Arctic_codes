@@ -62,21 +62,21 @@ season    = sys.argv[4]
 # Read in data for all wanted data_types
 
 #CERES_dict_sw_all  = readgridCERES(start_date,end_date,'toa_sw_all_mon', minlat=minlat,season=season)
-CERES_dict_sw_clr  = readgridCERES(start_date,end_date,'toa_sw_clr_mon', minlat=minlat,season=season)
+#CERES_dict_sw_clr  = readgridCERES(start_date,end_date,'toa_sw_clr_mon', minlat=minlat,season=season)
 #CERES_dict_lw_all  = readgridCERES(start_date,end_date,'toa_lw_all_mon', minlat=minlat,season=season)
-CERES_dict_lw_clr  = readgridCERES(start_date,end_date,'toa_lw_clr_mon', minlat=minlat,season=season)
+#CERES_dict_lw_clr  = readgridCERES(start_date,end_date,'toa_lw_clr_mon', minlat=minlat,season=season)
 #CERES_dict_net_all = readgridCERES(start_date,end_date,'toa_net_all_mon',minlat=minlat,season=season)
-CERES_dict_net_clr = readgridCERES(start_date,end_date,'toa_net_clr_mon',minlat=minlat,season=season)
+#CERES_dict_net_clr = readgridCERES(start_date,end_date,'toa_net_clr_mon',minlat=minlat,season=season)
 #CERES_dict_alb_all = readgridCERES(start_date,end_date,'toa_alb_all_mon',minlat=minlat,season=season)
 CERES_dict_alb_clr = readgridCERES(start_date,end_date,'toa_alb_clr_mon',minlat=minlat,season=season)
 
 # Plot all of them
 #calc_CERES_trend(CERES_dict_sw_all,minlat=minlat, adjusted=True,save=True)
-calc_CERES_trend(CERES_dict_sw_clr,minlat=minlat, adjusted=True,save=True)
+#calc_CERES_trend(CERES_dict_sw_clr,minlat=minlat, adjusted=True,save=True)
 #calc_CERES_trend(CERES_dict_lw_all,minlat=minlat, adjusted=True,save=True)
-calc_CERES_trend(CERES_dict_lw_clr,minlat=minlat, adjusted=True,save=True)
+#calc_CERES_trend(CERES_dict_lw_clr,minlat=minlat, adjusted=True,save=True)
 #calc_CERES_trend(CERES_dict_net_all,minlat=minlat,adjusted=True,save=True)
-calc_CERES_trend(CERES_dict_net_clr,minlat=minlat,adjusted=True,save=True)
+#calc_CERES_trend(CERES_dict_net_clr,minlat=minlat,adjusted=True,save=True)
 #calc_CERES_trend(CERES_dict_alb_all,minlat=minlat,adjusted=True,save=True)
 calc_CERES_trend(CERES_dict_alb_clr,minlat=minlat,adjusted=True,save=True)
 

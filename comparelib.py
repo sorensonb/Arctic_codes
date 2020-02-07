@@ -103,5 +103,4 @@ def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_n
     outname = "ceres_nsidc_trends_four_panel_"+inseason+"_"+dtype+"sky.png"
     plt.savefig(outname,dpi=300)
     print("Saved image "+outname)
-    plt.show()
 

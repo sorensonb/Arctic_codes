@@ -433,32 +433,32 @@ def calc_CERES_trend(CERES_dict,save=False,start_date='200101',end_date='201812'
     #plt.colorbar(label='Albedo Trend')
 
     if(CERES_dict['param']=='toa_sw_clr_mon'):
-        min_val=-40.
-        max_val = 40.
+        min_val=-20.
+        max_val = 20.
         title_adder = 'TOA Clear-Sky SWF'
     elif(CERES_dict['param']=='toa_sw_all_mon'):
-        min_val=-15.
-        max_val = 15.
+        min_val=-25.
+        max_val = 25.
         title_adder = 'TOA All-Sky SWF'
     elif(CERES_dict['param']=='toa_lw_clr_mon'):
-        min_val=-15.
-        max_val = 15.
-        title_adder = 'TOA Clear-Sky LWF'
-    elif(CERES_dict['param']=='toa_lw_all_mon'):
         min_val=-6.
         max_val = 6.
+        title_adder = 'TOA Clear-Sky LWF'
+    elif(CERES_dict['param']=='toa_lw_all_mon'):
+        min_val=-10.
+        max_val = 10.
         title_adder = 'TOA All-Sky LWF'
     elif(CERES_dict['param']=='toa_net_clr_mon'):
         min_val=-60.
         max_val = 60.
         title_adder = 'TOA Clear-Sky Net Flux'
     elif(CERES_dict['param']=='toa_net_all_mon'):
-        min_val=-15.
-        max_val = 15.
+        min_val=-25.
+        max_val = 25.
         title_adder = 'TOA All-Sky Net Flux'
     elif(CERES_dict['param']=='toa_alb_clr_mon'):
-        min_val=-0.15
-        max_val = 0.15
+        min_val=-0.30
+        max_val = 0.30
         title_adder = 'TOA Clear-Sky Albedo'
     elif(CERES_dict['param']=='toa_alb_all_mon'):
         min_val=-0.06
