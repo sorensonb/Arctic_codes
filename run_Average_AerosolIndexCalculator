@@ -1,0 +1,22 @@
+#!/bin/bash
+#
+# NAME:
+#   run_Average_AerosolIndexCalculator
+#
+# PURPOSE: 
+#   Start the process to automatically run Average_AerosolIndexCalculator.pro
+#   The main purpose of this program is to call compile_Average_AerosolIndexCalculator.idl
+#
+# CALLS:
+#   /home/bsorenson/compile_Average_AerosolIndexCalculator.idl
+#
+# SYNTAX:
+#   ./run_Average_AerosolIndexCalculator
+#
+# MODIFICATIONS:
+#   Blake Sorenson <blake.sorenson@und.edu>         - 2018/09/18:
+#     Written
+#
+
+idl /home/bsorenson/compile_Average_AerosolIndexCalculator.idl
+
