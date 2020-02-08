@@ -1,0 +1,14 @@
+;Written by:
+;Blake Sorenson 2018/09/18
+
+.run Average_AerosolIndexCalculator.pro
+.run start_Average_AerosolIndexCalculator.pro
+
+; Make sure all routines have been compiled
+  RESOLVE_ALL
+
+; Define the values
+first      = 0
+
+; Run the main program
+Run_AI,first
