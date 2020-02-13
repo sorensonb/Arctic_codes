@@ -1,0 +1,29 @@
+# SCCS IDENTIFICATION:  $HeadURL$
+# SCCS IDENTIFICATION:  @(#)$Id$
+#
+CF = cc
+
+
+BIN = ./
+LIB = ./lib
+INC = ./inc
+
+SRCS = ceres_auto_aqua_processor.c
+
+LIBRARIES =  $(LIB)/libmfhdf.a  \
+        $(LIB)/libdf.a     \
+        $(LIB)/libnetcdf.a \
+        $(LIB)/libjpeg.so   \
+        $(LIB)/libz.a \
+        $(LIB)/libm.a
+
+
+#EXE = $(BIN)cerestest_aqua_exec
+EXE = $(BIN)autoceres_aqua_exec
+
+FFLAGS = -O
+
+$(EXE)::        $(SRCS)
+	$(CF) $(FFLAGS) -I$(INC) $(SRCS) $(LIBRARIES) -o $(EXE)
+
+

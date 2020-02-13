@@ -43,14 +43,14 @@ row_max=int(sys.argv[2])
 
 plot_time = sys.argv[1]
 #new_time = '20130611t1322_new'
-old_base_path = '/home/shared/OMAERUV/OMAERUV_Parameters/'
+base_path = '/home/bsorenson/data/OMI/H5_files/'
 new_base_path = '/home/shared/OMAERUV/OMAERUV_Parameters/new_files/'
 
 #define the directory to the aerosol index files
-pathlength = '/home/shared/OMAERUV/OMAERUV_Parameters/Aerosol_Index/'
-pathlength1 = '/home/shared/OMAERUV/OMAERUV_Parameters/Latitude/'
-pathlength2 = '/home/shared/OMAERUV/OMAERUV_Parameters/Longitude/'
-pathlength3 = '/home/shared/OMAERUV/OMAERUV_Parameters/X_Track_Quality_Flags/'
+##pathlength = '/home/shared/OMAERUV/OMAERUV_Parameters/Aerosol_Index/'
+##pathlength1 = '/home/shared/OMAERUV/OMAERUV_Parameters/Latitude/'
+##pathlength2 = '/home/shared/OMAERUV/OMAERUV_Parameters/Longitude/'
+##pathlength3 = '/home/shared/OMAERUV/OMAERUV_Parameters/X_Track_Quality_Flags/'
 
 ###outfilename = 'omi_single_pass_'+plot_time+'_values_80.txt'
 ###fout = open(outfilename,'w')
@@ -79,14 +79,6 @@ latmax =  90
 
 lat_ranges = np.arange(-90,90,1.0)
 lon_ranges = np.arange(-180,180,1.0)
-##AIDict = {}
-##for lat in lat_ranges:
-##    for lon in lon_ranges:
-##        AIDict[str(int(lat))+'x'+str(int(lon))] = {}
-##        AIDict[str(int(lat))+'x'+str(int(lon))]['data'] = []
-##        AIDict[str(int(lat))+'x'+str(int(lon))]['avg']  = 0.0
-##        AIDict[str(int(lat))+'x'+str(int(lon))]['std']  = 0.0
-##        AIDict[str(int(lat))+'x'+str(int(lon))]['date']  = ''
 
 ### Look through the directories for data with the desired date
 ##ailist      = glob.glob(pathlength+'UVAerosolIndex_'+date+'*.bin')
@@ -95,9 +87,19 @@ lon_ranges = np.arange(-180,180,1.0)
 ##xtracklist  = glob.glob(pathlength3+'XTrackQualityFlags_'+date+'*.bin')
 ##num_files   = len(ailist)
 
+latmin = -89
+NorthAmerica = True
 # Set up the polar stereographic projection map
 fig1 = plt.figure(figsize=(8,8))
-m = Basemap(projection='npstere',boundinglat=80,lon_0=0,resolution='l')
+if(latmin<45):
+    m = Basemap(projection='mill',lon_0=0,resolution='l')
+else:
+    m = Basemap(projection='npstere',boundinglat=latmin,lon_0=0,resolution='l')
+if(NorthAmerica is True):
+    m = Basemap(projection='lcc',width=12000000,height=9000000,\
+                rsphere=(6378137.00,6356752.3142),\
+                resolution='l',area_thresh=1000.,\
+                lat_1=45.,lat_2=55.,lat_0=50.,lon_0=-107.)
 fig = plt.gcf()
 m.drawcoastlines()
 m.drawparallels(np.arange(-80.,81.,20.))
@@ -107,15 +109,6 @@ m.drawmeridians(np.arange(-180.,181.,20.))
 #ax.coastlines()
 ##ax.add_feature(cfeature.BORDERS)
 
-
-#RED=np.arange(0,256.,1.0)
-#GREEN=np.arange(0,256.,1.0)
-#BLUE=np.arange(0,256.,1.0)
-
-
-#;RED(18:26)=  [    0,  0, 51,255,153,178,204,255,255]
-#;GREEN(18:26)=[    0,255,255,255, 76,102,  0,153,255]
-#;BLUE(18:26)= [ 255,255, 51,  0,  0,255,  0,153,255]
 
 
 RED   = np.array([  0., 30.,135.,  0.,  0.,255.,255.,200.,255.])
@@ -173,14 +166,13 @@ elif(len(plot_time)==12):
     time = plot_time[8:]
 else:
     time = ''
-total_list = subprocess.check_output('ls /home/shared/OMAERUV/'+        \
-          'H5_files_20190212_download/OMI-Aura_L2-OMAERUV_'+year+'m'+date+'t'+time+'*.he5',\
+total_list = subprocess.check_output('ls '+base_path+'OMI-Aura_L2-OMAERUV_'+year+'m'+date+'t'+time+'*.he5',\
           shell=True).decode('utf-8').strip().split('\n')
 
-total_list = ['/home/shared/OMAERUV/H5_files_20190212_download/OMI-Aura_L2-OMAERUV_2008m0427t0052-o20122_v003-2017m0721t120210.he5',\
-              '/home/shared/OMAERUV/H5_files_20190212_download/OMI-Aura_L2-OMAERUV_2008m0427t0231-o20123_v003-2017m0721t120217.he5',\
-              '/home/shared/OMAERUV/H5_files_20190212_download/OMI-Aura_L2-OMAERUV_2008m0427t0410-o20124_v003-2017m0721t120234.he5',\
-              '/home/shared/OMAERUV/H5_files_20190212_download/OMI-Aura_L2-OMAERUV_2008m0427t0549-o20125_v003-2017m0721t121042.he5']
+##total_list = ['/home/shared/OMAERUV/H5_files_20190212_download/OMI-Aura_L2-OMAERUV_2008m0427t0052-o20122_v003-2017m0721t120210.he5',\
+##              '/home/shared/OMAERUV/H5_files_20190212_download/OMI-Aura_L2-OMAERUV_2008m0427t0231-o20123_v003-2017m0721t120217.he5',\
+##              '/home/shared/OMAERUV/H5_files_20190212_download/OMI-Aura_L2-OMAERUV_2008m0427t0410-o20124_v003-2017m0721t120234.he5',\
+##              '/home/shared/OMAERUV/H5_files_20190212_download/OMI-Aura_L2-OMAERUV_2008m0427t0549-o20125_v003-2017m0721t121042.he5']
 
 min_diff = 30
 max_diff = -30
@@ -190,21 +182,21 @@ for fileI in range(len(total_list)):
     print(total_list[fileI])
     data = h5py.File(total_list[fileI],'r')
     ALBEDO = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/SurfaceAlbedo']
-    REFLECTANCE = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/Reflectivity']
-    CLD = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/CloudFraction']
+    #REFLECTANCE = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/Reflectivity']
+    #CLD = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/CloudFraction']
     AI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex']
-    PIXEL= data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/PixelQualityFlags']
-    MSMNT= data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/MeasurementQualityFlags']
-    VZA  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/ViewingZenithAngle']
-    SZA  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/SolarZenithAngle']
-    RAZ  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/RelativeAzimuthAngle']
+    #PIXEL= data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/PixelQualityFlags']
+    #MSMNT= data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/MeasurementQualityFlags']
+    #VZA  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/ViewingZenithAngle']
+    #SZA  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/SolarZenithAngle']
+    #RAZ  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/RelativeAzimuthAngle']
     LAT = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude']
     LON = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude']
     XTRACK = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/XTrackQualityFlags']
-    GRND = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags']
+    #GRND = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags']
 
     albedo = ALBEDO[:,:,0]   
-    reflectance = REFLECTANCE[:,:,0]   
+    #reflectance = REFLECTANCE[:,:,0]   
     counter = 0
     #AI = AI[:,:,0]   
     # Loop over the values and rows 
@@ -237,11 +229,11 @@ for fileI in range(len(total_list)):
                     if(index2 < 0): index2 = 0                                                                                            
                     if(index2 > 1439): index2 = 1439
                    
-                    diff = reflectance[i,j] - albedo[i,j]
-                    if(diff<min_diff):
-                        min_diff = diff
-                    if(diff>max_diff):
-                        max_diff = diff
+                    #diff = reflectance[i,j] - albedo[i,j]
+                    #if(diff<min_diff):
+                    #    min_diff = diff
+                    #if(diff>max_diff):
+                    #    max_diff = diff
                    
                     #if(diff<0.2): 
                     #    UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + AI[i,j])/(count[index2,index1]+1)
@@ -277,7 +269,6 @@ norm = Normalize(vmin=v_min,vmax=v_max)
 mapper = ScalarMappable(norm=norm,cmap=cmap)
 nodatacolor="black"
 
-latmin =  80
 for ii in range(0,n_p-1):
     for jj in range(0,nl-1):
         if(count[ii,jj]>0):
@@ -322,34 +313,34 @@ y_index_N40 = 9
 x_index_80 = 1351
 y_index_N50 = 30
 
-print("For point 70 N, -40 E")
-print("LAT   = ",LAT[x_index_70,y_index_N40])
-print("LON   = ",LON[x_index_70,y_index_N40])
-print("AI    = ",AI[x_index_70,y_index_N40])
-print("CLD   = ",CLD[x_index_70,y_index_N40])
-print("ALB   = ",ALBEDO[x_index_70,y_index_N40,0])
-print("REFL  = ",REFLECTANCE[x_index_70,y_index_N40,0])
-print("VZA   = ",VZA[x_index_70,y_index_N40])
-print("SZA   = ",SZA[x_index_70,y_index_N40])
-print("XTRCK = ",XTRACK[x_index_70,y_index_N40])
-print("PIXEL = ",PIXEL[x_index_70,y_index_N40,0])
-print("MSMNT = ",MSMNT[x_index_70])
-print("GRND  = ",bin(GRND[x_index_70,y_index_N40]))
-print(" ")
-print("For point 80 N, -50 E")
-print("LAT   = ",LAT[x_index_80,y_index_N50])
-print("LON   = ",LON[x_index_80,y_index_N50])
-print("AI    = ",AI[x_index_80,y_index_N50])
-print("CLD   = ",CLD[x_index_80,y_index_N50])
-print("ALB   = ",ALBEDO[x_index_80,y_index_N50,0])
-print("REFL  = ",REFLECTANCE[x_index_80,y_index_N50,0])
-print("VZA   = ",VZA[x_index_80,y_index_N50])
-print("SZA   = ",SZA[x_index_80,y_index_N50])
-print("XTRCK = ",XTRACK[x_index_80,y_index_N50])
-print("PIXEL = ",PIXEL[x_index_80,y_index_N50,0])
-print("MSMNT = ",MSMNT[x_index_80])
-print("GRND  = ",bin(GRND[x_index_80,y_index_N50]))
-print("counter = ",counter)
+##print("For point 70 N, -40 E")
+##print("LAT   = ",LAT[x_index_70,y_index_N40])
+##print("LON   = ",LON[x_index_70,y_index_N40])
+##print("AI    = ",AI[x_index_70,y_index_N40])
+##print("CLD   = ",CLD[x_index_70,y_index_N40])
+##print("ALB   = ",ALBEDO[x_index_70,y_index_N40,0])
+##print("REFL  = ",REFLECTANCE[x_index_70,y_index_N40,0])
+##print("VZA   = ",VZA[x_index_70,y_index_N40])
+##print("SZA   = ",SZA[x_index_70,y_index_N40])
+##print("XTRCK = ",XTRACK[x_index_70,y_index_N40])
+##print("PIXEL = ",PIXEL[x_index_70,y_index_N40,0])
+##print("MSMNT = ",MSMNT[x_index_70])
+##print("GRND  = ",bin(GRND[x_index_70,y_index_N40]))
+##print(" ")
+##print("For point 80 N, -50 E")
+##print("LAT   = ",LAT[x_index_80,y_index_N50])
+##print("LON   = ",LON[x_index_80,y_index_N50])
+##print("AI    = ",AI[x_index_80,y_index_N50])
+##print("CLD   = ",CLD[x_index_80,y_index_N50])
+##print("ALB   = ",ALBEDO[x_index_80,y_index_N50,0])
+##print("REFL  = ",REFLECTANCE[x_index_80,y_index_N50,0])
+##print("VZA   = ",VZA[x_index_80,y_index_N50])
+##print("SZA   = ",SZA[x_index_80,y_index_N50])
+##print("XTRCK = ",XTRACK[x_index_80,y_index_N50])
+##print("PIXEL = ",PIXEL[x_index_80,y_index_N50,0])
+##print("MSMNT = ",MSMNT[x_index_80])
+##print("GRND  = ",bin(GRND[x_index_80,y_index_N50]))
+##print("counter = ",counter)
 data.close()
 
 ## Convert integer to binary
@@ -359,14 +350,15 @@ data.close()
  
 #data.close()
 
-plt.title('OMI Aerosol Index '+plot_time +' - '+plot_time[:-4]+'0549')
+plt.title('OMI Aerosol Index '+plot_time)
 #plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
 cax = fig.add_axes([0.16,0.075,0.7,0.025])
 cb = ColorbarBase(cax,cmap=cmap,norm=norm,orientation='horizontal')
 cb.ax.set_xlabel('Aerosol Index')
 #cb.ax.set_xlabel('Reflectivity - Surface Albedo')
-out_name = 'omi_single_pass_ai_200804270052_to_0549_composite_rows_0to'+str(row_max)+'.png'       
-#out_name = 'omi_single_pass_ai_'+plot_time+'_rows_0to'+str(row_max)+'.png'       
+#out_name = 'omi_single_pass_ai_200804270052_to_0549_composite_rows_0to'+str(row_max)+'.png'       
+out_name = 'omi_single_pass_ai_'+plot_time+'_rows_0to'+str(row_max)+'.png'       
 #out_name = 'omi_single_pass_refl_albedo_diff_'+plot_time+'_rows_0to'+str(row_max)+'.png'       
 plt.savefig(out_name)
 print('Saved image '+out_name)
+plt.show()

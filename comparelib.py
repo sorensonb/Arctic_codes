@@ -7,6 +7,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
+from scipy import stats
 from IceLib import read_ice,ice_trendCalc,grid_data
 from gridCERESLib import readgridCERES,calc_CERES_trend
 
@@ -41,6 +42,8 @@ def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_n
     ploty = ploty[ploty>-1000]
     corr_lwf = correlation(plotx,ploty)
     print("LWF correlation: ",corr_lwf)
+    slope,intercept,r_val,p_val,stderr = stats.linregress(plotx,ploty)
+    print("  Equation: y = ",slope,"*x + ",intercept)
     axs[0,0].scatter(plotx,ploty,s=markersize,color='black')
     axs[0,0].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='red')
     axs[0,0].set_title(dtype_adder.title()+'-Sky LWF'+ice_data['season_adder'].title()+' Trends')
@@ -57,6 +60,8 @@ def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_n
     ploty = CERES_sw_dict['trends'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
     corr_swf = correlation(plotx,ploty)
     print("SWF correlation: ",corr_swf)
+    slope,intercept,r_val,p_val,stderr = stats.linregress(plotx,ploty)
+    print("  Equation: y = ",slope,"*x + ",intercept)
     axs[0,1].scatter(plotx,ploty,s=markersize,color='black')
     axs[0,1].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='red')
     axs[0,1].set_title(dtype_adder.title()+'-Sky SWF'+ice_data['season_adder'].title()+' Trends')
@@ -73,6 +78,8 @@ def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_n
     ploty = CERES_alb_dict['trends'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
     corr_alb = correlation(plotx,ploty)
     print("Albedo correlation: ",corr_alb)
+    slope,intercept,r_val,p_val,stderr = stats.linregress(plotx,ploty)
+    print("  Equation: y = ",slope,"*x + ",intercept)
     axs[1,0].scatter(plotx,ploty,s=markersize,color='black')
     axs[1,0].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='red')
     axs[1,0].set_title(dtype_adder.title()+'-Sky Albedo'+ice_data['season_adder'].title()+' Trends')
@@ -89,6 +96,8 @@ def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_n
     ploty = CERES_net_dict['trends'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
     corr_net = correlation(plotx,ploty)
     print("Net flux correlation: ",corr_net)
+    slope,intercept,r_val,p_val,stderr = stats.linregress(plotx,ploty)
+    print("  Equation: y = ",slope,"*x + ",intercept)
     axs[1,1].scatter(plotx,ploty,s=markersize,color='black')
     axs[1,1].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='red')
     axs[1,1].set_title(dtype_adder.title()+'-Sky Net Flux'+ice_data['season_adder'].title()+' Trends')

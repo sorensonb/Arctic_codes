@@ -1,0 +1,28 @@
+# SCCS IDENTIFICATION:  $HeadURL$
+# SCCS IDENTIFICATION:  @(#)$Id$
+#
+CF = cc
+
+
+BIN = ./
+LIB = ./lib
+INC = ./inc
+
+SRCS = readssf_step1.c
+
+LIBRARIES =  $(LIB)/libmfhdf.a  \
+        $(LIB)/libdf.a     \
+        $(LIB)/libnetcdf.a \
+        $(LIB)/libjpeg.so   \
+        $(LIB)/libz.a \
+        $(LIB)/libm.a
+
+
+EXE = $(BIN)readssf_step1
+
+FFLAGS = -O
+
+$(EXE)::        $(SRCS)
+	$(CF) $(FFLAGS) -I$(INC) $(SRCS) $(LIBRARIES) -o $(EXE)
+
+
