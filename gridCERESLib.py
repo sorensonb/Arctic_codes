@@ -440,6 +440,10 @@ def calc_CERES_trend(CERES_dict,save=False,start_date='200101',end_date='201812'
         min_val=-25.
         max_val = 25.
         title_adder = 'TOA All-Sky SWF'
+    elif(CERES_dict['param']=='toa_sw_cld_mon'):
+        min_val=-25.
+        max_val = 25.
+        title_adder = 'TOA Cloudy-Sky SWF'
     elif(CERES_dict['param']=='toa_lw_clr_mon'):
         min_val=-6.
         max_val = 6.
@@ -448,6 +452,10 @@ def calc_CERES_trend(CERES_dict,save=False,start_date='200101',end_date='201812'
         min_val=-10.
         max_val = 10.
         title_adder = 'TOA All-Sky LWF'
+    elif(CERES_dict['param']=='toa_lw_cld_mon'):
+        min_val=-10.
+        max_val = 10.
+        title_adder = 'TOA Cloudy-Sky LWF'
     elif(CERES_dict['param']=='toa_net_clr_mon'):
         min_val=-60.
         max_val = 60.
@@ -456,6 +464,10 @@ def calc_CERES_trend(CERES_dict,save=False,start_date='200101',end_date='201812'
         min_val=-25.
         max_val = 25.
         title_adder = 'TOA All-Sky Net Flux'
+    elif(CERES_dict['param']=='toa_net_cld_mon'):
+        min_val=-25.
+        max_val = 25.
+        title_adder = 'TOA Cloudy-Sky Net Flux'
     elif(CERES_dict['param']=='toa_alb_clr_mon'):
         min_val=-0.30
         max_val = 0.30
@@ -464,6 +476,10 @@ def calc_CERES_trend(CERES_dict,save=False,start_date='200101',end_date='201812'
         min_val=-0.06
         max_val = 0.06
         title_adder = 'TOA All-Sky Albedo'
+    elif(CERES_dict['param']=='toa_alb_cld_mon'):
+        min_val=-0.06
+        max_val = 0.06
+        title_adder = 'TOA Cloudy-Sky Albedo'
         
     colormap = plt.cm.bwr
     #coolwarm = plt.cm.coolwarm

@@ -28,6 +28,8 @@ def correlation(x,y):
 def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_net_dict,inseason,dtype):
     if(dtype=='clr'):
         dtype_adder = "clear"
+    elif(dtype=='cld'):
+        dtype_adder = "cloudy"
     else:
         dtype_adder = "all"
     # Quick comparison
@@ -40,6 +42,8 @@ def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_n
     ploty = CERES_lw_dict['trends'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
     plotx = plotx[ploty>-1000]
     ploty = ploty[ploty>-1000]
+    plotx = plotx[ploty<1000]
+    ploty = ploty[ploty<1000]
     corr_lwf = correlation(plotx,ploty)
     print("LWF correlation: ",corr_lwf)
     slope,intercept,r_val,p_val,stderr = stats.linregress(plotx,ploty)
@@ -51,10 +55,10 @@ def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_n
     axs[0,0].set_ylabel('LWF Trends')
     x_pos = ((axs[0,0].get_xlim()[1]-axs[0,0].get_xlim()[0])/8)+axs[0,0].get_xlim()[0]
     y_pos = ((axs[0,0].get_ylim()[1]-axs[0,0].get_ylim()[0])/8)+axs[0,0].get_ylim()[0]
+    if(dtype=='cld'):
+        x_pos = ((axs[0,0].get_xlim()[1]-axs[0,0].get_xlim()[0])/8)+axs[0,0].get_xlim()[0]
+        y_pos = axs[0,0].get_ylim()[1]-((axs[0,0].get_ylim()[1]-axs[0,0].get_ylim()[0])/8)
     axs[0,0].text(x_pos,y_pos,"Corr = "+str(np.round(corr_lwf,3)))
-    ##print("  y_max = ",axs[0,0].get_ylim()[1],"  y_min = ",axs[0,0].get_ylim()[0])
-    ##print("  x_pos = ",x_pos)
-    ##print("  y_pos = ",y_pos)
     # Plot SWF data
     plotx = ice_data['grid_ice'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
     ploty = CERES_sw_dict['trends'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
@@ -69,6 +73,9 @@ def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_n
     axs[0,1].set_ylabel('SWF Trends')
     x_pos = ((axs[0,1].get_xlim()[1]-axs[0,1].get_xlim()[0])/8)+axs[0,1].get_xlim()[0]
     y_pos = axs[0,1].get_ylim()[1]-((axs[0,1].get_ylim()[1]-axs[0,1].get_ylim()[0])/8)
+    if(dtype=='cld'):
+        x_pos = ((axs[0,1].get_xlim()[1]-axs[0,1].get_xlim()[0])/8)+axs[0,1].get_xlim()[0]
+        y_pos = ((axs[0,1].get_ylim()[1]-axs[0,1].get_ylim()[0])/8)+axs[0,1].get_ylim()[0]
     axs[0,1].text(x_pos,y_pos,"Corr = "+str(np.round(corr_swf,3)))
     ##print("  y_max = ",axs[0,1].get_ylim()[1],"  y_min = ",axs[0,1].get_ylim()[0])
     ##print("  x_pos = ",x_pos)
@@ -87,6 +94,9 @@ def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_n
     axs[1,0].set_ylabel('Albedo Trends')
     x_pos = ((axs[1,0].get_xlim()[1]-axs[1,0].get_xlim()[0])/8)+axs[1,0].get_xlim()[0]
     y_pos = axs[1,0].get_ylim()[1]-((axs[1,0].get_ylim()[1]-axs[1,0].get_ylim()[0])/8)
+    if(dtype=='cld'):
+        x_pos = ((axs[1,0].get_xlim()[1]-axs[1,0].get_xlim()[0])/8)+axs[1,0].get_xlim()[0]
+        y_pos = ((axs[1,0].get_ylim()[1]-axs[1,0].get_ylim()[0])/8)+axs[1,0].get_ylim()[0]
     axs[1,0].text(x_pos,y_pos,"Corr = "+str(np.round(corr_alb,3)))
     ##print("  y_max = ",axs[1,0].get_ylim()[1],"  y_min = ",axs[1,0].get_ylim()[0])
     ##print("  x_pos = ",x_pos)
@@ -105,6 +115,9 @@ def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_n
     axs[1,1].set_ylabel('Net Flux Trends')
     x_pos = ((axs[1,1].get_xlim()[1]-axs[1,1].get_xlim()[0])/8)+axs[1,1].get_xlim()[0]
     y_pos = ((axs[1,1].get_ylim()[1]-axs[1,1].get_ylim()[0])/8)+axs[1,1].get_ylim()[0]
+    if(dtype=='cld'):
+        x_pos = ((axs[1,1].get_xlim()[1]-axs[1,1].get_xlim()[0])/8)+axs[1,1].get_xlim()[0]
+        y_pos = axs[1,1].get_ylim()[1]-((axs[1,1].get_ylim()[1]-axs[1,1].get_ylim()[0])/8)
     axs[1,1].text(x_pos,y_pos,"Corr = "+str(np.round(corr_net,3)))
     ##print("  y_max = ",axs[1,1].get_ylim()[1],"  y_min = ",axs[1,1].get_ylim()[0])
     ##print("  x_pos = ",x_pos)
@@ -112,4 +125,4 @@ def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_n
     outname = "ceres_nsidc_trends_four_panel_"+inseason+"_"+dtype+"sky.png"
     plt.savefig(outname,dpi=300)
     print("Saved image "+outname)
-
+    plt.show()

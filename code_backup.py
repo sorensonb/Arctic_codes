@@ -59,3 +59,11 @@ os.system(cmnd)
 cmnd = "cp "+base_dir+"OMI/run_Average_AerosolIndexCalculator "+dest_dir
 print(cmnd)
 os.system(cmnd)
+# ---------------------------------------------------------------------------- 
+# Siphon/Metpy Codes
+# ---------------------------------------------------------------------------- 
+print("Siphon/Metpy")
+smcodes = '/home/bsorenson/Programs/Python/auto_weather_codes/'
+cmnd = "cp "+smcodes+"*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
