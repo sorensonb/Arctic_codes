@@ -24,9 +24,9 @@ from metpy.plots import add_metpy_logo
 from metpy.units import units
 
 if(len(sys.argv) != 4):
-    print("SYNTAX: python model_meteogram.py model lat lon")
-    print("        model: GFS, GEFS, NAM, RAP, HRRR")
+    print("SYNTAX: python model_meteogram.py lat lon model")
     print("        GFK: 47.9253, -97.0329")
+    print("        model: GFS, GEFS, NAM, RAP, HRRR")
     sys.exit()
 
 # Make meteogram plot

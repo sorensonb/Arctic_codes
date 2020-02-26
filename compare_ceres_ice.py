@@ -11,7 +11,7 @@ sys.path.append('/home/bsorenson/Research/Ice_analysis/')
 sys.path.append('/home/bsorenson/Research/CERES/')
 from IceLib import read_ice,ice_trendCalc,grid_data
 from gridCERESLib import readgridCERES,calc_CERES_trend
-from comparelib import plot_fourscatter
+from comparelib import plot_fourscatter, plot_cld_clr_scatter
 
 ###def correlation(x,y):
 ###    avg_x = np.average(x)
@@ -164,6 +164,7 @@ calc_CERES_trend(CERES_sw_dict,adjusted=adj,save=True)
 calc_CERES_trend(CERES_alb_dict,adjusted=adj,save=True)
 calc_CERES_trend(CERES_net_dict,adjusted=adj,save=True)
 
+
 # Reshape the CERES data
 templon = CERES_lw_dict['lon']
 lon2    = np.where(templon>179.9)
@@ -177,12 +178,30 @@ for xi in range(len(CERES_lw_dict['lat'])):
     CERES_sw_dict['trends'][xi,:] = np.concatenate([CERES_sw_dict['trends'][xi,:][lon2],CERES_sw_dict['trends'][xi,:][goodlon]])
     CERES_alb_dict['trends'][xi,:] = np.concatenate([CERES_alb_dict['trends'][xi,:][lon2],CERES_alb_dict['trends'][xi,:][goodlon]])
     CERES_net_dict['trends'][xi,:] = np.concatenate([CERES_net_dict['trends'][xi,:][lon2],CERES_net_dict['trends'][xi,:][goodlon]])
+if(cloud==True):
+    CERES_lw_clr_dict['lon'] = np.concatenate([templon[lon2]-360.,templon[goodlon]])
+    CERES_sw_clr_dict['lon'] = np.concatenate([templon[lon2]-360.,templon[goodlon]])
+    CERES_alb_clr_dict['lon'] = np.concatenate([templon[lon2]-360.,templon[goodlon]])
+    CERES_net_clr_dict['lon'] = np.concatenate([templon[lon2]-360.,templon[goodlon]])
+    for xi in range(len(CERES_lw_dict['lat'])):
+        CERES_lw_clr_dict['trends'][xi,:] = np.concatenate([CERES_lw_clr_dict['trends'][xi,:][lon2],CERES_lw_clr_dict['trends'][xi,:][goodlon]])
+        CERES_sw_clr_dict['trends'][xi,:] = np.concatenate([CERES_sw_clr_dict['trends'][xi,:][lon2],CERES_sw_clr_dict['trends'][xi,:][goodlon]])
+        CERES_alb_clr_dict['trends'][xi,:] = np.concatenate([CERES_alb_clr_dict['trends'][xi,:][lon2],CERES_alb_clr_dict['trends'][xi,:][goodlon]])
+        CERES_net_clr_dict['trends'][xi,:] = np.concatenate([CERES_net_clr_dict['trends'][xi,:][lon2],CERES_net_clr_dict['trends'][xi,:][goodlon]])
+    calc_CERES_trend(CERES_lw_clr_dict,adjusted=adj,save=True)
+    calc_CERES_trend(CERES_sw_clr_dict,adjusted=adj,save=True)
+    calc_CERES_trend(CERES_alb_clr_dict,adjusted=adj,save=True)
+    calc_CERES_trend(CERES_net_clr_dict,adjusted=adj,save=True)
+
 
 
 # Start comparisons
 plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_net_dict,inseason,dtype)
 
-# Quick comparison
+## Quick comparison
+#plot_cld_clr_scatter(CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_alb_clr_dict,CERES_net_clr_dict,\
+#                     CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_net_dict,\
+#                     ice_data,inseason)
 
 ### Loop over the grid, comparing the trends if the ice trends are non-missing.
 ### Trends over land are missing.

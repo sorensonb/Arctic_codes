@@ -126,3 +126,112 @@ def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_n
     plt.savefig(outname,dpi=300)
     print("Saved image "+outname)
     plt.show()
+
+
+def plot_cld_clr_scatter(CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_alb_clr_dict,CERES_net_clr_dict,\
+                         CERES_lw_cld_dict,CERES_sw_cld_dict,CERES_alb_cld_dict,CERES_net_cld_dict,\
+                         ice_data,inseason):
+    #if(dtype=='clr'):
+    #    dtype_adder = "clear"
+    #elif(dtype=='cld'):
+    #    dtype_adder = "cloudy"
+    #else:
+    #    dtype_adder = "all"
+    # Quick comparison
+    markersize=6
+    fig, axs = plt.subplots(2,2)
+    fig.set_size_inches(15,13)
+    plt.title("CERES Cloudy-Sky and Clear-sky "+inseason.title()+" Trends")
+    # Plot LWF data
+    #ice   = ice_data['grid_ice'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
+    plotx = CERES_lw_cld_dict['trends'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
+    ploty = CERES_lw_clr_dict['trends'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
+    plotx = plotx[ploty>-1000]
+    ploty = ploty[ploty>-1000]
+    plotx = plotx[ploty<1000]
+    ploty = ploty[ploty<1000]
+    corr_lwf = correlation(plotx,ploty)
+    print("LWF correlation: ",corr_lwf)
+    slope,intercept,r_val,p_val,stderr = stats.linregress(plotx,ploty)
+    print("  Equation: y = ",slope,"*x + ",intercept)
+    axs[0,0].scatter(plotx,ploty,s=markersize,color='black')
+    axs[0,0].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='red')
+    axs[0,0].set_title('CERES LWF'+ice_data['season_adder'].title()+' Trends')
+    axs[0,0].set_xlabel('Cloudy-sky Trends')
+    axs[0,0].set_ylabel('Clear-sky Trends')
+    x_pos = ((axs[0,0].get_xlim()[1]-axs[0,0].get_xlim()[0])/8)+axs[0,0].get_xlim()[0]
+    y_pos = ((axs[0,0].get_ylim()[1]-axs[0,0].get_ylim()[0])/8)+axs[0,0].get_ylim()[0]
+    #if(dtype=='cld'):
+    #    x_pos = ((axs[0,0].get_xlim()[1]-axs[0,0].get_xlim()[0])/8)+axs[0,0].get_xlim()[0]
+    #    y_pos = axs[0,0].get_ylim()[1]-((axs[0,0].get_ylim()[1]-axs[0,0].get_ylim()[0])/8)
+    axs[0,0].text(x_pos,y_pos,"Corr = "+str(np.round(corr_lwf,3)))
+    # Plot SWF data
+    #ice   = ice_data['grid_ice'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
+    plotx = CERES_sw_cld_dict['trends'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
+    ploty = CERES_sw_clr_dict['trends'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
+    corr_swf = correlation(plotx,ploty)
+    print("SWF correlation: ",corr_swf)
+    slope,intercept,r_val,p_val,stderr = stats.linregress(plotx,ploty)
+    print("  Equation: y = ",slope,"*x + ",intercept)
+    axs[0,1].scatter(plotx,ploty,s=markersize,color='black')
+    axs[0,1].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='red')
+    axs[0,1].set_title('CERES SWF'+ice_data['season_adder'].title()+' Trends')
+    axs[0,1].set_xlabel('Cloudy-sky Trends')
+    axs[0,1].set_ylabel('Clear-sky Trends')
+    x_pos = ((axs[0,1].get_xlim()[1]-axs[0,1].get_xlim()[0])/8)+axs[0,1].get_xlim()[0]
+    y_pos = axs[0,1].get_ylim()[1]-((axs[0,1].get_ylim()[1]-axs[0,1].get_ylim()[0])/8)
+    #if(dtype=='cld'):
+    #    x_pos = ((axs[0,1].get_xlim()[1]-axs[0,1].get_xlim()[0])/8)+axs[0,1].get_xlim()[0]
+    #    y_pos = ((axs[0,1].get_ylim()[1]-axs[0,1].get_ylim()[0])/8)+axs[0,1].get_ylim()[0]
+    axs[0,1].text(x_pos,y_pos,"Corr = "+str(np.round(corr_swf,3)))
+    ##print("  y_max = ",axs[0,1].get_ylim()[1],"  y_min = ",axs[0,1].get_ylim()[0])
+    ##print("  x_pos = ",x_pos)
+    ##print("  y_pos = ",y_pos)
+    # Plot Albedo Data
+    #plotx = ice_data['grid_ice'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
+    plotx = CERES_alb_cld_dict['trends'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
+    ploty = CERES_alb_clr_dict['trends'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
+    corr_alb = correlation(plotx,ploty)
+    print("Albedo correlation: ",corr_alb)
+    slope,intercept,r_val,p_val,stderr = stats.linregress(plotx,ploty)
+    print("  Equation: y = ",slope,"*x + ",intercept)
+    axs[1,0].scatter(plotx,ploty,s=markersize,color='black')
+    axs[1,0].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='red')
+    axs[1,0].set_title('CERES Albedo'+ice_data['season_adder'].title()+' Trends')
+    axs[1,0].set_xlabel('Cloudy-sky Trends')
+    axs[1,0].set_ylabel('Clear-sky Trends')
+    x_pos = ((axs[1,0].get_xlim()[1]-axs[1,0].get_xlim()[0])/8)+axs[1,0].get_xlim()[0]
+    y_pos = axs[1,0].get_ylim()[1]-((axs[1,0].get_ylim()[1]-axs[1,0].get_ylim()[0])/8)
+    #if(dtype=='cld'):
+    #    x_pos = ((axs[1,0].get_xlim()[1]-axs[1,0].get_xlim()[0])/8)+axs[1,0].get_xlim()[0]
+    #    y_pos = ((axs[1,0].get_ylim()[1]-axs[1,0].get_ylim()[0])/8)+axs[1,0].get_ylim()[0]
+    axs[1,0].text(x_pos,y_pos,"Corr = "+str(np.round(corr_alb,3)))
+    ##print("  y_max = ",axs[1,0].get_ylim()[1],"  y_min = ",axs[1,0].get_ylim()[0])
+    ##print("  x_pos = ",x_pos)
+    ##print("  y_pos = ",y_pos)
+    # Plot Net Flux Data
+    #plotx = ice_data['grid_ice'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
+    plotx = CERES_net_cld_dict['trends'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
+    ploty = CERES_net_clr_dict['trends'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
+    corr_net = correlation(plotx,ploty)
+    print("Net flux correlation: ",corr_net)
+    slope,intercept,r_val,p_val,stderr = stats.linregress(plotx,ploty)
+    print("  Equation: y = ",slope,"*x + ",intercept)
+    axs[1,1].scatter(plotx,ploty,s=markersize,color='black')
+    axs[1,1].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='red')
+    axs[1,1].set_title('CERES Net Flux'+ice_data['season_adder'].title()+' Trends')
+    axs[1,1].set_xlabel('Cloudy-sky Trends')
+    axs[1,1].set_ylabel('Clear-sky Trends')
+    x_pos = ((axs[1,1].get_xlim()[1]-axs[1,1].get_xlim()[0])/8)+axs[1,1].get_xlim()[0]
+    y_pos = ((axs[1,1].get_ylim()[1]-axs[1,1].get_ylim()[0])/8)+axs[1,1].get_ylim()[0]
+    #if(dtype=='cld'):
+    #    x_pos = ((axs[1,1].get_xlim()[1]-axs[1,1].get_xlim()[0])/8)+axs[1,1].get_xlim()[0]
+    #    y_pos = axs[1,1].get_ylim()[1]-((axs[1,1].get_ylim()[1]-axs[1,1].get_ylim()[0])/8)
+    axs[1,1].text(x_pos,y_pos,"Corr = "+str(np.round(corr_net,3)))
+    ##print("  y_max = ",axs[1,1].get_ylim()[1],"  y_min = ",axs[1,1].get_ylim()[0])
+    ##print("  x_pos = ",x_pos)
+    ##print("  y_pos = ",y_pos)
+    outname = "ceres_clr_cld_trends_four_panel_"+inseason+"_sky.png"
+    plt.savefig(outname,dpi=300)
+    print("Saved image "+outname)
+    plt.show()
