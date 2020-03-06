@@ -383,7 +383,7 @@ def calc_avgCERES(CERES_dict,save=False,start_date='200101',end_date='201812',mi
         plt.show()
     return initial_avgs,trends,deseasonal_alb
 
-def calc_CERES_trend(CERES_dict,save=False,start_date='200101',end_date='201812',minlat=45.5,month_fix=False,\
+def calc_CERES_trend(CERES_dict,save=False,start_date='200012',end_date='201812',minlat=45.5,month_fix=False,\
                      adjusted=False):
     
     print("\n= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =")
@@ -538,7 +538,7 @@ def make_scatter(CERES_dict_alb_clr,CERES_dict_sw_clr,\
                  CERES_dict_lw_clr,CERES_dict_net_clr):
     dot_size=8
     # Generate scatter plots
-    title_text = 'January 2001 - December 2018'
+    title_text = 'December 2000 - December 2018'
     fig1 = plt.figure()
     plt.scatter(CERES_dict_alb_clr['trends'].flatten(),\
         CERES_dict_sw_clr['trends'].flatten(),s=dot_size)
@@ -664,7 +664,7 @@ def icePlots(infile,monthfix=False):
     total_interper = np.poly1d(np.polyfit(interpx,extent,1)) 
     # Normalize trend by dividing by number of years
     total_trend = (total_interper(interpx[-1])-total_interper(interpx[0]))
-    print("Total extent trend (200101 - 201812): ",np.round(total_trend,3))
+    print("Total extent trend (200012 - 201812): ",np.round(total_trend,3))
     pcnt_change = (total_trend/avg_ext)*100.
     print("     % of average: ",pcnt_change)
 
@@ -680,7 +680,7 @@ def icePlots(infile,monthfix=False):
     newy = interpx*slope+intercept
     test_total_de_trend = newy[-1]-newy[0] 
 
-    print("Total deseasonal extent trend (200101 - 201812): ",np.round(total_de_trend,5))
+    print("Total deseasonal extent trend (200012 - 201812): ",np.round(total_de_trend,5))
     print("            r_value                            : ",np.round(r_value,5))
     print("            p_value                            : ",np.round(p_value,5))
     pcnt_change = (total_de_trend/avg_ext)*100.

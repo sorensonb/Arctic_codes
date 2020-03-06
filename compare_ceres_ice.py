@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import sys
 sys.path.append('/home/bsorenson/Research/Ice_analysis/')
 sys.path.append('/home/bsorenson/Research/CERES/')
-from IceLib import read_ice,ice_trendCalc,grid_data
+from IceLib import read_ice,ice_trendCalc,grid_data,grid_data_conc
 from gridCERESLib import readgridCERES,calc_CERES_trend
 from comparelib import plot_fourscatter, plot_cld_clr_scatter
 
@@ -113,8 +113,11 @@ inseason = sys.argv[2]
 
 # Read in NSIDC ice data
 ice_data = read_ice(inseason)
+ice_data = grid_data_conc(ice_data)
 ice_data = ice_trendCalc(ice_data)
 ice_data = grid_data(ice_data)
+sys.exit()
+
 
 cloud = False
 if(dtype=='cld'):
@@ -122,16 +125,16 @@ if(dtype=='cld'):
     dtype='all'
 
 # Read in CERES data
-CERES_lw_dict = readgridCERES(200101,201812,'toa_lw_'+dtype+'_mon',minlat=30.5,season=inseason)
-CERES_sw_dict = readgridCERES(200101,201812,'toa_sw_'+dtype+'_mon',minlat=30.5,season=inseason)
-CERES_alb_dict = readgridCERES(200101,201812,'toa_alb_'+dtype+'_mon',minlat=30.5,season=inseason)
-CERES_net_dict = readgridCERES(200101,201812,'toa_net_'+dtype+'_mon',minlat=30.5,season=inseason)
+CERES_lw_dict = readgridCERES(200012,201812,'toa_lw_'+dtype+'_mon',minlat=30.5,season=inseason)
+CERES_sw_dict = readgridCERES(200012,201812,'toa_sw_'+dtype+'_mon',minlat=30.5,season=inseason)
+CERES_alb_dict = readgridCERES(200012,201812,'toa_alb_'+dtype+'_mon',minlat=30.5,season=inseason)
+CERES_net_dict = readgridCERES(200012,201812,'toa_net_'+dtype+'_mon',minlat=30.5,season=inseason)
 if(cloud==True):
     # Read in the clear data
-    CERES_lw_clr_dict  = readgridCERES(200101,201812, 'toa_lw_clr_mon',minlat=30.5,season=inseason)
-    CERES_sw_clr_dict  = readgridCERES(200101,201812, 'toa_sw_clr_mon',minlat=30.5,season=inseason)
-    CERES_alb_clr_dict = readgridCERES(200101,201812,'toa_alb_clr_mon',minlat=30.5,season=inseason)
-    CERES_net_clr_dict = readgridCERES(200101,201812,'toa_net_clr_mon',minlat=30.5,season=inseason)
+    CERES_lw_clr_dict  = readgridCERES(200012,201812, 'toa_lw_clr_mon',minlat=30.5,season=inseason)
+    CERES_sw_clr_dict  = readgridCERES(200012,201812, 'toa_sw_clr_mon',minlat=30.5,season=inseason)
+    CERES_alb_clr_dict = readgridCERES(200012,201812,'toa_alb_clr_mon',minlat=30.5,season=inseason)
+    CERES_net_clr_dict = readgridCERES(200012,201812,'toa_net_clr_mon',minlat=30.5,season=inseason)
     # Calculate cloudy data by subtracting the clear data from the all-sky data 
     # Longwave
     lw_cloud_data = CERES_lw_dict['data'] - CERES_lw_clr_dict['data']

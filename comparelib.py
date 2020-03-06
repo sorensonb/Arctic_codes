@@ -34,12 +34,13 @@ def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_n
         dtype_adder = "all"
     # Quick comparison
     markersize=6
+    pcnt_reject = 0.1
     fig, axs = plt.subplots(2,2)
     fig.set_size_inches(15,13)
     plt.title("CERES and NSIDC "+inseason.title()+" Trends")
     # Plot LWF data
-    plotx = ice_data['grid_ice'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
-    ploty = CERES_lw_dict['trends'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
+    plotx = ice_data['grid_ice'][(ice_data['grid_ice']!=-999.) & (np.abs(ice_data['grid_ice'])>=pcnt_reject)]
+    ploty = CERES_lw_dict['trends'][(ice_data['grid_ice']!=-999.) & (np.abs(ice_data['grid_ice'])>=pcnt_reject)]
     plotx = plotx[ploty>-1000]
     ploty = ploty[ploty>-1000]
     plotx = plotx[ploty<1000]
@@ -60,8 +61,8 @@ def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_n
         y_pos = axs[0,0].get_ylim()[1]-((axs[0,0].get_ylim()[1]-axs[0,0].get_ylim()[0])/8)
     axs[0,0].text(x_pos,y_pos,"Corr = "+str(np.round(corr_lwf,3)))
     # Plot SWF data
-    plotx = ice_data['grid_ice'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
-    ploty = CERES_sw_dict['trends'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
+    plotx = ice_data['grid_ice'][(ice_data['grid_ice']!=-999.)    & (np.abs(ice_data['grid_ice'])>=pcnt_reject)]
+    ploty = CERES_sw_dict['trends'][(ice_data['grid_ice']!=-999.) & (np.abs(ice_data['grid_ice'])>=pcnt_reject)]
     corr_swf = correlation(plotx,ploty)
     print("SWF correlation: ",corr_swf)
     slope,intercept,r_val,p_val,stderr = stats.linregress(plotx,ploty)
@@ -81,8 +82,8 @@ def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_n
     ##print("  x_pos = ",x_pos)
     ##print("  y_pos = ",y_pos)
     # Plot Albedo Data
-    plotx = ice_data['grid_ice'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
-    ploty = CERES_alb_dict['trends'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
+    plotx = ice_data['grid_ice'][(ice_data['grid_ice']!=-999.)     & (np.abs(ice_data['grid_ice'])>=pcnt_reject)]
+    ploty = CERES_alb_dict['trends'][(ice_data['grid_ice']!=-999.) & (np.abs(ice_data['grid_ice'])>=pcnt_reject)]
     corr_alb = correlation(plotx,ploty)
     print("Albedo correlation: ",corr_alb)
     slope,intercept,r_val,p_val,stderr = stats.linregress(plotx,ploty)
@@ -102,8 +103,8 @@ def plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_n
     ##print("  x_pos = ",x_pos)
     ##print("  y_pos = ",y_pos)
     # Plot Net Flux Data
-    plotx = ice_data['grid_ice'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
-    ploty = CERES_net_dict['trends'][(ice_data['grid_ice']!=-999.) & (ice_data['grid_ice']!=0.)]
+    plotx = ice_data['grid_ice'][(ice_data['grid_ice']!=-999.)     & (np.abs(ice_data['grid_ice'])>=pcnt_reject)]
+    ploty = CERES_net_dict['trends'][(ice_data['grid_ice']!=-999.) & (np.abs(ice_data['grid_ice'])>=pcnt_reject)]
     corr_net = correlation(plotx,ploty)
     print("Net flux correlation: ",corr_net)
     slope,intercept,r_val,p_val,stderr = stats.linregress(plotx,ploty)

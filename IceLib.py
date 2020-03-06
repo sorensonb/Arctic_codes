@@ -115,13 +115,16 @@ def read_ice(season):
         if(fname[-17:-14] in ls_check):
             file_names.append(fname)
     
-    # Read in the latitude and longitude data
+    # Read in the latitude, longitude, and area data
     latfileo = open('/home/bsorenson/Research/Ice_analysis/psn25lats_v3.dat','r')
     lats = np.reshape(np.fromfile(latfileo,dtype=np.uint32)/100000.,(448,304))
     lonfileo = open('/home/bsorenson/Research/Ice_analysis/psn25lons_v3.dat','r')
     tlons = np.fromfile(lonfileo,dtype=np.uint32)/100000.
     tlons[tlons>180.] = tlons[tlons>180.]-42949.67296
     lons = np.reshape(tlons,(448,304))
+    areafileo = open('/home/bsorenson/Research/Ice_analysis/psn25area_v3.dat','r')
+    areas = np.reshape(np.fromfile(areafileo,dtype=np.uint32)/1000.,(448,304))
+    
     #lons = np.reshape(np.fromfile(lonfileo,dtype=np.uint32)/100000.,(448,304))
     
     num_files = len(file_names)
@@ -129,6 +132,7 @@ def read_ice(season):
     ice_data['data'] = np.full((num_files,448,304),-9.)
     ice_data['lat']  = lats
     ice_data['lon']  = lons
+    ice_data['area']  = areas
     ice_data['trends'] = np.full((448,304),-9.)
     ice_data['land_trends'] = np.full((448,304),-9.)
     ice_data['titles'] = []
@@ -216,6 +220,95 @@ def ice_trendCalc(ice_data,thielSen=False):
 
     return ice_data
 
+def ice_gridtrendCalc(ice_data,thielSen=False):
+    if(month_fix==True):
+        CERES_dict['month_fix'] = '_monthfix'
+
+    #lat_ranges = np.arange(minlat,90.5,1.0)
+    #lon_ranges = np.arange(0.5,360.5,1.0)
+    lat_ranges = CERES_dict['lat']
+    lon_ranges = CERES_dict['lon']
+    ## Create array to hold monthly averages over region
+    #initial_avgs = np.full(len(CERES_dict['dates']),-9999.)
+    #initial_years  = np.zeros(len(initial_avgs))
+    #initial_months = np.zeros(len(initial_avgs))
+   
+    # Loop over the lat and lon dimensions
+    for xi in range(len(ice_data['lat'])):
+        max_trend = -999
+        min_trend = 999
+        for yj in range(len(ice_data['lon'])):
+            # Calculate the trend at the current box
+            interp_data = CERES_dict['data'][:,xi,yj]
+            good_indices = np.where(interp_data!=-9.99e+02)
+            if(len(good_indices[0])==0):
+                total_trend = -9999.
+            else:
+                interpx = np.arange(len(interp_data))
+                #print(CERES_dict['data'][:,xi,yj][good_indices])
+                total_interper = np.poly1d(np.polyfit( \
+                    interpx[good_indices],\
+                    CERES_dict['data'][:,xi,yj][good_indices],1)) 
+                # Normalize trend by dividing by number of years
+                total_trend = (total_interper(interpx[-1])-\
+                               total_interper(interpx[0]))
+                if(total_trend>max_trend):
+                    max_trend = total_trend
+                if(total_trend<min_trend):
+                    min_trend = total_trend
+            CERES_dict['trends'][xi,yj] = total_trend
+        print(xi)
+        #print("max trend = ",max_trend)
+        #print("min trend = ",min_trend)
+
+    return ice_data
+
+def grid_data_conc(ice_dict):
+    lon_ranges  = np.arange(-180.,180.,1.0)
+    lat_ranges  = np.arange(30.,90.,1.0)
+    grid_ice_conc    = np.full((len(ice_dict['data'][:,0,0]),len(lat_ranges),len(lon_ranges)),-999.)
+    grid_ice_area    = np.zeros((len(lat_ranges),len(lon_ranges)))
+    grid_ice_conc_cc = np.full((len(ice_dict['data'][:,0,0]),len(lat_ranges),len(lon_ranges)),-999.)
+    print("Size of grid array: ",grid_ice_conc.shape)
+    for nt in range(len(ice_dict['data'][:,0,0])):
+        print(nt)
+        for xi in range(448):
+            # Don't grid the data if any portion of the lat/lon box is over land.
+            # Don't include land data
+            for yj in range(304):
+                lat_index = np.where(np.floor(ice_dict['lat'][xi,yj])>=lat_ranges)[-1][-1]
+                lon_index = np.where(np.floor(ice_dict['lon'][xi,yj])>=lon_ranges)[-1][-1]
+                # Add the current pixel area into the correct grid box, no
+                # matter if the current box is missing or not.
+                #if((lat_index==20) & (lon_index==10)):
+                #    print("Current grid area = ",grid_ice_area[lat_index,lon_index])
+                #if((lat_index==20) & (lon_index==10)):
+                #    print("    New grid area = ",grid_ice_area[lat_index,lon_index])
+                if(ice_dict['data'][nt,xi,yj] < 251):
+                    if(nt==0): grid_ice_area[lat_index,lon_index] += ice_dict['area'][xi,yj]
+                    if(grid_ice_conc_cc[nt,lat_index,lon_index]==-999.):
+                        grid_ice_conc[nt,lat_index,lon_index] = ice_dict['data'][nt,xi,yj]
+                        grid_ice_conc_cc[nt,lat_index,lon_index] = 1.
+                    else:
+                        grid_ice_conc[nt,lat_index,lon_index] = ((grid_ice_conc[nt,lat_index,lon_index]*grid_ice_conc_cc[nt,lat_index,lon_index])+\
+                                                         ice_dict['data'][nt,xi,yj])/(grid_ice_conc_cc[nt,lat_index,lon_index]+1.)
+                        grid_ice_conc_cc[nt,lat_index,lon_index]+=1
+                else:
+                    if(nt==0): grid_ice_area[lat_index,lon_index] = -999.
+
+                    # end else
+                # end if good ice check
+            # end y grid loop
+        # end x grid loop
+    # end time loop 
+    ice_dict['grid_ice_conc'] = grid_ice_conc
+    ice_dict['grid_ice_conc_cc'] = grid_ice_conc_cc
+    ice_dict['grid_total_area'] = grid_ice_area
+    ice_dict['grid_lat'] = lat_ranges
+    ice_dict['grid_lon'] = lon_ranges
+    
+    return ice_dict
+
 def grid_data(ice_dict):
     lon_ranges  = np.arange(-180.,180.,1.0)
     lat_ranges  = np.arange(30.,90.,1.0)
@@ -240,7 +333,67 @@ def grid_data(ice_dict):
     ice_dict['grid_lon'] = lon_ranges
     return ice_dict
 
-def plot_grid_data(ice_dict,adjusted=False,save=False):
+def plot_grid_data(ice_dict,t_ind,pvar,adjusted=False,save=False):
+    lon_ranges  = np.arange(-180.,180.,1.0)
+    lat_ranges  = np.arange(30.,90.,1.0)
+
+    if(pvar=='ice'):
+        plabel = "Percent Ice Concentration"
+
+    local_grid_ice = np.copy(ice_dict['grid_ice_conc'][t_ind,:,:])
+    local_grid_ice_bad = np.copy(ice_dict['grid_ice_conc'][t_ind,:,:])
+
+    local_grid_ice[local_grid_ice==-999.] = np.nan
+    local_grid_ice_bad[local_grid_ice!=-999.] = np.nan
+    plot_good_data = ma.masked_invalid(local_grid_ice)
+    plot_land_data = ma.masked_invalid(local_grid_ice_bad)
+
+    colormap = plt.cm.ocean
+    #coolwarm = plt.cm.coolwarm
+    #ax = plt.axes(projection=ccrs.NorthPolarStereo())
+    file_adder=''
+    if(adjusted==True):
+        file_adder='_adjusted'
+        fig1 = plt.figure(figsize=(8,5))
+        ax = plt.axes(projection=ccrs.NorthPolarStereo(central_longitude=45.))
+    else:
+        fig1 = plt.figure()
+        ax = plt.axes(projection=ccrs.NorthPolarStereo())
+    ax.set_extent([-180,180,45,90],ccrs.PlateCarree())
+    ax.gridlines()
+    mesh = plt.pcolormesh(lon_ranges,lat_ranges,plot_good_data,\
+            transform=ccrs.PlateCarree(),vmin=0,vmax=100,cmap=colormap)
+    if(adjusted==True):
+        ax.add_feature(cartopy.feature.LAND,zorder=100,edgecolor='darkgrey',facecolor='darkgrey')
+        axins = inset_axes(ax,width="5%",height="100%",loc='lower left',\
+                    bbox_to_anchor=(1.05,0.,1,1),bbox_transform=ax.transAxes,\
+                    borderpad=0)
+        cbar = plt.colorbar(mesh,cax=axins,cmap=colormap,label=plabel)
+        ax.set_xlim(-5170748.535086173,5167222.438879491)
+        ax.set_ylim(-3913488.8763307533,3943353.899053069)
+        #ender = '_adjusted'+ender
+    else:
+        plt.pcolormesh(plot_land_data,cmap=plt.cm.Greys,vmin=-10,vmax=10)
+        cbar = plt.colorbar(mesh,cmap=colormap,label=plabel)
+    ax.coastlines()
+
+
+    #fig1 = plt.figure(figsize=(9,5))
+    #plt.pcolormesh(plot_good_data,cmap=plt.cm.bwr,vmin=-50,vmax=50)
+    #plt.colorbar(label='Percent Ice Concentration Trend (%)')
+    #plt.pcolormesh(plot_land_data,cmap=plt.cm.Greys,vmin=-10,vmax=10)
+    #plt.gca().invert_xaxis()
+    #plt.gca().invert_yaxis()
+    ax.set_title('Gridded NSIDC Sea Ice Concentration\n'+ice_dict['titles'][t_ind])
+    if(save==True):
+        outname = 'ice_trend_gridded_200012_201812'+ice_dict['file_adder']+file_adder+'.png'
+        plt.savefig(outname,dpi=300)
+        print("Saved image ",outname)
+    else:
+        plt.show()
+    
+
+def plot_grid_trend(ice_dict,adjusted=False,save=False):
     lon_ranges  = np.arange(-180.,180.,1.0)
     lat_ranges  = np.arange(30.,90.,1.0)
 
