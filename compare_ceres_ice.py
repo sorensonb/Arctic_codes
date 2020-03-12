@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import sys
 sys.path.append('/home/bsorenson/Research/Ice_analysis/')
 sys.path.append('/home/bsorenson/Research/CERES/')
-from IceLib import read_ice,ice_trendCalc,grid_data,grid_data_conc
+from IceLib import read_ice,ice_trendCalc,grid_data,grid_data_conc,ice_gridtrendCalc
 from gridCERESLib import readgridCERES,calc_CERES_trend
 from comparelib import plot_fourscatter, plot_cld_clr_scatter
 
@@ -114,9 +114,9 @@ inseason = sys.argv[2]
 # Read in NSIDC ice data
 ice_data = read_ice(inseason)
 ice_data = grid_data_conc(ice_data)
+ice_data = ice_gridtrendCalc(ice_data)
 ice_data = ice_trendCalc(ice_data)
 ice_data = grid_data(ice_data)
-sys.exit()
 
 
 cloud = False
@@ -201,21 +201,42 @@ if(cloud==True):
 # Start comparisons
 plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_net_dict,inseason,dtype)
 
-## Quick comparison
-#plot_cld_clr_scatter(CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_alb_clr_dict,CERES_net_clr_dict,\
-#                     CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_net_dict,\
-#                     ice_data,inseason)
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#
+# Create figures for the paper
+#
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-### Loop over the grid, comparing the trends if the ice trends are non-missing.
-### Trends over land are missing.
-### Use the ice range as the loop bounds; the CERES data should have higher
-### extent anyway.
-##c_trend = np.full(len(CERES_dict['trends'].flatten()),-99.)
-##i_trend = np.full(len(ice_data['grid_ice'].flatten()),-99.)
-##count = 0
-##for xi in range(ice_data['grid_ice'].shape[0]):
-##    for yj in range(ice_data['grid_ice'].shape[1]):
-##        if(ice_data['grid_ice'][xi,yj]!=-999.):
-##            c_trend[count] = CERES_dict['trends'][xi,yj]   
-##            i_trend[count] = ice_data['grid_ice'][xi,yj]   
-##            count+=1
+# = = = = = = = = = = = = = = = = = = = = = = = 
+# 
+# Figure 1:  Spatial trends
+# 
+# Three-panel (1 row, 3 column)
+#     Panel 1: SW spatial trends
+#     Panel 2: LW spatial trends
+#     Panel 3: spatial ice trends
+#
+# = = = = = = = = = = = = = = = = = = = = = = =
+
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = 
+# 
+# Figure 2: Trend Scatter Comparisons 
+# 
+# Six-panel (2 row, 3 column)
+# Row 1: Clear sky trends 
+#     Row 1, Panel 1: ice vs clr SW 
+#     Row 1, Panel 2: ice vs clr LW
+#     Row 1, Panel 3: ice vs clr net
+#
+# Row 2: All sky trends 
+#     Row 2, Panel 1: ice vs all SW 
+#     Row 2, Panel 2: ice vs all LW
+#     Row 2, Panel 3: ice vs all net
+#
+# = = = = = = = = = = = = = = = = = = = = = = =
+
+
+
+

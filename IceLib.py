@@ -220,27 +220,34 @@ def ice_trendCalc(ice_data,thielSen=False):
 
     return ice_data
 
-def ice_gridtrendCalc(ice_data,thielSen=False):
-    if(month_fix==True):
-        CERES_dict['month_fix'] = '_monthfix'
+def ice_gridtrendCalc(ice_data,area=True,thielSen=False):
+    if(area==True):
+        print("\nCalculating area trends\n")
+    else:
+        print("\nCalculating % concentration trends\n")
+    ice_data['month_fix'] = '_monthfix'
 
     #lat_ranges = np.arange(minlat,90.5,1.0)
     #lon_ranges = np.arange(0.5,360.5,1.0)
-    lat_ranges = CERES_dict['lat']
-    lon_ranges = CERES_dict['lon']
+    lat_ranges = ice_data['grid_lat']
+    lon_ranges = ice_data['grid_lon']
     ## Create array to hold monthly averages over region
     #initial_avgs = np.full(len(CERES_dict['dates']),-9999.)
     #initial_years  = np.zeros(len(initial_avgs))
     #initial_months = np.zeros(len(initial_avgs))
    
     # Loop over the lat and lon dimensions
-    for xi in range(len(ice_data['lat'])):
+    for xi in range(len(lat_ranges)):
         max_trend = -999
         min_trend = 999
-        for yj in range(len(ice_data['lon'])):
+        for yj in range(len(lon_ranges)):
             # Calculate the trend at the current box
-            interp_data = CERES_dict['data'][:,xi,yj]
-            good_indices = np.where(interp_data!=-9.99e+02)
+            if(area==True):
+                interp_data = (ice_data['grid_ice_conc'][:,xi,yj]/100.)*ice_data['grid_total_area'][xi,yj]
+                good_indices = np.where(np.isnan(interp_data)==False)
+            else:
+                interp_data = ice_data['grid_ice_conc'][:,xi,yj]
+                good_indices = np.where(interp_data!=-99.)
             if(len(good_indices[0])==0):
                 total_trend = -9999.
             else:
@@ -248,7 +255,7 @@ def ice_gridtrendCalc(ice_data,thielSen=False):
                 #print(CERES_dict['data'][:,xi,yj][good_indices])
                 total_interper = np.poly1d(np.polyfit( \
                     interpx[good_indices],\
-                    CERES_dict['data'][:,xi,yj][good_indices],1)) 
+                    interp_data[good_indices],1)) 
                 # Normalize trend by dividing by number of years
                 total_trend = (total_interper(interpx[-1])-\
                                total_interper(interpx[0]))
@@ -256,7 +263,8 @@ def ice_gridtrendCalc(ice_data,thielSen=False):
                     max_trend = total_trend
                 if(total_trend<min_trend):
                     min_trend = total_trend
-            CERES_dict['trends'][xi,yj] = total_trend
+            if(area==True):
+                ice_data['grid_ice_area_trend'][xi,yj] = total_trend
         print(xi)
         #print("max trend = ",max_trend)
         #print("min trend = ",min_trend)
@@ -266,8 +274,9 @@ def ice_gridtrendCalc(ice_data,thielSen=False):
 def grid_data_conc(ice_dict):
     lon_ranges  = np.arange(-180.,180.,1.0)
     lat_ranges  = np.arange(30.,90.,1.0)
-    grid_ice_conc    = np.full((len(ice_dict['data'][:,0,0]),len(lat_ranges),len(lon_ranges)),-999.)
+    grid_ice_conc    = np.full((len(ice_dict['data'][:,0,0]),len(lat_ranges),len(lon_ranges)),-99.)
     grid_ice_area    = np.zeros((len(lat_ranges),len(lon_ranges)))
+    grid_ice_area_trend    = np.full((len(lat_ranges),len(lon_ranges)),-999.)
     grid_ice_conc_cc = np.full((len(ice_dict['data'][:,0,0]),len(lat_ranges),len(lon_ranges)),-999.)
     print("Size of grid array: ",grid_ice_conc.shape)
     for nt in range(len(ice_dict['data'][:,0,0])):
@@ -294,7 +303,7 @@ def grid_data_conc(ice_dict):
                                                          ice_dict['data'][nt,xi,yj])/(grid_ice_conc_cc[nt,lat_index,lon_index]+1.)
                         grid_ice_conc_cc[nt,lat_index,lon_index]+=1
                 else:
-                    if(nt==0): grid_ice_area[lat_index,lon_index] = -999.
+                    if(nt==0): grid_ice_area[lat_index,lon_index] = np.nan
 
                     # end else
                 # end if good ice check
@@ -304,6 +313,7 @@ def grid_data_conc(ice_dict):
     ice_dict['grid_ice_conc'] = grid_ice_conc
     ice_dict['grid_ice_conc_cc'] = grid_ice_conc_cc
     ice_dict['grid_total_area'] = grid_ice_area
+    ice_dict['grid_ice_area_trend'] = grid_ice_area_trend
     ice_dict['grid_lat'] = lat_ranges
     ice_dict['grid_lon'] = lon_ranges
     
