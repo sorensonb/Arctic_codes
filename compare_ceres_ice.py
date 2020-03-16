@@ -199,44 +199,23 @@ if(cloud==True):
 
 
 # Start comparisons
-plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_net_dict,inseason,dtype)
+plot_fourscatter(ice_data,CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_net_dict,inseason,dtype,area=False)
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#
-# Create figures for the paper
-#
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+## Quick comparison
+#plot_cld_clr_scatter(CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_alb_clr_dict,CERES_net_clr_dict,\
+#                     CERES_lw_dict,CERES_sw_dict,CERES_alb_dict,CERES_net_dict,\
+#                     ice_data,inseason)
 
-# = = = = = = = = = = = = = = = = = = = = = = = 
-# 
-# Figure 1:  Spatial trends
-# 
-# Three-panel (1 row, 3 column)
-#     Panel 1: SW spatial trends
-#     Panel 2: LW spatial trends
-#     Panel 3: spatial ice trends
-#
-# = = = = = = = = = = = = = = = = = = = = = = =
-
-
-
-# = = = = = = = = = = = = = = = = = = = = = = = 
-# 
-# Figure 2: Trend Scatter Comparisons 
-# 
-# Six-panel (2 row, 3 column)
-# Row 1: Clear sky trends 
-#     Row 1, Panel 1: ice vs clr SW 
-#     Row 1, Panel 2: ice vs clr LW
-#     Row 1, Panel 3: ice vs clr net
-#
-# Row 2: All sky trends 
-#     Row 2, Panel 1: ice vs all SW 
-#     Row 2, Panel 2: ice vs all LW
-#     Row 2, Panel 3: ice vs all net
-#
-# = = = = = = = = = = = = = = = = = = = = = = =
-
-
-
-
+### Loop over the grid, comparing the trends if the ice trends are non-missing.
+### Trends over land are missing.
+### Use the ice range as the loop bounds; the CERES data should have higher
+### extent anyway.
+##c_trend = np.full(len(CERES_dict['trends'].flatten()),-99.)
+##i_trend = np.full(len(ice_data['grid_ice'].flatten()),-99.)
+##count = 0
+##for xi in range(ice_data['grid_ice'].shape[0]):
+##    for yj in range(ice_data['grid_ice'].shape[1]):
+##        if(ice_data['grid_ice'][xi,yj]!=-999.):
+##            c_trend[count] = CERES_dict['trends'][xi,yj]   
+##            i_trend[count] = ice_data['grid_ice'][xi,yj]   
+##            count+=1
