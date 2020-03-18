@@ -70,7 +70,7 @@ def trend_calc(ice_dict,x_ind,y_ind,thielsen=False):
     # Find the percent change per decade
     return trend,pcnt_change
 
-def read_ice(season):
+def read_ice(season,pre2001=False):
     spring=False
     summer=False
     autumn=False
@@ -111,6 +111,14 @@ def read_ice(season):
     
     file_initial = subprocess.check_output(cmnd,shell=True).decode('utf-8').strip().split('\n')
     file_names = []
+
+    if(pre2001==True):
+        cmnd = "ls /home/bsorenson/data/NSIDC/pre_2001/nt_*.bin"
+        pre_file_initial = subprocess.check_output(cmnd,shell=True).decode('utf-8').strip().split('\n')
+        for fname in pre_file_initial:
+            if(fname[-17:-14] in ls_check):
+                file_names.append(fname)
+        
     for fname in file_initial:
         if(fname[-17:-14] in ls_check):
             file_names.append(fname)

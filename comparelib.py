@@ -267,9 +267,9 @@ def figure_1(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
     else:
         mapcrs = ccrs.NorthPolarStereo()
     datacrs = ccrs.PlateCarree()
-    fig = plt.figure(1, figsize=(12,12))
+    fig = plt.figure(1, figsize=(12,16))
     plt.suptitle('Summer Only (June 2001 - August 2018)',y=0.92,fontsize=18,fontweight=4)
-    gs = gridspec.GridSpec(nrows=2, ncols=2, hspace = 0.06, wspace = 0.06)
+    gs = gridspec.GridSpec(nrows=3, ncols=2, hspace = 0.03, wspace = 0.06)
     sw_clr_min_val = -60.
     sw_clr_max_val = 60.
     lw_clr_min_val=-10.
@@ -289,7 +289,7 @@ def figure_1(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
     for xi in range(len(ice_data['grid_lat'])):
         for yj in range(len(ice_data['grid_lon'])):
             avg_ice_conc[xi,yj] = np.average(ice_data['grid_ice_conc'][:,xi,yj][ice_data['grid_ice_conc'][:,xi,yj]!=-99.])
-            if(avg_ice_conc[xi,yj]<5.0):
+            if(avg_ice_conc[xi,yj]<1.0):
                 avg_ice_conc[xi,yj] = np.nan
        
     plot_good_data = ma.masked_invalid(avg_ice_conc)
@@ -308,10 +308,10 @@ def figure_1(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
     #             CERES_sw_clr_dict['dates'][0]+' - '+CERES_sw_clr_dict['dates'][-1])
     if(adjusted==True):
         ax0.add_feature(cartopy.feature.LAND,zorder=100,edgecolor='darkgrey',facecolor='darkgrey')
-        cbar = plt.colorbar(mesh,ticks=[5,20,40,60,80,100],orientation='horizontal',pad=0,aspect=50,label='Percent Ice Concentration')
-        cbar.ax.set_xticklabels(['5','20','40','60','80','100'])
-        ax0.set_xlim(-5170748.535086173,5167222.438879491)
-        ax0.set_ylim(-3913488.8763307533,3943353.899053069)
+        cbar = plt.colorbar(mesh,ticks=[1,20,40,60,80,100],orientation='horizontal',pad=0,aspect=50,label='Percent Ice Concentration')
+        cbar.ax.set_xticklabels(['1','20','40','60','80','100'])
+        ax0.set_xlim(-4170748.535086173,4167222.438879491)
+        ax0.set_ylim(-2913488.8763307533,2943353.899053069)
     else:
         plt.pcolormesh(plot_land_data,cmap=plt.cm.Greys,vmin=-10,vmax=10)
         cbar = plt.colorbar(mesh,cmap=colormap,label=plabel)
@@ -329,6 +329,9 @@ def figure_1(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
     local_grid_ice_bad = np.copy(ice_data['grid_ice'])
     
     local_grid_ice[local_grid_ice==-999.] = np.nan
+    # Ignore the areas without ice by making any values where the ice conc
+    # is less than 5%.
+    local_grid_ice[np.isnan(avg_ice_conc)] = np.nan
     local_grid_ice_bad[local_grid_ice!=-999.] = np.nan
     plot_good_data = ma.masked_invalid(local_grid_ice)
     plot_land_data = ma.masked_invalid(local_grid_ice_bad)
@@ -351,14 +354,15 @@ def figure_1(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
         ##            bbox_to_anchor=(1.05,0.,1,1),bbox_transform=ax3.transAxes,\
         ##            borderpad=0)
         ##cbar = plt.colorbar(mesh,cax=axins,cmap=colormap,label='Ice Concentration Trend [%]')
-        cbar = plt.colorbar(mesh,extend='both',orientation='horizontal',pad=0,aspect=50,label='Percent Ice Concentration Trend')
-        ax1.set_xlim(-5170748.535086173,5167222.438879491)
-        ax1.set_ylim(-3913488.8763307533,3943353.899053069)
+        cbar = plt.colorbar(mesh,extend='both',orientation='horizontal',pad=0,aspect=50,label='Percent Ice Concentration / Study Period')
+        ax1.set_xlim(-4170748.535086173,4167222.438879491)
+        ax1.set_ylim(-2913488.8763307533,2943353.899053069)
         #ender = '_adjusted'+ender
     else:
         ax1.pcolormesh(plot_land_data,cmap=plt.cm.Greys,vmin=-10,vmax=10)
         cbar = plt.colorbar(mesh,extend='both',cmap=colormap,label='Ice Concentration Trend [%]')
     ax1.coastlines()
+
     # - - - - - - - - - - - - - 
     # Plot the SW clr data
     # - - - - - - - - - - - - - 
@@ -366,7 +370,12 @@ def figure_1(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
     ax2.set_extent([-180,180,45,90],datacrs)
     ax2.gridlines()
     #ax = plt.axes(projection=ccrs.Miller())
-    mesh = ax2.pcolormesh(CERES_sw_clr_dict['lon'],CERES_sw_clr_dict['lat'],CERES_sw_clr_dict['trends'],\
+    # Ignore the areas without ice by making any values where the ice conc
+    # is less than 5%.
+    local_SW = np.copy(CERES_sw_clr_dict['trends'])
+    local_SW[np.isnan(avg_ice_conc)] = np.nan
+    plot_local_SW = ma.masked_invalid(local_SW)
+    mesh = ax2.pcolormesh(CERES_sw_clr_dict['lon'],CERES_sw_clr_dict['lat'],plot_local_SW,\
             transform=datacrs,vmin=sw_clr_min_val,vmax=sw_clr_max_val,cmap=colormap)
     ax2.set_title('Terra CERES TOA Clear-sky SWF Trend')
     #ax2.set_title('Terra CERES TOA Clear-sky SWF'+title_season.title()+' Trend\n'+\
@@ -378,9 +387,11 @@ def figure_1(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
         ##            bbox_to_anchor=(1.05,0.,1,1),bbox_transform=ax1.transAxes,\
         ##            borderpad=0)
         ##cbar = plt.colorbar(mesh,cax=axins,cmap=colormap,label=CERES_sw_clr_dict['parm_unit'])
-        cbar = plt.colorbar(mesh,extend='both',orientation='horizontal',pad=0,aspect=50,label=CERES_sw_clr_dict['parm_unit'])
-        ax2.set_xlim(-5170748.535086173,5167222.438879491)
-        ax2.set_ylim(-3913488.8763307533,3943353.899053069)
+        cbar = plt.colorbar(mesh,extend='both',orientation='horizontal',pad=0,aspect=50,label=CERES_sw_clr_dict['parm_unit']+' / Study Period')
+        #ax2.set_xlim(-5170748.535086173,5167222.438879491)
+        #ax2.set_ylim(-3913488.8763307533,3943353.899053069)
+        ax2.set_xlim(-4170748.535086173,4167222.438879491)
+        ax2.set_ylim(-2913488.8763307533,2943353.899053069)
         ender = '_adjusted'+ender
     else:
         cbar = plt.colorbar(mesh,cmap=colormap,label=CERES_sw_clr_dict['parm_unit'])
@@ -399,8 +410,13 @@ def figure_1(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
     if(CERES_lw_clr_dict['season']=='all'):
         file_season=''
         title_season=''
+    # Ignore the areas without ice by making any values where the ice conc
+    # is less than 5%.
+    local_LW = np.copy(CERES_lw_clr_dict['trends'])
+    local_LW[np.isnan(avg_ice_conc)] = np.nan
+    plot_local_LW = ma.masked_invalid(local_LW)
         
-    mesh = ax3.pcolormesh(CERES_lw_clr_dict['lon'],CERES_lw_clr_dict['lat'],CERES_lw_clr_dict['trends'],\
+    mesh = ax3.pcolormesh(CERES_lw_clr_dict['lon'],CERES_lw_clr_dict['lat'],plot_local_LW,\
             transform=datacrs,vmin=lw_clr_min_val,vmax=lw_clr_max_val,cmap=colormap)
     ax3.set_title('Terra CERES TOA Clear-sky LWF Trend')
     #ax3.set_title('Terra CERES TOA Clear-sky LWF'+title_season.title()+' Trend\n'+\
@@ -412,14 +428,92 @@ def figure_1(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
         ##            bbox_to_anchor=(1.05,0.,1,1),bbox_transform=ax2.transAxes,\
         ##            borderpad=0)
         ##cbar = plt.colorbar(mesh,cax=axins,cmap=colormap,label=CERES_lw_clr_dict['parm_unit'])
-        cbar = plt.colorbar(mesh,extend='both',orientation='horizontal',pad=0,aspect=50,label=CERES_lw_clr_dict['parm_unit'])
-        ax3.set_xlim(-5170748.535086173,5167222.438879491)
-        ax3.set_ylim(-3913488.8763307533,3943353.899053069)
+        cbar = plt.colorbar(mesh,extend='both',orientation='horizontal',pad=0,aspect=50,label=CERES_lw_clr_dict['parm_unit']+' / Study Period')
+        #ax3.set_xlim(-5170748.535086173,5167222.438879491)
+        #ax3.set_ylim(-3913488.8763307533,3943353.899053069)
+        ax3.set_xlim(-4170748.535086173,4167222.438879491)
+        ax3.set_ylim(-2913488.8763307533,2943353.899053069)
         ender = '_adjusted'+ender
     else:
         cbar = plt.colorbar(mesh,cmap=colormap,label=CERES_lw_clr_dict['parm_unit'])
     #cbar.set_label(parm_unit)
     ax3.coastlines()
+
+    # - - - - - - - - - - - - - 
+    # Plot the SW all data
+    # - - - - - - - - - - - - - 
+    ax4 = plt.subplot(gs[2,0],projection=mapcrs)
+    ax4.set_extent([-180,180,45,90],datacrs)
+    ax4.gridlines()
+    #ax = plt.axes(projection=ccrs.Miller())
+    # Ignore the areas without ice by making any values where the ice conc
+    # is less than 5%.
+    local_SW = np.copy(CERES_sw_all_dict['trends'])
+    local_SW[np.isnan(avg_ice_conc)] = np.nan
+    plot_local_SW = ma.masked_invalid(local_SW)
+    mesh = ax4.pcolormesh(CERES_sw_all_dict['lon'],CERES_sw_all_dict['lat'],plot_local_SW,\
+            transform=datacrs,vmin=sw_clr_min_val,vmax=sw_clr_max_val,cmap=colormap)
+    ax4.set_title('Terra CERES TOA All-sky SWF Trend')
+    #ax2.set_title('Terra CERES TOA Clear-sky SWF'+title_season.title()+' Trend\n'+\
+    #             CERES_sw_clr_dict['dates'][0]+' - '+CERES_sw_clr_dict['dates'][-1])
+    ender = '.png'
+    if(adjusted==True):
+        ax4.add_feature(cartopy.feature.LAND,zorder=100,edgecolor='darkgrey',facecolor='darkgrey')
+        ##axins = inset_axes(ax1,width="5%",height="100%",loc='lower left',\
+        ##            bbox_to_anchor=(1.05,0.,1,1),bbox_transform=ax1.transAxes,\
+        ##            borderpad=0)
+        ##cbar = plt.colorbar(mesh,cax=axins,cmap=colormap,label=CERES_sw_clr_dict['parm_unit'])
+        cbar = plt.colorbar(mesh,extend='both',orientation='horizontal',pad=0,aspect=50,label=CERES_sw_all_dict['parm_unit']+' / Study Period')
+        #ax2.set_xlim(-5170748.535086173,5167222.438879491)
+        #ax2.set_ylim(-3913488.8763307533,3943353.899053069)
+        ax4.set_xlim(-4170748.535086173,4167222.438879491)
+        ax4.set_ylim(-2913488.8763307533,2943353.899053069)
+        ender = '_adjusted'+ender
+    else:
+        cbar = plt.colorbar(mesh,cmap=colormap,label=CERES_sw_all_dict['parm_unit'])
+    #cbar.set_label(parm_unit)
+    ax4.coastlines()
+    
+    # - - - - - - - - - - - - - 
+    # Plot the LW all data
+    # - - - - - - - - - - - - - 
+    ax5 = plt.subplot(gs[2,1],projection=mapcrs)
+    ax5.set_extent([-180,180,45,90],datacrs)
+    ax5.gridlines()
+    #ax = plt.axes(projection=ccrs.Miller())
+    file_season = '_'+CERES_lw_all_dict['season']
+    title_season = ' '+CERES_lw_all_dict['season']
+    if(CERES_lw_all_dict['season']=='all'):
+        file_season=''
+        title_season=''
+    # Ignore the areas without ice by making any values where the ice conc
+    # is less than 5%.
+    local_LW = np.copy(CERES_lw_all_dict['trends'])
+    local_LW[np.isnan(avg_ice_conc)] = np.nan
+    plot_local_LW = ma.masked_invalid(local_LW)
+        
+    mesh = ax5.pcolormesh(CERES_lw_clr_dict['lon'],CERES_lw_clr_dict['lat'],plot_local_LW,\
+            transform=datacrs,vmin=lw_clr_min_val,vmax=lw_clr_max_val,cmap=colormap)
+    ax5.set_title('Terra CERES TOA All-sky LWF Trend')
+    #ax3.set_title('Terra CERES TOA Clear-sky LWF'+title_season.title()+' Trend\n'+\
+    #             CERES_lw_clr_dict['dates'][0]+' - '+CERES_lw_clr_dict['dates'][-1])
+    ender = '.png'
+    if(adjusted==True):
+        ax5.add_feature(cartopy.feature.LAND,zorder=100,edgecolor='darkgrey',facecolor='darkgrey')
+        ##axins = inset_axes(ax2,width="5%",height="100%",loc='lower left',\
+        ##            bbox_to_anchor=(1.05,0.,1,1),bbox_transform=ax2.transAxes,\
+        ##            borderpad=0)
+        ##cbar = plt.colorbar(mesh,cax=axins,cmap=colormap,label=CERES_lw_clr_dict['parm_unit'])
+        cbar = plt.colorbar(mesh,extend='both',orientation='horizontal',pad=0,aspect=50,label=CERES_lw_all_dict['parm_unit']+' / Study Period')
+        #ax3.set_xlim(-5170748.535086173,5167222.438879491)
+        #ax3.set_ylim(-3913488.8763307533,3943353.899053069)
+        ax5.set_xlim(-4170748.535086173,4167222.438879491)
+        ax5.set_ylim(-2913488.8763307533,2943353.899053069)
+        ender = '_adjusted'+ender
+    else:
+        cbar = plt.colorbar(mesh,cmap=colormap,label=CERES_lw_all_dict['parm_unit'])
+    #cbar.set_label(parm_unit)
+    ax5.coastlines()
     
     plt.savefig('paper_figure1.png',dpi=300)
     plt.show()
@@ -643,12 +737,125 @@ def figure_3():
     plt.ylabel('Ice Area (millions of km2)')
     plt.savefig('paper_figure3.png',dpi=300)
 
-### Plot the observed average sea ice areas over the time period.
-##def figure_4(ice_data):
-##    summer_averages = np.zeros(len(ice_data['titles'])/3)
-##    for i in range(len(summer_averages)):
-             
+# Plot the observed average sea ice areas over the time period.
+def figure_4(ice_data,model_overlay=False):
+    summer_averages_grid = np.zeros((int(len(ice_data['titles'])/3)))
+    summer_averages_raw  = np.zeros((int(len(ice_data['titles'])/3)))
+    all_summer_avgs = []
+    local_grid_ice = np.copy(ice_data['grid_ice_conc'])
+    local_grid_ice[local_grid_ice==-99.] = np.nan
+    for i in range(len(summer_averages_raw)):
+        # Calculate the ice area from the raw data
+        idx = (i-1)*3
+        raw_sum1 = np.sum((ice_data['data'][idx+1,:,:][ice_data['data'][idx+1,:,:]<251]/100.)*ice_data['area'][ice_data['data'][idx+1,:,:]<251])         
+        raw_sum2 = np.sum((ice_data['data'][idx+2,:,:][ice_data['data'][idx+2,:,:]<251]/100.)*ice_data['area'][ice_data['data'][idx+2,:,:]<251])         
+        raw_sum3 = np.sum((ice_data['data'][idx+3,:,:][ice_data['data'][idx+3,:,:]<251]/100.)*ice_data['area'][ice_data['data'][idx+3,:,:]<251])         
+        all_summer_avgs.append(raw_sum1)
+        all_summer_avgs.append(raw_sum2)
+        all_summer_avgs.append(raw_sum3)
+        avg_raw = (raw_sum1+raw_sum2+raw_sum3)/3.
+        summer_averages_raw[i] = avg_raw
+        # Calculate the area from the gridded data
 
+    all_summer_avgs = np.array(all_summer_avgs)
+
+    # Clear-sky summer values from net flux figure
+    dflux_dsigma = -1.3183
+    del_T = (86400.)*90  # number of seconds of solar heating per summer
+    l_f = 3.3e5  # latent heat of fusion (J/kg)
+    rho_i = 917  # density of ice (kg/m3)
+    def equation(sigma_p,thick):
+    
+        sigma_pnew = sigma_p * (1. - (dflux_dsigma * del_T) / (l_f * rho_i* thick))
+        return sigma_pnew
+    
+    def fill_array(start_val,thick):
+        sigma_values = []
+        sigma_values.append(start_val)
+        # Find 1m-thickness values
+        while(start_val>-100):
+            sigma_new = equation(start_val,thick)
+            sigma_values.append(sigma_new) 
+            start_val = sigma_new
+        return sigma_values
+    
+    sum_init_ice  = 7820576049633.293/1e6  # km2 as of June 2001
+    sum_final_ice = 6481114233056.605/1e6  # km2 
+    #sum_init_ice  = 7820576049633.293/1e6  # km2 as of June 2001
+    #sum_final_ice = 6481114233056.605/1e6  # km2 
+    
+    # 10 years
+    #starting_val = -10. 
+    # Use the 1991 summer average extent as the new "sum init ice" value   
+    # Use the 2001 summer average extent as the new "sum final ice" value
+    sum_init_ice = summer_averages_raw[9] # 1989
+    if(model_overlay==False):
+        sum_final_ice = summer_averages_raw[38] # 2018
+    else:
+        sum_final_ice = summer_averages_raw[21] # 2001
+    #starting_val = -20.
+    starting_val = ((sum_final_ice-sum_init_ice)/sum_init_ice)*100.
+    print(starting_val)
+    #starting_val = ((summer_averages_raw[0]-sum_init_ice)/sum_init_ice)*100.
+    #starting_val = ((sum_final_ice-sum_init_ice)/sum_init_ice)*100.
+    beginning_year = int(ice_data['titles'][0].split('_')[1][:4])
+    if(model_overlay==False):
+        start_year = int(ice_data['titles'][115].split('_')[1][:4]) # 2018
+    else:
+        start_year = int(ice_data['titles'][63].split('_')[1][:4]) # 2001
+    #start_year = 2001
+    
+    sigma_1m = np.array(fill_array(starting_val,1.))
+    sigma_2m = np.array(fill_array(starting_val,2.))
+    sigma_3m = np.array(fill_array(starting_val,3.))
+    sigma_4m = np.array(fill_array(starting_val,4.))
+    sigma_5m = np.array(fill_array(starting_val,5.))
+    # Use the 2001 average extent as the 
+    extents_1m = (sum_init_ice*(100.+sigma_1m)/100.)/1e6 
+    extents_2m = (sum_init_ice*(100.+sigma_2m)/100.)/1e6 
+    extents_3m = (sum_init_ice*(100.+sigma_3m)/100.)/1e6 
+    extents_4m = (sum_init_ice*(100.+sigma_4m)/100.)/1e6 
+    extents_5m = (sum_init_ice*(100.+sigma_5m)/100.)/1e6 
+    #extents_2m = (summer_averages_raw[0]*(100.+sigma_2m)/100.)/1e6 
+    #extents_2m = (sum_init_ice*(100.+sigma_2m)/100.)/1e6 
+    years_1m   = np.arange(start_year,start_year+len(extents_1m))
+    years_2m   = np.arange(start_year,start_year+len(extents_2m))
+    years_3m   = np.arange(start_year,start_year+len(extents_3m))
+    years_4m   = np.arange(start_year,start_year+len(extents_4m))
+    years_5m   = np.arange(start_year,start_year+len(extents_5m))
+
+    # All summer averages x vals
+    asa_x_vals = np.arange(beginning_year,2018.7,0.3333333)
+    print(asa_x_vals)
+    #print("First model extent: ",extents_2m[0])
+    #print("Summer Averages: ",summer_averages_raw)
+    #print("All monthly Averages: ",all_summer_avgs)
+    #plt.plot(asa_x_vals,all_summer_avgs/1e6,label='All summer averages')
+
+    fig, ax = plt.subplots()
+    ax.plot(asa_x_vals[::3],summer_averages_raw/1e6,label='Observed')
+    ax.plot(years_1m,extents_1m,label='1m Model extents')
+    ax.plot(years_2m,extents_2m,label='2m Model extents')
+    ax.plot(years_3m,extents_3m,label='3m Model extents')
+    ax.plot(years_4m,extents_4m,label='4m Model extents')
+    ax.plot(years_5m,extents_5m,label='5m Model extents')
+    if(model_overlay==True):
+        ax.set_xlim(1980,2018)
+        ax.set_ylim(5.5,8.0)
+    else:
+        ax.axvline(1989,linestyle=':',ymin=0.85,color='black')
+        ax.axvline(2018,linestyle=':',ymin=0.7,ymax=0.85,color='black')
+        ax.axhline(sum_init_ice/1e6,xmin=0.05,xmax=0.1,linestyle=':',color='black')
+        ax.axhline(sum_final_ice/1e6,xmin=0.143,xmax=0.193,linestyle=':',color='black')
+        #ax.text(1985,5.5,'1989')
+    ax.legend()
+    ax.set_ylabel('Ice Area (millions of km2)')
+    ax.set_title("Average Summer Arctic Ice Area")
+    if(model_overlay==True):
+        plt.savefig('paper_figure4_model_overlay.png',dpi=300)
+    else:
+        plt.savefig('paper_figure4.png',dpi=300)
+    plt.show()
 
 # write_toASCII writes the contents of each dictionary to an ASCII file
 # Columns in these files are as follows:
