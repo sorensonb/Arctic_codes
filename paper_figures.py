@@ -29,7 +29,8 @@ from comparelib import plot_fourscatter,plot_cld_clr_scatter,figure_1,figure_2
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-inseason='summer'
+inseason='sunlight'
+#inseason='summer'
 adjusted=adj=True
 
 # Read in NSIDC ice data
@@ -160,5 +161,7 @@ figure_3()
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+figure_4(ice_data)
+#figure_4(ice_data,model_overlay=False,zoomed=True)
 
 

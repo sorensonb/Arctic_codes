@@ -12,6 +12,7 @@ import matplotlib.colors as cm
 import matplotlib.gridspec as gridspec
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from scipy import stats
+from scipy.stats import gaussian_kde
 import cartopy
 import cartopy.crs as ccrs
 from netCDF4 import Dataset
@@ -268,7 +269,10 @@ def figure_1(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
         mapcrs = ccrs.NorthPolarStereo()
     datacrs = ccrs.PlateCarree()
     fig = plt.figure(1, figsize=(12,16))
-    plt.suptitle('Summer Only (June 2001 - August 2018)',y=0.92,fontsize=18,fontweight=4)
+    if(ice_data['season_adder'].strip()=='sunlight'):
+        plt.suptitle('Sunlight Months (April - September  2001 - 2018)',y=0.92,fontsize=18,fontweight=4)
+    else: 
+        plt.suptitle('Summer Only (June 2001 - August 2018)',y=0.92,fontsize=18,fontweight=4)
     gs = gridspec.GridSpec(nrows=3, ncols=2, hspace = 0.03, wspace = 0.06)
     sw_clr_min_val = -60.
     sw_clr_max_val = 60.
@@ -533,7 +537,18 @@ def figure_2(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
         pcnt_reject = 0.1
         missing_trend = -999.
 
-    starting_area = np.nansum((ice_data['grid_ice_conc'][0,:,:]/100.)*ice_data['grid_total_area'])
+    # - - - - - - - - - - - - - 
+    # Calculate average summer ice conc
+    # - - - - - - - - - - - - - 
+    # Find the average conc
+    avg_ice_conc = np.zeros((len(ice_data['grid_lat']),len(ice_data['grid_lon'])))
+    for xi in range(len(ice_data['grid_lat'])):
+        for yj in range(len(ice_data['grid_lon'])):
+            avg_ice_conc[xi,yj] = np.average(ice_data['grid_ice_conc'][:,xi,yj][ice_data['grid_ice_conc'][:,xi,yj]!=-99.])
+            if(avg_ice_conc[xi,yj]<1.0):
+                avg_ice_conc[xi,yj] = np.nan
+       
+    #plot_good_data = ma.masked_invalid(avg_ice_conc)
 
     # Quick comparison
     markersize=6
@@ -541,10 +556,14 @@ def figure_2(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
     fig.set_size_inches(19,12)
     plt.title("CERES and NSIDC "+inseason.title()+" Trends")
 
-
+    local_ice_trend = np.copy(ice_data[ice_trend_key])
+    avg_ice_conc[np.isnan(avg_ice_conc)] = -420.
+    local_ice_trend[(local_ice_trend==missing_trend)] = -420.
+    local_ice_trend[np.isnan(local_ice_trend)] = -420.
     # Plot Clear-sky SWF data
-    plotx = ice_data[ice_trend_key][(ice_data[ice_trend_key]!=missing_trend) & (np.abs(ice_data[ice_trend_key])>=pcnt_reject)]
-    ploty = CERES_sw_clr_dict['trends'][(ice_data[ice_trend_key]!=missing_trend) & (np.abs(ice_data[ice_trend_key])>=pcnt_reject)]
+    plotx = local_ice_trend[(local_ice_trend!=-420.) & (avg_ice_conc!=-420.)]
+    ploty = CERES_sw_clr_dict['trends'][(local_ice_trend!=-420.) & (avg_ice_conc!=-420.)]
+    
     plotx = plotx[ploty>-1000]
     ploty = ploty[ploty>-1000]
     plotx = plotx[ploty<1000]
@@ -553,17 +572,24 @@ def figure_2(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
     print("SWF correlation: ",corr_swf)
     slope,intercept,r_val,p_val,stderr = stats.linregress(plotx,ploty)
     print("  Equation: y = ",slope,"*x + ",intercept)
-    axs[0,0].scatter(plotx,ploty,s=markersize,color='black')
-    axs[0,0].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='red')
+    # Modify data for the color density plot
+    xy = np.vstack([plotx,ploty])
+    z = gaussian_kde(xy)(xy)
+    idx = z.argsort()
+    x,y,z = plotx[idx], ploty[idx], z[idx]
+    axs[0,0].scatter(x,y,c=z,s=markersize,cmap=plt.cm.jet)
+    #axs[0,0].scatter(plotx,ploty,s=markersize,color='black')
+    axs[0,0].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='black')
+    #axs[0,0].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='red')
     axs[0,0].set_title('Clear-Sky SWF'+ice_data['season_adder'].title()+' Trends')
     axs[0,0].set_xlabel('Percent Ice Concentration Trends [%]')
     axs[0,0].set_ylabel('SWF Trends [W/m2]')
     x_pos = ((axs[0,0].get_xlim()[1]-axs[0,0].get_xlim()[0])/8)+axs[0,0].get_xlim()[0]
-    y_pos = ((axs[0,0].get_ylim()[1]-axs[0,0].get_ylim()[0])/8)+axs[0,0].get_ylim()[0]
+    y_pos = axs[0,0].get_ylim()[1]-((axs[0,0].get_ylim()[1]-axs[0,0].get_ylim()[0])/8)
     axs[0,0].text(x_pos,y_pos,"Corr = "+str(np.round(corr_swf,3)))
     # Plot LWF data
-    plotx = ice_data[ice_trend_key][(ice_data[ice_trend_key]!=missing_trend) & (np.abs(ice_data[ice_trend_key])>=pcnt_reject)]
-    ploty = CERES_lw_clr_dict['trends'][(ice_data[ice_trend_key]!=missing_trend) & (np.abs(ice_data[ice_trend_key])>=pcnt_reject)]
+    plotx = local_ice_trend[(local_ice_trend!=-420.) & (avg_ice_conc!=-420.)]
+    ploty = CERES_lw_clr_dict['trends'][(local_ice_trend!=-420.) & (avg_ice_conc!=-420.)]
     plotx = plotx[ploty>-1000]
     ploty = ploty[ploty>-1000]
     plotx = plotx[ploty<1000]
@@ -572,20 +598,24 @@ def figure_2(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
     print("LWF correlation: ",corr_lwf)
     slope,intercept,r_val,p_val,stderr = stats.linregress(plotx,ploty)
     print("  Equation: y = ",slope,"*x + ",intercept)
-    axs[0,1].scatter(plotx,ploty,s=markersize,color='black')
-    axs[0,1].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='red')
+    xy = np.vstack([plotx,ploty])
+    z = gaussian_kde(xy)(xy)
+    idx = z.argsort()
+    x,y,z = plotx[idx], ploty[idx], z[idx]
+    axs[0,1].scatter(x,y,c=z,s=markersize,cmap=plt.cm.jet)
+    axs[0,1].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='black')
     axs[0,1].set_title('Clear-Sky LWF'+ice_data['season_adder'].title()+' Trends')
     axs[0,1].set_xlabel('Percent Ice Concentration Trends[%]')
     axs[0,1].set_ylabel('LWF Trends [W/m2]')
     x_pos = ((axs[0,1].get_xlim()[1]-axs[0,1].get_xlim()[0])/8)+axs[0,1].get_xlim()[0]
     y_pos = axs[0,1].get_ylim()[1]-((axs[0,1].get_ylim()[1]-axs[0,1].get_ylim()[0])/8)
-    axs[0,1].text(x_pos,y_pos,"Corr = "+str(np.round(corr_swf,3)))
+    axs[0,1].text(x_pos,y_pos,"Corr = "+str(np.round(corr_lwf,3)))
     ##print("  y_max = ",axs[0,1].get_ylim()[1],"  y_min = ",axs[0,1].get_ylim()[0])
     ##print("  x_pos = ",x_pos)
     ##print("  y_pos = ",y_pos)
     # Plot Net Flux Data
-    plotx = ice_data[ice_trend_key][(ice_data[ice_trend_key]!=missing_trend) & (np.abs(ice_data[ice_trend_key])>=pcnt_reject)]
-    ploty = CERES_net_clr_dict['trends'][(ice_data[ice_trend_key]!=missing_trend) & (np.abs(ice_data[ice_trend_key])>=pcnt_reject)]
+    plotx = local_ice_trend[(local_ice_trend!=-420.) & (avg_ice_conc!=-420.)]
+    ploty = CERES_net_clr_dict['trends'][(local_ice_trend!=-420.) & (avg_ice_conc!=-420.)]
     plotx = plotx[ploty>-1000]
     ploty = ploty[ploty>-1000]
     plotx = plotx[ploty<1000]
@@ -594,8 +624,12 @@ def figure_2(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
     print("Net flux correlation: ",corr_net)
     slope,intercept,r_val,p_val,stderr = stats.linregress(plotx,ploty)
     print("  Equation: y = ",slope,"*x + ",intercept)
-    axs[0,2].scatter(plotx,ploty,s=markersize,color='black')
-    axs[0,2].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='red')
+    xy = np.vstack([plotx,ploty])
+    z = gaussian_kde(xy)(xy)
+    idx = z.argsort()
+    x,y,z = plotx[idx], ploty[idx], z[idx]
+    axs[0,2].scatter(x,y,c=z,s=markersize,cmap=plt.cm.jet)
+    axs[0,2].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='black')
     axs[0,2].set_title('Clear-Sky Net Flux'+ice_data['season_adder'].title()+' Trends')
     axs[0,2].set_xlabel('Percent Ice Concentration Trends [%]')
     axs[0,2].set_ylabel('Net Flux Trends [W/m2]')
@@ -605,8 +639,8 @@ def figure_2(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
 
     # Plot the second row: all sky
     # Plot All-sky SWF data
-    plotx = ice_data[ice_trend_key][(ice_data[ice_trend_key]!=missing_trend) & (np.abs(ice_data[ice_trend_key])>=pcnt_reject)]
-    ploty = CERES_sw_all_dict['trends'][(ice_data[ice_trend_key]!=missing_trend) & (np.abs(ice_data[ice_trend_key])>=pcnt_reject)]
+    plotx = local_ice_trend[(local_ice_trend!=-420.) & (avg_ice_conc!=-420.)]
+    ploty = CERES_sw_all_dict['trends'][(local_ice_trend!=-420.) & (avg_ice_conc!=-420.)]
     plotx = plotx[ploty>-1000]
     ploty = ploty[ploty>-1000]
     plotx = plotx[ploty<1000]
@@ -615,17 +649,21 @@ def figure_2(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
     print("All SWF correlation: ",corr_swf)
     slope,intercept,r_val,p_val,stderr = stats.linregress(plotx,ploty)
     print("  Equation: y = ",slope,"*x + ",intercept)
-    axs[1,0].scatter(plotx,ploty,s=markersize,color='black')
-    axs[1,0].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='red')
+    xy = np.vstack([plotx,ploty])
+    z = gaussian_kde(xy)(xy)
+    idx = z.argsort()
+    x,y,z = plotx[idx], ploty[idx], z[idx]
+    axs[1,0].scatter(x,y,c=z,s=markersize,cmap=plt.cm.jet)
+    axs[1,0].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='black')
     axs[1,0].set_title('All-Sky SWF'+ice_data['season_adder'].title()+' Trends')
     axs[1,0].set_xlabel('Percent Ice Concentration Trends')
     axs[1,0].set_ylabel('SWF Trends [W/m2]')
     x_pos = ((axs[1,0].get_xlim()[1]-axs[1,0].get_xlim()[0])/8)+axs[1,0].get_xlim()[0]
-    y_pos = ((axs[1,0].get_ylim()[1]-axs[1,0].get_ylim()[0])/8)+axs[1,0].get_ylim()[0]
+    y_pos = axs[1,0].get_ylim()[1]-((axs[1,0].get_ylim()[1]-axs[1,0].get_ylim()[0])/8)
     axs[1,0].text(x_pos,y_pos,"Corr = "+str(np.round(corr_lwf,3)))
     # Plot All-sky LWF data
-    plotx = ice_data[ice_trend_key][(ice_data[ice_trend_key]!=missing_trend) & (np.abs(ice_data[ice_trend_key])>=pcnt_reject)]
-    ploty = CERES_lw_all_dict['trends'][(ice_data[ice_trend_key]!=missing_trend) & (np.abs(ice_data[ice_trend_key])>=pcnt_reject)]
+    plotx = local_ice_trend[(local_ice_trend!=-420.) & (avg_ice_conc!=-420.)]
+    ploty = CERES_lw_all_dict['trends'][(local_ice_trend!=-420.) & (avg_ice_conc!=-420.)]
     plotx = plotx[ploty>-1000]
     ploty = ploty[ploty>-1000]
     plotx = plotx[ploty<1000]
@@ -634,8 +672,12 @@ def figure_2(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
     print("LWF correlation: ",corr_lwf)
     slope,intercept,r_val,p_val,stderr = stats.linregress(plotx,ploty)
     print("  Equation: y = ",slope,"*x + ",intercept)
-    axs[1,1].scatter(plotx,ploty,s=markersize,color='black')
-    axs[1,1].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='red')
+    xy = np.vstack([plotx,ploty])
+    z = gaussian_kde(xy)(xy)
+    idx = z.argsort()
+    x,y,z = plotx[idx], ploty[idx], z[idx]
+    axs[1,1].scatter(x,y,c=z,s=markersize,cmap=plt.cm.jet)
+    axs[1,1].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='black')
     axs[1,1].set_title('All-Sky LWF'+ice_data['season_adder'].title()+' Trends')
     axs[1,1].set_xlabel('Ice Trends')
     axs[1,1].set_ylabel('LWF Trends')
@@ -646,8 +688,8 @@ def figure_2(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
     ##print("  x_pos = ",x_pos)
     ##print("  y_pos = ",y_pos)
     # Plot Net Flux Data
-    plotx = ice_data[ice_trend_key][(ice_data[ice_trend_key]!=missing_trend) & (np.abs(ice_data[ice_trend_key])>=pcnt_reject)]
-    ploty = CERES_net_all_dict['trends'][(ice_data[ice_trend_key]!=missing_trend) & (np.abs(ice_data[ice_trend_key])>=pcnt_reject)]
+    plotx = local_ice_trend[(local_ice_trend!=-420.) & (avg_ice_conc!=-420.)]
+    ploty = CERES_net_all_dict['trends'][(local_ice_trend!=-420.) & (avg_ice_conc!=-420.)]
     plotx = plotx[ploty>-1000]
     ploty = ploty[ploty>-1000]
     plotx = plotx[ploty<1000]
@@ -656,8 +698,12 @@ def figure_2(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
     print("Net flux correlation: ",corr_net)
     slope,intercept,r_val,p_val,stderr = stats.linregress(plotx,ploty)
     print("  Equation: y = ",slope,"*x + ",intercept)
-    axs[1,2].scatter(plotx,ploty,s=markersize,color='black')
-    axs[1,2].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='red')
+    xy = np.vstack([plotx,ploty])
+    z = gaussian_kde(xy)(xy)
+    idx = z.argsort()
+    x,y,z = plotx[idx], ploty[idx], z[idx]
+    axs[1,2].scatter(x,y,c=z,s=markersize,cmap=plt.cm.jet)
+    axs[1,2].plot(np.unique(plotx),np.poly1d(np.polyfit(plotx,ploty,1))(np.unique(plotx)),color='black')
     axs[1,2].set_title('All-Sky Net Flux'+ice_data['season_adder'].title()+' Trends')
     axs[1,2].set_xlabel('Ice Trends')
     axs[1,2].set_ylabel('Net Flux Trends')
@@ -738,7 +784,7 @@ def figure_3():
     plt.savefig('paper_figure3.png',dpi=300)
 
 # Plot the observed average sea ice areas over the time period.
-def figure_4(ice_data,model_overlay=False):
+def figure_4(ice_data,model_overlay=False,zoomed=True):
     summer_averages_grid = np.zeros((int(len(ice_data['titles'])/3)))
     summer_averages_raw  = np.zeros((int(len(ice_data['titles'])/3)))
     all_summer_avgs = []
@@ -760,7 +806,7 @@ def figure_4(ice_data,model_overlay=False):
     all_summer_avgs = np.array(all_summer_avgs)
 
     # Clear-sky summer values from net flux figure
-    dflux_dsigma = -1.3183
+    dflux_dsigma = -1.2645
     del_T = (86400.)*90  # number of seconds of solar heating per summer
     l_f = 3.3e5  # latent heat of fusion (J/kg)
     rho_i = 917  # density of ice (kg/m3)
@@ -795,7 +841,6 @@ def figure_4(ice_data,model_overlay=False):
         sum_final_ice = summer_averages_raw[21] # 2001
     #starting_val = -20.
     starting_val = ((sum_final_ice-sum_init_ice)/sum_init_ice)*100.
-    print(starting_val)
     #starting_val = ((summer_averages_raw[0]-sum_init_ice)/sum_init_ice)*100.
     #starting_val = ((sum_final_ice-sum_init_ice)/sum_init_ice)*100.
     beginning_year = int(ice_data['titles'][0].split('_')[1][:4])
@@ -804,6 +849,13 @@ def figure_4(ice_data,model_overlay=False):
     else:
         start_year = int(ice_data['titles'][63].split('_')[1][:4]) # 2001
     #start_year = 2001
+
+    # Write the obs to a file
+    with open('total_ice_summer_area_obs.txt','w') as fout:
+        for ti in range(len(summer_averages_raw)):
+            out_year = beginning_year+ti
+            fout.write(str(out_year)+'   '+str(summer_averages_raw[ti])+'\n')
+    
     
     sigma_1m = np.array(fill_array(starting_val,1.))
     sigma_2m = np.array(fill_array(starting_val,2.))
@@ -824,9 +876,15 @@ def figure_4(ice_data,model_overlay=False):
     years_4m   = np.arange(start_year,start_year+len(extents_4m))
     years_5m   = np.arange(start_year,start_year+len(extents_5m))
 
+    # Print off the forecasted ending years
+    print("1 meter end = ",years_1m[-1])
+    print("2 meter end = ",years_2m[-1])
+    print("3 meter end = ",years_3m[-1])
+    print("4 meter end = ",years_4m[-1])
+    print("5 meter end = ",years_5m[-1])
+
     # All summer averages x vals
     asa_x_vals = np.arange(beginning_year,2018.7,0.3333333)
-    print(asa_x_vals)
     #print("First model extent: ",extents_2m[0])
     #print("Summer Averages: ",summer_averages_raw)
     #print("All monthly Averages: ",all_summer_avgs)
@@ -839,20 +897,27 @@ def figure_4(ice_data,model_overlay=False):
     ax.plot(years_3m,extents_3m,label='3m Model extents')
     ax.plot(years_4m,extents_4m,label='4m Model extents')
     ax.plot(years_5m,extents_5m,label='5m Model extents')
-    if(model_overlay==True):
-        ax.set_xlim(1980,2018)
-        ax.set_ylim(5.5,8.0)
-    else:
+    #if(model_overlay==True):
+    #    ax.set_xlim(1980,2018)
+    #    ax.set_ylim(5.5,8.0)
+    #else:
+    if(model_overlay==False):
         ax.axvline(1989,linestyle=':',ymin=0.85,color='black')
         ax.axvline(2018,linestyle=':',ymin=0.7,ymax=0.85,color='black')
         ax.axhline(sum_init_ice/1e6,xmin=0.05,xmax=0.1,linestyle=':',color='black')
         ax.axhline(sum_final_ice/1e6,xmin=0.143,xmax=0.193,linestyle=':',color='black')
         #ax.text(1985,5.5,'1989')
+    if(zoomed==True):
+        ax.set_xlim(1990,2018)
+        ax.set_ylim(5.5,8.0)
     ax.legend()
     ax.set_ylabel('Ice Area (millions of km2)')
     ax.set_title("Average Summer Arctic Ice Area")
     if(model_overlay==True):
-        plt.savefig('paper_figure4_model_overlay.png',dpi=300)
+        if(zoomed==True):
+            plt.savefig('paper_figure4_model_overlay_zoom.png',dpi=300)
+        else:
+            plt.savefig('paper_figure4_model_overlay.png',dpi=300)
     else:
         plt.savefig('paper_figure4.png',dpi=300)
     plt.show()
@@ -872,7 +937,7 @@ def write_toASCII(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dic
             avg_ice_conc[xi,yj] = np.average(ice_data['grid_ice_conc'][:,xi,yj][ice_data['grid_ice_conc'][:,xi,yj]>0.])
        
     # Create the Ice data ASCII file
-    outname = "nsidc_gridded_ice_trends.txt"
+    outname = "nsidc_gridded_ice_trends_sunlight.txt"
     print("Generating file ",outname)
     with open(outname,'w') as fout:
         fout.write('{:6} {:8} {:10} {:10}'.format('Lat','Lon','Ice_trend','Avg_conc\n'))
@@ -882,7 +947,7 @@ def write_toASCII(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dic
                         ice_data['grid_lon'][yj],ice_data['grid_ice'][xi,yj],avg_ice_conc[xi,yj]))
 
     # Create the CERES Clear-sky data ASCII file
-    outname = "ceres_gridded_flux_trends.txt"
+    outname = "ceres_gridded_flux_trends_sunlight.txt"
     print("Generating file ",outname)
     with open(outname,'w') as fout:
         fout.write('{:7} {:8} {:9} {:9} {:9} {:9} {:9} {:9}\n'.format('Lat','Lon','sw_clr','sw_all','lw_clr','lw_all','net_clr','net_all'))

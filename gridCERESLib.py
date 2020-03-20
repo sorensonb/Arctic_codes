@@ -103,6 +103,7 @@ def readgridCERES(start_date,end_date,param,minlat=70.5,season='all'):
     summer=False
     autumn=False
     winter=False
+    sunlight=True
     if(season=='spring'):
         spring=True
     elif(season=='summer'):
@@ -111,6 +112,8 @@ def readgridCERES(start_date,end_date,param,minlat=70.5,season='all'):
         autumn=True
     elif(season=='winter'):
         winter=True
+    elif(season=='sunlight'):
+        sunlight=True
    
     lat_ranges = np.arange(-89.5,90.5,1.0)
     lon_ranges = np.arange(0.5,360.5,1.0)
@@ -135,6 +138,9 @@ def readgridCERES(start_date,end_date,param,minlat=70.5,season='all'):
                     final_list.append(f)
             elif(winter==True):
                 if((int(fdate[-2:])==12) | (int(fdate[-2:])<3)):
+                    final_list.append(f)
+            elif(sunlight==True):
+                if((int(fdate[-2:])>3) & (int(fdate[-2:])<10)):
                     final_list.append(f)
             else:
                 final_list.append(f)

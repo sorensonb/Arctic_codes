@@ -75,6 +75,7 @@ def read_ice(season,pre2001=False):
     summer=False
     autumn=False
     winter=False
+    sunlight=False
     season_adder = ' '+season
     file_adder = '_'+season
     if(season=='spring'):
@@ -89,6 +90,9 @@ def read_ice(season,pre2001=False):
     elif(season=='winter'):
         winter=True
         ls_check = ['12_','01_','02_']
+    elif(season=='sunlight'):
+        sunlight=True
+        ls_check = ['04_','05_','06_','07_','08_','09_']
     else:
         print("Analyzing all seasons. Option given was",season)
         season_adder = ''
