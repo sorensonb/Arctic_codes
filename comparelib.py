@@ -519,7 +519,10 @@ def figure_1(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
     #cbar.set_label(parm_unit)
     ax5.coastlines()
     
-    plt.savefig('paper_figure1.png',dpi=300)
+    if(ice_data['season_adder'].strip()=='sunlight'):
+        plt.savefig('paper_figure1_sunlight.png',dpi=300)
+    else:
+        plt.savefig('paper_figure1.png',dpi=300)
     plt.show()
 
 def figure_2(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
@@ -711,8 +714,10 @@ def figure_2(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
     y_pos = ((axs[1,2].get_ylim()[1]-axs[1,2].get_ylim()[0])/8)+axs[1,2].get_ylim()[0]
     axs[1,2].text(x_pos,y_pos,"Corr = "+str(np.round(corr_net,3)))
 
-    outname = "paper_figure2.png"
-    plt.savefig(outname,dpi=300)
+    if(ice_data['season_adder'].strip()=='sunlight'):
+        plt.savefig('paper_figure2_sunlight.png',dpi=300)
+    else:
+        plt.savefig('paper_figure2.png',dpi=300)
     plt.show()
     #if(save==True):
     #    plt.savefig(outname,dpi=300)
@@ -785,41 +790,50 @@ def figure_3():
 
 # Plot the observed average sea ice areas over the time period.
 def figure_4(ice_data,model_overlay=False,zoomed=True):
-    summer_averages_grid = np.zeros((int(len(ice_data['titles'])/3)))
-    summer_averages_raw  = np.zeros((int(len(ice_data['titles'])/3)))
+    summer_averages_grid = np.zeros((int(len(ice_data['titles'])/6)))
+    summer_averages_raw  = np.zeros((int(len(ice_data['titles'])/6)))
+    #summer_averages_grid = np.zeros((int(len(ice_data['titles'])/3)))
+    #summer_averages_raw  = np.zeros((int(len(ice_data['titles'])/3)))
     all_summer_avgs = []
     local_grid_ice = np.copy(ice_data['grid_ice_conc'])
     local_grid_ice[local_grid_ice==-99.] = np.nan
     for i in range(len(summer_averages_raw)):
         # Calculate the ice area from the raw data
-        idx = (i-1)*3
+        idx = (i-1)*6
         raw_sum1 = np.sum((ice_data['data'][idx+1,:,:][ice_data['data'][idx+1,:,:]<251]/100.)*ice_data['area'][ice_data['data'][idx+1,:,:]<251])         
         raw_sum2 = np.sum((ice_data['data'][idx+2,:,:][ice_data['data'][idx+2,:,:]<251]/100.)*ice_data['area'][ice_data['data'][idx+2,:,:]<251])         
         raw_sum3 = np.sum((ice_data['data'][idx+3,:,:][ice_data['data'][idx+3,:,:]<251]/100.)*ice_data['area'][ice_data['data'][idx+3,:,:]<251])         
+        raw_sum4 = np.sum((ice_data['data'][idx+4,:,:][ice_data['data'][idx+4,:,:]<251]/100.)*ice_data['area'][ice_data['data'][idx+4,:,:]<251])         
+        raw_sum5 = np.sum((ice_data['data'][idx+5,:,:][ice_data['data'][idx+5,:,:]<251]/100.)*ice_data['area'][ice_data['data'][idx+5,:,:]<251])         
+        raw_sum6 = np.sum((ice_data['data'][idx+6,:,:][ice_data['data'][idx+6,:,:]<251]/100.)*ice_data['area'][ice_data['data'][idx+6,:,:]<251])         
         all_summer_avgs.append(raw_sum1)
         all_summer_avgs.append(raw_sum2)
         all_summer_avgs.append(raw_sum3)
-        avg_raw = (raw_sum1+raw_sum2+raw_sum3)/3.
+        all_summer_avgs.append(raw_sum4)
+        all_summer_avgs.append(raw_sum5)
+        all_summer_avgs.append(raw_sum6)
+        avg_raw = (raw_sum1+raw_sum2+raw_sum3+raw_sum4+raw_sum5+raw_sum6)/6.
         summer_averages_raw[i] = avg_raw
         # Calculate the area from the gridded data
 
     all_summer_avgs = np.array(all_summer_avgs)
 
     # Clear-sky summer values from net flux figure
-    dflux_dsigma = -1.2645
-    del_T = (86400.)*90  # number of seconds of solar heating per summer
+    dflux_dsigma = -0.3600
+    #dflux_dsigma = -1.2645
+    del_T = (86400.)*30*6  # number of seconds of solar heating per sunlit time 
     l_f = 3.3e5  # latent heat of fusion (J/kg)
     rho_i = 917  # density of ice (kg/m3)
     def equation(sigma_p,thick):
     
-        sigma_pnew = sigma_p * (1. - (dflux_dsigma * del_T) / (l_f * rho_i* thick))
+        sigma_pnew = sigma_p * (1. + (dflux_dsigma * del_T) / (l_f * rho_i* thick))
         return sigma_pnew
     
     def fill_array(start_val,thick):
         sigma_values = []
         sigma_values.append(start_val)
         # Find 1m-thickness values
-        while(start_val>-100):
+        while(start_val>0):
             sigma_new = equation(start_val,thick)
             sigma_values.append(sigma_new) 
             start_val = sigma_new
@@ -833,14 +847,15 @@ def figure_4(ice_data,model_overlay=False,zoomed=True):
     # 10 years
     #starting_val = -10. 
     # Use the 1991 summer average extent as the new "sum init ice" value   
-    # Use the 2001 summer average extent as the new "sum final ice" value
-    sum_init_ice = summer_averages_raw[9] # 1989
-    if(model_overlay==False):
-        sum_final_ice = summer_averages_raw[38] # 2018
-    else:
-        sum_final_ice = summer_averages_raw[21] # 2001
-    #starting_val = -20.
-    starting_val = ((sum_final_ice-sum_init_ice)/sum_init_ice)*100.
+    ##!## Use the 2001 summer average extent as the new "sum final ice" value
+    ##!#sum_init_ice = summer_averages_raw[9] # 1989
+    ##!#if(model_overlay==False):
+    ##!#    sum_final_ice = summer_averages_raw[38] # 2018
+    ##!#    #sum_final_ice = summer_averages_raw[38] # 2018
+    ##!#else:
+    ##!#    sum_final_ice = summer_averages_raw[21] # 2001
+    starting_val = 100.
+    #starting_val = ((sum_final_ice-sum_init_ice)/sum_init_ice)*100.
     #starting_val = ((summer_averages_raw[0]-sum_init_ice)/sum_init_ice)*100.
     #starting_val = ((sum_final_ice-sum_init_ice)/sum_init_ice)*100.
     beginning_year = int(ice_data['titles'][0].split('_')[1][:4])
@@ -848,13 +863,15 @@ def figure_4(ice_data,model_overlay=False,zoomed=True):
         start_year = int(ice_data['titles'][115].split('_')[1][:4]) # 2018
     else:
         start_year = int(ice_data['titles'][63].split('_')[1][:4]) # 2001
+    # Use 1990 as the starting year
+    start_year = int(ice_data['titles'][30].split('_')[1][:4]) # 2001
     #start_year = 2001
 
-    # Write the obs to a file
-    with open('total_ice_summer_area_obs.txt','w') as fout:
-        for ti in range(len(summer_averages_raw)):
-            out_year = beginning_year+ti
-            fout.write(str(out_year)+'   '+str(summer_averages_raw[ti])+'\n')
+    ### Write the obs to a file
+    ##with open('total_ice_summer_area_obs.txt','w') as fout:
+    ##    for ti in range(len(summer_averages_raw)):
+    ##        out_year = beginning_year+ti
+    ##        fout.write(str(out_year)+'   '+str(summer_averages_raw[ti])+'\n')
     
     
     sigma_1m = np.array(fill_array(starting_val,1.))
@@ -891,7 +908,7 @@ def figure_4(ice_data,model_overlay=False,zoomed=True):
     #plt.plot(asa_x_vals,all_summer_avgs/1e6,label='All summer averages')
 
     fig, ax = plt.subplots()
-    ax.plot(asa_x_vals[::3],summer_averages_raw/1e6,label='Observed')
+    #ax.plot(asa_x_vals[::3],summer_averages_raw/1e6,label='Observed')
     ax.plot(years_1m,extents_1m,label='1m Model extents')
     ax.plot(years_2m,extents_2m,label='2m Model extents')
     ax.plot(years_3m,extents_3m,label='3m Model extents')
@@ -901,25 +918,25 @@ def figure_4(ice_data,model_overlay=False,zoomed=True):
     #    ax.set_xlim(1980,2018)
     #    ax.set_ylim(5.5,8.0)
     #else:
-    if(model_overlay==False):
-        ax.axvline(1989,linestyle=':',ymin=0.85,color='black')
-        ax.axvline(2018,linestyle=':',ymin=0.7,ymax=0.85,color='black')
-        ax.axhline(sum_init_ice/1e6,xmin=0.05,xmax=0.1,linestyle=':',color='black')
-        ax.axhline(sum_final_ice/1e6,xmin=0.143,xmax=0.193,linestyle=':',color='black')
-        #ax.text(1985,5.5,'1989')
-    if(zoomed==True):
-        ax.set_xlim(1990,2018)
-        ax.set_ylim(5.5,8.0)
+    ##!#if(model_overlay==False):
+    ##!#    ax.axvline(1989,linestyle=':',ymin=0.85,color='black')
+    ##!#    ax.axvline(2018,linestyle=':',ymin=0.7,ymax=0.85,color='black')
+    ##!#    ax.axhline(sum_init_ice/1e6,xmin=0.05,xmax=0.1,linestyle=':',color='black')
+    ##!#    ax.axhline(sum_final_ice/1e6,xmin=0.143,xmax=0.193,linestyle=':',color='black')
+    ##!#    #ax.text(1985,5.5,'1989')
+    ##!#if(zoomed==True):
+    ##!#    ax.set_xlim(1990,2018)
+    ##!#    ax.set_ylim(5.5,8.0)
     ax.legend()
     ax.set_ylabel('Ice Area (millions of km2)')
     ax.set_title("Average Summer Arctic Ice Area")
-    if(model_overlay==True):
-        if(zoomed==True):
-            plt.savefig('paper_figure4_model_overlay_zoom.png',dpi=300)
-        else:
-            plt.savefig('paper_figure4_model_overlay.png',dpi=300)
-    else:
-        plt.savefig('paper_figure4.png',dpi=300)
+    #if(model_overlay==True):
+    #    if(zoomed==True):
+    #        plt.savefig('paper_figure4_model_overlay_zoom.png',dpi=300)
+    #    else:
+    #        plt.savefig('paper_figure4_model_overlay.png',dpi=300)
+    #else:
+    #    plt.savefig('paper_figure4.png',dpi=300)
     plt.show()
 
 # write_toASCII writes the contents of each dictionary to an ASCII file
@@ -958,6 +975,126 @@ def write_toASCII(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dic
                             CERES_lw_clr_dict['trends'][xi,yj],CERES_lw_all_dict['trends'][xi,yj],CERES_net_clr_dict['trends'][xi,yj],\
                             CERES_net_all_dict['trends'][xi,yj]))
 
+def scatter_1a_1b(ice_data,adjusted=True):
+    fig = plt.figure()
+    if(ice_data['season_adder'].strip()=='sunlight'):
+        plt.title('Sunlight Months (April - September  2001 - 2018)')
+    else: 
+        plt.title('Summer Only (June - August,  2001 - 2018)')
+        
+    # - - - - - - - - - - - - - 
+    # Plot the average summer ice conc
+    # - - - - - - - - - - - - - 
+    # Find the average conc
+    avg_ice_conc = np.zeros((len(ice_data['grid_lat']),len(ice_data['grid_lon'])))
+    for xi in range(len(ice_data['grid_lat'])):
+        for yj in range(len(ice_data['grid_lon'])):
+            avg_ice_conc[xi,yj] = np.average(ice_data['grid_ice_conc'][:,xi,yj][ice_data['grid_ice_conc'][:,xi,yj]!=-99.])
+            if(avg_ice_conc[xi,yj]<20.0):
+                avg_ice_conc[xi,yj] = np.nan
+       
+    local_grid_ice = np.copy(ice_data['grid_ice'])
+    local_grid_ice_bad = np.copy(ice_data['grid_ice'])
+   
+    markersize=8 
+    local_grid_ice[local_grid_ice==-999.] = np.nan
+    # Ignore the areas without ice by making any values where the ice conc
+    # is less than 5%.
+    local_grid_ice[np.isnan(avg_ice_conc)] = np.nan
+    local_grid_ice_bad[local_grid_ice!=-999.] = np.nan
+    avg_ice_conc[np.isnan(local_grid_ice)] = np.nan
+    plot_good_data_avg = ma.masked_invalid(avg_ice_conc)
+    plot_good_data_trend = ma.masked_invalid(local_grid_ice)
+    plot_land_data = ma.masked_invalid(local_grid_ice_bad)
+    plot_good_data_avg = plot_good_data_avg[np.isnan(plot_good_data_avg)==False]
+    plot_good_data_trend = plot_good_data_trend[np.isnan(plot_good_data_trend)==False]
+    xy = np.vstack([plot_good_data_avg,plot_good_data_trend])
+    z = gaussian_kde(xy)(xy)
+    idx = z.argsort()
+    x,y,z = plot_good_data_avg[idx], plot_good_data_trend[idx], z[idx]
+    plt.scatter(x,y,c=z,s=markersize,cmap=plt.cm.jet)
+    plt.xlabel('Average Ice Fraction [%]')
+    plt.ylabel('Ice Fraction Trend [%/study period]')
+    if(ice_data['season_adder'].strip()=='sunlight'):
+        plt.savefig('scatter_1a_1b_sunlight.png',dpi=300)
+        print("Saved image scatter_1a_1b_sunlight.png")
+    else: 
+        plt.savefig('scatter_1a_1b_summer.png',dpi=300)
+        print("Saved image scatter_1a_1b_summer.png")
+    plt.show()
+
+def yearly_conc_diff_scatter(ice_data):
+    # Make the figure
+   
+    sunlight=False
+    summer=False
+    if(ice_data['season_adder']==' sunlight'):
+        sunlight=True
+        title_divider = 6
+    elif(ice_data['season_adder']==' summer'):
+        summer=True
+        title_divider = 3
+    # Loop over the years in the dictionary
+    num_years = int(len(ice_data['titles'])/title_divider)
+    total_this_year = np.array([])
+    total_next_year = np.array([])
+    total_diff = np.array([])
+    for ti in range(num_years-1):
+        idx = ti*title_divider
+        nidx = (ti+1)*title_divider
+        this_year_string = ice_data['titles'][idx][7:11]
+        next_year_string = ice_data['titles'][nidx][7:11]
+        print("Looking at ",next_year_string)
+        if(sunlight==True):
+            this_year = np.array([ice_data['grid_ice_conc'][idx,:,:], \
+                                 ice_data['grid_ice_conc'][idx+1,:,:], \
+                                 ice_data['grid_ice_conc'][idx+2,:,:], \
+                                 ice_data['grid_ice_conc'][idx+3,:,:], \
+                                 ice_data['grid_ice_conc'][idx+4,:,:], \
+                                 ice_data['grid_ice_conc'][idx+5,:,:]])
+            next_year = np.array([ice_data['grid_ice_conc'][nidx,:,:], \
+                                 ice_data['grid_ice_conc'][nidx+1,:,:], \
+                                 ice_data['grid_ice_conc'][nidx+2,:,:], \
+                                 ice_data['grid_ice_conc'][nidx+3,:,:], \
+                                 ice_data['grid_ice_conc'][nidx+4,:,:], \
+                                 ice_data['grid_ice_conc'][nidx+5,:,:]])
+        elif(summer==True):
+            this_year = np.array([ice_data['grid_ice_conc'][idx,:,:], \
+                                 ice_data['grid_ice_conc'][idx+1,:,:], \
+                                 ice_data['grid_ice_conc'][idx+2,:,:]])
+            next_year = np.array([ice_data['grid_ice_conc'][nidx,:,:], \
+                                 ice_data['grid_ice_conc'][nidx+1,:,:], \
+                                 ice_data['grid_ice_conc'][nidx+2,:,:]])
+        this_year = np.average(this_year,axis=0)
+        next_year = np.average(next_year,axis=0)
+
+        diff = next_year-this_year
+
+        #total_next_year = np.append(total_next_year[:],next_year)
+        #total_diff = np.append(total_diff[:],diff)
+        diff = diff[(next_year!=-99.) & (this_year!=-99.)]
+        next_year = next_year[(next_year!=-99.) & (this_year!=-99.)]
+        if(len(diff[diff>100])>0):
+            print(diff[diff>100])
+
+        fig1 = plt.figure()
+        markersize=8
+        xy = np.vstack([next_year,diff])
+        z = gaussian_kde(xy)(xy)
+        idx = z.argsort()
+        x,y,z = next_year[idx], diff[idx], z[idx]
+        plt.scatter(x,y,c=z,s=markersize,cmap=plt.cm.jet)
+        #plt.scatter(next_year[next_year!=-99.],diff[next_year!=-99.])
+        plt.xlabel(next_year_string+' Ice Fraction')
+        plt.ylabel(next_year_string+' Ice Fraction - '+this_year_string+' Ice Fraction')
+        if(ice_data['season_adder'].strip()=='sunlight'):
+            plt.title('Sunlight data (April - September')
+            outname = 'yearly_conc_diff_scatter_'+next_year_string+'_sunlight.png'
+        elif(ice_data['season_adder'].strip()=='summer'): 
+            plt.title('Summer data (June - August')
+            outname = 'yearly_conc_diff_scatter_'+next_year_string+'_summer.png'
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
 ####def write_toNCDF(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
 ####                  CERES_lw_all_dict,CERES_sw_all_dict,CERES_net_all_dict):
 ####    #lat_ranges = np.arange(minlat,90,1.0)

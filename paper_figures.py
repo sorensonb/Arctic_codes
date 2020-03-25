@@ -149,7 +149,7 @@ figure_2(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-figure_3()
+#figure_3()
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -161,7 +161,7 @@ figure_3()
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-figure_4(ice_data)
+#figure_4(ice_data)
 #figure_4(ice_data,model_overlay=False,zoomed=True)
 
 
