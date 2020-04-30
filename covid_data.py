@@ -62,6 +62,10 @@ for key in county_dict.keys():
     covid_dict['data'][covid_key]['daily_cases'] = daily_cases 
     covid_dict['data'][covid_key]['daily_deaths'] = daily_deaths 
 
+    ##!## Calculate population density
+    ##!#covid_dict['data'][covid_key]['pop_density'] = \
+    ##!#    covid_dict['data'][covid_key]['population']/area_dict[key]
+
 #county='gfk'
 #mvar = 'avg_temp'
 #cvar = 'cases'

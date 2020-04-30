@@ -15,21 +15,31 @@ import matplotlib.dates as mdates
 import imageio
 
 county_dict = {
-    'nyc': 'Queens County NY',
-    'newOrleans': 'Orleans Parish LA',
-    'gfk': 'Grand Forks County ND',
-    'denton': 'Denton County TX' ,
-    'lac': 'Los Angeles County CA'
+    'nyc': 'Queens County NY',              # Populated
+    'newOrleans': 'Orleans Parish LA',      # Populated 
+    'denton': 'Denton County TX' ,          # Populated
+    'lac': 'Los Angeles County CA',         # Populated
+    'chi': 'Cook County IL',                # Populated
+    'gfk': 'Grand Forks County ND',         # Rural
+    'eagleCoCo': 'Eagle County CO',         # Rural
+    'duluth': 'St. Louis County MN',        # Rural
+    'abbevilleCoSC': 'Abbeville County SC', # Rural
+    'medford': 'Jackson County OR',         # Rural
 }
 
-# County areas, in square miles
-area_dict = {
-    'nyc': 108.1,
-    'newOrleans': 349.8,
-    'gfk': 1440.,
-    'denton': 953.,
-    'lac': 4751. 
-}
+##!## County areas, in square miles
+##!#area_dict = {
+##!#    'nyc': 108.1,
+##!#    'newOrleans': 349.8,
+##!#    'denton': 953.,
+##!#    'lac': 4751.,
+##!#    'chi': 1635.,
+##!#    'gfk': 1440.,
+##!#    'eagleCoCo': 1692.,
+##!#    'duluth': 6860.,
+##!#    'abbevilleCoSC': 511.,
+##!#    'medford': 2802.,
+##!#}
 
 def split_metar_file(metar_file):
     # This code reads a METAR file and calculates
@@ -136,10 +146,9 @@ def read_meteo_data(meteo_file,meteo_dict=None):
         meteo_dict[site_name]['avg_v'] = np.zeros((len(mlines)-1))
         meteo_dict[site_name]['dates'] = []
         # Skip the header line and insert stuff
-        print("Reading meteorology file")
+        print("Reading meteorology file",site_name)
         for i, line in enumerate(mlines[1:]):
             templine = line.strip().split(',')
-            print(templine[1])
             meteo_dict[site_name]['dates'].append(templine[1])
             # Average temperature
             if(templine[2]=='-99.0'):
@@ -177,6 +186,7 @@ def read_covid_data():
     case_file = 'covid_confirmed_usafacts.csv'
     death_file = 'covid_deaths_usafacts.csv'
     pop_file = 'covid_county_population_usafacts.csv'
+    area_file = 'county_areas.csv'
 
     # Create dictionary
     covid_dict = {}
@@ -238,6 +248,21 @@ def read_covid_data():
                 county_key = ' '.join([templine[1],'and','City',templine[2]])
                 if(county_key in covid_dict['data'].keys()):
                     covid_dict['data'][county_key]['population'] = int(templine[3])
+
+    # Read in Matt's county areas file
+    with open(area_file,'r') as afile:
+        alines = afile.readlines() 
+        # Skip the header line and insert stuff
+        print("Reading area file")
+        for i, line in enumerate(alines[1:]):
+            templine = line.strip().split(',')
+            county_key = templine[0]
+            if(county_key in covid_dict['data'].keys()):
+                covid_dict['data'][county_key]['area'] = float(templine[2])
+                # Calculate population density
+                covid_dict['data'][county_key]['pop_density'] = \
+                    covid_dict['data'][county_key]['population']/\
+                    covid_dict['data'][county_key]['area']
 
     return covid_dict
 
@@ -359,5 +384,42 @@ def plot_cases_scatter(meteo_dict,covid_dict,county,meteo_var,covid_var,save=Fal
         plt.show()
     plt.close()
 
+def plot_pdense_cases_scatter(covid_dict):
+    case_key='cases_p100k'
+    fig1,ax = plt.subplots()
+    for ckey in covid_dict['data'].keys():
+        if('pop_density' in covid_dict['data'][ckey].keys()):
+            cases = covid_dict['data'][ckey][case_key][-1]
+            pop_dense = covid_dict['data'][ckey]['pop_density']
+            ax.scatter(pop_dense,cases,color='black')
+    ax.set_xlabel('Population density [#/sq mi]') 
+    ax.set_ylabel('Cases per 100k as of 2020/04/23') 
+    plt.show()
+    plt.close() 
+
 def plot_pdense_temp_scatter(meteo_dict,covid_dict):
-    print("Here's the dictionary")
+    # To find county cases for a specific day:
+    #[covid_dict['data'][county_dict[ckey]]['cases'][40] for \
+    #    ckey in county_dict.keys()]
+
+    date_index = 40
+
+    fig1, ax = plt.subplots()
+
+    # Calculate average temperature after the date index
+
+    # Determine coloring based on cases for each county
+    # In future, color by exponential fit parameters
+    
+    # Plot scatter, with population density on x-axis, avg
+    # temperature after date index on y-axis, and colored by
+    # cases.
+    for ckey in county_dict.keys():
+        tavg = np.average(meteo_dict[ckey]['avg_temp'][date_index:])
+        pop_dense = covid_dict['data'][county_dict[ckey]]['pop_density']
+        ax.scatter(pop_dense,tavg,label=county_dict[ckey])
+    
+    ax.set_xlabel('Population Density [#/mi2]')
+    ax.set_ylabel('Average Temperature During Cases [degC]')
+    plt.show()
+    plt.close()
