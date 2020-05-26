@@ -119,7 +119,8 @@ def readgridCERES(start_date,end_date,param,minlat=70.5,season='all'):
     lon_ranges = np.arange(0.5,360.5,1.0)
 
     # Grab all the files
-    base_path = '/home/bsorenson/data/CERES/SSF_1Deg/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
+    base_path = '/data/CERES/SSF_1Deg/monthly/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
+    #base_path = '/home/bsorenson/data/CERES/SSF_1Deg/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
     total_list = sorted(glob.glob(base_path+'*'))
 
     # Loop over all files and find the ones that match with the desired times

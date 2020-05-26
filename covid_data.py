@@ -41,6 +41,8 @@ covid_dict = read_covid_data()
     #       covid_dict['data']['Queens County NY']['cases']
     #       covid_dict['data']['Queens County NY']['population']
 
+#covid_dict = process_covid_data(covid_dict)
+
 for key in county_dict.keys():
     # Calculate cases / 100000 for the desired counties
     covid_key = county_dict[key]

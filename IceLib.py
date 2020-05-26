@@ -103,7 +103,8 @@ def read_ice(season,pre2001=False):
     # Grab all the ice files
     #file_names = glob.glob(data_loc+'*.bin')
     # Using this syntax, ignores 2000
-    cmnd = "ls /home/bsorenson/data/NSIDC/nt_*.bin"
+    cmnd = "ls /data/NSIDC/nt_*.bin"
+    #cmnd = "ls /home/bsorenson/data/NSIDC/nt_*.bin"
     #status,output = commands.getstatusoutput(cmnd)
     #file_initial = output.strip().split('\n')
     #

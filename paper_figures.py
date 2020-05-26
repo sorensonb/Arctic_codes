@@ -29,8 +29,8 @@ from comparelib import plot_fourscatter,plot_cld_clr_scatter,figure_1,figure_2
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-inseason='sunlight'
-#inseason='summer'
+#inseason='sunlight'
+inseason='summer'
 adjusted=adj=True
 
 # Read in NSIDC ice data
@@ -114,6 +114,11 @@ for xi in range(len(CERES_lw_clr_dict['lat'])):
 #     Panel 3: spatial ice trends
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+write_toASCII(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
+                  CERES_lw_all_dict,CERES_sw_all_dict,CERES_net_all_dict,\
+                  nonzero=True)
+sys.exit()
 
 figure_1(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
          CERES_lw_all_dict,CERES_sw_all_dict,CERES_net_all_dict,adjusted=True)

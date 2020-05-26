@@ -943,7 +943,9 @@ def figure_4(ice_data,model_overlay=False,zoomed=True):
 # Columns in these files are as follows:
 # lat  lon  trend
 def write_toASCII(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
-                  CERES_lw_all_dict,CERES_sw_all_dict,CERES_net_all_dict):
+                  CERES_lw_all_dict,CERES_sw_all_dict,CERES_net_all_dict,\
+                  nonzero=True):
+    inseason='summer'
     # - - - - - - - - - - - - - 
     # Plot the average summer ice conc
     # - - - - - - - - - - - - - 
@@ -954,26 +956,52 @@ def write_toASCII(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dic
             avg_ice_conc[xi,yj] = np.average(ice_data['grid_ice_conc'][:,xi,yj][ice_data['grid_ice_conc'][:,xi,yj]>0.])
        
     # Create the Ice data ASCII file
-    outname = "nsidc_gridded_ice_trends_sunlight.txt"
-    print("Generating file ",outname)
-    with open(outname,'w') as fout:
-        fout.write('{:6} {:8} {:10} {:10}'.format('Lat','Lon','Ice_trend','Avg_conc\n'))
-        for xi in range(len(ice_data['grid_lat'])):
-            for yj in range(len(ice_data['grid_lon'])):
-                fout.write('{:.3} {:8.4} {:10.6} {:10.6}\n'.format(ice_data['grid_lat'][xi],\
-                        ice_data['grid_lon'][yj],ice_data['grid_ice'][xi,yj],avg_ice_conc[xi,yj]))
+    ioutname = "nsidc_gridded_ice_trends_"+inseason+".txt"
+    coutname = "ceres_gridded_flux_trends_"+inseason+".txt"
+    if(nonzero==True):
+        ioutname = "nsidc_gridded_ice_trends_"+inseason+"_nonzero.txt"
+        coutname = "ceres_gridded_flux_trends_"+inseason+"_nonzero.txt"
+    print("Generating file ",ioutname)
+    with open(ioutname,'w') as ifout:
+        ifout.write('{:6} {:8} {:10} {:10}'.format('Lat','Lon','Ice_trend','Avg_conc\n'))
+        with open(coutname,'w') as cfout:
+            cfout.write('{:7} {:8} {:9} {:9} {:9} {:9} {:9} {:9}\n'.format('Lat','Lon','sw_clr','sw_all','lw_clr','lw_all','net_clr','net_all'))
+            for xi in range(len(ice_data['grid_lat'])):
+                for yj in range(len(ice_data['grid_lon'])):
+                    # Only write to file if the ice fractions at the current
+                    # location are always nonzero.
+                    if(nonzero==True):
+                        if(0.0 not in ice_data['grid_ice_conc'][:,xi,yj]):
+                            ifout.write('{:.3} {:8.4} {:10.6} {:10.6}\n'.format(ice_data['grid_lat'][xi],\
+                                    ice_data['grid_lon'][yj],ice_data['grid_ice'][xi,yj],avg_ice_conc[xi,yj]))
+                            cfout.write('{:.3} {:8.4} {:9.3f} {:9.3f} {:9.3f} {:9.3f} {:9.3f} {:9.3f}\n'.format(CERES_sw_clr_dict['lat'][xi],\
+                                        CERES_sw_clr_dict['lon'][yj],CERES_sw_clr_dict['trends'][xi,yj],CERES_sw_all_dict['trends'][xi,yj],\
+                                        CERES_lw_clr_dict['trends'][xi,yj],CERES_lw_all_dict['trends'][xi,yj],CERES_net_clr_dict['trends'][xi,yj],\
+                                        CERES_net_all_dict['trends'][xi,yj]))
+                    else:
+                        ifout.write('{:.3} {:8.4} {:10.6} {:10.6}\n'.format(ice_data['grid_lat'][xi],\
+                                ice_data['grid_lon'][yj],ice_data['grid_ice'][xi,yj],avg_ice_conc[xi,yj]))
+                        cfout.write('{:.3} {:8.4} {:9.3f} {:9.3f} {:9.3f} {:9.3f} {:9.3f} {:9.3f}\n'.format(CERES_sw_clr_dict['lat'][xi],\
+                                    CERES_sw_clr_dict['lon'][yj],CERES_sw_clr_dict['trends'][xi,yj],CERES_sw_all_dict['trends'][xi,yj],\
+                                    CERES_lw_clr_dict['trends'][xi,yj],CERES_lw_all_dict['trends'][xi,yj],CERES_net_clr_dict['trends'][xi,yj],\
+                                    CERES_net_all_dict['trends'][xi,yj]))
+    
 
-    # Create the CERES Clear-sky data ASCII file
-    outname = "ceres_gridded_flux_trends_sunlight.txt"
-    print("Generating file ",outname)
-    with open(outname,'w') as fout:
-        fout.write('{:7} {:8} {:9} {:9} {:9} {:9} {:9} {:9}\n'.format('Lat','Lon','sw_clr','sw_all','lw_clr','lw_all','net_clr','net_all'))
-        for xi in range(len(CERES_sw_clr_dict['lat'])):
-            for yj in range(len(CERES_sw_clr_dict['lon'])):
-                fout.write('{:.3} {:8.4} {:9.3f} {:9.3f} {:9.3f} {:9.3f} {:9.3f} {:9.3f}\n'.format(CERES_sw_clr_dict['lat'][xi],\
-                            CERES_sw_clr_dict['lon'][yj],CERES_sw_clr_dict['trends'][xi,yj],CERES_sw_all_dict['trends'][xi,yj],\
-                            CERES_lw_clr_dict['trends'][xi,yj],CERES_lw_all_dict['trends'][xi,yj],CERES_net_clr_dict['trends'][xi,yj],\
-                            CERES_net_all_dict['trends'][xi,yj]))
+    ### Create the CERES Clear-sky data ASCII file
+    ##coutname = "ceres_gridded_flux_trends_sunlight.txt"
+    ##if(nonzero==True):
+    ##    coutname = "ceres_gridded_flux_trends_sunlight_nonzero.txt"
+    ##print("Generating file ",outname)
+    ##with open(outname,'w') as cfout:
+    ##    cfout.write('{:7} {:8} {:9} {:9} {:9} {:9} {:9} {:9}\n'.format('Lat','Lon','sw_clr','sw_all','lw_clr','lw_all','net_clr','net_all'))
+    ##    for xi in range(len(CERES_sw_clr_dict['lat'])):
+    ##        for yj in range(len(CERES_sw_clr_dict['lon'])):
+    ##            # Only write to file if the ice fractions at the current
+    ##            # location are always nonzero.
+    ##            cfout.write('{:.3} {:8.4} {:9.3f} {:9.3f} {:9.3f} {:9.3f} {:9.3f} {:9.3f}\n'.format(CERES_sw_clr_dict['lat'][xi],\
+    ##                        CERES_sw_clr_dict['lon'][yj],CERES_sw_clr_dict['trends'][xi,yj],CERES_sw_all_dict['trends'][xi,yj],\
+    ##                        CERES_lw_clr_dict['trends'][xi,yj],CERES_lw_all_dict['trends'][xi,yj],CERES_net_clr_dict['trends'][xi,yj],\
+    ##                        CERES_net_all_dict['trends'][xi,yj]))
 
 def scatter_1a_1b(ice_data,adjusted=True):
     fig = plt.figure()

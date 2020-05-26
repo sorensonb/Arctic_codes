@@ -10,9 +10,13 @@ from subprocess import check_output
 import datetime
 from metpy.units import units
 from metpy.calc import wind_components
+from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import imageio
+
+def func(x,a,b,c):
+    return a * np.exp(-b * x) + c
 
 county_dict = {
     'nyc': 'Queens County NY',              # Populated
@@ -20,11 +24,21 @@ county_dict = {
     'denton': 'Denton County TX' ,          # Populated
     'lac': 'Los Angeles County CA',         # Populated
     'chi': 'Cook County IL',                # Populated
+    'seattle': 'King County WA',            # Populated
+    'monterey': 'Monterey County CA',       # Populated
+    'slc': 'Salt Lake County UT',           # Populated
+    'atlanta': 'Fulton County GA',          # Populated
+    'miami': 'Miami-Dade County FL',        # Populated
     'gfk': 'Grand Forks County ND',         # Rural
     'eagleCoCo': 'Eagle County CO',         # Rural
     'duluth': 'St. Louis County MN',        # Rural
     'abbevilleCoSC': 'Abbeville County SC', # Rural
     'medford': 'Jackson County OR',         # Rural
+    'greeley': 'Weld County CO',            # Rural
+    'booneCoKY': 'Boone County KY',         # Rural (somewhat)
+    'waterloo': 'Black Hawk County IA',     # Rural (somewhat)
+    'stcloud': 'Stearns County MN',         # Rural
+    'lycomingCoPA': 'Lycoming County PA',   # Rural
 }
 
 ##!## County areas, in square miles
@@ -266,6 +280,29 @@ def read_covid_data():
 
     return covid_dict
 
+##!#def process_covid_data(covid_dict):
+##!#    for covid_key in covid_dict['data'].keys():
+##!#        # Calculate cases / 100000 for the desired counties
+##!#        covid_dict['data'][covid_key]['cases_p100k'] = 100000*\
+##!#            covid_dict['data'][covid_key]['cases']/covid_dict['data'][covid_key]['population']
+##!#        covid_dict['data'][covid_key]['deaths_p100k'] = 100000*\
+##!#            covid_dict['data'][covid_key]['deaths']/covid_dict['data'][covid_key]['population']
+##!#    
+##!#        # Calculate daily cases and deaths
+##!#        daily_cases  = np.copy(covid_dict['data'][covid_key]['cases'])
+##!#        daily_deaths = np.copy(covid_dict['data'][covid_key]['deaths'])
+##!#        daily_cases[0] = 0
+##!#        daily_deaths[0] = 0
+##!#        for i in range(1,len(daily_cases)):
+##!#            daily_cases[i] = covid_dict['data'][covid_key]['cases'][i]-\
+##!#                             covid_dict['data'][covid_key]['cases'][i-1]
+##!#            daily_deaths[i] = covid_dict['data'][covid_key]['deaths'][i]-\
+##!#                             covid_dict['data'][covid_key]['deaths'][i-1]
+##!#        covid_dict['data'][covid_key]['daily_cases'] = daily_cases 
+##!#        covid_dict['data'][covid_key]['daily_deaths'] = daily_deaths 
+##!#
+##!#    return covid_dict 
+
 def plot_single_county(meteo_dict,covid_dict,county,meteo_var,covid_var,save=False):
 
     meteo_key = county
@@ -385,15 +422,20 @@ def plot_cases_scatter(meteo_dict,covid_dict,county,meteo_var,covid_var,save=Fal
     plt.close()
 
 def plot_pdense_cases_scatter(covid_dict):
-    case_key='cases_p100k'
+    case_key='cases'
     fig1,ax = plt.subplots()
     for ckey in covid_dict['data'].keys():
         if('pop_density' in covid_dict['data'][ckey].keys()):
             cases = covid_dict['data'][ckey][case_key][-1]
             pop_dense = covid_dict['data'][ckey]['pop_density']
-            ax.scatter(pop_dense,cases,color='black')
+            ax.scatter(pop_dense,cases,s=6,color='black')
     ax.set_xlabel('Population density [#/sq mi]') 
-    ax.set_ylabel('Cases per 100k as of 2020/04/23') 
+    ax.set_ylabel('Deaths as of 2020/04/23') 
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    outname = 'covid_pdense_'+case_key+'_scatter.png'
+    plt.savefig(outname,dpi=200)
+    print("Saved image",outname)
     plt.show()
     plt.close() 
 
@@ -404,7 +446,7 @@ def plot_pdense_temp_scatter(meteo_dict,covid_dict):
 
     date_index = 40
 
-    fig1, ax = plt.subplots()
+    fig, ax = plt.subplots()
 
     # Calculate average temperature after the date index
 
@@ -414,12 +456,51 @@ def plot_pdense_temp_scatter(meteo_dict,covid_dict):
     # Plot scatter, with population density on x-axis, avg
     # temperature after date index on y-axis, and colored by
     # cases.
+    tavgs   = []
+    pdenses = []
+    cases_p100k = []
     for ckey in county_dict.keys():
         tavg = np.average(meteo_dict[ckey]['avg_temp'][date_index:])
+        tavgs.append(tavg)
         pop_dense = covid_dict['data'][county_dict[ckey]]['pop_density']
-        ax.scatter(pop_dense,tavg,label=county_dict[ckey])
-    
-    ax.set_xlabel('Population Density [#/mi2]')
-    ax.set_ylabel('Average Temperature During Cases [degC]')
+        pdenses.append(pop_dense)
+        cases_p100k.append(covid_dict['data'][county_dict[ckey]]['cases_p100k'][-1])
+        #ax.scatter(pop_dense,tavg,label=county_dict[ckey])
+    tavgs = np.array(tavgs)
+    pdenses = np.array(pdenses)
+    cases_p100k = np.array(cases_p100k)
+    # Color the points by cases per 100k on April 23
+    scat = ax.scatter(pdenses,tavgs,c=cases_p100k,cmap=plt.cm.viridis)
+    fig.colorbar(scat,ax=ax,label='Cases per 100k [Apr. 23]')
+    ax.set_xscale('log') 
+    ax.set_title('January 22, 2020 - April 23, 2020')
+    ax.set_xlabel('Population Density [#/mi$^{2}$]')
+    ax.set_ylabel('Average Temperature [degC]')
+    #outname = 'covid_pdense_'+case_key+'_scatter.png'
+    outname = 'covid_pdense_temp_colored_scatter.png'
+    plt.savefig(outname,dpi=300)
+    print("Saved image",outname)
+    plt.show()
+    plt.close()
+
+def exp_fit_test(covid_dict,ckey,deg=2):
+    case_data = covid_dict['data'][ckey]['cases']
+    # Ignore where the number of cases is 0
+    case_data = case_data[case_data>5]
+    xvals = np.arange(len(case_data))
+    print(case_data)
+
+    z = np.polyfit(xvals,case_data,deg)
+    interper = np.poly1d(z)
+    interp_z = interper(xvals)
+
+    #popt,pcov = curve_fit(func,xvals,case_data)
+
+    fig1,ax = plt.subplots()
+    ax.scatter(xvals,case_data,s=8)
+    ax.plot(xvals,interp_z,'g--')
+    #ax.plot(xvals,func(xvals,*popt),'g--')
+    #ax.set_xscale('log')
+    #ax.set_yscale('log')
     plt.show()
     plt.close()
