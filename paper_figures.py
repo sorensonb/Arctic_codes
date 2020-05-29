@@ -21,7 +21,7 @@ sys.path.append('/home/bsorenson/Research/Ice_analysis/')
 sys.path.append('/home/bsorenson/Research/CERES/')
 from IceLib import read_ice,ice_trendCalc,grid_data,grid_data_conc,ice_gridtrendCalc
 from gridCERESLib import readgridCERES,calc_CERES_trend
-from comparelib import plot_fourscatter,plot_cld_clr_scatter,figure_1,figure_2
+from comparelib import *
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
@@ -29,8 +29,8 @@ from comparelib import plot_fourscatter,plot_cld_clr_scatter,figure_1,figure_2
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-#inseason='sunlight'
-inseason='summer'
+inseason='sunlight'
+#inseason='summer'
 adjusted=adj=True
 
 # Read in NSIDC ice data
@@ -39,6 +39,8 @@ ice_data = grid_data_conc(ice_data)
 ice_data = ice_gridtrendCalc(ice_data)
 ice_data = ice_trendCalc(ice_data)
 ice_data = grid_data(ice_data)
+
+sys.exit()
 
 # Read in CERES data
 CERES_lw_clr_dict  = readgridCERES(200012,201812, 'toa_lw_clr_mon',minlat=30.5,season=inseason)
@@ -115,11 +117,9 @@ for xi in range(len(CERES_lw_clr_dict['lat'])):
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-write_toASCII(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
-                  CERES_lw_all_dict,CERES_sw_all_dict,CERES_net_all_dict,\
-                  nonzero=True)
-sys.exit()
-
+#write_toASCII(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
+#                  CERES_lw_all_dict,CERES_sw_all_dict,CERES_net_all_dict,\
+#                  nonzero=True)
 figure_1(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
          CERES_lw_all_dict,CERES_sw_all_dict,CERES_net_all_dict,adjusted=True)
 
