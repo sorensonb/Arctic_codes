@@ -103,8 +103,8 @@ def read_ice(season,pre2001=False):
     # Grab all the ice files
     #file_names = glob.glob(data_loc+'*.bin')
     # Using this syntax, ignores 2000
-    cmnd = "ls /data/NSIDC/nt_*.bin"
-    #cmnd = "ls /home/bsorenson/data/NSIDC/nt_*.bin"
+    #cmnd = "ls /data/NSIDC/nt_*.bin"
+    cmnd = "ls /home/bsorenson/data/NSIDC/nt_*.bin"
     #status,output = commands.getstatusoutput(cmnd)
     #file_initial = output.strip().split('\n')
     #
@@ -209,6 +209,8 @@ def read_ice(season,pre2001=False):
 
     return ice_data
 
+# ice_trendCalc calculates the trends over the time period at each
+# grid point on the 25x25 km grid.
 def ice_trendCalc(ice_data,thielSen=False):
     # Loop over the data and calculate trends
     for i in range(448):
@@ -284,6 +286,8 @@ def ice_gridtrendCalc(ice_data,area=True,thielSen=False):
 
     return ice_data
 
+# grid_data_conc grids the 25x25 km gridded ice concentration data into
+# a 1x1 degree lat/lon grid
 def grid_data_conc(ice_dict):
     lon_ranges  = np.arange(-180.,180.,1.0)
     lat_ranges  = np.arange(30.,90.,1.0)
@@ -332,6 +336,9 @@ def grid_data_conc(ice_dict):
     
     return ice_dict
 
+# grid_data averages the 25x25 km trends into a 1x1 degree grid
+# The 'grid_ice' paramter in the dictionary therefore contains
+# the gridded trends.
 def grid_data(ice_dict):
     lon_ranges  = np.arange(-180.,180.,1.0)
     lat_ranges  = np.arange(30.,90.,1.0)
@@ -356,6 +363,7 @@ def grid_data(ice_dict):
     ice_dict['grid_lon'] = lon_ranges
     return ice_dict
 
+# plot_grid_data generates a plot of the /
 def plot_grid_data(ice_dict,t_ind,pvar,adjusted=False,save=False):
     lon_ranges  = np.arange(-180.,180.,1.0)
     lat_ranges  = np.arange(30.,90.,1.0)
@@ -409,7 +417,7 @@ def plot_grid_data(ice_dict,t_ind,pvar,adjusted=False,save=False):
     #plt.gca().invert_yaxis()
     ax.set_title('Gridded NSIDC Sea Ice Concentration\n'+ice_dict['titles'][t_ind])
     if(save==True):
-        outname = 'ice_trend_gridded_200012_201812'+ice_dict['file_adder']+file_adder+'.png'
+        outname = 'ice_conc_gridded_200012_201812'+ice_dict['file_adder']+file_adder+'.png'
         plt.savefig(outname,dpi=300)
         print("Saved image ",outname)
     else:
@@ -476,4 +484,47 @@ def plot_grid_trend(ice_dict,adjusted=False,save=False):
     else:
         plt.show()
     
+def plot_grid_time_series(ice_dict,lat_ind,lon_ind,thielsen=False):
+    temp_data = ice_dict['grid_ice_conc'][:,lat_ind,lon_ind]
+    interpx = np.arange(len(temp_data))
+    #interpx = years
+    ##interper = np.poly1d(np.polyfit(interpx,temp_data,1)) 
+    ### Normalize trend by dividing by number of years
+    ##trend = (interper(interpx[-1])-interper(interpx[0]))
 
+    slope, intercept, r_value, p_value, std_err = stats.linregress(interpx,temp_data)
+    ##print(slope/len(test_dict[dictkey].keys())
+    regress_y = interpx*slope+intercept
+    trend = regress_y[-1] - regress_y[0]
+
+    if(thielsen==True):
+        #The slope
+        S=0
+        sm=0
+        nx = len(temp_data)
+        num_d=int(nx*(nx-1)/2)  # The number of elements in avgs
+        Sn=np.zeros(num_d)
+        for si in range(0,nx-1):
+            for sj in range(si+1,nx):
+                # Find the slope between the two points
+                Sn[sm] = (temp_data[si]-temp_data[sj])/(si-sj) 
+                sm=sm+1
+            # Endfor
+        # Endfor
+        Snsorted=sorted(Sn)
+        sm=int(num_d/2.)
+        if(2*sm    == num_d):
+            tsslope=0.5*(Snsorted[sm]+Snsorted[sm+1])
+        if(2*sm+1 == num_d): 
+            tsslope=Snsorted[sm+1]
+        regress_ts = interpx*tsslope+intercept
+        trend = regress_ts[-1]-regress_ts[0]
+
+    fig1 = plt.figure() 
+    plt.title('Gridded Ice Data: '+str(ice_dict['grid_lat'][lat_ind])+'x'+\
+                str(ice_dict['grid_lon'][lon_ind])+'\nSummer (JJA of each year)')
+    plt.plot(temp_data,label='observations') 
+    plt.plot(regress_y,'--',label='trend')
+    plt.ylabel('Percent Ice Concentration')
+    plt.legend()
+    plt.show()

@@ -67,14 +67,6 @@ smcodes = '/home/bsorenson/Programs/Python/auto_weather_codes/'
 cmnd = "cp "+smcodes+"*.py "+dest_dir
 print(cmnd)
 os.system(cmnd)
-# ---------------------------------------------------------------------------- 
-# COVID codes
-# ---------------------------------------------------------------------------- 
-print("COVID")
-smcodes = '/home/bsorenson/Research/COVID/'
-cmnd = "cp "+smcodes+"*.py "+dest_dir
-print(cmnd)
-os.system(cmnd)
 ### ---------------------------------------------------------------------------- 
 ### Jianglong/Jeff's Mie stuff
 ### ---------------------------------------------------------------------------- 

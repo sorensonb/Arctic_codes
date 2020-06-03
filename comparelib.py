@@ -796,8 +796,10 @@ def figure_3():
 def figure_4(ice_data,model_overlay=False,zoomed=True):
     inseason = ice_data['season_adder'].strip()
     divider=3
+    num_months_pyear = 3
     if(inseason=='sunlight'):
         divider=6
+        num_months_pyear = 6
     summer_averages_grid = np.zeros((int(len(ice_data['titles'])/divider)))
     summer_averages_raw  = np.zeros((int(len(ice_data['titles'])/divider)))
     #summer_averages_grid = np.zeros((int(len(ice_data['titles'])/3)))
@@ -850,11 +852,12 @@ def figure_4(ice_data,model_overlay=False,zoomed=True):
     #plt.scatter(np.arange(len(all_summer_avgs))[::divider],summer_averages_raw)
     plt.show()
     plt.close() 
-    return
+    return summer_averages_raw
  
     # Clear-sky summer values from net flux figure
-    dflux_dsigma = -0.3600
+    dflux_dsigma = 1.2645
     #dflux_dsigma = -1.2645
+    if(inseason=='sunlight'): dflux_dsigma = -0.3600
     del_T = (86400.)*30*6  # number of seconds of solar heating per sunlit time 
     l_f = 3.3e5  # latent heat of fusion (J/kg)
     rho_i = 917  # density of ice (kg/m3)
@@ -867,8 +870,9 @@ def figure_4(ice_data,model_overlay=False,zoomed=True):
         sigma_values = []
         sigma_values.append(start_val)
         # Find 1m-thickness values
-        while(start_val>0):
+        while(start_val>-100.):
             sigma_new = equation(start_val,thick)
+            print(sigma_new)
             sigma_values.append(sigma_new) 
             start_val = sigma_new
         return sigma_values
@@ -879,26 +883,28 @@ def figure_4(ice_data,model_overlay=False,zoomed=True):
     #sum_final_ice = 6481114233056.605/1e6  # km2 
     
     # 10 years
-    #starting_val = -10. 
+    starting_val = -10. 
     # Use the 1991 summer average extent as the new "sum init ice" value   
     ##!## Use the 2001 summer average extent as the new "sum final ice" value
-    ##!#sum_init_ice = summer_averages_raw[9] # 1989
-    ##!#if(model_overlay==False):
-    ##!#    sum_final_ice = summer_averages_raw[38] # 2018
-    ##!#    #sum_final_ice = summer_averages_raw[38] # 2018
-    ##!#else:
-    ##!#    sum_final_ice = summer_averages_raw[21] # 2001
-    starting_val = 100.
+    sum_init_ice = summer_averages_raw[9] # 1989
+    if(model_overlay==False):
+        sum_final_ice = summer_averages_raw[38] # 2018
+        #sum_final_ice = summer_averages_raw[38] # 2018
+    else:
+        sum_final_ice = summer_averages_raw[21] # 2001
+    #starting_val = 100.
     #starting_val = ((sum_final_ice-sum_init_ice)/sum_init_ice)*100.
     #starting_val = ((summer_averages_raw[0]-sum_init_ice)/sum_init_ice)*100.
-    #starting_val = ((sum_final_ice-sum_init_ice)/sum_init_ice)*100.
+    starting_val = ((sum_final_ice-sum_init_ice)/sum_init_ice)*100.
     beginning_year = int(ice_data['titles'][0].split('_')[1][:4])
     if(model_overlay==False):
-        start_year = int(ice_data['titles'][115].split('_')[1][:4]) # 2018
+        start_year = int(ice_data['titles'][116].split('_')[1][:4]) # 2018
     else:
         start_year = int(ice_data['titles'][63].split('_')[1][:4]) # 2001
     # Use 1990 as the starting year
-    start_year = int(ice_data['titles'][30].split('_')[1][:4]) # 2001
+    # NOTE: This assumes that old data for summer are read in.
+    #       old_summer_data = read_ice('summer',pre2001=True)
+    #start_year = int(ice_data['titles'][30].split('_')[1][:4]) # 2001
     #start_year = 2001
 
     ### Write the obs to a file
@@ -942,7 +948,7 @@ def figure_4(ice_data,model_overlay=False,zoomed=True):
     #plt.plot(asa_x_vals,all_summer_avgs/1e6,label='All summer averages')
 
     fig, ax = plt.subplots()
-    #ax.plot(asa_x_vals[::3],summer_averages_raw/1e6,label='Observed')
+    ax.scatter(asa_x_vals[::3],summer_averages_raw/1e6,label='Observed')
     ax.plot(years_1m,extents_1m,label='1m Model extents')
     ax.plot(years_2m,extents_2m,label='2m Model extents')
     ax.plot(years_3m,extents_3m,label='3m Model extents')
@@ -952,15 +958,15 @@ def figure_4(ice_data,model_overlay=False,zoomed=True):
     #    ax.set_xlim(1980,2018)
     #    ax.set_ylim(5.5,8.0)
     #else:
-    ##!#if(model_overlay==False):
-    ##!#    ax.axvline(1989,linestyle=':',ymin=0.85,color='black')
-    ##!#    ax.axvline(2018,linestyle=':',ymin=0.7,ymax=0.85,color='black')
-    ##!#    ax.axhline(sum_init_ice/1e6,xmin=0.05,xmax=0.1,linestyle=':',color='black')
-    ##!#    ax.axhline(sum_final_ice/1e6,xmin=0.143,xmax=0.193,linestyle=':',color='black')
-    ##!#    #ax.text(1985,5.5,'1989')
-    ##!#if(zoomed==True):
-    ##!#    ax.set_xlim(1990,2018)
-    ##!#    ax.set_ylim(5.5,8.0)
+    if(model_overlay==False):
+        ax.axvline(1989,linestyle=':',ymin=0.85,color='black')
+        ax.axvline(2018,linestyle=':',ymin=0.7,ymax=0.85,color='black')
+        ax.axhline(sum_init_ice/1e6,xmin=0.05,xmax=0.1,linestyle=':',color='black')
+        ax.axhline(sum_final_ice/1e6,xmin=0.143,xmax=0.193,linestyle=':',color='black')
+        #ax.text(1985,5.5,'1989')
+    if(zoomed==True):
+        ax.set_xlim(1990,2018)
+        ax.set_ylim(5.5,8.0)
     ax.legend()
     ax.set_ylabel('Ice Area (millions of km2)')
     ax.set_title("Average Summer Arctic Ice Area")
@@ -1074,6 +1080,40 @@ def write_toASCII(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dic
     ##                        CERES_sw_clr_dict['lon'][yj],CERES_sw_clr_dict['trends'][xi,yj],CERES_sw_all_dict['trends'][xi,yj],\
     ##                        CERES_lw_clr_dict['trends'][xi,yj],CERES_lw_all_dict['trends'][xi,yj],CERES_net_clr_dict['trends'][xi,yj],\
     ##                        CERES_net_all_dict['trends'][xi,yj]))
+
+def write_Ice(ice_data):
+    print("yay")
+
+    # Print of a file for each month
+    num_months = int(len(ice_data['titles']))
+
+    # Set up the format string for printing off the data
+    # format_list includes the formats for all the yearly average concentrations
+    # Separate each by a space
+    formats = '\t'.join(['{:6.4}' for item in ice_data['titles']])
+    # Combine the formats string with the other format string
+    total_ice_format = '\t'.join(['{:.3}\t{:6.4}',formats,'\n'])
+
+    # Set up the header line format string
+    # Extract the individual years from the titles parameter
+    string_dates = [tstring.strip()[3:9] for tstring in ice_data['titles']]
+    header_formats = '\t'.join(['{:6}' for item in ice_data['titles']])
+    total_header_format = '\t'.join(['{:6}\t{:6}',header_formats,'\n'])   
+   
+    filename = "nsidc_grid_ice_values.txt"
+    #for ti in range(num_months):
+    #    str_date = ice_data['titles'][ti].strip()[3:9]
+    #    filename = "nsidc_grid_ice_"+str_date+'.txt'
+    with open(filename,'w') as fout:
+        fout.write(total_header_format.format('Lat','Lon',*string_dates))
+        for xi in range(len(ice_data['grid_lat'])):
+            print("Printing latitude ",ice_data['grid_lat'][xi])
+            for yj in range(len(ice_data['grid_lon'])):
+                fout.write(total_ice_format.format(ice_data['grid_lat'][xi],\
+                        ice_data['grid_lon'][yj],*ice_data['grid_ice_conc'][:,xi,yj]))
+
+    print("Saved file",filename) 
+    
 
 def scatter_1a_1b(ice_data,adjusted=True):
     fig = plt.figure()

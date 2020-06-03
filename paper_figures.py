@@ -29,8 +29,8 @@ from comparelib import *
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-inseason='sunlight'
-#inseason='summer'
+#inseason='sunlight'
+inseason='summer'
 adjusted=adj=True
 
 # Read in NSIDC ice data
