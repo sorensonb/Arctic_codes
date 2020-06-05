@@ -14,7 +14,6 @@ import matplotlib.gridspec as gridspec
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import numpy as np
 import numpy.ma as ma
-import cartopy
 import cartopy.crs as ccrs
 from scipy import stats
 sys.path.append('/home/bsorenson/Research/Ice_analysis/')
@@ -29,9 +28,19 @@ from comparelib import *
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+def process_ice(inseason,p2001=False):
+    ice_data = read_ice(inseason,pre2001=p2001)
+    ice_data = grid_data_conc(ice_data)
+    return ice_data    
+
 #inseason='sunlight'
-inseason='summer'
+#inseason='summer'
 adjusted=adj=True
+
+old_summer_ice_data   = process_ice('summer',p2001=True)
+old_sunlight_ice_data = process_ice('sunlight',p2001=True)
+
+sys.exit()
 
 # Read in NSIDC ice data
 ice_data = read_ice(inseason)
@@ -40,7 +49,6 @@ ice_data = ice_gridtrendCalc(ice_data)
 ice_data = ice_trendCalc(ice_data)
 ice_data = grid_data(ice_data)
 
-sys.exit()
 
 # Read in CERES data
 CERES_lw_clr_dict  = readgridCERES(200012,201812, 'toa_lw_clr_mon',minlat=30.5,season=inseason)

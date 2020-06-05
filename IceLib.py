@@ -13,6 +13,7 @@ import numpy.ma as ma
 import sys
 import matplotlib.pyplot as plt
 import matplotlib.colors as cm
+from matplotlib.lines import Line2D
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import cartopy
 import cartopy.crs as ccrs
@@ -485,6 +486,7 @@ def plot_grid_trend(ice_dict,adjusted=False,save=False):
         plt.show()
     
 def plot_grid_time_series(ice_dict,lat_ind,lon_ind,thielsen=False):
+    inseason = ice_dict['season_adder'].strip()
     temp_data = ice_dict['grid_ice_conc'][:,lat_ind,lon_ind]
     interpx = np.arange(len(temp_data))
     #interpx = years
@@ -522,9 +524,160 @@ def plot_grid_time_series(ice_dict,lat_ind,lon_ind,thielsen=False):
 
     fig1 = plt.figure() 
     plt.title('Gridded Ice Data: '+str(ice_dict['grid_lat'][lat_ind])+'x'+\
-                str(ice_dict['grid_lon'][lon_ind])+'\nSummer (JJA of each year)')
+                str(ice_dict['grid_lon'][lon_ind])+'\n'+inseason.title()+\
+                ' season of each year)')
     plt.plot(temp_data,label='observations') 
     plt.plot(regress_y,'--',label='trend')
-    plt.ylabel('Percent Ice Concentration')
+    plt.ylabel('Ice Concentration [%]')
     plt.legend()
+    outname = 'nsidc_grid_time_series_'+inseason+'_'+str(int(ice_dict['grid_lat'][lat_ind]))+'x'+\
+                str(int(ice_dict['grid_lon'][lon_ind]))+'.png'
+    plt.savefig(outname,dpi=300)
+    print("Saved image ",outname)   
     plt.show()
+
+# This code replicates Jianglong's figure showing how the April - September
+# ice concentration values have changed over the time period
+# NOTE: To run, do something like
+# >>> all_ice_data = read_ice('all')
+# >>> all_ice_data = grid_data_conc(all_ice_data)
+# and then
+# >>> plot_apr_sep_changes(all_ice_data)
+def plot_apr_sep_changes(ice_dict):
+  
+    inseason = ice_dict['season_adder'].strip()
+ 
+    upper_vals = np.array([100,80,60,40])
+    lower_vals = np.array([80,60,40,20])
+
+    # Generate 3-year averages for 3 time periods:
+    # 2001-2003
+    # 2008-2011
+    # 2016-2018
+   
+    # For now, look at April - September 
+    if(inseason=='sunlight'):
+        num_months = 6
+        start_idx  = 0
+    else:
+        num_months = 12
+        start_idx  = 4
+    # Dimensions of ice_avgs are
+    # 0 - year blocks (size = 3, see above)
+    # 1 - months      (size = num_months)
+    # 2 - ice values  (size = 4)
+    ice_avgs = np.zeros((3,num_months,len(upper_vals)))
+    indices = [0,8,15]
+  
+    # Base the locations for each ice concentration range on the average
+    # April concentration between 2001 and 2003
+
+    avg_Apr_old = \
+        np.average(ice_dict['grid_ice_conc'][start_idx::num_months,:,:][:3,:,:],axis=0)
+ 
+    # Use the locations during the first April average to base everything
+    # on
+    locations_80_100 = np.where((avg_Apr_old <= 100.) & (avg_Apr_old > 80.)) 
+    locations_60_80  = np.where((avg_Apr_old <= 80.)  & (avg_Apr_old > 60.)) 
+    locations_40_60  = np.where((avg_Apr_old <= 60.)  & (avg_Apr_old > 40.)) 
+    locations_20_40  = np.where((avg_Apr_old <= 40.)  & (avg_Apr_old > 20.)) 
+
+    # Fill the ice_avgs array with the data for each time period 
+    for ri in range(len(indices)):
+        for mi in range(num_months):
+            print("Year block = ",ri,"  Month = ",mi)
+            # Deal with 80 to 100
+            ##temp_arr = np.zeros((3,len(locations_80_100)))
+            ##temp_arr[0] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri]][locations_80_100]
+            ##temp_arr[1] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri] + 1][locations_80_100]
+            ##temp_arr[2] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri] + 2][locations_80_100]
+            #ice_avgs[ri,mi,0] = np.average(temp_arr)
+            ice_avgs[ri,mi,0] = \
+                np.average(np.average(ice_dict['grid_ice_conc'][mi::num_months,:,:]
+                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_80_100])
+
+            ### Deal with 60 to 80
+            ##temp_arr = np.zeros((3,len(locations_60_80)))
+            ##temp_arr[0] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri]][locations_60_80]
+            ##temp_arr[1] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri] + 1][locations_60_80]
+            ##temp_arr[2] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri] + 2][locations_60_80]
+            ##ice_avgs[ri,mi,1] = np.average(temp_arr)
+            ice_avgs[ri,mi,1] = \
+                np.average(np.average(ice_dict['grid_ice_conc'][mi::num_months,:,:]
+                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_60_80])
+
+            # Deal with 40 to 60
+            ##temp_arr = np.zeros((3,len(locations_40_60)))
+            ##temp_arr[0] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri]][locations_40_60]
+            ##temp_arr[1] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri] + 1][locations_40_60]
+            ##temp_arr[2] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri] + 2][locations_40_60]
+            #ice_avgs[ri,mi,2] = np.average(temp_arr)
+            ice_avgs[ri,mi,2] = \
+                np.average(np.average(ice_dict['grid_ice_conc'][mi::num_months,:,:]
+                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_40_60])
+
+            # Deal with 40 to 60
+            ##temp_arr = np.zeros((3,len(locations_20_40)))
+            ##temp_arr[0] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri]][locations_20_40]
+            ##temp_arr[1] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri] + 1][locations_20_40]
+            ##temp_arr[2] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri] + 2][locations_20_40]
+            ##ice_avgs[ri,mi,3] = np.average(temp_arr)
+            ice_avgs[ri,mi,3] = \
+                np.average(np.average(ice_dict['grid_ice_conc'][mi::num_months,:,:]
+                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_20_40])
+
+            #ice_avgs[ri,mi] = \
+                #np.average(ice_dict['grid_ice_conc'][0::num_months]
+                #    [indices[ri]:indices[ri] + 3],axis = 0)
+
+    # Generate the figure
+    plt.close()
+    fig1 = plt.figure(figsize=(8,6))
+    ax = plt.subplot()
+    if(inseason=='sunlight'):
+        months = ['Apr','May','June','July','Aug','Sep']
+    else:
+        months = ['Dec','Jan','Feb','Mar','Apr','May',\
+                  'June','July','Aug','Sep','Oct','Nov']
+    # Plot the 2001 - 2003 data
+    ax.plot(ice_avgs[0,:,0],color='black')
+    ax.plot(ice_avgs[0,:,1],color='tab:blue')
+    ax.plot(ice_avgs[0,:,2],color='tab:green')
+    ax.plot(ice_avgs[0,:,3],color='tab:red')
+    # Plot the 2009 - 2011 data
+    ax.plot(ice_avgs[1,:,0],'--',color='black')
+    ax.plot(ice_avgs[1,:,1],'--',color='tab:blue')
+    ax.plot(ice_avgs[1,:,2],'--',color='tab:green')
+    ax.plot(ice_avgs[1,:,3],'--',color='tab:red')
+    # Plot the 2016 - 2018 data
+    ax.plot(ice_avgs[2,:,0],linestyle='dotted',color='black')
+    ax.plot(ice_avgs[2,:,1],linestyle='dotted',color='tab:blue')
+    ax.plot(ice_avgs[2,:,2],linestyle='dotted',color='tab:green')
+    ax.plot(ice_avgs[2,:,3],linestyle='dotted',color='tab:red')
+    ax.set_xticks(np.arange(num_months),months)
+    ax.set_ylabel('Ice Concentration [%]')
+
+    # Make the legend
+    custom_lines = [Line2D([0],[0],color='black'),\
+                    Line2D([0],[0],color='tab:blue'),\
+                    Line2D([0],[0],color='tab:green'),\
+                    Line2D([0],[0],color='tab:red'),\
+                    Line2D([0],[0],color='black'),\
+                    Line2D([0],[0],linestyle='dashed',color='black'),\
+                    Line2D([0],[0],linestyle='dotted',color='black')]
+    ax.legend(custom_lines,['80 - 100%',\
+                             '60 - 80%',\
+                             '40 - 60%',\
+                             '20 - 40%',\
+                             '2001 - 2003',\
+                             '2009 - 2011',\
+                             '2016 - 2018'],\
+              loc = 'upper center',bbox_to_anchor=(0.5,-0.05),\
+              fancybox=True,shadow=True,ncol=4)
+    plt.show()
+    plt.close()
+
+
+
+
+

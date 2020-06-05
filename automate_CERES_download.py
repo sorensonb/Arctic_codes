@@ -20,33 +20,19 @@ import sys
 import numpy as np
 import datetime
 
-if(len(sys.argv)!=2):
-    print("Syntax: ./automate_Ice_download.py file_list_file")
-    print("         file_list_file = /home/bsorenson/HighLatitudeStudy/Ice_analysis/nsidc-download_fffe4754.txt")
-    sys.exit()
+test = "https://ceres-tool.larc.nasa.gov/ord-tool/data1//CERES_2020-01-31:14283/dir1/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_200709-200709.nc"
 
-base_cmnd = "curl -b ~/.urs_cookies -c ~/.urs_cookies -L -n -O "
+base_cmnd = "wget https://ceres-tool.larc.nasa.gov/ord-tool/data1//CERES_2020-01-31:14283/dir1/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_"
 
-##!## For downloading directly from the website
-##!#base_url = "https://n5eil01u.ecs.nsidc.org/PM/NSIDC-0051.001/"
-##!#years = np.arange(1980,2000)
-##!##months = np.arange(6,9)
-##!#months = np.array([4,9])
-##!#for year in years:
-##!#    for month in months:
-##!#        total_cmnd = base_cmnd + base_url + str(year)+'.'+str(month).zfill(2)+'.01/nt_'+str(year)+str(month).zfill(2)+'_f13_v1.1_n.bin'
-##!#        print(total_cmnd)
-##!#        os.system(total_cmnd)
+years = np.arange(2000,2020)
+months = np.arange(1,13)
 
-# Open up  and read in file file
-infile = sys.argv[1]
-with open(infile,'r') as f:
-    for line in f:
-        templine = line.strip()
-        if(templine[-3:]=='bin'):
-            total_cmnd = base_cmnd+templine
-            print(total_cmnd)
-            os.system(total_cmnd)
+for year in years:
+    for month in months:
+        date = str(year)+str(month).zfill(2)
+        cmnd = base_cmnd+date+'-'+date+'.nc'
+        print(cmnd)
+        os.system(cmnd)
 
 #### Find current date information
 ###now = datetime.datetime.now()

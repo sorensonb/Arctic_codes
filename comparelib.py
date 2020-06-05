@@ -846,18 +846,18 @@ def figure_4(ice_data,model_overlay=False,zoomed=True):
 
     #all_summer_avgs = np.array(all_summer_avgs)
 
-    #print(all_summer_avgs) 
-    fig1 = plt.figure()
-    plt.plot(summer_averages_raw)
-    #plt.scatter(np.arange(len(all_summer_avgs))[::divider],summer_averages_raw)
-    plt.show()
-    plt.close() 
-    return summer_averages_raw
+    ##!##print(all_summer_avgs) 
+    ##!#fig1 = plt.figure()
+    ##!#plt.plot(summer_averages_raw)
+    ##!##plt.scatter(np.arange(len(all_summer_avgs))[::divider],summer_averages_raw)
+    ##!#plt.show()
+    ##!#plt.close() 
+    ##!#return summer_averages_raw
  
     # Clear-sky summer values from net flux figure
     dflux_dsigma = 1.2645
     #dflux_dsigma = -1.2645
-    if(inseason=='sunlight'): dflux_dsigma = -0.3600
+    #if(inseason=='sunlight'): dflux_dsigma = -0.3600
     del_T = (86400.)*30*6  # number of seconds of solar heating per sunlit time 
     l_f = 3.3e5  # latent heat of fusion (J/kg)
     rho_i = 917  # density of ice (kg/m3)
@@ -898,9 +898,16 @@ def figure_4(ice_data,model_overlay=False,zoomed=True):
     starting_val = ((sum_final_ice-sum_init_ice)/sum_init_ice)*100.
     beginning_year = int(ice_data['titles'][0].split('_')[1][:4])
     if(model_overlay==False):
-        start_year = int(ice_data['titles'][116].split('_')[1][:4]) # 2018
+        if(inseason=='summer'):
+            start_year = int(ice_data['titles'][116].split('_')[1][:4]) # 2018
+        else:
+            start_year = int(ice_data['titles'][232].split('_')[1][:4]) # 2018
     else:
-        start_year = int(ice_data['titles'][63].split('_')[1][:4]) # 2001
+        if(inseason=='summer'):
+            start_year = int(ice_data['titles'][63].split('_')[1][:4]) # 2001
+        else:
+            start_year = int(ice_data['titles'][126].split('_')[1][:4]) # 2001
+    
     # Use 1990 as the starting year
     # NOTE: This assumes that old data for summer are read in.
     #       old_summer_data = read_ice('summer',pre2001=True)
@@ -941,14 +948,21 @@ def figure_4(ice_data,model_overlay=False,zoomed=True):
     print("5 meter end = ",years_5m[-1])
 
     # All summer averages x vals
-    asa_x_vals = np.arange(beginning_year,2018.7,0.3333333)
+    asa_x_vals = np.arange(beginning_year, 2018.9, 1 / divider)
     #print("First model extent: ",extents_2m[0])
     #print("Summer Averages: ",summer_averages_raw)
     #print("All monthly Averages: ",all_summer_avgs)
     #plt.plot(asa_x_vals,all_summer_avgs/1e6,label='All summer averages')
 
     fig, ax = plt.subplots()
-    ax.scatter(asa_x_vals[::3],summer_averages_raw/1e6,label='Observed')
+    if(zoomed==True):
+        ax.scatter(asa_x_vals[::divider],summer_averages_raw/1e6,\
+            s=6,label='Observed',color='black')
+        #ax.scatter(asa_x_vals[::divider],summer_averages_raw/1e6,\
+        #    s=6,label='Observed',color='black')
+    else:
+        ax.plot(asa_x_vals[::divider],summer_averages_raw/1e6,\
+            label='Observed',color='black')
     ax.plot(years_1m,extents_1m,label='1m Model extents')
     ax.plot(years_2m,extents_2m,label='2m Model extents')
     ax.plot(years_3m,extents_3m,label='3m Model extents')
@@ -969,7 +983,7 @@ def figure_4(ice_data,model_overlay=False,zoomed=True):
         ax.set_ylim(5.5,8.0)
     ax.legend()
     ax.set_ylabel('Ice Area (millions of km2)')
-    ax.set_title("Average Summer Arctic Ice Area")
+    ax.set_title("Average "+inseason.title()+" Arctic Ice Area")
     #if(model_overlay==True):
     #    if(zoomed==True):
     #        plt.savefig('paper_figure4_model_overlay_zoom.png',dpi=300)

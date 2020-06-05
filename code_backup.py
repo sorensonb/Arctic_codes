@@ -46,19 +46,19 @@ os.system(cmnd)
 # ---------------------------------------------------------------------------- 
 # OMI Codes
 # ---------------------------------------------------------------------------- 
-print("OMI")
-cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "cp "+base_dir+"OMI/*.pro "+dest_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "cp "+base_dir+"OMI/*.idl "+dest_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "cp "+base_dir+"OMI/run_Average_AerosolIndexCalculator "+dest_dir
-print(cmnd)
-os.system(cmnd)
+##!#print("OMI")
+##!#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
+##!#print(cmnd)
+##!#os.system(cmnd)
+##!#cmnd = "cp "+base_dir+"OMI/*.pro "+dest_dir
+##!#print(cmnd)
+##!#os.system(cmnd)
+##!#cmnd = "cp "+base_dir+"OMI/*.idl "+dest_dir
+##!#print(cmnd)
+##!#os.system(cmnd)
+##!#cmnd = "cp "+base_dir+"OMI/run_Average_AerosolIndexCalculator "+dest_dir
+##!#print(cmnd)
+##!#os.system(cmnd)
 # ---------------------------------------------------------------------------- 
 # Siphon/Metpy Codes
 # ---------------------------------------------------------------------------- 
