@@ -12,6 +12,7 @@ import matplotlib.colors as cm
 import matplotlib.gridspec as gridspec
 from matplotlib.lines import Line2D
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy import stats
 from scipy.stats import gaussian_kde
 import cartopy
@@ -1258,6 +1259,8 @@ def yearly_conc_diff_scatter(ice_data):
 # NOTE: To run, do something like
 # >>> all_ice_data = read_ice('all')
 # >>> all_ice_data = grid_data_conc(all_ice_data)
+# >>> all_ceres_data = readgridCERES(200012,201812,'toa_net_clr_mon',\
+# ... minlat = 30.5,season = 'all')
 # and then
 # >>> plot_apr_sep_changes(all_ice_data)
 def plot_ice_flux_apr_sep_changes(ice_dict,ceres_dict,month_idx=3):
@@ -1269,8 +1272,8 @@ def plot_ice_flux_apr_sep_changes(ice_dict,ceres_dict,month_idx=3):
  
     inseason = ice_dict['season_adder'].strip()
  
-    upper_vals = np.array([100,80,60,40])
-    lower_vals = np.array([80,60,40,20])
+    upper_vals = np.array([100,80,60,40,20])
+    lower_vals = np.array([80,60,40,20,1])
 
     # Generate 3-year averages for 3 time periods:
     # 2001-2003
@@ -1304,6 +1307,7 @@ def plot_ice_flux_apr_sep_changes(ice_dict,ceres_dict,month_idx=3):
     locations_60_80  = np.where((avg_Apr_old <= 80.)  & (avg_Apr_old > 60.)) 
     locations_40_60  = np.where((avg_Apr_old <= 60.)  & (avg_Apr_old > 40.)) 
     locations_20_40  = np.where((avg_Apr_old <= 40.)  & (avg_Apr_old > 20.)) 
+    locations_0_20   = np.where((avg_Apr_old <= 20.)  & (avg_Apr_old > 0)) 
 
     #return locations_80_100,locations_60_80,locations_40_60,locations_20_40
 
@@ -1363,6 +1367,12 @@ def plot_ice_flux_apr_sep_changes(ice_dict,ceres_dict,month_idx=3):
                 np.nanmean(np.nanmean(local_ceres[mi::num_months,:,:]
                     [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_20_40])
 
+            ice_avgs[ri,mi,4] = \
+                np.average(np.average(ice_dict['grid_ice_conc'][mi::num_months,:,:]
+                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_0_20])
+            flux_avgs[ri,mi,4] = \
+                np.nanmean(np.nanmean(local_ceres[mi::num_months,:,:]
+                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_0_20])
             #ice_avgs[ri,mi] = \
                 #np.average(ice_dict['grid_ice_conc'][0::num_months]
                 #    [indices[ri]:indices[ri] + 3],axis = 0)
@@ -1380,17 +1390,20 @@ def plot_ice_flux_apr_sep_changes(ice_dict,ceres_dict,month_idx=3):
     ax.plot(ice_avgs[0,:,0],color='black')
     ax.plot(ice_avgs[0,:,1],color='tab:blue')
     ax.plot(ice_avgs[0,:,2],color='tab:green')
-    ax.plot(ice_avgs[0,:,3],color='tab:red')
+    ax.plot(ice_avgs[0,:,3],color='tab:orange')
+    ax.plot(ice_avgs[0,:,4],color='tab:red')
     # Plot the 2009 - 2011 data
     ax.plot(ice_avgs[1,:,0],'--',color='black')
     ax.plot(ice_avgs[1,:,1],'--',color='tab:blue')
     ax.plot(ice_avgs[1,:,2],'--',color='tab:green')
-    ax.plot(ice_avgs[1,:,3],'--',color='tab:red')
+    ax.plot(ice_avgs[1,:,3],'--',color='tab:orange')
+    ax.plot(ice_avgs[1,:,4],'--',color='tab:red')
     # Plot the 2016 - 2018 data
     ax.plot(ice_avgs[2,:,0],linestyle='dotted',color='black')
     ax.plot(ice_avgs[2,:,1],linestyle='dotted',color='tab:blue')
     ax.plot(ice_avgs[2,:,2],linestyle='dotted',color='tab:green')
-    ax.plot(ice_avgs[2,:,3],linestyle='dotted',color='tab:red')
+    ax.plot(ice_avgs[2,:,3],linestyle='dotted',color='tab:orange')
+    ax.plot(ice_avgs[2,:,4],linestyle='dotted',color='tab:red')
     ax.set_xticks(np.arange(num_months))
     ax.set_xticklabels(months)
     ax.grid()
@@ -1410,6 +1423,7 @@ def plot_ice_flux_apr_sep_changes(ice_dict,ceres_dict,month_idx=3):
                     Line2D([0],[0],linestyle='dashed',color='black'),\
                     Line2D([0],[0],color='tab:green'),\
                     Line2D([0],[0],linestyle='dotted',color='black'),\
+                    Line2D([0],[0],color='tab:orange'),\
                     Line2D([0],[0],color='tab:red')]
     ax.legend(custom_lines,['80 - 100%',\
                              '2001 - 2003',\
@@ -1417,11 +1431,14 @@ def plot_ice_flux_apr_sep_changes(ice_dict,ceres_dict,month_idx=3):
                              '2009 - 2011',\
                              '40 - 60%',\
                              '2016 - 2018',\
-                             '20 - 40%'],\
+                             '20 - 40%',\
+                             '0 - 20%'],\
               loc = 'upper center',bbox_to_anchor=(0.5,-0.05),\
-              fancybox=True,shadow=True,ncol=4)
+              fancybox=True,shadow=True,ncol=5)
 
-    imagename = 'ice_apr_sep_changes_'+months[start_idx]+'_regions.png'
+    if(start_idx==0):
+        start_idx=12
+    imagename = 'ice_apr_sep_changes_'+str(start_idx)+'_'+months[start_idx]+'_regions.png'
     plt.savefig(imagename,dpi=300)
     print("Saved image ",imagename)
 
@@ -1437,17 +1454,20 @@ def plot_ice_flux_apr_sep_changes(ice_dict,ceres_dict,month_idx=3):
     ax1.plot(flux_avgs[0,:,0],color='black')
     ax1.plot(flux_avgs[0,:,1],color='tab:blue')
     ax1.plot(flux_avgs[0,:,2],color='tab:green')
-    ax1.plot(flux_avgs[0,:,3],color='tab:red')
+    ax1.plot(flux_avgs[0,:,3],color='tab:orange')
+    ax1.plot(flux_avgs[0,:,4],color='tab:red')
     # Plot the 2009 - 2011 data
     ax1.plot(flux_avgs[1,:,0],'--',color='black')
     ax1.plot(flux_avgs[1,:,1],'--',color='tab:blue')
     ax1.plot(flux_avgs[1,:,2],'--',color='tab:green')
-    ax1.plot(flux_avgs[1,:,3],'--',color='tab:red')
+    ax1.plot(flux_avgs[1,:,3],'--',color='tab:orange')
+    ax1.plot(flux_avgs[1,:,4],'--',color='tab:red')
     # Plot the 2016 - 2018 data
     ax1.plot(flux_avgs[2,:,0],linestyle='dotted',color='black')
     ax1.plot(flux_avgs[2,:,1],linestyle='dotted',color='tab:blue')
     ax1.plot(flux_avgs[2,:,2],linestyle='dotted',color='tab:green')
-    ax1.plot(flux_avgs[2,:,3],linestyle='dotted',color='tab:red')
+    ax1.plot(flux_avgs[2,:,3],linestyle='dotted',color='tab:orange')
+    ax1.plot(flux_avgs[2,:,4],linestyle='dotted',color='tab:red')
     ax1.set_xticks(np.arange(num_months))
     ax1.set_xticklabels(months)
     ax1.grid()
@@ -1467,6 +1487,7 @@ def plot_ice_flux_apr_sep_changes(ice_dict,ceres_dict,month_idx=3):
                     Line2D([0],[0],linestyle='dashed',color='black'),\
                     Line2D([0],[0],color='tab:green'),\
                     Line2D([0],[0],linestyle='dotted',color='black'),\
+                    Line2D([0],[0],color='tab:orange'),\
                     Line2D([0],[0],color='tab:red')]
     ax1.legend(custom_lines,['80 - 100%',\
                              '2001 - 2003',\
@@ -1474,11 +1495,12 @@ def plot_ice_flux_apr_sep_changes(ice_dict,ceres_dict,month_idx=3):
                              '2009 - 2011',\
                              '40 - 60%',\
                              '2016 - 2018',\
-                             '20 - 40%'],\
+                             '20 - 40%',\
+                             '0 - 20%'],\
               loc = 'upper center',bbox_to_anchor=(0.5,-0.05),\
-              fancybox=True,shadow=True,ncol=4)
+              fancybox=True,shadow=True,ncol=5)
 
-    imagename = 'flux_apr_sep_changes_'+months[start_idx]+'_regions.png'
+    imagename = 'flux_apr_sep_changes_'+str(start_idx)+'_'+months[start_idx]+'_regions.png'
     plt.savefig(imagename,dpi=300)
     print("Saved image ",imagename)
     plt.show()
@@ -1492,6 +1514,13 @@ def plot_ice_flux_apr_sep_changes(ice_dict,ceres_dict,month_idx=3):
 # and then
 # >>> plot_ice_apr_sep_spatial(all_ice_data)
 def plot_ice_apr_sep_spatial(ice_dict,month_idx=3):
+
+    adjusted = True
+    if(adjusted==True):
+        mapcrs = ccrs.NorthPolarStereo(central_longitude=45.)
+    else:
+        mapcrs = ccrs.NorthPolarStereo()
+    datacrs = ccrs.PlateCarree()
  
     inseason = ice_dict['season_adder'].strip()
  
@@ -1502,6 +1531,8 @@ def plot_ice_apr_sep_spatial(ice_dict,month_idx=3):
     # 2001-2003
     # 2008-2011
     # 2016-2018
+    months = ['Dec','Jan','Feb','Mar','Apr','May',\
+              'June','July','Aug','Sep','Oct','Nov']
    
     # For now, look at April - September 
     if(inseason=='sunlight'):
@@ -1510,13 +1541,6 @@ def plot_ice_apr_sep_spatial(ice_dict,month_idx=3):
     else:
         num_months = 12
         start_idx  = month_idx
-    # Dimensions of ice_avgs are
-    # 0 - year blocks (size = 3, see above)
-    # 1 - months      (size = num_months)
-    # 2 - ice values  (size = 4)
-    ice_avgs  = np.zeros((3,num_months,len(upper_vals)))
-    flux_avgs = np.zeros((3,num_months,len(upper_vals)))
-    indices = [0,8,15]
   
     # Base the locations for each ice concentration range on the average
     # March concentration between 2001 and 2003
@@ -1530,32 +1554,51 @@ def plot_ice_apr_sep_spatial(ice_dict,month_idx=3):
     locations_60_80  = np.where((avg_Apr_old <= 80.)  & (avg_Apr_old > 60.)) 
     locations_40_60  = np.where((avg_Apr_old <= 60.)  & (avg_Apr_old > 40.)) 
     locations_20_40  = np.where((avg_Apr_old <= 40.)  & (avg_Apr_old > 20.)) 
+    locations_0_20   = np.where((avg_Apr_old <= 20.)  & (avg_Apr_old > 0.)) 
 
-    #return locations_80_100,locations_60_80,locations_40_60,locations_20_40
+    #return avg_Apr_old,locations_80_100,locations_60_80,locations_40_60,locations_20_40
+
+    # Make some data to plot
+    plot_good_data = np.copy(avg_Apr_old)
+    plot_good_data[locations_80_100] = 99.
+    plot_good_data[locations_60_80] = 79.
+    plot_good_data[locations_40_60] = 59.
+    plot_good_data[locations_20_40] = 39.
+    plot_good_data[locations_0_20] = 19.
+    plot_good_data[plot_good_data<19] = np.nan
 
     # Make the figure
-    colormap = plt.cm.ocean
+    #colormap = plt.cm.Accent
+    colormap = cm.ListedColormap(['tab:red','tab:orange','tab:green','tab:blue','black'])
+    bounds = [1,20,40,60,80,100]
+    norm = cm.Normalize(vmin=0,vmax=100)
     #coolwarm = plt.cm.coolwarm
     #ax = plt.axes(projection=ccrs.NorthPolarStereo())
     file_adder=''
-    ax0 = plt.subplot(gs[0,0],projection=mapcrs)
-    ax0.set_extent([-180,180,45,90],ccrs.PlateCarree())
+    fig1 = plt.figure(figsize=(8,6))
+    ax0 = plt.subplot(projection=mapcrs)
+    ax0.set_extent([-180,180,45,90],datacrs)
     ax0.gridlines()
-    mesh = ax0.pcolormesh(ice_data['grid_lon'],ice_data['grid_lat'],plot_good_data,\
-            transform=ccrs.PlateCarree(),vmin=0,vmax=100,cmap=colormap)
-    ax0.set_title('NSIDC Average Percent Ice Concentration')
-    #ax0.set_title('NSIDC Percent Ice Concentration' + title_season.title() + ' Trend\n' + \
-    #             CERES_sw_clr_dict['dates'][0] + ' - ' + CERES_sw_clr_dict['dates'][-1])
+    mesh = ax0.pcolormesh(ice_dict['grid_lon'],ice_dict['grid_lat'],plot_good_data,\
+            transform=datacrs,cmap=colormap,norm=norm)
+    ax0.set_title('NSIDC Average Percent Ice Concentration\n'+months[start_idx]+' 2001 - 2003')
+    fig1.colorbar(mesh,orientation='horizontal',label='Percent Ice Concentration',\
+                  pad=0,shrink = 0.905,aspect=30)
     if(adjusted==True):
         ax0.add_feature(cartopy.feature.LAND,zorder=100,edgecolor='darkgrey',facecolor='darkgrey')
-        cbar = plt.colorbar(mesh,ticks=[1,20,40,60,80,100],orientation='horizontal',pad=0,aspect=50,label='Percent Ice Concentration')
-        cbar.ax.set_xticklabels(['1','20','40','60','80','100'])
         ax0.set_xlim(-4170748.535086173,4167222.438879491)
         ax0.set_ylim(-2913488.8763307533,2943353.899053069)
     else:
         plt.pcolormesh(plot_land_data,cmap=plt.cm.Greys,vmin=-10,vmax=10)
         cbar = plt.colorbar(mesh,cmap=colormap,label=plabel)
     ax0.coastlines()
+
+    if(start_idx==0):
+        start_idx=12
+    imagename = 'ice_apr_sep_pcnt_regions_'+str(start_idx)+'_'+months[start_idx]+'.png'
+    plt.savefig(imagename,dpi=300)
+    print("Saved image ",imagename)
+    #plt.show()
 
 # This function is based on plot_ice_flux_apr_sep_changes, but is
 # modified so that it calculates the changes throughout the year for
