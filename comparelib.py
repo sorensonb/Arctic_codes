@@ -10,6 +10,7 @@ import numpy.ma as ma
 import matplotlib.pyplot as plt
 import matplotlib.colors as cm
 import matplotlib.gridspec as gridspec
+from matplotlib.lines import Line2D
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from scipy import stats
 from scipy.stats import gaussian_kde
@@ -1249,6 +1250,465 @@ def yearly_conc_diff_scatter(ice_data):
             outname = 'yearly_conc_diff_scatter_' + next_year_string + '_summer.png'
         plt.savefig(outname,dpi=300)
         print("Saved image",outname)
+
+# This function is based on plot_apr_sep_changes from IceLib, but 
+# modified to make two figures: one that is the same as plot_apr_sep_changes,
+# and another that shows the CERES clear-sky net flux values for the
+# same locations used in the ice figure.
+# NOTE: To run, do something like
+# >>> all_ice_data = read_ice('all')
+# >>> all_ice_data = grid_data_conc(all_ice_data)
+# and then
+# >>> plot_apr_sep_changes(all_ice_data)
+def plot_ice_flux_apr_sep_changes(ice_dict,ceres_dict,month_idx=3):
+ 
+    # Before doing anything else, make a local copy of the CERES data
+    # and set any missing values (-999.) to np.nan
+    local_ceres = np.copy(ceres_dict['data'])
+    local_ceres[local_ceres==-999.] = np.nan
+ 
+    inseason = ice_dict['season_adder'].strip()
+ 
+    upper_vals = np.array([100,80,60,40])
+    lower_vals = np.array([80,60,40,20])
+
+    # Generate 3-year averages for 3 time periods:
+    # 2001-2003
+    # 2008-2011
+    # 2016-2018
+   
+    # For now, look at April - September 
+    if(inseason=='sunlight'):
+        num_months = 6
+        start_idx  = 0
+    else:
+        num_months = 12
+        start_idx  = month_idx
+    # Dimensions of ice_avgs are
+    # 0 - year blocks (size = 3, see above)
+    # 1 - months      (size = num_months)
+    # 2 - ice values  (size = 4)
+    ice_avgs  = np.zeros((3,num_months,len(upper_vals)))
+    flux_avgs = np.zeros((3,num_months,len(upper_vals)))
+    indices = [0,8,15]
+  
+    # Base the locations for each ice concentration range on the average
+    # March concentration between 2001 and 2003
+    # Sea ice is at its peak extent in March, so use this as the reference
+    avg_Apr_old = \
+        np.average(ice_dict['grid_ice_conc'][start_idx::num_months,:,:][:3,:,:],axis=0)
+ 
+    # Use the locations during the first March average to base everything
+    # on
+    locations_80_100 = np.where((avg_Apr_old <= 100.) & (avg_Apr_old > 80.)) 
+    locations_60_80  = np.where((avg_Apr_old <= 80.)  & (avg_Apr_old > 60.)) 
+    locations_40_60  = np.where((avg_Apr_old <= 60.)  & (avg_Apr_old > 40.)) 
+    locations_20_40  = np.where((avg_Apr_old <= 40.)  & (avg_Apr_old > 20.)) 
+
+    #return locations_80_100,locations_60_80,locations_40_60,locations_20_40
+
+    # Fill the ice_avgs array with the data for each time period 
+    for ri in range(len(indices)):
+        for mi in range(num_months):
+            print("Year block = ",ri,"  Month = ",mi)
+            # Deal with 80 to 100
+            ##temp_arr = np.zeros((3,len(locations_80_100)))
+            ##temp_arr[0] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri]][locations_80_100]
+            ##temp_arr[1] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri] + 1][locations_80_100]
+            ##temp_arr[2] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri] + 2][locations_80_100]
+            #ice_avgs[ri,mi,0] = np.average(temp_arr)
+            ice_avgs[ri,mi,0] = \
+                np.average(np.average(ice_dict['grid_ice_conc'][mi::num_months,:,:]
+                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_80_100])
+            flux_avgs[ri,mi,0] = \
+                np.nanmean(np.nanmean(local_ceres[mi::num_months,:,:]
+                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_80_100])
+
+            ### Deal with 60 to 80
+            ##temp_arr = np.zeros((3,len(locations_60_80)))
+            ##temp_arr[0] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri]][locations_60_80]
+            ##temp_arr[1] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri] + 1][locations_60_80]
+            ##temp_arr[2] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri] + 2][locations_60_80]
+            ##ice_avgs[ri,mi,1] = np.average(temp_arr)
+            ice_avgs[ri,mi,1] = \
+                np.average(np.average(ice_dict['grid_ice_conc'][mi::num_months,:,:]
+                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_60_80])
+            flux_avgs[ri,mi,1] = \
+                np.nanmean(np.nanmean(local_ceres[mi::num_months,:,:]
+                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_60_80])
+
+            # Deal with 40 to 60
+            ##temp_arr = np.zeros((3,len(locations_40_60)))
+            ##temp_arr[0] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri]][locations_40_60]
+            ##temp_arr[1] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri] + 1][locations_40_60]
+            ##temp_arr[2] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri] + 2][locations_40_60]
+            #ice_avgs[ri,mi,2] = np.average(temp_arr)
+            ice_avgs[ri,mi,2] = \
+                np.average(np.average(ice_dict['grid_ice_conc'][mi::num_months,:,:]
+                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_40_60])
+            flux_avgs[ri,mi,2] = \
+                np.nanmean(np.nanmean(local_ceres[mi::num_months,:,:]
+                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_40_60])
+
+            # Deal with 40 to 60
+            ##temp_arr = np.zeros((3,len(locations_20_40)))
+            ##temp_arr[0] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri]][locations_20_40]
+            ##temp_arr[1] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri] + 1][locations_20_40]
+            ##temp_arr[2] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri] + 2][locations_20_40]
+            ##ice_avgs[ri,mi,3] = np.average(temp_arr)
+            ice_avgs[ri,mi,3] = \
+                np.average(np.average(ice_dict['grid_ice_conc'][mi::num_months,:,:]
+                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_20_40])
+            flux_avgs[ri,mi,3] = \
+                np.nanmean(np.nanmean(local_ceres[mi::num_months,:,:]
+                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_20_40])
+
+            #ice_avgs[ri,mi] = \
+                #np.average(ice_dict['grid_ice_conc'][0::num_months]
+                #    [indices[ri]:indices[ri] + 3],axis = 0)
+
+    # Generate the figure
+    plt.close()
+    fig1 = plt.figure(figsize=(8,6))
+    ax = plt.subplot()
+    if(inseason=='sunlight'):
+        months = ['Apr','May','June','July','Aug','Sep']
+    else:
+        months = ['Dec','Jan','Feb','Mar','Apr','May',\
+                  'June','July','Aug','Sep','Oct','Nov']
+    # Plot the 2001 - 2003 data
+    ax.plot(ice_avgs[0,:,0],color='black')
+    ax.plot(ice_avgs[0,:,1],color='tab:blue')
+    ax.plot(ice_avgs[0,:,2],color='tab:green')
+    ax.plot(ice_avgs[0,:,3],color='tab:red')
+    # Plot the 2009 - 2011 data
+    ax.plot(ice_avgs[1,:,0],'--',color='black')
+    ax.plot(ice_avgs[1,:,1],'--',color='tab:blue')
+    ax.plot(ice_avgs[1,:,2],'--',color='tab:green')
+    ax.plot(ice_avgs[1,:,3],'--',color='tab:red')
+    # Plot the 2016 - 2018 data
+    ax.plot(ice_avgs[2,:,0],linestyle='dotted',color='black')
+    ax.plot(ice_avgs[2,:,1],linestyle='dotted',color='tab:blue')
+    ax.plot(ice_avgs[2,:,2],linestyle='dotted',color='tab:green')
+    ax.plot(ice_avgs[2,:,3],linestyle='dotted',color='tab:red')
+    ax.set_xticks(np.arange(num_months))
+    ax.set_xticklabels(months)
+    ax.grid()
+    ax.set_ylabel('Ice Concentration [%]')
+    ax.set_title('Regional Ice Concentration Behavior\n'+\
+                 'Regions Based On '+months[start_idx]+' 2001-2003 Ice Concentration')
+
+    # Shrink the current axis's height by 10% to make room for the legend
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0 + box.height * 0.1,\
+                    box.width, box.height * 0.9])
+
+    # Make the legend
+    custom_lines = [Line2D([0],[0],color='black'),\
+                    Line2D([0],[0],color='black'),\
+                    Line2D([0],[0],color='tab:blue'),\
+                    Line2D([0],[0],linestyle='dashed',color='black'),\
+                    Line2D([0],[0],color='tab:green'),\
+                    Line2D([0],[0],linestyle='dotted',color='black'),\
+                    Line2D([0],[0],color='tab:red')]
+    ax.legend(custom_lines,['80 - 100%',\
+                             '2001 - 2003',\
+                             '60 - 80%',\
+                             '2009 - 2011',\
+                             '40 - 60%',\
+                             '2016 - 2018',\
+                             '20 - 40%'],\
+              loc = 'upper center',bbox_to_anchor=(0.5,-0.05),\
+              fancybox=True,shadow=True,ncol=4)
+
+    imagename = 'ice_apr_sep_changes_'+months[start_idx]+'_regions.png'
+    plt.savefig(imagename,dpi=300)
+    print("Saved image ",imagename)
+
+    # Make the CERES figure
+    fig2 = plt.figure(figsize=(8,6))
+    ax1 = plt.subplot()
+    if(inseason=='sunlight'):
+        months = ['Apr','May','June','July','Aug','Sep']
+    else:
+        months = ['Dec','Jan','Feb','Mar','Apr','May',\
+                  'June','July','Aug','Sep','Oct','Nov']
+    # Plot the 2001 - 2003 data
+    ax1.plot(flux_avgs[0,:,0],color='black')
+    ax1.plot(flux_avgs[0,:,1],color='tab:blue')
+    ax1.plot(flux_avgs[0,:,2],color='tab:green')
+    ax1.plot(flux_avgs[0,:,3],color='tab:red')
+    # Plot the 2009 - 2011 data
+    ax1.plot(flux_avgs[1,:,0],'--',color='black')
+    ax1.plot(flux_avgs[1,:,1],'--',color='tab:blue')
+    ax1.plot(flux_avgs[1,:,2],'--',color='tab:green')
+    ax1.plot(flux_avgs[1,:,3],'--',color='tab:red')
+    # Plot the 2016 - 2018 data
+    ax1.plot(flux_avgs[2,:,0],linestyle='dotted',color='black')
+    ax1.plot(flux_avgs[2,:,1],linestyle='dotted',color='tab:blue')
+    ax1.plot(flux_avgs[2,:,2],linestyle='dotted',color='tab:green')
+    ax1.plot(flux_avgs[2,:,3],linestyle='dotted',color='tab:red')
+    ax1.set_xticks(np.arange(num_months))
+    ax1.set_xticklabels(months)
+    ax1.grid()
+    ax1.set_ylabel('TOA Clear-Sky Net Flux [W/m2]')
+    ax1.set_title('Regional Clear-Sky Net Flux Behavior\n'+\
+                 'Regions Based On '+months[start_idx]+' 2001-2003 Ice Concentration')
+
+    # Shrink the current axis's height by 10% to make room for the legend
+    box1 = ax1.get_position()
+    ax1.set_position([box1.x0, box1.y0 + box1.height * 0.1,\
+                    box1.width, box1.height * 0.9])
+
+    # Make the legend
+    custom_lines = [Line2D([0],[0],color='black'),\
+                    Line2D([0],[0],color='black'),\
+                    Line2D([0],[0],color='tab:blue'),\
+                    Line2D([0],[0],linestyle='dashed',color='black'),\
+                    Line2D([0],[0],color='tab:green'),\
+                    Line2D([0],[0],linestyle='dotted',color='black'),\
+                    Line2D([0],[0],color='tab:red')]
+    ax1.legend(custom_lines,['80 - 100%',\
+                             '2001 - 2003',\
+                             '60 - 80%',\
+                             '2009 - 2011',\
+                             '40 - 60%',\
+                             '2016 - 2018',\
+                             '20 - 40%'],\
+              loc = 'upper center',bbox_to_anchor=(0.5,-0.05),\
+              fancybox=True,shadow=True,ncol=4)
+
+    imagename = 'flux_apr_sep_changes_'+months[start_idx]+'_regions.png'
+    plt.savefig(imagename,dpi=300)
+    print("Saved image ",imagename)
+    plt.show()
+    plt.close()
+
+# This function is based on plot_apr_sep_changes from IceLib, but plots
+# the locations of each percentage coverage bin on a spatial map.
+# NOTE: To run, do something like
+# >>> all_ice_data = read_ice('all')
+# >>> all_ice_data = grid_data_conc(all_ice_data)
+# and then
+# >>> plot_ice_apr_sep_spatial(all_ice_data)
+def plot_ice_apr_sep_spatial(ice_dict,month_idx=3):
+ 
+    inseason = ice_dict['season_adder'].strip()
+ 
+    upper_vals = np.array([100,80,60,40])
+    lower_vals = np.array([80,60,40,20])
+
+    # Generate 3-year averages for 3 time periods:
+    # 2001-2003
+    # 2008-2011
+    # 2016-2018
+   
+    # For now, look at April - September 
+    if(inseason=='sunlight'):
+        num_months = 6
+        start_idx  = 0
+    else:
+        num_months = 12
+        start_idx  = month_idx
+    # Dimensions of ice_avgs are
+    # 0 - year blocks (size = 3, see above)
+    # 1 - months      (size = num_months)
+    # 2 - ice values  (size = 4)
+    ice_avgs  = np.zeros((3,num_months,len(upper_vals)))
+    flux_avgs = np.zeros((3,num_months,len(upper_vals)))
+    indices = [0,8,15]
+  
+    # Base the locations for each ice concentration range on the average
+    # March concentration between 2001 and 2003
+    # Sea ice is at its peak extent in March, so use this as the reference
+    avg_Apr_old = \
+        np.average(ice_dict['grid_ice_conc'][start_idx::num_months,:,:][:3,:,:],axis=0)
+ 
+    # Use the locations during the first March average to base everything
+    # on
+    locations_80_100 = np.where((avg_Apr_old <= 100.) & (avg_Apr_old > 80.)) 
+    locations_60_80  = np.where((avg_Apr_old <= 80.)  & (avg_Apr_old > 60.)) 
+    locations_40_60  = np.where((avg_Apr_old <= 60.)  & (avg_Apr_old > 40.)) 
+    locations_20_40  = np.where((avg_Apr_old <= 40.)  & (avg_Apr_old > 20.)) 
+
+    #return locations_80_100,locations_60_80,locations_40_60,locations_20_40
+
+    # Make the figure
+    colormap = plt.cm.ocean
+    #coolwarm = plt.cm.coolwarm
+    #ax = plt.axes(projection=ccrs.NorthPolarStereo())
+    file_adder=''
+    ax0 = plt.subplot(gs[0,0],projection=mapcrs)
+    ax0.set_extent([-180,180,45,90],ccrs.PlateCarree())
+    ax0.gridlines()
+    mesh = ax0.pcolormesh(ice_data['grid_lon'],ice_data['grid_lat'],plot_good_data,\
+            transform=ccrs.PlateCarree(),vmin=0,vmax=100,cmap=colormap)
+    ax0.set_title('NSIDC Average Percent Ice Concentration')
+    #ax0.set_title('NSIDC Percent Ice Concentration' + title_season.title() + ' Trend\n' + \
+    #             CERES_sw_clr_dict['dates'][0] + ' - ' + CERES_sw_clr_dict['dates'][-1])
+    if(adjusted==True):
+        ax0.add_feature(cartopy.feature.LAND,zorder=100,edgecolor='darkgrey',facecolor='darkgrey')
+        cbar = plt.colorbar(mesh,ticks=[1,20,40,60,80,100],orientation='horizontal',pad=0,aspect=50,label='Percent Ice Concentration')
+        cbar.ax.set_xticklabels(['1','20','40','60','80','100'])
+        ax0.set_xlim(-4170748.535086173,4167222.438879491)
+        ax0.set_ylim(-2913488.8763307533,2943353.899053069)
+    else:
+        plt.pcolormesh(plot_land_data,cmap=plt.cm.Greys,vmin=-10,vmax=10)
+        cbar = plt.colorbar(mesh,cmap=colormap,label=plabel)
+    ax0.coastlines()
+
+# This function is based on plot_ice_flux_apr_sep_changes, but is
+# modified so that it calculates the changes throughout the year for
+# the entire region, without splitting into different ice concentrations.
+# NOTE: To run, do something like
+# >>> all_ice_data = read_ice('all')
+# >>> all_ice_data = grid_data_conc(all_ice_data)
+# >>> all_ceres_data = readgridCERES(200012,201812,'toa_net_clr_mon',\
+# ... minlat = 30.5,season = 'all')
+# and then
+# >>> plot_ice_flux_total_changes(all_ice_data,all_ceres_data)
+def plot_ice_flux_total_changes(ice_dict,ceres_dict):
+ 
+    # Before doing anything else, make a local copy of the CERES data
+    # and set any missing values (-999.) to np.nan
+    local_ceres = np.copy(ceres_dict['data'])
+    local_ceres[local_ceres==-999.] = np.nan
+ 
+    inseason = ice_dict['season_adder'].strip()
+ 
+    # Generate 3-year averages for 3 time periods:
+    # 2001-2003
+    # 2008-2011
+    # 2016-2018
+   
+    # For now, look at April - September 
+    if(inseason=='sunlight'):
+        num_months = 6
+        start_idx  = 0
+    else:
+        num_months = 12
+        start_idx  = 3  # 3 is March
+    # Dimensions of ice_avgs are
+    # 0 - year blocks (size = 3, see above)
+    # 1 - months      (size = num_months)
+    # 2 - ice values  (size = 4)
+    ice_avgs  = np.zeros((3,num_months))
+    flux_avgs = np.zeros((3,num_months))
+    indices = [0,8,15]
+  
+    # Base the locations for each ice concentration range on the average
+    # March concentration between 2001 and 2003
+    # Sea ice is at its peak extent in March, so use this as the reference
+    avg_Apr_old = \
+        np.average(ice_dict['grid_ice_conc'][start_idx::num_months,:,:][:3,:,:],axis=0)
+ 
+    # Use the locations during the first March average to base everything
+    # on
+    locations_0_100 = np.where((avg_Apr_old <= 100.) & (avg_Apr_old > 0.)) 
+
+    #return locations_80_100,locations_60_80,locations_40_60,locations_20_40
+
+    # Fill the ice_avgs array with the data for each time period 
+    for ri in range(len(indices)):
+        for mi in range(num_months):
+            print("Year block = ",ri,"  Month = ",mi)
+            # Deal with 80 to 100
+            ##temp_arr = np.zeros((3,len(locations_80_100)))
+            ##temp_arr[0] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri]][locations_80_100]
+            ##temp_arr[1] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri] + 1][locations_80_100]
+            ##temp_arr[2] = ice_dict['grid_ice_conc'][mi::num_months][indices[ri] + 2][locations_80_100]
+            #ice_avgs[ri,mi,0] = np.average(temp_arr)
+            ice_avgs[ri,mi] = \
+                np.average(np.average(ice_dict['grid_ice_conc'][mi::num_months,:,:]
+                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_0_100])
+            flux_avgs[ri,mi] = \
+                np.nanmean(np.nanmean(local_ceres[mi::num_months,:,:]
+                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_0_100])
+
+    # Generate the figure
+    plt.close()
+    fig1 = plt.figure(figsize=(8,6))
+    ax = plt.subplot()
+    if(inseason=='sunlight'):
+        months = ['Apr','May','June','July','Aug','Sep']
+    else:
+        months = ['Dec','Jan','Feb','Mar','Apr','May',\
+                  'June','July','Aug','Sep','Oct','Nov']
+    # Plot the 2001 - 2003 data
+    ax.plot(ice_avgs[0,:],color='black',label='2001 - 2003')
+    # Plot the 2009 - 2011 data
+    ax.plot(ice_avgs[1,:],'--',color='black',label='2009 - 2011')
+    # Plot the 2016 - 2018 data
+    ax.plot(ice_avgs[2,:],linestyle='dotted',color='black',label='2016 - 2018')
+    ax.set_xticks(np.arange(num_months)) 
+    ax.set_xticklabels(months)
+    ax.grid()
+    ax.set_ylabel('Ice Concentration [%]')
+    #ax.set_title('Ice Concentration Behavior')
+
+    # Shrink the current axis's height by 10% to make room for the legend
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0 + box.height * 0.1,\
+                    box.width, box.height * 0.9])
+
+    # Make the legend
+    ##custom_lines = [Line2D([0],[0],color='black'),\
+    ##                Line2D([0],[0],color='black'),\
+    ##                Line2D([0],[0],color='tab:blue'),\
+    ##                Line2D([0],[0],linestyle='dashed',color='black'),\
+    ##                Line2D([0],[0],color='tab:green'),\
+    ##                Line2D([0],[0],linestyle='dotted',color='black'),\
+    ##                Line2D([0],[0],color='tab:red')]
+    ax.legend(loc = 'upper center',bbox_to_anchor=(0.5,-0.05),\
+              fancybox=True,shadow=True,ncol=4)
+
+    ## Make the CERES figure
+    #fig2 = plt.figure(figsize=(8,6))
+    #ax1 = plt.subplot()
+    ax1 = ax.twinx()
+    if(inseason=='sunlight'):
+        months = ['Apr','May','June','July','Aug','Sep']
+    else:
+        months = ['Dec','Jan','Feb','Mar','Apr','May',\
+                  'June','July','Aug','Sep','Oct','Nov']
+    # Plot the 2001 - 2003 data
+    ax1.plot(flux_avgs[0,:],color='tab:red',label='2001 - 2003')
+    # Plot the 2009 - 2011 data
+    ax1.plot(flux_avgs[1,:],'--',color='tab:red',label = '2009 - 2011')
+    # Plot the 2016 - 2018 data
+    ax1.plot(flux_avgs[2,:],linestyle='dotted',color='tab:red',label = \
+            '2016 - 2018')
+    ax1.set_xticks(np.arange(num_months))
+    ax1.set_xticklabels(months)
+    ax1.tick_params(axis='y',colors='tab:red')
+    ax1.grid()
+    ax1.set_ylabel('TOA Clear-sky Net Flux [W/m2]',color='tab:red')
+    ax1.set_title('Ice Concentration and Clear-Sky Net Flux Behavior')
+
+    # Shrink the current axis's height by 10% to make room for the legend
+    box1 = ax1.get_position()
+    ax1.set_position([box1.x0, box1.y0 + box1.height * 0.1,\
+                    box1.width, box1.height * 0.9])
+
+    # Make the legend
+    ##custom_lines = [Line2D([0],[0],color='black'),\
+    ##                Line2D([0],[0],color='black'),\
+    ##                Line2D([0],[0],color='tab:blue'),\
+    ##                Line2D([0],[0],linestyle='dashed',color='black'),\
+    ##                Line2D([0],[0],color='tab:green'),\
+    ##                Line2D([0],[0],linestyle='dotted',color='black'),\
+    ##                Line2D([0],[0],color='tab:red')]
+    ax1.legend(loc = 'upper center',bbox_to_anchor=(0.5,-0.10),\
+              fancybox=True,shadow=True,ncol=4)
+
+    imagename = 'ice_flux_total_changes.png'
+    plt.savefig(imagename,dpi=300)
+    print("Saved image ",imagename)
+
+    plt.show()
+    plt.close()
+
+
 ####def write_toNCDF(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
 ####                  CERES_lw_all_dict,CERES_sw_all_dict,CERES_net_all_dict):
 ####    #lat_ranges = np.arange(minlat,90,1.0)

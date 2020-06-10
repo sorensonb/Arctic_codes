@@ -657,21 +657,26 @@ def plot_apr_sep_changes(ice_dict):
     ax.set_xticks(np.arange(num_months),months)
     ax.set_ylabel('Ice Concentration [%]')
 
+    # Shrink the current axis's height by 10% to make room for the legend
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0 + box.height * 0.1,\
+                    box.width, box.height * 0.9])
+
     # Make the legend
     custom_lines = [Line2D([0],[0],color='black'),\
-                    Line2D([0],[0],color='tab:blue'),\
-                    Line2D([0],[0],color='tab:green'),\
-                    Line2D([0],[0],color='tab:red'),\
                     Line2D([0],[0],color='black'),\
+                    Line2D([0],[0],color='tab:blue'),\
                     Line2D([0],[0],linestyle='dashed',color='black'),\
-                    Line2D([0],[0],linestyle='dotted',color='black')]
+                    Line2D([0],[0],color='tab:green'),\
+                    Line2D([0],[0],linestyle='dotted',color='black'),\
+                    Line2D([0],[0],color='tab:red')]
     ax.legend(custom_lines,['80 - 100%',\
-                             '60 - 80%',\
-                             '40 - 60%',\
-                             '20 - 40%',\
                              '2001 - 2003',\
+                             '60 - 80%',\
                              '2009 - 2011',\
-                             '2016 - 2018'],\
+                             '40 - 60%',\
+                             '2016 - 2018',\
+                             '20 - 40%'],\
               loc = 'upper center',bbox_to_anchor=(0.5,-0.05),\
               fancybox=True,shadow=True,ncol=4)
     plt.show()
