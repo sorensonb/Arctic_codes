@@ -210,6 +210,41 @@ def read_ice(season,pre2001=False):
 
     return ice_data
 
+def write_Ice(ice_data):
+    print("yay")
+
+    # Print of a file for each month
+    num_months = int(len(ice_data['titles']))
+
+    # Set up the format string for printing off the data
+    # format_list includes the formats for all the yearly average concentrations
+    # Separate each by a space
+    formats = '\t'.join(['{:6.4}' for item in ice_data['titles']])
+    # Combine the formats string with the other format string
+    total_ice_format = '\t'.join(['{:.3}\t{:6.4}',formats,'\n'])
+
+    # Set up the header line format string
+    # Extract the individual years from the titles parameter
+    string_dates = [tstring.strip()[3:9] for tstring in ice_data['titles']]
+    header_formats = '\t'.join(['{:6}' for item in ice_data['titles']])
+    total_header_format = '\t'.join(['{:6}\t{:6}',header_formats,'\n'])   
+   
+    filename = "nsidc_grid_ice_values.txt"
+    #for ti in range(num_months):
+    #    str_date = ice_data['titles'][ti].strip()[3:9]
+    #    filename = "nsidc_grid_ice_"+str_date+'.txt'
+    with open(filename,'w') as fout:
+        fout.write(total_header_format.format('Lat','Lon',*string_dates))
+        for xi in range(len(ice_data['grid_lat'])):
+            print("Printing latitude ",ice_data['grid_lat'][xi])
+            for yj in range(len(ice_data['grid_lon'])):
+                fout.write(total_ice_format.format(ice_data['grid_lat'][xi],\
+                        ice_data['grid_lon'][yj],*ice_data['grid_ice_conc'][:,xi,yj]))
+
+    print("Saved file",filename) 
+    
+
+
 # ice_trendCalc calculates the trends over the time period at each
 # grid point on the 25x25 km grid.
 def ice_trendCalc(ice_data,thielSen=False):

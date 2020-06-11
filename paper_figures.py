@@ -18,7 +18,7 @@ import cartopy.crs as ccrs
 from scipy import stats
 sys.path.append('/home/bsorenson/Research/Ice_analysis/')
 sys.path.append('/home/bsorenson/Research/CERES/')
-from IceLib import read_ice,ice_trendCalc,grid_data,grid_data_conc,ice_gridtrendCalc
+from IceLib import read_ice,ice_trendCalc,grid_data,grid_data_conc,ice_gridtrendCalc,write_Ice
 from gridCERESLib import readgridCERES,calc_CERES_trend
 from comparelib import *
 

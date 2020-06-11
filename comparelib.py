@@ -1097,40 +1097,6 @@ def write_toASCII(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dic
     ##                        CERES_lw_clr_dict['trends'][xi,yj],CERES_lw_all_dict['trends'][xi,yj],CERES_net_clr_dict['trends'][xi,yj],\
     ##                        CERES_net_all_dict['trends'][xi,yj]))
 
-def write_Ice(ice_data):
-    print("yay")
-
-    # Print of a file for each month
-    num_months = int(len(ice_data['titles']))
-
-    # Set up the format string for printing off the data
-    # format_list includes the formats for all the yearly average concentrations
-    # Separate each by a space
-    formats = '\t'.join(['{:6.4}' for item in ice_data['titles']])
-    # Combine the formats string with the other format string
-    total_ice_format = '\t'.join(['{:.3}\t{:6.4}',formats,'\n'])
-
-    # Set up the header line format string
-    # Extract the individual years from the titles parameter
-    string_dates = [tstring.strip()[3:9] for tstring in ice_data['titles']]
-    header_formats = '\t'.join(['{:6}' for item in ice_data['titles']])
-    total_header_format = '\t'.join(['{:6}\t{:6}',header_formats,'\n'])   
-   
-    filename = "nsidc_grid_ice_values.txt"
-    #for ti in range(num_months):
-    #    str_date = ice_data['titles'][ti].strip()[3:9]
-    #    filename = "nsidc_grid_ice_"+str_date+'.txt'
-    with open(filename,'w') as fout:
-        fout.write(total_header_format.format('Lat','Lon',*string_dates))
-        for xi in range(len(ice_data['grid_lat'])):
-            print("Printing latitude ",ice_data['grid_lat'][xi])
-            for yj in range(len(ice_data['grid_lon'])):
-                fout.write(total_ice_format.format(ice_data['grid_lat'][xi],\
-                        ice_data['grid_lon'][yj],*ice_data['grid_ice_conc'][:,xi,yj]))
-
-    print("Saved file",filename) 
-    
-
 def scatter_1a_1b(ice_data,adjusted=True):
     fig = plt.figure()
     if(ice_data['season_adder'].strip()=='sunlight'):
@@ -1751,7 +1717,174 @@ def plot_ice_flux_total_changes(ice_dict,ceres_dict):
     plt.show()
     plt.close()
 
+# This function is based on plot_ice_flux_total_changes and plots
+# the changes over an entire 18-year cycle for high-ice regions.
+# An option will be included to deseasonalize the data as well.
+# The CERES net flux data will be plotted on a second y axis.
+# NOTE: To run, do something like
+# >>> all_ice_data = read_ice('all')
+# >>> all_ice_data = grid_data_conc(all_ice_data)
+# >>> all_ceres_data = readgridCERES(200012,201812,'toa_net_clr_mon',\
+# ... minlat = 30.5,season = 'all')
+# and then
+# >>> plot_ice_flux_whole_cycle(all_ice_data,all_ceres_data)
+def plot_ice_flux_whole_cycle(ice_dict,ceres_dict,deseason=False,month_idx=3):
+ 
+    # Before doing anything else, make a local copy of the CERES data
+    # and set any missing values (-999.) to np.nan
+    local_ceres = np.copy(ceres_dict['data'])
+    local_ceres[local_ceres==-999.] = np.nan
+ 
+    inseason = ice_dict['season_adder'].strip()
+ 
+    # Generate single-year averages the entier time periods:
+    upper_vals = np.array([100,95,90,85])
+    lower_vals = np.array([95,90,85,80])
 
+   
+    # For now, look at April - September 
+    if(inseason=='sunlight'):
+        num_months = 6
+        start_idx  = 0
+    else:
+        num_months = 12
+        start_idx  = month_idx
+
+    # Dimensions of ice_avgs are
+    # 0 - year blocks (size = number of months in data, see above)
+    # 1 - ice values  (size = 4)
+    ice_avgs  = np.zeros((len(ice_dict['titles']),len(upper_vals)))
+    flux_avgs = np.zeros((len(ice_dict['titles']),len(upper_vals)))
+  
+    # Base the locations for each ice concentration range on the average
+    # March concentration between 2001 and 2003
+    # Sea ice is at its peak extent in March, so use this as the reference
+    avg_Apr_old = \
+        np.average(ice_dict['grid_ice_conc'][start_idx::num_months,:,:][:3,:,:],axis=0)
+ 
+    # Use the locations during the first March average to base everything
+    # on
+    locations_95_100 = np.where((avg_Apr_old <= upper_vals[0]) & (avg_Apr_old > lower_vals[0])) 
+    locations_90_95  = np.where((avg_Apr_old <= upper_vals[1]) & (avg_Apr_old > lower_vals[1])) 
+    locations_85_90  = np.where((avg_Apr_old <= upper_vals[2]) & (avg_Apr_old > lower_vals[2])) 
+    locations_80_85  = np.where((avg_Apr_old <= upper_vals[3]) & (avg_Apr_old > lower_vals[3])) 
+    #locations_95_100 = np.where((avg_Apr_old <= 100.) & (avg_Apr_old > 95.)) 
+    #locations_90_95  = np.where((avg_Apr_old <= 95.)  & (avg_Apr_old > 90.)) 
+    #locations_85_90  = np.where((avg_Apr_old <= 90.)  & (avg_Apr_old > 85.)) 
+    #locations_80_85  = np.where((avg_Apr_old <= 85.)  & (avg_Apr_old > 80.)) 
+
+    # Fill the ice_avgs array with the data for each time period 
+    for mi in range(len(ice_dict['titles'])):
+        # Deal with 80 to 100
+        #ice_avgs[ri,mi,0] = \
+        #    np.average(np.average(ice_dict['grid_ice_conc'][mi::num_months,:,:]
+        #        [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_80_100])
+        # Deal with 95 to 100
+        ice_avgs[mi,0] = np.average(ice_dict['grid_ice_conc'][mi,:,:][locations_95_100])
+        flux_avgs[mi,0] = np.nanmean(local_ceres[mi,:,:][locations_95_100])
+        # Deal with 90 to 95
+        ice_avgs[mi,1] = np.average(ice_dict['grid_ice_conc'][mi,:,:][locations_90_95])
+        flux_avgs[mi,1] = np.nanmean(local_ceres[mi,:,:][locations_90_95])
+        # Deal with 85 to 90
+        ice_avgs[mi,2] = np.average(ice_dict['grid_ice_conc'][mi,:,:][locations_85_90])
+        flux_avgs[mi,2] = np.nanmean(local_ceres[mi,:,:][locations_85_90])
+        # Deal with 80 to 85
+        ice_avgs[mi,3] = np.average(ice_dict['grid_ice_conc'][mi,:,:][locations_80_85])
+        flux_avgs[mi,3] = np.nanmean(local_ceres[mi,:,:][locations_80_85])
+
+    deseason_adder = ''
+    if(deseason == True):
+        deseason_adder = 'Deseasonalized '
+        for ri in range(ice_avgs.shape[1]):
+            # Calculate the averages for each month
+            for mi in range(num_months):
+                # Calculate for ice data
+                month_avg = np.average(ice_avgs[mi::num_months,ri])
+                # Subract the average for this  month from all the occurences of 
+                # this month
+                ice_avgs[mi::num_months,ri] = ice_avgs[mi::num_months,ri] - month_avg
+
+                # Calculate for flux data
+                month_avg = np.average(flux_avgs[mi::num_months,ri])
+                # Subract the average for this  month from all the occurences of 
+                # this month
+                flux_avgs[mi::num_months,ri] = flux_avgs[mi::num_months,ri] - month_avg
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    # Generate the two-panel line figure
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    plt.close()
+    fig1, axs = plt.subplots(2)
+    fig1.set_size_inches(10,5)
+    #fig1 = plt.figure()
+    #ax = plt.subplot()
+    if(inseason=='sunlight'):
+        months = ['Apr','May','June','July','Aug','Sep']
+    else:
+        months = ['Dec','Jan','Feb','Mar','Apr','May',\
+                  'June','July','Aug','Sep','Oct','Nov']
+    # Plot the 2001 - 2003 data
+    axs[0].plot(ice_avgs[:,0],color='black')
+    axs[0].plot(ice_avgs[:,1],color='tab:blue')
+    axs[0].plot(ice_avgs[:,2],color='tab:green')
+    axs[0].plot(ice_avgs[:,3],color='tab:orange')
+    #ax.set_xticks(np.arange(num_months))
+    #ax.set_xticklabels(months)
+    axs[0].grid()
+    axs[0].set_ylabel('Ice Concentration [%]')
+    axs[0].set_title(deseason_adder+'Regional Ice And Flux Behavior\n'+\
+                 'Regions Based On '+months[start_idx]+' 2001-2003 Ice Concentration')
+
+    ## Make the CERES figure
+    #fig2 = plt.figure(figsize=(8,6))
+    #ax1 = plt.subplot()
+    #ax1 = ax.twinx()
+    # Plot the 2001 - 2003 data
+    axs[1].plot(flux_avgs[:,0],color='black')
+    axs[1].plot(flux_avgs[:,1],color='tab:blue')
+    axs[1].plot(flux_avgs[:,2],color='tab:green')
+    axs[1].plot(flux_avgs[:,3],color='tab:orange')
+    #ax1.set_xticks(np.arange(num_months))
+    #ax1.set_xticklabels(months)
+    #ax1.tick_params(axis='y',colors='tab:red')
+    axs[1].grid()
+    axs[1].set_ylabel(ceres_dict['parm_name'] + ' '+ceres_dict['parm_unit'])
+    #ax1.set_title('Ice Concentration and Clear-Sky Net Flux Behavior')
+
+    ## Shrink the current axis's height by 10% to make room for the legend
+    box0 = axs[0].get_position()
+    axs[0].set_position([box0.x0, box0.y0,box0.width * 0.8, box0.height])
+    box1 = axs[1].get_position()
+    axs[1].set_position([box1.x0, box1.y0,box1.width * 0.8, box1.height])
+
+    # Make the legend
+    custom_lines = [Line2D([0],[0],color='black'),\
+                    Line2D([0],[0],color='tab:blue'),\
+                    Line2D([0],[0],color='tab:green'),\
+                    Line2D([0],[0],color='tab:orange')]
+    axs[1].legend(custom_lines,[str(int(lower_vals[0]))+' - '+str(int(upper_vals[0]))+'%',\
+                                str(int(lower_vals[1]))+' - '+str(int(upper_vals[1]))+'%',\
+                                str(int(lower_vals[2]))+' - '+str(int(upper_vals[2]))+'%',\
+                                str(int(lower_vals[3]))+' - '+str(int(upper_vals[3]))+'%'],\
+              loc = 'upper center',bbox_to_anchor=(1.15,1.5),\
+              fancybox=True,shadow=True)
+
+    #ax1.legend(loc = 'upper center',bbox_to_anchor=(0.5,-0.10),\
+    #          fancybox=True,shadow=True,ncol=4)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    # Generate the scatter plot figure
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    fig2 = plt.figure()
+    plt.scatter(ice_avgs[:,0],flux_avgs[:,0],s=6,color='black',label='95 - 100')
+    plt.scatter(ice_avgs[:,1],flux_avgs[:,1],s=6,color='tab:blue',label='90 - 95')
+    plt.scatter(ice_avgs[:,2],flux_avgs[:,2],s=6,color='tab:green',label='85 - 90')
+    plt.scatter(ice_avgs[:,3],flux_avgs[:,3],s=6,color='tab:orange',label='80 - 85')
+    plt.xlabel(deseason_adder + ' Ice Concentration [%]')
+    plt.ylabel(' '.join([deseason_adder,ceres_dict['parm_name'],ceres_dict['parm_unit']]))
+
+    plt.show()
+  
 ####def write_toNCDF(ice_data,CERES_lw_clr_dict,CERES_sw_clr_dict,CERES_net_clr_dict,\
 ####                  CERES_lw_all_dict,CERES_sw_all_dict,CERES_net_all_dict):
 ####    #lat_ranges = np.arange(minlat,90,1.0)
