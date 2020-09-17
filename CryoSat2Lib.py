@@ -20,7 +20,7 @@ import cartopy
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 #import glob
-from datetime import datetime
+from datetime import datetime,timedelta
 import subprocess
 from scipy import stats
 
@@ -32,14 +32,14 @@ datacrs = ccrs.PlateCarree()
 min_dict = {
     'ice_thick': 0.0,
     'ice_con': 1.,
-    'thick_trends': -5.,
+    'thick_trends': -1.,
     'con_trends': -50.
 }
 
 max_dict = {
     'ice_thick': 5.0,
     'ice_con': 100.,
-    'thick_trends': 5.,
+    'thick_trends': 1.,
     'con_trends': 50.
 }
 
@@ -131,7 +131,7 @@ def trend_calc(cryo_data,x_ind,y_ind,variable,thielsen=False):
 
 # Start_date and end_date must be formatted as 
 # "YYYYMMDD"
-def read_cryo(season,start_date,end_date,pre2001=False):
+def read_cryo(season,start_date,end_date,monthly=True,pre2001=False):
     spring=False
     summer=False
     autumn=False
@@ -160,9 +160,16 @@ def read_cryo(season,start_date,end_date,pre2001=False):
         file_adder = ''
         ls_check=[1,2,3,4,5,6,\
                   7,8,9,10,11,12]
-   
-    sdate = datetime.strptime(start_date,'%Y%m%d')
-    edate = datetime.strptime(end_date,'%Y%m%d')
+  
+    if(monthly == True):
+        dformat = '%Y%m' 
+        end_string_idx = -5
+    else:
+        dformat = '%Y%m%d' 
+        end_string_idx = -3
+    # Set up starting and ending datetime objects
+    sdate = datetime.strptime(start_date,dformat)
+    edate = datetime.strptime(end_date,dformat)
  
     
     # Grab all the cryo files
@@ -191,8 +198,14 @@ def read_cryo(season,start_date,end_date,pre2001=False):
         
     for fname in file_initial:
         fdate = datetime.strptime(fname[-11:-3],'%Y%m%d')
-        if((fdate <= sdate) & (fdate >= edate) & (fdate.month in ls_check)):
-            file_names.append(fname)
+        if((fdate >= sdate) & (fdate <= edate) & (fdate.month in ls_check)):
+            if(monthly == True):
+                # Check if the file is at the end of the month
+                if((fdate + timedelta(days=1)).month != fdate.month):
+                    # If it is, insert this file into the list
+                    file_names.append(fname)
+            else:
+                file_names.append(fname)
     
     # Read in the latitude, longitude, and area data
     ##latfileo = open('/home/bsorenson/Research/Ice_analysis/psn25lats_v3.dat','r')
@@ -217,6 +230,7 @@ def read_cryo(season,start_date,end_date,pre2001=False):
     cryo_data['con_trends'] = np.full((448,304),-9.)
     #cryo_data['land_trends'] = np.full((448,304),-9.)
     cryo_data['titles'] = []
+    cryo_data['dates']  = []
     cryo_data['season_adder'] = season_adder
     cryo_data['file_adder'] = file_adder
     
@@ -238,6 +252,7 @@ def read_cryo(season,start_date,end_date,pre2001=False):
             cryo_data['lat'] = in_data['lat'][:,:]
             cryo_data['lon'] = in_data['lon'][:,:]
         cryo_data['titles'].append(fname)
+        cryo_data['dates'].append(fname[-11:end_string_idx])
     #    total_data[:,:,count] = data[:,:]
         count+=1
 
@@ -364,12 +379,12 @@ def cryo_gridtrendCalc(cryo_data,area=True,thielSen=False):
 
 # grid_data_conc grids the 25x25 km gridded cryo concentration data into
 # a 1x1 degree lat/lon grid
-def grid_data_conc(cryo_dict):
+def grid_data_values(cryo_dict):
     lon_ranges  = np.arange(-180.,180.,1.0)
     lat_ranges  = np.arange(30.,90.,1.0)
-    grid_cryo_conc    = np.full((len(cryo_dict['data'][:,0,0]),len(lat_ranges),len(lon_ranges)),-99.)
-    grid_cryo_area    = np.zeros((len(lat_ranges),len(lon_ranges)))
-    grid_cryo_area_trend    = np.full((len(lat_ranges),len(lon_ranges)),-999.)
+    grid_con    = np.full((len(cryo_dict['ice_con'][:,0,0]),len(lat_ranges),len(lon_ranges)),-99.)
+    grid_thick  = np.full((len(cryo_dict['ice_thick'][:,0,0]),len(lat_ranges),len(lon_ranges)),-99.)
+    # HERE NOTE: 
     grid_cryo_conc_cc = np.full((len(cryo_dict['data'][:,0,0]),len(lat_ranges),len(lon_ranges)),-999.)
     print("Size of grid array: ",grid_cryo_conc.shape)
     for nt in range(len(cryo_dict['data'][:,0,0])):
@@ -415,7 +430,7 @@ def grid_data_conc(cryo_dict):
 # grid_data averages the 25x25 km trends into a 1x1 degree grid
 # The 'grid_cryo' paramter in the dictionary therefore contains
 # the gridded trends.
-def grid_data(cryo_dict):
+def grid_data_trends(cryo_dict):
     lon_ranges  = np.arange(-180.,180.,1.0)
     lat_ranges  = np.arange(30.,90.,1.0)
     grid_cryo    = np.full((len(lat_ranges),len(lon_ranges)),-999.)
@@ -513,7 +528,8 @@ def plot_trend(cryo_data,variable):
     mesh = ax.pcolormesh(cryo_data['lon'],cryo_data['lat'],mask_data,\
             transform = datacrs, cmap = colormap,vmin=min_dict[variable],\
             vmax=max_dict[variable])
-    #CS = ax.contour(longitude,latitude,smooth_thick,[0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0],transform = datacrs)
+    #CS = ax.contour(cryo_data['lon'],cryo_data['lat'],np.ma.masked_where(cryo_data['thick_trends'][:,:] == np.nan,cryo_data['thick_trends'][:,:]),\
+    #        np.linspace(-0.5,0.5,5),transform = datacrs)
     
     # Adjust and make it look good
     ax.add_feature(cfeature.LAND,zorder=100,edgecolor='darkgrey',facecolor='darkgrey')
