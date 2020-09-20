@@ -31,28 +31,36 @@ mapcrs = ccrs.NorthPolarStereo(central_longitude = 45.)
 datacrs = ccrs.PlateCarree()
 min_dict = {
     'ice_thick': 0.0,
+    'grid_thick': 0.0,
     'ice_con': 1.,
+    'grid_con': 1.,
     'thick_trends': -1.,
     'con_trends': -50.
 }
 
 max_dict = {
     'ice_thick': 5.0,
+    'grid_thick': 5.0,
     'ice_con': 100.,
+    'grid_con': 100.,
     'thick_trends': 1.,
     'con_trends': 50.
 }
 
 tick_dict = {
     'ice_thick': [1,2,3,4,5],
+    'grid_thick': [1,2,3,4,5],
     'ice_con': [1,20,40,60,80,100],
+    'grid_con': [1,20,40,60,80,100],
     'thick_trends': [-5,0,5],
     'con_trends': [-50,-25,0,25,50]
 }
 
 tick_label_dict = {
     'ice_thick': ['1','2','3','4','5'],
+    'grid_thick': ['1','2','3','4','5'],
     'ice_con': ['1','20','40','60','80','100'],
+    'grid_con': ['1','20','40','60','80','100'],
     'thick_trends': ['-5','0','5'],
     'con_trends': ['-50','-25','0','25','50']
 }
@@ -62,12 +70,19 @@ def plot_data(cryo_data,tind,variable):
     colormap = plt.cm.ocean
     mask_data = np.ma.masked_where(data < -999., data)
 
+    if(variable[:4] == 'grid'):
+        lat_vals = cryo_data['grid_lat']
+        lon_vals = cryo_data['grid_lon']
+    else:
+        lat_vals = cryo_data['lat']
+        lon_vals = cryo_data['lon']
+
     plt.close()
     ax = plt.axes(projection = mapcrs)
     ax.gridlines()
     ax.coastlines()
     ax.set_extent([-180,180,60,90])
-    mesh = ax.pcolormesh(cryo_data['lon'],cryo_data['lat'],mask_data,\
+    mesh = ax.pcolormesh(lon_vals,lat_vals,mask_data,\
             transform = datacrs, cmap = colormap,vmin=min_dict[variable],\
             vmax=max_dict[variable])
     #CS = ax.contour(longitude,latitude,smooth_thick,[0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0],transform = datacrs)
@@ -256,6 +271,9 @@ def read_cryo(season,start_date,end_date,monthly=True,pre2001=False):
     #    total_data[:,:,count] = data[:,:]
         count+=1
 
+    # Convert the longitude values from 0 - 360 to -180 - 180
+    cryo_data['lon'][cryo_data['lon'] > 179.9999] = \
+        cryo_data['lon'][cryo_data['lon'] > 179.9999] - 360.
     return cryo_data
 
 def write_Ice(cryo_data):
@@ -379,53 +397,66 @@ def cryo_gridtrendCalc(cryo_data,area=True,thielSen=False):
 
 # grid_data_conc grids the 25x25 km gridded cryo concentration data into
 # a 1x1 degree lat/lon grid
-def grid_data_values(cryo_dict):
+def grid_data_values(cryo_data):
     lon_ranges  = np.arange(-180.,180.,1.0)
     lat_ranges  = np.arange(30.,90.,1.0)
-    grid_con    = np.full((len(cryo_dict['ice_con'][:,0,0]),len(lat_ranges),len(lon_ranges)),-99.)
-    grid_thick  = np.full((len(cryo_dict['ice_thick'][:,0,0]),len(lat_ranges),len(lon_ranges)),-99.)
-    # HERE NOTE: 
-    grid_cryo_conc_cc = np.full((len(cryo_dict['data'][:,0,0]),len(lat_ranges),len(lon_ranges)),-999.)
-    print("Size of grid array: ",grid_cryo_conc.shape)
-    for nt in range(len(cryo_dict['data'][:,0,0])):
+    grid_con    = np.full((len(cryo_data['ice_con'][:,0,0]),len(lat_ranges),len(lon_ranges)),-99.)
+    grid_thick  = np.full((len(cryo_data['ice_thick'][:,0,0]),len(lat_ranges),len(lon_ranges)),-99.)
+    grid_con_cc = np.full((len(cryo_data['ice_con'][:,0,0]),len(lat_ranges),len(lon_ranges)),-999.)
+    grid_thick_cc = np.full((len(cryo_data['ice_thick'][:,0,0]),len(lat_ranges),len(lon_ranges)),-999.)
+    print("Size of grid array: ",grid_con.shape)
+    for nt in range(len(cryo_data['ice_con'][:,0,0])):
         print(nt)
         for xi in range(448):
             # Don't grid the data if any portion of the lat/lon box is over land.
             # Don't include land data
             for yj in range(304):
-                lat_index = np.where(np.floor(cryo_dict['lat'][xi,yj])>=lat_ranges)[-1][-1]
-                lon_index = np.where(np.floor(cryo_dict['lon'][xi,yj])>=lon_ranges)[-1][-1]
+                lat_index = np.where(np.floor(cryo_data['lat'][xi,yj])>=lat_ranges)[-1][-1]
+                lon_index = np.where(np.floor(cryo_data['lon'][xi,yj])>=lon_ranges)[-1][-1]
                 # Add the current pixel area into the correct grid box, no
                 # matter if the current box is missing or not.
                 #if((lat_index==20) & (lon_index==10)):
                 #    print("Current grid area = ",grid_cryo_area[lat_index,lon_index])
                 #if((lat_index==20) & (lon_index==10)):
                 #    print("    New grid area = ",grid_cryo_area[lat_index,lon_index])
-                if(cryo_dict['data'][nt,xi,yj] < 251):
-                    if(nt==0): grid_cryo_area[lat_index,lon_index] += cryo_dict['area'][xi,yj]
-                    if(grid_cryo_conc_cc[nt,lat_index,lon_index]==-999.):
-                        grid_cryo_conc[nt,lat_index,lon_index] = cryo_dict['data'][nt,xi,yj]
-                        grid_cryo_conc_cc[nt,lat_index,lon_index] = 1.
+                if(cryo_data['ice_con'][nt,xi,yj] != -9999.0):
+                    #if(nt==0): grid_cryo_area[lat_index,lon_index] += cryo_data['area'][xi,yj]
+                    if(grid_con_cc[nt,lat_index,lon_index]==-999.):
+                        grid_con[nt,lat_index,lon_index] = cryo_data['ice_con'][nt,xi,yj]
+                        grid_con_cc[nt,lat_index,lon_index] = 1.
                     else:
-                        grid_cryo_conc[nt,lat_index,lon_index] = ((grid_cryo_conc[nt,lat_index,lon_index]*grid_cryo_conc_cc[nt,lat_index,lon_index])+\
-                                                         cryo_dict['data'][nt,xi,yj])/(grid_cryo_conc_cc[nt,lat_index,lon_index]+1.)
-                        grid_cryo_conc_cc[nt,lat_index,lon_index]+=1
-                else:
-                    if(nt==0): grid_cryo_area[lat_index,lon_index] = np.nan
+                        grid_con[nt,lat_index,lon_index] = ((grid_con[nt,lat_index,\
+                            lon_index]*grid_con_cc[nt,lat_index,lon_index])+\
+                            cryo_data['ice_con'][nt,xi,yj])/(grid_con_cc[nt,lat_index,\
+                            lon_index]+1.)
+                        grid_con_cc[nt,lat_index,lon_index]+=1
+                if(cryo_data['ice_thick'][nt,xi,yj] != -9999.0):
+                    #if(nt==0): grid_cryo_area[lat_index,lon_index] += cryo_data['area'][xi,yj]
+                    if(grid_thick_cc[nt,lat_index,lon_index]==-999.):
+                        grid_thick[nt,lat_index,lon_index] = cryo_data['ice_thick'][nt,xi,yj]
+                        grid_thick_cc[nt,lat_index,lon_index] = 1.
+                    else:
+                        grid_thick[nt,lat_index,lon_index] = ((grid_thick[nt,lat_index,\
+                            lon_index]*grid_thick_cc[nt,lat_index,lon_index])+\
+                            cryo_data['ice_thick'][nt,xi,yj])/(grid_thick_cc[nt,lat_index,\
+                            lon_index]+1.)
+                        grid_thick_cc[nt,lat_index,lon_index]+=1
+                #else:
+                #    if(nt==0): grid_cryo_area[lat_index,lon_index] = np.nan
 
                     # end else
                 # end if good cryo check
             # end y grid loop
         # end x grid loop
     # end time loop 
-    cryo_dict['grid_cryo_conc'] = grid_cryo_conc
-    cryo_dict['grid_cryo_conc_cc'] = grid_cryo_conc_cc
-    cryo_dict['grid_total_area'] = grid_cryo_area
-    cryo_dict['grid_cryo_area_trend'] = grid_cryo_area_trend
-    cryo_dict['grid_lat'] = lat_ranges
-    cryo_dict['grid_lon'] = lon_ranges
+    cryo_data['grid_con']   = grid_con
+    cryo_data['grid_thick'] = grid_thick
+    cryo_data['grid_con_cc'] = grid_con_cc
+    cryo_data['grid_thick_cc'] = grid_thick_cc
+    cryo_data['grid_lat'] = lat_ranges
+    cryo_data['grid_lon'] = lon_ranges
     
-    return cryo_dict
+    return cryo_data
 
 # grid_data averages the 25x25 km trends into a 1x1 degree grid
 # The 'grid_cryo' paramter in the dictionary therefore contains
@@ -455,12 +486,14 @@ def grid_data_trends(cryo_dict):
     return cryo_dict
 
 # plot_grid_data generates a plot of the /
-def plot_grid_data(cryo_dict,t_ind,pvar,adjusted=False,save=False):
+def plot_grid_data(cryo_data,t_ind,pvar,adjusted=False,save=False):
     lon_ranges  = np.arange(-180.,180.,1.0)
     lat_ranges  = np.arange(30.,90.,1.0)
 
-    if(pvar=='cryo'):
+    if(pvar=='grid_con'):
         plabel = "Percent Ice Concentration"
+    elif(pvar=='grid_thick'):
+        plabel = "Sea Ice Thickness"
 
     local_grid_cryo = np.copy(cryo_dict['grid_cryo_conc'][t_ind,:,:])
     local_grid_cryo_bad = np.copy(cryo_dict['grid_cryo_conc'][t_ind,:,:])
