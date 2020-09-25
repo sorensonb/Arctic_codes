@@ -12,9 +12,11 @@ import numpy as np
 import numpy.ma as ma
 import sys
 from netCDF4 import Dataset
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colors as cm
 from matplotlib.lines import Line2D
+from matplotlib.dates import DateFormatter
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import cartopy
 import cartopy.crs as ccrs
@@ -40,7 +42,7 @@ min_dict = {
 
 max_dict = {
     'ice_thick': 5.0,
-    'grid_thick': 5.0,
+    'grid_thick': 4.0,
     'ice_con': 100.,
     'grid_con': 100.,
     'thick_trends': 1.,
@@ -49,7 +51,7 @@ max_dict = {
 
 tick_dict = {
     'ice_thick': [1,2,3,4,5],
-    'grid_thick': [1,2,3,4,5],
+    'grid_thick': [1,2,3,4],
     'ice_con': [1,20,40,60,80,100],
     'grid_con': [1,20,40,60,80,100],
     'thick_trends': [-5,0,5],
@@ -58,91 +60,12 @@ tick_dict = {
 
 tick_label_dict = {
     'ice_thick': ['1','2','3','4','5'],
-    'grid_thick': ['1','2','3','4','5'],
+    'grid_thick': ['1','2','3','4'],
     'ice_con': ['1','20','40','60','80','100'],
     'grid_con': ['1','20','40','60','80','100'],
     'thick_trends': ['-5','0','5'],
     'con_trends': ['-50','-25','0','25','50']
 }
-
-def plot_data(cryo_data,tind,variable):
-    data = cryo_data[variable][tind,:,:]
-    colormap = plt.cm.ocean
-    mask_data = np.ma.masked_where(data < -999., data)
-
-    if(variable[:4] == 'grid'):
-        lat_vals = cryo_data['grid_lat']
-        lon_vals = cryo_data['grid_lon']
-    else:
-        lat_vals = cryo_data['lat']
-        lon_vals = cryo_data['lon']
-
-    plt.close()
-    ax = plt.axes(projection = mapcrs)
-    ax.gridlines()
-    ax.coastlines()
-    ax.set_extent([-180,180,60,90])
-    mesh = ax.pcolormesh(lon_vals,lat_vals,mask_data,\
-            transform = datacrs, cmap = colormap,vmin=min_dict[variable],\
-            vmax=max_dict[variable])
-    #CS = ax.contour(longitude,latitude,smooth_thick,[0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0],transform = datacrs)
-    
-    # Adjust and make it look good
-    ax.add_feature(cfeature.LAND,zorder=100,edgecolor='darkgrey',facecolor='darkgrey')
-    cbar = plt.colorbar(mesh,ticks = tick_dict[variable],orientation='horizontal',pad=0,aspect=50,label=variable)
-    cbar.ax.set_xticklabels(tick_label_dict[variable])
-    ax.set_xlim(-4170748.535086173,4167222.438879491)
-    ax.set_ylim(-2913488.8763307533,2943353.899053069)
-    ax.set_title(cryo_data['titles'][tind])
-    plt.show()
-
-def trend_calc(cryo_data,x_ind,y_ind,variable,thielsen=False):
-    temp_data = cryo_data[variable][:,x_ind,y_ind]
-    temp_data[temp_data < -999.] = np.nan
-    #temp_data = np.ma.masked_where(temp_data < -999., temp_data)
-    # Don't calculate trends if there are less than 2 valid values
-    if(np.count_nonzero(~np.isnan(temp_data)) < 2):
-        trend = pcnt_change = np.nan
-    else:
-        avg_cryo = np.nanmean(temp_data)
-        interpx = np.arange(len(temp_data))
-        #interpx = years
-        ##interper = np.poly1d(np.polyfit(interpx,temp_data,1)) 
-        ### Normalize trend by dividing by number of years
-        ##trend = (interper(interpx[-1])-interper(interpx[0]))
-
-        slope, intercept, r_value, p_value, std_err = stats.linregress(interpx,temp_data)
-        ##print(slope/len(test_dict[dictkey].keys())
-        regress_y = interpx*slope+intercept
-        trend = regress_y[-1] - regress_y[0]
-
-        if(thielsen==True):
-            #The slope
-            S=0
-            sm=0
-            nx = len(temp_data)
-            num_d=int(nx*(nx-1)/2)  # The number of elements in avgs
-            Sn=np.zeros(num_d)
-            for si in range(0,nx-1):
-                for sj in range(si+1,nx):
-                    # Find the slope between the two points
-                    Sn[sm] = (temp_data[si]-temp_data[sj])/(si-sj) 
-                    sm=sm+1
-                # Endfor
-            # Endfor
-            Snsorted=sorted(Sn)
-            sm=int(num_d/2.)
-            if(2*sm    == num_d):
-                tsslope=0.5*(Snsorted[sm]+Snsorted[sm+1])
-            if(2*sm+1 == num_d): 
-                tsslope=Snsorted[sm+1]
-            regress_ts = interpx*tsslope+intercept
-            trend = regress_ts[-1]-regress_ts[0]
-
-
-        pcnt_change = (trend/avg_cryo)*100.
-    # Find the percent change per decade
-    return trend,pcnt_change
 
 # Start_date and end_date must be formatted as 
 # "YYYYMMDD"
@@ -309,6 +232,59 @@ def write_Ice(cryo_data):
 
     print("Saved file",filename) 
     
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
+# Trend calculating functions
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def trend_calc(cryo_data,x_ind,y_ind,variable,thielsen=False):
+    temp_data = cryo_data[variable][:,x_ind,y_ind]
+    temp_data[temp_data < -999.] = np.nan
+    #temp_data = np.ma.masked_where(temp_data < -999., temp_data)
+    # Don't calculate trends if there are less than 2 valid values
+    if(np.count_nonzero(~np.isnan(temp_data)) < 2):
+        trend = pcnt_change = np.nan
+    else:
+        avg_cryo = np.nanmean(temp_data)
+        interpx = np.arange(len(temp_data))
+        #interpx = years
+        ##interper = np.poly1d(np.polyfit(interpx,temp_data,1)) 
+        ### Normalize trend by dividing by number of years
+        ##trend = (interper(interpx[-1])-interper(interpx[0]))
+
+        slope, intercept, r_value, p_value, std_err = stats.linregress(interpx,temp_data)
+        ##print(slope/len(test_dict[dictkey].keys())
+        regress_y = interpx*slope+intercept
+        trend = regress_y[-1] - regress_y[0]
+
+        if(thielsen==True):
+            #The slope
+            S=0
+            sm=0
+            nx = len(temp_data)
+            num_d=int(nx*(nx-1)/2)  # The number of elements in avgs
+            Sn=np.zeros(num_d)
+            for si in range(0,nx-1):
+                for sj in range(si+1,nx):
+                    # Find the slope between the two points
+                    Sn[sm] = (temp_data[si]-temp_data[sj])/(si-sj) 
+                    sm=sm+1
+                # Endfor
+            # Endfor
+            Snsorted=sorted(Sn)
+            sm=int(num_d/2.)
+            if(2*sm    == num_d):
+                tsslope=0.5*(Snsorted[sm]+Snsorted[sm+1])
+            if(2*sm+1 == num_d): 
+                tsslope=Snsorted[sm+1]
+            regress_ts = interpx*tsslope+intercept
+            trend = regress_ts[-1]-regress_ts[0]
+
+
+        pcnt_change = (trend/avg_cryo)*100.
+    # Find the percent change per decade
+    return trend,pcnt_change
 
 
 # cryo_trendCalc calculates the trends over the time period at each
@@ -394,6 +370,12 @@ def cryo_gridtrendCalc(cryo_data,area=True,thielSen=False):
         #print("min trend = ",min_trend)
 
     return cryo_data
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
+# Gridding functions
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 # grid_data_conc grids the 25x25 km gridded cryo concentration data into
 # a 1x1 degree lat/lon grid
@@ -484,6 +466,98 @@ def grid_data_trends(cryo_dict):
     cryo_dict['grid_lat'] = lat_ranges
     cryo_dict['grid_lon'] = lon_ranges
     return cryo_dict
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
+# Plotting functions
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def plot_cryo_data(cryo_data,tind,variable,save=False):
+    data = cryo_data[variable][tind,:,:]
+    colormap = plt.cm.ocean
+    mask_data = np.ma.masked_where(data < -999., data)
+
+    if(variable[:4] == 'grid'):
+        lat_vals = cryo_data['grid_lat']
+        lon_vals = cryo_data['grid_lon']
+    else:
+        lat_vals = cryo_data['lat']
+        lon_vals = cryo_data['lon']
+
+    # Make a datetime object from the structure date
+    # ----------------------------------------------
+    if(len(cryo_data['dates'][tind]) == 6):
+        str_fmt = '%Y%m'
+    elif(len(cryo_data['dates'][tind]) == 8):
+        str_fmt = '%Y%m%d'
+
+    base_dtm = datetime.strptime(cryo_data['dates'][tind],str_fmt)
+
+    plt.close()
+    ax = plt.axes(projection = mapcrs)
+    ax.gridlines()
+    ax.coastlines()
+    ax.set_extent([-180,180,60,90])
+    mesh = ax.pcolormesh(lon_vals,lat_vals,mask_data,\
+            transform = datacrs, cmap = colormap,vmin=min_dict[variable],\
+            vmax=max_dict[variable])
+    #CS = ax.contour(longitude,latitude,smooth_thick,[0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0],transform = datacrs)
+    
+    # Adjust and make it look good
+    ax.add_feature(cfeature.LAND,zorder=100,edgecolor='darkgrey',facecolor='darkgrey')
+    if(variable == 'ice_thick'):
+        xlabel = 'Derived Sea Ice Thickness [m]' 
+    elif(variable == 'ice_con'):
+        xlabel = 'Sea Ice Concentration [%]' 
+    cbar = plt.colorbar(mesh,ticks = tick_dict[variable],orientation='horizontal',pad=0,\
+        aspect=50,shrink = 0.905,label=xlabel)
+    cbar.ax.set_xticklabels(tick_label_dict[variable])
+    ax.set_xlim(-4170748.535086173,4167222.438879491)
+    ax.set_ylim(-2913488.8763307533,2943353.899053069)
+    ax.set_title(datetime.strftime(base_dtm,'%B %Y') + ' CryoSat-2 Data')
+
+    if(save == True):
+        outname = 'cryosat2_' + variable + '_' + datetime.strftime(base_dtm,'%Y%m%d') + '_spatial.png'
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
+# Plot a histogram of 25 x 25 km grid data
+def plot_cryo_hist(cryo_data,tind,variable,bins = 100,save = False):
+    data = cryo_data[variable][tind,:,:]
+    mask_data = np.ma.masked_where(data < -999., data)
+
+    # Make a datetime object from the structure date
+    # ----------------------------------------------
+    if(len(cryo_data['dates'][tind]) == 6):
+        str_fmt = '%Y%m'
+    elif(len(cryo_data['dates'][tind]) == 8):
+        str_fmt = '%Y%m%d'
+
+    base_dtm = datetime.strptime(cryo_data['dates'][tind],str_fmt)
+
+    # Set up the x axis label
+    # -----------------------
+    if(variable == 'ice_thick'):
+        xlabel = 'Derived Sea Ice Thickness [m]' 
+    elif(variable == 'ice_con'):
+        xlabel = 'Sea Ice Concentration [%]' 
+
+    plt.close()
+    plt.hist(mask_data.compressed(),bins=bins)
+    plt.title(cryo_data['dates'][tind] + ' '+variable)
+    plt.xlabel(xlabel)
+    plt.ylabel('Counts')
+    plt.title(datetime.strftime(base_dtm,'%B %Y') + ' CryoSat-2 Data')
+
+    if(save == True):
+        outname = 'cryosat2_' + variable + '_' + datetime.strftime(base_dtm,'%Y%m%d') + '_hist.png'
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
 
 # plot_grid_data generates a plot of the /
 def plot_grid_data(cryo_data,t_ind,pvar,adjusted=False,save=False):
@@ -684,153 +758,286 @@ def plot_grid_time_series(cryo_dict,lat_ind,lon_ind,thielsen=False):
     print("Saved image ",outname)   
     plt.show()
 
-# This code replicates Jianglong's figure showing how the April - September
-# cryo concentration values have changed over the time period
-# NOTE: To run, do something like
-# >>> all_cryo_data = read_cryo('all')
-# >>> all_cryo_data = grid_data_conc(all_cryo_data)
-# and then
-# >>> plot_apr_sep_changes(all_cryo_data)
-def plot_apr_sep_changes(cryo_dict):
-  
-    inseason = cryo_dict['season_adder'].strip()
- 
-    upper_vals = np.array([100,80,60,40])
-    lower_vals = np.array([80,60,40,20])
+# tind indicates the reference time to check concentrations and thicknesses before
+# plotting time series 
+def albedo_effect_test(cryo_data,ice_data,tind,start_thick,save=False):
+#def albedo_effect_test(cryo_data,tind,start_thick):
 
-    # Generate 3-year averages for 3 time periods:
-    # 2001-2003
-    # 2008-2011
-    # 2016-2018
-   
-    # For now, look at April - September 
-    if(inseason=='sunlight'):
-        num_months = 6
-        start_idx  = 0
+    # Find the time index in the NSIDC ice structure that matches
+    # with the time inedex in the CryoSat2 structure
+    ice_ind = 0
+    for xi in range(len(ice_data['titles'])):
+        if(ice_data['titles'][xi][7:13] == cryo_data['dates'][tind]):
+            ice_ind = xi
+
+    low_thick   = start_thick - 0.01
+    high_thick = start_thick + 0.01
+
+    # Identify regions with the thickness desired by 'start_thick'
+    test_con = ice_data['data'][ice_ind,:,:][(cryo_data['ice_thick'][tind,:,:] >= low_thick) & \
+                    (cryo_data['ice_thick'][tind,:,:] < high_thick)]
+    test_lats = ice_data['lat'][:,:][(cryo_data['ice_thick'][tind,:,:] >= low_thick) & \
+                    (cryo_data['ice_thick'][tind,:,:] < high_thick)]
+    ##test_con = cryo_data['ice_con'][tind,:,:][(cryo_data['ice_thick'][tind,:,:] >= low_thick) & \
+    ##                (cryo_data['ice_thick'][tind,:,:] < high_thick)]
+    ice_cons = np.zeros((12,test_con.size))
+
+    colors = plt.cm.plasma(np.linspace(0,1,test_con.size))
+
+    # Extract time series for the year (assuming October is the reference
+    # month, the next 7 indices
+    # -------------------------------------------------------------------
+    count = 0
+    for ti in range(ice_ind,ice_ind+12):
+    #for ti in range(tind,tind+12):
+        ice_cons[count,:] = ice_data['data'][ti,:,:][(cryo_data['ice_thick'][tind,:,:] >= low_thick) & \
+                    (cryo_data['ice_thick'][tind,:,:] < high_thick)] 
+        #ice_cons[count,:] = cryo_data['ice_con'][ti,:,:][(cryo_data['ice_thick'][tind,:,:] >= low_thick) & \
+        #            (cryo_data['ice_thick'][tind,:,:] < high_thick)] 
+        count+=1
+
+    # Go through and calculate the number of months to melt 50% of the
+    # beginning ice concentration. For each grid point, plot starting
+    # ice concentration on the x axis and the number of months to melt
+    # on the y axis
+    # ----------------------------------------------------------------
+
+    # Set up colorbar to color the lines by latitude
+    # ----------------------------------------------
+    norm = mpl.colors.Normalize(vmin = test_lats.min(), vmax = test_lats.max())
+    cmap = mpl.cm.ScalarMappable(norm = norm, cmap = mpl.cm.plasma)
+    cmap.set_array([])
+    c = np.arange(int(test_lats.min()),int(test_lats.max()))
+
+    # Set up a base datetime object for the x axis
+    base_dtm = datetime.strptime(cryo_data['dates'][tind],'%Y%m')
+    dates = [base_dtm + timedelta(days = int(xval * 31)) for xval in np.arange(12)]
+
+    # Plot the total time series data. Also, calculate
+    # the difference in ice concentration over the next four months
+    # -------------------------------------------------------------
+    diff = np.zeros(ice_cons.shape[1])
+    melt_months = np.zeros(ice_cons.shape[1])
+    melt_limit = 0  # when zero, means complete melting
+
+    fig, axs = plt.subplots(2,dpi=100)
+    fig.set_size_inches(9,5.5)
+    for xi in range(ice_cons.shape[1]):
+        # Plot the time series for the current grid box
+        axs[0].plot(dates,ice_cons[:,xi],c = cmap.to_rgba(test_lats[xi]))
+
+        # Calculate the difference
+        diff[xi] = ice_cons[0,xi] - ice_cons[4,xi] 
+
+        # Determine how long it takes 
+        try:
+            melt_months[xi] = np.argwhere(ice_cons[:,xi] <= melt_limit)[0][0]
+        except:
+            melt_months[xi] = -9 
+
+    axs[0].xaxis.set_major_formatter(DateFormatter('%b %Y'))    
+    
+    #fig.colorbar(cmap, ticks = c)
+    axs[0].set_ylabel('Ice concentration [%]')
+    axs[0].set_title(datetime.strftime(base_dtm,'%B %Y') + '\n' + str(start_thick) + ' m Thickness ')
+
+    # Plot the differences
+    # ---------------------
+    #fig2,ax2 = plt.subplots(dpi=100)
+    p_scat = axs[1].scatter(ice_cons[0,:][melt_months > -9],melt_months[melt_months > -9],cmap = mpl.cm.plasma,c = cmap.to_rgba(test_lats[melt_months > -9]))
+    axs[1].set_ylabel('Months needed to melt\n below ' + str(melt_limit) + '% ice concentration')
+    #axs[1].set_ylim(bottom = 0)
+    #p_scat = axs[1].scatter(ice_cons[0,:],diff[:],cmap = mpl.cm.plasma,s = 12,c = cmap.to_rgba(test_lats[:]))
+    #axs[1].set_ylabel('Ice concentration decrease \nfrom '+datetime.strftime(base_dtm,'%B') + \
+    #    ' to ' + datetime.strftime(base_dtm + timedelta(days = int(4 * 31)),'%B') + ' [%]')
+    cbar_ax = fig.add_axes([0.92,0.11,0.02,0.77])
+    fig.colorbar(cmap,cax = cbar_ax,ticks = c[::2],label = 'Latitude [$^{o}$]')
+    #fig2.colorbar(cmap, ticks = c)
+    axs[1].set_xlabel(datetime.strftime(base_dtm,'%B %Y') + ' Concentration')
+
+    if(save == True):
+        outname = 'cryosat2_melt_time_' + datetime.strftime(base_dtm,'%Y%m%d') + '.png'
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
     else:
-        num_months = 12
-        start_idx  = 4
-    # Dimensions of cryo_avgs are
-    # 0 - year blocks (size = 3, see above)
-    # 1 - months      (size = num_months)
-    # 2 - cryo values  (size = 4)
-    cryo_avgs = np.zeros((3,num_months,len(upper_vals)))
-    indices = [0,8,15]
-  
-    # Base the locations for each cryo concentration range on the average
-    # April concentration between 2001 and 2003
+        plt.show()
+    return
 
-    avg_Apr_old = \
-        np.average(cryo_dict['grid_cryo_conc'][start_idx::num_months,:,:][:3,:,:],axis=0)
- 
-    # Use the locations during the first April average to base everything
-    # on
-    locations_80_100 = np.where((avg_Apr_old <= 100.) & (avg_Apr_old > 80.)) 
-    locations_60_80  = np.where((avg_Apr_old <= 80.)  & (avg_Apr_old > 60.)) 
-    locations_40_60  = np.where((avg_Apr_old <= 60.)  & (avg_Apr_old > 40.)) 
-    locations_20_40  = np.where((avg_Apr_old <= 40.)  & (avg_Apr_old > 20.)) 
 
-    # Fill the cryo_avgs array with the data for each time period 
-    for ri in range(len(indices)):
-        for mi in range(num_months):
-            print("Year block = ",ri,"  Month = ",mi)
-            # Deal with 80 to 100
-            ##temp_arr = np.zeros((3,len(locations_80_100)))
-            ##temp_arr[0] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri]][locations_80_100]
-            ##temp_arr[1] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri] + 1][locations_80_100]
-            ##temp_arr[2] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri] + 2][locations_80_100]
-            #cryo_avgs[ri,mi,0] = np.average(temp_arr)
-            cryo_avgs[ri,mi,0] = \
-                np.average(np.average(cryo_dict['grid_cryo_conc'][mi::num_months,:,:]
-                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_80_100])
+    # Plot 
+    #mask_data = np.ma.masked_where(data < -999., data)
 
-            ### Deal with 60 to 80
-            ##temp_arr = np.zeros((3,len(locations_60_80)))
-            ##temp_arr[0] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri]][locations_60_80]
-            ##temp_arr[1] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri] + 1][locations_60_80]
-            ##temp_arr[2] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri] + 2][locations_60_80]
-            ##cryo_avgs[ri,mi,1] = np.average(temp_arr)
-            cryo_avgs[ri,mi,1] = \
-                np.average(np.average(cryo_dict['grid_cryo_conc'][mi::num_months,:,:]
-                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_60_80])
+    if(variable[:4] == 'grid'):
+        lat_vals = cryo_data['grid_lat']
+        lon_vals = cryo_data['grid_lon']
+    else:
+        lat_vals = cryo_data['lat']
+        lon_vals = cryo_data['lon']
 
-            # Deal with 40 to 60
-            ##temp_arr = np.zeros((3,len(locations_40_60)))
-            ##temp_arr[0] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri]][locations_40_60]
-            ##temp_arr[1] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri] + 1][locations_40_60]
-            ##temp_arr[2] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri] + 2][locations_40_60]
-            #cryo_avgs[ri,mi,2] = np.average(temp_arr)
-            cryo_avgs[ri,mi,2] = \
-                np.average(np.average(cryo_dict['grid_cryo_conc'][mi::num_months,:,:]
-                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_40_60])
-
-            # Deal with 40 to 60
-            ##temp_arr = np.zeros((3,len(locations_20_40)))
-            ##temp_arr[0] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri]][locations_20_40]
-            ##temp_arr[1] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri] + 1][locations_20_40]
-            ##temp_arr[2] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri] + 2][locations_20_40]
-            ##cryo_avgs[ri,mi,3] = np.average(temp_arr)
-            cryo_avgs[ri,mi,3] = \
-                np.average(np.average(cryo_dict['grid_cryo_conc'][mi::num_months,:,:]
-                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_20_40])
-
-            #cryo_avgs[ri,mi] = \
-                #np.average(cryo_dict['grid_cryo_conc'][0::num_months]
-                #    [indices[ri]:indices[ri] + 3],axis = 0)
-
-    # Generate the figure
     plt.close()
-    fig1 = plt.figure(figsize=(8,6))
-    ax = plt.subplot()
-    if(inseason=='sunlight'):
-        months = ['Apr','May','June','July','Aug','Sep']
-    else:
-        months = ['Dec','Jan','Feb','Mar','Apr','May',\
-                  'June','July','Aug','Sep','Oct','Nov']
-    # Plot the 2001 - 2003 data
-    ax.plot(cryo_avgs[0,:,0],color='black')
-    ax.plot(cryo_avgs[0,:,1],color='tab:blue')
-    ax.plot(cryo_avgs[0,:,2],color='tab:green')
-    ax.plot(cryo_avgs[0,:,3],color='tab:red')
-    # Plot the 2009 - 2011 data
-    ax.plot(cryo_avgs[1,:,0],'--',color='black')
-    ax.plot(cryo_avgs[1,:,1],'--',color='tab:blue')
-    ax.plot(cryo_avgs[1,:,2],'--',color='tab:green')
-    ax.plot(cryo_avgs[1,:,3],'--',color='tab:red')
-    # Plot the 2016 - 2018 data
-    ax.plot(cryo_avgs[2,:,0],linestyle='dotted',color='black')
-    ax.plot(cryo_avgs[2,:,1],linestyle='dotted',color='tab:blue')
-    ax.plot(cryo_avgs[2,:,2],linestyle='dotted',color='tab:green')
-    ax.plot(cryo_avgs[2,:,3],linestyle='dotted',color='tab:red')
-    ax.set_xticks(np.arange(num_months),months)
-    ax.set_ylabel('Ice Concentration [%]')
-
-    # Shrink the current axis's height by 10% to make room for the legend
-    box = ax.get_position()
-    ax.set_position([box.x0, box.y0 + box.height * 0.1,\
-                    box.width, box.height * 0.9])
-
-    # Make the legend
-    custom_lines = [Line2D([0],[0],color='black'),\
-                    Line2D([0],[0],color='black'),\
-                    Line2D([0],[0],color='tab:blue'),\
-                    Line2D([0],[0],linestyle='dashed',color='black'),\
-                    Line2D([0],[0],color='tab:green'),\
-                    Line2D([0],[0],linestyle='dotted',color='black'),\
-                    Line2D([0],[0],color='tab:red')]
-    ax.legend(custom_lines,['80 - 100%',\
-                             '2001 - 2003',\
-                             '60 - 80%',\
-                             '2009 - 2011',\
-                             '40 - 60%',\
-                             '2016 - 2018',\
-                             '20 - 40%'],\
-              loc = 'upper center',bbox_to_anchor=(0.5,-0.05),\
-              fancybox=True,shadow=True,ncol=4)
+    ax = plt.axes(projection = mapcrs)
+    ax.gridlines()
+    ax.coastlines()
+    ax.set_extent([-180,180,60,90])
+    mesh = ax.pcolormesh(lon_vals,lat_vals,mask_data,\
+            transform = datacrs, cmap = colormap,vmin=min_dict[variable],\
+            vmax=max_dict[variable])
+    #CS = ax.contour(longitude,latitude,smooth_thick,[0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0],transform = datacrs)
+    
+    # Adjust and make it look good
+    ax.add_feature(cfeature.LAND,zorder=100,edgecolor='darkgrey',facecolor='darkgrey')
+    cbar = plt.colorbar(mesh,ticks = tick_dict[variable],orientation='horizontal',pad=0,aspect=50,label=variable)
+    cbar.ax.set_xticklabels(tick_label_dict[variable])
+    ax.set_xlim(-4170748.535086173,4167222.438879491)
+    ax.set_ylim(-2913488.8763307533,2943353.899053069)
+    ax.set_title(cryo_data['titles'][tind])
     plt.show()
-    plt.close()
 
 
 
-
+##!## This code replicates Jianglong's figure showing how the April - September
+##!## cryo concentration values have changed over the time period
+##!## NOTE: To run, do something like
+##!## >>> all_cryo_data = read_cryo('all')
+##!## >>> all_cryo_data = grid_data_conc(all_cryo_data)
+##!## and then
+##!## >>> plot_apr_sep_changes(all_cryo_data)
+##!#def plot_apr_sep_changes(cryo_dict):
+##!#  
+##!#    inseason = cryo_dict['season_adder'].strip()
+##!# 
+##!#    upper_vals = np.array([100,80,60,40])
+##!#    lower_vals = np.array([80,60,40,20])
+##!#
+##!#    # Generate 3-year averages for 3 time periods:
+##!#    # 2001-2003
+##!#    # 2008-2011
+##!#    # 2016-2018
+##!#   
+##!#    # For now, look at April - September 
+##!#    if(inseason=='sunlight'):
+##!#        num_months = 6
+##!#        start_idx  = 0
+##!#    else:
+##!#        num_months = 12
+##!#        start_idx  = 4
+##!#    # Dimensions of cryo_avgs are
+##!#    # 0 - year blocks (size = 3, see above)
+##!#    # 1 - months      (size = num_months)
+##!#    # 2 - cryo values  (size = 4)
+##!#    cryo_avgs = np.zeros((3,num_months,len(upper_vals)))
+##!#    indices = [0,8,15]
+##!#  
+##!#    # Base the locations for each cryo concentration range on the average
+##!#    # April concentration between 2001 and 2003
+##!#
+##!#    avg_Apr_old = \
+##!#        np.average(cryo_dict['grid_cryo_conc'][start_idx::num_months,:,:][:3,:,:],axis=0)
+##!# 
+##!#    # Use the locations during the first April average to base everything
+##!#    # on
+##!#    locations_80_100 = np.where((avg_Apr_old <= 100.) & (avg_Apr_old > 80.)) 
+##!#    locations_60_80  = np.where((avg_Apr_old <= 80.)  & (avg_Apr_old > 60.)) 
+##!#    locations_40_60  = np.where((avg_Apr_old <= 60.)  & (avg_Apr_old > 40.)) 
+##!#    locations_20_40  = np.where((avg_Apr_old <= 40.)  & (avg_Apr_old > 20.)) 
+##!#
+##!#    # Fill the cryo_avgs array with the data for each time period 
+##!#    for ri in range(len(indices)):
+##!#        for mi in range(num_months):
+##!#            print("Year block = ",ri,"  Month = ",mi)
+##!#            # Deal with 80 to 100
+##!#            ##temp_arr = np.zeros((3,len(locations_80_100)))
+##!#            ##temp_arr[0] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri]][locations_80_100]
+##!#            ##temp_arr[1] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri] + 1][locations_80_100]
+##!#            ##temp_arr[2] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri] + 2][locations_80_100]
+##!#            #cryo_avgs[ri,mi,0] = np.average(temp_arr)
+##!#            cryo_avgs[ri,mi,0] = \
+##!#                np.average(np.average(cryo_dict['grid_cryo_conc'][mi::num_months,:,:]
+##!#                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_80_100])
+##!#
+##!#            ### Deal with 60 to 80
+##!#            ##temp_arr = np.zeros((3,len(locations_60_80)))
+##!#            ##temp_arr[0] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri]][locations_60_80]
+##!#            ##temp_arr[1] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri] + 1][locations_60_80]
+##!#            ##temp_arr[2] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri] + 2][locations_60_80]
+##!#            ##cryo_avgs[ri,mi,1] = np.average(temp_arr)
+##!#            cryo_avgs[ri,mi,1] = \
+##!#                np.average(np.average(cryo_dict['grid_cryo_conc'][mi::num_months,:,:]
+##!#                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_60_80])
+##!#
+##!#            # Deal with 40 to 60
+##!#            ##temp_arr = np.zeros((3,len(locations_40_60)))
+##!#            ##temp_arr[0] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri]][locations_40_60]
+##!#            ##temp_arr[1] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri] + 1][locations_40_60]
+##!#            ##temp_arr[2] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri] + 2][locations_40_60]
+##!#            #cryo_avgs[ri,mi,2] = np.average(temp_arr)
+##!#            cryo_avgs[ri,mi,2] = \
+##!#                np.average(np.average(cryo_dict['grid_cryo_conc'][mi::num_months,:,:]
+##!#                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_40_60])
+##!#
+##!#            # Deal with 40 to 60
+##!#            ##temp_arr = np.zeros((3,len(locations_20_40)))
+##!#            ##temp_arr[0] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri]][locations_20_40]
+##!#            ##temp_arr[1] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri] + 1][locations_20_40]
+##!#            ##temp_arr[2] = cryo_dict['grid_cryo_conc'][mi::num_months][indices[ri] + 2][locations_20_40]
+##!#            ##cryo_avgs[ri,mi,3] = np.average(temp_arr)
+##!#            cryo_avgs[ri,mi,3] = \
+##!#                np.average(np.average(cryo_dict['grid_cryo_conc'][mi::num_months,:,:]
+##!#                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_20_40])
+##!#
+##!#            #cryo_avgs[ri,mi] = \
+##!#                #np.average(cryo_dict['grid_cryo_conc'][0::num_months]
+##!#                #    [indices[ri]:indices[ri] + 3],axis = 0)
+##!#
+##!#    # Generate the figure
+##!#    plt.close()
+##!#    fig1 = plt.figure(figsize=(8,6))
+##!#    ax = plt.subplot()
+##!#    if(inseason=='sunlight'):
+##!#        months = ['Apr','May','June','July','Aug','Sep']
+##!#    else:
+##!#        months = ['Dec','Jan','Feb','Mar','Apr','May',\
+##!#                  'June','July','Aug','Sep','Oct','Nov']
+##!#    # Plot the 2001 - 2003 data
+##!#    ax.plot(cryo_avgs[0,:,0],color='black')
+##!#    ax.plot(cryo_avgs[0,:,1],color='tab:blue')
+##!#    ax.plot(cryo_avgs[0,:,2],color='tab:green')
+##!#    ax.plot(cryo_avgs[0,:,3],color='tab:red')
+##!#    # Plot the 2009 - 2011 data
+##!#    ax.plot(cryo_avgs[1,:,0],'--',color='black')
+##!#    ax.plot(cryo_avgs[1,:,1],'--',color='tab:blue')
+##!#    ax.plot(cryo_avgs[1,:,2],'--',color='tab:green')
+##!#    ax.plot(cryo_avgs[1,:,3],'--',color='tab:red')
+##!#    # Plot the 2016 - 2018 data
+##!#    ax.plot(cryo_avgs[2,:,0],linestyle='dotted',color='black')
+##!#    ax.plot(cryo_avgs[2,:,1],linestyle='dotted',color='tab:blue')
+##!#    ax.plot(cryo_avgs[2,:,2],linestyle='dotted',color='tab:green')
+##!#    ax.plot(cryo_avgs[2,:,3],linestyle='dotted',color='tab:red')
+##!#    ax.set_xticks(np.arange(num_months),months)
+##!#    ax.set_ylabel('Ice Concentration [%]')
+##!#
+##!#    # Shrink the current axis's height by 10% to make room for the legend
+##!#    box = ax.get_position()
+##!#    ax.set_position([box.x0, box.y0 + box.height * 0.1,\
+##!#                    box.width, box.height * 0.9])
+##!#
+##!#    # Make the legend
+##!#    custom_lines = [Line2D([0],[0],color='black'),\
+##!#                    Line2D([0],[0],color='black'),\
+##!#                    Line2D([0],[0],color='tab:blue'),\
+##!#                    Line2D([0],[0],linestyle='dashed',color='black'),\
+##!#                    Line2D([0],[0],color='tab:green'),\
+##!#                    Line2D([0],[0],linestyle='dotted',color='black'),\
+##!#                    Line2D([0],[0],color='tab:red')]
+##!#    ax.legend(custom_lines,['80 - 100%',\
+##!#                             '2001 - 2003',\
+##!#                             '60 - 80%',\
+##!#                             '2009 - 2011',\
+##!#                             '40 - 60%',\
+##!#                             '2016 - 2018',\
+##!#                             '20 - 40%'],\
+##!#              loc = 'upper center',bbox_to_anchor=(0.5,-0.05),\
+##!#              fancybox=True,shadow=True,ncol=4)
+##!#    plt.show()
+##!#    plt.close()
 

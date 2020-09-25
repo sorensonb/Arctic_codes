@@ -21,7 +21,7 @@ import glob
 import subprocess
 from scipy import stats
 
-def plot_data(ice_dict,index):
+def plot_ice_data(ice_dict,index):
     data = ice_dict['data'][index,:,:]
     plt.pcolormesh(data.T)
     plt.gca().invert_xaxis()
