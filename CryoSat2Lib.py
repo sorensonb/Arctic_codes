@@ -25,6 +25,7 @@ import cartopy.feature as cfeature
 from datetime import datetime,timedelta
 import subprocess
 from scipy import stats
+from astropy.modeling import models,fitting
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 # Set up global variables
@@ -545,12 +546,33 @@ def plot_cryo_hist(cryo_data,tind,variable,bins = 100,save = False):
     elif(variable == 'ice_con'):
         xlabel = 'Sea Ice Concentration [%]' 
 
+    bin_heights,bin_borders = np.histogram(mask_data.compressed(),bins=bins)
+    bin_widths = np.diff(bin_borders)
+    bin_centers = bin_borders[:-1] + bin_widths / 2
+
+    t_init = models.Gaussian1D()
+    fit_t = fitting.LevMarLSQFitter()
+    t = fit_t(t_init, bin_centers, bin_heights)
+
+    print('Amplitude: ',np.round(t.amplitude.value,3))
+    print('Mean:      ',np.round(t.mean.value,3))
+    print('StDev:     ',np.round(t.stddev.value,3))
+
+    x_interval_for_fit = np.linspace(bin_centers[0],bin_centers[-1],100)
     plt.close()
-    plt.hist(mask_data.compressed(),bins=bins)
-    plt.title(cryo_data['dates'][tind] + ' '+variable)
+    plt.figure()
+    plt.bar(bin_centers,bin_heights,width=bin_widths,label='histogram')
+    plt.plot(x_interval_for_fit,t(x_interval_for_fit),label='fit',c='tab:red')
     plt.xlabel(xlabel)
     plt.ylabel('Counts')
     plt.title(datetime.strftime(base_dtm,'%B %Y') + ' CryoSat-2 Data')
+    plt.legend()
+    #plt.close()
+    #plt.hist(mask_data.compressed(),bins=bins)
+    #plt.title(cryo_data['dates'][tind] + ' '+variable)
+    #plt.xlabel(xlabel)
+    #plt.ylabel('Counts')
+    #plt.title(datetime.strftime(base_dtm,'%B %Y') + ' CryoSat-2 Data')
 
     if(save == True):
         outname = 'cryosat2_' + variable + '_' + datetime.strftime(base_dtm,'%Y%m%d') + '_hist.png'
