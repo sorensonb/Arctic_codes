@@ -1,6 +1,6 @@
 """
   NAME:
-    CryoSat2Lib.py
+    PIOMASLib.py
 
   PURPOSE:
     House all the functions used for reading and working with the cryo data
@@ -70,7 +70,7 @@ tick_label_dict = {
 
 # Start_date and end_date must be formatted as 
 # "YYYYMMDD"
-def read_cryo(season,start_date,end_date,monthly=True,pre2001=False):
+def read_PIOMAS(season,start_date,end_date,monthly=True,pre2001=False):
     spring=False
     summer=False
     autumn=False
@@ -115,7 +115,7 @@ def read_cryo(season,start_date,end_date,monthly=True,pre2001=False):
     #file_names = glob.glob(data_loc+'*.bin')
     # Using this syntax, ignores 2000
     #cmnd = "ls /data/NSIDC/nt_*.bin"
-    cmnd = "ls /home/bsorenson/data/CryoSat2/RDEFT4_*.nc"
+    cmnd = "ls /home/bsorenson/data/PIOMAS/RDEFT4_*.nc"
     #status,output = commands.getstatusoutput(cmnd)
     #file_initial = output.strip().split('\n')
     #
@@ -159,19 +159,19 @@ def read_cryo(season,start_date,end_date,monthly=True,pre2001=False):
     #lons = np.reshape(np.fromfile(lonfileo,dtype=np.uint32)/100000.,(448,304))
     
     num_files = len(file_names)
-    cryo_data = {}
-    cryo_data['ice_thick'] = np.full((num_files,448,304),-9.)
-    cryo_data['ice_con']   = np.full((num_files,448,304),-9.)
-    cryo_data['lat']  = np.full((448,304),-9.)
-    cryo_data['lon']  = np.full((448,304),-9.)
-    cryo_data['area']  = areas
-    cryo_data['thick_trends'] = np.full((448,304),-9.)
-    cryo_data['con_trends'] = np.full((448,304),-9.)
-    #cryo_data['land_trends'] = np.full((448,304),-9.)
-    cryo_data['titles'] = []
-    cryo_data['dates']  = []
-    cryo_data['season_adder'] = season_adder
-    cryo_data['file_adder'] = file_adder
+    piomas_data = {}
+    piomas_data['ice_thick'] = np.full((num_files,448,304),-9.)
+    piomas_data['ice_con']   = np.full((num_files,448,304),-9.)
+    piomas_data['lat']  = np.full((448,304),-9.)
+    piomas_data['lon']  = np.full((448,304),-9.)
+    piomas_data['area']  = areas
+    piomas_data['thick_trends'] = np.full((448,304),-9.)
+    piomas_data['con_trends'] = np.full((448,304),-9.)
+    #piomas_data['land_trends'] = np.full((448,304),-9.)
+    piomas_data['titles'] = []
+    piomas_data['dates']  = []
+    piomas_data['season_adder'] = season_adder
+    piomas_data['file_adder'] = file_adder
     
     count = 0
     for fname in file_names:
@@ -185,51 +185,51 @@ def read_cryo(season,start_date,end_date,monthly=True,pre2001=False):
         ##data[np.where(data<251)]=  \
         ##    (data[np.where(data<251)]/scaling_factor)*100.
     
-        cryo_data['ice_thick'][count,:,:] = in_data['sea_ice_thickness'][:,:]
-        cryo_data['ice_con'][count,:,:]   = in_data['ice_con'][:,:]
+        piomas_data['ice_thick'][count,:,:] = in_data['sea_ice_thickness'][:,:]
+        piomas_data['ice_con'][count,:,:]   = in_data['ice_con'][:,:]
         if(count == 0):
-            cryo_data['lat'] = in_data['lat'][:,:]
-            cryo_data['lon'] = in_data['lon'][:,:]
-        cryo_data['titles'].append(fname)
-        cryo_data['dates'].append(fname[-11:end_string_idx])
+            piomas_data['lat'] = in_data['lat'][:,:]
+            piomas_data['lon'] = in_data['lon'][:,:]
+        piomas_data['titles'].append(fname)
+        piomas_data['dates'].append(fname[-11:end_string_idx])
     #    total_data[:,:,count] = data[:,:]
         count+=1
 
     # Convert the longitude values from 0 - 360 to -180 - 180
-    cryo_data['lon'][cryo_data['lon'] > 179.9999] = \
-        cryo_data['lon'][cryo_data['lon'] > 179.9999] - 360.
-    return cryo_data
+    piomas_data['lon'][piomas_data['lon'] > 179.9999] = \
+        piomas_data['lon'][piomas_data['lon'] > 179.9999] - 360.
+    return piomas_data
 
-def write_Ice(cryo_data):
+def write_Ice(piomas_data):
     print("yay")
 
     # Print of a file for each month
-    num_months = int(len(cryo_data['titles']))
+    num_months = int(len(piomas_data['titles']))
 
     # Set up the format string for printing off the data
     # format_list includes the formats for all the yearly average concentrations
     # Separate each by a space
-    formats = '\t'.join(['{:6.4}' for item in cryo_data['titles']])
+    formats = '\t'.join(['{:6.4}' for item in piomas_data['titles']])
     # Combine the formats string with the other format string
     total_cryo_format = '\t'.join(['{:.3}\t{:6.4}',formats,'\n'])
 
     # Set up the header line format string
     # Extract the individual years from the titles parameter
-    string_dates = [tstring.strip()[3:9] for tstring in cryo_data['titles']]
-    header_formats = '\t'.join(['{:6}' for item in cryo_data['titles']])
+    string_dates = [tstring.strip()[3:9] for tstring in piomas_data['titles']]
+    header_formats = '\t'.join(['{:6}' for item in piomas_data['titles']])
     total_header_format = '\t'.join(['{:6}\t{:6}',header_formats,'\n'])   
    
     filename = "nsidc_grid_cryo_values.txt"
     #for ti in range(num_months):
-    #    str_date = cryo_data['titles'][ti].strip()[3:9]
+    #    str_date = piomas_data['titles'][ti].strip()[3:9]
     #    filename = "nsidc_grid_cryo_"+str_date+'.txt'
     with open(filename,'w') as fout:
         fout.write(total_header_format.format('Lat','Lon',*string_dates))
-        for xi in range(len(cryo_data['grid_lat'])):
-            print("Printing latitude ",cryo_data['grid_lat'][xi])
-            for yj in range(len(cryo_data['grid_lon'])):
-                fout.write(total_cryo_format.format(cryo_data['grid_lat'][xi],\
-                        cryo_data['grid_lon'][yj],*cryo_data['grid_cryo_conc'][:,xi,yj]))
+        for xi in range(len(piomas_data['grid_lat'])):
+            print("Printing latitude ",piomas_data['grid_lat'][xi])
+            for yj in range(len(piomas_data['grid_lon'])):
+                fout.write(total_cryo_format.format(piomas_data['grid_lat'][xi],\
+                        piomas_data['grid_lon'][yj],*piomas_data['grid_cryo_conc'][:,xi,yj]))
 
     print("Saved file",filename) 
     
@@ -239,8 +239,8 @@ def write_Ice(cryo_data):
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-def trend_calc(cryo_data,x_ind,y_ind,variable,thielsen=False):
-    temp_data = cryo_data[variable][:,x_ind,y_ind]
+def trend_calc(piomas_data,x_ind,y_ind,variable,thielsen=False):
+    temp_data = piomas_data[variable][:,x_ind,y_ind]
     temp_data[temp_data < -999.] = np.nan
     #temp_data = np.ma.masked_where(temp_data < -999., temp_data)
     # Don't calculate trends if there are less than 2 valid values
@@ -290,22 +290,22 @@ def trend_calc(cryo_data,x_ind,y_ind,variable,thielsen=False):
 
 # cryo_trendCalc calculates the trends over the time period at each
 # grid point on the 25x25 km grid.
-def cryo_trendCalc(cryo_data,thielSen=False):
+def cryo_trendCalc(piomas_data,thielSen=False):
     # Loop over the data and calculate trends
     for i in range(448):
         print(i)
         max_trend = -99.
         min_trend = 99.
         for j in range(304):
-            cryo_data['thick_trends'][i,j],temp_pcnt = \
-                trend_calc(cryo_data,i,j,'ice_thick',thielsen=thielSen)
-            #cryo_data['thick_land_trends'][i,j],temp_pcnt = \
-            #    trend_calc(cryo_data,i,j,'ice_thick',thielsen=thielSen)
-            cryo_data['con_trends'][i,j],temp_pcnt = \
-                trend_calc(cryo_data,i,j,'ice_con',thielsen=thielSen)
-            #cryo_data['con_land_trends'][i,j],temp_pcnt = \
-            #    trend_calc(cryo_data,i,j,'ice_con',thielsen=thielSen)
-            ##temp_trend = cryo_data['trends'][i,j]
+            piomas_data['thick_trends'][i,j],temp_pcnt = \
+                trend_calc(piomas_data,i,j,'ice_thick',thielsen=thielSen)
+            #piomas_data['thick_land_trends'][i,j],temp_pcnt = \
+            #    trend_calc(piomas_data,i,j,'ice_thick',thielsen=thielSen)
+            piomas_data['con_trends'][i,j],temp_pcnt = \
+                trend_calc(piomas_data,i,j,'ice_con',thielsen=thielSen)
+            #piomas_data['con_land_trends'][i,j],temp_pcnt = \
+            #    trend_calc(piomas_data,i,j,'ice_con',thielsen=thielSen)
+            ##temp_trend = piomas_data['trends'][i,j]
             ##if(temp_trend>max_trend):
             ##    max_trend = temp_trend
             ##if(temp_trend<min_trend):
@@ -313,25 +313,25 @@ def cryo_trendCalc(cryo_data,thielSen=False):
         ##print("  max trend = ",max_trend)
         ##print("  min trend = ",min_trend)
         # Deal with land masks
-        #good_indices = np.where(cryo_data['data'][0,i,:]<251.)
-        #land_indices = np.where(cryo_data['data'][0,i,:]>=251.)
-        #cryo_data['trends'][i,land_indices] = np.nan
-        #cryo_data['land_trends'][i,good_indices] = np.nan
+        #good_indices = np.where(piomas_data['data'][0,i,:]<251.)
+        #land_indices = np.where(piomas_data['data'][0,i,:]>=251.)
+        #piomas_data['trends'][i,land_indices] = np.nan
+        #piomas_data['land_trends'][i,good_indices] = np.nan
 
-    return cryo_data
+    return piomas_data
 
 # Calculate trends on the 1x1 degree lat/lon grid
-def cryo_gridtrendCalc(cryo_data,area=True,thielSen=False):
+def cryo_gridtrendCalc(piomas_data,area=True,thielSen=False):
     if(area==True):
         print("\nCalculating area trends\n")
     else:
         print("\nCalculating % concentration trends\n")
-    cryo_data['month_fix'] = '_monthfix'
+    piomas_data['month_fix'] = '_monthfix'
 
     #lat_ranges = np.arange(minlat,90.5,1.0)
     #lon_ranges = np.arange(0.5,360.5,1.0)
-    lat_ranges = cryo_data['grid_lat']
-    lon_ranges = cryo_data['grid_lon']
+    lat_ranges = piomas_data['grid_lat']
+    lon_ranges = piomas_data['grid_lon']
     ## Create array to hold monthly averages over region
     #initial_avgs = np.full(len(CERES_dict['dates']),-9999.)
     #initial_years  = np.zeros(len(initial_avgs))
@@ -344,10 +344,10 @@ def cryo_gridtrendCalc(cryo_data,area=True,thielSen=False):
         for yj in range(len(lon_ranges)):
             # Calculate the trend at the current box
             if(area==True):
-                interp_data = (cryo_data['grid_cryo_conc'][:,xi,yj]/100.)*cryo_data['grid_total_area'][xi,yj]
+                interp_data = (piomas_data['grid_cryo_conc'][:,xi,yj]/100.)*piomas_data['grid_total_area'][xi,yj]
                 good_indices = np.where(np.isnan(interp_data)==False)
             else:
-                interp_data = cryo_data['grid_cryo_conc'][:,xi,yj]
+                interp_data = piomas_data['grid_cryo_conc'][:,xi,yj]
                 good_indices = np.where(interp_data!=-99.)
             if(len(good_indices[0])==0):
                 total_trend = -9999.
@@ -365,12 +365,12 @@ def cryo_gridtrendCalc(cryo_data,area=True,thielSen=False):
                 if(total_trend<min_trend):
                     min_trend = total_trend
             if(area==True):
-                cryo_data['grid_cryo_area_trend'][xi,yj] = total_trend
+                piomas_data['grid_cryo_area_trend'][xi,yj] = total_trend
         print(xi)
         #print("max trend = ",max_trend)
         #print("min trend = ",min_trend)
 
-    return cryo_data
+    return piomas_data
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
@@ -380,48 +380,48 @@ def cryo_gridtrendCalc(cryo_data,area=True,thielSen=False):
 
 # grid_data_conc grids the 25x25 km gridded cryo concentration data into
 # a 1x1 degree lat/lon grid
-def grid_data_values(cryo_data):
+def grid_data_values(piomas_data):
     lon_ranges  = np.arange(-180.,180.,1.0)
     lat_ranges  = np.arange(30.,90.,1.0)
-    grid_con    = np.full((len(cryo_data['ice_con'][:,0,0]),len(lat_ranges),len(lon_ranges)),-99.)
-    grid_thick  = np.full((len(cryo_data['ice_thick'][:,0,0]),len(lat_ranges),len(lon_ranges)),-99.)
-    grid_con_cc = np.full((len(cryo_data['ice_con'][:,0,0]),len(lat_ranges),len(lon_ranges)),-999.)
-    grid_thick_cc = np.full((len(cryo_data['ice_thick'][:,0,0]),len(lat_ranges),len(lon_ranges)),-999.)
+    grid_con    = np.full((len(piomas_data['ice_con'][:,0,0]),len(lat_ranges),len(lon_ranges)),-99.)
+    grid_thick  = np.full((len(piomas_data['ice_thick'][:,0,0]),len(lat_ranges),len(lon_ranges)),-99.)
+    grid_con_cc = np.full((len(piomas_data['ice_con'][:,0,0]),len(lat_ranges),len(lon_ranges)),-999.)
+    grid_thick_cc = np.full((len(piomas_data['ice_thick'][:,0,0]),len(lat_ranges),len(lon_ranges)),-999.)
     print("Size of grid array: ",grid_con.shape)
-    for nt in range(len(cryo_data['ice_con'][:,0,0])):
+    for nt in range(len(piomas_data['ice_con'][:,0,0])):
         print(nt)
         for xi in range(448):
             # Don't grid the data if any portion of the lat/lon box is over land.
             # Don't include land data
             for yj in range(304):
-                lat_index = np.where(np.floor(cryo_data['lat'][xi,yj])>=lat_ranges)[-1][-1]
-                lon_index = np.where(np.floor(cryo_data['lon'][xi,yj])>=lon_ranges)[-1][-1]
+                lat_index = np.where(np.floor(piomas_data['lat'][xi,yj])>=lat_ranges)[-1][-1]
+                lon_index = np.where(np.floor(piomas_data['lon'][xi,yj])>=lon_ranges)[-1][-1]
                 # Add the current pixel area into the correct grid box, no
                 # matter if the current box is missing or not.
                 #if((lat_index==20) & (lon_index==10)):
                 #    print("Current grid area = ",grid_cryo_area[lat_index,lon_index])
                 #if((lat_index==20) & (lon_index==10)):
                 #    print("    New grid area = ",grid_cryo_area[lat_index,lon_index])
-                if(cryo_data['ice_con'][nt,xi,yj] != -9999.0):
-                    #if(nt==0): grid_cryo_area[lat_index,lon_index] += cryo_data['area'][xi,yj]
+                if(piomas_data['ice_con'][nt,xi,yj] != -9999.0):
+                    #if(nt==0): grid_cryo_area[lat_index,lon_index] += piomas_data['area'][xi,yj]
                     if(grid_con_cc[nt,lat_index,lon_index]==-999.):
-                        grid_con[nt,lat_index,lon_index] = cryo_data['ice_con'][nt,xi,yj]
+                        grid_con[nt,lat_index,lon_index] = piomas_data['ice_con'][nt,xi,yj]
                         grid_con_cc[nt,lat_index,lon_index] = 1.
                     else:
                         grid_con[nt,lat_index,lon_index] = ((grid_con[nt,lat_index,\
                             lon_index]*grid_con_cc[nt,lat_index,lon_index])+\
-                            cryo_data['ice_con'][nt,xi,yj])/(grid_con_cc[nt,lat_index,\
+                            piomas_data['ice_con'][nt,xi,yj])/(grid_con_cc[nt,lat_index,\
                             lon_index]+1.)
                         grid_con_cc[nt,lat_index,lon_index]+=1
-                if(cryo_data['ice_thick'][nt,xi,yj] != -9999.0):
-                    #if(nt==0): grid_cryo_area[lat_index,lon_index] += cryo_data['area'][xi,yj]
+                if(piomas_data['ice_thick'][nt,xi,yj] != -9999.0):
+                    #if(nt==0): grid_cryo_area[lat_index,lon_index] += piomas_data['area'][xi,yj]
                     if(grid_thick_cc[nt,lat_index,lon_index]==-999.):
-                        grid_thick[nt,lat_index,lon_index] = cryo_data['ice_thick'][nt,xi,yj]
+                        grid_thick[nt,lat_index,lon_index] = piomas_data['ice_thick'][nt,xi,yj]
                         grid_thick_cc[nt,lat_index,lon_index] = 1.
                     else:
                         grid_thick[nt,lat_index,lon_index] = ((grid_thick[nt,lat_index,\
                             lon_index]*grid_thick_cc[nt,lat_index,lon_index])+\
-                            cryo_data['ice_thick'][nt,xi,yj])/(grid_thick_cc[nt,lat_index,\
+                            piomas_data['ice_thick'][nt,xi,yj])/(grid_thick_cc[nt,lat_index,\
                             lon_index]+1.)
                         grid_thick_cc[nt,lat_index,lon_index]+=1
                 #else:
@@ -432,14 +432,14 @@ def grid_data_values(cryo_data):
             # end y grid loop
         # end x grid loop
     # end time loop 
-    cryo_data['grid_con']   = grid_con
-    cryo_data['grid_thick'] = grid_thick
-    cryo_data['grid_con_cc'] = grid_con_cc
-    cryo_data['grid_thick_cc'] = grid_thick_cc
-    cryo_data['grid_lat'] = lat_ranges
-    cryo_data['grid_lon'] = lon_ranges
+    piomas_data['grid_con']   = grid_con
+    piomas_data['grid_thick'] = grid_thick
+    piomas_data['grid_con_cc'] = grid_con_cc
+    piomas_data['grid_thick_cc'] = grid_thick_cc
+    piomas_data['grid_lat'] = lat_ranges
+    piomas_data['grid_lon'] = lon_ranges
     
-    return cryo_data
+    return piomas_data
 
 # grid_data averages the 25x25 km trends into a 1x1 degree grid
 # The 'grid_cryo' paramter in the dictionary therefore contains
@@ -474,26 +474,26 @@ def grid_data_trends(cryo_dict):
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-def plot_cryo_data(cryo_data,tind,variable,save=False):
-    data = cryo_data[variable][tind,:,:]
+def plot_piomas_data(piomas_data,tind,variable,save=False):
+    data = piomas_data[variable][tind,:,:]
     colormap = plt.cm.ocean
     mask_data = np.ma.masked_where(data < -999., data)
 
     if(variable[:4] == 'grid'):
-        lat_vals = cryo_data['grid_lat']
-        lon_vals = cryo_data['grid_lon']
+        lat_vals = piomas_data['grid_lat']
+        lon_vals = piomas_data['grid_lon']
     else:
-        lat_vals = cryo_data['lat']
-        lon_vals = cryo_data['lon']
+        lat_vals = piomas_data['lat']
+        lon_vals = piomas_data['lon']
 
     # Make a datetime object from the structure date
     # ----------------------------------------------
-    if(len(cryo_data['dates'][tind]) == 6):
+    if(len(piomas_data['dates'][tind]) == 6):
         str_fmt = '%Y%m'
-    elif(len(cryo_data['dates'][tind]) == 8):
+    elif(len(piomas_data['dates'][tind]) == 8):
         str_fmt = '%Y%m%d'
 
-    base_dtm = datetime.strptime(cryo_data['dates'][tind],str_fmt)
+    base_dtm = datetime.strptime(piomas_data['dates'][tind],str_fmt)
 
     plt.close()
     ax = plt.axes(projection = mapcrs)
@@ -526,18 +526,18 @@ def plot_cryo_data(cryo_data,tind,variable,save=False):
         plt.show()
 
 # Plot a histogram of 25 x 25 km grid data
-def plot_cryo_hist(cryo_data,tind,variable,bins = 100,save = False):
-    data = cryo_data[variable][tind,:,:]
+def plot_cryo_hist(piomas_data,tind,variable,bins = 100,save = False):
+    data = piomas_data[variable][tind,:,:]
     mask_data = np.ma.masked_where(data < -999., data)
 
     # Make a datetime object from the structure date
     # ----------------------------------------------
-    if(len(cryo_data['dates'][tind]) == 6):
+    if(len(piomas_data['dates'][tind]) == 6):
         str_fmt = '%Y%m'
-    elif(len(cryo_data['dates'][tind]) == 8):
+    elif(len(piomas_data['dates'][tind]) == 8):
         str_fmt = '%Y%m%d'
 
-    base_dtm = datetime.strptime(cryo_data['dates'][tind],str_fmt)
+    base_dtm = datetime.strptime(piomas_data['dates'][tind],str_fmt)
 
     # Set up the x axis label
     # -----------------------
@@ -569,7 +569,7 @@ def plot_cryo_hist(cryo_data,tind,variable,bins = 100,save = False):
     plt.legend()
     #plt.close()
     #plt.hist(mask_data.compressed(),bins=bins)
-    #plt.title(cryo_data['dates'][tind] + ' '+variable)
+    #plt.title(piomas_data['dates'][tind] + ' '+variable)
     #plt.xlabel(xlabel)
     #plt.ylabel('Counts')
     #plt.title(datetime.strftime(base_dtm,'%B %Y') + ' CryoSat-2 Data')
@@ -582,7 +582,7 @@ def plot_cryo_hist(cryo_data,tind,variable,bins = 100,save = False):
         plt.show()
 
 # plot_grid_data generates a plot of the /
-def plot_grid_data(cryo_data,t_ind,pvar,adjusted=False,save=False):
+def plot_grid_data(piomas_data,t_ind,pvar,adjusted=False,save=False):
     lon_ranges  = np.arange(-180.,180.,1.0)
     lat_ranges  = np.arange(30.,90.,1.0)
 
@@ -644,8 +644,8 @@ def plot_grid_data(cryo_data,t_ind,pvar,adjusted=False,save=False):
         plt.show()
    
 # Plot the trends for the 25x25 km grid data 
-def plot_trend(cryo_data,variable):
-    data = cryo_data[variable][:,:]
+def plot_trend(piomas_data,variable):
+    data = piomas_data[variable][:,:]
     colormap = plt.cm.bwr
     mask_data = np.ma.masked_where(data == np.nan, data)
 
@@ -654,10 +654,10 @@ def plot_trend(cryo_data,variable):
     ax.gridlines()
     ax.coastlines()
     ax.set_extent([-180,180,60,90])
-    mesh = ax.pcolormesh(cryo_data['lon'],cryo_data['lat'],mask_data,\
+    mesh = ax.pcolormesh(piomas_data['lon'],piomas_data['lat'],mask_data,\
             transform = datacrs, cmap = colormap,vmin=min_dict[variable],\
             vmax=max_dict[variable])
-    #CS = ax.contour(cryo_data['lon'],cryo_data['lat'],np.ma.masked_where(cryo_data['thick_trends'][:,:] == np.nan,cryo_data['thick_trends'][:,:]),\
+    #CS = ax.contour(piomas_data['lon'],piomas_data['lat'],np.ma.masked_where(piomas_data['thick_trends'][:,:] == np.nan,piomas_data['thick_trends'][:,:]),\
     #        np.linspace(-0.5,0.5,5),transform = datacrs)
     
     # Adjust and make it look good
@@ -785,32 +785,32 @@ def plot_grid_time_series(cryo_dict,lat_ind,lon_ind,thielsen=False):
 # Syntax to run:
 # >>> import sys
 # >>> sys.path.append('/home/bsorenson/Research/Ice_analysis')
-# >>> from CryoSat2Lib import *
+# >>> from PIOMASLib import *
 # >>> from IceLib import *
 # >>> ice_data = read_ice('all')
-# >>> cryo_data = read_cryo('all','201011','201911')
-# >>> albedo_effect_test(cryo_data,ice_data,11,1.8)
+# >>> piomas_data = read_cryo('all','201011','201911')
+# >>> albedo_effect_test(piomas_data,ice_data,11,1.8)
 # This makes the figure "cryosat2_melt_time_20120301.png"
-def albedo_effect_test(cryo_data,ice_data,tind,start_thick,save=False):
-#def albedo_effect_test(cryo_data,tind,start_thick):
+def albedo_effect_test(piomas_data,ice_data,tind,start_thick,save=False):
+#def albedo_effect_test(piomas_data,tind,start_thick):
 
     # Find the time index in the NSIDC ice structure that matches
-    # with the time index in the CryoSat2 structure
+    # with the time index in the PIOMAS structure
     ice_ind = 0
     for xi in range(len(ice_data['titles'])):
-        if(ice_data['titles'][xi][7:13] == cryo_data['dates'][tind]):
+        if(ice_data['titles'][xi][7:13] == piomas_data['dates'][tind]):
             ice_ind = xi
 
     low_thick   = start_thick - 0.01
     high_thick = start_thick + 0.01
 
     # Identify regions with the thickness desired by 'start_thick'
-    test_con = ice_data['data'][ice_ind,:,:][(cryo_data['ice_thick'][tind,:,:] >= low_thick) & \
-                    (cryo_data['ice_thick'][tind,:,:] < high_thick)]
-    test_lats = ice_data['lat'][:,:][(cryo_data['ice_thick'][tind,:,:] >= low_thick) & \
-                    (cryo_data['ice_thick'][tind,:,:] < high_thick)]
-    ##test_con = cryo_data['ice_con'][tind,:,:][(cryo_data['ice_thick'][tind,:,:] >= low_thick) & \
-    ##                (cryo_data['ice_thick'][tind,:,:] < high_thick)]
+    test_con = ice_data['data'][ice_ind,:,:][(piomas_data['ice_thick'][tind,:,:] >= low_thick) & \
+                    (piomas_data['ice_thick'][tind,:,:] < high_thick)]
+    test_lats = ice_data['lat'][:,:][(piomas_data['ice_thick'][tind,:,:] >= low_thick) & \
+                    (piomas_data['ice_thick'][tind,:,:] < high_thick)]
+    ##test_con = piomas_data['ice_con'][tind,:,:][(piomas_data['ice_thick'][tind,:,:] >= low_thick) & \
+    ##                (piomas_data['ice_thick'][tind,:,:] < high_thick)]
     ice_cons = np.zeros((12,test_con.size))
 
     colors = plt.cm.plasma(np.linspace(0,1,test_con.size))
@@ -821,10 +821,10 @@ def albedo_effect_test(cryo_data,ice_data,tind,start_thick,save=False):
     count = 0
     for ti in range(ice_ind,ice_ind+12):
     #for ti in range(tind,tind+12):
-        ice_cons[count,:] = ice_data['data'][ti,:,:][(cryo_data['ice_thick'][tind,:,:] >= low_thick) & \
-                    (cryo_data['ice_thick'][tind,:,:] < high_thick)] 
-        #ice_cons[count,:] = cryo_data['ice_con'][ti,:,:][(cryo_data['ice_thick'][tind,:,:] >= low_thick) & \
-        #            (cryo_data['ice_thick'][tind,:,:] < high_thick)] 
+        ice_cons[count,:] = ice_data['data'][ti,:,:][(piomas_data['ice_thick'][tind,:,:] >= low_thick) & \
+                    (piomas_data['ice_thick'][tind,:,:] < high_thick)] 
+        #ice_cons[count,:] = piomas_data['ice_con'][ti,:,:][(piomas_data['ice_thick'][tind,:,:] >= low_thick) & \
+        #            (piomas_data['ice_thick'][tind,:,:] < high_thick)] 
         count+=1
 
     # Go through and calculate the number of months to melt 50% of the
@@ -841,7 +841,7 @@ def albedo_effect_test(cryo_data,ice_data,tind,start_thick,save=False):
     c = np.arange(int(test_lats.min()),int(test_lats.max()))
 
     # Set up a base datetime object for the x axis
-    base_dtm = datetime.strptime(cryo_data['dates'][tind],'%Y%m')
+    base_dtm = datetime.strptime(piomas_data['dates'][tind],'%Y%m')
     dates = [base_dtm + timedelta(days = int(xval * 31)) for xval in np.arange(12)]
 
     # Plot the total time series data. Also, calculate
@@ -899,11 +899,11 @@ def albedo_effect_test(cryo_data,ice_data,tind,start_thick,save=False):
     #mask_data = np.ma.masked_where(data < -999., data)
 
     if(variable[:4] == 'grid'):
-        lat_vals = cryo_data['grid_lat']
-        lon_vals = cryo_data['grid_lon']
+        lat_vals = piomas_data['grid_lat']
+        lon_vals = piomas_data['grid_lon']
     else:
-        lat_vals = cryo_data['lat']
-        lon_vals = cryo_data['lon']
+        lat_vals = piomas_data['lat']
+        lon_vals = piomas_data['lon']
 
     plt.close()
     ax = plt.axes(projection = mapcrs)
@@ -921,7 +921,7 @@ def albedo_effect_test(cryo_data,ice_data,tind,start_thick,save=False):
     cbar.ax.set_xticklabels(tick_label_dict[variable])
     ax.set_xlim(-4170748.535086173,4167222.438879491)
     ax.set_ylim(-2913488.8763307533,2943353.899053069)
-    ax.set_title(cryo_data['titles'][tind])
+    ax.set_title(piomas_data['titles'][tind])
     plt.show()
 
 
@@ -929,10 +929,10 @@ def albedo_effect_test(cryo_data,ice_data,tind,start_thick,save=False):
 ##!## This code replicates Jianglong's figure showing how the April - September
 ##!## cryo concentration values have changed over the time period
 ##!## NOTE: To run, do something like
-##!## >>> all_cryo_data = read_cryo('all')
-##!## >>> all_cryo_data = grid_data_conc(all_cryo_data)
+##!## >>> all_piomas_data = read_cryo('all')
+##!## >>> all_piomas_data = grid_data_conc(all_piomas_data)
 ##!## and then
-##!## >>> plot_apr_sep_changes(all_cryo_data)
+##!## >>> plot_apr_sep_changes(all_piomas_data)
 ##!#def plot_apr_sep_changes(cryo_dict):
 ##!#  
 ##!#    inseason = cryo_dict['season_adder'].strip()
