@@ -106,28 +106,11 @@ def read_PIOMAS(season,start_date,end_date,monthly=True,pre2001=False):
     else:
         dformat = '%Y%m%d' 
         end_string_idx = -3
-    # Set up starting and ending datetime objects
-    sdate = datetime.strptime(start_date,dformat)
-    edate = datetime.strptime(end_date,dformat)
- 
-    
-    # Grab all the cryo files
-    #file_names = glob.glob(data_loc+'*.bin')
-    # Using this syntax, ignores 2000
-    #cmnd = "ls /data/NSIDC/nt_*.bin"
-    cmnd = "ls /home/bsorenson/data/PIOMAS/RDEFT4_*.nc"
-    #status,output = commands.getstatusoutput(cmnd)
-    #file_initial = output.strip().split('\n')
-    #
-    #file_names = []
-    #for fname in file_initial:
-    #    if(fname[50:52] in ls_check):
-    #        file_names.append(fname)
-    
-    
-    file_initial = subprocess.check_output(cmnd,shell=True).decode('utf-8').strip().split('\n')
-    file_names = []
 
+    ##!## Set up starting and ending datetime objects
+    ##!#sdate = datetime.strptime(start_date,dformat)
+    ##!#edate = datetime.strptime(end_date,dformat)
+ 
     ##if(pre2001==True):
     ##    cmnd = "ls /home/bsorenson/data/NSIDC/pre_2001/nt_*.bin"
     ##    pre_file_initial = subprocess.check_output(cmnd,shell=True).decode('utf-8').strip().split('\n')
@@ -135,16 +118,16 @@ def read_PIOMAS(season,start_date,end_date,monthly=True,pre2001=False):
     ##        if(fname[-17:-14] in ls_check):
     ##            file_names.append(fname)
         
-    for fname in file_initial:
-        fdate = datetime.strptime(fname[-11:-3],'%Y%m%d')
-        if((fdate >= sdate) & (fdate <= edate) & (fdate.month in ls_check)):
-            if(monthly == True):
-                # Check if the file is at the end of the month
-                if((fdate + timedelta(days=1)).month != fdate.month):
-                    # If it is, insert this file into the list
-                    file_names.append(fname)
-            else:
-                file_names.append(fname)
+    ##!#for fname in file_initial:
+    ##!#    fdate = datetime.strptime(fname[-11:-3],'%Y%m%d')
+    ##!#    if((fdate >= sdate) & (fdate <= edate) & (fdate.month in ls_check)):
+    ##!#        if(monthly == True):
+    ##!#            # Check if the file is at the end of the month
+    ##!#            if((fdate + timedelta(days=1)).month != fdate.month):
+    ##!#                # If it is, insert this file into the list
+    ##!#                file_names.append(fname)
+    ##!#        else:
+    ##!#            file_names.append(fname)
     
     # Read in the latitude, longitude, and area data
     ##latfileo = open('/home/bsorenson/Research/Ice_analysis/psn25lats_v3.dat','r')
@@ -153,51 +136,55 @@ def read_PIOMAS(season,start_date,end_date,monthly=True,pre2001=False):
     ##tlons = np.fromfile(lonfileo,dtype=np.uint32)/100000.
     ##tlons[tlons>180.] = tlons[tlons>180.]-42949.67296
     ##lons = np.reshape(tlons,(448,304))
-    areafileo = open('/home/bsorenson/Research/Ice_analysis/psn25area_v3.dat','r')
-    areas = np.reshape(np.fromfile(areafileo,dtype=np.uint32)/1000.,(448,304))
+    ###areafileo = open('/home/bsorenson/Research/Ice_analysis/psn25area_v3.dat','r')
+    ###areas = np.reshape(np.fromfile(areafileo,dtype=np.uint32)/1000.,(448,304))
     
     #lons = np.reshape(np.fromfile(lonfileo,dtype=np.uint32)/100000.,(448,304))
-    
-    num_files = len(file_names)
+   
+    # If a monthly file, read all data with readlines
+    infile = "/home/bsorenson/Research/PIOMAS/PIOMAS.vol.monthly.2020.Current.v2.1.dat"
+    flines = open(infile,'r').readlines()
+ 
     piomas_data = {}
-    piomas_data['ice_thick'] = np.full((num_files,448,304),-9.)
-    piomas_data['ice_con']   = np.full((num_files,448,304),-9.)
-    piomas_data['lat']  = np.full((448,304),-9.)
-    piomas_data['lon']  = np.full((448,304),-9.)
-    piomas_data['area']  = areas
-    piomas_data['thick_trends'] = np.full((448,304),-9.)
-    piomas_data['con_trends'] = np.full((448,304),-9.)
+    ##!#piomas_data['ice_thick'] = np.full((num_files,448,304),-9.)
+    piomas_data['ice_vol']   = np.full((len(flines)*12),-9.)
+    ##!#piomas_data['lat']  = np.full((448,304),-9.)
+    ##!#piomas_data['lon']  = np.full((448,304),-9.)
+    ##!#piomas_data['area']  = areas
+    ##!#piomas_data['thick_trends'] = np.full((448,304),-9.)
+    ##!#piomas_data['con_trends'] = np.full((448,304),-9.)
     #piomas_data['land_trends'] = np.full((448,304),-9.)
-    piomas_data['titles'] = []
-    piomas_data['dates']  = []
+    #piomas_data['titles'] = []
+    piomas_data['dates']  = [''] * len(flines)*12
     piomas_data['season_adder'] = season_adder
     piomas_data['file_adder'] = file_adder
     
     count = 0
-    for fname in file_names:
-    
-        total_name = fname
-        #total_name = data_loc+fname
-        print(total_name)
-        in_data = Dataset(total_name,'r')
-        
-        # psg = polar stereographic grid
-        ##data[np.where(data<251)]=  \
-        ##    (data[np.where(data<251)]/scaling_factor)*100.
-    
-        piomas_data['ice_thick'][count,:,:] = in_data['sea_ice_thickness'][:,:]
-        piomas_data['ice_con'][count,:,:]   = in_data['ice_con'][:,:]
-        if(count == 0):
-            piomas_data['lat'] = in_data['lat'][:,:]
-            piomas_data['lon'] = in_data['lon'][:,:]
-        piomas_data['titles'].append(fname)
-        piomas_data['dates'].append(fname[-11:end_string_idx])
-    #    total_data[:,:,count] = data[:,:]
+    for fline in flines:
+        # Split monthly line into 13 elements: 
+        # YYYY Jan Feb Mar...
+        split_line = fline.strip().split()
+        print(split_line[0])
+        year = str(split_line[0])
+        # Insert dates into the structure
+        piomas_data['dates'][count*12:(count+1)*12] = [year + str(xi+1).zfill(2) \
+            for xi in range(12)]
+        # Insert volumes into the structure
+        piomas_data['ice_vol'][count*12:(count+1)*12] = np.float_(split_line[1:])
+
+        ##!#piomas_data['ice_thick'][count,:,:] = in_data['sea_ice_thickness'][:,:]
+        ##!#piomas_data['ice_con'][count,:,:]   = in_data['ice_con'][:,:]
+        ##!#if(count == 0):
+        ##!#    piomas_data['lat'] = in_data['lat'][:,:]
+        ##!#    piomas_data['lon'] = in_data['lon'][:,:]
+        ##!#piomas_data['titles'].append(fname)
+        ##!#piomas_data['dates'].append(fname[-11:end_string_idx])
+    #   ##!# total_data[:,:,count] = data[:,:]
         count+=1
 
-    # Convert the longitude values from 0 - 360 to -180 - 180
-    piomas_data['lon'][piomas_data['lon'] > 179.9999] = \
-        piomas_data['lon'][piomas_data['lon'] > 179.9999] - 360.
+    ##!## Convert the longitude values from 0 - 360 to -180 - 180
+    ##!#piomas_data['lon'][piomas_data['lon'] > 179.9999] = \
+    ##!#    piomas_data['lon'][piomas_data['lon'] > 179.9999] - 360.
     return piomas_data
 
 def write_Ice(piomas_data):
@@ -473,6 +460,24 @@ def grid_data_trends(cryo_dict):
 # Plotting functions
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def plot_piomas_netCDF(indata,tind):
+    colormap = plt.cm.ocean
+    # Pull year from file
+    year = indata.year.split()[-1]
+    plot_date = year + ' ' + str(tind+1).zfill(2)
+    plt.close()
+    ax = plt.axes(projection = mapcrs)
+    ax.gridlines()
+    ax.coastlines()
+    ax.set_extent([-180,180,60,90])
+    mesh = ax.pcolormesh(indata.variables['lon'][:,:],indata.variables['lat'][:,:],indata.variables['thickness'][tind,:,:],\
+        transform=datacrs,cmap=colormap)
+    ax.add_feature(cfeature.LAND,zorder=100,edgecolor='darkgrey',facecolor='darkgrey')
+    ax.set_xlim(-4170748.535086173,4167222.438879491)
+    ax.set_ylim(-2913488.8763307533,2943353.899053069)
+    plt.title(plot_date + ' PIOMAS Ice thickness')
+    plt.show()
 
 def plot_piomas_data(piomas_data,tind,variable,save=False):
     data = piomas_data[variable][tind,:,:]
