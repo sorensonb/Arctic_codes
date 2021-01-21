@@ -69,7 +69,7 @@ os.system(cmnd)
 # ---------------------------------------------------------------------------- 
 print("OMI")
 cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
-##!#print(cmnd)
+print(cmnd)
 ##!#os.system(cmnd)
 ##!#cmnd = "cp "+base_dir+"OMI/*.pro "+dest_dir
 ##!#print(cmnd)
