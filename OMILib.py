@@ -24,16 +24,20 @@ import numpy as np
 import sys
 from datetime import datetime
 import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
 from mpl_toolkits.basemap import Basemap
 from matplotlib.patches import Polygon
 import matplotlib.colors as color
-##import matplotlib.colors as colors
 from matplotlib.colors import rgb2hex,Normalize
 from matplotlib.cm import ScalarMappable
 from matplotlib.colorbar import ColorbarBase
 from scipy import stats
+from scipy.interpolate import interp2d
 from netCDF4 import Dataset
 import gzip
+import h5py
+import subprocess
+from dateutil.relativedelta import relativedelta
 
 # Class MidpointNormalize is used to center the colorbar on zero
 class MidpointNormalize(Normalize):
@@ -64,14 +68,14 @@ def onclick(event):
     mapLon = int(np.floor(mapLon))
 
     dictkey = str(mapLat)+'x'+str(mapLon)
-    avgs = [OMI_dict[dictkey][date]['avg'] for date in                           \
-        sorted(OMI_dict[dictkey].keys())]
-    dates = sorted(OMI_dict[dictkey].keys())
-    x_vals = np.arange(0,len(OMI_dict[dictkey].keys()))
+    avgs = [OMI_data[dictkey][date]['avg'] for date in                           \
+        sorted(OMI_data[dictkey].keys())]
+    dates = sorted(OMI_data[dictkey].keys())
+    x_vals = np.arange(0,len(OMI_data[dictkey].keys()))
 
     slope, intercept, r_value, p_value, std_err = stats.linregress(x_vals,avgs)
     print(dictkey, slope*len(x_vals))
-    #print slope/len(OMI_dict[dictkey].keys())
+    #print slope/len(OMI_data[dictkey].keys())
     regress_y = x_vals*slope+intercept
 
     #The slope
@@ -122,16 +126,16 @@ def onclick_climo(event):
     mapLon = int(np.floor(mapLon))
 
     dictkey = str(mapLat)+'x'+str(mapLon)
-    avgs = np.ma.masked_array([OMI_dict[dictkey][date] for date in sorted(OMI_dict[dictkey].keys())])
+    avgs = np.ma.masked_array([OMI_data[dictkey][date] for date in sorted(OMI_data[dictkey].keys())])
     ai_avg = np.average(avgs)
     print(dictkey, ai_avg)
 
 def readOMI(inputfile,start_date,end_date,key=None):
-    global OMI_dict
-    OMI_dict = {}
+    global OMI_data
+    OMI_data = {}
 
     if(key is not None):
-        OMI_dict[key]={}
+        OMI_data[key]={}
 
     if(inputfile.strip().split('/')[-1].split('.')[-1]=='gz'):
         f = gzip.open(inputfile,'rb')
@@ -145,31 +149,31 @@ def readOMI(inputfile,start_date,end_date,key=None):
             if((int(templine[0])>=start_date) & (int(templine[0])<=end_date)):
                 if(key is not None):
                     if(templine[1]==key):
-                        OMI_dict[key][templine[0].decode('utf-8')] = {}
-                        OMI_dict[key][templine[0].decode('utf-8')]['avg']=float(templine[2])
-                        OMI_dict[key][templine[0].decode('utf-8')]['#_obs']=int(templine[3])
+                        OMI_data[key][templine[0].decode('utf-8')] = {}
+                        OMI_data[key][templine[0].decode('utf-8')]['avg']=float(templine[2])
+                        OMI_data[key][templine[0].decode('utf-8')]['#_obs']=int(templine[3])
                 else:
                     # If the current lat/lon pair are not found in the dictionary's
                     # keys, then make a new subdictionary for it.
-                    if(templine[1].decode('utf-8') not in OMI_dict.keys()):
-                        OMI_dict[templine[1].decode('utf-8')] = {}
+                    if(templine[1].decode('utf-8') not in OMI_data.keys()):
+                        OMI_data[templine[1].decode('utf-8')] = {}
                     # If the current lat/lon pair are already in the dictionary's
                     # keys, then add the new data to the subdictionary
-                    OMI_dict[templine[1].decode('utf-8')][templine[0].decode('utf-8')]={}
-                    OMI_dict[templine[1].decode('utf-8')][templine[0].decode('utf-8')]['avg']=float(templine[2])
-                    OMI_dict[templine[1].decode('utf-8')][templine[0].decode('utf-8')]['#_obs']=int(templine[3])
+                    OMI_data[templine[1].decode('utf-8')][templine[0].decode('utf-8')]={}
+                    OMI_data[templine[1].decode('utf-8')][templine[0].decode('utf-8')]['avg']=float(templine[2])
+                    OMI_data[templine[1].decode('utf-8')][templine[0].decode('utf-8')]['#_obs']=int(templine[3])
     f.close()    
 
-    return OMI_dict
+    return OMI_data
 
-def writeOMI_toNCDF(OMI_dict,minlat=30):
+def writeOMI_toNCDF(OMI_data,minlat=30):
     lat_ranges = np.arange(minlat,90,1.0)
     lon_ranges = np.arange(-180,180,1.0)
     
     nc = Dataset('./omi_gridded_ai.nc','w',format='NETCDF4')
   
     # Dimensions = lat, lon, time
-    testdict = OMI_dict['40x5']
+    testdict = OMI_data['40x5']
     testkeys = list(testdict.keys())
     num_lat = len(lat_ranges)
     num_lon = len(lon_ranges)
@@ -206,23 +210,41 @@ def writeOMI_toNCDF(OMI_dict,minlat=30):
         print(lat_ranges[i])
         for j in range(num_lon):
             dictkey = (str(int(lat_ranges[i]))+'x'+str(int(lon_ranges[j])))
-            if(dictkey not in OMI_dict):
+            if(dictkey not in OMI_data):
                 # Insert missing values for AI and count
                 AI[:,i,j] = [-999.9 for m in range(num_time)]
                 OB_COUNT[:,i,j] = [-99 for m in range(num_time)]
             else:
                 for m in range(num_time):
                     timekey = testkeys[m]
-                    if(timekey not in OMI_dict[dictkey]):
+                    if(timekey not in OMI_data[dictkey]):
                         AI[m,i,j] = -999.9
                         OB_COUNT[m,i,j] = -99
                     else:
-                        AI[m,i,j] = OMI_dict[dictkey][timekey]['avg']
-                        OB_COUNT[m,i,j] = OMI_dict[dictkey][timekey]['#_obs']
+                        AI[m,i,j] = OMI_data[dictkey][timekey]['avg']
+                        OB_COUNT[m,i,j] = OMI_data[dictkey][timekey]['#_obs']
     nc.close()
-    
+   
+def readOMI_NCDF(infile='/home/bsorenson/Research/OMI/omi_1x1_gridded_ai.nc',minlat=30):
+    # Read in data to netCDF object
+    in_data = Dataset(infile,'r')
 
-def plotOMI_MK(OMI_dict,start_date,end_date,save=False,file_type='XR123',season='',minlat=30.):
+    # Set up dictionary to hold data
+    OMI_data = {}
+    
+    OMI_data['AI'] = in_data['AI'][:,:,:]
+    OMI_data['LAT'] = in_data['Latitude'][:,:]
+    OMI_data['LON'] = in_data['Longitude'][:,:]
+    OMI_data['MONTH'] = in_data['MONTH'][:]
+
+    # to add months to datetime object, do
+    ###from dateutil.relativedelta import relativedelta
+    ###datetime.datetime(year=2004,month=10,day=1) + relativedelta(months=1)
+       
+    return OMI_data
+ 
+
+def plotOMI_MK(OMI_data,start_date,end_date,save=False,file_type='XR123',season='',minlat=30.):
     if(file_type=='NXAR'):
         title_flabel = 'No XTrack and All Rows'
         outname_flabel = 'noX_allRows'
@@ -243,31 +265,31 @@ def plotOMI_MK(OMI_dict,start_date,end_date,save=False,file_type='XR123',season=
     winter = False
     if(season=='spring'):
         spring = True 
-        for lkey in sorted(OMI_dict.keys()):
-            for tkey in sorted(OMI_dict[lkey].keys()):
+        for lkey in sorted(OMI_data.keys()):
+            for tkey in sorted(OMI_data[lkey].keys()):
                 if((int(tkey[4:])<3) or (int(tkey[4:])>5)):
-                    OMI_dict[lkey].pop(tkey)
+                    OMI_data[lkey].pop(tkey)
     elif(season=='summer'):
         summer = True 
-        for lkey in sorted(OMI_dict.keys()):
-            for tkey in sorted(OMI_dict[lkey].keys()):
+        for lkey in sorted(OMI_data.keys()):
+            for tkey in sorted(OMI_data[lkey].keys()):
                 if((int(tkey[4:])<6) or (int(tkey[4:])>8)):
-                    OMI_dict[lkey].pop(tkey)
+                    OMI_data[lkey].pop(tkey)
     elif(season=='autumn'):
         autumn = True 
-        for lkey in sorted(OMI_dict.keys()):
-            for tkey in sorted(OMI_dict[lkey].keys()):
+        for lkey in sorted(OMI_data.keys()):
+            for tkey in sorted(OMI_data[lkey].keys()):
                 if((int(tkey[4:])<9) or (int(tkey[4:])>11)):
-                    OMI_dict[lkey].pop(tkey)
+                    OMI_data[lkey].pop(tkey)
     elif(season=='winter'):
         winter = True 
-        for lkey in sorted(OMI_dict.keys()):
-            for tkey in sorted(OMI_dict[lkey].keys()):
+        for lkey in sorted(OMI_data.keys()):
+            for tkey in sorted(OMI_data[lkey].keys()):
                 if((int(tkey[4:])>2) and (int(tkey[4:])!=12)):
-                    OMI_dict[lkey].pop(tkey)
+                    OMI_data[lkey].pop(tkey)
 
     # Find the lowest lat in the file
-    #lowest_lat = float(sorted(OMI_dict.keys())[0].split('x')[0])
+    #lowest_lat = float(sorted(OMI_data.keys())[0].split('x')[0])
      
     # Set up the polar stereographic map
     fig1 = plt.figure()
@@ -335,27 +357,27 @@ def plotOMI_MK(OMI_dict,start_date,end_date,save=False,file_type='XR123',season=
             dictkey = (str(int(lat_ranges[i]))+'x'+str(int(lon_ranges[j])))
             #print(dictkey)
             if(dictkey=='48x-97'):
-                #print("sorted(OMI_dict[dictkey].keys())=",sorted(OMI_dict[dictkey].keys()))
-                min_date = sorted(OMI_dict[dictkey].keys())[0]
-                max_date = sorted(OMI_dict[dictkey].keys())[-1]
+                #print("sorted(OMI_data[dictkey].keys())=",sorted(OMI_data[dictkey].keys()))
+                min_date = sorted(OMI_data[dictkey].keys())[0]
+                max_date = sorted(OMI_data[dictkey].keys())[-1]
     
             # If no data are present for the curent lat/lon box, fill it with
             # black
-            if(dictkey not in OMI_dict.keys()):
+            if(dictkey not in OMI_data.keys()):
                 colorRED = 0.
                 colorGREEN = 0.
                 colorBLUE = 0.
             # If, for some reason, the key is made for the current lat/lon box
             # but the dictionary is empty. fill with black.
-            elif(len(OMI_dict[dictkey].keys())==0):
+            elif(len(OMI_data[dictkey].keys())==0):
                 print(dictkey,pval,color_index_value,'NO DATA')
                 #print('Here 2')
                 colorRED = 0.
                 colorGREEN = 0.
                 colorBLUE = 0.
             else:
-                avgs = [OMI_dict[dictkey][date]['avg'] for date in \
-                    sorted(OMI_dict[dictkey].keys())]
+                avgs = [OMI_data[dictkey][date]['avg'] for date in \
+                    sorted(OMI_data[dictkey].keys())]
                 if(len(avgs)<2):
                     #print('Here 3')
                     colorRED = 0.
@@ -363,10 +385,10 @@ def plotOMI_MK(OMI_dict,start_date,end_date,save=False,file_type='XR123',season=
                     colorBLUE = 0.
                 else:
                     # Check the current max and min
-                    x_vals = np.arange(0,len(OMI_dict[dictkey].keys()))
-                    avgs = np.ma.masked_array([OMI_dict[dictkey][date]['avg'] for date in sorted(OMI_dict[dictkey].keys())])
+                    x_vals = np.arange(0,len(OMI_data[dictkey].keys()))
+                    avgs = np.ma.masked_array([OMI_data[dictkey][date]['avg'] for date in sorted(OMI_data[dictkey].keys())])
                     #avgs = avgs[np.where(avgs.mask==False)[0]]
-                    temp_dates = np.array(sorted(OMI_dict[dictkey].keys()))
+                    temp_dates = np.array(sorted(OMI_data[dictkey].keys()))
                     dates = temp_dates
                     #dates = temp_dates[np.where(avgs.mask==False)[0]]
                     x_vals = np.arange(0,len(dates))
@@ -603,7 +625,7 @@ def plotOMI_MK(OMI_dict,start_date,end_date,save=False,file_type='XR123',season=
     else:
         plt.show()
 
-def plotOMI(OMI_dict,start_date,end_date,save=False,trend_type='standard',file_type='XR123',season='',minlat=30.):
+def plotOMI(OMI_data,start_date,end_date,save=False,trend_type='standard',file_type='XR123',season='',minlat=30.):
     if(file_type=='NXAR'):
         title_flabel = 'No XTrack and All Rows'
         outname_flabel = 'noX_allRows'
@@ -627,28 +649,28 @@ def plotOMI(OMI_dict,start_date,end_date,save=False,trend_type='standard',file_t
     # in summer
     if(season=='spring'):
         spring = True 
-        for lkey in sorted(OMI_dict.keys()):
-            for tkey in sorted(OMI_dict[lkey].keys()):
+        for lkey in sorted(OMI_data.keys()):
+            for tkey in sorted(OMI_data[lkey].keys()):
                 if((int(tkey[4:])<3) or (int(tkey[4:])>5)):
-                    OMI_dict[lkey].pop(tkey)
+                    OMI_data[lkey].pop(tkey)
     elif(season=='summer'):
         summer = True 
-        for lkey in sorted(OMI_dict.keys()):
-            for tkey in sorted(OMI_dict[lkey].keys()):
+        for lkey in sorted(OMI_data.keys()):
+            for tkey in sorted(OMI_data[lkey].keys()):
                 if((int(tkey[4:])<6) or (int(tkey[4:])>8)):
-                    OMI_dict[lkey].pop(tkey)
+                    OMI_data[lkey].pop(tkey)
     elif(season=='autumn'):
         autumn = True 
-        for lkey in sorted(OMI_dict.keys()):
-            for tkey in sorted(OMI_dict[lkey].keys()):
+        for lkey in sorted(OMI_data.keys()):
+            for tkey in sorted(OMI_data[lkey].keys()):
                 if((int(tkey[4:])<9) or (int(tkey[4:])>11)):
-                    OMI_dict[lkey].pop(tkey)
+                    OMI_data[lkey].pop(tkey)
     elif(season=='winter'):
         winter = True 
-        for lkey in sorted(OMI_dict.keys()):
-            for tkey in sorted(OMI_dict[lkey].keys()):
+        for lkey in sorted(OMI_data.keys()):
+            for tkey in sorted(OMI_data[lkey].keys()):
                 if((int(tkey[4:])>2) and (int(tkey[4:])!=12)):
-                    OMI_dict[lkey].pop(tkey)
+                    OMI_data[lkey].pop(tkey)
 
 
     # Find the lowest lat in the file
@@ -716,19 +738,19 @@ def plotOMI(OMI_dict,start_date,end_date,save=False,trend_type='standard',file_t
 
             # If no data are present for the curent lat/lon box, fill it with
             # black
-            keylist = [ky for ky in OMI_dict.keys()]
-            if(dictkey not in OMI_dict.keys()):
+            keylist = [ky for ky in OMI_data.keys()]
+            if(dictkey not in OMI_data.keys()):
                 color=(0,0,0,0)
             # If, for some reason, the key is made for the current lat/lon box
             # but the dictionary is empty. fill with black.
-            elif(len(OMI_dict[dictkey].keys())==0):
+            elif(len(OMI_data[dictkey].keys())==0):
                 color=(0,0,0,0)
             else:
-                avgs = [OMI_dict[dictkey][date]['avg'] for date in \
-                    sorted(OMI_dict[dictkey].keys())]
+                avgs = [OMI_data[dictkey][date]['avg'] for date in \
+                    sorted(OMI_data[dictkey].keys())]
                 # Check the current max and min
-                x_vals = np.arange(0,len(OMI_dict[dictkey].keys()))
-                temp_dates = np.array(sorted(OMI_dict[dictkey].keys()))
+                x_vals = np.arange(0,len(OMI_data[dictkey].keys()))
+                temp_dates = np.array(sorted(OMI_data[dictkey].keys()))
                 # Find the slope of the line of best fit for the time series of
                 # average data
                 if(trend_type=='standard'): 
@@ -875,7 +897,7 @@ def plotOMI(OMI_dict,start_date,end_date,save=False,trend_type='standard',file_t
     else:
         plt.show()
 
-def plotOMI_Climo(OMI_dict,start_date,end_date,save=False,trend_type='standard',file_type='XR123',season='',minlat=30.):
+def plotOMI_Climo(OMI_data,start_date,end_date,save=False,trend_type='standard',file_type='XR123',season='',minlat=30.):
     if(file_type=='NXAR'):
         title_flabel = 'No XTrack and All Rows'
         outname_flabel = 'noX_allRows'
@@ -896,28 +918,28 @@ def plotOMI_Climo(OMI_dict,start_date,end_date,save=False,trend_type='standard',
     # in summer
     if(season=='spring'):
         spring = True 
-        for lkey in sorted(OMI_dict.keys()):
-            for tkey in sorted(OMI_dict[lkey].keys()):
+        for lkey in sorted(OMI_data.keys()):
+            for tkey in sorted(OMI_data[lkey].keys()):
                 if((int(tkey[4:])<3) or (int(tkey[4:])>5)):
-                    OMI_dict[lkey].pop(tkey)
+                    OMI_data[lkey].pop(tkey)
     elif(season=='summer'):
         summer = True 
-        for lkey in sorted(OMI_dict.keys()):
-            for tkey in sorted(OMI_dict[lkey].keys()):
+        for lkey in sorted(OMI_data.keys()):
+            for tkey in sorted(OMI_data[lkey].keys()):
                 if((int(tkey[4:])<6) or (int(tkey[4:])>8)):
-                    OMI_dict[lkey].pop(tkey)
+                    OMI_data[lkey].pop(tkey)
     elif(season=='autumn'):
         autumn = True 
-        for lkey in sorted(OMI_dict.keys()):
-            for tkey in sorted(OMI_dict[lkey].keys()):
+        for lkey in sorted(OMI_data.keys()):
+            for tkey in sorted(OMI_data[lkey].keys()):
                 if((int(tkey[4:])<9) or (int(tkey[4:])>11)):
-                    OMI_dict[lkey].pop(tkey)
+                    OMI_data[lkey].pop(tkey)
     elif(season=='winter'):
         winter = True 
-        for lkey in sorted(OMI_dict.keys()):
-            for tkey in sorted(OMI_dict[lkey].keys()):
+        for lkey in sorted(OMI_data.keys()):
+            for tkey in sorted(OMI_data[lkey].keys()):
                 if((int(tkey[4:])>2) and (int(tkey[4:])!=12)):
-                    OMI_dict[lkey].pop(tkey)
+                    OMI_data[lkey].pop(tkey)
 
 
     # Find the lowest lat in the file
@@ -985,23 +1007,23 @@ def plotOMI_Climo(OMI_dict,start_date,end_date,save=False,trend_type='standard',
 
             # If no data are present for the curent lat/lon box, fill it with
             # black
-            keylist = [ky for ky in OMI_dict.keys()]
-            if(dictkey not in OMI_dict.keys()):
+            keylist = [ky for ky in OMI_data.keys()]
+            if(dictkey not in OMI_data.keys()):
                 color=(0,0,0,0)
             # If, for some reason, the key is made for the current lat/lon box
             # but the dictionary is empty. fill with black.
-            elif(len(OMI_dict[dictkey].keys())==0):
+            elif(len(OMI_data[dictkey].keys())==0):
                 color=(0,0,0,0)
             else:
-                avgs = np.array([OMI_dict[dictkey][date]['avg'] for date in \
-                    sorted(OMI_dict[dictkey].keys())])
-                counts = np.array([OMI_dict[dictkey][date]['#_obs'] for date in \
-                    sorted(OMI_dict[dictkey].keys())])
+                avgs = np.array([OMI_data[dictkey][date]['avg'] for date in \
+                    sorted(OMI_data[dictkey].keys())])
+                counts = np.array([OMI_data[dictkey][date]['#_obs'] for date in \
+                    sorted(OMI_data[dictkey].keys())])
                 avg_uvai = sum(avgs*counts)/sum(counts)
                 #avg_uvai = np.average(avgs)
-                temp_dates = np.array(sorted(OMI_dict[dictkey].keys()))
+                temp_dates = np.array(sorted(OMI_data[dictkey].keys()))
                 # Check the current max and min
-                #x_vals = np.arange(0,len(OMI_dict[dictkey].keys()))
+                #x_vals = np.arange(0,len(OMI_data[dictkey].keys()))
                 # Find the slope of the line of best fit for the time series of
                 # average data
                 #slope, intercept, r_value, p_value, std_err = \
@@ -1123,3 +1145,464 @@ def plotOMI_Climo(OMI_dict,start_date,end_date,save=False,trend_type='standard',
     else:
         plt.show()
 
+def plotOMI_NCDF_Climo(OMI_data,start_idx=0,end_idx=169,season = '',minlat=60):
+
+    # Make copy of OMI_data array
+    local_data = np.copy(OMI_data['AI'])
+
+    start_date = datetime(year=2004,month=10,day=1)
+
+    # If only summer months are being analyzed, remove all data except 
+    # in summer
+    spring = False
+    summer = False
+    autumn = False
+    winter = False
+
+    month_objects = []
+    keepers = np.arange(1,13)
+    if(season=='spring'):
+        spring = True 
+        keepers = [3,4,5]
+    elif(season=='summer'):
+        summer = True 
+        keepers = [6,7,8]
+    elif(season=='autumn'):
+        autumn = True 
+        keepers = [9,10,11]
+    elif(season=='winter'):
+        winter = True 
+        keepers = [12,1,2]
+   
+    for m_idx in OMI_data['MONTH']:
+        new_date = start_date + relativedelta(months=m_idx)
+        if(new_date.month not in keepers):  
+            local_data[m_idx,:,:] = -999.9
+        else:
+            month_objects.append(new_date)
+
+    # Set up mapping variables 
+    datacrs = ccrs.PlateCarree() 
+    colormap = plt.cm.jet
+    if(minlat < 45):
+        mapcrs = ccrs.Miller()
+    else:
+        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
+
+    # Mask any missing values
+    mask_AI = np.ma.masked_where(local_data == -999.9, local_data)
+
+    # Calculate climatology between desired indices
+    OMI_climo = np.nanmean(mask_AI[start_idx:end_idx,:,:],axis=0)
+
+    # Make figure title
+    first_date = month_objects[0].strftime("%Y%m")
+    last_date = month_objects[-1].strftime("%Y%m")
+    title = 'OMI AI Climatology\n'+first_date + ' - ' + last_date + '\n' + season
+
+    # Make figure
+    fig1 = plt.figure(figsize = (8,8))
+    ax = plt.axes(projection = mapcrs)
+    ax.gridlines()
+    ax.coastlines(resolution='50m')
+    mesh = ax.pcolormesh(OMI_data['LON'], OMI_data['LAT'],OMI_climo,transform = datacrs,cmap = colormap,\
+            vmin = -1.0, vmax = 1.5)
+    ax.set_extent([-180,180,minlat,90],datacrs)
+    ax.set_xlim(-3430748.535086173,3430748.438879491)
+    ax.set_ylim(-3413488.8763307533,3443353.899053069)
+    cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
+        aspect=50,shrink = 0.905,label='Aerosol Index')
+    ax.set_title(title)
+
+    plt.show()
+
+# Plot a single swath of OMI data with total climatology subtracted
+def single_swath_anomaly_climo(OMI_data,swath_date,minlat = 60,row_max = 60): 
+    # - - - - - - - - - - - - - - - -
+    # Read in the single swath data
+    # - - - - - - - - - - - - - - - -
+    latmin = 60 
+    
+    # Set up mapping variables 
+    datacrs = ccrs.PlateCarree() 
+    colormap = plt.cm.jet
+    if(minlat < 45):
+        mapcrs = ccrs.Miller()
+    else:
+        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
+
+    # Set up values for gridding the AI data
+    lat_gridder = latmin * 4.
+    
+    lat_ranges = np.arange(latmin,90.1,0.25)
+    lon_ranges = np.arange(-180,180.1,0.25)
+    base_path = '/home/bsorenson/data/OMI/H5_files/'
+    year = swath_date[:4]
+    date = swath_date[4:8]
+    if(len(swath_date)==13):
+        time = swath_date[9:]
+    elif(len(swath_date)==12):
+        time = swath_date[8:]
+    else:
+        time = ''
+    total_list = subprocess.check_output('ls '+base_path+'OMI-Aura_L2-OMAERUV_'+year+'m'+date+'t'+time+'*.he5',\
+              shell=True).decode('utf-8').strip().split('\n')
+
+    UVAI = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    count = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+
+    for fileI in range(len(total_list)):
+        # read in data directly from HDF5 files
+        print(total_list[fileI])
+        data = h5py.File(total_list[fileI],'r')
+        #ALBEDO = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/SurfaceAlbedo']
+        #REFLECTANCE = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/Reflectivity']
+        #CLD = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/CloudFraction']
+        AI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex']
+        #PIXEL= data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/PixelQualityFlags']
+        #MSMNT= data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/MeasurementQualityFlags']
+        #VZA  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/ViewingZenithAngle']
+        #SZA  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/SolarZenithAngle']
+        #RAZ  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/RelativeAzimuthAngle']
+        LAT = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude']
+        LON = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude']
+        XTRACK = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/XTrackQualityFlags']
+        #GRND = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags']
+    
+        #albedo = ALBEDO[:,:,0]   
+        #reflectance = REFLECTANCE[:,:,0]   
+        counter = 0
+        #AI = AI[:,:,0]   
+        # Loop over the values and rows 
+        #for i in range(0,int(CBA2)):
+        #for i in range(albedo.shape[0]):
+        for i in range(AI.shape[0]):
+            for j in range(0,row_max):
+                #if((albedo[i,j]>-20) & (reflectance[i,j]>-20)):
+                if(AI[i,j]>-20):
+                #if(plotAI[i,j]>-20):
+                    # Only plot if XTrack flag is met
+                    if((XTRACK[i,j] == 0) | ((XTRACK[i,j] & 4 == 4))):
+                        # Print values to text file
+                        if(LAT[i,j] > minlat):
+                            counter+=1
+    #                        fout.write("{0:.6f} {1:.6f} {2:.6f} {3:.6f} {4:.6f} {5:.6f} {6:.6f} {7:.6f} {8:.6f} {9:.6f} {10:.6f} {11:.6f}\n".format(\
+    #                            LAT[i,j],LON[i,j],AI[i,j],0.5,SZA[i,j],VZA[i,j],RAZ[i,j], \
+    #                            ALBEDO[i,j,0],ALBEDO[i,j,1],REFLECTANCE[i,j,0],\
+    #                            REFLECTANCE[i,j,1],CLD[i,j]))
+    
+    
+                        #if((plotXTrack[i,j] == 0) | ((plotXTrack[i,j] & 4 == 4))):
+                            index1 = int(np.floor(LAT[i,j]*4 - lat_gridder))
+                            index2 = int(np.floor(LON[i,j]*4 + 720.))
+                            #index1 = int(np.floor(plotLAT[i,j]*4 + 360.))
+                            #index2 = int(np.floor(plotLON[i,j]*4 + 720.))
+                            
+                            if(index1 < 0): index1 = 0
+                            if(index1 > len(lat_ranges)-1): index1 = len(lat_ranges) - 1
+                            if(index2 < 0): index2 = 0                                                                                            
+                            if(index2 > 1439): index2 = 1439
+                       
+                            #diff = reflectance[i,j] - albedo[i,j]
+                            #if(diff<min_diff):
+                            #    min_diff = diff
+                            #if(diff>max_diff):
+                            #    max_diff = diff
+                       
+                            #if(diff<0.2): 
+                            #    UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + AI[i,j])/(count[index2,index1]+1)
+                            UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + AI[i,j])/(count[index2,index1]+1)
+                            #UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + diff)/(count[index2,index1]+1)
+                                #UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + plotAI[i,j])/(count[index2,index1]+1)
+                                #if((ii==1309) and (ii2==59)): print UVAI[index1,index2]
+                            count[index2, index1] = count[index2,index1] + 1
+    
+    # Calculate the row-average AI for the secondary plot
+    mask_avgs = np.nanmean(np.ma.masked_where(AI[:,:] < -20, AI[:,:]),axis=0)
+
+    local_data = np.copy(OMI_data['AI'][:,:,:])
+    local_mask = np.ma.masked_where(local_data == -999.9, local_data)
+    local_climo = np.nanmean(local_mask, axis=0).T
+
+    # Interpolate 2D data
+    # Find where the high-res data fits in to the climo data
+    begin_x = np.where(OMI_data['LAT'][:,0] == lat_ranges[0])[0][0]
+    high_lats = np.arange(OMI_data['LAT'][begin_x,0], OMI_data['LAT'][-1,0]+0.25, 0.25)
+    high_lons = np.arange(OMI_data['LON'][0,0], OMI_data['LON'][0,-1] + 0.25, 0.25)
+
+    high_climo = np.zeros((high_lons.shape[0], high_lats.shape[0]))
+
+    for yi in range(len(OMI_data['LON'][0,:])):
+        for xj in range(len(OMI_data['LAT'][begin_x:,0])):
+            high_climo[yi*4:yi*4+4, xj*4:xj*4+4] = local_climo[yi, xj]
+
+    # Find out where the high res climo data fits in to the
+    # single swath data. The single swath data are assumed to be 
+    # of a larger size than the climo data
+    end_xj = np.where(lat_ranges == high_lats[-1])[0][0]
+    end_yi = np.where(lon_ranges == high_lons[-1])[0][0]
+
+    # Calculate anomalies
+    UVAI_anomaly = UVAI[0:end_yi+1, 0:end_xj+1] - high_climo  
+
+    ###return high_lats, high_lons, high_climo,lat_ranges, lon_ranges, UVAI
+    ####return lat_ranges,lon_ranges,UVAI,count
+
+    plot_lat, plot_lon = np.meshgrid(high_lats,high_lons)
+    mask_UVAI_anom = np.ma.masked_where(count[0:end_yi+1, 0:end_xj+1] == 0, UVAI_anomaly)
+   
+    plt.close()
+    fig1 = plt.figure(figsize=(8,8))
+    ax = plt.axes(projection = mapcrs)
+    ax.gridlines()
+    ax.coastlines(resolution='50m')
+ 
+    plt.title('OMI Aerosol Index Anomaly '+swath_date)
+    #plt.title('OMI Reflectivity - Surface Albedo '+swath_date)
+    mesh = ax.pcolormesh(plot_lon, plot_lat,mask_UVAI_anom,transform = datacrs,cmap = colormap,\
+            vmin = -2.0, vmax = 3.0)
+    ax.set_extent([-180,180,latmin,90],ccrs.PlateCarree())
+    ax.set_xlim(-3430748.535086173,3430748.438879491)
+    ax.set_ylim(-3413488.8763307533,3443353.899053069)
+    #ax.set_xlim(-4170748.535086173,4167222.438879491)
+    #ax.set_ylim(-2913488.8763307533,2943353.899053069)
+    cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
+        aspect=50,shrink = 0.905,label='Aerosol Index Anomaly')
+    ##cax = fig.add_axes([0.16,0.075,0.7,0.025])
+    ##cb = ColorbarBase(cax,cmap=cmap,norm=norm,orientation='horizontal')
+    ##cb.ax.set_xlabel('Aerosol Index')
+    #cb.ax.set_xlabel('Reflectivity - Surface Albedo')
+    #out_name = 'omi_single_pass_ai_200804270052_to_0549_composite_rows_0to'+str(row_max)+'.png'       
+    out_name = 'omi_single_pass_ai_anom_'+swath_date+'_rows_0to'+str(row_max)+'.png'       
+    #out_name = 'omi_single_pass_refl_albedo_diff_'+swath_date+'_rows_0to'+str(row_max)+'.png'       
+    plt.savefig(out_name)
+    print('Saved image '+out_name)
+    
+    #axs[1].plot(mask_avgs)
+    #axs[1].set_xlabel('Sensor Row')
+    #axs[1].set_ylabel('Row Average Aerosol Index')
+    
+    plt.show()
+
+# Plot a single swath of OMI data with single-time swath climatology subtracted
+# single_swath = the swath that will be corrected (format = YYYYMMDDHHMM)
+# climo_date   = the date on the swath climatology directory (format = MMDDHHMM)
+def single_swath_anomaly_time(single_swath,climo_date,minlat = 60,row_max = 60): 
+
+    # - - - - - - - - - - - - - - - -
+    # Read in the single swath data
+    # - - - - - - - - - - - - - - - -
+    latmin = 60 
+    
+    # Set up mapping variables 
+    datacrs = ccrs.PlateCarree() 
+    colormap = plt.cm.jet
+    if(minlat < 45):
+        mapcrs = ccrs.Miller()
+    else:
+        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
+
+    # Set up values for gridding the AI data
+    lat_gridder = latmin * 4.
+    
+    lat_ranges = np.arange(latmin,90.1,0.25)
+    lon_ranges = np.arange(-180,180.1,0.25)
+    climo_base_path = '/home/bsorenson/data/OMI/swath_anomaly_files/'
+    single_base_path = '/home/bsorenson/data/OMI/H5_files/'
+
+    # Grab the path date/time for finding the swath climatology files
+    year = single_swath[0:4]
+    date = single_swath[4:8]
+    if(len(single_swath)==13):
+        time = single_swath[9:]
+    elif(len(single_swath)==12):
+        time = single_swath[8:]
+    else:
+        time = ''
+
+    total_climo_list = subprocess.check_output('ls '+climo_base_path+climo_date+'/*.he5',\
+              shell=True).decode('utf-8').strip().split('\n')
+
+    total_single_list = subprocess.check_output('ls '+single_base_path+'OMI-Aura_L2-OMAERUV_'+\
+              year+'m'+date+'t'+time+'*.he5',shell=True).decode('utf-8').strip().split('\n')
+
+    UVAI_climo = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    count_climo = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    UVAI_single = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    count_single = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+
+    print("Reading path climatology data")
+    for fileI in range(len(total_climo_list)):
+        # read in data directly from HDF5 files
+        print(total_climo_list[fileI])
+        data = h5py.File(total_climo_list[fileI],'r')
+        #ALBEDO = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/SurfaceAlbedo']
+        #REFLECTANCE = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/Reflectivity']
+        #CLD = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/CloudFraction']
+        AI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex']
+        #PIXEL= data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/PixelQualityFlags']
+        #MSMNT= data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/MeasurementQualityFlags']
+        #VZA  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/ViewingZenithAngle']
+        #SZA  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/SolarZenithAngle']
+        #RAZ  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/RelativeAzimuthAngle']
+        LAT = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude']
+        LON = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude']
+        XTRACK = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/XTrackQualityFlags']
+        #GRND = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags']
+    
+        #albedo = ALBEDO[:,:,0]   
+        #reflectance = REFLECTANCE[:,:,0]   
+        counter = 0
+        #AI = AI[:,:,0]   
+        # Loop over the values and rows 
+        #for i in range(0,int(CBA2)):
+        #for i in range(albedo.shape[0]):
+        for i in range(AI.shape[0]):
+            for j in range(0,row_max):
+                #if((albedo[i,j]>-20) & (reflectance[i,j]>-20)):
+                if(AI[i,j]>-20):
+                #if(plotAI[i,j]>-20):
+                    # Only plot if XTrack flag is met
+                    if((XTRACK[i,j] == 0) | ((XTRACK[i,j] & 4 == 4))):
+                        # Print values to text file
+                        if(LAT[i,j] > minlat):
+                            counter+=1
+    #                        fout.write("{0:.6f} {1:.6f} {2:.6f} {3:.6f} {4:.6f} {5:.6f} {6:.6f} {7:.6f} {8:.6f} {9:.6f} {10:.6f} {11:.6f}\n".format(\
+    #                            LAT[i,j],LON[i,j],AI[i,j],0.5,SZA[i,j],VZA[i,j],RAZ[i,j], \
+    #                            ALBEDO[i,j,0],ALBEDO[i,j,1],REFLECTANCE[i,j,0],\
+    #                            REFLECTANCE[i,j,1],CLD[i,j]))
+    
+    
+                        #if((plotXTrack[i,j] == 0) | ((plotXTrack[i,j] & 4 == 4))):
+                            index1 = int(np.floor(LAT[i,j]*4 - lat_gridder))
+                            index2 = int(np.floor(LON[i,j]*4 + 720.))
+                            #index1 = int(np.floor(plotLAT[i,j]*4 + 360.))
+                            #index2 = int(np.floor(plotLON[i,j]*4 + 720.))
+                            
+                            if(index1 < 0): index1 = 0
+                            if(index1 > len(lat_ranges)-1): index1 = len(lat_ranges) - 1
+                            if(index2 < 0): index2 = 0                                                                                            
+                            if(index2 > 1439): index2 = 1439
+                       
+                            #diff = reflectance[i,j] - albedo[i,j]
+                            #if(diff<min_diff):
+                            #    min_diff = diff
+                            #if(diff>max_diff):
+                            #    max_diff = diff
+                       
+                            #if(diff<0.2): 
+                            #    UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + AI[i,j])/(count[index2,index1]+1)
+                            UVAI_climo[index2, index1] = (UVAI_climo[index2,index1]*count_climo[index2,index1] + \
+                                AI[i,j])/(count_climo[index2,index1]+1)
+                            #UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + diff)/(count[index2,index1]+1)
+                                #UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + plotAI[i,j])/(count[index2,index1]+1)
+                                #if((ii==1309) and (ii2==59)): print UVAI[index1,index2]
+                            count_climo[index2, index1] = count_climo[index2,index1] + 1
+        data.close() 
+
+    # Grab the single-pass data
+    print("Reading single-swath data")
+    for fileI in range(len(total_single_list)):
+        # read in data directly from HDF5 files
+        print(total_single_list[fileI])
+        data2 = h5py.File(total_single_list[fileI],'r')
+        AI  = data2['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex']
+        LAT = data2['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude']
+        LON = data2['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude']
+        XTRACK = data2['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/XTrackQualityFlags']
+    
+        counter = 0
+        # Loop over the values and rows 
+        for i in range(AI.shape[0]):
+            for j in range(0,row_max):
+                if(AI[i,j]>-20):
+                #if(plotAI[i,j]>-20):
+                    # Only plot if XTrack flag is met
+                    if((XTRACK[i,j] == 0) | ((XTRACK[i,j] & 4 == 4))):
+                        # Print values to text file
+                        if(LAT[i,j] > minlat):
+                            counter+=1
+    
+                            index1 = int(np.floor(LAT[i,j]*4 - lat_gridder))
+                            index2 = int(np.floor(LON[i,j]*4 + 720.))
+                            
+                            if(index1 < 0): index1 = 0
+                            if(index1 > len(lat_ranges)-1): index1 = len(lat_ranges) - 1
+                            if(index2 < 0): index2 = 0                                                                                            
+                            if(index2 > 1439): index2 = 1439
+                       
+                            UVAI_single[index2, index1] = (UVAI_single[index2,index1]*count_single[index2,index1] + \
+                                AI[i,j])/(count_single[index2,index1]+1)
+                            count_single[index2, index1] = count_single[index2,index1] + 1
+        data2.close() 
+    ##!## Calculate the row-average AI for the secondary plot
+    ##!#mask_avgs = np.nanmean(np.ma.masked_where(AI[:,:] < -20, AI[:,:]),axis=0)
+
+    # Calculate anomalies
+    UVAI_anomaly = UVAI_single - UVAI_climo  
+
+    plot_lat, plot_lon = np.meshgrid(lat_ranges,lon_ranges)
+    mask_UVAI_climo = np.ma.masked_where(count_climo[:,:] == 0, UVAI_climo)
+    mask_UVAI_anom = np.ma.masked_where(count_single[:,:] == 0, UVAI_anomaly)
+
+    # Plot the climatology
+    plt.close()
+    fig1 = plt.figure(figsize=(8,8))
+    ax = plt.axes(projection = mapcrs)
+    ax.gridlines()
+    ax.coastlines(resolution='50m')
+ 
+    plt.title('OMI Aerosol Index Climatology '+single_swath)
+    #plt.title('OMI Reflectivity - Surface Albedo '+swath_date)
+    mesh = ax.pcolormesh(plot_lon, plot_lat,mask_UVAI_climo,transform = datacrs,cmap = colormap,\
+            vmin = -2.0, vmax = 3.0)
+    ax.set_extent([-180,180,latmin,90],ccrs.PlateCarree())
+    ax.set_xlim(-3430748.535086173,3430748.438879491)
+    ax.set_ylim(-3413488.8763307533,3443353.899053069)
+    #ax.set_xlim(-4170748.535086173,4167222.438879491)
+    #ax.set_ylim(-2913488.8763307533,2943353.899053069)
+    cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
+        aspect=50,shrink = 0.905,label='Aerosol Index')
+    ##cax = fig.add_axes([0.16,0.075,0.7,0.025])
+    ##cb = ColorbarBase(cax,cmap=cmap,norm=norm,orientation='horizontal')
+    ##cb.ax.set_xlabel('Aerosol Index')
+    #cb.ax.set_xlabel('Reflectivity - Surface Albedo')
+    #out_name = 'omi_single_pass_ai_200804270052_to_0549_composite_rows_0to'+str(row_max)+'.png'       
+    out_name = 'omi_single_pass_ai_single_climo_'+single_swath+'_rows_0to'+str(row_max)+'.png'       
+    #out_name = 'omi_single_pass_refl_albedo_diff_'+swath_date+'_rows_0to'+str(row_max)+'.png'       
+    plt.savefig(out_name)
+    print('Saved image '+out_name)
+  
+    # Plot the anomalies
+    plt.close()
+    fig1 = plt.figure(figsize=(8,8))
+    ax = plt.axes(projection = mapcrs)
+    ax.gridlines()
+    ax.coastlines(resolution='50m')
+ 
+    plt.title('OMI Aerosol Index Anomaly '+single_swath)
+    #plt.title('OMI Reflectivity - Surface Albedo '+swath_date)
+    mesh = ax.pcolormesh(plot_lon, plot_lat,mask_UVAI_anom,transform = datacrs,cmap = colormap,\
+            vmin = -1.0, vmax = 1.5)
+    ax.set_extent([-180,180,latmin,90],ccrs.PlateCarree())
+    ax.set_xlim(-3430748.535086173,3430748.438879491)
+    ax.set_ylim(-3413488.8763307533,3443353.899053069)
+    #ax.set_xlim(-4170748.535086173,4167222.438879491)
+    #ax.set_ylim(-2913488.8763307533,2943353.899053069)
+    cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
+        aspect=50,shrink = 0.905,label='Aerosol Index Anomaly')
+    ##cax = fig.add_axes([0.16,0.075,0.7,0.025])
+    ##cb = ColorbarBase(cax,cmap=cmap,norm=norm,orientation='horizontal')
+    ##cb.ax.set_xlabel('Aerosol Index')
+    #cb.ax.set_xlabel('Reflectivity - Surface Albedo')
+    #out_name = 'omi_single_pass_ai_200804270052_to_0549_composite_rows_0to'+str(row_max)+'.png'       
+    out_name = 'omi_single_pass_ai_single_anom_'+single_swath+'_rows_0to'+str(row_max)+'.png'       
+    #out_name = 'omi_single_pass_refl_albedo_diff_'+swath_date+'_rows_0to'+str(row_max)+'.png'       
+    plt.savefig(out_name)
+    print('Saved image '+out_name)
+    
+    #axs[1].plot(mask_avgs)
+    #axs[1].set_xlabel('Sensor Row')
+    #axs[1].set_ylabel('Row Average Aerosol Index')
+    
+    plt.show()
