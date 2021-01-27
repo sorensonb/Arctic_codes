@@ -1,0 +1,127 @@
+Written by: Blake Sorenson
+Modification date: 2020/01/27
+
+These notes are for making new OMI data figures (after January 15, 2021)
+
+The first dataset used for these figures is the old OMI AI climatology generated in
+2018 and 2019 and saved to a netCDF file. This climatology contains gridded AI
+values calculated using the XTrack flag and only using rows 1-23. Currently,
+the file is located on the WSL on my office computer under
+  
+  /home/bsorenson/Research/OMI/omi_1x1_gridded_ai.nc
+
+Single-swath OMI data are used next. These data are currently stored on my
+office computer under
+
+  /home/bsorenson/data/OMI/H5_files/
+
+but may be downloaded separately from the OMI data website, found at
+
+  https://disc.gsfc.nasa.gov/datasets/OMAERUV_003/summary
+
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+DATA READING AND PROCESSING
+
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+The first step in making the new figures is to read in the climatology data.
+To do this, enter the directory (/home/bsorenson/Research/OMI/) and start up
+a Python terminal using:
+
+  $ python
+
+Once starting the terminal, import functions from OMILib.py using
+
+  >>> from OMILib import *
+
+or
+
+  >>> from OMILib import readOMI_NCDF,calcOMI_MonthClimo,plotOMI_NCDF_Climo,
+  ... plotOMI_MonthClimo,single_swath_anomaly_climo,single_swath_anomaly_time
+
+After reading in the functions, the climatology data must be read using:
+  >>> OMI_data = readOMI_NCDF()
+
+By default, this function assumes you are using the XTrack 1-23 dataset, 
+but a different netCDF OMI dataset can be specified by adding an 'infile = '...
+call to the function call.
+
+After reading in the data, monthly climatologies must be calculated. These
+monthly climatologies contain the average values for each of the 12 months
+across all years in the file. For example, the April OMI monthly climatology
+contains the gridded averages of all April monthly data between April 2005 and
+April 2018. To calculate these values, use
+
+  >>> OMI_data = calcOMI_MonthClimo(OMI_data)
+
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+PLOTTING
+
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+
+plotOMI_NCDF_Climo
+- - - - - - - - -  
+
+To plot the total climatology of the OMI AI gridded monthly data, use:
+
+  >>> plotOMI_NCDF_Climo(OMI_data)
+
+If you want to plot starting from a time index other than 0 or from an ending
+index other than 169, these can both be changed by adding 'start_idx=X' or 
+'end_idx=X' to the function call.
+
+The season may also be changed if you want to plot seasonal climatologies.
+To do this, add 'season=XXXXXX' to the function call, where XXXXXX is one of
+'spring','summer','autumn', or 'winter'.
+
+plotOMI_MonthClimo
+- - - - - - - - - -
+
+To plot a single monthly climatology (i.e., the average April AI values), use
+
+  >>> plotOMI_MonthClimo(OMI_data,month_idx)
+
+where month_idx is the index of the desired month (0 for January, 1 for February,
+2 for March, etc.). Currently, no image is saved from this.
+
+single_swath_anomaly_climo
+- - - - - - - - - - - - - -
+
+To plot a single swath of OMI data with climatology values subtracted, use
+
+  >>> single_swath_anomaly_climo(OMI_data,swath_date)
+
+swath_date is the date on the single-swath file you want to plot.
+An example is '200804221345'. You can also plot a whole day of data by only
+typing through the day in swath_date. An example is '20080422'. By default,
+the monthly climatology values calculated above are subtracted,  but if you
+want to subtract the total climatology for some reason, add 'month_climo=False'
+to the function call.
+
+NOTE: Currently, the single-swath files are assumed to be in 
+'/home/bsorenson/data/OMI/H5_files'. This may need to be changed if running 
+on a new system.
+
+This function saves a file titled as 'omi_single_pass_ai'_file_adder_swath_date'_rows_0to'str(row_max)'.png'
+An example is 'omi_single_pass_ai_mnth_anom_200804221345_rows_0to60.png'
+
+single_swath_anomaly_time
+- - - - - - - - - - - - - 
+
+To plot a single swath of OMI data with the climatological averages of all
+swaths from that same date and time across all years, use:
+
+  >>> single_swath_anomaly_time(single_swath,climo_date)
+
+single_swath is the date and time of the main swath to plot, formatted as
+'200804221345'. climo_date is a date string that defines which climatology
+file directory to look at. The climatology director contains symbolic links
+to the correct files for that date and time. For example, if you want to plot
+the swath climatology for the ~1345 swath, climo_date would be set to 
+'04221345'.
+
+This function saves a file titled as:
+'omi_single_pass_ai_single_anom_200804221345_rows_0to60.png'

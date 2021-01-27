@@ -23,6 +23,7 @@
 import numpy as np
 import sys
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 from mpl_toolkits.basemap import Basemap
@@ -37,7 +38,6 @@ from netCDF4 import Dataset
 import gzip
 import h5py
 import subprocess
-from dateutil.relativedelta import relativedelta
 
 # Class MidpointNormalize is used to center the colorbar on zero
 class MidpointNormalize(Normalize):
@@ -237,10 +237,45 @@ def readOMI_NCDF(infile='/home/bsorenson/Research/OMI/omi_1x1_gridded_ai.nc',min
     OMI_data['LON'] = in_data['Longitude'][:,:]
     OMI_data['MONTH'] = in_data['MONTH'][:]
 
+    # Set up date strings in the file
+    start_date = datetime(year = 2004, month = 10, day = 1)
+    OMI_data['DATES'] = \
+        [(start_date + relativedelta(months=mi)).strftime('%Y%m') for mi in \
+        OMI_data['MONTH']]
+
     # to add months to datetime object, do
     ###from dateutil.relativedelta import relativedelta
     ###datetime.datetime(year=2004,month=10,day=1) + relativedelta(months=1)
        
+    return OMI_data
+
+# This function assumes the data is being read from the netCDF file
+def calcOMI_MonthClimo(OMI_data):
+
+    # Set up arrays to hold monthly climatologies
+    month_climo = np.zeros((12,OMI_data['AI'].shape[1],OMI_data['AI'].shape[2]))
+
+    # Mask the monthly averages
+    local_data = np.copy(OMI_data['AI'][:,:,:])
+    local_mask = np.ma.masked_where(local_data == -999.9, local_data)
+ 
+    # Calculate monthly climatologies
+    month_climo[0,:,:]  = np.nanmean(local_mask[3::12,:,:],axis=0)  # January 
+    month_climo[1,:,:]  = np.nanmean(local_mask[4::12,:,:],axis=0)  # February
+    month_climo[2,:,:]  = np.nanmean(local_mask[5::12,:,:],axis=0)  # March 
+    month_climo[3,:,:]  = np.nanmean(local_mask[6::12,:,:],axis=0)  # April 
+    month_climo[4,:,:]  = np.nanmean(local_mask[7::12,:,:],axis=0)  # May 
+    month_climo[5,:,:]  = np.nanmean(local_mask[8::12,:,:],axis=0)  # June 
+    month_climo[6,:,:]  = np.nanmean(local_mask[9::12,:,:],axis=0)  # July 
+    month_climo[7,:,:]  = np.nanmean(local_mask[10::12,:,:],axis=0) # August 
+    month_climo[8,:,:]  = np.nanmean(local_mask[11::12,:,:],axis=0) # September 
+    month_climo[9,:,:]  = np.nanmean(local_mask[0::12,:,:],axis=0)  # October 
+    month_climo[10,:,:] = np.nanmean(local_mask[1::12,:,:],axis=0)  # November
+    month_climo[11,:,:] = np.nanmean(local_mask[2::12,:,:],axis=0)  # December
+
+    # Insert data into dictionary
+    OMI_data['MONTH_CLIMO'] = month_climo
+
     return OMI_data
  
 
@@ -1216,8 +1251,40 @@ def plotOMI_NCDF_Climo(OMI_data,start_idx=0,end_idx=169,season = '',minlat=60):
 
     plt.show()
 
+# Plot a monthly climatology 
+def plotOMI_MonthClimo(OMI_data,month_idx,minlat = 60):
+
+    # Set up mapping variables 
+    datacrs = ccrs.PlateCarree() 
+    colormap = plt.cm.jet
+    if(minlat < 45):
+        mapcrs = ccrs.Miller()
+    else:
+        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
+
+    # Make figure title
+    title = 'OMI AI ' + datetime(year = 1,month = month_idx+1, day = 1).strftime('%B') + \
+        ' Climatology\nOct. 2004 - Nov. 2018'
+
+    # Make figure
+    fig1 = plt.figure(figsize = (8,8))
+    ax = plt.axes(projection = mapcrs)
+    ax.gridlines()
+    ax.coastlines(resolution='50m')
+    mesh = ax.pcolormesh(OMI_data['LON'], OMI_data['LAT'],\
+            OMI_data['MONTH_CLIMO'][month_idx,:,:],transform = datacrs,\
+            cmap = colormap, vmin = -1.0, vmax = 1.5)
+    ax.set_extent([-180,180,minlat,90],datacrs)
+    ax.set_xlim(-3430748.535086173,3430748.438879491)
+    ax.set_ylim(-3413488.8763307533,3443353.899053069)
+    cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
+        aspect=50,shrink = 0.905,label='Aerosol Index')
+    ax.set_title(title)
+
+    plt.show()
+
 # Plot a single swath of OMI data with total climatology subtracted
-def single_swath_anomaly_climo(OMI_data,swath_date,minlat = 60,row_max = 60): 
+def single_swath_anomaly_climo(OMI_data,swath_date,month_climo = True,minlat = 60,row_max = 60): 
     # - - - - - - - - - - - - - - - -
     # Read in the single swath data
     # - - - - - - - - - - - - - - - -
@@ -1320,9 +1387,19 @@ def single_swath_anomaly_climo(OMI_data,swath_date,minlat = 60,row_max = 60):
     # Calculate the row-average AI for the secondary plot
     mask_avgs = np.nanmean(np.ma.masked_where(AI[:,:] < -20, AI[:,:]),axis=0)
 
-    local_data = np.copy(OMI_data['AI'][:,:,:])
-    local_mask = np.ma.masked_where(local_data == -999.9, local_data)
-    local_climo = np.nanmean(local_mask, axis=0).T
+
+    if(month_climo == True):
+        # Determine which month to use based on the swath date
+        monther = int(date[:2])-1
+        local_climo = OMI_data['MONTH_CLIMO'][monther,:,:].T
+        title_adder = 'Monthly Anomaly '
+        file_adder = 'mnth_anom_'
+    else:
+        local_data = np.copy(OMI_data['AI'][:,:,:])
+        local_mask = np.ma.masked_where(local_data == -999.9, local_data)
+        local_climo = np.nanmean(local_mask, axis=0).T
+        title_adder = 'Anomaly '
+        file_adder = 'anom_'
 
     # Interpolate 2D data
     # Find where the high-res data fits in to the climo data
@@ -1334,7 +1411,7 @@ def single_swath_anomaly_climo(OMI_data,swath_date,minlat = 60,row_max = 60):
 
     for yi in range(len(OMI_data['LON'][0,:])):
         for xj in range(len(OMI_data['LAT'][begin_x:,0])):
-            high_climo[yi*4:yi*4+4, xj*4:xj*4+4] = local_climo[yi, xj]
+            high_climo[yi*4:yi*4+4, xj*4:xj*4+4] = local_climo[yi, xj+begin_x]
 
     # Find out where the high res climo data fits in to the
     # single swath data. The single swath data are assumed to be 
@@ -1345,7 +1422,7 @@ def single_swath_anomaly_climo(OMI_data,swath_date,minlat = 60,row_max = 60):
     # Calculate anomalies
     UVAI_anomaly = UVAI[0:end_yi+1, 0:end_xj+1] - high_climo  
 
-    ###return high_lats, high_lons, high_climo,lat_ranges, lon_ranges, UVAI
+    #return high_lats, high_lons, high_climo,lat_ranges, lon_ranges, UVAI
     ####return lat_ranges,lon_ranges,UVAI,count
 
     plot_lat, plot_lon = np.meshgrid(high_lats,high_lons)
@@ -1357,7 +1434,7 @@ def single_swath_anomaly_climo(OMI_data,swath_date,minlat = 60,row_max = 60):
     ax.gridlines()
     ax.coastlines(resolution='50m')
  
-    plt.title('OMI Aerosol Index Anomaly '+swath_date)
+    plt.title('OMI AI '+title_adder + swath_date)
     #plt.title('OMI Reflectivity - Surface Albedo '+swath_date)
     mesh = ax.pcolormesh(plot_lon, plot_lat,mask_UVAI_anom,transform = datacrs,cmap = colormap,\
             vmin = -2.0, vmax = 3.0)
@@ -1373,7 +1450,7 @@ def single_swath_anomaly_climo(OMI_data,swath_date,minlat = 60,row_max = 60):
     ##cb.ax.set_xlabel('Aerosol Index')
     #cb.ax.set_xlabel('Reflectivity - Surface Albedo')
     #out_name = 'omi_single_pass_ai_200804270052_to_0549_composite_rows_0to'+str(row_max)+'.png'       
-    out_name = 'omi_single_pass_ai_anom_'+swath_date+'_rows_0to'+str(row_max)+'.png'       
+    out_name = 'omi_single_pass_ai_'+file_adder+swath_date+'_rows_0to'+str(row_max)+'.png'       
     #out_name = 'omi_single_pass_refl_albedo_diff_'+swath_date+'_rows_0to'+str(row_max)+'.png'       
     plt.savefig(out_name)
     print('Saved image '+out_name)
@@ -1382,7 +1459,7 @@ def single_swath_anomaly_climo(OMI_data,swath_date,minlat = 60,row_max = 60):
     #axs[1].set_xlabel('Sensor Row')
     #axs[1].set_ylabel('Row Average Aerosol Index')
     
-    plt.show()
+    #plt.show()
 
 # Plot a single swath of OMI data with single-time swath climatology subtracted
 # single_swath = the swath that will be corrected (format = YYYYMMDDHHMM)
