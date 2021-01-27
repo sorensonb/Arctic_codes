@@ -161,8 +161,8 @@ ax.gridlines()
 ax.coastlines()
 ax.set_extent([-180,180,60,90])
 mesh = ax.pcolormesh(longitude,latitude,mask_data,\
-        transform = datacrs, cmap = colormap)
-  #     , vmin = 0.0, vmax = 0.8)
+        transform = datacrs, cmap = colormap\
+       , vmin = 0.0, vmax = 1.0)
 #cbar = plt.colorbar(mesh,ticks = tick_dict[variable],orientation='horizontal',pad=0,\
 cbar = plt.colorbar(mesh,ticks = np.arange(0,1.01,0.1),orientation='horizontal',pad=0,\
     aspect=50,shrink = 0.905,label='Sea Ice Freeboard [m]')
@@ -177,7 +177,7 @@ ax.set_ylim(-2913488.8763307533,2943353.899053069)
 ax.set_title(plot_title)
 
 # Save image, if desired
-save = False
+save = True 
 if(save == True):
     outname = 'icesat2_freeboard'+file_saver+'_'+dtm_date.strftime('%Y%m%d')+'.png'
     plt.savefig(outname,dpi=300)
