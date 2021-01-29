@@ -50,6 +50,9 @@ os.system(cmnd)
 cmnd = "cp "+base_dir+"CERES/Make* "+dest_dir
 print(cmnd)
 os.system(cmnd)
+cmnd = "cp "+base_dir+"OMI/README "+dest_dir
+print(cmnd)
+os.system(cmnd)
 # ---------------------------------------------------------------------------- 
 # CERES_Ice_comparison codes
 # ---------------------------------------------------------------------------- 
