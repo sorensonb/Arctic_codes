@@ -1,0 +1,105 @@
+Written by: Blake Sorenson
+Modification date: 2020/01/28
+
+These notes are for making new CERES data figures (after January 15, 2021)
+
+The first dataset used for these figures is gridde monthly Aqua CERES data files
+located in /home/bsorenson/data/CERES/SSF_1Deg/monthly/Aqua/. These files range
+from July 2002 to July 2020, containing data north of 60 degrees N. The main
+variables used from these files are:
+
+  - toa_sw_all_mon    : upwelling SW flux
+  - toa_sw_clr_mon    : upwelling SW flux
+  - toa_lw_all_mon    : upwelling LW flux
+  - toa_lw_clr_mon    : upwelling LW flux
+  - toa_wn_all_mon    : window IR TOA upwelling flux
+  - toa_wn_clr_mon    : window IR TOA upwelling flux
+  - toa_net_all_mon   : broadband downwelling minus reflected SW and LW upwelling 
+  - toa_net_clr_mon   : broadband downwelling minus reflected SW and LW upwelling 
+  - toa_alb_all_mon   : ratio of broadband SW upwelling rad and incoming TOA flux
+  - toa_alb_clr_mon   : ratio of broadband SW upwelling rad and incoming TOA flux
+  - toa_solar_all_mon : downwelling solar radiation
+
+These files may be downloaded from the CERES website at:
+  ceres.larc.nasa.gov/data/
+
+The second dataset used are daily gridded Aqua CERES data files located in
+/home/bsorenson/data/CERES/SSF_1Deg/daily/Aqua. The variables used in these
+files are:
+
+  - toa_sw_all_daily    : upwelling SW flux
+  - toa_sw_clr_daily    : upwelling SW flux
+  - toa_lw_all_daily    : upwelling LW flux
+  - toa_lw_clr_daily    : upwelling LW flux
+  - toa_wn_all_daily    : window IR TOA upwelling flux
+  - toa_wn_clr_daily    : window IR TOA upwelling flux
+  - toa_net_all_daily   : broadband downwelling minus reflected SW and LW upwelling 
+  - toa_net_clr_daily   : broadband downwelling minus reflected SW and LW upwelling 
+  - toa_alb_all_daily   : ratio of broadband SW upwelling rad and incoming TOA flux
+  - toa_alb_clr_daily   : ratio of broadband SW upwelling rad and incoming TOA flux
+  - toa_solar_all_daily : downwelling solar radiation
+
+These files may be downloaded from the same website as above.
+
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+DATA READING AND PROCESSING
+
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+Monthly data
+----------------
+
+The first step in making the new figures is to read in the monthly data.
+To do this, enter the directory (/home/bsorenson/Research/CERES/) and start up
+a Python terminal using:
+
+  $ python
+
+Once starting the terminal, import functions from gridCERESLib.py using
+
+  >>> from gridCERESLib import *
+
+or
+
+  >>> from gridCERESLib import readgridCERES
+
+After reading in the functions, the monthly data must be read using:
+
+  >>> CERES_data = readgridCERES(start_date,end_date,param)
+
+where start_date and end_date are formatted as YYYYMM. 'param' is any 
+one of the variables listed earlier in this file or found by printing
+the data.variables.keys() after opening one of the files.
+
+Daily data
+----------------
+
+The second step in making the new figures is to read in the daily data.
+To do this, enter the directory (/home/bsorenson/Research/CERES/) and start up
+a Python terminal using:
+
+  $ python
+
+Once starting the terminal, import functions from gridCERESLib.py using
+
+  >>> from gridCERESLib import *
+
+or
+
+  >>> from gridCERESLib import readgridCERES_daily
+
+After reading in the functions, the monthly data must be read using:
+
+  >>> CERES_daily_data = readgridCERES_daily(start_date,end_date,param)
+
+where start_date and end_date are formatted as YYYYMM. 'param' is any 
+one of the variables listed earlier in this file or found by printing
+the data.variables.keys() after opening one of the files, with the note
+that the 'mon's in the previous paramter list must be changed to 'daily'.
+
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+PLOTTING
+
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
