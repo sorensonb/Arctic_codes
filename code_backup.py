@@ -103,3 +103,10 @@ os.system(cmnd)
 ##cmnd = "cp "+smcodes+"run_mie_code "+dest_dir
 ##print(cmnd)
 ##os.system(cmnd)
+
+# Automate the uploading to Github
+# --------------------------------
+
+# Change to Arctic codes directory
+os.chdir('/home/bsorenson/Arctic_codes/')
+
