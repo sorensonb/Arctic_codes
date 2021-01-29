@@ -5,6 +5,7 @@
 """
 import os
 import sys
+from datetime import datetime
 
 base_dir = "/home/bsorenson/Research/"
 dest_dir = "/home/bsorenson/Arctic_codes/"
@@ -110,3 +111,13 @@ os.system(cmnd)
 # Change to Arctic codes directory
 os.chdir('/home/bsorenson/Arctic_codes/')
 
+# Add new stuff
+os.system('git add .')
+
+# Determine today's date for the command
+today_str = datetime.today().strftime('%Y/%m/%d')
+cmnd = 'git commit -m \"'+today_str + '\"'
+os.system(cmnd)
+
+# Push
+os.system('git push origin master')
