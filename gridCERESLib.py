@@ -24,7 +24,8 @@ import numpy as np
 import sys
 import gzip
 import importlib
-from datetime import datetime,timedelta
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 import matplotlib
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -95,9 +96,10 @@ def trend_calc(years,months,ice,avg_ice,index,str_month):
     else:
         return -99.
 
-def readgridCERES(start_date,end_date,param,minlat=70.5,season='all'):
-    global CERES_dict 
-    CERES_dict = {}
+# 2021/01/28: modified function to allow for Aqua data
+def readgridCERES(start_date,end_date,param,satellite = 'Aqua',minlat=60.5,season='all'):
+    global CERES_data 
+    CERES_data = {}
   
     spring=False
     summer=False
@@ -115,34 +117,40 @@ def readgridCERES(start_date,end_date,param,minlat=70.5,season='all'):
     elif(season=='sunlight'):
         sunlight=True
    
-    lat_ranges = np.arange(-89.5,90.5,1.0)
+    lat_ranges = np.arange(minlat,90.5,1.0)
     lon_ranges = np.arange(0.5,360.5,1.0)
 
     # Grab all the files
-    base_path = '/home/bsorenson/data/CERES/SSF_1Deg/monthly/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
+    if(satellite == 'Terra'):
+        base_path = '/home/bsorenson/data/CERES/SSF_1Deg/monthly/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
+    else:
+        base_path = '/home/bsorenson/data/CERES/SSF_1Deg/monthly/Aqua/CERES_SSF1deg-Month_Aqua-MODIS_Ed4.1_Subset_'
     #base_path = '/data/CERES/SSF_1Deg/monthly/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
     #base_path = '/home/bsorenson/data/CERES/SSF_1Deg/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
-    total_list = sorted(glob.glob(base_path+'*'))
+    total_list = sorted(glob.glob(base_path+'*.nc')) 
 
     # Loop over all files and find the ones that match with the desired times
+    start_date = datetime.strptime(str(start_date),'%Y%m')
+    end_date = datetime.strptime(str(end_date),'%Y%m')
     final_list = []
     for f in total_list:
         fdate = f.split('_')[-1][:6]
-        if((int(fdate)>=int(start_date)) & (int(fdate)<=int(end_date))):
+        fdate = datetime.strptime(str(fdate),'%Y%m')
+        if((fdate >= start_date) & (fdate <= end_date)):
             if(spring==True):
-                if((int(fdate[-2:])>=3) & (int(fdate[-2:])<6)):
+                if((fdate.month >= 3) & (fdate.month < 6)):
                     final_list.append(f)
             elif(summer==True):
-                if((int(fdate[-2:])>=6) & (int(fdate[-2:])<9)):
+                if((fdate.month >= 6) & (fdate.month < 9)):
                     final_list.append(f)
             elif(autumn==True):
-                if((int(fdate[-2:])>=9) & (int(fdate[-2:])<12)):
+                if((fdate.month >= 9) & (fdate.month < 12)):
                     final_list.append(f)
             elif(winter==True):
-                if((int(fdate[-2:])==12) | (int(fdate[-2:])<3)):
+                if((fdate.month == 12) | (fdate.month < 3)):
                     final_list.append(f)
             elif(sunlight==True):
-                if((int(fdate[-2:])>3) & (int(fdate[-2:])<10)):
+                if((fdate.month > 3) & (fdate.month < 10)):
                     final_list.append(f)
             else:
                 final_list.append(f)
@@ -150,17 +158,21 @@ def readgridCERES(start_date,end_date,param,minlat=70.5,season='all'):
 
     lat_indices = np.where(lat_ranges>=minlat)[0]
 
-    CERES_dict['param'] = param
-    CERES_dict['data']   = np.zeros((time_dim,len(lat_indices),len(lon_ranges)))
-    CERES_dict['trends'] = np.zeros((len(lat_indices),len(lon_ranges)))
-    CERES_dict['dates'] = [] 
+    # Grid the lat and data
+    grid_lon, grid_lat = np.meshgrid(lon_ranges,lat_ranges[lat_indices])
+
+    CERES_data['param'] = param
+    CERES_data['data']   = np.zeros((time_dim,len(lat_indices),len(lon_ranges)))
+    CERES_data['trends'] = np.zeros((len(lat_indices),len(lon_ranges)))
+    CERES_data['dates'] = [] 
     data = Dataset(final_list[0],'r')
-    CERES_dict['parm_name'] = data.variables[param].standard_name 
-    CERES_dict['parm_unit'] = data.variables[param].units 
-    CERES_dict['lat'] = lat_ranges[lat_indices]
-    CERES_dict['lon'] = lon_ranges
-    CERES_dict['month_fix'] = ''
-    CERES_dict['season']=season
+    CERES_data['parm_name'] = data.variables[param].standard_name 
+    CERES_data['parm_unit'] = data.variables[param].units 
+    CERES_data['lat'] = grid_lat
+    CERES_data['lon'] = grid_lon
+    CERES_data['month_fix'] = ''
+    CERES_data['season']=season
+    CERES_data['satellite'] = satellite
     data.close()
 
     # Loop over good files and insert data into dictionary
@@ -168,8 +180,8 @@ def readgridCERES(start_date,end_date,param,minlat=70.5,season='all'):
     for ff in final_list:
         print(ff)
         data = Dataset(ff,'r')
-        CERES_dict['data'][i_count,:,:] = data.variables[param][0,lat_indices,:]
-        CERES_dict['dates'].append(ff.split('_')[-1][:6])
+        CERES_data['data'][i_count,:,:] = data.variables[param][0,lat_indices,:]
+        CERES_data['dates'].append(ff.split('_')[-1][:6])
     #    print(data.variables[param][0,lat_indices,:])
         data.close() 
         i_count+=1
@@ -180,7 +192,103 @@ def readgridCERES(start_date,end_date,param,minlat=70.5,season='all'):
     #tempdate = data.variables['time'].units
     #orig_date = datetime.strptime(tempdate.split()[2]+' '+tempdate.split()[3],'%Y-%m-%d %H:%M:%S')
 
-    return CERES_dict
+    return CERES_data
+
+# For now, assume that the user only wants to grab a single file of daily data
+# User could cram multiple months into a single file, if wanted
+def readgridCERES_daily(start_date,end_date,param,satellite = 'Aqua',minlat=60.5,season='all'):
+    CERES_data = {}
+  
+    lat_ranges = np.arange(minlat,90.5,1.0)
+    lon_ranges = np.arange(0.5,360.5,1.0)
+
+    # Grab all the files
+    if(satellite == 'Terra'):
+        base_path = '/home/bsorenson/data/CERES/SSF_1Deg/daily/Terra/CERES_SSF1deg-Day_Terra-MODIS_Ed4.1_Subset_'
+    else:
+        base_path = '/home/bsorenson/data/CERES/SSF_1Deg/daily/Aqua/CERES_SSF1deg-Day_Aqua-MODIS_Ed4.1_Subset_'
+    #base_path = '/data/CERES/SSF_1Deg/monthly/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
+    #base_path = '/home/bsorenson/data/CERES/SSF_1Deg/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
+    total_list = sorted(glob.glob(base_path+'*.nc'))
+
+    # Loop over all files and find the ones that match with the desired times
+    start_date = datetime.strptime(str(start_date),'%Y%m%d')
+    end_date = datetime.strptime(str(end_date),'%Y%m%d')
+    final_list = []
+    for f in total_list:
+        fdate = f.split('_')[-1][:6]
+        fdate = datetime.strptime(str(fdate),'%Y%m')
+        if((fdate>=start_date) & (fdate<=end_date)):
+            final_list.append(f)
+    time_dim = len(final_list)
+
+    lat_indices = np.where(lat_ranges>=minlat)[0]
+
+    # Open up the file
+    data = Dataset(final_list[0],'r')
+    print(final_list[0])
+
+    CERES_data['param'] = param
+    CERES_data['data']   = np.zeros((data.variables['time'].size,len(lat_indices),len(lon_ranges)))
+    CERES_data['trends'] = np.zeros((len(lat_indices),len(lon_ranges)))
+    CERES_data['dates'] = [] 
+    CERES_data['parm_name'] = data.variables[param].standard_name 
+    CERES_data['parm_unit'] = data.variables[param].units 
+    CERES_data['lat'] = lat_ranges[lat_indices]
+    CERES_data['lon'] = lon_ranges
+    CERES_data['month_fix'] = ''
+    CERES_data['season']=season
+    CERES_data['satellite'] = satellite
+
+    split_date = data.variables['time'].units.split()[2].split('-')
+    base_date = datetime(year = int(split_date[0]), month = int(split_date[1]),\
+         day = int(split_date[2]))
+
+    # Loop over good files and insert data into dictionary
+    for ti in range(data.variables['time'].size):
+        CERES_data['data'][ti,:,:] = data.variables[param][ti,lat_indices,:]
+        new_date = base_date + relativedelta(days = data.variables['time'][ti])
+        CERES_data['dates'].append(new_date.strftime("%Y%m%d"))
+        ### print(data.variables[param][0,lat_indices,:])
+    data.close() 
+     
+    #start_date = datetime.strptime(str(start_date),'%Y%m')
+    #end_date = datetime.strptime(str(end_date),'%Y%m') +timedelta(days=31)
+    #
+    #tempdate = data.variables['time'].units
+    #orig_date = datetime.strptime(tempdate.split()[2]+' '+tempdate.split()[3],'%Y-%m-%d %H:%M:%S')
+
+    return CERES_data
+
+# This function assumes the data is being read from the CERES_data dictionary 
+def calcCERES_MonthClimo(CERES_data):
+
+    # Set up arrays to hold monthly climatologies
+    month_climo = np.zeros((12,CERES_data['data'].shape[1],CERES_data['data'].shape[2]))
+
+    # Mask the monthly averages
+    local_data = np.copy(CERES_data['data'][:,:,:])
+    local_mask = np.ma.masked_where(local_data == -999.9, local_data)
+
+    # Calculate monthly climatologies
+    # Assume all Aqua CERES data starting at 200207 is read in previously
+    month_climo[0,:,:]  = np.nanmean(local_mask[6::12,:,:],axis=0)  # January 
+    month_climo[1,:,:]  = np.nanmean(local_mask[7::12,:,:],axis=0)  # February
+    month_climo[2,:,:]  = np.nanmean(local_mask[8::12,:,:],axis=0)  # March 
+    month_climo[3,:,:]  = np.nanmean(local_mask[9::12,:,:],axis=0)  # April 
+    month_climo[4,:,:]  = np.nanmean(local_mask[10::12,:,:],axis=0) # May 
+    month_climo[5,:,:]  = np.nanmean(local_mask[11::12,:,:],axis=0) # June 
+    month_climo[6,:,:]  = np.nanmean(local_mask[0::12,:,:],axis=0)  # July 
+    month_climo[7,:,:]  = np.nanmean(local_mask[1::12,:,:],axis=0)  # August 
+    month_climo[8,:,:]  = np.nanmean(local_mask[2::12,:,:],axis=0)  # September 
+    month_climo[9,:,:]  = np.nanmean(local_mask[3::12,:,:],axis=0)  # October 
+    month_climo[10,:,:] = np.nanmean(local_mask[4::12,:,:],axis=0)  # November
+    month_climo[11,:,:] = np.nanmean(local_mask[5::12,:,:],axis=0)  # December
+
+    # Insert data into dictionary
+    CERES_data['MONTH_CLIMO'] = month_climo
+
+    return CERES_data
 
 def calc_avgCERES(CERES_dict,save=False,start_date='200101',end_date='201812',minlat=70.5,month_fix=False):
     
@@ -576,6 +684,7 @@ def make_scatter(CERES_dict_alb_clr,CERES_dict_sw_clr,\
     outname = 'ceres_clralb_clrnet_trend_scatter.png'
     plt.savefig(outname,dpi=300)
     print("Saved image ",outname)
+
 def icePlots(infile,monthfix=False):
 
     print("\n= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =")
@@ -963,3 +1072,159 @@ def plotCERES_AllPlots(CERES_dict,CERES_dict_summer,CERES_dict_winter,minlat=31.
         plotCERES_LatObCount(CERES_dict_winter,minlat=min_lat,ptype='lwf',save=True,season='winter',\
                   trend_type='standard',sfc_type='all',start_date=startdate,end_date=enddate)
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+#
+# NEW GRID DATA FUNCTIONS
+#
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+# Plot a single daily average
+def plotCERES_Daily(CERES_data,day_idx,minlat = 60,save=False):
+
+    # Set up mapping variables 
+    datacrs = ccrs.PlateCarree() 
+    colormap = plt.cm.jet
+    if(minlat < 45):
+        mapcrs = ccrs.Miller()
+    else:
+        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
+
+    # Make figure title
+    title = 'CERES ' + CERES_data['param'] + ' ' + CERES_data['dates'][day_idx]
+
+    # Mask the data
+    local_data = np.copy(CERES_data['data'][day_idx,:,:])
+    local_mask = np.ma.masked_where(local_data[:,:] < 0, local_data[:,:])
+
+    # Make figure
+    plt.close()
+    fig1 = plt.figure(figsize = (8,8))
+    ax = plt.axes(projection = mapcrs)
+    ax.gridlines()
+    ax.coastlines(resolution='50m')
+    mesh = ax.pcolormesh(CERES_data['lon'], CERES_data['lat'],\
+            local_mask,transform = datacrs,\
+            cmap = colormap)
+    ax.set_extent([-180,180,minlat,90],datacrs)
+    ax.set_xlim(-3430748.535086173,3430748.438879491)
+    ax.set_ylim(-3413488.8763307533,3443353.899053069)
+    cbar = plt.colorbar(mesh,ticks = np.arange(0.0,400.,25.),orientation='horizontal',pad=0,\
+        aspect=50,shrink = 0.905,label=CERES_data['parm_name'])
+    ax.set_title(title)
+
+    if(save == True):   
+        outname = 'ceres_grid_'+CERES_data['satellite'].lower()+'_'+\
+                CERES_data['param']+'_'+CERES_data['dates'][day_idx]+'.png'
+        plt.savefig(outname)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
+# Plot a single monthly average
+def plotCERES_Month(CERES_data,month_idx,minlat = 60):
+
+    # Set up mapping variables 
+    datacrs = ccrs.PlateCarree() 
+    colormap = plt.cm.jet
+    if(minlat < 45):
+        mapcrs = ccrs.Miller()
+    else:
+        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
+
+    # Make figure title
+    title = 'CERES ' + CERES_data['param'] + ' ' + CERES_data['dates'][month_idx]
+
+    # Make figure
+    fig1 = plt.figure(figsize = (8,8))
+    ax = plt.axes(projection = mapcrs)
+    ax.gridlines()
+    ax.coastlines(resolution='50m')
+    mesh = ax.pcolormesh(CERES_data['lon'], CERES_data['lat'],\
+            CERES_data['data'][month_idx,:,:],transform = datacrs,\
+            cmap = colormap)
+    ax.set_extent([-180,180,minlat,90],datacrs)
+    ax.set_xlim(-3430748.535086173,3430748.438879491)
+    ax.set_ylim(-3413488.8763307533,3443353.899053069)
+    cbar = plt.colorbar(mesh,ticks = np.arange(0.0,400.,25.),orientation='horizontal',pad=0,\
+        aspect=50,shrink = 0.905,label=CERES_data['parm_name'])
+    ax.set_title(title)
+
+    plt.show()
+
+# Plot a monthly climatology 
+def plotCERES_MonthClimo(CERES_data,month_idx,minlat = 60):
+
+    # Set up mapping variables 
+    datacrs = ccrs.PlateCarree() 
+    colormap = plt.cm.jet
+    if(minlat < 45):
+        mapcrs = ccrs.Miller()
+    else:
+        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
+
+    # Make figure title
+    title = 'CERES ' + CERES_data['param'] + ' ' + datetime(year = 1,month = month_idx+1, day = 1).strftime('%B') + \
+        ' Climatology\nJul. 2002 - Jul. 2020'
+
+    # Make figure
+    plt.close()
+    fig1 = plt.figure(figsize = (8,8))
+    ax = plt.axes(projection = mapcrs)
+    ax.gridlines()
+    ax.coastlines(resolution='50m')
+    mesh = ax.pcolormesh(CERES_data['lon'], CERES_data['lat'],\
+            CERES_data['MONTH_CLIMO'][month_idx,:,:],transform = datacrs,\
+            cmap = colormap)
+    ax.set_extent([-180,180,minlat,90],datacrs)
+    ax.set_xlim(-3430748.535086173,3430748.438879491)
+    ax.set_ylim(-3413488.8763307533,3443353.899053069)
+    cbar = plt.colorbar(mesh,ticks = np.arange(0.0,400.,25.),orientation='horizontal',pad=0,\
+        aspect=50,shrink = 0.905,label=CERES_data['parm_name'])
+    ax.set_title(title)
+
+    plt.show()
+
+# Plot a daily monthly anomalies, which are daily data with that month's
+# climatology subtracted 
+def plotCERES_Daily_MonthAnomaly(CERES_data,CERES_daily_data,day_idx,minlat = 60,save=True):
+
+    # Set up mapping variables 
+    datacrs = ccrs.PlateCarree() 
+    colormap = plt.cm.jet
+    if(minlat < 45):
+        mapcrs = ccrs.Miller()
+    else:
+        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
+
+    # Determine which month to use based on the inputted day
+    month_idx = int(CERES_daily_data['dates'][day_idx][4:6]) - 1
+
+    # Calculate anomalies
+    CERES_anom = CERES_daily_data['data'][day_idx,:,:] - CERES_data['MONTH_CLIMO'][month_idx,:,:]
+
+    # Make figure title
+    title = 'CERES ' + CERES_daily_data['param'] + ' Monthly Anomaly ' + CERES_daily_data['dates'][day_idx]
+
+    # Make figure
+    plt.close()
+    fig1 = plt.figure(figsize = (8,8))
+    ax = plt.axes(projection = mapcrs)
+    ax.gridlines()
+    ax.coastlines(resolution='50m')
+    mesh = ax.pcolormesh(CERES_data['lon'], CERES_data['lat'],\
+            CERES_anom,transform = datacrs,\
+            cmap = colormap)
+    ax.set_extent([-180,180,minlat,90],datacrs)
+    ax.set_xlim(-3430748.535086173,3430748.438879491)
+    ax.set_ylim(-3413488.8763307533,3443353.899053069)
+    cbar = plt.colorbar(mesh,ticks = np.arange(-200,200.,25.),orientation='horizontal',pad=0,\
+        aspect=50,shrink = 0.905,label=CERES_data['parm_name'])
+    ax.set_title(title)
+
+    if(save == True):
+        out_name = 'ceres_grid_'+CERES_daily_data['satellite'].lower() + '_' + CERES_daily_data['param'] + '_mnth_anom_'+\
+            CERES_daily_data['dates'][day_idx]+'.png'       
+        plt.savefig(out_name)
+        print('Saved image '+out_name)
+    else:
+        plt.show()
