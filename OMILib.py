@@ -1252,7 +1252,7 @@ def plotOMI_NCDF_Climo(OMI_data,start_idx=0,end_idx=169,season = '',minlat=60):
     plt.show()
 
 # Plot a monthly climatology 
-def plotOMI_MonthClimo(OMI_data,month_idx,minlat = 60):
+def plotOMI_MonthClimo(OMI_data,month_idx,minlat = 60,save=False):
 
     # Set up mapping variables 
     datacrs = ccrs.PlateCarree() 
@@ -1263,8 +1263,8 @@ def plotOMI_MonthClimo(OMI_data,month_idx,minlat = 60):
         mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
 
     # Make figure title
-    title = 'OMI AI ' + datetime(year = 1,month = month_idx+1, day = 1).strftime('%B') + \
-        ' Climatology\nOct. 2004 - Nov. 2018'
+    date_month = datetime(year = 1,month = month_idx+1, day = 1).strftime('%B')
+    title = 'OMI AI ' + date_month + ' Climatology\nOct. 2004 - Nov. 2018'
 
     # Make figure
     fig1 = plt.figure(figsize = (8,8))
@@ -1277,14 +1277,21 @@ def plotOMI_MonthClimo(OMI_data,month_idx,minlat = 60):
     ax.set_extent([-180,180,minlat,90],datacrs)
     ax.set_xlim(-3430748.535086173,3430748.438879491)
     ax.set_ylim(-3413488.8763307533,3443353.899053069)
-    cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
-        aspect=50,shrink = 0.905,label='Aerosol Index')
+    cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5), \
+        orientation='horizontal',pad=0,aspect=50,shrink = 0.905,\
+        label='Aerosol Index')
     ax.set_title(title)
 
-    plt.show()
+    if(save == True):
+        out_name = 'omi_ai_month_climo_' + date_month + '.png'
+        plt.savefig(out_name,dpi=300)
+        print("Saved image",out_name)
+    else:
+        plt.show()
 
 # Plot a single swath of OMI data with total climatology subtracted
-def single_swath_anomaly_climo(OMI_data,swath_date,month_climo = True,minlat = 60,row_max = 60): 
+def single_swath_anomaly_climo(OMI_data,swath_date,month_climo = True,\
+        minlat = 60,row_max = 60,save=False): 
     # - - - - - - - - - - - - - - - -
     # Read in the single swath data
     # - - - - - - - - - - - - - - - -
@@ -1422,12 +1429,13 @@ def single_swath_anomaly_climo(OMI_data,swath_date,month_climo = True,minlat = 6
     # Calculate anomalies
     UVAI_anomaly = UVAI[0:end_yi+1, 0:end_xj+1] - high_climo  
 
-    #return high_lats, high_lons, high_climo,lat_ranges, lon_ranges, UVAI
-    ####return lat_ranges,lon_ranges,UVAI,count
-
+    # Mask grid boxes where the ob counts are zero
     plot_lat, plot_lon = np.meshgrid(high_lats,high_lons)
     mask_UVAI_anom = np.ma.masked_where(count[0:end_yi+1, 0:end_xj+1] == 0, UVAI_anomaly)
-   
+  
+    # Mask any data below AI values of 0.8
+    mask_UVAI_anom = np.ma.masked_where(mask_UVAI_anom < 0.8, mask_UVAI_anom)
+ 
     plt.close()
     fig1 = plt.figure(figsize=(8,8))
     ax = plt.axes(projection = mapcrs)
@@ -1450,16 +1458,16 @@ def single_swath_anomaly_climo(OMI_data,swath_date,month_climo = True,minlat = 6
     ##cb.ax.set_xlabel('Aerosol Index')
     #cb.ax.set_xlabel('Reflectivity - Surface Albedo')
     #out_name = 'omi_single_pass_ai_200804270052_to_0549_composite_rows_0to'+str(row_max)+'.png'       
-    out_name = 'omi_single_pass_ai_'+file_adder+swath_date+'_rows_0to'+str(row_max)+'.png'       
-    #out_name = 'omi_single_pass_refl_albedo_diff_'+swath_date+'_rows_0to'+str(row_max)+'.png'       
-    plt.savefig(out_name)
-    print('Saved image '+out_name)
-    
+    if(save == True):
+        out_name = 'omi_single_pass_ai_'+file_adder+swath_date+'_rows_0to'+str(row_max)+'.png'       
+        plt.savefig(out_name)
+        print('Saved image '+out_name)
+    else: 
+        plt.show()
     #axs[1].plot(mask_avgs)
     #axs[1].set_xlabel('Sensor Row')
     #axs[1].set_ylabel('Row Average Aerosol Index')
     
-    #plt.show()
 
 # Plot a single swath of OMI data with single-time swath climatology subtracted
 # single_swath = the swath that will be corrected (format = YYYYMMDDHHMM)

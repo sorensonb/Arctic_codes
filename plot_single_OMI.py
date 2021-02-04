@@ -220,7 +220,7 @@ for fileI in range(len(total_list)):
             if(AI[i,j]>-20):
             #if(plotAI[i,j]>-20):
                 # Only plot if XTrack flag is met
-                if((XTRACK[i,j] == 0) | ((XTRACK[i,j] & 4 == 4))):
+                if((XTRACK[i,j] == 0) | (XTRACK[i,j] == 4)):
                     # Print values to text file
                     if(LAT[i,j] > latmin):
                         counter+=1
