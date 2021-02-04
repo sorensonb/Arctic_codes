@@ -116,7 +116,7 @@ os.system('git add .')
 
 # Determine today's date for the command
 today_str = datetime.today().strftime('%Y/%m/%d')
-cmnd = 'git commit -m \"'+today_str + '\"'
+cmnd = 'git commit -m \"Backup '+today_str + '\"'
 os.system(cmnd)
 
 # Push
