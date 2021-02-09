@@ -93,13 +93,68 @@ After reading in the functions, the monthly data must be read using:
 
   >>> CERES_daily_data = readgridCERES_daily(start_date,end_date,param)
 
-where start_date and end_date are formatted as YYYYMM. 'param' is any 
+where start_date and end_date are formatted as YYYYMMDD. 'param' is any 
 one of the variables listed earlier in this file or found by printing
 the data.variables.keys() after opening one of the files, with the note
 that the 'mon's in the previous paramter list must be changed to 'daily'.
+
+Calculating monthly climatologies
+---------------------------------
+
+After reading in the data, monthly climatologies must be calculated. These
+monthly climatologies contain the average values for each of the 12 months
+across all years in the file. For example, the April CERES monthly climatology
+contains the gridded averages of all April monthly data between April 2002 and
+April 2019. To calculate these values, use
+
+  >>> CERES_data = calcCERES_MonthClimo(CERES_data)
+
 
 = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 PLOTTING
 
 = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+plotCERES_Daily
+- - - - - - - -  
+
+To plot a single daly of gridded daly CERES data, use:
+
+  >>> plotCERES_Daily(CERES_daily_data,day_idx)
+
+day_idx is the index of the desired month in the dictionary. Currently,
+no images are saved.
+
+plotCERES_Month
+- - - - - - - -  
+
+To plot a single month of gridded CERES data, use:
+
+  >>> plotCERES_Month(CERES_data,month_idx)
+
+month_idx is the index of the desired month in the dictionary. Currently,
+no images are saved.
+
+plotCERES_MonthClimo
+- - - - - - - - - -
+
+To plot a single monthly climatology (i.e., the average April CERES data values),
+use
+
+  >>> plotCERES_MonthClimo(CERES_data,month_idx)
+
+where month_idx is the index of the desired month (0 for January, 1 for February,
+2 for March, etc.). Currently, no image is saved from this.
+
+plotCERES_MonthClimo
+- - - - - - - - - -
+
+To plot single-day anomalies from the corresponding monthly climatology for
+the CERES data, use 
+
+  >>> plotCERES_Daily_MonthAnomaly(CERES_data,CERES_daily_data,day_idx)
+
+where day_idx is the index of the desired day for which to calculate anomalies.
+An image is saved with the following format:
+  ceres_grid_aqua_toa_sw_all_daily_mnth_anom_20080427.png
