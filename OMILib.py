@@ -167,13 +167,13 @@ def readOMI(inputfile,start_date,end_date,key=None):
     return OMI_data
 
 def writeOMI_toNCDF(OMI_data,minlat=30):
-    lat_ranges = np.arange(minlat,90,1.0)
+    lat_ranges = np.arange(minlat,90.5,1.0)
     lon_ranges = np.arange(-180,180,1.0)
     
-    nc = Dataset('./omi_gridded_ai.nc','w',format='NETCDF4')
+    nc = Dataset('/home/bsorenson/Research/OMI/omi_ai_V003_2005_2020.nc','w',format='NETCDF4')
   
     # Dimensions = lat, lon, time
-    testdict = OMI_data['40x5']
+    testdict = OMI_data['50x5']
     testkeys = list(testdict.keys())
     num_lat = len(lat_ranges)
     num_lon = len(lon_ranges)
@@ -185,7 +185,7 @@ def writeOMI_toNCDF(OMI_data,minlat=30):
     n_lon  = nc.createDimension('dlon',num_lon)
 
     MONTH=nc.createVariable('MONTH','i2',('nmth'))
-    MONTH.description='Months since October 2004'
+    MONTH.description='Months since January 2005'
     LAT=nc.createVariable('Latitude','i2',('dlat','dlon'))
     LAT.description='Latitude'
     LAT.units='Degrees'
@@ -225,7 +225,7 @@ def writeOMI_toNCDF(OMI_data,minlat=30):
                         OB_COUNT[m,i,j] = OMI_data[dictkey][timekey]['#_obs']
     nc.close()
    
-def readOMI_NCDF(infile='/home/bsorenson/Research/OMI/omi_1x1_gridded_ai.nc',minlat=30):
+def readOMI_NCDF(infile='/home/bsorenson/Research/OMI/omi_ai_V003_2005_2020.nc',minlat=50):
     # Read in data to netCDF object
     in_data = Dataset(infile,'r')
 
@@ -238,7 +238,7 @@ def readOMI_NCDF(infile='/home/bsorenson/Research/OMI/omi_1x1_gridded_ai.nc',min
     OMI_data['MONTH'] = in_data['MONTH'][:]
 
     # Set up date strings in the file
-    start_date = datetime(year = 2004, month = 10, day = 1)
+    start_date = datetime(year = 2005, month = 1, day = 1)
     OMI_data['DATES'] = \
         [(start_date + relativedelta(months=mi)).strftime('%Y%m') for mi in \
         OMI_data['MONTH']]

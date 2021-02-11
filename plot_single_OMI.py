@@ -31,13 +31,55 @@ import cartopy.crs as ccrs
 import subprocess
 import h5py
 
-if(len(sys.argv)<3):
-    print("SYNTAX: python plot_single_OMI.py date row_max")
+# Set up variable dictionary
+path_dict = {
+    'SurfaceAlbedo':           'Data Fields/',\
+    'Reflectivity':            'Data Fields/',\
+    'CloudFraction':           'Data Fields/',\
+    'UVAerosolIndex':          'Data Fields/',\
+    'PixelQualityFlags':       'Data Fields/',\
+    'MeasurementQualityFlags': 'Data Fields/',\
+    'ViewingZenithAngle':      'Geolocation Fields/',\
+    'SolarZenithAngle':        'Geolocation Fields/',\
+    'RelativeZenithAngle':     'Geolocation Fields/',\
+    'GroundPixelQualityFlags': 'Geolocation Fields/'
+}
+
+# Set up dictionary to hold file naming variables
+name_dict = {
+    'SurfaceAlbedo':           'alb',\
+    'Reflectivity':            'refl',\
+    'CloudFraction':           'cldfrc',\
+    'UVAerosolIndex':          'uvai',\
+    'PixelQualityFlags':       'pxlqf',\
+    'MeasurementQualityFlags': 'msmtqf',\
+    'ViewingZenithAngle':      'vza',\
+    'SolarZenithAngle':        'sza',\
+    'RelativeZenithAngle':     'rza',\
+    'GroundPixelQualityFlags': 'grndqf'
+}
+
+var_dict = {
+    'SurfaceAlbedo':           {'min': 0.0,  'max': 1.0},\
+    'Reflectivity':            {'min': 0.0,  'max': 1.0},\
+    'CloudFraction':           {'min': None, 'max': None},\
+    'UVAerosolIndex':          {'min': -2.0, 'max': 3.0 },\
+    'PixelQualityFlags':       {'min': None, 'max': None},\
+    'MeasurementQualityFlags': {'min': None, 'max': None},\
+    'ViewingZenithAngle':      {'min': 0.0,  'max': 180.},\
+    'SolarZenithAngle':        {'min': None, 'max': None},\
+    'RelativeZenithAngle':     {'min': None, 'max': None},\
+    'GroundPixelQualityFlags': {'min': None, 'max': None},\
+}
+
+if(len(sys.argv)<4):
+    print("SYNTAX: python plot_single_OMI.py date variable row_max")
     sys.exit()
 
-row_max=int(sys.argv[2])
-
 plot_time = sys.argv[1]
+variable = sys.argv[2]
+row_max=int(sys.argv[3])
+
 #new_time = '20130611t1322_new'
 base_path = '/home/bsorenson/data/OMI/H5_files/'
 #new_base_path = '/home/shared/OMAERUV/OMAERUV_Parameters/new_files/'
@@ -193,19 +235,33 @@ for fileI in range(len(total_list)):
     # read in data directly from HDF5 files
     print(total_list[fileI])
     data = h5py.File(total_list[fileI],'r')
-    #ALBEDO = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/SurfaceAlbedo']
-    #REFLECTANCE = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/Reflectivity']
-    #CLD = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/CloudFraction']
-    AI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex']
-    #PIXEL= data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/PixelQualityFlags']
-    #MSMNT= data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/MeasurementQualityFlags']
-    #VZA  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/ViewingZenithAngle']
-    #SZA  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/SolarZenithAngle']
-    #RAZ  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/RelativeAzimuthAngle']
-    LAT = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude']
-    LON = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude']
+
+    LAT   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude']
+    LON   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude']
+    PDATA = data['HDFEOS/SWATHS/Aerosol NearUV Swath/' + path_dict[variable] + variable]
+    if(len(PDATA.shape) == 3):
+        # If 3 dimensions, assume that the smallest dimension is the wavelength
+        # dimension. Find that dimension and grab the first index of that
+        # dimension, which is the 354 nm channel.
+        min_dim = np.min(PDATA.shape)
+        if(PDATA.shape[2] == min_dim):
+            PDATA = PDATA[:,:,0]
+        elif(PDATA.shape[1] == min_dim):
+            PDATA = PDATA[:,0,:]
+        else:
+            PDATA = PDATA[0,:,:]
     XTRACK = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/XTrackQualityFlags']
-    #GRND = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags']
+
+    ###ALBEDO = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/SurfaceAlbedo']
+    ###REFLECTANCE = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/Reflectivity']
+    ###CLD = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/CloudFraction']
+    ###AI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex']
+    ###PIXEL= data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/PixelQualityFlags']
+    ###MSMNT= data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/MeasurementQualityFlags']
+    ###VZA  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/ViewingZenithAngle']
+    ###SZA  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/SolarZenithAngle']
+    ###RAZ  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/RelativeAzimuthAngle']
+    ###GRND = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags']
 
     #albedo = ALBEDO[:,:,0]   
     #reflectance = REFLECTANCE[:,:,0]   
@@ -214,10 +270,10 @@ for fileI in range(len(total_list)):
     # Loop over the values and rows 
     #for i in range(0,int(CBA2)):
     #for i in range(albedo.shape[0]):
-    for i in range(AI.shape[0]):
+    for i in range(PDATA.shape[0]):
         for j in range(0,row_max):
             #if((albedo[i,j]>-20) & (reflectance[i,j]>-20)):
-            if(AI[i,j]>-20):
+            if(PDATA[i,j]>-2e5):
             #if(plotAI[i,j]>-20):
                 # Only plot if XTrack flag is met
                 if((XTRACK[i,j] == 0) | (XTRACK[i,j] == 4)):
@@ -249,14 +305,14 @@ for fileI in range(len(total_list)):
                    
                         #if(diff<0.2): 
                         #    UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + AI[i,j])/(count[index2,index1]+1)
-                        UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + AI[i,j])/(count[index2,index1]+1)
+                        UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + PDATA[i,j])/(count[index2,index1]+1)
                         #UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + diff)/(count[index2,index1]+1)
                             #UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + plotAI[i,j])/(count[index2,index1]+1)
                             #if((ii==1309) and (ii2==59)): print UVAI[index1,index2]
                         count[index2, index1] = count[index2,index1] + 1
 
 # Calculate the row-average AI for the secondary plot
-mask_avgs = np.nanmean(np.ma.masked_where(AI[:,:] < -20, AI[:,:]),axis=0)
+mask_avgs = np.nanmean(np.ma.masked_where(PDATA[:,:] < -2e5, PDATA[:,:]),axis=0)
 
 #fout.close()
 #print("Min diff = ",min_diff)
@@ -287,42 +343,6 @@ v_max = 3.000
 ###mapper = ScalarMappable(norm=norm,cmap=cmap)
 ###nodatacolor="black"
 
-###for ii in range(0,n_p-1):
-###    for jj in range(0,nl-1):
-###        if(count[ii,jj]>0):
-###            color_index = np.where(ai_range[:]<UVAI[ii,jj])[0]
-###            if(len(color_index)==0):
-###                index_val = 0
-###                colors = nodatacolor
-###            else:
-###                index_val = color_index[-1]
-###                colors = mapper.to_rgba(UVAI[ii,jj])
-###            
-###            lon0 = LONalt[ii]
-###            lat0 = LATalt[jj]
-###            lat1 = LATalt[jj+1]
-###            lon1 = LONalt[ii+1]
-###       
-###            if(lat1>=latmin):
-###     
-###                y = [lat0,lat1,lat1,lat0]
-###                x = [lon0,lon0,lon1,lon1]
-###                mx, my = m(x,y)
-###                mxy = zip(mx,my)
-###                pair1 = (mx[0],my[0])
-###                pair2 = (mx[1],my[1])
-###                pair3 = (mx[2],my[2])
-###                pair4 = (mx[3],my[3])
-###                #mxy = zip(mx,my)
-###                # Plot the box on the map using color
-###                #colors = [RED[index_val],GREEN[index_val],BLUE[index_val]]
-###                color2 = rgb2hex(colors)
-###                poly = Polygon([pair1,pair2,pair3,pair4],facecolor=color2,edgecolor=color2)
-###                plt.gca().add_patch(poly)
-###                #if((i==1309) and (j==59)): print x, y
-###                #print x, y
-###                #if(fi == 0) then begin 
-        
 
 # Find the values at the comparison points in Greenland
 # For file 200804271224
@@ -371,23 +391,23 @@ data.close()
 plot_lat, plot_lon = np.meshgrid(LATalt,LONalt)
 mask_UVAI = np.ma.masked_where(count == 0, UVAI)
 
-plt.title('OMI Aerosol Index '+plot_time)
+plt.title('OMI ' + variable + ' '+plot_time)
 #plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
 mesh = axs[0].pcolormesh(plot_lon, plot_lat,mask_UVAI,transform = datacrs,cmap = colormap,\
-        vmin = -2.0, vmax = 3.0)
+        vmin = var_dict[variable]['min'], vmax = var_dict[variable]['max'])
 axs[0].set_extent([-180,180,latmin,90],ccrs.PlateCarree())
 axs[0].set_xlim(-3430748.535086173,3430748.438879491)
 axs[0].set_ylim(-3413488.8763307533,3443353.899053069)
 #ax.set_xlim(-4170748.535086173,4167222.438879491)
 #ax.set_ylim(-2913488.8763307533,2943353.899053069)
 cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
-    aspect=50,shrink = 0.905,label='Aerosol Index')
+    aspect=50,shrink = 0.905,label=variable)
 ##cax = fig.add_axes([0.16,0.075,0.7,0.025])
 ##cb = ColorbarBase(cax,cmap=cmap,norm=norm,orientation='horizontal')
 ##cb.ax.set_xlabel('Aerosol Index')
 #cb.ax.set_xlabel('Reflectivity - Surface Albedo')
 #out_name = 'omi_single_pass_ai_200804270052_to_0549_composite_rows_0to'+str(row_max)+'.png'       
-out_name = 'omi_single_pass_ai_'+plot_time+'_rows_0to'+str(row_max)+'.png'       
+out_name = 'omi_single_pass_'+name_dict[variable] + '_'+plot_time+'_rows_0to'+str(row_max)+'.png'       
 #out_name = 'omi_single_pass_refl_albedo_diff_'+plot_time+'_rows_0to'+str(row_max)+'.png'       
 plt.savefig(out_name)
 print('Saved image '+out_name)
@@ -396,4 +416,4 @@ print('Saved image '+out_name)
 #axs[1].set_xlabel('Sensor Row')
 #axs[1].set_ylabel('Row Average Aerosol Index')
 
-#plt.show()
+plt.show()
