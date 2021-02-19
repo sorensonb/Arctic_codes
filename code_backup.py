@@ -75,6 +75,9 @@ print("OMI")
 cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
 print(cmnd)
 os.system(cmnd)
+cmnd = "cp "+base_dir+"OMI/OMI_simulation/*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
 cmnd = "cp "+base_dir+"OMI/README_omi "+dest_dir
 print(cmnd)
 os.system(cmnd)
