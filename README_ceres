@@ -147,7 +147,7 @@ use
 where month_idx is the index of the desired month (0 for January, 1 for February,
 2 for March, etc.). Currently, no image is saved from this.
 
-plotCERES_MonthClimo
+plotCERES_Daily_MonthAnomaly
 - - - - - - - - - -
 
 To plot single-day anomalies from the corresponding monthly climatology for

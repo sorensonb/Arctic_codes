@@ -3,12 +3,26 @@ Modification date: 2020/01/27
 
 These notes are for making new OMI data figures (after January 15, 2021)
 
+For running plot_single_OMI.py, the variables in question are the
+variable names in the HDF5 file, such as
+
+  - UVAerosolIndex
+  - SurfaceAlbedo
+  - Reflectivity
+  - SolarZenithAngle
+
+Just look at the dictionary at the beginning of the script.
+
 The first dataset used for these figures is the old OMI AI climatology generated in
 2018 and 2019 and saved to a netCDF file. This climatology contains gridded AI
 values calculated using the XTrack flag and only using rows 1-23. Currently,
 the file is located on the WSL on my office computer under
   
   /home/bsorenson/Research/OMI/omi_1x1_gridded_ai.nc
+
+NOTE: The new file is located in the same directory, but is titled
+
+  /home/bsorenson/Research/OMI/omi_ai_V003_2005_2020.nc
 
 Single-swath OMI data are used next. These data are currently stored on my
 office computer under

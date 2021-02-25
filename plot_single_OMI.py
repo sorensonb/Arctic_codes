@@ -409,8 +409,8 @@ cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal
 #out_name = 'omi_single_pass_ai_200804270052_to_0549_composite_rows_0to'+str(row_max)+'.png'       
 out_name = 'omi_single_pass_'+name_dict[variable] + '_'+plot_time+'_rows_0to'+str(row_max)+'.png'       
 #out_name = 'omi_single_pass_refl_albedo_diff_'+plot_time+'_rows_0to'+str(row_max)+'.png'       
-plt.savefig(out_name)
-print('Saved image '+out_name)
+#plt.savefig(out_name)
+#print('Saved image '+out_name)
 
 #axs[1].plot(mask_avgs)
 #axs[1].set_xlabel('Sensor Row')

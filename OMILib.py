@@ -250,6 +250,7 @@ def readOMI_NCDF(infile='/home/bsorenson/Research/OMI/omi_ai_V003_2005_2020.nc',
     return OMI_data
 
 # This function assumes the data is being read from the netCDF file
+# NOTE: Assume user is using new OMI climo file which starts in January
 def calcOMI_MonthClimo(OMI_data):
 
     # Set up arrays to hold monthly climatologies
@@ -260,18 +261,21 @@ def calcOMI_MonthClimo(OMI_data):
     local_mask = np.ma.masked_where(local_data == -999.9, local_data)
  
     # Calculate monthly climatologies
-    month_climo[0,:,:]  = np.nanmean(local_mask[3::12,:,:],axis=0)  # January 
-    month_climo[1,:,:]  = np.nanmean(local_mask[4::12,:,:],axis=0)  # February
-    month_climo[2,:,:]  = np.nanmean(local_mask[5::12,:,:],axis=0)  # March 
-    month_climo[3,:,:]  = np.nanmean(local_mask[6::12,:,:],axis=0)  # April 
-    month_climo[4,:,:]  = np.nanmean(local_mask[7::12,:,:],axis=0)  # May 
-    month_climo[5,:,:]  = np.nanmean(local_mask[8::12,:,:],axis=0)  # June 
-    month_climo[6,:,:]  = np.nanmean(local_mask[9::12,:,:],axis=0)  # July 
-    month_climo[7,:,:]  = np.nanmean(local_mask[10::12,:,:],axis=0) # August 
-    month_climo[8,:,:]  = np.nanmean(local_mask[11::12,:,:],axis=0) # September 
-    month_climo[9,:,:]  = np.nanmean(local_mask[0::12,:,:],axis=0)  # October 
-    month_climo[10,:,:] = np.nanmean(local_mask[1::12,:,:],axis=0)  # November
-    month_climo[11,:,:] = np.nanmean(local_mask[2::12,:,:],axis=0)  # December
+    for m_i in range(12):
+        month_climo[m_i,:,:] = np.nanmean(local_mask[m_i::12,:,:],axis=0)
+        print("Month: ",OMI_data['DATES'][m_i][4:]) 
+    #month_climo[0,:,:]  = np.nanmean(local_mask[0::12,:,:],axis=0)  # January 
+    #month_climo[1,:,:]  = np.nanmean(local_mask[1::12,:,:],axis=0)  # February
+    #month_climo[2,:,:]  = np.nanmean(local_mask[2::12,:,:],axis=0)  # March 
+    #month_climo[3,:,:]  = np.nanmean(local_mask[3::12,:,:],axis=0)  # April 
+    #month_climo[4,:,:]  = np.nanmean(local_mask[4::12,:,:],axis=0)  # May 
+    #month_climo[5,:,:]  = np.nanmean(local_mask[5::12,:,:],axis=0)  # June 
+    #month_climo[6,:,:]  = np.nanmean(local_mask[6::12,:,:],axis=0)  # July 
+    #month_climo[7,:,:]  = np.nanmean(local_mask[7::12,:,:],axis=0)  # August 
+    #month_climo[8,:,:]  = np.nanmean(local_mask[8::12,:,:],axis=0)  # September 
+    #month_climo[9,:,:]  = np.nanmean(local_mask[9::12,:,:],axis=0)  # October 
+    #month_climo[10,:,:] = np.nanmean(local_mask[10::12,:,:],axis=0) # November
+    #month_climo[11,:,:] = np.nanmean(local_mask[11::12,:,:],axis=0) # December
 
     # Insert data into dictionary
     OMI_data['MONTH_CLIMO'] = month_climo
@@ -1262,9 +1266,14 @@ def plotOMI_MonthClimo(OMI_data,month_idx,minlat = 60,save=False):
     else:
         mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
 
+    # Pull the beginning and ending dates into datetime objects
+    start_date = datetime.strptime(OMI_data['DATES'][0],'%Y%m')
+    end_date   = datetime.strptime(OMI_data['DATES'][-1],'%Y%m')
+
     # Make figure title
     date_month = datetime(year = 1,month = month_idx+1, day = 1).strftime('%B')
-    title = 'OMI AI ' + date_month + ' Climatology\nOct. 2004 - Nov. 2018'
+    title = 'OMI AI ' + date_month + ' Climatology\n'+\
+        start_date.strftime('%b. %Y') + ' - ' + end_date.strftime('%b. %Y')
 
     # Make figure
     fig1 = plt.figure(figsize = (8,8))
@@ -1290,8 +1299,9 @@ def plotOMI_MonthClimo(OMI_data,month_idx,minlat = 60,save=False):
         plt.show()
 
 # Plot a single swath of OMI data with total climatology subtracted
+# mask_weakAI: removes AI values below 0.8 when plotting
 def single_swath_anomaly_climo(OMI_data,swath_date,month_climo = True,\
-        minlat = 60,row_max = 60,save=False): 
+        minlat = 60,row_max = 60,mask_weakAI = False, save=False): 
     # - - - - - - - - - - - - - - - -
     # Read in the single swath data
     # - - - - - - - - - - - - - - - -
@@ -1433,8 +1443,8 @@ def single_swath_anomaly_climo(OMI_data,swath_date,month_climo = True,\
     plot_lat, plot_lon = np.meshgrid(high_lats,high_lons)
     mask_UVAI_anom = np.ma.masked_where(count[0:end_yi+1, 0:end_xj+1] == 0, UVAI_anomaly)
   
-    # Mask any data below AI values of 0.8
-    mask_UVAI_anom = np.ma.masked_where(mask_UVAI_anom < 0.8, mask_UVAI_anom)
+    ## Mask any data below AI values of 0.8
+    #mask_UVAI_anom = np.ma.masked_where(mask_UVAI_anom < 0.8, mask_UVAI_anom)
  
     plt.close()
     fig1 = plt.figure(figsize=(8,8))
