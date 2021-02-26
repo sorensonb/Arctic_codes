@@ -75,36 +75,35 @@ var_dict = {
     'GroundPixelQualityFlags': {'min': None, 'max': None},\
 }
 
-if(len(sys.argv)<4):
-    print("SYNTAX: python plot_single_OMI.py date variable row_max")
+if(len(sys.argv)<3):
+    print("SYNTAX: python plot_single_OMI.py date row_max")
     sys.exit()
 
 plot_time = sys.argv[1]
-variable = sys.argv[2]
-row_max=int(sys.argv[3])
+row_max=int(sys.argv[2])
 channel_idx = 0
 str_wave = ''
 
-# Check which channels are being used
-if((variable[:12] == 'NormRadiance')  | \
-    (variable[:12] == 'Reflectivity') | \
-    (variable[:13] == 'SurfaceAlbedo')):
-    if(variable[-3:] == '354'):
-        variable = variable[:-3]
-        str_wave = '354nm'
-        channel_idx = 0
-    elif(variable[-3:] == '388'):
-        variable = variable[:-3]
-        str_wave = '388nm'
-        channel_idx = 1
-    elif(variable[-3:] == '500'):
-        variable = variable[:-3]
-        str_wave = '500nm'
-        channel_idx = 2
-    else:
-        print("Channel not selected. Defaulting to 354 nm")
-        str_wave = '354nm'
-        channel_idx = 0
+##!## Check which channels are being used
+##!#if((variable[:12] == 'NormRadiance')  | \
+##!#    (variable[:12] == 'Reflectivity') | \
+##!#    (variable[:13] == 'SurfaceAlbedo')):
+##!#    if(variable[-3:] == '354'):
+##!#        variable = variable[:-3]
+##!#        str_wave = '354nm'
+##!#        channel_idx = 0
+##!#    elif(variable[-3:] == '388'):
+##!#        variable = variable[:-3]
+##!#        str_wave = '388nm'
+##!#        channel_idx = 1
+##!#    elif(variable[-3:] == '500'):
+##!#        variable = variable[:-3]
+##!#        str_wave = '500nm'
+##!#        channel_idx = 2
+##!#    else:
+##!#        print("Channel not selected. Defaulting to 354 nm")
+##!#        str_wave = '354nm'
+##!#        channel_idx = 0
 
 #new_time = '20130611t1322_new'
 base_path = '/home/bsorenson/data/OMI/H5_files/'
@@ -204,8 +203,7 @@ color_num=9
 # Calculate average and standard deviations
 #newch1=np.zeros(shape=(len(lat_ranges),len(lon_ranges)))
 
-UVAI = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
-count = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+##UVAI = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
 newch1=np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
 #newch1=np.zeros(shape=(1440,720))
 
@@ -257,88 +255,107 @@ total_list = subprocess.check_output('ls '+base_path+'OMI-Aura_L2-OMAERUV_'+year
 min_diff = 30
 max_diff = -30
 
-for fileI in range(len(total_list)):
-    # read in data directly from HDF5 files
-    print(total_list[fileI])
-    data = h5py.File(total_list[fileI],'r')
+##!#for fileI in range(len(total_list)):
+# read in data directly from HDF5 files
+data = h5py.File(total_list[0],'r')
 
-    LAT   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude']
-    LON   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude']
-    PDATA = data['HDFEOS/SWATHS/Aerosol NearUV Swath/' + path_dict[variable] + variable]
-    if(len(PDATA.shape) == 3):
-        # If 3 dimensions, assume that the smallest dimension is the wavelength
-        # dimension. Find that dimension and grab the first index of that
-        # dimension, which is the 354 nm channel.
-        min_dim = np.min(PDATA.shape)
-        if(PDATA.shape[2] == min_dim):
-            PDATA = PDATA[:,:,channel_idx]
-        elif(PDATA.shape[1] == min_dim):
-            PDATA = PDATA[:,channel_idx,:]
-        else:
-            PDATA = PDATA[channel_idx,:,:]
-    XTRACK = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/XTrackQualityFlags']
+LAT     = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude']
+LON     = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude']
+NRAD    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/NormRadiance']
+REFL    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/Reflectivity']
+XTRACK  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/XTrackQualityFlags']
 
-    ###ALBEDO = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/SurfaceAlbedo']
-    ###REFLECTANCE = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/Reflectivity']
-    ###CLD = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/CloudFraction']
-    ###AI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex']
-    ###PIXEL= data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/PixelQualityFlags']
-    ###MSMNT= data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/MeasurementQualityFlags']
-    ###VZA  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/ViewingZenithAngle']
-    ###SZA  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/SolarZenithAngle']
-    ###RAZ  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/RelativeAzimuthAngle']
-    ###GRND = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags']
+g_NRAD_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+g_NRAD_388 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+g_NRAD_500 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+g_REFL_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+g_REFL_388 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+count_NRAD_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+count_NRAD_388 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+count_NRAD_500 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+count_REFL_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+count_REFL_388 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
 
-    #albedo = ALBEDO[:,:,0]   
-    #reflectance = REFLECTANCE[:,:,0]   
-    counter = 0
-    #AI = AI[:,:,0]   
-    # Loop over the values and rows 
-    #for i in range(0,int(CBA2)):
-    #for i in range(albedo.shape[0]):
-    for i in range(PDATA.shape[0]):
-        for j in range(0,row_max):
-            #if((albedo[i,j]>-20) & (reflectance[i,j]>-20)):
-            if(PDATA[i,j]>-2e5):
-            #if(plotAI[i,j]>-20):
-                # Only plot if XTrack flag is met
-                if((XTRACK[i,j] == 0) | (XTRACK[i,j] == 4)):
-                    # Print values to text file
-                    if(LAT[i,j] > latmin):
-                        counter+=1
-#                        fout.write("{0:.6f} {1:.6f} {2:.6f} {3:.6f} {4:.6f} {5:.6f} {6:.6f} {7:.6f} {8:.6f} {9:.6f} {10:.6f} {11:.6f}\n".format(\
-#                            LAT[i,j],LON[i,j],AI[i,j],0.5,SZA[i,j],VZA[i,j],RAZ[i,j], \
-#                            ALBEDO[i,j,0],ALBEDO[i,j,1],REFLECTANCE[i,j,0],\
-#                            REFLECTANCE[i,j,1],CLD[i,j]))
+###ALBEDO = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/SurfaceAlbedo']
+###REFLECTANCE = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/Reflectivity']
+###CLD = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/CloudFraction']
+###AI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex']
+###PIXEL= data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/PixelQualityFlags']
+###MSMNT= data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/MeasurementQualityFlags']
+###VZA  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/ViewingZenithAngle']
+###SZA  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/SolarZenithAngle']
+###RAZ  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/RelativeAzimuthAngle']
+###GRND = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags']
+
+#albedo = ALBEDO[:,:,0]   
+#reflectance = REFLECTANCE[:,:,0]   
+counter = 0
+#AI = AI[:,:,0]   
+# Loop over the values and rows 
+#for i in range(0,int(CBA2)):
+#for i in range(albedo.shape[0]):
+for i in range(NRAD.shape[0]):
+    for j in range(0,row_max):
+        #if((albedo[i,j]>-20) & (reflectance[i,j]>-20)):
+        if(NRAD[i,j,0]>-2e5):
+        #if(plotAI[i,j]>-20):
+            # Only plot if XTrack flag is met
+            if((XTRACK[i,j] == 0) | (XTRACK[i,j] == 4)):
+                # Print values to text file
+                if(LAT[i,j] > latmin):
+                    counter+=1
+                     ##fout.write("{0:.6f} {1:.6f} {2:.6f} {3:.6f} {4:.6f} {5:.6f} {6:.6f} {7:.6f} {8:.6f} {9:.6f} {10:.6f} {11:.6f}\n".format(\
+                     ##    LAT[i,j],LON[i,j],AI[i,j],0.5,SZA[i,j],VZA[i,j],RAZ[i,j], \
+                     ##    ALBEDO[i,j,0],ALBEDO[i,j,1],REFLECTANCE[i,j,0],\
+                     ##    REFLECTANCE[i,j,1],CLD[i,j]))
 
 
-                    #if((plotXTrack[i,j] == 0) | ((plotXTrack[i,j] & 4 == 4))):
-                        index1 = int(np.floor(LAT[i,j]*4 - lat_gridder))
-                        index2 = int(np.floor(LON[i,j]*4 + 720.))
-                        #index1 = int(np.floor(plotLAT[i,j]*4 + 360.))
-                        #index2 = int(np.floor(plotLON[i,j]*4 + 720.))
-                        
-                        if(index1 < 0): index1 = 0
-                        if(index1 > len(lat_ranges)-1): index1 = len(lat_ranges) - 1
-                        if(index2 < 0): index2 = 0                                                                                            
-                        if(index2 > 1439): index2 = 1439
-                   
-                        #diff = reflectance[i,j] - albedo[i,j]
-                        #if(diff<min_diff):
-                        #    min_diff = diff
-                        #if(diff>max_diff):
-                        #    max_diff = diff
-                   
-                        #if(diff<0.2): 
-                        #    UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + AI[i,j])/(count[index2,index1]+1)
-                        UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + PDATA[i,j])/(count[index2,index1]+1)
-                        #UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + diff)/(count[index2,index1]+1)
-                            #UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + plotAI[i,j])/(count[index2,index1]+1)
-                            #if((ii==1309) and (ii2==59)): print UVAI[index1,index2]
-                        count[index2, index1] = count[index2,index1] + 1
+                #if((plotXTrack[i,j] == 0) | ((plotXTrack[i,j] & 4 == 4))):
+                    index1 = int(np.floor(LAT[i,j]*4 - lat_gridder))
+                    index2 = int(np.floor(LON[i,j]*4 + 720.))
+                    #index1 = int(np.floor(plotLAT[i,j]*4 + 360.))
+                    #index2 = int(np.floor(plotLON[i,j]*4 + 720.))
+                    
+                    if(index1 < 0): index1 = 0
+                    if(index1 > len(lat_ranges)-1): index1 = len(lat_ranges) - 1
+                    if(index2 < 0): index2 = 0                                                                                            
+                    if(index2 > 1439): index2 = 1439
+               
+                    #diff = reflectance[i,j] - albedo[i,j]
+                    #if(diff<min_diff):
+                    #    min_diff = diff
+                    #if(diff>max_diff):
+                    #    max_diff = diff
+               
+                    #if(diff<0.2): 
+                    #    UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + AI[i,j])/(count[index2,index1]+1)
+                    g_NRAD_354[index2, index1] = (g_NRAD_354[index2,index1]*count_NRAD_354[index2,index1] + NRAD[i,j,0])/(count_NRAD_354[index2,index1]+1)
+                    g_NRAD_388[index2, index1] = (g_NRAD_388[index2,index1]*count_NRAD_388[index2,index1] + NRAD[i,j,1])/(count_NRAD_388[index2,index1]+1)
+                    g_NRAD_500[index2, index1] = (g_NRAD_500[index2,index1]*count_NRAD_500[index2,index1] + NRAD[i,j,2])/(count_NRAD_500[index2,index1]+1)
+                    g_REFL_354[index2, index1] = (g_REFL_354[index2,index1]*count_REFL_354[index2,index1] + REFL[i,j,0])/(count_REFL_354[index2,index1]+1)
+                    g_REFL_388[index2, index1] = (g_REFL_388[index2,index1]*count_REFL_388[index2,index1] + REFL[i,j,1])/(count_REFL_388[index2,index1]+1)
+                    #UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + diff)/(count[index2,index1]+1)
+                        #UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + plotAI[i,j])/(count[index2,index1]+1)
+                        #if((ii==1309) and (ii2==59)): print UVAI[index1,index2]
+                    #count[index2, index1] = count[index2,index1] + 1
+                    count_NRAD_354[index2,index1] = count_NRAD_354[index2,index1] + 1
+                    count_NRAD_388[index2,index1] = count_NRAD_388[index2,index1] + 1
+                    count_NRAD_500[index2,index1] = count_NRAD_500[index2,index1] + 1
+                    count_REFL_354[index2,index1] = count_REFL_354[index2,index1] + 1
+                    count_REFL_388[index2,index1] = count_REFL_388[index2,index1] + 1
 
 # Calculate the row-average AI for the secondary plot
-mask_avgs = np.nanmean(np.ma.masked_where(PDATA[:,:] < -2e5, PDATA[:,:]),axis=0)
+#mask_n354_avgs = np.nanmean(np.ma.masked_where(g_NRAD_354[:,:] < -2e5, g_NRAD_354[:,:]),axis=0)
+#mask_n388_avgs = np.nanmean(np.ma.masked_where(g_NRAD_388[:,:] < -2e5, g_NRAD_388[:,:]),axis=0)
+#mask_n500_avgs = np.nanmean(np.ma.masked_where(g_NRAD_500[:,:] < -2e5, g_NRAD_500[:,:]),axis=0)
+#mask_r354_avgs = np.nanmean(np.ma.masked_where(g_REFL_354[:,:] < -2e5, g_REFL_354[:,:]),axis=0)
+#mask_r388_avgs = np.nanmean(np.ma.masked_where(g_REFL_388[:,:] < -2e5, g_REFL_388[:,:]),axis=0)
+
+# CALCULATIONS
+plot_calc = g_NRAD_500 - g_NRAD_354
+
+UVAI = plot_calc
+count = count_NRAD_500
 
 #fout.close()
 #print("Min diff = ",min_diff)
@@ -415,28 +432,28 @@ data.close()
 #data.close()
 
 plot_lat, plot_lon = np.meshgrid(LATalt,LONalt)
-mask_UVAI = np.ma.masked_where(count == 0, UVAI)
+mask_UVAI = np.ma.masked_where(((count == 0) & (g_REFL_354 > 0.005)), UVAI)
 
-plt.title('OMI ' + variable + str_wave + ' '+plot_time)
+plt.title('NRAD500 - NRAD354')
 #plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
 mesh = axs[0].pcolormesh(plot_lon, plot_lat,mask_UVAI,transform = datacrs,cmap = colormap,\
-        vmin = var_dict[variable]['min'], vmax = var_dict[variable]['max'])
+        vmin = -0.05, vmax = 0.05)
 axs[0].set_extent([-180,180,latmin,90],ccrs.PlateCarree())
 axs[0].set_xlim(-3430748.535086173,3430748.438879491)
 axs[0].set_ylim(-3413488.8763307533,3443353.899053069)
 #ax.set_xlim(-4170748.535086173,4167222.438879491)
 #ax.set_ylim(-2913488.8763307533,2943353.899053069)
 cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
-    aspect=50,shrink = 0.905,label=variable)
+    aspect=50,shrink = 0.905,label='NRAD500 - 354')
 ##cax = fig.add_axes([0.16,0.075,0.7,0.025])
 ##cb = ColorbarBase(cax,cmap=cmap,norm=norm,orientation='horizontal')
 ##cb.ax.set_xlabel('Aerosol Index')
 #cb.ax.set_xlabel('Reflectivity - Surface Albedo')
 #out_name = 'omi_single_pass_ai_200804270052_to_0549_composite_rows_0to'+str(row_max)+'.png'       
-out_name = 'omi_single_pass_'+name_dict[variable] + str_wave + '_'+plot_time+'_rows_0to'+str(row_max)+'.png'       
+#out_name = 'omi_single_pass_'+name_dict[variable] + str_wave + '_'+plot_time+'_rows_0to'+str(row_max)+'.png'       
 #out_name = 'omi_single_pass_refl_albedo_diff_'+plot_time+'_rows_0to'+str(row_max)+'.png'       
-plt.savefig(out_name)
-print('Saved image '+out_name)
+#plt.savefig(out_name)
+#print('Saved image '+out_name)
 
 #axs[1].plot(mask_avgs)
 #axs[1].set_xlabel('Sensor Row')

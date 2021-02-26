@@ -45,7 +45,7 @@ def read_sim_text(infile):
     return OMI_sim_dict 
 
 def convert_to_NCDF(OMI_sim_dict):
-    file_name = 'omi_sim_out_V2.nc'
+    file_name = 'omi_sim_out_V3.nc'
     
     # Open the dataset
     ds = Dataset(file_name,'w',format='NETCDF4')
