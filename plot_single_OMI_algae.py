@@ -84,44 +84,12 @@ row_max=int(sys.argv[2])
 channel_idx = 0
 str_wave = ''
 
-##!## Check which channels are being used
-##!#if((variable[:12] == 'NormRadiance')  | \
-##!#    (variable[:12] == 'Reflectivity') | \
-##!#    (variable[:13] == 'SurfaceAlbedo')):
-##!#    if(variable[-3:] == '354'):
-##!#        variable = variable[:-3]
-##!#        str_wave = '354nm'
-##!#        channel_idx = 0
-##!#    elif(variable[-3:] == '388'):
-##!#        variable = variable[:-3]
-##!#        str_wave = '388nm'
-##!#        channel_idx = 1
-##!#    elif(variable[-3:] == '500'):
-##!#        variable = variable[:-3]
-##!#        str_wave = '500nm'
-##!#        channel_idx = 2
-##!#    else:
-##!#        print("Channel not selected. Defaulting to 354 nm")
-##!#        str_wave = '354nm'
-##!#        channel_idx = 0
-
 #new_time = '20130611t1322_new'
 base_path = '/home/bsorenson/data/OMI/H5_files/'
 #new_base_path = '/home/shared/OMAERUV/OMAERUV_Parameters/new_files/'
 
-#define the directory to the aerosol index files
-##pathlength = '/home/shared/OMAERUV/OMAERUV_Parameters/Aerosol_Index/'
-##pathlength1 = '/home/shared/OMAERUV/OMAERUV_Parameters/Latitude/'
-##pathlength2 = '/home/shared/OMAERUV/OMAERUV_Parameters/Longitude/'
-##pathlength3 = '/home/shared/OMAERUV/OMAERUV_Parameters/X_Track_Quality_Flags/'
-
-###outfilename = 'omi_single_pass_'+plot_time+'_values_80.txt'
-###fout = open(outfilename,'w')
-
 n_p = 1440
 nl = 720
-
-#infile = sys.argv[1]
 
 #manually enter the longitude limits
 lonmin = -180
@@ -132,14 +100,6 @@ latmax =  90
 #date = sys.argv[1]
 
 # Set up the dictionary
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#
-# The dictionary is set up so that each lat and lon pair are used as the
-# keys. For example, key '48x98' contains the data for latitude ranges
-# 48.0-49.0 and longitude ranges of 98.0-99.0
-#
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
 latmin = 60 
 
 # Set up values for gridding the AI data
@@ -148,18 +108,11 @@ lat_gridder = latmin * 4.
 lat_ranges = np.arange(latmin,90.1,0.25)
 lon_ranges = np.arange(-180,180.1,0.25)
 
-### Look through the directories for data with the desired date
-##ailist      = glob.glob(pathlength+'UVAerosolIndex_'+date+'*.bin')
-##latlist     = glob.glob(pathlength1+'Latitude_'+ date+'*.bin')
-##lonlist     = glob.glob(pathlength2+'Longitude_'+ date+'*.bin')
-##xtracklist  = glob.glob(pathlength3+'XTrackQualityFlags_'+date+'*.bin')
-##num_files   = len(ailist)
-
+# Set up cartopy variables
 mapcrs = ccrs.NorthPolarStereo()
 datacrs = ccrs.PlateCarree()
 colormap = plt.cm.jet
 
-NorthAmerica = True
 # Set up the polar stereographic projection map
 fig1, axs = plt.subplots(2, 1, figsize=(8,8))
 #fig1.set_size_inches(8,8)
@@ -170,23 +123,10 @@ if(latmin<45):
 else:
     axs[0] = plt.axes(projection = ccrs.NorthPolarStereo(central_longitude = 35.))
     #ax = plt.axes(projection = ccrs.NorthPolarStereo(central_longitude = 45.))
-    #m = Basemap(projection='npstere',boundinglat=latmin,lon_0=0,resolution='l')
-#if(NorthAmerica is True):
-#    m = Basemap(projection='lcc',width=12000000,height=9000000,\
-#                rsphere=(6378137.00,6356752.3142),\
-#                resolution='l',area_thresh=1000.,\
-#                lat_1=45.,lat_2=55.,lat_0=50.,lon_0=-107.)
+
 #fig = plt.gcf()
 axs[0].gridlines()
 axs[0].coastlines(resolution = '50m')
-#m.drawcoastlines()
-#m.drawparallels(np.arange(-80.,81.,20.))
-#m.drawmeridians(np.arange(-180.,181.,20.))
-
-#ax = plt.axes(projection=ccrs.Miller())
-#ax.coastlines()
-##ax.add_feature(cfeature.BORDERS)
-
 
 # Calculate average and standard deviations
 #newch1=np.zeros(shape=(len(lat_ranges),len(lon_ranges)))
@@ -194,35 +134,6 @@ axs[0].coastlines(resolution = '50m')
 ##UVAI = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
 newch1=np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
 #newch1=np.zeros(shape=(1440,720))
-
-#ai_list = subprocess.check_output('ls /home/shared/OMAERUV/'+             \
-#          'OMAERUV_Parameters_20190212_download/Aerosol_Index/UVAerosolIndex_'+plot_time+'*.bin',\
-#          shell=True).decode('utf-8').strip().split('\n')
-#lat_list = subprocess.check_output('ls /home/shared/OMAERUV/'+             \
-#          'OMAERUV_Parameters_20190212_download/Latitude/Latitude_'+lat_time+'*.bin',\
-#          shell=True).decode('utf-8').strip().split('\n')
-#lon_list = subprocess.check_output('ls /home/shared/OMAERUV/'+             \
-#          'OMAERUV_Parameters_20190212_download/Longitude/Longitude_'+plot_time+'*.bin',\
-#          shell=True).decode('utf-8').strip().split('\n')
-#x_list = subprocess.check_output('ls /home/shared/OMAERUV/'+             \
-#          'OMAERUV_Parameters_20190212_download/X_Track_Quality_Flags/XTrackQualityFlags_'+plot_time+'*.bin',\
-#          shell=True).decode('utf-8').strip().split('\n')
-###ai_list = subprocess.check_output('ls /home/shared/OMAERUV/'+             \
-###          'OMAERUV_Parameters_20190212_download/jzhang_blake/UVAerosolIndex_'+plot_time+'*.bin',\
-###          shell=True).decode('utf-8').strip().split('\n')
-###albedo_list = subprocess.check_output('ls /home/shared/OMAERUV/'+             \
-###          'OMAERUV_Parameters_20190212_download/jzhang_blake/UVAerosolIndex_'+plot_time+'*.bin',\
-###          shell=True).decode('utf-8').strip().split('\n')
-###lat_list = subprocess.check_output('ls /home/shared/OMAERUV/'+             \
-###          'OMAERUV_Parameters_20190212_download/jzhang_blake/Latitude_'+plot_time+'*.bin',\
-###          shell=True).decode('utf-8').strip().split('\n')
-###lon_list = subprocess.check_output('ls /home/shared/OMAERUV/'+             \
-###          'OMAERUV_Parameters_20190212_download/jzhang_blake/Longitude_'+plot_time+'*.bin',\
-###          shell=True).decode('utf-8').strip().split('\n')
-###x_list = subprocess.check_output('ls /home/shared/OMAERUV/'+             \
-###          'OMAERUV_Parameters_20190212_download/jzhang_blake/XTrackQualityFlags_'+plot_time+'*.bin',\
-###          shell=True).decode('utf-8').strip().split('\n')
-
 
 year = plot_time[:4]
 date = plot_time[4:8]
@@ -352,7 +263,7 @@ for fileI in range(len(total_list)):
 #mask_r388_avgs = np.nanmean(np.ma.masked_where(g_REFL_388[:,:] < -2e5, g_REFL_388[:,:]),axis=0)
 
 # CALCULATIONS
-plot_calc = g_NRAD_500 - g_NRAD_354
+#plot_calc = (g_NRAD_354 / g_NRAD_500) / g_REFL_354
 
 #UVAI = plot_calc
 #count = count_NRAD_500
@@ -403,7 +314,6 @@ plot_lat, plot_lon = np.meshgrid(LATalt,LONalt)
 mask_rad500 = np.ma.masked_where(((count_NRAD_500 == 0)), g_NRAD_500)
 mask_rad500 = np.ma.masked_where(((g_SALB_354 > 0.09)), mask_rad500)
 mask_rad500 = np.ma.masked_where(((g_REFL_354 > 0.18)), mask_rad500)
-print(np.max(mask_rad500),np.min(mask_rad500))
 mask_rad500 = np.ma.masked_where(((g_REFL_354 < 0.1)), mask_rad500)
 mask_UVAI = np.ma.masked_where(((g_UVAI_354 < 0.6)), mask_rad500)
 
@@ -411,22 +321,20 @@ plt.title('OMI Algae ' + plot_time)
 #plt.title('NRAD500 - NRAD354')
 #plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
 mesh = axs[0].pcolormesh(plot_lon, plot_lat,mask_UVAI,transform = datacrs,cmap = colormap,\
-        vmin = 0.0, vmax = 0.10)
+        vmin = 0.0, vmax = 0.1)
 axs[0].set_extent([10,55,65,80],ccrs.PlateCarree())
 #axs[0].set_xlim(-0630748.535086173,2230748.438879491)
 #axs[0].set_ylim(-2513488.8763307533,0343353.899053069)
 #ax.set_xlim(-4170748.535086173,4167222.438879491)
 #ax.set_ylim(-2913488.8763307533,2943353.899053069)
-cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.01),orientation='horizontal',pad=0,\
+#cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.01),orientation='horizontal',pad=0,\
+cbar = plt.colorbar(mesh,orientation='horizontal',pad=0,\
     aspect=50,shrink = 0.905,label='Normalized 500 nm Radiance')
-##cax = fig.add_axes([0.16,0.075,0.7,0.025])
-##cb = ColorbarBase(cax,cmap=cmap,norm=norm,orientation='horizontal')
-##cb.ax.set_xlabel('Aerosol Index')
-#cb.ax.set_xlabel('Reflectivity - Surface Albedo')
-#out_name = 'omi_single_pass_ai_200804270052_to_0549_composite_rows_0to'+str(row_max)+'.png'       
-out_name = 'omi_single_pass_algae_'+plot_time+'_rows_0to'+str(row_max)+'_zoom.png'       
-#out_name = 'omi_single_pass_refl_albedo_diff_'+plot_time+'_rows_0to'+str(row_max)+'.png'       
-plt.savefig(out_name)
-print('Saved image '+out_name)
+
+save = True 
+if(save == True):
+    out_name = 'omi_single_pass_algae_'+plot_time+'_rows_0to'+str(row_max)+'_zoom.png'       
+    plt.savefig(out_name)
+    print('Saved image '+out_name)
 
 plt.show()
