@@ -372,14 +372,14 @@ def plot_modis_data(modis_data,minlat=60,tind=0,zoom = None,save=False):
         ax.set_extent(zoom_dict[zoom],datacrs)
         saver = '_'+zoom 
     ax.gridlines()
-    ax.coastlines()
+    ax.coastlines(resolution='50m')
     mesh = ax.pcolormesh(plot_lon,plot_lat,mask_data.T,\
             transform = datacrs, norm = cm.LogNorm(vmin = 0.01, vmax = 20.),\
             cmap = colormap)
     #CS = ax.contour(longitude,latitude,smooth_thick,[0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0],transform = datacrs)
     
     # Adjust and make it look good
-    ax.add_feature(cfeature.LAND,zorder=100,edgecolor='darkgrey',facecolor='darkgrey')
+    #ax.add_feature(cfeature.LAND,zorder=100,edgecolor='darkgrey',facecolor='darkgrey')
     ax.set_title('MODIS Chlorophyll-α')
     cbar = plt.colorbar(mesh,ticks = [0.01,0.02,0.05,0.1,0.2,0.5,1.0,2.0,5.0,10.0,20.0],orientation='horizontal',pad=0,\
         aspect=50,shrink = 0.905, label='Chlorophyll Concentration, OCI Algorithm (mg m$^{-3}$)')

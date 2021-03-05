@@ -166,6 +166,135 @@ def readOMI(inputfile,start_date,end_date,key=None):
 
     return OMI_data
 
+def readOMI_single_swath(plot_time,row_max):
+    n_p = 1440
+    nl = 720
+    lonmin = -180
+    lonmax = 180
+    latmin = 60.
+    latmax = 90.
+    # Set up values for gridding the AI data
+    lat_gridder = latmin * 4.
+    
+    lat_ranges = np.arange(latmin,90.1,0.25)
+    lon_ranges = np.arange(-180,180.1,0.25)
+
+    g_NRAD_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    g_NRAD_388 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    g_NRAD_500 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    g_REFL_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    g_REFL_388 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    g_SALB_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    g_UVAI_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    count_NRAD_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    count_NRAD_388 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    count_NRAD_500 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    count_REFL_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    count_REFL_388 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    count_SALB_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    count_UVAI_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+
+    algae = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+
+    year = plot_time[:4]
+    date = plot_time[4:8]
+    if(len(plot_time)==13):
+        time = plot_time[9:]
+    elif(len(plot_time)==12):
+        time = plot_time[8:]
+    else:
+        time = ''
+    base_path = '/home/bsorenson/data/OMI/H5_files/'
+    total_list = subprocess.check_output('ls '+base_path+'OMI-Aura_L2-OMAERUV_'+year+'m'+date+'t'+time+'*.he5',\
+              shell=True).decode('utf-8').strip().split('\n')
+
+    for fileI in range(len(total_list)):
+        # read in data directly from HDF5 files
+        data = h5py.File(total_list[fileI],'r')
+        print(total_list[fileI])
+    
+        LAT     = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude']
+        LON     = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude']
+        NRAD    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/NormRadiance']
+        REFL    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/Reflectivity']
+        SALB    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/SurfaceAlbedo']
+        UVAI    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex']
+        XTRACK  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/XTrackQualityFlags']
+    
+        #albedo = ALBEDO[:,:,0]   
+        #reflectance = REFLECTANCE[:,:,0]   
+        counter = 0
+        #AI = AI[:,:,0]   
+        # Loop over the values and rows 
+        #for i in range(0,int(CBA2)):
+        #for i in range(albedo.shape[0]):
+        for i in range(NRAD.shape[0]):
+            for j in range(0,row_max):
+                #if((albedo[i,j]>-20) & (reflectance[i,j]>-20)):
+                if(NRAD[i,j,0]>-2e5):
+                #if(plotAI[i,j]>-20):
+                    # Only plot if XTrack flag is met
+                    if((XTRACK[i,j] == 0) | (XTRACK[i,j] == 4)):
+                        # Print values to text file
+                        if(LAT[i,j] > latmin):
+                            counter+=1
+                        #if((plotXTrack[i,j] == 0) | ((plotXTrack[i,j] & 4 == 4))):
+                            index1 = int(np.floor(LAT[i,j]*4 - lat_gridder))
+                            index2 = int(np.floor(LON[i,j]*4 + 720.))
+                            #index1 = int(np.floor(plotLAT[i,j]*4 + 360.))
+                            #index2 = int(np.floor(plotLON[i,j]*4 + 720.))
+                        
+                            if(index1 < 0): index1 = 0
+                            if(index1 > len(lat_ranges)-1): index1 = len(lat_ranges) - 1
+                            if(index2 < 0): index2 = 0                                                                                            
+                            if(index2 > 1439): index2 = 1439
+                   
+                            #if(diff<0.2): 
+                            #    UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + AI[i,j])/(count[index2,index1]+1)
+                            g_NRAD_354[index2, index1] = (g_NRAD_354[index2,index1]*count_NRAD_354[index2,index1] + NRAD[i,j,0])/(count_NRAD_354[index2,index1]+1)
+                            g_NRAD_388[index2, index1] = (g_NRAD_388[index2,index1]*count_NRAD_388[index2,index1] + NRAD[i,j,1])/(count_NRAD_388[index2,index1]+1)
+                            g_NRAD_500[index2, index1] = (g_NRAD_500[index2,index1]*count_NRAD_500[index2,index1] + NRAD[i,j,2])/(count_NRAD_500[index2,index1]+1)
+                            g_REFL_354[index2, index1] = (g_REFL_354[index2,index1]*count_REFL_354[index2,index1] + REFL[i,j,0])/(count_REFL_354[index2,index1]+1)
+                            g_REFL_388[index2, index1] = (g_REFL_388[index2,index1]*count_REFL_388[index2,index1] + REFL[i,j,1])/(count_REFL_388[index2,index1]+1)
+                            g_SALB_354[index2, index1] = (g_SALB_354[index2,index1]*count_SALB_354[index2,index1] + SALB[i,j,0])/(count_SALB_354[index2,index1]+1)
+                            g_UVAI_354[index2, index1] = (g_UVAI_354[index2,index1]*count_UVAI_354[index2,index1] + UVAI[i,j])/(count_UVAI_354[index2,index1]+1)
+                            count_NRAD_354[index2,index1] = count_NRAD_354[index2,index1] + 1
+                            count_NRAD_388[index2,index1] = count_NRAD_388[index2,index1] + 1
+                            count_NRAD_500[index2,index1] = count_NRAD_500[index2,index1] + 1
+                            count_REFL_354[index2,index1] = count_REFL_354[index2,index1] + 1
+                            count_REFL_388[index2,index1] = count_REFL_388[index2,index1] + 1
+                            count_SALB_354[index2,index1] = count_SALB_354[index2,index1] + 1
+                            count_UVAI_354[index2,index1] = count_UVAI_354[index2,index1] + 1
+
+   
+    # Apply algae screening to 500 nm normalized radiance data 
+    print("Applying algae screening to 500 nm normalized radiance data")
+    mask_rad500 = np.ma.masked_where(((count_NRAD_500 == 0)), g_NRAD_500)
+    mask_rad500 = np.ma.masked_where(((g_SALB_354 > 0.09)), mask_rad500)
+    mask_rad500 = np.ma.masked_where(((g_REFL_354 > 0.18)), mask_rad500)
+    mask_rad500 = np.ma.masked_where(((g_REFL_354 < 0.1)), mask_rad500)
+    mask_NRAD500 = np.ma.masked_where(((g_UVAI_354 < 0.6)), mask_rad500)
+
+    # Apply algae screening to UVAI data 
+    print("Applying algae screening to UVAI data")
+    mask_uvai = np.ma.masked_where(((count_UVAI_354 == 0)), g_UVAI_354)
+    mask_uvai = np.ma.masked_where(((g_SALB_354 > 0.09)), mask_uvai)
+    mask_uvai = np.ma.masked_where(((g_REFL_354 > 0.18)), mask_uvai)
+    mask_uvai = np.ma.masked_where(((g_REFL_354 < 0.1)), mask_uvai)
+    mask_UVAI354 = np.ma.masked_where(((g_UVAI_354 < 0.6)), mask_uvai)
+
+    OMI_single_dict = {}
+    OMI_single_dict['lat'] = lat_ranges
+    OMI_single_dict['lon'] = lon_ranges
+    OMI_single_dict['AI'] = g_UVAI_354
+    OMI_single_dict['AI_count'] = count_UVAI_354
+    OMI_single_dict['NRAD500'] = g_NRAD_500
+    OMI_single_dict['NRAD500_count'] = count_NRAD_500
+    OMI_single_dict['AI_algae'] = mask_UVAI354
+    OMI_single_dict['NRAD500_algae'] = mask_NRAD500
+
+    return OMI_single_dict
+
 def writeOMI_toNCDF(OMI_data,minlat=30):
     lat_ranges = np.arange(minlat,90.5,1.0)
     lon_ranges = np.arange(-180,180,1.0)
@@ -1700,4 +1829,10 @@ def single_swath_anomaly_time(single_swath,climo_date,minlat = 60,row_max = 60):
     #axs[1].set_xlabel('Sensor Row')
     #axs[1].set_ylabel('Row Average Aerosol Index')
     
+    plt.show()
+
+def plot_OMI_v_MODIS(MODIS_data,OMI_single_swath):
+    plt.scatter(MODIS_data['chlor_a'][0,:,:].T,OMI_single_swath['AI_algae'])
+    plt.xlabel('MODIS chlorophyll')
+    plt.ylabel('OMI AI')
     plt.show()
