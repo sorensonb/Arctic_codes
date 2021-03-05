@@ -428,18 +428,11 @@ axs[0].set_ylim(-3413488.8763307533,3443353.899053069)
 #ax.set_ylim(-2913488.8763307533,2943353.899053069)
 cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
     aspect=50,shrink = 0.905,label=variable)
-##cax = fig.add_axes([0.16,0.075,0.7,0.025])
-##cb = ColorbarBase(cax,cmap=cmap,norm=norm,orientation='horizontal')
-##cb.ax.set_xlabel('Aerosol Index')
-#cb.ax.set_xlabel('Reflectivity - Surface Albedo')
-#out_name = 'omi_single_pass_ai_200804270052_to_0549_composite_rows_0to'+str(row_max)+'.png'       
-#out_name = 'omi_single_pass_'+name_dict[variable] + str_wave + '_'+plot_time+'_rows_0to'+str(row_max)+'.png'       
-#out_name = 'omi_single_pass_refl_albedo_diff_'+plot_time+'_rows_0to'+str(row_max)+'.png'       
-#plt.savefig(out_name)
-#print('Saved image '+out_name)
 
-#axs[1].plot(mask_avgs)
-#axs[1].set_xlabel('Sensor Row')
-#axs[1].set_ylabel('Row Average Aerosol Index')
+save = False
+if(save == True):
+    out_name = 'omi_single_pass_'+name_dict[variable] + str_wave + '_'+plot_time+'_rows_0to'+str(row_max)+'.png'       
+    plt.savefig(out_name)
+    print('Saved image '+out_name)
 
 plt.show()
