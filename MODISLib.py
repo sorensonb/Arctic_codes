@@ -362,13 +362,14 @@ def plot_modis_data(modis_data,minlat=60,tind=0,zoom = None,save=False):
     plot_lat, plot_lon = np.meshgrid(modis_data['lat'],modis_data['lon'])
 
     plt.close()
-    fig1 = plt.figure()
+    fig1 = plt.figure(figsize=(8,8))
     if(zoom == None):
         ax = plt.axes(projection = mapcrs)
         ax.set_extent([-180,180,minlat,90],datacrs)
         saver = ''
     else:
         ax = plt.axes(projection = proj_dict[zoom])
+        #ax.set_extent([17,49,68,75],datacrs)
         ax.set_extent(zoom_dict[zoom],datacrs)
         saver = '_'+zoom 
     ax.gridlines()
@@ -380,7 +381,7 @@ def plot_modis_data(modis_data,minlat=60,tind=0,zoom = None,save=False):
     
     # Adjust and make it look good
     #ax.add_feature(cfeature.LAND,zorder=100,edgecolor='darkgrey',facecolor='darkgrey')
-    ax.set_title('MODIS Chlorophyll-α')
+    ax.set_title('MODIS Chlorophyll-α\n'+plot_date.strftime('%Y%m%d'))
     cbar = plt.colorbar(mesh,ticks = [0.01,0.02,0.05,0.1,0.2,0.5,1.0,2.0,5.0,10.0,20.0],orientation='horizontal',pad=0,\
         aspect=50,shrink = 0.905, label='Chlorophyll Concentration, OCI Algorithm (mg m$^{-3}$)')
     cbar.ax.set_xticklabels(['0.01','0.02','0.05','0.1','0.2','0.5','1','2','5','10','20'])

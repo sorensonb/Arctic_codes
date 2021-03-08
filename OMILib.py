@@ -25,6 +25,7 @@ import sys
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import matplotlib.pyplot as plt
+import matplotlib.colors as cm
 import cartopy.crs as ccrs
 from mpl_toolkits.basemap import Basemap
 from matplotlib.patches import Polygon
@@ -1832,7 +1833,83 @@ def single_swath_anomaly_time(single_swath,climo_date,minlat = 60,row_max = 60):
     plt.show()
 
 def plot_OMI_v_MODIS(MODIS_data,OMI_single_swath):
-    plt.scatter(MODIS_data['chlor_a'][0,:,:].T,OMI_single_swath['AI_algae'])
+
+    # Pull out data from dictionaries
+    local_modis = np.copy(MODIS_data['chlor_a'])[0,:,:].T
+    local_omi   = np.ma.MaskedArray.copy(OMI_single_swath['AI_algae'])
+
+    # shape = (1441, 121)
+    plot_lat, plot_lon = np.meshgrid(MODIS_data['lat'],MODIS_data['lon'])
+
+    # Mask any data outside the Finland region
+
+    ##!#local_modis[(local_modis == -9) |\
+    ##!#            (np.argwhere(np.isnan(local_modis))) |\
+    ##!#            ((plot_lon < 17.) | (plot_lon > 54)) |\
+    ##!#            ((plot_lat < 68.) | (plot_lat > 76)) |\
+    ##!#            (local_modis > 1.2) |\
+    ##!#            (local_omi == np.nan)] = np.nan
+    ##!#local_omi[(local_modis == -9) |\
+    ##!#            (np.argwhere(np.isnan(local_modis))) |\
+    ##!#            ((plot_lon < 17.) | (plot_lon > 54)) |\
+    ##!#            ((plot_lat < 68.) | (plot_lat > 76)) |\
+    ##!#            (local_modis > 1.2) |\
+    ##!#            (local_omi == np.nan)] = np.nan
+
+    ##!#local_modis = np.ma.masked_invalid(local_modis)
+    ##!#local_omi   = np.ma.masked_invalid(local_omi)
+
+    local_modis = np.ma.masked_where(local_modis == -9, local_modis)
+    local_modis = np.ma.masked_invalid(local_modis)
+    local_modis = np.ma.masked_where(((plot_lon < 17.) | (plot_lon > 54)), local_modis)
+    local_modis = np.ma.masked_where(((plot_lat < 68.) | (plot_lat > 76)), local_modis)
+    local_modis = np.ma.masked_where((local_modis > 1.2), local_modis)
+    local_omi   = np.ma.masked_where(((plot_lon < 17.) | (plot_lon > 54)), local_omi)
+    local_omi   = np.ma.masked_where(((plot_lat < 68.) | (plot_lat > 76)), local_omi)
+    #local_modis = np.ma.masked_where(local_omi == np.nan,local_modis)  
+
+    local_modis = local_modis[~local_omi.mask]
+    local_omi   = local_omi[~local_omi.mask]
+
+    local_omi   = local_omi[~local_modis.mask]
+    local_modis = local_modis[~local_modis.mask]
+
+
+    print(len(local_modis),len(local_omi))
+
+    plot_date = datetime.strptime(MODIS_data['titles'][0][-34:-30],'%Y') + \
+        relativedelta(days = int(MODIS_data['titles'][0][-30:-27])-1)
+    ##!#datacrs = ccrs.PlateCarree() 
+    ##!#colormap = plt.cm.jet
+    ##!#ax = plt.axes(projection =ccrs.NorthPolarStereo(central_longitude = 35.) )
+    ##!#ax.set_extent([17,54,68,76],datacrs)
+    ##!#ax.gridlines()
+    ##!#ax.coastlines(resolution='50m')
+    ##!#mesh = ax.pcolormesh(plot_lon,plot_lat,local_omi,\
+    ##!##mesh = ax.pcolormesh(plot_lon,plot_lat,local_modis,\
+    ##!#        transform = datacrs, \
+    ##!##        transform = datacrs, norm = cm.LogNorm(vmin = 0.01, vmax = 20.),\
+    ##!#        cmap = colormap)
+    ##!#ax.set_title('OMI AI\n'+plot_date.strftime('%Y%m%d'))
+    ##!##ax.set_title('MODIS Chlorophyll-α\n'+plot_date.strftime('%Y%m%d'))
+    ##!#cbar = plt.colorbar(mesh,ticks = [-2.0,-1.0,0.0,1.0,2.0,3.0,],orientation='horizontal',pad=0,\
+    ##!##cbar = plt.colorbar(mesh,ticks = [0.01,0.02,0.05,0.1,0.2,0.5,1.0,2.0,5.0,10.0,20.0],orientation='horizontal',pad=0,\
+    ##!#    aspect=50,shrink = 0.905, label='Chlorophyll Concentration, OCI Algorithm (mg m$^{-3}$)')
+    ##!#cbar.ax.set_xticklabels(['-2.0','-1.0','0.0','1.0','2.0','3.0'])
+    ##!##cbar.ax.set_xticklabels(['0.01','0.02','0.05','0.1','0.2','0.5','1','2','5','10','20'])
+    ##!#plt.show()
+    final_modis = local_modis.flatten()
+    final_omi   = local_omi.flatten()
+    plt.close()
+    fig1 = plt.figure()
+    plt.scatter(local_modis,local_omi)
+    #plt.scatter(final_modis,final_omi)
+    #plt.scatter(MODIS_data['chlor_a'][0,:,:].T,OMI_single_swath['AI_algae'])
+
+    plt.plot(np.unique(final_modis), np.poly1d(np.polyfit(final_modis,final_omi,1))(np.unique(final_modis)),\
+        color='black')
+
+    plt.title(plot_date.strftime('%Y%m%d'))
     plt.xlabel('MODIS chlorophyll')
     plt.ylabel('OMI AI')
     plt.show()

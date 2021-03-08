@@ -69,6 +69,20 @@ April 2018. To calculate these values, use
 
   >>> OMI_data = calcOMI_MonthClimo(OMI_data)
 
+
+- - - - - - - - - - - - - - - - - -
+
+Algae study
+
+- - - - - - - - - - - - - - - - - - 
+
+To read in single-swath OMI data for use in the algae study, use:
+
+  >>> from OMILib import readOMI_single_swath
+  >>> OMI_algae = readOMI_single_swath('201108170732',60)
+
+The 'OMI_algae' dictionary contains the single-swath OMI data.
+
 = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 PLOTTING
@@ -139,3 +153,24 @@ the swath climatology for the ~1345 swath, climo_date would be set to
 
 This function saves a file titled as:
 'omi_single_pass_ai_single_anom_200804221345_rows_0to60.png'
+
+plot_OMI_v_MODIS
+- - - - - - - - -
+
+To plot a scatter plot of OMI single-swath data vs MODIS chlorophyll-α data,
+use this function. NOTE: before running this function, you must read in the
+daily averaged MODIS chlorophyll-α data (see README_modis in ~/Research/MODIS).
+To do this, you must add the MODIS directory to the working path by
+
+  >>> sys.path.append('/home/bsorenson/Research/MODIS')
+
+Then read in the MODIS data:
+ 
+  >>> from MODISLib import *
+  >>> MODIS_data = read_MODIS('20110817')
+
+Then, plot the OMI AI algae-screened data against the MODIS data using:
+
+  >>> plot_OMI_v_MODIS(MODIS_data,OMI_algae)
+
+Currently (2021/03/08), no images are saved.
