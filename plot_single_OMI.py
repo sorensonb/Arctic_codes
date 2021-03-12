@@ -422,14 +422,20 @@ plt.title('OMI ' + variable + str_wave + ' '+plot_time)
 mesh = axs[0].pcolormesh(plot_lon, plot_lat,mask_UVAI,transform = datacrs,cmap = colormap,\
         vmin = var_dict[variable]['min'], vmax = var_dict[variable]['max'])
 axs[0].set_extent([-180,180,latmin,90],ccrs.PlateCarree())
-axs[0].set_xlim(-3430748.535086173,3430748.438879491)
-axs[0].set_ylim(-3413488.8763307533,3443353.899053069)
+#axs[0].set_xlim(-3430748.535086173,3430748.438879491)
+#axs[0].set_ylim(-3413488.8763307533,3443353.899053069)
 #ax.set_xlim(-4170748.535086173,4167222.438879491)
 #ax.set_ylim(-2913488.8763307533,2943353.899053069)
-cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
+if(variable == 'NormRadiance'):
+    tickvals = np.arange(0.0,0.101,0.01)
+elif(variable == 'Reflectivity'):
+    tickvals = np.arange(0.0,1.1,0.10)
+else:
+    tickvals = np.arange(-2.0,4.1,0.5)
+cbar = plt.colorbar(mesh,ticks = tickvals,orientation='horizontal',pad=0,\
     aspect=50,shrink = 0.905,label=variable)
 
-save = False
+save = True 
 if(save == True):
     out_name = 'omi_single_pass_'+name_dict[variable] + str_wave + '_'+plot_time+'_rows_0to'+str(row_max)+'.png'       
     plt.savefig(out_name)

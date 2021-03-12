@@ -39,6 +39,7 @@ from netCDF4 import Dataset
 import gzip
 import h5py
 import subprocess
+from scipy.stats import pearsonr,spearmanr
 
 # Class MidpointNormalize is used to center the colorbar on zero
 class MidpointNormalize(Normalize):
@@ -273,7 +274,7 @@ def readOMI_single_swath(plot_time,row_max):
     mask_rad500 = np.ma.masked_where(((count_NRAD_500 == 0)), g_NRAD_500)
     mask_rad500 = np.ma.masked_where(((g_SALB_354 > 0.09)), mask_rad500)
     mask_rad500 = np.ma.masked_where(((g_REFL_354 > 0.18)), mask_rad500)
-    mask_rad500 = np.ma.masked_where(((g_REFL_354 < 0.1)), mask_rad500)
+    mask_rad500 = np.ma.masked_where(((g_REFL_354 < 0.09)), mask_rad500)
     mask_NRAD500 = np.ma.masked_where(((g_UVAI_354 < 0.6)), mask_rad500)
 
     # Apply algae screening to UVAI data 
@@ -281,7 +282,7 @@ def readOMI_single_swath(plot_time,row_max):
     mask_uvai = np.ma.masked_where(((count_UVAI_354 == 0)), g_UVAI_354)
     mask_uvai = np.ma.masked_where(((g_SALB_354 > 0.09)), mask_uvai)
     mask_uvai = np.ma.masked_where(((g_REFL_354 > 0.18)), mask_uvai)
-    mask_uvai = np.ma.masked_where(((g_REFL_354 < 0.1)), mask_uvai)
+    mask_uvai = np.ma.masked_where(((g_REFL_354 < 0.09)), mask_uvai)
     mask_UVAI354 = np.ma.masked_where(((g_UVAI_354 < 0.6)), mask_uvai)
 
     OMI_single_dict = {}
@@ -1832,10 +1833,10 @@ def single_swath_anomaly_time(single_swath,climo_date,minlat = 60,row_max = 60):
     
     plt.show()
 
-def plot_OMI_v_MODIS(MODIS_data,OMI_single_swath):
+def plot_OMI_v_MODIS(MODIS_data,OMI_single_swath,save=False):
 
     # Pull out data from dictionaries
-    local_modis = np.copy(MODIS_data['chlor_a'])[0,:,:].T
+    local_modis = np.copy(MODIS_data['data'])[0,:,:].T
     local_omi   = np.ma.MaskedArray.copy(OMI_single_swath['AI_algae'])
 
     # shape = (1441, 121)
@@ -1877,8 +1878,9 @@ def plot_OMI_v_MODIS(MODIS_data,OMI_single_swath):
 
     print(len(local_modis),len(local_omi))
 
-    plot_date = datetime.strptime(MODIS_data['titles'][0][-34:-30],'%Y') + \
-        relativedelta(days = int(MODIS_data['titles'][0][-30:-27])-1)
+    splitter = MODIS_data['titles'][0].split('/')[-1]
+    plot_date = datetime.strptime(splitter[1:5],'%Y') + \
+        relativedelta(days = int(splitter[5:8])-1)
     ##!#datacrs = ccrs.PlateCarree() 
     ##!#colormap = plt.cm.jet
     ##!#ax = plt.axes(projection =ccrs.NorthPolarStereo(central_longitude = 35.) )
@@ -1902,14 +1904,24 @@ def plot_OMI_v_MODIS(MODIS_data,OMI_single_swath):
     final_omi   = local_omi.flatten()
     plt.close()
     fig1 = plt.figure()
-    plt.scatter(local_modis,local_omi)
+    plt.scatter(local_modis,local_omi,color='black')
     #plt.scatter(final_modis,final_omi)
     #plt.scatter(MODIS_data['chlor_a'][0,:,:].T,OMI_single_swath['AI_algae'])
 
     plt.plot(np.unique(final_modis), np.poly1d(np.polyfit(final_modis,final_omi,1))(np.unique(final_modis)),\
-        color='black')
+        color='red')
+
+    print("Pearson:  ",pearsonr(final_modis,final_omi))
+    print("Spearman: ",spearmanr(final_modis,final_omi))
 
     plt.title(plot_date.strftime('%Y%m%d'))
-    plt.xlabel('MODIS chlorophyll')
+    plt.xlabel('MODIS ' + MODIS_data['ptitle'])
     plt.ylabel('OMI AI')
-    plt.show()
+
+    if(save == True):
+        outname = 'omi_algae_v_modis_'+MODIS_data['grabber'] + \
+            '_' + plot_date.strftime('%Y%m%d') + '.png'
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()

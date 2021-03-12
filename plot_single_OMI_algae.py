@@ -26,8 +26,8 @@ import glob
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as color
+import matplotlib.patches as mpatches
 import cartopy.crs as ccrs
-##import matplotlib.colors as colors
 import subprocess
 import h5py
 
@@ -314,28 +314,35 @@ plot_lat, plot_lon = np.meshgrid(LATalt,LONalt)
 mask_rad500 = np.ma.masked_where(((count_UVAI_354 == 0)), g_UVAI_354)
 mask_rad500 = np.ma.masked_where(((g_SALB_354 > 0.09)), mask_rad500)
 mask_rad500 = np.ma.masked_where(((g_REFL_354 > 0.18)), mask_rad500)
-mask_rad500   = np.ma.masked_where(((g_REFL_354 < 0.1)), mask_rad500)
+mask_rad500   = np.ma.masked_where(((g_REFL_354 < 0.09)), mask_rad500)
 mask_UVAI = np.ma.masked_where(((g_UVAI_354 < 0.6)), mask_rad500)
 
 plt.title('OMI Algae ' + plot_time)
 #plt.title('NRAD500 - NRAD354')
 #plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
 mesh = axs[0].pcolormesh(plot_lon, plot_lat,mask_UVAI,transform = datacrs,cmap = colormap,\
-        vmin = None, vmax = None)
+        vmin = -2.0, vmax = 3.0)
         #vmin = 0.0, vmax = 0.1)
 axs[0].set_extent([10,55,65,80],ccrs.PlateCarree())
 #axs[0].set_xlim(-0630748.535086173,2230748.438879491)
 #axs[0].set_ylim(-2513488.8763307533,0343353.899053069)
 #ax.set_xlim(-4170748.535086173,4167222.438879491)
 #ax.set_ylim(-2913488.8763307533,2943353.899053069)
-#cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.01),orientation='horizontal',pad=0,\
-cbar = plt.colorbar(mesh,orientation='horizontal',pad=0,\
+cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
+#cbar = plt.colorbar(mesh,orientation='horizontal',pad=0,\
     aspect=50,shrink = 0.905,label='Aerosol Index')
     #aspect=50,shrink = 0.905,label='Normalized 500 nm Radiance')
 
-save = False
+### Draw scatter region box on map
+##lonmin,lonmax,latmin,latmax = 16.5,54.5,67.5,76.5
+##
+##axs[0].plot([lonmin, lonmin, lonmax, lonmax, lonmin],\
+##            [latmax, latmin, latmin, latmax, latmax],\
+##            transform = ccrs.NorthPolarStereo(central_longitude = 35.))
+
+save = False 
 if(save == True):
-    out_name = 'omi_single_pass_algae_'+plot_time+'_rows_0to'+str(row_max)+'_zoom.png'       
+    out_name = 'omi_single_pass_algae_ai_'+plot_time+'_rows_0to'+str(row_max)+'_zoom.png'       
     plt.savefig(out_name)
     print('Saved image '+out_name)
 

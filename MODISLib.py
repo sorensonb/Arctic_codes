@@ -42,7 +42,8 @@ proj_dict = {
 
 # Start_date and end_date must be formatted as 
 # "YYYYMMDD"
-def read_MODIS(start_date,latmin = 60):
+# Variable must be either "CHL" or "PIC"
+def read_MODIS(variable,start_date,latmin = 60):
 
     ##if(monthly == True):
     ##    dformat = '%Y%m' 
@@ -57,15 +58,33 @@ def read_MODIS(start_date,latmin = 60):
  
     
     # Grab all the modis files
+    if(variable == 'CHL'):
+        grabber = 'chlor-a'
+        label = 'Chlorophyll Concentration, OCI Algorithm (mg m$^{-3}$)'
+        ptitle = 'Chlorophyll-α'
+        pticks = [0.01,0.02,0.05,0.1,0.2,0.5,1.0,2.0,5.0,10.0,20.0]
+        ptick_labels = ['0.01','0.02','0.05','0.1','0.2','0.5','1','2','5',\
+            '10','20']
+    elif(variable == 'PIC'):
+        grabber = 'pic'
+        label = 'Calcite Concentration, Balch and Gordon (mol m$^{-3}$)'
+        ptitle = 'Particulate Inorganic Carbon'
+        pticks = [1e-5,2e-5,5e-5,1e-4,2e-4,5e-4,1e-3,2e-3,5e-3,0.01,0.02,0.05]
+        ptick_labels = ['1e-5','2e-5','5e-5','1e-4','2e-4','5e-4','1e-3',\
+            '2e-3','5e-3','0.01','0.02','0.05']
+    else:
+        print("ERROR: variable must be CHL or PIC")
+        return
     #cmnd = "ls /home/bsorenson/data/MODIS/CHL/A*.nc"
-    cmnd = "ls /home/bsorenson/data/MODIS/CHL/A*.nc"
+    cmnd = "ls /home/bsorenson/data/MODIS/"+variable+"/A*.nc"
     
     
     file_initial = subprocess.check_output(cmnd,shell=True).decode('utf-8').strip().split('\n')
     file_names = []
 
     for fname in file_initial:
-        fdate = datetime.strptime(fname[-34:-30],'%Y') + relativedelta(days = int(fname[-30:-27])-1)
+        splitter = fname.split('/')[-1]
+        fdate = datetime.strptime(splitter[1:5],'%Y') + relativedelta(days = int(splitter[5:8])-1)
         if(fdate == sdate):
             file_names.append(fname)
    
@@ -75,9 +94,15 @@ def read_MODIS(start_date,latmin = 60):
     # Read in the latitude, longitude, and area data
     num_files = len(file_names)
     modis_data = {}
-    modis_data['chlor_a'] = np.full((num_files,len(lat_ranges),len(lon_ranges)),-9.)
+    modis_data['data'] = np.full((num_files,len(lat_ranges),len(lon_ranges)),-9.)
     modis_data['lat']  = lat_ranges
     modis_data['lon']  = lon_ranges
+    modis_data['variable'] = variable
+    modis_data['ptitle'] = ptitle
+    modis_data['label'] = label
+    modis_data['grabber'] = grabber
+    modis_data['pticks'] = pticks
+    modis_data['ptick_labels'] = ptick_labels
     modis_data['titles']  = []
     
     count = 0
@@ -93,8 +118,8 @@ def read_MODIS(start_date,latmin = 60):
             for yj in range(len(lon_ranges)-1):
                 lat_indices = np.where((data.variables['lat'][:] >= lat_ranges[xi]) & (data.variables['lat'][:] < lat_ranges[xi+1]))
                 lon_indices = np.where((data.variables['lon'][:] >= lon_ranges[yj]) & (data.variables['lon'][:] < lon_ranges[yj+1]))
-                modis_data['chlor_a'][count,xi,yj] =\
-                    np.average(data.variables['chlor_a'][lat_indices[0],lon_indices[0]])
+                modis_data['data'][count,xi,yj] =\
+                    np.average(data.variables[grabber][lat_indices[0],lon_indices[0]])
         data.close() 
         modis_data['titles'].append(fname)
         #modis_data['dates'].append(fname[-11:end_string_idx])
@@ -346,13 +371,15 @@ def grid_data_trends(modis_dict):
 
 def plot_modis_data(modis_data,minlat=60,tind=0,zoom = None,save=False):
 
-    data = modis_data['chlor_a'][tind,:,:]
+    data = modis_data['data'][tind,:,:]
     colormap = plt.cm.jet
     mask_data = np.ma.masked_where(data == -9., data)
     mask_data = np.ma.masked_invalid(mask_data)
 
-    plot_date = datetime.strptime(modis_data['titles'][0][-34:-30],'%Y') + \
-        relativedelta(days = int(modis_data['titles'][0][-30:-27])-1)
+    print(modis_data['titles'][0])
+    splitter = modis_data['titles'][0].split('/')[-1]
+    plot_date = datetime.strptime(splitter[1:5],'%Y') + \
+        relativedelta(days = int(splitter[5:8])-1)
 
     if(minlat > 50):
         mapcrs = ccrs.NorthPolarStereo(central_longitude = 0)
@@ -375,22 +402,22 @@ def plot_modis_data(modis_data,minlat=60,tind=0,zoom = None,save=False):
     ax.gridlines()
     ax.coastlines(resolution='50m')
     mesh = ax.pcolormesh(plot_lon,plot_lat,mask_data.T,\
-            transform = datacrs, norm = cm.LogNorm(vmin = 0.01, vmax = 20.),\
-            cmap = colormap)
+            transform = datacrs, norm = cm.LogNorm(vmin = modis_data['pticks'][0],\
+            vmax = modis_data['pticks'][-1]),cmap = colormap)
     #CS = ax.contour(longitude,latitude,smooth_thick,[0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0],transform = datacrs)
     
     # Adjust and make it look good
     #ax.add_feature(cfeature.LAND,zorder=100,edgecolor='darkgrey',facecolor='darkgrey')
-    ax.set_title('MODIS Chlorophyll-α\n'+plot_date.strftime('%Y%m%d'))
-    cbar = plt.colorbar(mesh,ticks = [0.01,0.02,0.05,0.1,0.2,0.5,1.0,2.0,5.0,10.0,20.0],orientation='horizontal',pad=0,\
-        aspect=50,shrink = 0.905, label='Chlorophyll Concentration, OCI Algorithm (mg m$^{-3}$)')
-    cbar.ax.set_xticklabels(['0.01','0.02','0.05','0.1','0.2','0.5','1','2','5','10','20'])
+    ax.set_title('MODIS '+modis_data['ptitle']+'\n'+plot_date.strftime('%Y%m%d'))
+    cbar = plt.colorbar(mesh,ticks = modis_data['pticks'],orientation='horizontal',pad=0,\
+        aspect=50,shrink = 0.905, label=modis_data['label'])
+    cbar.ax.set_xticklabels(modis_data['ptick_labels'])
     #ax.set_xlim(-4170748.535086173,4167222.438879491)
     #ax.set_ylim(-2913488.8763307533,2943353.899053069)
     #ax.set_title(datetime.strftime(base_dtm,'%B %Y') + ' CryoSat-2 Data')
 
     if(save == True):
-        outname = 'modis_chlor_a_' + plot_date.strftime('%Y%m%d') + saver + '.png'
+        outname = 'modis_'+modis_data['grabber'] + '_' + plot_date.strftime('%Y%m%d') + saver + '.png'
         plt.savefig(outname,dpi=300)
         print("Saved image",outname)
     else:
