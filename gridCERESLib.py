@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 """
   NAME:
-    CERESLib.py   
+    gridCERESLib.py   
 
   PURPOSE:
+    Read, analyze, and plot data from the Level3 CERES data
 
   PYTHON VERSION:
-    2.6.6
+    3.7.4
 
   MODULES:
     - Matplotlib
@@ -17,9 +18,6 @@
     
 """
 
-# Define the python version
-python_version=3
-
 import numpy as np
 import sys
 import gzip
@@ -28,7 +26,6 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import matplotlib
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.patches import Polygon
 #import matplotlib.colors as color
 from matplotlib.colors import rgb2hex,Normalize
