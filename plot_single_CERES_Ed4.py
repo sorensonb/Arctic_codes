@@ -38,8 +38,18 @@ var_dict = {
     'LWF': 'CERES_LW_TOA_flux___upwards'
 }
 
+max_dict = {
+    'SWF': 600.,
+    'LWF': 280.
+}
+
+min_dict = {
+    'SWF': 0.,
+    'LWF': 100.
+}
+
 if(len(sys.argv)<3):
-    print("SYNTAX: python plot_single_OMI.py date variable")
+    print("SYNTAX: python plot_single_CERES_Ed4.py date variable")
     print("        date: YYYYMMDDHH")
     sys.exit()
 
@@ -62,7 +72,7 @@ else:
     print("INVALID PLOT TIME")
     sys.exit()
 
-start_date = datetime.strptime(plot_time,str_fmt)
+start_date = datetime.strptime(plot_time,str_fmt) - relativedelta(hours = hour_adder)
 end_date   = start_date + relativedelta(hours = hour_adder)
 
 base_path = '/home/bsorenson/data/CERES/SSFLevel2/'
@@ -108,8 +118,8 @@ elif(len(plot_time)==12):
 else:
     time = ''
 total_list = [base_path+'CERES_SSF_Aqua-XTRK_Edition4A_Subset_2008042200-2008042223.nc']
-#total_list = subprocess.check_output('ls '+base_path+'OMI-Aura_L2-OMAERUV_'+year+'m'+date+'t'+time+'*.he5',\
-#          shell=True).decode('utf-8').strip().split('\n')
+total_list = subprocess.check_output('ls '+base_path+'CERES_SSF_Aqua-XTRK_Edition4A_Subset_'+year+date+'*.nc',\
+          shell=True).decode('utf-8').strip().split('\n')
 
 ##total_list = ['/home/shared/OMAERUV/H5_files_20190212_download/OMI-Aura_L2-OMAERUV_2008m0427t0052-o20122_v003-2017m0721t120210.he5',\
 ##              '/home/shared/OMAERUV/H5_files_20190212_download/OMI-Aura_L2-OMAERUV_2008m0427t0231-o20123_v003-2017m0721t120217.he5',\
@@ -177,20 +187,16 @@ mask_flux = np.ma.masked_where(count == 0, swf_grid)
 print("Generating Plot")
 plt.title('CERES ' + invar + ' ' +plot_time)
 #plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
-mesh = ax.pcolormesh(plot_lon, plot_lat,mask_flux,transform = datacrs,cmap = colormap)
-        #vmin = 0., vmax = 600.)
+mesh = ax.pcolormesh(plot_lon, plot_lat,mask_flux,transform = datacrs,cmap = colormap,\
+        vmin = min_dict[invar], vmax = max_dict[invar])
 ax.set_extent([-180,180,latmin,90],ccrs.PlateCarree())
         #vmin = var_dict[variable]['min'], vmax = var_dict[variable]['max'])
 cbar = plt.colorbar(mesh,orientation='horizontal',pad=0,\
     aspect=50,shrink = 0.905,label=invar)
 
-#plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
-#cb.ax.set_xlabel('Reflectivity - Surface Albedo')
-#out_name = 'omi_single_pass_ai_200804270052_to_0549_composite_rows_0to'+str(row_max)+'.png'       
-#out_name = 'omi_single_pass_refl_albedo_diff_'+plot_time+'_rows_0to'+str(row_max)+'.png'       
-save = False
+save = True 
 if(save == True):
-    out_name = 'ceres_single_pass_' + day_adder + invar.lowercase() +'_'+plot_time+'.png'       
+    out_name = 'ceres_single_pass_' + day_adder + invar.lower() +'_'+plot_time+'.png'       
     plt.savefig(out_name,dpi=300)
     print('Saved image '+out_name)
 else:

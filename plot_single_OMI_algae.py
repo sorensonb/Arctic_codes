@@ -263,7 +263,7 @@ for fileI in range(len(total_list)):
 #mask_r388_avgs = np.nanmean(np.ma.masked_where(g_REFL_388[:,:] < -2e5, g_REFL_388[:,:]),axis=0)
 
 # CALCULATIONS
-#plot_calc = (g_NRAD_354 / g_NRAD_500) / g_REFL_354
+plot_calc = 1.0 - (g_NRAD_388 / g_NRAD_354)
 
 #UVAI = plot_calc
 #count = count_NRAD_500
@@ -285,8 +285,8 @@ LONalt = lon_ranges
 cmap = plt.cm.jet
 #v_min = np.min(UVAI)
 #v_max = np.max(UVAI)
-v_min = -1.000  # AI
-v_max = 3.000
+#v_min = -1.000  # AI
+#v_max = 3.000
 #v_min = 0.0  # Albedo
 #v_max = 1.0
 #v_min = -0.4  # Reflectance - Albedo
@@ -311,24 +311,26 @@ y_index_N50 = 30
 data.close()
 
 plot_lat, plot_lon = np.meshgrid(LATalt,LONalt)
-mask_rad500 = np.ma.masked_where(((count_UVAI_354 == 0)), g_UVAI_354)
-mask_rad500 = np.ma.masked_where(((g_SALB_354 > 0.09)), mask_rad500)
-mask_rad500 = np.ma.masked_where(((g_REFL_354 > 0.18)), mask_rad500)
-mask_rad500   = np.ma.masked_where(((g_REFL_354 < 0.09)), mask_rad500)
-mask_UVAI = np.ma.masked_where(((g_UVAI_354 < 0.6)), mask_rad500)
+mask_UVAI = np.ma.masked_where(((count_NRAD_354 == 0)), plot_calc)
+##!#mask_rad500 = np.ma.masked_where(((count_UVAI_354 == 0)), g_UVAI_354)
+##!#mask_rad500 = np.ma.masked_where(((g_SALB_354 > 0.09)), mask_rad500)
+##!#mask_rad500 = np.ma.masked_where(((g_REFL_354 > 0.18)), mask_rad500)
+##!#mask_rad500   = np.ma.masked_where(((g_REFL_354 < 0.09)), mask_rad500)
+##!#mask_UVAI = np.ma.masked_where(((g_UVAI_354 < 0.6)), mask_rad500)
 
 plt.title('OMI Algae ' + plot_time)
 #plt.title('NRAD500 - NRAD354')
 #plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
 mesh = axs[0].pcolormesh(plot_lon, plot_lat,mask_UVAI,transform = datacrs,cmap = colormap,\
-        vmin = -2.0, vmax = 3.0)
-        #vmin = 0.0, vmax = 0.1)
+        #vmin = -2.0, vmax = 3.0)
+        vmin = 0.0, vmax = 0.3)
 axs[0].set_extent([10,55,65,80],ccrs.PlateCarree())
 #axs[0].set_xlim(-0630748.535086173,2230748.438879491)
 #axs[0].set_ylim(-2513488.8763307533,0343353.899053069)
 #ax.set_xlim(-4170748.535086173,4167222.438879491)
 #ax.set_ylim(-2913488.8763307533,2943353.899053069)
-cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
+cbar = plt.colorbar(mesh,orientation='horizontal',pad=0,\
+#cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
 #cbar = plt.colorbar(mesh,orientation='horizontal',pad=0,\
     aspect=50,shrink = 0.905,label='Aerosol Index')
     #aspect=50,shrink = 0.905,label='Normalized 500 nm Radiance')

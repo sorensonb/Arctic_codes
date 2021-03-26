@@ -440,5 +440,5 @@ if(save == True):
     out_name = 'omi_single_pass_'+name_dict[variable] + str_wave + '_'+plot_time+'_rows_0to'+str(row_max)+'.png'       
     plt.savefig(out_name)
     print('Saved image '+out_name)
-
-plt.show()
+else:
+    plt.show()
