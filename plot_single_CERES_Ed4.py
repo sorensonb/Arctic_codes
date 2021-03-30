@@ -40,12 +40,12 @@ var_dict = {
 
 max_dict = {
     'SWF': 600.,
-    'LWF': 280.
+    'LWF': 240.
 }
 
 min_dict = {
     'SWF': 0.,
-    'LWF': 100.
+    'LWF': 160.
 }
 
 if(len(sys.argv)<3):
@@ -62,18 +62,23 @@ day_adder = ''
 if(len(plot_time) == 10):
     str_fmt = "%Y%m%d%H"
     hour_adder = 1
+    hour_subtracter = 1
 elif(len(plot_time) == 8):
     print("Daily average")
     day = True
     str_fmt = "%Y%m%d"
+    hour_subtracter = 0
     hour_adder = 23
     day_adder = 'daily_'
 else:
     print("INVALID PLOT TIME")
     sys.exit()
 
-start_date = datetime.strptime(plot_time,str_fmt) - relativedelta(hours = hour_adder)
-end_date   = start_date + relativedelta(hours = hour_adder)
+start_date = datetime.strptime(plot_time,str_fmt) - \
+        relativedelta(hours = hour_subtracter)
+end_date   = datetime.strptime(plot_time,str_fmt) + relativedelta(hours = hour_adder)
+
+print(start_date,end_date)
 
 base_path = '/home/bsorenson/data/CERES/SSFLevel2/'
 
@@ -194,7 +199,7 @@ ax.set_extent([-180,180,latmin,90],ccrs.PlateCarree())
 cbar = plt.colorbar(mesh,orientation='horizontal',pad=0,\
     aspect=50,shrink = 0.905,label=invar)
 
-save = True 
+save = True
 if(save == True):
     out_name = 'ceres_single_pass_' + day_adder + invar.lower() +'_'+plot_time+'.png'       
     plt.savefig(out_name,dpi=300)
