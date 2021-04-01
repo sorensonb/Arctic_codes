@@ -43,7 +43,7 @@ os.chdir('single_swath_' + in_date + '/')
 
 # Make daily average figure
 # -------------------------------------
-os.system('../../plot_single_OMI.py ' + in_date + ' LWF')
+os.system('../plot_single_OMI.py ' + in_date + ' UVAerosolIndex 60')
 
 # Pull the data file names and make single-swath figures
 # ------------------------------------------------------
