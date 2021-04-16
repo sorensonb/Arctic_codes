@@ -33,6 +33,7 @@ import matplotlib.colors as color
 from matplotlib.colors import rgb2hex,Normalize
 from matplotlib.cm import ScalarMappable
 from matplotlib.colorbar import ColorbarBase
+import matplotlib.gridspec as gridspec
 from scipy import stats
 from scipy.interpolate import interp2d
 from netCDF4 import Dataset
@@ -364,6 +365,7 @@ def readOMI_NCDF(infile='/home/bsorenson/Research/OMI/omi_ai_V003_2005_2020.nc',
     OMI_data = {}
     
     OMI_data['AI'] = in_data['AI'][:,:,:]
+    OMI_data['OB_COUNT'] = in_data['OB_COUNT'][:,:,:]
     OMI_data['LAT'] = in_data['Latitude'][:,:]
     OMI_data['LON'] = in_data['Longitude'][:,:]
     OMI_data['MONTH'] = in_data['MONTH'][:]
@@ -1315,6 +1317,57 @@ def plotOMI_Climo(OMI_data,start_date,end_date,save=False,trend_type='standard',
     else:
         plt.show()
 
+# Plots a single month of OMI climatology data (assumed to be from the 
+# netCDF file).
+def plotOMI_NCDF_SingleMonth(OMI_data,time_idx,minlat=60,save=False):
+
+    # Make copy of OMI_data array
+    local_data = np.copy(OMI_data['AI'])
+
+    #start_date = datetime(year=2004,month=10,day=1)
+    start_date = datetime.strptime(OMI_data['DATES'][0],"%Y%m")
+
+    # Set up mapping variables 
+    datacrs = ccrs.PlateCarree() 
+    colormap = plt.cm.jet
+    if(minlat < 45):
+        mapcrs = ccrs.Miller()
+    else:
+        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
+
+    # Mask any missing values
+    mask_AI = np.ma.masked_where(local_data == -999.9, local_data)
+
+    # Make figure title
+    first_date = month_objects[time_idx].strftime("%Y%m")
+    title = 'OMI AI\n'+first_date
+
+    # Make figure
+    plt.close()
+    fig1 = plt.figure(figsize = (8,8))
+    ax = plt.axes(projection = mapcrs)
+    ax.gridlines()
+    ax.coastlines(resolution='50m')
+    mesh = ax.pcolormesh(OMI_data['LON'], OMI_data['LAT'],mask_AI,transform = datacrs,cmap = colormap,\
+            vmin = -1.0, vmax = 1.5)
+    ax.set_extent([-180,180,minlat,90],datacrs)
+    ax.set_xlim(-3430748.535086173,3430748.438879491)
+    ax.set_ylim(-3413488.8763307533,3443353.899053069)
+    cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
+        aspect=50,shrink = 0.905,label='Aerosol Index')
+    ax.set_title(title)
+
+    if(save == True):
+        season_adder = ''
+        if(len(season.strip()) != 0):
+            season_adder = '_' + season.strip()
+        outname = 'omi_ai_single_' + first_date + '_' + last_date + season_adder + '.png'
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
+
 def plotOMI_NCDF_Climo(OMI_data,start_idx=0,end_idx=169,season = '',minlat=60,\
                        save=False):
 
@@ -1329,7 +1382,8 @@ def plotOMI_NCDF_Climo(OMI_data,start_idx=0,end_idx=169,season = '',minlat=60,\
     # Make copy of OMI_data array
     local_data = np.copy(OMI_data['AI'])
 
-    start_date = datetime(year=2004,month=10,day=1)
+    #start_date = datetime(year=2004,month=10,day=1)
+    start_date = datetime.strptime(OMI_data['DATES'][0],"%Y%m")
 
     # If only summer months are being analyzed, remove all data except 
     # in summer
@@ -1410,21 +1464,14 @@ def plotOMI_NCDF_Climo(OMI_data,start_idx=0,end_idx=169,season = '',minlat=60,\
 def plotOMI_NCDF_Climo_FourPanel(OMI_data,start_idx=0,end_idx=169,minlat=60,\
                        save=False):
 
-    season_dict = {
-        'spring': '\nMAM',\
-        'summer': '\nJJA',\
-        'autumn': '\nSON',\
-        'winter': '\nDJF',\
-        '': ''
-    }
-    
     # Make copy of OMI_data array
     local_spring = np.copy(OMI_data['AI'])
     local_summer = np.copy(OMI_data['AI'])
     local_autumn = np.copy(OMI_data['AI'])
     local_winter = np.copy(OMI_data['AI'])
 
-    start_date = datetime(year=2004,month=10,day=1)
+    start_date = datetime.strptime(OMI_data['DATES'][0],"%Y%m")
+    #start_date = datetime(year=2004,month=10,day=1)
 
     month_objects = []
     spring_keepers = [3,4,5]
@@ -1434,14 +1481,33 @@ def plotOMI_NCDF_Climo_FourPanel(OMI_data,start_idx=0,end_idx=169,minlat=60,\
    
     for m_idx in OMI_data['MONTH']:
         new_date = start_date + relativedelta(months=m_idx)
-        if(new_date.month in spring_keepers):  
+        if(new_date.month not in spring_keepers):  
             local_spring[m_idx,:,:] = -999.9
-        if(new_date.month in spring_keepers):  
-            local_spring[m_idx,:,:] = -999.9
-        if(new_date.month in spring_keepers):  
-            local_spring[m_idx,:,:] = -999.9
-        if(new_date.month in spring_keepers):  
-            local_spring[m_idx,:,:] = -999.9
+        if(new_date.month not in summer_keepers):  
+            local_summer[m_idx,:,:] = -999.9
+        if(new_date.month not in autumn_keepers):  
+            local_autumn[m_idx,:,:] = -999.9
+        if(new_date.month not in winter_keepers):  
+            local_winter[m_idx,:,:] = -999.9
+
+    # Mask any missing values
+    mask_spring_AI = np.ma.masked_where(local_spring == -999.9, local_spring)
+    mask_summer_AI = np.ma.masked_where(local_summer == -999.9, local_summer)
+    mask_autumn_AI = np.ma.masked_where(local_autumn == -999.9, local_autumn)
+    mask_winter_AI = np.ma.masked_where(local_winter == -999.9, local_winter)
+
+    # Calculate climatology between desired indices
+    OMI_spring_climo = np.nanmean(mask_spring_AI[start_idx:end_idx,:,:],axis=0)
+    OMI_summer_climo = np.nanmean(mask_summer_AI[start_idx:end_idx,:,:],axis=0)
+    OMI_autumn_climo = np.nanmean(mask_autumn_AI[start_idx:end_idx,:,:],axis=0)
+    OMI_winter_climo = np.nanmean(mask_winter_AI[start_idx:end_idx,:,:],axis=0)
+
+    # Make figure title
+    first_date = datetime.strptime(OMI_data['DATES'][0], "%Y%m")
+    last_date  = datetime.strptime(OMI_data['DATES'][-1], "%Y%m")
+    #print(month_objects[0].strftime("%Y%m"),month_objects[-1].strftime("%Y%m"))
+    title = 'OMI AI Seasonal Climatology\n'+first_date.strftime("%b. %Y") + \
+        ' - ' + last_date.strftime("%b. %Y")
 
     # Set up mapping variables 
     datacrs = ccrs.PlateCarree() 
@@ -1451,38 +1517,72 @@ def plotOMI_NCDF_Climo_FourPanel(OMI_data,start_idx=0,end_idx=169,minlat=60,\
     else:
         mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
 
-    # Mask any missing values
-    mask_AI = np.ma.masked_where(local_data == -999.9, local_data)
-
-    # Calculate climatology between desired indices
-    OMI_climo = np.nanmean(mask_AI[start_idx:end_idx,:,:],axis=0)
-
-    # Make figure title
-    first_date = month_objects[0].strftime("%Y%m")
-    last_date = month_objects[-1].strftime("%Y%m")
-    print(month_objects[0].strftime("%Y%m"),month_objects[-1].strftime("%Y%m"))
-    title = 'OMI AI Climatology\n'+first_date + ' - ' + last_date + season_dict[season]
-
     # Make figure
     plt.close()
-    fig1 = plt.figure(figsize = (8,8))
-    ax = plt.axes(projection = mapcrs)
-    ax.gridlines()
-    ax.coastlines(resolution='50m')
-    mesh = ax.pcolormesh(OMI_data['LON'], OMI_data['LAT'],OMI_climo,transform = datacrs,cmap = colormap,\
-            vmin = -1.0, vmax = 1.5)
-    ax.set_extent([-180,180,minlat,90],datacrs)
-    ax.set_xlim(-3430748.535086173,3430748.438879491)
-    ax.set_ylim(-3413488.8763307533,3443353.899053069)
-    cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
-        aspect=50,shrink = 0.905,label='Aerosol Index')
-    ax.set_title(title)
+    fig1 = plt.figure(1,figsize=(9,9))
+    gs = gridspec.GridSpec(nrows=2, ncols=2)
+    #gs = gridspec.GridSpec(nrows=2, ncols=2, hspace = 0.10, wspace = 0.06)
+
+    plt.suptitle(title)
+
+
+    vmax_r = 1.5
+    vmin_r = -1.0
+    # Make spring plot
+    # ----------------
+    ax0 = plt.subplot(gs[0,0],projection=mapcrs)
+    ax0.set_extent([-180,180,60,90],ccrs.PlateCarree())
+    ax0.gridlines()
+    ax0.coastlines(resolution='50m')
+    mesh0 = ax0.pcolormesh(OMI_data['LON'], OMI_data['LAT'],OMI_spring_climo,\
+            transform = datacrs,cmap = colormap,vmin = vmin_r, vmax = vmax_r)
+    ax0.set_title('Spring (MAM)')
+
+    # Make summer plot
+    # ----------------
+    ax1 = plt.subplot(gs[0,1],projection=mapcrs)
+    ax1.set_extent([-180,180,60,90],ccrs.PlateCarree())
+    ax1.gridlines()
+    ax1.coastlines(resolution='50m')
+    mesh1 = ax1.pcolormesh(OMI_data['LON'], OMI_data['LAT'],OMI_summer_climo,\
+            transform = datacrs,cmap = colormap,vmin = vmin_r, vmax = vmax_r)
+    ax1.set_title('Summer (JJA)')
+
+    # Make autumn plot
+    # ----------------
+    ax2 = plt.subplot(gs[1,0],projection=mapcrs)
+    ax2.set_extent([-180,180,60,90],ccrs.PlateCarree())
+    ax2.gridlines()
+    ax2.coastlines(resolution='50m')
+    mesh2 = ax2.pcolormesh(OMI_data['LON'], OMI_data['LAT'],OMI_autumn_climo,\
+            transform = datacrs,cmap = colormap,vmin = vmin_r, vmax = vmax_r)
+    ax2.set_title('Autumn (SON)')
+
+    # Make winter plot
+    # ----------------
+    ax3 = plt.subplot(gs[1,1],projection=mapcrs)
+    ax3.set_extent([-180,180,60,90],ccrs.PlateCarree())
+    ax3.gridlines()
+    ax3.coastlines(resolution='50m')
+    mesh3 = ax3.pcolormesh(OMI_data['LON'], OMI_data['LAT'],OMI_winter_climo,\
+            transform = datacrs,cmap = colormap,vmin = vmin_r, vmax = vmax_r)
+    ax3.set_title('Winter (DJF)')
+
+
+
+    ##!#ax.coastlines(resolution='50m')
+    ##!#mesh = ax.pcolormesh(OMI_data['LON'], OMI_data['LAT'],OMI_climo,transform = datacrs,cmap = colormap,\
+    ##!#        vmin = -1.0, vmax = 1.5)
+    ##!#ax.set_extent([-180,180,minlat,90],datacrs)
+    ##!#ax.set_xlim(-3430748.535086173,3430748.438879491)
+    ##!#ax.set_ylim(-3413488.8763307533,3443353.899053069)
+    ##!#cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
+    ##!#    aspect=50,shrink = 0.905,label='Aerosol Index')
+    ##!#ax.set_title(title)
 
     if(save == True):
-        season_adder = ''
-        if(len(season.strip()) != 0):
-            season_adder = '_' + season.strip()
-        outname = 'omi_ai_climo_' + first_date + '_' + last_date + season_adder + '.png'
+        outname = 'omi_ai_climo_fourpanel_' + first_date.strftime("%Y%m") \
+            + '_' + last_date.strftime("%Y%m") + '.png'
         plt.savefig(outname,dpi=300)
         print("Saved image",outname)
     else:

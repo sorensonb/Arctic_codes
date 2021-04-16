@@ -189,7 +189,7 @@ for fileI in range(len(total_list)):
     # Loop over the values and rows 
     for i in range(PDATA.shape[0]):
         for j in range(0,row_max):
-            if(PDATA[i,j]>-2e5):
+            if((j != 52) & (PDATA[i,j]>-2e5)):
                 # Only plot if XTrack flag is met
                 if((XTRACK[i,j] == 0) | (XTRACK[i,j] == 4)):
                     # Print values to text file
@@ -250,7 +250,7 @@ else:
 cbar = plt.colorbar(mesh,ticks = tickvals,orientation='horizontal',pad=0,\
     aspect=50,shrink = 0.905,label=variable)
 
-save = True 
+save = False
 if(save == True):
     out_name = 'omi_single_pass_'+name_dict[variable] + str_wave + '_'+\
         plot_time+'_rows_0to'+str(row_max)+'.png'
