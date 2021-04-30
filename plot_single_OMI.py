@@ -189,8 +189,9 @@ for fileI in range(len(total_list)):
     # Loop over the values and rows 
     for i in range(PDATA.shape[0]):
         for j in range(0,row_max):
-            if((j != 52) & (PDATA[i,j]>-2e5)):
-                # Only plot if XTrack flag is met
+            if((PDATA[i,j]>-2e5)):
+            #if((j != 52) & (PDATA[i,j]>-2e5)):
+            # Only plot if XTrack flag is met
                 if((XTRACK[i,j] == 0) | (XTRACK[i,j] == 4)):
                     # Print values to text file
                     if(LAT[i,j] > latmin):

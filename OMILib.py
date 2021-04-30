@@ -22,7 +22,7 @@
 
 import numpy as np
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import matplotlib.pyplot as plt
 import matplotlib.colors as cm
@@ -41,6 +41,9 @@ import gzip
 import h5py
 import subprocess
 from scipy.stats import pearsonr,spearmanr
+
+def get_ice_flags(value):
+    return int(format(value,"016b")[-15:-8],2)
 
 # Class MidpointNormalize is used to center the colorbar on zero
 class MidpointNormalize(Normalize):
@@ -356,6 +359,53 @@ def writeOMI_toNCDF(OMI_data,minlat=30):
                         AI[m,i,j] = OMI_data[dictkey][timekey]['avg']
                         OB_COUNT[m,i,j] = OMI_data[dictkey][timekey]['#_obs']
     nc.close()
+
+def write_da_to_NCDF(avgAI,counts,latmin,da_time):
+
+    # Set up values for gridding the AI data
+    lat_gridder = latmin * 4.
+    
+    lat_ranges = np.arange(latmin,90.1,0.25)
+    lon_ranges = np.arange(-180,180.1,0.25)
+
+    outfile = '/home/bsorenson/Research/OMI/omi_ai_da_'+da_time.strftime("%Y%m%d%H") + '.nc'
+    nc = Dataset(outfile,'w',format='NETCDF4')
+  
+    # Dimensions = lon, lat
+    num_lon = len(lon_ranges)
+    num_lat = len(lat_ranges)
+    
+    n_lon  = nc.createDimension('nlon',num_lon)
+    n_lat  = nc.createDimension('nlat',num_lat)
+
+    LON=nc.createVariable('lon','f4',('nlon','nlat'))
+    LON.description='Longitude'
+    LON.units='Degrees'
+    LAT=nc.createVariable('lat','f4',('nlon','nlat'))
+    LAT.description='Latitude'
+    LAT.units='Degrees'
+    AI = nc.createVariable('AI','f4',('nlon','nlat'))
+    AI.description='Quality controlled aerosol index data during the data assimilation window ('+\
+        da_time.strftime("%Y%m%d%H") + ' +/- 3 hrs)'
+    AI_COUNT=nc.createVariable('AI_COUNT','i2',('nlon','nlat'))
+    AI_COUNT.description='# of OMI AI measurements used in each grid box'
+
+    # Fill in dimension variables
+    for yi in range(num_lon):
+        for xj in range(num_lat):
+            LON[yi,xj]=lon_ranges[yi]
+            LAT[yi,xj]=lat_ranges[xj]
+
+    # Fill in actual variables
+    ###AI = avgAI
+    ###AI_COUNT = counts
+
+    for yi in range(num_lon):
+        for xj in range(num_lat):
+            AI[yi,xj] = avgAI[yi,xj]
+            AI_COUNT[yi,xj] = counts[yi,xj]
+    nc.close()
+    print("Saved file ",outfile)  
    
 def readOMI_NCDF(infile='/home/bsorenson/Research/OMI/omi_ai_V003_2005_2020.nc',minlat=50):
     # Read in data to netCDF object
@@ -414,7 +464,106 @@ def calcOMI_MonthClimo(OMI_data):
     OMI_data['MONTH_CLIMO'] = month_climo
 
     return OMI_data
+
+# Generate 6-hr cleaned average files to use for DA or aerosol event frequency 
+# tests. Start_date and end_date are of format "YYYYMMDDHH". Average files are
+# saved in netCDF format.
+def omi_da_gen(start_date,end_date):
+
+    latmin = 60 
+    
+    # Set up values for gridding the AI data
+    lat_gridder = latmin * 4.
+    
+    lat_ranges = np.arange(latmin,90.1,0.25)
+    lon_ranges = np.arange(-180,180.1,0.25)
+
+    # Convert the date objects to datetime objects
+    dtime_start = datetime.strptime(start_date,"%Y%m%d%H")
+    dtime_end   = datetime.strptime(end_date,"%Y%m%d%H")
+
+    base_path = '/home/bsorenson/data/OMI/H5_files/'
+    total_list = np.array(subprocess.check_output('ls '+base_path+'OMI-Aura_L2-OMAERUV_*.he5',\
+              shell=True).decode('utf-8').strip().split('\n'))
+
+    dtime_list = np.array([datetime.strptime(tname.split('/')[-1][20:24] + \
+        tname.split('/')[-1][25:29] + tname.split('/')[-1][30:34],"%Y%m%d%H%M") \
+        for tname in total_list]) 
+
+    ##!## - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+    ##!## Get the number of 6 - hour time slots desired   
+    ##!#time_diff = dtime_end - dtime_start
+    ##!#num_slots = int(((time_diff.days * 24) + (time_diff.seconds) / 3600) / 6)
+    ##!## - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
  
+    temp_start = dtime_start
+    while(temp_start < dtime_end): 
+        temp_end = temp_start + timedelta(hours = 6)
+    
+        da_time = temp_start + timedelta(hours = 3)
+        
+
+        keep_files = total_list[np.where((dtime_list >= temp_start) & \
+            (dtime_list <= temp_end))]
+   
+        print("Grabbing files for ",da_time)
+        if(len(keep_files) > 0):
+    
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  
+            # This is where the averaging and outputting will occur
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  
+            ##print(keep_files)
+
+            # Set up blank grid arrays to hold the counts and the data
+            UVAI = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+            count = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+
+            for infile in keep_files:
+                print(infile)
+                data = h5py.File(infile,'r')
+
+                LAT   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude'][:,:]
+                LON   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude'][:,:]
+                AI    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex'][:,:]
+                GPQF  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags'][:,:]
+                XTRACK = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/XTrackQualityFlags'][:,:]
+                AZM    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/RelativeAzimuthAngle'][:,:]
+       
+                GPQF_decode = np.reshape(np.array([get_ice_flags(tvar) for tvar in GPQF.flatten()]),GPQF.shape)
+                # IGNORE ROW 51
+
+                for yi in range(len(lon_ranges)-1):
+                    for xj in range(len(lat_ranges)-1):
+                        ai_in_range = AI[np.where(((LAT >= lat_ranges[xj]) & (LAT < lat_ranges[xj + 1])) & \
+                                                  ((LON >= lon_ranges[yi]) & (LON < lon_ranges[yi + 1])) & \
+                                                  ((XTRACK == 0) | (XTRACK == 4)) & \
+                                                  (abs(AI) < 50) & \
+                                                  (((GPQF_decode >= 0) & (GPQF_decode <= 101)) | (GPQF_decode == 104)) & \
+                                                  (AZM > 100))]
+                        if(len(ai_in_range) > 0):
+                            UVAI[yi,xj] += sum(ai_in_range)  
+                            count[yi,xj] += ai_in_range.size
+                                                  
+                data.close()
+            # end file loop
+
+            # Mask any areas where counts are zero.
+            #mask_count = np.ma.masked_where(count == 0,count)
+            #mask_UVAI  = np.ma.masked_where(count == 0,UVAI)
+
+            # Divide the accumulated AI values by the accumulated counts
+            avg_UVAI = np.copy(UVAI)
+            avg_UVAI[count > 0] = UVAI[count > 0]/count[count > 0]
+            avg_UVAI[count == 0] = -999.
+
+            print("Saving data for time",da_time)
+            # Write the data to a netCDF file
+            write_da_to_NCDF(avg_UVAI,count,latmin,da_time)
+     
+        # end number of files check
+        temp_start = temp_end 
+    # end time loop
+    #return UVAI,count,avg_UVAI,latmin,da_time
 
 def plotOMI_MK(OMI_data,start_date,end_date,save=False,file_type='XR123',season='',minlat=30.):
     if(file_type=='NXAR'):
@@ -1536,6 +1685,10 @@ def plotOMI_NCDF_Climo_FourPanel(OMI_data,start_idx=0,end_idx=169,minlat=60,\
     ax0.coastlines(resolution='50m')
     mesh0 = ax0.pcolormesh(OMI_data['LON'], OMI_data['LAT'],OMI_spring_climo,\
             transform = datacrs,cmap = colormap,vmin = vmin_r, vmax = vmax_r)
+    cbar0 = plt.colorbar(mesh0,ticks = np.arange(-2.0,4.1,0.5), \
+        orientation='horizontal',pad=0,aspect=50,shrink = 0.905,\
+        label='Aerosol Index')
+    ax0.text(0., 1.02, 'A', transform = ax0.transAxes, size=15, weight = 'bold')
     ax0.set_title('Spring (MAM)')
 
     # Make summer plot
@@ -1546,6 +1699,10 @@ def plotOMI_NCDF_Climo_FourPanel(OMI_data,start_idx=0,end_idx=169,minlat=60,\
     ax1.coastlines(resolution='50m')
     mesh1 = ax1.pcolormesh(OMI_data['LON'], OMI_data['LAT'],OMI_summer_climo,\
             transform = datacrs,cmap = colormap,vmin = vmin_r, vmax = vmax_r)
+    cbar1 = plt.colorbar(mesh1,ticks = np.arange(-2.0,4.1,0.5), \
+        orientation='horizontal',pad=0,aspect=50,shrink = 0.905,\
+        label='Aerosol Index')
+    ax1.text(0., 1.02, 'B', transform = ax1.transAxes, size=15, weight = 'bold')
     ax1.set_title('Summer (JJA)')
 
     # Make autumn plot
@@ -1556,6 +1713,10 @@ def plotOMI_NCDF_Climo_FourPanel(OMI_data,start_idx=0,end_idx=169,minlat=60,\
     ax2.coastlines(resolution='50m')
     mesh2 = ax2.pcolormesh(OMI_data['LON'], OMI_data['LAT'],OMI_autumn_climo,\
             transform = datacrs,cmap = colormap,vmin = vmin_r, vmax = vmax_r)
+    cbar2 = plt.colorbar(mesh2,ticks = np.arange(-2.0,4.1,0.5), \
+        orientation='horizontal',pad=0,aspect=50,shrink = 0.905,\
+        label='Aerosol Index')
+    ax2.text(0., 1.02, 'C', transform = ax2.transAxes, size=15, weight = 'bold')
     ax2.set_title('Autumn (SON)')
 
     # Make winter plot
@@ -1566,6 +1727,10 @@ def plotOMI_NCDF_Climo_FourPanel(OMI_data,start_idx=0,end_idx=169,minlat=60,\
     ax3.coastlines(resolution='50m')
     mesh3 = ax3.pcolormesh(OMI_data['LON'], OMI_data['LAT'],OMI_winter_climo,\
             transform = datacrs,cmap = colormap,vmin = vmin_r, vmax = vmax_r)
+    cbar3 = plt.colorbar(mesh3,ticks = np.arange(-2.0,4.1,0.5), \
+        orientation='horizontal',pad=0,aspect=50,shrink = 0.905,\
+        label='Aerosol Index')
+    ax3.text(0., 1.02, 'D', transform = ax3.transAxes, size=15, weight = 'bold')
     ax3.set_title('Winter (DJF)')
 
 
