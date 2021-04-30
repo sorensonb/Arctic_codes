@@ -1796,6 +1796,56 @@ def plotOMI_MonthClimo(OMI_data,month_idx,minlat = 60,save=False):
     else:
         plt.show()
 
+def plot_omi_da(OMI_da_nc,save=False):
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    #
+    # Plot the gridded data
+    #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    mapcrs = ccrs.NorthPolarStereo()
+    datacrs = ccrs.PlateCarree()
+    colormap = plt.cm.jet
+    
+    # Set up the polar stereographic projection map
+    fig1, ax = plt.subplots()
+    ax = plt.axes(projection = ccrs.NorthPolarStereo(central_longitude = 0.))
+    ax.gridlines()
+    ax.coastlines(resolution = '50m')
+   
+    UVAI   = OMI_da_nc.variables['AI'][:,:]
+    counts = OMI_da_nc.variables['AI_COUNT'][:,:]
+    lat    = OMI_da_nc.variables['lat'][:,:]
+    lon    = OMI_da_nc.variables['lon'][:,:]
+    plot_time = OMI_da_nc.variables['AI'].description[-21:-11]
+ 
+    # Use meshgrid to convert the 1-d lat/lon arrays into 2-d, which is needed
+    # for pcolormesh.
+    #plot_lat, plot_lon = np.meshgrid(lat_ranges,lon_ranges)
+    mask_UVAI = np.ma.masked_where(counts == 0, UVAI)
+    
+    plt.title('OMI DA AI ' + plot_time)
+    mesh = ax.pcolormesh(lon, lat,mask_UVAI,transform = datacrs,cmap = colormap,\
+            vmin = None, vmax = None)
+            #vmin = var_dict[variable]['min'], vmax = var_dict[variable]['max'])
+    
+    # Center the figure over the Arctic
+    ax.set_extent([-180,180,60,90],ccrs.PlateCarree())
+    
+    # Depending on the desired variable, set the appropriate colorbar ticks
+    tickvals = np.arange(-2.0,4.1,0.5)
+    
+    cbar = plt.colorbar(mesh,ticks = tickvals,orientation='horizontal',pad=0,\
+        aspect=50,shrink = 0.905,label='AI')
+    
+    if(save == True):
+        out_name = 'omi_da_ai_'+\
+            plot_time+'_rows_0to'+str(row_max)+'.png'
+        plt.savefig(out_name)
+        print('Saved image '+out_name)
+    else:
+        plt.show()
+
 # Plot a single swath of OMI data with total climatology subtracted
 # mask_weakAI: removes AI values below 0.8 when plotting
 def single_swath_anomaly_climo(OMI_data,swath_date,month_climo = True,\
