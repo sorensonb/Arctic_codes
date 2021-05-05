@@ -155,19 +155,19 @@ def readOMI(inputfile,start_date,end_date,key=None):
             if((int(templine[0])>=start_date) & (int(templine[0])<=end_date)):
                 if(key is not None):
                     if(templine[1]==key):
-                        OMI_data[key][templine[0].decode('utf-8')] = {}
-                        OMI_data[key][templine[0].decode('utf-8')]['avg']=float(templine[2])
-                        OMI_data[key][templine[0].decode('utf-8')]['#_obs']=int(templine[3])
+                        OMI_data[key][templine[0]] = {}
+                        OMI_data[key][templine[0]]['avg']=float(templine[2])
+                        OMI_data[key][templine[0]]['#_obs']=int(templine[3])
                 else:
                     # If the current lat/lon pair are not found in the dictionary's
                     # keys, then make a new subdictionary for it.
-                    if(templine[1].decode('utf-8') not in OMI_data.keys()):
-                        OMI_data[templine[1].decode('utf-8')] = {}
+                    if(templine[1] not in OMI_data.keys()):
+                        OMI_data[templine[1]] = {}
                     # If the current lat/lon pair are already in the dictionary's
                     # keys, then add the new data to the subdictionary
-                    OMI_data[templine[1].decode('utf-8')][templine[0].decode('utf-8')]={}
-                    OMI_data[templine[1].decode('utf-8')][templine[0].decode('utf-8')]['avg']=float(templine[2])
-                    OMI_data[templine[1].decode('utf-8')][templine[0].decode('utf-8')]['#_obs']=int(templine[3])
+                    OMI_data[templine[1]][templine[0]]={}
+                    OMI_data[templine[1]][templine[0]]['avg']=float(templine[2])
+                    OMI_data[templine[1]][templine[0]]['#_obs']=int(templine[3])
     f.close()    
 
     return OMI_data
@@ -305,7 +305,7 @@ def writeOMI_toNCDF(OMI_data,minlat=30):
     lat_ranges = np.arange(minlat,90.5,1.0)
     lon_ranges = np.arange(-180,180,1.0)
     
-    nc = Dataset('/home/bsorenson/Research/OMI/omi_ai_V003_2005_2020.nc','w',format='NETCDF4')
+    nc = Dataset('/home/bsorenson/Research/OMI/omi_ai_VJZ1_2005_201205.nc','w',format='NETCDF4')
   
     # Dimensions = lat, lon, time
     testdict = OMI_data['50x5']
@@ -328,7 +328,7 @@ def writeOMI_toNCDF(OMI_data,minlat=30):
     LON.description='Longitude'
     LON.units='Degrees'
     AI = nc.createVariable('AI','f4',('nmth','dlat','dlon'))
-    AI.description='Monthly Averaged Aerosol Index'
+    AI.description='Monthly Averaged Aerosol Index (using JZ method)'
     OB_COUNT=nc.createVariable('OB_COUNT','i2',('nmth','dlat','dlon'))
     OB_COUNT.description='# of OMI AI measurements used in each monthly average'
 
@@ -1471,10 +1471,10 @@ def plotOMI_Climo(OMI_data,start_date,end_date,save=False,trend_type='standard',
 def plotOMI_NCDF_SingleMonth(OMI_data,time_idx,minlat=60,save=False):
 
     # Make copy of OMI_data array
-    local_data = np.copy(OMI_data['AI'])
+    local_data = np.copy(OMI_data['AI'][time_idx,:,:])
 
     #start_date = datetime(year=2004,month=10,day=1)
-    start_date = datetime.strptime(OMI_data['DATES'][0],"%Y%m")
+    #start_date = datetime.strptime(OMI_data['DATES'][0],"%Y%m")
 
     # Set up mapping variables 
     datacrs = ccrs.PlateCarree() 
@@ -1488,8 +1488,8 @@ def plotOMI_NCDF_SingleMonth(OMI_data,time_idx,minlat=60,save=False):
     mask_AI = np.ma.masked_where(local_data == -999.9, local_data)
 
     # Make figure title
-    first_date = month_objects[time_idx].strftime("%Y%m")
-    title = 'OMI AI\n'+first_date
+    first_date = OMI_data['DATES'][time_idx]
+    title = 'OMI AI (Screened)\n'+first_date
 
     # Make figure
     plt.close()
@@ -1507,10 +1507,7 @@ def plotOMI_NCDF_SingleMonth(OMI_data,time_idx,minlat=60,save=False):
     ax.set_title(title)
 
     if(save == True):
-        season_adder = ''
-        if(len(season.strip()) != 0):
-            season_adder = '_' + season.strip()
-        outname = 'omi_ai_single_' + first_date + '_' + last_date + season_adder + '.png'
+        outname = 'omi_ai_single_month_' + first_date + '_JZ.png'
         plt.savefig(outname,dpi=300)
         print("Saved image",outname)
     else:
@@ -1808,7 +1805,7 @@ def plot_omi_da(OMI_da_nc,save=False):
     colormap = plt.cm.jet
     
     # Set up the polar stereographic projection map
-    fig1, ax = plt.subplots()
+    fig1, ax = plt.subplots(figsize=(8,8))
     ax = plt.axes(projection = ccrs.NorthPolarStereo(central_longitude = 0.))
     ax.gridlines()
     ax.coastlines(resolution = '50m')
@@ -1826,7 +1823,7 @@ def plot_omi_da(OMI_da_nc,save=False):
     
     plt.title('OMI DA AI ' + plot_time)
     mesh = ax.pcolormesh(lon, lat,mask_UVAI,transform = datacrs,cmap = colormap,\
-            vmin = None, vmax = None)
+            vmin = -2.0, vmax = 3.1)
             #vmin = var_dict[variable]['min'], vmax = var_dict[variable]['max'])
     
     # Center the figure over the Arctic
@@ -1840,7 +1837,7 @@ def plot_omi_da(OMI_da_nc,save=False):
     
     if(save == True):
         out_name = 'omi_da_ai_'+\
-            plot_time+'_rows_0to'+str(row_max)+'.png'
+            plot_time+'.png'
         plt.savefig(out_name)
         print('Saved image '+out_name)
     else:
@@ -2277,6 +2274,8 @@ def plot_OMI_v_MODIS(MODIS_data,OMI_single_swath,save=False):
     ##!#local_modis = np.ma.masked_invalid(local_modis)
     ##!#local_omi   = np.ma.masked_invalid(local_omi)
 
+    # Ignore any data outside the Barents Sea box
+    # -------------------------------------------
     local_modis = np.ma.masked_where(local_modis == -9, local_modis)
     local_modis = np.ma.masked_invalid(local_modis)
     local_modis = np.ma.masked_where(((plot_lon < 17.) | (plot_lon > 54)), local_modis)
@@ -2286,6 +2285,7 @@ def plot_OMI_v_MODIS(MODIS_data,OMI_single_swath,save=False):
     local_omi   = np.ma.masked_where(((plot_lat < 68.) | (plot_lat > 76)), local_omi)
     #local_modis = np.ma.masked_where(local_omi == np.nan,local_modis)  
 
+    # Get rid of any masked data
     local_modis = local_modis[~local_omi.mask]
     local_omi   = local_omi[~local_omi.mask]
 
@@ -2293,46 +2293,27 @@ def plot_OMI_v_MODIS(MODIS_data,OMI_single_swath,save=False):
     local_modis = local_modis[~local_modis.mask]
 
 
-    print(len(local_modis),len(local_omi))
-
+    # Make a datetime object for the title
+    # ------------------------------------
     splitter = MODIS_data['titles'][0].split('/')[-1]
     plot_date = datetime.strptime(splitter[1:5],'%Y') + \
         relativedelta(days = int(splitter[5:8])-1)
-    ##!#datacrs = ccrs.PlateCarree() 
-    ##!#colormap = plt.cm.jet
-    ##!#ax = plt.axes(projection =ccrs.NorthPolarStereo(central_longitude = 35.) )
-    ##!#ax.set_extent([17,54,68,76],datacrs)
-    ##!#ax.gridlines()
-    ##!#ax.coastlines(resolution='50m')
-    ##!#mesh = ax.pcolormesh(plot_lon,plot_lat,local_omi,\
-    ##!##mesh = ax.pcolormesh(plot_lon,plot_lat,local_modis,\
-    ##!#        transform = datacrs, \
-    ##!##        transform = datacrs, norm = cm.LogNorm(vmin = 0.01, vmax = 20.),\
-    ##!#        cmap = colormap)
-    ##!#ax.set_title('OMI AI\n'+plot_date.strftime('%Y%m%d'))
-    ##!##ax.set_title('MODIS Chlorophyll-α\n'+plot_date.strftime('%Y%m%d'))
-    ##!#cbar = plt.colorbar(mesh,ticks = [-2.0,-1.0,0.0,1.0,2.0,3.0,],orientation='horizontal',pad=0,\
-    ##!##cbar = plt.colorbar(mesh,ticks = [0.01,0.02,0.05,0.1,0.2,0.5,1.0,2.0,5.0,10.0,20.0],orientation='horizontal',pad=0,\
-    ##!#    aspect=50,shrink = 0.905, label='Chlorophyll Concentration, OCI Algorithm (mg m$^{-3}$)')
-    ##!#cbar.ax.set_xticklabels(['-2.0','-1.0','0.0','1.0','2.0','3.0'])
-    ##!##cbar.ax.set_xticklabels(['0.01','0.02','0.05','0.1','0.2','0.5','1','2','5','10','20'])
-    ##!#plt.show()
+
     final_modis = local_modis.flatten()
     final_omi   = local_omi.flatten()
-    plt.close()
-    fig1 = plt.figure()
-    plt.scatter(local_modis,local_omi,color='black')
-    #plt.scatter(final_modis,final_omi)
-    #plt.scatter(MODIS_data['chlor_a'][0,:,:].T,OMI_single_swath['AI_algae'])
-
-    plt.plot(np.unique(final_modis), np.poly1d(np.polyfit(final_modis,final_omi,1))(np.unique(final_modis)),\
-        color='red')
-
     print("Pearson:  ",pearsonr(final_modis,final_omi))
     print("Spearman: ",spearmanr(final_modis,final_omi))
 
+    # Make the figure
+    # --------------
+    plt.close()
+    fig1 = plt.figure(figsize=(7,6))
+    plt.scatter(local_modis,local_omi,color='black')
+    plt.plot(np.unique(final_modis), np.poly1d(np.polyfit(final_modis,final_omi,1))(np.unique(final_modis)),\
+        color='red')
+    plt.xlim(-0.001, 0.013)
     plt.title(plot_date.strftime('%Y%m%d'))
-    plt.xlabel('MODIS ' + MODIS_data['ptitle'])
+    plt.xlabel('MODIS ' + MODIS_data['ptitle'] + '\n['+MODIS_data['label']+']')
     plt.ylabel('OMI AI')
 
     if(save == True):
