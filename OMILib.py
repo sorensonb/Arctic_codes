@@ -301,19 +301,30 @@ def readOMI_single_swath(plot_time,row_max):
 
     return OMI_single_dict
 
-def writeOMI_toNCDF(OMI_data,minlat=30):
+def writeOMI_toNCDF(OMI_data,file_name,minlat=30):
     lat_ranges = np.arange(minlat,90.5,1.0)
     lon_ranges = np.arange(-180,180,1.0)
     
-    nc = Dataset('/home/bsorenson/Research/OMI/omi_ai_VJZ1_2005_201205.nc','w',format='NETCDF4')
+    nc = Dataset(file_name,'w',format='NETCDF4')
   
     # Dimensions = lat, lon, time
-    testdict = OMI_data['50x5']
+    testdict = OMI_data['70x5']
     testkeys = list(testdict.keys())
     num_lat = len(lat_ranges)
     num_lon = len(lon_ranges)
     num_time = len(testdict.keys())
     times = np.arange(num_time)
+  
+    # Instead of using a simple 'arange' function to define the 'times'
+    # variable, actually calculate the number of months between each date
+    # variable and a reference date, which is January 2005. This will have
+    # no effect on any total OMI processes but will allow compatibility with
+    # testing processes where just a few months between January 2005 and
+    # July 2019 are selected. 
+    base_date = datetime(year=2005,month=1,day=1) 
+    times = np.array([(datetime.strptime(tmpx,'%Y%m').year - base_date.year) \
+        * 12 + datetime.strptime(tmpx,'%Y%m').month - base_date.month \
+        for tmpx in testkeys])
     
     n_time = nc.createDimension('nmth',num_time)
     n_lat  = nc.createDimension('dlat',num_lat)
@@ -1468,7 +1479,12 @@ def plotOMI_Climo(OMI_data,start_date,end_date,save=False,trend_type='standard',
 
 # Plots a single month of OMI climatology data (assumed to be from the 
 # netCDF file).
-def plotOMI_NCDF_SingleMonth(OMI_data,time_idx,minlat=60,save=False):
+def plotOMI_NCDF_SingleMonth(OMI_data,version,time_idx,minlat=60,save=False):
+
+    label_dict = {
+        'VJZ4': 'XTrack == 0, not 4',
+        'VJZ5': 'AI >= 0'
+    }
 
     # Make copy of OMI_data array
     local_data = np.copy(OMI_data['AI'][time_idx,:,:])
@@ -1489,7 +1505,7 @@ def plotOMI_NCDF_SingleMonth(OMI_data,time_idx,minlat=60,save=False):
 
     # Make figure title
     first_date = OMI_data['DATES'][time_idx]
-    title = 'OMI AI (Screened)\n'+first_date
+    title = 'OMI AI (Screened)\n'+label_dict[version]+'\n'+first_date
 
     # Make figure
     plt.close()
@@ -1507,7 +1523,7 @@ def plotOMI_NCDF_SingleMonth(OMI_data,time_idx,minlat=60,save=False):
     ax.set_title(title)
 
     if(save == True):
-        outname = 'omi_ai_single_month_' + first_date + '_JZ.png'
+        outname = 'omi_ai_single_month_' + first_date + '_'+version+'.png'
         plt.savefig(outname,dpi=300)
         print("Saved image",outname)
     else:

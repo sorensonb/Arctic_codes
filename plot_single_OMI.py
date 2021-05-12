@@ -251,7 +251,7 @@ else:
 cbar = plt.colorbar(mesh,ticks = tickvals,orientation='horizontal',pad=0,\
     aspect=50,shrink = 0.905,label=variable)
 
-save = False
+save = True 
 if(save == True):
     out_name = 'omi_single_pass_'+name_dict[variable] + str_wave + '_'+\
         plot_time+'_rows_0to'+str(row_max)+'.png'

@@ -184,7 +184,7 @@ cbar = plt.colorbar(mesh,orientation='horizontal',pad=0,\
 cbar.ax.set_xticklabels(cbar_labels[int(np.min(mask_UVAI)):int(np.max(mask_UVAI))+1],\
     fontsize=8,rotation=35)
 
-save = True
+save = True 
 if(save == True):
     out_name = 'omi_single_pass_gpqf_'+plot_time+'_rows_0to'+str(row_max)+'.png'       
     plt.savefig(out_name)
