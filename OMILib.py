@@ -1481,10 +1481,10 @@ def plotOMI_Climo(OMI_data,start_date,end_date,save=False,trend_type='standard',
 # netCDF file).
 def plotOMI_NCDF_SingleMonth(OMI_data,version,time_idx,minlat=60,save=False):
 
-    label_dict = {
-        'VJZ4': 'XTrack == 0, not 4',
-        'VJZ5': 'AI >= 0'
-    }
+    #label_dict = {
+    #    'VJZ4': 'XTrack == 0, not 4',
+    #    'VJZ5': 'AI >= 0'
+    #}
 
     # Make copy of OMI_data array
     local_data = np.copy(OMI_data['AI'][time_idx,:,:])
@@ -1505,7 +1505,7 @@ def plotOMI_NCDF_SingleMonth(OMI_data,version,time_idx,minlat=60,save=False):
 
     # Make figure title
     first_date = OMI_data['DATES'][time_idx]
-    title = 'OMI AI (Screened)\n'+label_dict[version]+'\n'+first_date
+    #title = 'OMI AI (Screened)\n'+label_dict[version]+'\n'+first_date
 
     # Make figure
     plt.close()
@@ -1519,8 +1519,10 @@ def plotOMI_NCDF_SingleMonth(OMI_data,version,time_idx,minlat=60,save=False):
     ax.set_xlim(-3430748.535086173,3430748.438879491)
     ax.set_ylim(-3413488.8763307533,3443353.899053069)
     cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
-        aspect=50,shrink = 0.905,label='Aerosol Index')
-    ax.set_title(title)
+        aspect=50,shrink = 0.845)
+    cbar.ax.tick_params(labelsize=14)
+    cbar.set_label('UV Aerosol Index',fontsize=16,weight='bold')
+    #ax.set_title(title)
 
     if(save == True):
         outname = 'omi_ai_single_month_' + first_date + '_'+version+'.png'

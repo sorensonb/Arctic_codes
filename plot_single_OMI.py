@@ -249,7 +249,9 @@ else:
     tickvals = np.arange(-2.0,4.1,0.5)
 
 cbar = plt.colorbar(mesh,ticks = tickvals,orientation='horizontal',pad=0,\
-    aspect=50,shrink = 0.905,label=variable)
+    aspect=50,shrink = 0.850)
+cbar.ax.tick_params(labelsize=14)
+cbar.set_label('UV Aerosol Index',fontsize=16,weight='bold')
 
 save = True 
 if(save == True):
