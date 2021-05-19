@@ -96,6 +96,7 @@ os.system(cmnd)
 print("MISR")
 cmnd = "cp "+base_dir+"MISR/*.py "+dest_dir
 print(cmnd)
+os.system(cmnd)
 cmnd = "cp "+base_dir+"MISR/*.c "+dest_dir
 print(cmnd)
 os.system(cmnd)
