@@ -17,57 +17,57 @@ print("code_backup.py")
 cmnd = "cp /home/bsorenson/code_backup.py "+dest_dir
 print(cmnd)
 os.system(cmnd)
-# ---------------------------------------------------------------------------- 
-# Ice analysis
-# ---------------------------------------------------------------------------- 
-print("Ice_analysis")
-cmnd = "cp "+base_dir+"Ice_analysis/*.py "+dest_dir
-print(cmnd)
-os.system(cmnd)
-# ---------------------------------------------------------------------------- 
-# CryoSat-2 analysis
-# ---------------------------------------------------------------------------- 
-print("CryoSat2")
-cmnd = "cp "+base_dir+"CryoSat2/*.py "+dest_dir
-print(cmnd)
-os.system(cmnd)
-# ---------------------------------------------------------------------------- 
-# ICESat-2 analysis
-# ---------------------------------------------------------------------------- 
-print("ICESat2")
-cmnd = "cp "+base_dir+"ICESat2/*.py "+dest_dir
-print(cmnd)
-os.system(cmnd)
-# ---------------------------------------------------------------------------- 
-# CERES raw codes
-# ---------------------------------------------------------------------------- 
-print("CERES")
-cmnd = "cp "+base_dir+"CERES/*.py "+dest_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "cp "+base_dir+"CERES/*.c "+dest_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "cp "+base_dir+"CERES/Make* "+dest_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "cp "+base_dir+"CERES/README_ceres "+dest_dir
-print(cmnd)
-os.system(cmnd)
-# ---------------------------------------------------------------------------- 
-# CERES_Ice_comparison codes
-# ---------------------------------------------------------------------------- 
-print("CERES_Ice_comparison")
-cmnd = "cp "+base_dir+"CERES_Ice_comparison/*.py "+dest_dir
-print(cmnd)
-os.system(cmnd)
-# ---------------------------------------------------------------------------- 
-# PIOMAS analysis
-# ---------------------------------------------------------------------------- 
-print("PIOMAS")
-cmnd = "cp "+base_dir+"PIOMAS/*.py "+dest_dir
-print(cmnd)
-os.system(cmnd)
+## ---------------------------------------------------------------------------- 
+## Ice analysis
+## ---------------------------------------------------------------------------- 
+#print("Ice_analysis")
+#cmnd = "cp "+base_dir+"Ice_analysis/*.py "+dest_dir
+#print(cmnd)
+#os.system(cmnd)
+## ---------------------------------------------------------------------------- 
+## CryoSat-2 analysis
+## ---------------------------------------------------------------------------- 
+#print("CryoSat2")
+#cmnd = "cp "+base_dir+"CryoSat2/*.py "+dest_dir
+#print(cmnd)
+#os.system(cmnd)
+## ---------------------------------------------------------------------------- 
+## ICESat-2 analysis
+## ---------------------------------------------------------------------------- 
+#print("ICESat2")
+#cmnd = "cp "+base_dir+"ICESat2/*.py "+dest_dir
+#print(cmnd)
+#os.system(cmnd)
+## ---------------------------------------------------------------------------- 
+## CERES raw codes
+## ---------------------------------------------------------------------------- 
+#print("CERES")
+#cmnd = "cp "+base_dir+"CERES/*.py "+dest_dir
+#print(cmnd)
+#os.system(cmnd)
+#cmnd = "cp "+base_dir+"CERES/*.c "+dest_dir
+#print(cmnd)
+#os.system(cmnd)
+#cmnd = "cp "+base_dir+"CERES/Make* "+dest_dir
+#print(cmnd)
+#os.system(cmnd)
+#cmnd = "cp "+base_dir+"CERES/README_ceres "+dest_dir
+#print(cmnd)
+#os.system(cmnd)
+## ---------------------------------------------------------------------------- 
+## CERES_Ice_comparison codes
+## ---------------------------------------------------------------------------- 
+#print("CERES_Ice_comparison")
+#cmnd = "cp "+base_dir+"CERES_Ice_comparison/*.py "+dest_dir
+#print(cmnd)
+#os.system(cmnd)
+## ---------------------------------------------------------------------------- 
+## PIOMAS analysis
+## ---------------------------------------------------------------------------- 
+#print("PIOMAS")
+#cmnd = "cp "+base_dir+"PIOMAS/*.py "+dest_dir
+#print(cmnd)
+#os.system(cmnd)
 # ---------------------------------------------------------------------------- 
 # OMI Codes
 # ---------------------------------------------------------------------------- 
@@ -75,12 +75,14 @@ print("OMI")
 cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
 print(cmnd)
 os.system(cmnd)
-cmnd = "cp "+base_dir+"OMI/OMI_simulation/*.py "+dest_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "cp "+base_dir+"OMI/README_omi "+dest_dir
-print(cmnd)
-os.system(cmnd)
+#cmnd = "cp "+base_dir+"OMI/OMI_simulation/*.py "+dest_dir
+#print(cmnd)
+#os.system(cmnd)
+#cmnd = "cp "+base_dir+"OMI/README_omi "+dest_dir
+#print(cmnd)
+#os.system(cmnd)
+
+
 ##!#cmnd = "cp "+base_dir+"OMI/*.pro "+dest_dir
 ##!#print(cmnd)
 ##!#os.system(cmnd)
@@ -90,31 +92,31 @@ os.system(cmnd)
 ##!#cmnd = "cp "+base_dir+"OMI/run_Average_AerosolIndexCalculator "+dest_dir
 ##!#print(cmnd)
 ##!#os.system(cmnd)
-# ---------------------------------------------------------------------------- 
-# MISR analysis
-# ---------------------------------------------------------------------------- 
-print("MISR")
-cmnd = "cp "+base_dir+"MISR/*.py "+dest_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "cp "+base_dir+"MISR/*.c "+dest_dir
-print(cmnd)
-os.system(cmnd)
-# ---------------------------------------------------------------------------- 
-# MODIS analysis
-# ---------------------------------------------------------------------------- 
-print("MODIS")
-cmnd = "cp "+base_dir+"MODIS/*.py "+dest_dir
-print(cmnd)
-os.system(cmnd)
-# ---------------------------------------------------------------------------- 
-# Siphon/Metpy Codes
-# ---------------------------------------------------------------------------- 
-print("Siphon/Metpy")
-smcodes = '/home/bsorenson/Programs/Python/auto_weather_codes/'
-cmnd = "cp "+smcodes+"*.py "+dest_dir
-print(cmnd)
-os.system(cmnd)
+## ---------------------------------------------------------------------------- 
+## MISR analysis
+## ---------------------------------------------------------------------------- 
+#print("MISR")
+#cmnd = "cp "+base_dir+"MISR/*.py "+dest_dir
+#print(cmnd)
+#os.system(cmnd)
+#cmnd = "cp "+base_dir+"MISR/*.c "+dest_dir
+#print(cmnd)
+#os.system(cmnd)
+## ---------------------------------------------------------------------------- 
+## MODIS analysis
+## ---------------------------------------------------------------------------- 
+#print("MODIS")
+#cmnd = "cp "+base_dir+"MODIS/*.py "+dest_dir
+#print(cmnd)
+#os.system(cmnd)
+## ---------------------------------------------------------------------------- 
+## Siphon/Metpy Codes
+## ---------------------------------------------------------------------------- 
+#print("Siphon/Metpy")
+#smcodes = '/home/bsorenson/Programs/Python/auto_weather_codes/'
+#cmnd = "cp "+smcodes+"*.py "+dest_dir
+#print(cmnd)
+#os.system(cmnd)
 ### ---------------------------------------------------------------------------- 
 ### Jianglong/Jeff's Mie stuff
 ### ---------------------------------------------------------------------------- 
