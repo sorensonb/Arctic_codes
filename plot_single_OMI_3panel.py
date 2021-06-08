@@ -38,64 +38,29 @@ import glob
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as color
+import matplotlib.gridspec as gridspec
 import cartopy.crs as ccrs
 import subprocess
 import h5py
 
-# Set up variable dictionary. This is used in pulling the variables
-# from the HDF5 structure.
-path_dict = {
-    'SurfaceAlbedo':           'Data Fields/',\
-    'NormRadiance':            'Data Fields/',\
-    'Reflectivity':            'Data Fields/',\
-    'CloudFraction':           'Data Fields/',\
-    'UVAerosolIndex':          'Data Fields/',\
-    'PixelQualityFlags':       'Data Fields/',\
-    'MeasurementQualityFlags': 'Data Fields/',\
-    'ViewingZenithAngle':      'Geolocation Fields/',\
-    'SolarZenithAngle':        'Geolocation Fields/',\
-    'RelativeZenithAngle':     'Geolocation Fields/',\
-    'GroundPixelQualityFlags': 'Geolocation Fields/'
+def get_ice_flags(value):
+    return int(format(value,"016b")[-15:-8],2)
+
+var_dict = {
+    'UVAerosolIndex':          {'min': -2.0, 'max': 3.0 },\
 }
 
-if(len(sys.argv)<4):
-    print("SYNTAX: python plot_single_OMI.py date variable row_max")
+if(len(sys.argv)<2):
+    print("SYNTAX: python plot_single_OMI.py date")
     print("\n        date: YYYYMMDDHHMM for single scan")
     print("              YYYYMMDD for a daily average")
-    print("\n        Accepted variable names:")
-    for name in name_dict.keys():
-        print("        - "+name)
-    print("\n        row_max: the highest row from which to plot data")
-    print("                 to plot all data, use 60")
     sys.exit()
 
 plot_time = sys.argv[1]
-variable = sys.argv[2]
-row_max=int(sys.argv[3])
+variable = 'UVAerosolIndex'
+row_max = 60
 channel_idx = 0
 str_wave = ''
-
-# Check which channels are being used, which only matters for the radiances,
-# reflectivities, and albedoes.
-if((variable[:12] == 'NormRadiance')  | \
-    (variable[:12] == 'Reflectivity') | \
-    (variable[:13] == 'SurfaceAlbedo')):
-    if(variable[-3:] == '354'):
-        variable = variable[:-3]
-        str_wave = '354nm'
-        channel_idx = 0
-    elif(variable[-3:] == '388'):
-        variable = variable[:-3]
-        str_wave = '388nm'
-        channel_idx = 1
-    elif(variable[-3:] == '500'):
-        variable = variable[:-3]
-        str_wave = '500nm'
-        channel_idx = 2
-    else:
-        print("Channel not selected. Defaulting to 354 nm")
-        str_wave = '354nm'
-        channel_idx = 0
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 #
@@ -146,9 +111,9 @@ lat_ranges = np.arange(latmin,90.1,0.25)
 lon_ranges = np.arange(-180,180.1,0.25)
 
 # Set up blank grid arrays to hold the counts and the data
-UVAI     = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+UVAI_c   = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
 UVAI_JZ  = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
-count    = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+count_c  = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
 count_JZ = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
 
 for fileI in range(len(total_h5_list)):
@@ -181,12 +146,13 @@ for fileI in range(len(total_h5_list)):
                 if(index2 < 0): index2 = 0                                                                                            
                 if(index2 > 1439): index2 = 1439
 
-                UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + UVAI[i,j])/(count[index2,index1]+1)
-                count[index2, index1] = count[index2,index1] + 1
+                UVAI_c[index2, index1] = (UVAI_c[index2,index1]*count_c[index2,index1] + UVAI[i,j])/(count_c[index2,index1]+1)
+                count_c[index2, index1] = count_c[index2,index1] + 1
 
+                pixel_val = get_ice_flags(GPQF[i,j])
                 # After inserting the control values, check the JZ criteria
                 # before inserting into the JZ arrays
-               if((((pixel_val >= 0) & (pixel_val <= 101)) | (pixel_val == 104)) & \
+                if((((pixel_val >= 0) & (pixel_val <= 101)) | (pixel_val == 104)) & \
                     (AZM[i,j] > 100) ):
                     UVAI_JZ[index2, index1] = (UVAI_JZ[index2,index1]*count_JZ[index2,index1] + UVAI[i,j])/(count_JZ[index2,index1]+1)
                     count_JZ[index2, index1] = count_JZ[index2,index1] + 1
@@ -198,10 +164,14 @@ for fileI in range(len(total_h5_list)):
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-for fileI in range(len(total_list)):
+# Set up blank grid arrays to hold the counts and the data
+UVAI_sh  = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+count_sh = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+
+for fileI in range(len(total_sh_list)):
     # read in data directly from HDF5 files
-    print(total_list[fileI])
-    with open(total_list[fileI]) as infile:
+    print(total_sh_list[fileI])
+    with open(total_sh_list[fileI]) as infile:
         for line in infile:
             templine = line.strip().split()
             lat     = float(templine[0])
@@ -220,8 +190,8 @@ for fileI in range(len(total_list)):
                     if(index2 < 0): index2 = 0                                                                                            
                     if(index2 > 1439): index2 = 1439
 
-                    UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + cleanAI)/(count[index2,index1]+1)
-                    count[index2, index1] = count[index2,index1] + 1
+                    UVAI_sh[index2, index1] = (UVAI_sh[index2,index1]*count_sh[index2,index1] + cleanAI)/(count_sh[index2,index1]+1)
+                    count_sh[index2, index1] = count_sh[index2,index1] + 1
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
@@ -230,50 +200,107 @@ for fileI in range(len(total_list)):
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 print("Time to plot")
-mapcrs = ccrs.NorthPolarStereo()
+mapcrs = ccrs.NorthPolarStereo(central_longitude = 0)
 datacrs = ccrs.PlateCarree()
 colormap = plt.cm.jet
 
-# Set up the polar stereographic projection map
-fig1, axs = plt.subplots(2, 1, figsize=(8,8))
-if(latmin<45):
-    axs[0] = plt.axes(projection = ccrs.Miller())
-else:
-    axs[0] = plt.axes(projection = ccrs.NorthPolarStereo(central_longitude = 0.))
-axs[0].gridlines()
-axs[0].coastlines(resolution = '50m')
+# Plot the control data in the first subplot
+# - - - - - - - - - - - - - - - - - - - - - -
 
+# Set up the polar stereographic projection map
+#fig1, axs = plt.subplots(1, 3,subplot_kw={'projection':mapcrs},figsize=(11,8.5))
+fig1 = plt.figure(1,figsize=(12,5))
+gs = gridspec.GridSpec(nrows=1, ncols=3, hspace = 0.03)
+plt.suptitle(plot_time)
+#if(latmin<45):
+#    axs[0] = plt.axes(projection = ccrs.Miller())
+#else:
+#axs[0] = plt.axes(projection = mapcrs)
+ax0 = plt.subplot(gs[0,0],projection=mapcrs)
+ax0.gridlines()
+ax0.coastlines(resolution = '50m')
 
 # Use meshgrid to convert the 1-d lat/lon arrays into 2-d, which is needed
 # for pcolormesh.
 plot_lat, plot_lon = np.meshgrid(lat_ranges,lon_ranges)
-mask_UVAI = np.ma.masked_where(count == 0, UVAI)
+mask_UVAI = np.ma.masked_where(count_c == 0, UVAI_c)
 
-plt.title('OMI ' + variable + str_wave + ' '+plot_time)
-mesh = axs[0].pcolormesh(plot_lon, plot_lat,mask_UVAI,transform = datacrs,cmap = colormap,\
+ax0.set_title('Control',fontsize=12)
+mesh0 = ax0.pcolormesh(plot_lon, plot_lat,mask_UVAI,transform = datacrs,cmap = colormap,\
         vmin = var_dict[variable]['min'], vmax = var_dict[variable]['max'])
 
 # Center the figure over the Arctic
-axs[0].set_extent([-180,180,latmin,90],ccrs.PlateCarree())
+ax0.set_extent([-180,180,latmin,90],ccrs.PlateCarree())
 
 # Depending on the desired variable, set the appropriate colorbar ticks
-if(variable == 'NormRadiance'):
-    tickvals = np.arange(0.0,0.101,0.01)
-elif(variable == 'Reflectivity'):
-    tickvals = np.arange(0.0,1.1,0.10)
-else:
-    tickvals = np.arange(-2.0,4.1,0.5)
+tickvals = np.arange(-2.0,4.1,1.0)
 
-cbar = plt.colorbar(mesh,ticks = tickvals,orientation='horizontal',pad=0,\
-    aspect=50,shrink = 0.850)
-cbar.ax.tick_params(labelsize=14)
-cbar.set_label('UV Aerosol Index',fontsize=16,weight='bold')
+cbar0 = plt.colorbar(mesh0,ticks = tickvals,orientation='horizontal',pad=0,\
+    aspect=50)
+#cbar0.ax.tick_params(labelsize=14)
+cbar0.set_label('UV Aerosol Index',weight='bold')
+
+# Plot the JZ data in the second subplot
+# - - - - - - - - - - - - - - - - - - - - - -
+
+#axs[1] = plt.axes(projection = mapcrs)
+ax1 = plt.subplot(gs[0,1],projection=mapcrs)
+ax1.gridlines()
+ax1.coastlines(resolution = '50m')
+
+# Use meshgrid to convert the 1-d lat/lon arrays into 2-d, which is needed
+# for pcolormesh.
+plot_lat, plot_lon = np.meshgrid(lat_ranges,lon_ranges)
+mask_UVAI_JZ = np.ma.masked_where(count_JZ == 0, UVAI_JZ)
+
+ax1.set_title('Screened',fontsize=12)
+mesh1 = ax1.pcolormesh(plot_lon, plot_lat,mask_UVAI_JZ,transform = datacrs,cmap = colormap,\
+        vmin = var_dict[variable]['min'], vmax = var_dict[variable]['max'])
+
+# Center the figure over the Arctic
+ax1.set_extent([-180,180,latmin,90],ccrs.PlateCarree())
+
+# Depending on the desired variable, set the appropriate colorbar ticks
+tickvals = np.arange(-2.0,4.1,1.0)
+
+cbar1 = plt.colorbar(mesh1,ticks = tickvals,orientation='horizontal',pad=0,\
+    aspect=50)#,shrink = 0.850)
+#cbar1.ax.tick_params(labelsize=14)
+cbar1.set_label('UV Aerosol Index',weight='bold')
+
+# Plot the Shawn data in the second subplot
+# - - - - - - - - - - - - - - - - - - - - - -
+
+#axs[2] = plt.axes(projection = mapcrs)
+ax2 = plt.subplot(gs[0,2],projection=mapcrs)
+ax2.gridlines()
+ax2.coastlines(resolution = '50m')
+
+# Use meshgrid to convert the 1-d lat/lon arrays into 2-d, which is needed
+# for pcolormesh.
+plot_lat, plot_lon = np.meshgrid(lat_ranges,lon_ranges)
+mask_UVAI_sh = np.ma.masked_where(count_sh == 0, UVAI_sh)
+
+ax2.set_title('Perturbation',fontsize=12)
+mesh2 = ax2.pcolormesh(plot_lon, plot_lat,mask_UVAI_sh,transform = datacrs,cmap = colormap,\
+        vmin = var_dict[variable]['min'], vmax = var_dict[variable]['max'])
+
+# Center the figure over the Arctic
+ax2.set_extent([-180,180,latmin,90],ccrs.PlateCarree())
+
+# Depending on the desired variable, set the appropriate colorbar ticks
+tickvals = np.arange(-2.0,4.1,1.0)
+
+cbar2 = plt.colorbar(mesh2,ticks = tickvals,orientation='horizontal',pad=0,\
+    aspect=50)#,shrink = 0.850)
+#cbar2.ax.tick_params(labelsize=14)
+cbar2.set_label('UV Aerosol Index Perturbation',weight='bold')
 
 save = True 
 if(save == True):
-    out_name = 'omi_single_pass_'+name_dict[variable] + str_wave + '_'+\
-        plot_time+'_rows_0to'+str(row_max)+'.png'
-    plt.savefig(out_name)
+    out_name = 'omi_single_pass_uvai_' +\
+        plot_time+'_3panel.png'
+    plt.savefig(out_name,dpi=300)
     print('Saved image '+out_name)
 else:
     plt.show()
