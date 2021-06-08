@@ -59,14 +59,14 @@ var_dict = {
 if(len(sys.argv)<2):
     print("SYNTAX: python plot_single_OMI_shawn.py date")
     print("\n        date: YYYYMMDDHHMM for single scan")
-    print("\n        date: YYYYMMDD     for single day")
+    print("                YYYYMMDD     for single day")
     sys.exit()
 
 plot_time = sys.argv[1]
 
 # This is the path that points to the HDF5 OMI files. This must be changed
 # if running on a new system.
-base_path = '/home/bsorenson/Research/OMI/shawn_files/'
+base_path = '/home/bsorenson/data/OMI/shawn_files/'
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 #
@@ -151,7 +151,7 @@ axs[0].coastlines(resolution = '50m')
 plot_lat, plot_lon = np.meshgrid(lat_ranges,lon_ranges)
 mask_UVAI = np.ma.masked_where(count == 0, UVAI)
 
-plt.title('OMI ' + ' '+plot_time)
+plt.title('OMI '+plot_time)
 mesh = axs[0].pcolormesh(plot_lon, plot_lat,mask_UVAI,transform = datacrs,cmap = colormap,\
         vmin = -1.0, vmax = 3.0)
 
@@ -159,14 +159,14 @@ mesh = axs[0].pcolormesh(plot_lon, plot_lat,mask_UVAI,transform = datacrs,cmap =
 axs[0].set_extent([-180,180,latmin,90],ccrs.PlateCarree())
 
 # Depending on the desired variable, set the appropriate colorbar ticks
-tickvals = np.arange(-2.0,4.1,0.5)
+tickvals = np.arange(-1.0,4.1,0.5)
 
 cbar = plt.colorbar(mesh,ticks = tickvals,orientation='horizontal',pad=0,\
     aspect=50,shrink = 0.850)
 cbar.ax.tick_params(labelsize=14)
-cbar.set_label('UV Aerosol Index',fontsize=16,weight='bold')
+cbar.set_label('UV Aerosol Index Perturbation',fontsize=16,weight='bold')
 
-save = False
+save = False 
 if(save == True):
     out_name = 'omi_single_pass_ai'+ '_'+\
         plot_time+'_shawn.png'

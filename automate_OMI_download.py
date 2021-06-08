@@ -21,7 +21,7 @@ import numpy as np
 import datetime
 
 
-years = [2007]
+years = [2008]
 #years = [2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019]
 leap_years = [2004,2008,2012,2016,2020,2024]
 base_path = "https://aura.gesdisc.eosdis.nasa.gov/data/Aura_OMI_Level2/OMAERUV.003/"
