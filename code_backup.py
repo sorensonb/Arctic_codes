@@ -75,6 +75,15 @@ print("OMI")
 cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
 print(cmnd)
 os.system(cmnd)
+# Get codes from Raindrop
+rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/OMI/shawn_analysis/"
+cmnd = "scp "+rain_dir+"*.f90 "+dest_dir
+print(cmnd)
+os.system(cmnd)
+cmnd = "scp "+rain_dir+"makefile "+dest_dir
+print(cmnd)
+os.system(cmnd)
+
 #cmnd = "cp "+base_dir+"OMI/OMI_simulation/*.py "+dest_dir
 #print(cmnd)
 #os.system(cmnd)

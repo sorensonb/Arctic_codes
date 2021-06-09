@@ -210,7 +210,7 @@ colormap = plt.cm.jet
 # Set up the polar stereographic projection map
 #fig1, axs = plt.subplots(1, 3,subplot_kw={'projection':mapcrs},figsize=(11,8.5))
 fig1 = plt.figure(1,figsize=(12,5))
-gs = gridspec.GridSpec(nrows=1, ncols=3, hspace = 0.03)
+gs = gridspec.GridSpec(nrows=1, ncols=3, hspace = 0.00, wspace=0.08)
 plt.suptitle(plot_time)
 #if(latmin<45):
 #    axs[0] = plt.axes(projection = ccrs.Miller())
