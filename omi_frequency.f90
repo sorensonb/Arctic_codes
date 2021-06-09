@@ -16,18 +16,41 @@ program omi_frequency
 
   implicit none
 
-  complex                :: m            ! refractive index (real and imaginary
-                                         ! components.
-  real                   :: diam         ! Particle diameter (used to find size
-                                         ! parameter) (microns)
-  real                   :: lambda       ! wavelength  (microns)
-  real,dimension(3)      :: reals        ! real components of refractive index
-  real,dimension(3)      :: size_params  ! size parameters
-  real                   :: pi
- 
-  integer                :: i            ! loop counter
+  integer                :: ii            ! loop counter
+  integer,parameter      :: io8    = 42
+  integer,parameter      :: io7    = 22
+  integer,parameter      :: errout = 9 
+  integer                :: istatus
+
+  character(len = 41)    :: data_path
+  character(len = 12)    :: dtg
+
+  real                   :: lat
+  real                   :: lon
+  real                   :: raw_ai
+  real                   :: filter
+  real                   :: clean_ai
+  real                   :: v5
+  real                   :: v6
+  real                   :: v7
+  real                   :: v8
+  real                   :: v9
+  real                   :: v10
+  real                   :: v11
+  real                   :: v12
+  real                   :: v13
+  real                   :: v14
 
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+  data_path = "/Research/OMI/out_files-monthly.20210518/"
+  dtg = "200804221345"
+
+  ! Open debug file
+  open(errout, file = "omi_error.txt", iostat = istatus)
+  if(istatus /= 0) then
+    write(*,*) "Error opening error file."
+  endif
 
   ! Set up count variables to count the number of grid boxes with
   ! high AI values
@@ -35,44 +58,49 @@ program omi_frequency
   ! Loop over file names, once hour of file name goes outside the
   ! +/- 3 hrs from synoptic time, print counts and date
 
+  ! Read the file names from the file name file
+  open(io8, file = "omi_dates.txt", iostat = istatus)
+  if(istatus /= 0) then
+    write(errout,*) "ERROR: Problem reading 'omi_dates.txt'"
+  else
+    ! Loop over the file
+    file_loop: do
+      ! Read the current dtg from the file
+      read(io8, *, iostat=istatus) dtg
+      if(istatus /= 0) then 
+        write(errout,*) "End of omi_dates.txt found."
+        exit
+      else
+        write(*,*) data_path//dtg
+        ! Open the shawn file and look at contents
+        open(io7, file = data_path//dtg, iostat = istatus)
+        if(istatus /= 0) then
+          write(errout, *) "ERROR: error opening file",data_path//dtg
+          write(errout, *) "       cycling file_loop"
+          cycle file_loop
+        endif
+        
+        ! Loop over the file
+        data_loop: do
+          read(io7, *, iostat = istatus)  &
+            lat, lon, raw_ai, filter, clean_ai,v5,v6,v7,v8,v9,v10,&
+              v11,v12,v13,v14
+          if(istatus /= 0) then
+            write(errout, *) "ERROR: error reading data from ",data_path//dtg
+            write(errout, *) "       cycling data_loop"
+            cycle data_loop
+          endif
+
+          if(lat > 70.0) then
+            write(*,*) data_path//dtg, lat, lon
+          endif
+           
+        enddo data_loop
+      endif
+    enddo file_loop  
+  endif
    
   
   
-
-  pi = 3.14159265
-  lambda = 3.7 ! in microns
-
-  ! Put the real components of the refractive indices used in Table 1 of
-  ! Wang and van de Hulst (1991) into an array which will be accessed
-  ! in the following loops.
-  reals = [1.55,1.50,1.342] 
-  ! These size parameters are the ones used in the table.
-  size_params = [5.21282,100.,1570.7963]
-
-  write(*,*)
-  write(*,*) 'Non-absorbing refractive index m:'
-  write(*,*) '________________________________________________________________'
-
-  do i=1,3
-    m = complex(reals(i),0.00)
-    diam   = (size_params(i)*lambda)/pi
-    write(*,*) 'diameter (microns) =',diam
-    write(*,*) 'wavelength (microns) =',lambda
-    call mie_calc(m,lambda,diam)
-
-  enddo
-
-  write(*,*)
-  write(*,*) 'Absorbing refractive index m:'
-  write(*,*) '________________________________________________________________'
-
-  do i=1,3
-    m = complex(reals(i),-0.1)
-    diam   = (size_params(i)*lambda)/pi
-    write(*,*) 'diameter (microns) =',diam
-    write(*,*) 'wavelength (microns) =',lambda
-    call mie_calc(m,lambda,diam)
-
-  enddo
 
 end program omi_frequency
