@@ -140,29 +140,31 @@ program omi_frequency
         ! ------------------------------------------------------------
         call synop_time_check(synop_idx, int_hr, l_in_time)
         if(.not. l_in_time) then 
-          ! # # # # # # # # # # # 
-          ! SUBROUTINE
-          ! # # # # # # # # # # # 
-          ! Loop over the grid and count up grids with high AI
-          do ii=1,i_size
-            do jj=1,1440
-              if(i_counts(jj,ii) > 0) then
-                avg_ai = grids(jj,ii)/i_counts(jj,ii)
-                if(avg_ai > ai_thresh) then
-                  ai_count = ai_count + 1
-                endif 
-              endif
-            enddo  
-          enddo  
+          call count_ai(grids,i_counts,i_size,ai_thresh,synop_idx,&
+                        ai_count,dtg)
+          !! # # # # # # # # # # # 
+          !! SUBROUTINE
+          !! # # # # # # # # # # # 
+          !! Loop over the grid and count up grids with high AI
+          !do ii=1,i_size
+          !  do jj=1,1440
+          !    if(i_counts(jj,ii) > 0) then
+          !      avg_ai = grids(jj,ii)/i_counts(jj,ii)
+          !      if(avg_ai > ai_thresh) then
+          !        ai_count = ai_count + 1
+          !      endif 
+          !    endif
+          !  enddo  
+          !enddo  
         
-          write(*,*) dtg(1:8),synop_times(synop_idx), ai_count
+          !write(*,*) dtg(1:8),synop_times(synop_idx), ai_count
         
-          ! Reset grid arrays
-          synop_idx = synop_idx + 1
-          if(synop_idx == 5) synop_idx = 1
-          ai_count = 0     
-          grids(:,:) = 0.
-          i_counts(:,:) = 0
+          !! Reset grid arrays
+          !synop_idx = synop_idx + 1
+          !if(synop_idx == 5) synop_idx = 1
+          !ai_count = 0     
+          !grids(:,:) = 0.
+          !i_counts(:,:) = 0
         endif  
 
         write(*,*) data_path//dtg
