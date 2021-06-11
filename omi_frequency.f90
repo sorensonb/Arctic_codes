@@ -80,10 +80,6 @@ program omi_frequency
   call get_command_argument(1,out_file_name)
   call get_command_argument(2,date_file_name)
 
-  !call test_sub()
-  !write(*,*) "hi"
-  !return
-
   synop_times = [0,6,12,18] 
   synop_idx = 1
 
@@ -130,11 +126,12 @@ program omi_frequency
   if(istatus /= 0) then
     write(errout,*) "ERROR: error opening data count output file."
   endif
-
+  write(io6,'(a10,a6)') 'Date','Count'
+ 
   ! Set up count variables to count the number of grid boxes with
   ! high AI values
   ! -------------------------------------------------------------
-  ai_thresh = 0.3
+  ai_thresh = 0.7
   ai_count  = 0
 
   ! Read the file names from the file name file

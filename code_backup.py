@@ -43,6 +43,7 @@ os.system(cmnd)
 ## ---------------------------------------------------------------------------- 
 #print("CERES")
 #cmnd = "cp "+base_dir+"CERES/*.py "+dest_dir
+#cmnd = "find "+base_dir+"CERES/ -type f -name \"*.py\" | xargs cp -t "+dest_dir
 #print(cmnd)
 #os.system(cmnd)
 #cmnd = "cp "+base_dir+"CERES/*.c "+dest_dir
@@ -59,6 +60,7 @@ os.system(cmnd)
 ## ---------------------------------------------------------------------------- 
 #print("CERES_Ice_comparison")
 #cmnd = "cp "+base_dir+"CERES_Ice_comparison/*.py "+dest_dir
+#cmnd = "find "+base_dir+"CERES_Ice_comparison/ -type f -name \"*.py\" | xargs cp -t "+dest_dir
 #print(cmnd)
 #os.system(cmnd)
 ## ---------------------------------------------------------------------------- 
@@ -72,9 +74,13 @@ os.system(cmnd)
 # OMI Codes
 # ---------------------------------------------------------------------------- 
 print("OMI")
-cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
+cmnd = "find "+base_dir+"OMI/ -type f -name \"*.py\" | xargs cp -t "+dest_dir
+#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
 print(cmnd)
 os.system(cmnd)
+#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
+#print(cmnd)
+#os.system(cmnd)
 # Get codes from Raindrop
 rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/OMI/shawn_analysis/"
 cmnd = "scp "+rain_dir+"*.f90 "+dest_dir
