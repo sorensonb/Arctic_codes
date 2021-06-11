@@ -1,12 +1,20 @@
 subroutine synop_time_check(synop_idx, int_hr, l_in_time)
 !
 !  NAME:
+!    synop_time_check
 !
 !  PURPOSE:
+!    Compare the hour from the current file timestamp to the current
+!    analyzed synoptic time and see if the file hour falls within the
+!    +/- 3 hr synoptic time window. The l_in_time logical variable is 
+!    set to 'true' if the hour falls within the time window and 'false'
+!    if the hour falls outside the time window.
 !
 !  CALLS:
+!    None
 !
 !  MODIFICATIONS:
+!    Blake Sorenson <blake.sorenson@und.edu>     - 2021/06/10: Written
 !
 !  ###########################################################################
 
@@ -17,6 +25,8 @@ subroutine synop_time_check(synop_idx, int_hr, l_in_time)
 
   integer,dimension(4)   :: synop_times 
   logical                :: l_in_time
+
+  ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
  
   synop_times = [0,6,12,18] 
 
