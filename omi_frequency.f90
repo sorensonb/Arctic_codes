@@ -131,7 +131,7 @@ program omi_frequency
   ! Set up count variables to count the number of grid boxes with
   ! high AI values
   ! -------------------------------------------------------------
-  ai_thresh = 0.7
+  ai_thresh = 1.0
   ai_count  = 0
 
   ! Read the file names from the file name file
