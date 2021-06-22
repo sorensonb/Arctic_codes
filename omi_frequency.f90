@@ -23,6 +23,7 @@ program omi_frequency
   integer                :: synop_idx
   integer                :: i_size        ! array size
   integer                :: ai_count      ! good AI counter
+  integer,dimension(3)   :: ai_count2     ! good AI counter
   integer                :: int_hr        ! integer variable for hour
 
   real                   :: ai_thresh     ! threshold AI value
@@ -79,6 +80,8 @@ program omi_frequency
 
   call get_command_argument(1,out_file_name)
   call get_command_argument(2,date_file_name)
+
+  ai_count2(:) = 0
 
   synop_times = [0,6,12,18] 
   synop_idx = 1

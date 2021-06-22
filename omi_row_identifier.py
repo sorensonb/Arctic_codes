@@ -34,7 +34,7 @@ if(len(sys.argv)<2):
 plot_time = sys.argv[1]
 
 start_year = 2005
-end_year   = 2008
+end_year   = 2019
 
 # This is the path that points to the HDF5 OMI files. This must be changed
 # if running on a new system.
@@ -170,7 +170,7 @@ with open(outname,'w') as fout:
         except subprocess.CalledProcessError:
             print("ERROR: no data found for time",plot_time)
   
-        outstring = plot_time
+        outstring = plot_time + ' ' + str(len(bad_rows))
         for row in bad_rows:
             outstring = outstring + ' ' + str(row)
         outstring = outstring + '\n'
