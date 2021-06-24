@@ -129,12 +129,12 @@ program omi_frequency
   if(istatus /= 0) then
     write(errout,*) "ERROR: error opening data count output file."
   endif
-  write(io6,'(a10,a6)') 'Date','Count'
+  write(io6,'(a10,5(a6))') 'Date','Cnt65','Cnt70','Cnt75','Cnt80','Cnt85'
  
   ! Set up count variables to count the number of grid boxes with
   ! high AI values
   ! -------------------------------------------------------------
-  ai_thresh = 1.0
+  ai_thresh = 0.6
   ai_count  = 0
 
   ! Read the file names from the file name file
@@ -166,7 +166,8 @@ program omi_frequency
         call synop_time_check(synop_idx, int_hr, l_in_time)
         if(.not. l_in_time) then 
           call count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
-                        ai_count,dtg)
+                        dtg,lat_range)
+                       ! ai_count,dtg)
           !! Loop over the grid and count up grids with high AI
           !do ii=1,i_size
           !  do jj=1,1440

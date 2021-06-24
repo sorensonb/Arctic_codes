@@ -40,12 +40,14 @@ import matplotlib.dates as mdates
 from datetime import datetime
 import pandas as pd
 
-if(len(sys.argv)<2):
-    print("SYNTAX: python plot_OMI_fort_out.py out_file")
+if(len(sys.argv)<3):
+    print("SYNTAX: python plot_OMI_fort_out.py out_file min_lat")
     print("        name is of format: omi_counts_YYYY_YYYY.txt")
+    print("        min_lat is of format: 65,70,75,80,85")
     sys.exit()
 
 file_name = sys.argv[1]
+min_lat   = sys.argv[2]
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 #
@@ -63,12 +65,24 @@ in_data = pd.read_csv(file_name, delim_whitespace=True)
 dates  = in_data['Date'].values
 dt_dates = [datetime.strptime(str(tmpdate),"%Y%m%d%H") \
     for tmpdate in dates]
-count  = in_data['Count'].values
+count65  = in_data['Cnt'+min_lat].values
+#count70  = in_data['Cnt70'].values
+#count75  = in_data['Cnt75'].values
+#count80  = in_data['Cnt80'].values
+#count85  = in_data['Cnt85'].values
 x_range = np.arange(len(dates))
 
 # Calculate daily averages
-daily_counts = [np.average(tmparr) for tmparr in \
-    np.array_split(count,len(count)/4)]
+daily_counts_65 = [np.average(tmparr) for tmparr in \
+    np.array_split(count65,len(count65)/4)]
+##daily_counts_70 = [np.average(tmparr) for tmparr in \
+##    np.array_split(count70,len(count70)/4)]
+##daily_counts_75 = [np.average(tmparr) for tmparr in \
+##    np.array_split(count75,len(count75)/4)]
+##daily_counts_80 = [np.average(tmparr) for tmparr in \
+##    np.array_split(count80,len(count80)/4)]
+##daily_counts_85 = [np.average(tmparr) for tmparr in \
+##    np.array_split(count85,len(count85)/4)]
 daily_dt_dates = dt_dates[::4]
 daily_dates = dates[::4]/100
 daily_xrange = x_range[::4]
@@ -84,12 +98,13 @@ daily_xrange = x_range[::4]
 #xrange_18 = x_range[3::4]
 
 fig1, ax = plt.subplots()
-ax.plot(dt_dates,count,label='synoptic')
-ax.plot(daily_dt_dates,daily_counts,label='daily')
-ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+ax.plot(dt_dates,count65,label='synoptic')
+ax.plot(daily_dt_dates,daily_counts_65,label='daily')
+ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
 ax.legend()
 ax.set_ylabel('Counts')
-ax.set_title('AI Counts: Threshold of '+str(ai_thresh))
+ax.set_title('AI Counts: Threshold of '+str(ai_thresh)+\
+    '\nNorth of '+min_lat+'$^{o}$')
 ax.grid()
 plt.show()
 

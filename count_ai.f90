@@ -1,5 +1,6 @@
 subroutine count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
-                        ai_count,dtg)
+                        dtg,lat_range)
+                    !    ai_count,dtg)
 !
 !  NAME:
 !    count_ai
@@ -25,23 +26,33 @@ subroutine count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
   integer        :: io6
   integer        :: synop_idx
   integer        :: i_size        ! array size
-  integer        :: ai_count      ! good AI counter
   real           :: grids(1440,i_size)
   integer        :: i_counts(1440,i_size)
   real           :: ai_thresh     ! threshold AI value
+  character(len = 12)    :: dtg
+  real,dimension(i_size) :: lat_range
 
-
+  integer        :: ai_count_65   ! good AI counter
+  integer        :: ai_count_70   ! good AI counter
+  integer        :: ai_count_75   ! good AI counter
+  integer        :: ai_count_80   ! good AI counter
+  integer        :: ai_count_85   ! good AI counter
   integer        :: ii
   integer        :: jj
   real           :: avg_ai
 
   character(len = 255)   :: out_string
-  character(len = 12)    :: dtg
   integer,dimension(4)   :: synop_times 
 
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
  
   synop_times = [0,6,12,18] 
+
+  ai_count_65 = 0 
+  ai_count_70 = 0 
+  ai_count_75 = 0 
+  ai_count_80 = 0 
+  ai_count_85 = 0 
 
   !write(*,*) "In count_ai"
 
@@ -51,22 +62,38 @@ subroutine count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
       if(i_counts(jj,ii) > 0) then
         avg_ai = grids(jj,ii)/i_counts(jj,ii)
         if(avg_ai > ai_thresh) then
-          ai_count = ai_count + 1
+          if(lat_range(ii) >= 65.) then
+            ai_count_65 = ai_count_65 + 1
+            if(lat_range(ii) >= 70.) then
+              ai_count_70 = ai_count_70 + 1
+              if(lat_range(ii) >= 75.) then
+                ai_count_75 = ai_count_75 + 1
+                if(lat_range(ii) >= 80.) then
+                  ai_count_80 = ai_count_80 + 1
+                  if(lat_range(ii) >= 85.) then
+                    ai_count_85 = ai_count_85 + 1
+                  endif
+                endif
+              endif
+            endif
+          endif
         endif 
       endif
     enddo  
   enddo  
 
   if(synop_times(synop_idx) < 12) then
-    write(io6,'(a9,i1,i6)') dtg(1:8)//'0',synop_times(synop_idx), ai_count
+    write(io6,'(a9,i1,5(i6))') dtg(1:8)//'0',synop_times(synop_idx),&
+      ai_count_65,ai_count_70,ai_count_75,ai_count_80,ai_count_85
   else
-    write(io6,'(a8,i2,i6)') dtg(1:8),synop_times(synop_idx), ai_count
+    write(io6,'(a8,i2,5(i6))') dtg(1:8),synop_times(synop_idx), &
+      ai_count_65,ai_count_70,ai_count_75,ai_count_80,ai_count_85
   endif    
 
   ! Reset grid arrays
   synop_idx = synop_idx + 1
   if(synop_idx == 5) synop_idx = 1
-  ai_count = 0     
+  !ai_count = 0     
   grids(:,:) = 0.
   i_counts(:,:) = 0
 
