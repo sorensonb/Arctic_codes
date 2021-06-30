@@ -5,7 +5,7 @@ program omi_frequency_JZ
 !
 ! PURPOSE:
 ! 
-! CALLS:
+! callS:
 !   mie_calc.f90
 !
 ! MODIFICATIONS:
@@ -15,6 +15,7 @@ program omi_frequency_JZ
 !  ############################################################################
 
   use hdf5
+  use h5_vars, only : AI_dims, LAT_dims, LON_dims, AI_data, LAT_data, LON_data
 
   implicit none
 
@@ -75,11 +76,13 @@ program omi_frequency_JZ
 
   !!#!integer                 :: arg_count
 
+  integer :: ii
+  integer :: jj
   integer :: error
-
+  integer :: file_id
+  integer :: gr_id
+  !real(kind=8), dimension(:,:), allocatable, target     :: H52DDoubledataset
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-  write(*,*) "Yay"
 
   ! Initialize the HDF5 interface
   call h5open_f(error)
@@ -88,6 +91,145 @@ program omi_frequency_JZ
     return
   endif
   write(*,*) "Interface opened"
+
+  ! Open file
+  call h5fopen_f('/Research/OMI/H5_files/OMI-Aura_L2-OMAERUV_2018m0716t0843'&
+        //'-o74474_v003-2019m0802t152140.he5', H5F_ACC_RDWR_F, file_id, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open file'
+    return
+  endif
+  write(*,*) 'File opened'
+
+  !!! Open group
+  !!call h5gopen_f(file_id, 'HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/',&
+  !!               gr_id, error)
+  !!if(error /= 0) then
+  !!  write(*,*) 'FATAL ERROR: could not open group'
+  !!  return
+  !!endif
+  !!write(*,*) 'Group opened'
+
+
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+  ! CALL READ_H5_DATASET FUNCTION, PASSING THE FILE_ID AND DATA PATH TO THE
+  ! FUNCTION
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+  !call read_h5_dataset(file_id,'HDFEOS/SWATHS/Aerosol NearUV Swath/'&
+  !     //'Data Fields/UVAerosolIndex',main_dims,H52DDoubledataset,error)
+  call read_h5_AI(file_id,error)
+  call read_h5_LAT(file_id,error)
+  call read_h5_LON(file_id,error)
+
+  !!#!! Open dataset
+  !!#!call h5dopen_f(file_id, 'HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex', ds_id, error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not open dataset'
+  !!#!  return
+  !!#!endif
+  !!#!write(*,*) 'Dataset opened'
+
+  !!#!call h5dget_space_f(ds_id, dspace, error)
+  !!#!if (error /= 0) then
+  !!#!  write(*,*) " FATAL ERROR: Error determining dataspace"
+  !!#!  return
+  !!#!endif
+
+  !!#!! Determine the number of dimensions in the dataset, allocate the main_dims
+  !!#!! array
+  !!#!! -------------------------------------------------------------------------
+  !!#!call h5sget_simple_extent_ndims_f(dspace, ndims, error)
+  !!#!if (error < 0) then
+  !!#!  write(*,*) " *** Error determining dataspace dimensionality"
+  !!#!  return
+  !!#!endif
+
+  !!#!allocate(main_dims(ndims),stat=error)
+  !!#!if ( error /= 0 ) then
+  !!#!   write(*,*) " *** Error allocating dims"
+  !!#!   return
+  !!#!endif
+
+  !!#!! Determine the dimensions in the dataset
+  !!#!! ---------------------------------------
+  !!#!call h5sget_simple_extent_dims_f(dspace, datadims, maxdatadims,&
+  !!#!     error)
+  !!#!if (error < 0) then
+  !!#!   write(*,*) " *** Error determining dataspace size"
+  !!#!   return
+  !!#!endif
+
+  !!#!! Insert important dimensions into the main_dims array
+  !!#!do ii=1,ndims
+  !!#!  main_dims(ii) = datadims(ii)
+  !!#!enddo
+  
+  !!#!! Read the dataset and transfer the result to an allocated working array
+  !!#!! ----------------------------------------------------------------------
+  !!#!allocate(H52DDoubledataset(main_dims(1), main_dims(2)), stat=error)
+  !!#!if ( error < 0 ) then
+  !!#!   write(*,*) " *** Error allocating H5dataset"
+  !!#!   return
+  !!#!endif
+
+  !!#!call h5dread_f(ds_id, H5T_NATIVE_DOUBLE, H52DDoubledataset, dims, &
+  !!#!               error)
+  !!#!if (error.lt.0) then
+  !!#!    write(*,*) " *** Error reading data"
+  !!#!    return
+  !!#!endif
+
+  !!#!! Close dataset
+  !!#!call h5dclose_f(ds_id, error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not close dataset'
+  !!#!  return
+  !!#!endif
+  !!#!write(*,*) 'Dataset closed'
+
+
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+  ! RETURN MAIN_DIMS AND H52DDOUBLEDATASET TO MAIN FUNCTION
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+
+  do ii=1,60
+    write(*,*) LON_data(ii,800)
+  enddo
+
+  !deallocate(H52DDoubledataset)
+
+  !!! Close group
+  !!call h5gclose_f(gr_id, error)
+  !!if(error /= 0) then
+  !!  write(*,*) 'FATAL ERROR: could not close group'
+  !!  return
+  !!endif
+  !!write(*,*) 'Group closed'
+
+  deallocate(AI_dims)
+  deallocate(LAT_dims)
+  deallocate(LON_dims)
+  deallocate(AI_data)
+  deallocate(LAT_data)
+  deallocate(LON_data)
+
+
+  ! Close file
+  call h5fclose_f(file_id, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not close file'
+    return
+  endif
+  write(*,*) 'File closed'
+
+  ! Close the HDF5 interface
+  call h5close_f(error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: Could not close HDF5 library'
+    return
+  endif
+  write(*,*) "Interface closed"
+
   !!#!arg_count = command_argument_count()
   !!#!if(arg_count /= 2) then
   !!#!  write(*,*) 'SYNTAX: ./omi_exec out_file_name date_file_name'
