@@ -34,7 +34,7 @@ subroutine read_h5_LAT(file_id,error)
  
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-  write(*,*) "Inside read_h5_LAT"
+  !write(*,*) "Inside read_h5_LAT"
  
   ! Open dataset
   call h5dopen_f(file_id, 'HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation'&
@@ -43,7 +43,7 @@ subroutine read_h5_LAT(file_id,error)
     write(*,*) 'FATAL ERROR: could not open dataset'
     return
   endif
-  write(*,*) 'Dataset opened'
+  !write(*,*) 'Dataset opened'
 
   call h5dget_space_f(ds_id, dspace, error)
   if (error /= 0) then
@@ -101,7 +101,7 @@ subroutine read_h5_LAT(file_id,error)
     write(*,*) 'FATAL ERROR: could not close dataset'
     return
   endif
-  write(*,*) 'Dataset closed'
+  !write(*,*) 'Dataset closed'
 
 
 end subroutine read_h5_LAT
