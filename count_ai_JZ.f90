@@ -82,9 +82,13 @@ subroutine count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
   enddo  
 
   if(synop_times(synop_idx) < 12) then
+    write(*,*) total_file_name(44:47)//total_file_name(49:52)//'0',&
+        synop_times(synop_idx)
     write(io6,'(a9,i1,5(i6))') total_file_name(44:47)//total_file_name(49:52)//'0',synop_times(synop_idx),&
       ai_count_65,ai_count_70,ai_count_75,ai_count_80,ai_count_85
   else
+    write(*,*) total_file_name(44:47)//total_file_name(49:52),&
+        synop_times(synop_idx)
     write(io6,'(a8,i2,5(i6))') total_file_name(44:47)//total_file_name(49:52),synop_times(synop_idx), &
       ai_count_65,ai_count_70,ai_count_75,ai_count_80,ai_count_85
   endif    

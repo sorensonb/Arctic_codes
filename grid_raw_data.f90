@@ -1,4 +1,4 @@
-subroutine grid_raw_data(errout,c_total_file_name,grids,i_counts,i_size,&
+subroutine grid_raw_data(errout,grids,i_counts,i_size,&
              lat_gridder,lat_thresh)
 !
 !  NAME:
@@ -16,15 +16,17 @@ subroutine grid_raw_data(errout,c_total_file_name,grids,i_counts,i_size,&
 !
 !  ###########################################################################
 
-  use h5_vars, only : AI_dims, LAT_dims, LON_dims, XTRACK_dims, &
-                      AI_data, LAT_data, LON_data, XTRACK_data
+  use h5_vars, only : AI_dims, AZM_dims, GPQF_dims, LAT_dims, LON_dims, &
+                      XTRACK_dims, &
+                      AI_data, AZM_data, GPQF_data, LAT_data, LON_data, &
+                      XTRACK_data, &
+                      integer2binary
 
   implicit none
 
   integer                :: io7
   integer                :: errout
   integer                :: i_size
-  character(len = 255)   :: c_total_file_name 
   real                   :: grids(1440,i_size)
   integer                :: i_counts(1440,i_size)
   real                   :: lat_gridder
@@ -35,23 +37,7 @@ subroutine grid_raw_data(errout,c_total_file_name,grids,i_counts,i_size,&
   integer                :: istatus
   integer                :: index1        
   integer                :: index2        
-
-  ! Variables from each line in Shawn's files
-  real                   :: lat
-  real                   :: lon
-  real                   :: raw_ai
-  real                   :: filter
-  real                   :: clean_ai
-  real                   :: v5
-  real                   :: v6
-  real                   :: v7
-  real                   :: v8
-  real                   :: v9
-  real                   :: v10
-  real                   :: v11
-  real                   :: v12
-  real                   :: v13
-  real                   :: v14
+  integer,dimension(32)  :: bi
 
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
  
@@ -65,8 +51,15 @@ subroutine grid_raw_data(errout,c_total_file_name,grids,i_counts,i_size,&
       ! Cycle loop if this index in bad rows
       ! = = = = = = = = = = = = = = = = = = = =
 
+      ! Convert current GPQF value to binary
+      if(GPQF_data(jj,ii) > -200) write(errout,*) GPQF_data(jj,ii)
+      ! Then string
+      ! Then extract indices
+      ! Then convert it back to 
+
       if((XTRACK_data(jj,ii) == 0) .and. &
-          (LAT_data(jj,ii) > lat_thresh)) then
+          (LAT_data(jj,ii) > lat_thresh) .and. &
+          (AZM_data(jj,ii) > 100)) then
         ! Average the data into the grid
         ! -------------------------------
         index1 = floor(LAT_data(jj,ii)*4 - lat_gridder)
