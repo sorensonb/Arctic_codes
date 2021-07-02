@@ -52,23 +52,6 @@ program omi_frequency
   character(len = 255)   :: date_file_name
   character(len = 12)    :: dtg
 
-  !! Variables from each line in Shawn's files
-  !real                   :: lat
-  !real                   :: lon
-  !real                   :: raw_ai
-  !real                   :: filter
-  !real                   :: clean_ai
-  !real                   :: v5
-  !real                   :: v6
-  !real                   :: v7
-  !real                   :: v8
-  !real                   :: v9
-  !real                   :: v10
-  !real                   :: v11
-  !real                   :: v12
-  !real                   :: v13
-  !real                   :: v14
-
   integer                 :: arg_count
 
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -88,8 +71,6 @@ program omi_frequency
 
   !data_path = "/home/bsorenson/OMI/shawn_analysis/test_dir/"
   data_path = "/Research/OMI/out_files-monthly.20210518/"
-  !out_file_name = "omi_counts_200501_200909.txt"
-  !date_file_name = "omi_dates_200501_200909.txt"
 
   ! Set up lat/lon grids
   ! --------------------

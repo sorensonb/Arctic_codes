@@ -83,10 +83,17 @@ os.system(cmnd)
 #os.system(cmnd)
 # Get codes from Raindrop
 rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/OMI/"
-cmnd = "scp "+rain_dir+"shawn_analysis/*.f90 "+dest_dir
+cmnd = "scp "+rain_dir+"shawn_analysis/count_analysis/*.f90 "+dest_dir
 print(cmnd)
 os.system(cmnd)
-cmnd = "scp "+rain_dir+"shawn_analysis/makefile "+dest_dir
+cmnd = "scp "+rain_dir+"shawn_analysis/count_analysis/makefile "+dest_dir
+print(cmnd)
+os.system(cmnd)
+
+cmnd = "scp "+rain_dir+"shawn_analysis/climo_analysis/*.f90 "+dest_dir
+print(cmnd)
+os.system(cmnd)
+cmnd = "scp "+rain_dir+"shawn_analysis/climo_analysis/Make* "+dest_dir
 print(cmnd)
 os.system(cmnd)
 

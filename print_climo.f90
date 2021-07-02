@@ -24,28 +24,32 @@ subroutine print_climo(io6,grids,i_counts,i_size,c_year,work_month,&
   real,dimension(i_size) :: lat_range
   real,dimension(360)    :: lon_range
 
-  integer        :: ii
-  integer        :: jj
+  integer                :: ii
+  integer                :: jj
+
+  character(len = 6)     :: outstring
+  character(len = 255)   :: out_fmt
 
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
  
   !write(*,*) "In print_climo"
+  if(work_month < 10) then
+    outstring = '2008'//'0'
+    out_fmt = '(a5,i1,i4,i5,1x,f9.5,i6)'
+  else
+    outstring = '2008'
+    out_fmt = '(a4,i2,i4,i5,1x,f9.5,i6)'
+  endif    
 
   ! Loop over the grid and count up grids with high AI
+  write(*,*) outstring,work_month
   do ii=1,i_size
     do jj=1,360
-      write(io6,'(a10,3(a8))') 'Date','LatxLon','AvgAI','Count'
-      write(io6,'(a10,3(a8))') 'Date','LatxLon','AvgAI','Count'
+      write(io6,trim(out_fmt)) outstring,work_month,int(lat_range(ii)),&
+        int(lon_range(jj)),grids(jj,ii),i_counts(jj,ii)
     enddo  
   enddo  
 
-  if(synop_times(synop_idx) < 12) then
-    write(io6,'(a9,i1,5(i6))') dtg(1:8)//'0',synop_times(synop_idx),&
-      ai_count_65,ai_count_70,ai_count_75,ai_count_80,ai_count_85
-  else
-    write(io6,'(a8,i2,5(i6))') dtg(1:8),synop_times(synop_idx), &
-      ai_count_65,ai_count_70,ai_count_75,ai_count_80,ai_count_85
-  endif    
 
   ! Reset grid arrays
   grids(:,:) = 0.

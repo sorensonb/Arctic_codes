@@ -1,8 +1,8 @@
-subroutine read_shawn_file(io7,errout,c_total_file_name,grids,i_counts,i_size,&
+subroutine read_shawn_file_climo(io7,errout,c_total_file_name,grids,i_counts,i_size,&
              lat_gridder,lat_thresh)
 !
 !  NAME:
-!    read_shawn_file
+!    read_shawn_file_climo
 !
 !  PURPOSE:
 !    Loop over each line from the current OMI AI perturbation text file and
@@ -22,8 +22,8 @@ subroutine read_shawn_file(io7,errout,c_total_file_name,grids,i_counts,i_size,&
   integer                :: errout
   integer                :: i_size
   character(len = 255)   :: c_total_file_name 
-  real                   :: grids(1440,i_size)
-  integer                :: i_counts(1440,i_size)
+  real                   :: grids(360,i_size)
+  integer                :: i_counts(360,i_size)
   real                   :: lat_gridder
   real                   :: lat_thresh
 
@@ -49,7 +49,7 @@ subroutine read_shawn_file(io7,errout,c_total_file_name,grids,i_counts,i_size,&
   real                   :: v14
 
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
- 
+
   ! Loop over the file
   ! -------------------------
   data_loop: do
@@ -70,15 +70,14 @@ subroutine read_shawn_file(io7,errout,c_total_file_name,grids,i_counts,i_size,&
     if(lat > lat_thresh) then
       ! Average the data into the grid?
       ! -------------------------------
-      index1 = floor(lat*4 - lat_gridder)
-      index2 = floor(lon*4 + 720)
+      index1 = floor(lat - lat_gridder) + 1
+      index2 = floor(lon + 180) + 1
 
       if(index1 < 1) index1 = 1
       if(index1 > i_size) index1 = i_size
       if(index2 < 1) index2 = 1
-      if(index2 > 1440) index2 = 1440
+      if(index2 > 360) index2 = 360
 
-      ! Average the current value into the grid
       grids(index2,index1) = ((grids(index2,index1) * &
           i_counts(index2,index1)) + clean_ai) / &
          (i_counts(index2,index1)+1)
@@ -86,4 +85,4 @@ subroutine read_shawn_file(io7,errout,c_total_file_name,grids,i_counts,i_size,&
     endif
   enddo data_loop
 
-end subroutine read_shawn_file
+end subroutine read_shawn_file_climo

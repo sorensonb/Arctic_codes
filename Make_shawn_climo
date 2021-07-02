@@ -1,0 +1,22 @@
+# Comment line
+
+COMP = gfortran
+EXEC = omi_climo_exec
+OBJECTS = omi_shawn_climo.o \
+			print_climo.o \
+			read_shawn_file_climo.o
+
+$(EXEC): $(OBJECTS)
+	$(COMP) $(OBJECTS) -o $(EXEC)
+
+omi_shawn_climo.o: omi_shawn_climo.f90
+	$(COMP) -c omi_shawn_climo.f90
+
+print_climo.o: print_climo.f90
+	$(COMP) -c print_climo.f90
+
+read_shawn_file_climo.o: read_shawn_file_climo.f90
+	$(COMP) -c read_shawn_file_climo.f90
+
+clean:
+	rm $(EXEC) $(OBJECTS)
