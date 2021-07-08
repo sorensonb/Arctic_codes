@@ -20,7 +20,7 @@ subroutine grid_raw_data(errout,grids,i_counts,i_size,&
                       XTRACK_dims, &
                       AI_data, AZM_data, GPQF_data, LAT_data, LON_data, &
                       XTRACK_data, &
-                      integer2binary
+                      integer2binary, temp_switch, get_ice_flags
 
   implicit none
 
@@ -39,6 +39,8 @@ subroutine grid_raw_data(errout,grids,i_counts,i_size,&
   integer                :: index2        
   integer,dimension(32)  :: bi
 
+  integer                :: i_sfc_flag
+
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
  
   ! Loop over the array contents
@@ -51,15 +53,25 @@ subroutine grid_raw_data(errout,grids,i_counts,i_size,&
       ! Cycle loop if this index in bad rows
       ! = = = = = = = = = = = = = = = = = = = =
 
-      ! Convert current GPQF value to binary
-      if(GPQF_data(jj,ii) > -200) write(errout,*) GPQF_data(jj,ii)
-      ! Then string
-      ! Then extract indices
-      ! Then convert it back to 
+      !!#!if(temp_switch == 0) then
+      !!#!  !write(errout,'(f12.6 f12.6 i16)') LAT_data(jj,ii),LON_data(jj,ii), &
+      !!#!  !                                  XTRACK_data(jj,ii)
+      !!#!  write(errout,'(f12.6 f12.6 i16,2x,1(i5))') LAT_data(jj,ii),LON_data(jj,ii), &
+      !!#!                                GPQF_data(jj,ii),&
+      !!#!                                get_ice_flags(GPQF_data(jj,ii))
+      !!#!endif
+
+      ! Use the get_ice_flags function from h5_vars to extract the sfc type
+      ! flag from the ground pixel quality flag
+      ! -------------------------------------------------------------------
+      i_sfc_flag = get_ice_flags(GPQF_data(jj,ii))
 
       if((XTRACK_data(jj,ii) == 0) .and. &
           (LAT_data(jj,ii) > lat_thresh) .and. &
-          (AZM_data(jj,ii) > 100)) then
+          (AZM_data(jj,ii) > 100) .and. &
+          ! VJZ2: no snow-free land either
+          ( (i_sfc_flag >= 1 .and. i_sfc_flag <= 101) .or. &
+            (i_sfc_flag == 104) )) then
         ! Average the data into the grid
         ! -------------------------------
         index1 = floor(LAT_data(jj,ii)*4 - lat_gridder)
@@ -77,5 +89,7 @@ subroutine grid_raw_data(errout,grids,i_counts,i_size,&
       endif
     enddo
   enddo row_loop
+
+  !!#!temp_switch = 1
 
 end subroutine grid_raw_data

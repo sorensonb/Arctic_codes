@@ -5,8 +5,7 @@ program omi_frequency_JZ
 !
 ! PURPOSE:
 ! 
-! callS:
-!   mie_calc.f90
+! CALLS:
 !
 ! MODIFICATIONS:
 !   Blake Sorenson <blake.sorenson@und.edu>     - 2018/10/24:
@@ -15,7 +14,7 @@ program omi_frequency_JZ
 !  ############################################################################
 
   use hdf5
-  use h5_vars, only : clear_arrays
+  use h5_vars, only : clear_arrays, temp_switch
 
   implicit none
 
@@ -72,257 +71,256 @@ program omi_frequency_JZ
   endif
   write(*,*) "Interface opened"
 
-  ii = 101
-  write(*,*) bit_size(ii)
-  write(*,*) "Bit test 0",btest(ii,0)
-  write(*,*) "Bit test 1",btest(ii,1)
-  write(*,*) "Bit test 2",btest(ii,2)
-  write(*,*) "Bit test 3",btest(ii,3)
-  write(*,*) "Bit test 4",btest(ii,4)
-  write(*,*) "Bit test 5",btest(ii,5)
-  write(*,*) "Bit test 6",btest(ii,6)
-  write(*,*) "Bit test 7",btest(ii,7)
+  !!#!temp_switch = 0
 
-  !!#!call get_command_argument(1,out_file_name)
-  !!#!call get_command_argument(2,file_name_file)
+  call get_command_argument(1,out_file_name)
+  call get_command_argument(2,file_name_file)
 
-  !!#!write(*,*) "out_file_name = ",trim(out_file_name)
-  !!#!write(*,*) "file_name_file = ",trim(file_name_file)
+  write(*,*) "out_file_name = ",trim(out_file_name)
+  write(*,*) "file_name_file = ",trim(file_name_file)
 
-  !!#!ai_count2(:) = 0
+  ai_count2(:) = 0
 
-  !!#!synop_times = [0,6,12,18] 
-  !!#!synop_idx = 1
+  synop_times = [0,6,12,18] 
+  synop_idx = 1
 
-  !!#!!data_path = "/home/bsorenson/OMI/shawn_analysis/test_dir/"
-  !!#!data_path = "/Research/OMI/H5_files/"
-  !!#!!out_file_name = "omi_counts_200501_200909.txt"
-  !!#!!file_name_file = "omi_dates_200501_200909.txt"
+  !data_path = "/home/bsorenson/OMI/shawn_analysis/test_dir/"
+  data_path = "/Research/OMI/H5_files/"
+  !out_file_name = "omi_counts_200501_200909.txt"
+  !file_name_file = "omi_dates_200501_200909.txt"
 
-  !!#!! Set up lat/lon grids
-  !!#!! --------------------
-  !!#!lat_thresh = 65.
-  !!#!lat_gridder = lat_thresh * 4.
-  !!#!i_size = (90. - lat_thresh) * 4.
-  !!#!allocate(lat_range(i_size))
-  !!#!do ii=1,i_size
-  !!#!  lat_range(ii) = lat_thresh + (ii-1)*0.25
-  !!#!enddo
+  ! Set up lat/lon grids
+  ! --------------------
+  lat_thresh = 65.
+  lat_gridder = lat_thresh * 4.
+  i_size = (90. - lat_thresh) * 4.
+  allocate(lat_range(i_size))
+  do ii=1,i_size
+    lat_range(ii) = lat_thresh + (ii-1)*0.25
+  enddo
 
-  !!#!allocate(lon_range(1440))
-  !!#!do ii=1,1440
-  !!#!  lon_range(ii) = -180.0 + (ii-1)*0.25
-  !!#!enddo
+  allocate(lon_range(1440))
+  do ii=1,1440
+    lon_range(ii) = -180.0 + (ii-1)*0.25
+  enddo
 
 
-  !!#!! Initialize grid arrays and set to -9 initially
-  !!#!! ----------------------------------------------
+  ! Initialize grid arrays and set to 0 initially
+  ! ----------------------------------------------
 
-  !!#!allocate(grids(1440,i_size))
-  !!#!allocate(i_counts(1440,i_size))
+  allocate(grids(1440,i_size))
+  allocate(i_counts(1440,i_size))
 
-  !!#!grids(:,:) = 0.
-  !!#!i_counts(:,:) = 0
+  grids(:,:) = 0.
+  i_counts(:,:) = 0
 
-  !!#!! open debug file
-  !!#!! ---------------
-  !!#!open(errout, file = "omi_jz_error.txt", iostat = istatus)
-  !!#!if(istatus /= 0) then
-  !!#!  write(*,*) "error opening error file."
-  !!#!endif
+  ! open debug file
+  ! ---------------
+  open(errout, file = "omi_jz_error.txt", iostat = istatus)
+  if(istatus /= 0) then
+    write(*,*) "error opening error file."
+  endif
 
-  !!#!write(errout,*) "TEST WRITE TO FILE"
+  write(errout,*) "TEST WRITE TO FILE"
 
-  !!#!! open output file
-  !!#!! ---------------
-  !!#!write(errout,*) "Opening "//trim(out_file_name)
-  !!#!open(io6, file = trim(out_file_name), iostat = istatus)
-  !!#!if(istatus /= 0) then
-  !!#!  write(errout,*) "ERROR: error opening data count output file."
-  !!#!endif
-  !!#!write(io6,'(a10,5(a6))') 'Date','Cnt65','Cnt70','Cnt75','Cnt80','Cnt85'
+  ! open output file
+  ! ---------------
+  write(errout,*) "Opening "//trim(out_file_name)
+  open(io6, file = trim(out_file_name), iostat = istatus)
+  if(istatus /= 0) then
+    write(errout,*) "ERROR: error opening data count output file."
+  endif
+  write(io6,'(a10,5(a6))') 'Date','Cnt65','Cnt70','Cnt75','Cnt80','Cnt85'
  
-  !!#!! Set up count variables to count the number of grid boxes with
-  !!#!! high AI values
-  !!#!! -------------------------------------------------------------
-  !!#!ai_thresh = 0.6
-  !!#!ai_count  = 0
-  !!#!
-  !!#!! Read the file names from the file name file
-  !!#!open(io8, file = trim(file_name_file), iostat = istatus)
-  !!#!if(istatus > 0) then
-  !!#!  write(errout,*) "ERROR: Problem opening file name containing files: "&
-  !!#!      //'titled '//trim(file_name_file)
-  !!#!  return 
-  !!#!else
-  !!#!  !call process_files()
-  !!#!  ! Loop over the file
-  !!#!  file_loop: do
-  !!#!    ! Read the current total_file_name from the file
-  !!#!    read(io8, '(A)', iostat=istatus) total_file_name
-  !!#!    if(istatus < 0) then 
-  !!#!      write(*,*) "End of "//trim(file_name_file)//" found"
-  !!#!      exit
-  !!#!    else if(istatus > 0) then
-  !!#!      write(errout,*) "ERROR: problem reading total_file_name"
-  !!#!      cycle file_loop
-  !!#!    else
+  ! Set up count variables to count the number of grid boxes with
+  ! high AI values
+  ! -------------------------------------------------------------
+  ai_thresh = 0.6
+  ai_count  = 0
+  
+  ! Read the file names from the file name file
+  open(io8, file = trim(file_name_file), iostat = istatus)
+  if(istatus > 0) then
+    write(errout,*) "ERROR: Problem opening file name containing files: "&
+        //'titled '//trim(file_name_file)
+    return 
+  else
+    !call process_files()
+    ! Loop over the file
+    file_loop: do
+      ! Read the current total_file_name from the file
+      read(io8, '(A)', iostat=istatus) total_file_name
+      if(istatus < 0) then 
+        write(*,*) "End of "//trim(file_name_file)//" found"
+        exit
+      else if(istatus > 0) then
+        write(errout,*) "ERROR: problem reading total_file_name"
+        cycle file_loop
+      else
 
-  !!#!      ! Extract time information from total_file_name
-  !!#!      ! ---------------------------------
-  !!#!      read(total_file_name(54:55), *) int_hr
+        ! Extract time information from total_file_name
+        ! ---------------------------------
+        read(total_file_name(54:55), *) int_hr
 
-  !!#!      ! See if the hour exceeds the current 6 hr assimilation window.
-  !!#!      ! If so, calculate averages and counts and reset variables.
-  !!#!      ! ------------------------------------------------------------
-  !!#!      call synop_time_check(synop_idx, int_hr, l_in_time)
-  !!#!      if(.not. l_in_time) then 
-  !!#!        call count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
-  !!#!                      total_file_name,lat_range)
+        ! See if the hour exceeds the current 6 hr assimilation window.
+        ! If so, calculate averages and counts and reset variables.
+        ! ------------------------------------------------------------
+        call synop_time_check(synop_idx, int_hr, l_in_time)
+        if(.not. l_in_time) then 
+          call count_ai_JZ(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
+                        total_file_name,lat_range)
 
-  !!#!      endif  
+        endif  
 
-  !!#!      !write(*,*) trim(total_file_name)
+        !write(*,*) trim(total_file_name)
 
-  !!#!      ! # # # # # # # # # # # # # # # #
-  !!#!      ! INSERT H5 READER CODE HERE
-  !!#!      ! # # # # # # # # # # # # # # # #
+        ! # # # # # # # # # # # # # # # #
+        ! INSERT H5 READER CODE HERE
+        ! # # # # # # # # # # # # # # # #
 
-  !!#!      ! Open the HDF5 file
-  !!#!      call h5fopen_f(total_file_name, H5F_ACC_RDWR_F, file_id, error)
-  !!#!      if(error /= 0) then
-  !!#!        write(*,*) 'FATAL ERROR: could not open file'
-  !!#!        return
-  !!#!      endif
-  !!#!      !write(*,*) 'File opened'
+        ! Open the HDF5 file
+        call h5fopen_f(total_file_name, H5F_ACC_RDWR_F, file_id, error)
+        if(error /= 0) then
+          write(*,*) 'FATAL ERROR: could not open file'
+          return
+        endif
+        !write(*,*) 'File opened'
 
-  !!#!      !!! Open group
-  !!#!      !!call h5gopen_f(file_id, 'HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/',&
-  !!#!      !!               gr_id, error)
-  !!#!      !!if(error /= 0) then
-  !!#!      !!  write(*,*) 'FATAL ERROR: could not open group'
-  !!#!      !!  return
-  !!#!      !!endif
-  !!#!      !!write(*,*) 'Group opened'
+        !!! Open group
+        !!call h5gopen_f(file_id, 'HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/',&
+        !!               gr_id, error)
+        !!if(error /= 0) then
+        !!  write(*,*) 'FATAL ERROR: could not open group'
+        !!  return
+        !!endif
+        !!write(*,*) 'Group opened'
 
-  !!#!      ! Read in the necessary data
-  !!#!      call read_h5_AI(file_id,error)
-  !!#!      call read_h5_LAT(file_id,error)
-  !!#!      call read_h5_LON(file_id,error)
-  !!#!      call read_h5_XTRACK(file_id,error)   
-  !!#!      call read_h5_AZM(file_id,error) 
-  !!#!      call read_h5_GPQF(file_id,error)
+        ! Read in the necessary data using the read routines
+        ! --------------------------------------------------
+        call read_h5_AI(file_id,error)
+        call read_h5_LAT(file_id,error)
+        call read_h5_LON(file_id,error)
+        call read_h5_XTRACK(file_id,error)   
+        call read_h5_AZM(file_id,error) 
+        call read_h5_GPQF(file_id,error)
 
-  !!#!      ! Close file
-  !!#!      call h5fclose_f(file_id, error)
-  !!#!      if(error /= 0) then
-  !!#!        write(*,*) 'FATAL ERROR: could not close file'
-  !!#!        return
-  !!#!      endif
-  !!#!      !write(*,*) 'File closed'
+        ! Close file
+        call h5fclose_f(file_id, error)
+        if(error /= 0) then
+          write(*,*) 'FATAL ERROR: could not close file'
+          return
+        endif
+        !write(*,*) 'File closed'
 
+        ! = = = = == 
+        ! BEGIN OLD CODE
+        ! = = = = == 
 
-  !!#!      !!#!! Open dataset
-  !!#!      !!#!call h5dopen_f(file_id, 'HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex', ds_id, error)
-  !!#!      !!#!if(error /= 0) then
-  !!#!      !!#!  write(*,*) 'FATAL ERROR: could not open dataset'
-  !!#!      !!#!  return
-  !!#!      !!#!endif
-  !!#!      !!#!write(*,*) 'Dataset opened'
+        !!#!! Open dataset
+        !!#!call h5dopen_f(file_id, 'HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex', ds_id, error)
+        !!#!if(error /= 0) then
+        !!#!  write(*,*) 'FATAL ERROR: could not open dataset'
+        !!#!  return
+        !!#!endif
+        !!#!write(*,*) 'Dataset opened'
 
-  !!#!      !!#!call h5dget_space_f(ds_id, dspace, error)
-  !!#!      !!#!if (error /= 0) then
-  !!#!      !!#!  write(*,*) " FATAL ERROR: Error determining dataspace"
-  !!#!      !!#!  return
-  !!#!      !!#!endif
+        !!#!call h5dget_space_f(ds_id, dspace, error)
+        !!#!if (error /= 0) then
+        !!#!  write(*,*) " FATAL ERROR: Error determining dataspace"
+        !!#!  return
+        !!#!endif
 
-  !!#!      !!#!! Determine the number of dimensions in the dataset, allocate the main_dims
-  !!#!      !!#!! array
-  !!#!      !!#!! -------------------------------------------------------------------------
-  !!#!      !!#!call h5sget_simple_extent_ndims_f(dspace, ndims, error)
-  !!#!      !!#!if (error < 0) then
-  !!#!      !!#!  write(*,*) " *** Error determining dataspace dimensionality"
-  !!#!      !!#!  return
-  !!#!      !!#!endif
+        !!#!! Determine the number of dimensions in the dataset, allocate the main_dims
+        !!#!! array
+        !!#!! -------------------------------------------------------------------------
+        !!#!call h5sget_simple_extent_ndims_f(dspace, ndims, error)
+        !!#!if (error < 0) then
+        !!#!  write(*,*) " *** Error determining dataspace dimensionality"
+        !!#!  return
+        !!#!endif
 
-  !!#!      !!#!allocate(main_dims(ndims),stat=error)
-  !!#!      !!#!if ( error /= 0 ) then
-  !!#!      !!#!   write(*,*) " *** Error allocating dims"
-  !!#!      !!#!   return
-  !!#!      !!#!endif
+        !!#!allocate(main_dims(ndims),stat=error)
+        !!#!if ( error /= 0 ) then
+        !!#!   write(*,*) " *** Error allocating dims"
+        !!#!   return
+        !!#!endif
 
-  !!#!      !!#!! Determine the dimensions in the dataset
-  !!#!      !!#!! ---------------------------------------
-  !!#!      !!#!call h5sget_simple_extent_dims_f(dspace, datadims, maxdatadims,&
-  !!#!      !!#!     error)
-  !!#!      !!#!if (error < 0) then
-  !!#!      !!#!   write(*,*) " *** Error determining dataspace size"
-  !!#!      !!#!   return
-  !!#!      !!#!endif
+        !!#!! Determine the dimensions in the dataset
+        !!#!! ---------------------------------------
+        !!#!call h5sget_simple_extent_dims_f(dspace, datadims, maxdatadims,&
+        !!#!     error)
+        !!#!if (error < 0) then
+        !!#!   write(*,*) " *** Error determining dataspace size"
+        !!#!   return
+        !!#!endif
 
-  !!#!      !!#!! Insert important dimensions into the main_dims array
-  !!#!      !!#!do ii=1,ndims
-  !!#!      !!#!  main_dims(ii) = datadims(ii)
-  !!#!      !!#!enddo
-  !!#!      
-  !!#!      !!#!! Read the dataset and transfer the result to an allocated working array
-  !!#!      !!#!! ----------------------------------------------------------------------
-  !!#!      !!#!allocate(H52DDoubledataset(main_dims(1), main_dims(2)), stat=error)
-  !!#!      !!#!if ( error < 0 ) then
-  !!#!      !!#!   write(*,*) " *** Error allocating H5dataset"
-  !!#!      !!#!   return
-  !!#!      !!#!endif
+        !!#!! Insert important dimensions into the main_dims array
+        !!#!do ii=1,ndims
+        !!#!  main_dims(ii) = datadims(ii)
+        !!#!enddo
+        
+        !!#!! Read the dataset and transfer the result to an allocated working array
+        !!#!! ----------------------------------------------------------------------
+        !!#!allocate(H52DDoubledataset(main_dims(1), main_dims(2)), stat=error)
+        !!#!if ( error < 0 ) then
+        !!#!   write(*,*) " *** Error allocating H5dataset"
+        !!#!   return
+        !!#!endif
 
-  !!#!      !!#!call h5dread_f(ds_id, H5T_NATIVE_DOUBLE, H52DDoubledataset, dims, &
-  !!#!      !!#!               error)
-  !!#!      !!#!if (error.lt.0) then
-  !!#!      !!#!    write(*,*) " *** Error reading data"
-  !!#!      !!#!    return
-  !!#!      !!#!endif
+        !!#!call h5dread_f(ds_id, H5T_NATIVE_DOUBLE, H52DDoubledataset, dims, &
+        !!#!               error)
+        !!#!if (error.lt.0) then
+        !!#!    write(*,*) " *** Error reading data"
+        !!#!    return
+        !!#!endif
 
-  !!#!      !!#!! Close dataset
-  !!#!      !!#!call h5dclose_f(ds_id, error)
-  !!#!      !!#!if(error /= 0) then
-  !!#!      !!#!  write(*,*) 'FATAL ERROR: could not close dataset'
-  !!#!      !!#!  return
-  !!#!      !!#!endif
-  !!#!      !!#!write(*,*) 'Dataset closed'
+        !!#!! Close dataset
+        !!#!call h5dclose_f(ds_id, error)
+        !!#!if(error /= 0) then
+        !!#!  write(*,*) 'FATAL ERROR: could not close dataset'
+        !!#!  return
+        !!#!endif
+        !!#!write(*,*) 'Dataset closed'
 
+        ! = = = = == 
+        ! END OLD CODE
+        ! = = = = == 
 
-  !!#!      ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-  !!#!      ! RETURN MAIN_DIMS AND H52DDOUBLEDATASET TO MAIN FUNCTION
-  !!#!      ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+        ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+        ! RETURN MAIN_DIMS AND H52DDOUBLEDATASET TO MAIN FUNCTION
+        ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
-  !!#!      !!! Close group
-  !!#!      !!call h5gclose_f(gr_id, error)
-  !!#!      !!if(error /= 0) then
-  !!#!      !!  write(*,*) 'FATAL ERROR: could not close group'
-  !!#!      !!  return
-  !!#!      !!endif
-  !!#!      !!write(*,*) 'Group closed'
+        !!! Close group
+        !!call h5gclose_f(gr_id, error)
+        !!if(error /= 0) then
+        !!  write(*,*) 'FATAL ERROR: could not close group'
+        !!  return
+        !!endif
+        !!write(*,*) 'Group closed'
 
-  !!#!      ! Insert this new data into the grid
-  !!#!      call grid_raw_data(errout,grids,i_counts,i_size,&
-  !!#!              lat_gridder,lat_thresh)
+        ! Insert this new data into the grid 
+        ! ----------------------------------
+        call grid_raw_data(errout,grids,i_counts,i_size,&
+                lat_gridder,lat_thresh)
 
-  !!#!      !!#!call read_shawn_file(io7,errout,trim(data_path)//total_file_name,grids,i_counts,&
-  !!#!      !!#!                     i_size,lat_gridder,lat_thresh)
+        !!#!call read_shawn_file(io7,errout,trim(data_path)//total_file_name,grids,i_counts,&
+        !!#!                     i_size,lat_gridder,lat_thresh)
 
-  !!#!      ! Deallocate all the arrays for the next pass
-  !!#!      ! -------------------------------------------
-  !!#!      call clear_arrays
+        ! Deallocate all the arrays for the next pass
+        ! -------------------------------------------
+        call clear_arrays
 
-  !!#!    endif
-  !!#!  enddo file_loop  
-  !!#!endif
+      endif
+    enddo file_loop  
+  endif
 
-  !!#!deallocate(grids)
-  !!#!deallocate(i_counts)
-  !!#!deallocate(lat_range)
-  !!#!deallocate(lon_range)
-  !!#!close(io8)
-  !!#!close(io6)
-  !!#!close(errout)  
+  deallocate(grids)
+  deallocate(i_counts)
+  deallocate(lat_range)
+  deallocate(lon_range)
+  close(io8)
+  close(io6)
+  close(errout)  
   
 
   ! Close the HDF5 interface

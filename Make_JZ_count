@@ -1,0 +1,58 @@
+# Comment line
+
+EXEC = omi_exec2
+COMP = h5fc
+#COMP = gfortran
+OBJECTS = h5_vars.o \
+			count_ai_JZ.o \
+			grid_raw_data.o \
+			read_h5_AI.o \
+			read_h5_AZM.o \
+			read_h5_GPQF.o \
+			read_h5_LAT.o \
+			read_h5_LON.o \
+			read_h5_XTRACK.o \
+			synop_time_check.o \
+			omi_frequency_JZ.o
+
+FFLAGS = -g -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
+LDFLAGS = -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
+
+$(EXEC): $(OBJECTS)
+	$(COMP) $(LDFLAGS) $(OBJECTS) -o $(EXEC)
+
+h5_vars.o: h5_vars.f90
+	$(COMP) $(FFLAGS) -c h5_vars.f90
+
+count_ai_JZ.o: count_ai_JZ.f90
+	$(COMP) $(FFLAGS) -c count_ai_JZ.f90
+
+grid_raw_data.o: grid_raw_data.f90
+	$(COMP) $(FFLAGS) -c grid_raw_data.f90
+
+read_h5_AI.o: read_h5_AI.f90
+	$(COMP) $(FFLAGS) -c read_h5_AI.f90
+
+read_h5_AZM.o: read_h5_AZM.f90
+	$(COMP) $(FFLAGS) -c read_h5_AZM.f90
+
+read_h5_GPQF.o: read_h5_GPQF.f90
+	$(COMP) $(FFLAGS) -c read_h5_GPQF.f90
+
+read_h5_LAT.o: read_h5_LAT.f90
+	$(COMP) $(FFLAGS) -c read_h5_LAT.f90
+
+read_h5_LON.o: read_h5_LON.f90
+	$(COMP) $(FFLAGS) -c read_h5_LON.f90
+
+read_h5_XTRACK.o: read_h5_XTRACK.f90
+	$(COMP) $(FFLAGS) -c read_h5_XTRACK.f90
+
+synop_time_check.o: synop_time_check.f90
+	$(COMP) $(FFLAGS) -c synop_time_check.f90
+
+omi_frequency_JZ.o: omi_frequency_JZ.f90 h5_vars.f90
+	$(COMP) $(FFLAGS) -c omi_frequency_JZ.f90
+
+clean:
+	rm $(EXEC) $(OBJECTS) *.mod

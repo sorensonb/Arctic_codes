@@ -1,4 +1,4 @@
-subroutine count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
+subroutine count_ai_JZ(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
                         total_file_name,lat_range)
                     !    ai_count,dtg)
 !
@@ -100,4 +100,4 @@ subroutine count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
   grids(:,:) = 0.
   i_counts(:,:) = 0
 
-end subroutine count_ai
+end subroutine count_ai_JZ

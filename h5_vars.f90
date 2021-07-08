@@ -1,12 +1,10 @@
 module h5_vars
 !
 ! NAME:
-!   omi_frequency_JZ.f90
 !
 ! PURPOSE:
 ! 
-! callS:
-!   mie_calc.f90
+! CALLS:
 !
 ! MODIFICATIONS:
 !   Blake Sorenson <blake.sorenson@und.edu>     - 2018/10/24:
@@ -18,6 +16,8 @@ module h5_vars
 
   implicit none
 
+  integer                                           :: temp_switch
+ 
   integer(hsize_t), dimension(:), allocatable       :: AI_dims
   integer(hsize_t), dimension(:), allocatable       :: AZM_dims
   integer(hsize_t), dimension(:), allocatable       :: GPQF_dims
@@ -26,7 +26,7 @@ module h5_vars
   integer(hsize_t), dimension(:), allocatable       :: XTRACK_dims
   real(kind=8), dimension(:,:), allocatable, target :: AI_data
   real(kind=8), dimension(:,:), allocatable, target :: AZM_data
-  integer, dimension(:,:), allocatable, target      :: GPQF_data
+  integer, dimension(:,:), allocatable, target   :: GPQF_data
   real(kind=8), dimension(:,:), allocatable, target :: LAT_data
   real(kind=8), dimension(:,:), allocatable, target :: LON_data
   integer, dimension(:,:), allocatable, target      :: XTRACK_data
@@ -48,6 +48,7 @@ module h5_vars
       if(allocated(LAT_dims))     deallocate(LAT_dims)
       if(allocated(LON_dims))     deallocate(LON_dims)
       if(allocated(XTRACK_dims))  deallocate(XTRACK_dims)
+
       if(allocated(AI_data))      deallocate(AI_data)
       if(allocated(AZM_data))     deallocate(AZM_data)
       if(allocated(GPQF_data))    deallocate(GPQF_data)
@@ -57,19 +58,41 @@ module h5_vars
 
     end subroutine clear_arrays
 
-    function integer2binary(i) result(b)
     ! -------------------------------------------------------------
-    ! This function converts an integer to binary
+    ! This function extracts the ice flag from the whole GPQF
     ! -------------------------------------------------------------
-      integer,intent(in) :: i
-      integer :: b(32)
-      integer k,j
-      b=0
-      j=i
-      do k=1,size(b)
-        b(k)=mod(j,2)
-        j=j/2
-      enddo
+    function get_ice_flags(i_gpqf) result(i_flag)
+
+      integer,intent(in) :: i_gpqf
+      integer            :: i_flag
+      integer            :: ii 
+
+      ! Check each bit and update i_flag accordingly
+      i_flag = 64 * bit_check(i_gpqf,14) + &
+               32 * bit_check(i_gpqf,13) + &
+               16 * bit_check(i_gpqf,12) + &
+               8  * bit_check(i_gpqf,11) + &
+               4  * bit_check(i_gpqf,10) + &
+               2  * bit_check(i_gpqf,9) + &
+               1  * bit_check(i_gpqf,8) 
+
+    end function
+
+    ! -------------------------------------------------------------
+    ! This function returns 1 if the bit is True and 0 if the bit
+    ! is False
+    ! -------------------------------------------------------------
+    function bit_check(i_gpqf,i_index) result(i_out)
+
+      integer,intent(in)  :: i_gpqf
+      integer,intent(in)  :: i_index
+
+      integer :: i_out
+
+      i_out = 0
+
+      if(btest(i_gpqf,i_index)) i_out = 1
+
     end function
 
 end module h5_vars
