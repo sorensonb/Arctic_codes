@@ -1,0 +1,50 @@
+# Comment line
+
+EXEC = omi_JZ_climo_exec 
+COMP = h5fc
+#COMP = gfortran
+OBJECTS = h5_vars.o \
+			grid_raw_data_climo.o \
+			read_h5_AI.o \
+			read_h5_AZM.o \
+			read_h5_GPQF.o \
+			read_h5_LAT.o \
+			read_h5_LON.o \
+			read_h5_XTRACK.o \
+			omi_JZ_climo.o
+
+FFLAGS = -g -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
+LDFLAGS = -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
+
+$(EXEC): $(OBJECTS)
+	$(COMP) $(LDFLAGS) $(OBJECTS) -o $(EXEC)
+
+h5_vars.o: h5_vars.f90
+	$(COMP) $(FFLAGS) -c h5_vars.f90
+
+grid_raw_data_climo.o: grid_raw_data_climo.f90
+	$(COMP) $(FFLAGS) -c grid_raw_data_climo.f90
+
+read_h5_AI.o: read_h5_AI.f90
+	$(COMP) $(FFLAGS) -c read_h5_AI.f90
+
+read_h5_AZM.o: read_h5_AZM.f90
+	$(COMP) $(FFLAGS) -c read_h5_AZM.f90
+
+read_h5_GPQF.o: read_h5_GPQF.f90
+	$(COMP) $(FFLAGS) -c read_h5_GPQF.f90
+
+read_h5_LAT.o: read_h5_LAT.f90
+	$(COMP) $(FFLAGS) -c read_h5_LAT.f90
+
+read_h5_LON.o: read_h5_LON.f90
+	$(COMP) $(FFLAGS) -c read_h5_LON.f90
+
+read_h5_XTRACK.o: read_h5_XTRACK.f90
+	$(COMP) $(FFLAGS) -c read_h5_XTRACK.f90
+
+omi_JZ_climo.o: omi_JZ_climo.f90 h5_vars.f90
+	$(COMP) $(FFLAGS) -c omi_JZ_climo.f90
+
+clean:
+	rm $(EXEC) $(OBJECTS) *.mod

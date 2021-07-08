@@ -1,11 +1,12 @@
-program omi_frequency_JZ
+program omi_JZ_climo
 !
 ! NAME:
-!   omi_frequency_JZ.f90
+!   omi_JZ_climo.f90
 !
 ! PURPOSE:
 ! 
 ! CALLS:
+!   mie_calc.f90
 !
 ! MODIFICATIONS:
 !   Blake Sorenson <blake.sorenson@und.edu>     - 2018/10/24:
@@ -19,15 +20,17 @@ program omi_frequency_JZ
   implicit none
 
   integer                :: ii            ! loop counter
-  integer                :: synop_idx
+  integer                :: jj            ! loop counter
+  integer                :: index1        
+  integer                :: index2        
   integer                :: i_size        ! array size
   integer                :: ai_count      ! good AI counter
-  integer,dimension(3)   :: ai_count2     ! good AI counter
-  integer                :: int_hr        ! integer variable for hour
+  integer                :: int_month     ! integer variable for month
 
   real                   :: ai_thresh     ! threshold AI value
   real                   :: lat_thresh
   real                   :: lat_gridder
+  real                   :: avg_ai
 
   logical                :: l_in_time
 
@@ -36,12 +39,11 @@ program omi_frequency_JZ
   real,dimension(:,:), allocatable :: grids
   integer,dimension(:,:), allocatable :: i_counts
 
-  integer,dimension(4)   :: synop_times 
-
   ! File read variables
-  integer,parameter      :: io8    = 1042   ! File object for file name file
+  integer,parameter      :: io8    = 42   ! File object for file name file
+  integer,parameter      :: io7    = 22   ! File object for each data file 
   integer,parameter      :: io6    = 1827 ! Data output file
-  integer,parameter      :: errout = 1009 
+  integer,parameter      :: errout = 9 
   integer                :: istatus
 
   character(len = 255)   :: data_path
@@ -49,128 +51,98 @@ program omi_frequency_JZ
   character(len = 255)   :: file_name_file
   character(len = 255)   :: total_file_name
 
-  integer                 :: arg_count
-
-  integer :: error
-  integer :: file_id
-  integer :: gr_id
+  integer                :: arg_count
+  integer                :: work_month 
 
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
   arg_count = command_argument_count()
   if(arg_count /= 2) then
-    write(*,*) 'SYNTAX: ./omi_exec out_file_name file_name_file'
+    write(*,*) 'SYNTAX: ./omi_exec out_file_name date_file_name'
     return
   endif
-
-  ! Initialize the HDF5 interface
-  call h5open_f(error)
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: Could not open HDF5 library'
-    return
-  endif
-  write(*,*) "Interface opened"
-
-  !!#!temp_switch = 0
 
   call get_command_argument(1,out_file_name)
-  call get_command_argument(2,file_name_file)
+  call get_command_argument(2,date_file_name)
 
-  write(*,*) "out_file_name = ",trim(out_file_name)
-  write(*,*) "file_name_file = ",trim(file_name_file)
+  work_month = -1
 
-  ai_count2(:) = 0
-
-  synop_times = [0,6,12,18] 
-  synop_idx = 1
-
-  !data_path = "/home/bsorenson/OMI/shawn_analysis/test_dir/"
+  !data_path = "/home/bsorenson/OMI/JZ_analysis/test_dir/"
   data_path = "/Research/OMI/H5_files/"
-  !out_file_name = "omi_counts_200501_200909.txt"
-  !file_name_file = "omi_dates_200501_200909.txt"
 
   ! Set up lat/lon grids
   ! --------------------
   lat_thresh = 65.
-  lat_gridder = lat_thresh * 4.
-  i_size = (90. - lat_thresh) * 4.
+  lat_gridder = lat_thresh
+  i_size = (90. - lat_thresh)
   allocate(lat_range(i_size))
   do ii=1,i_size
-    lat_range(ii) = lat_thresh + (ii-1)*0.25
+    lat_range(ii) = lat_thresh + (ii-1)
   enddo
 
-  allocate(lon_range(1440))
-  do ii=1,1440
-    lon_range(ii) = -180.0 + (ii-1)*0.25
+  allocate(lon_range(360))
+  do ii=1,360
+    lon_range(ii) = -180.0 + (ii-1)
   enddo
 
-
-  ! Initialize grid arrays and set to 0 initially
+  ! Initialize grid arrays and set to -9 initially
   ! ----------------------------------------------
 
-  allocate(grids(1440,i_size))
-  allocate(i_counts(1440,i_size))
+  allocate(grids(360,i_size))
+  allocate(i_counts(360,i_size))
 
   grids(:,:) = 0.
   i_counts(:,:) = 0
 
   ! open debug file
   ! ---------------
-  open(errout, file = "omi_jz_error.txt", iostat = istatus)
+  open(errout, file = "omi_jz_error_climo.txt", iostat = istatus)
   if(istatus /= 0) then
     write(*,*) "error opening error file."
   endif
 
-  write(errout,*) "TEST WRITE TO FILE"
-
   ! open output file
   ! ---------------
-  write(errout,*) "Opening "//trim(out_file_name)
   open(io6, file = trim(out_file_name), iostat = istatus)
   if(istatus /= 0) then
-    write(errout,*) "ERROR: error opening data count output file."
+    write(errout,*) "ERROR: error opening climo output file."
   endif
-  write(io6,'(a10,5(a6))') 'Date','Cnt65','Cnt70','Cnt75','Cnt80','Cnt85'
- 
-  ! Set up count variables to count the number of grid boxes with
-  ! high AI values
-  ! -------------------------------------------------------------
-  ai_thresh = 0.6
-  ai_count  = 0
-  
+  write(io6,'(a4,2x,3(a7))') 'Date','Lat Lon','Avg','#_obs'
+
   ! Read the file names from the file name file
-  open(io8, file = trim(file_name_file), iostat = istatus)
+  open(io8, file = trim(date_file_name), iostat = istatus)
   if(istatus > 0) then
-    write(errout,*) "ERROR: Problem opening file name containing files: "&
-        //'titled '//trim(file_name_file)
+    write(errout,*) "ERROR: Problem reading "//trim(date_file_name)
     return 
   else
-    !call process_files()
     ! Loop over the file
     file_loop: do
-      ! Read the current total_file_name from the file
+      ! Read the current dtg from the file
       read(io8, '(A)', iostat=istatus) total_file_name
       if(istatus < 0) then 
-        write(*,*) "End of "//trim(file_name_file)//" found"
+        write(*,*) "End of "//trim(date_file_name)//" found"
+        call print_climo(io6,grids,i_counts,i_size,dtg(1:4),work_month,&
+                         lat_range,lon_range)
         exit
       else if(istatus > 0) then
         write(errout,*) "ERROR: problem reading total_file_name"
         cycle file_loop
       else
 
-        ! Extract time information from total_file_name
+        ! Extract month information from dtg
         ! ---------------------------------
-        read(total_file_name(54:55), *) int_hr
+        read(dtg(49:50), *) int_month
 
-        ! See if the hour exceeds the current 6 hr assimilation window.
-        ! If so, calculate averages and counts and reset variables.
-        ! ------------------------------------------------------------
-        call synop_time_check(synop_idx, int_hr, l_in_time)
-        if(.not. l_in_time) then 
-          call count_ai_JZ(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
-                        total_file_name,lat_range)
-
-        endif  
+        ! If the month of the new file is greater than the current working
+        ! month, call print_climo and print the grid values to the output
+        ! file.
+        if(work_month == -1) then
+          work_month = int_month
+        else if(work_month /= int_month) then
+          call print_climo(io6,grids,i_counts,i_size,dtg(1:4),work_month,&
+                           lat_range,lon_range)
+          work_month = int_month
+        endif
 
         !write(*,*) trim(total_file_name)
 
@@ -202,32 +174,23 @@ program omi_frequency_JZ
 
         ! Insert this new data into the grid 
         ! ----------------------------------
-        call grid_raw_data(errout,grids,i_counts,i_size,&
+        call grid_raw_data_climo(errout,grids,i_counts,i_size,&
                 lat_gridder,lat_thresh)
 
         ! Deallocate all the arrays for the next pass
         ! -------------------------------------------
         call clear_arrays
-
       endif
     enddo file_loop  
   endif
 
+  close(io8)
+  close(io6)
+  close(errout)  
   deallocate(grids)
   deallocate(i_counts)
   deallocate(lat_range)
   deallocate(lon_range)
-  close(io8)
-  close(io6)
-  close(errout)  
   
 
-  ! Close the HDF5 interface
-  call h5close_f(error)
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: Could not close HDF5 library'
-    return
-  endif
-  write(*,*) "Interface closed"
-
-end program omi_frequency_JZ
+end program omi_JZ_climo

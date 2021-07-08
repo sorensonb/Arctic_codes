@@ -1,9 +1,17 @@
-subroutine print_climo(io6,grids,i_counts,i_size,c_year,work_month,&
-                       lat_range,lon_range)
+subroutine count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
+                        dtg,lat_range)
+                    !    ai_count,dtg)
 !
 !  NAME:
+!    count_ai
 !
 !  PURPOSE:
+!    Calculate the average AI perturbation for each quarter degree grid box
+!    from the summed AI and counts. If the average AI perturbation exceeds
+!    the desired threshold, increment a counter that is printed, along with
+!    the dtg, at the end of the subroutine. Before leaving the subroutine,
+!    the synoptic index is incremented, and the count variables are reset to 
+!    0.
 !
 !  CALLS:
 !    None
@@ -15,27 +23,62 @@ subroutine print_climo(io6,grids,i_counts,i_size,c_year,work_month,&
 
   implicit none
 
-  integer                :: io6
-  real                   :: grids(360,i_size)
-  integer                :: i_counts(360,i_size)
-  integer                :: i_size        ! array size
-  character(len = 4)     :: c_year
-  integer                :: work_month
+  integer        :: io6
+  integer        :: synop_idx
+  integer        :: i_size        ! array size
+  real           :: grids(1440,i_size)
+  integer        :: i_counts(1440,i_size)
+  real           :: ai_thresh     ! threshold AI value
+  character(len = 12)    :: dtg
   real,dimension(i_size) :: lat_range
-  real,dimension(360)    :: lon_range
 
+  integer        :: ai_count_65   ! good AI counter
+  integer        :: ai_count_70   ! good AI counter
+  integer        :: ai_count_75   ! good AI counter
+  integer        :: ai_count_80   ! good AI counter
+  integer        :: ai_count_85   ! good AI counter
   integer        :: ii
   integer        :: jj
+  real           :: avg_ai
+
+  character(len = 255)   :: out_string
+  integer,dimension(4)   :: synop_times 
 
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
  
-  !write(*,*) "In print_climo"
+  synop_times = [0,6,12,18] 
+
+  ai_count_65 = 0 
+  ai_count_70 = 0 
+  ai_count_75 = 0 
+  ai_count_80 = 0 
+  ai_count_85 = 0 
+
+  !write(*,*) "In count_ai"
 
   ! Loop over the grid and count up grids with high AI
   do ii=1,i_size
-    do jj=1,360
-      write(io6,'(a10,3(a8))') 'Date','LatxLon','AvgAI','Count'
-      write(io6,'(a10,3(a8))') 'Date','LatxLon','AvgAI','Count'
+    do jj=1,1440
+      if(i_counts(jj,ii) > 0) then
+        avg_ai = grids(jj,ii)
+        if(avg_ai > ai_thresh) then
+          if(lat_range(ii) >= 65.) then
+            ai_count_65 = ai_count_65 + 1
+            if(lat_range(ii) >= 70.) then
+              ai_count_70 = ai_count_70 + 1
+              if(lat_range(ii) >= 75.) then
+                ai_count_75 = ai_count_75 + 1
+                if(lat_range(ii) >= 80.) then
+                  ai_count_80 = ai_count_80 + 1
+                  if(lat_range(ii) >= 85.) then
+                    ai_count_85 = ai_count_85 + 1
+                  endif
+                endif
+              endif
+            endif
+          endif
+        endif 
+      endif
     enddo  
   enddo  
 
@@ -48,7 +91,10 @@ subroutine print_climo(io6,grids,i_counts,i_size,c_year,work_month,&
   endif    
 
   ! Reset grid arrays
+  synop_idx = synop_idx + 1
+  if(synop_idx == 5) synop_idx = 1
+  !ai_count = 0     
   grids(:,:) = 0.
   i_counts(:,:) = 0
 
-end subroutine print_climo
+end subroutine count_ai
