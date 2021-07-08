@@ -34,10 +34,10 @@ subroutine print_climo(io6,grids,i_counts,i_size,c_year,work_month,&
  
   !write(*,*) "In print_climo"
   if(work_month < 10) then
-    outstring = '2008'//'0'
+    outstring = c_year//'0'
     out_fmt = '(a5,i1,i4,i5,1x,f9.5,i6)'
   else
-    outstring = '2008'
+    outstring = c_year 
     out_fmt = '(a4,i2,i4,i5,1x,f9.5,i6)'
   endif    
 
