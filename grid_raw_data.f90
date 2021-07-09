@@ -20,7 +20,7 @@ subroutine grid_raw_data(errout,grids,i_counts,i_size,&
                       XTRACK_dims, &
                       AI_data, AZM_data, GPQF_data, LAT_data, LON_data, &
                       XTRACK_data, &
-                      get_ice_flags
+                      get_ice_flags,i_num_bad,i_bad_list
 
   implicit none
 
@@ -34,6 +34,7 @@ subroutine grid_raw_data(errout,grids,i_counts,i_size,&
 
   integer                :: ii
   integer                :: jj
+  integer                :: kk
   integer                :: istatus
   integer                :: index1        
   integer                :: index2        
@@ -44,21 +45,17 @@ subroutine grid_raw_data(errout,grids,i_counts,i_size,&
  
   ! Loop over the array contents
   ! -------------------------
-  row_loop: do ii=1,AI_dims(2)
-    do jj=1,AI_dims(1) 
+  time_loop: do ii=1,AI_dims(2)
+    row_loop: do jj=1,AI_dims(1) 
 
-      ! = = = = = = = = = = = = = = = = = = = =
-      ! Account for bad rows here???????? 
+      ! Account for bad rows here
       ! Cycle loop if this index in bad rows
-      ! = = = = = = = = = = = = = = = = = = = =
-
-      !!#!if(temp_switch == 0) then
-      !!#!  !write(errout,'(f12.6 f12.6 i16)') LAT_data(jj,ii),LON_data(jj,ii), &
-      !!#!  !                                  XTRACK_data(jj,ii)
-      !!#!  write(errout,'(f12.6 f12.6 i16,2x,1(i5))') LAT_data(jj,ii),LON_data(jj,ii), &
-      !!#!                                GPQF_data(jj,ii),&
-      !!#!                                get_ice_flags(GPQF_data(jj,ii))
-      !!#!endif
+      ! ------------------------------------
+      if(allocated(i_bad_list)) then
+        do kk=1,i_num_bad
+          if(jj == i_bad_list(kk)) cycle row_loop
+        enddo
+      endif
 
       ! Use the get_ice_flags function from h5_vars to extract the sfc type
       ! flag from the ground pixel quality flag
@@ -68,6 +65,7 @@ subroutine grid_raw_data(errout,grids,i_counts,i_size,&
       if((XTRACK_data(jj,ii) == 0) .and. &
           (LAT_data(jj,ii) > lat_thresh) .and. &
           (AZM_data(jj,ii) > 100) .and. &
+          (AI_data(jj,ii) > -2e5) .and. &
           ! VJZ2: no snow-free land either
           ( (i_sfc_flag >= 1 .and. i_sfc_flag <= 101) .or. &
             (i_sfc_flag == 104) )) then
@@ -86,8 +84,8 @@ subroutine grid_raw_data(errout,grids,i_counts,i_size,&
            (i_counts(index2,index1)+1)
         i_counts(index2,index1) = i_counts(index2,index1) + 1
       endif
-    enddo
-  enddo row_loop
+    enddo row_loop
+  enddo time_loop
 
   !!#!temp_switch = 1
 

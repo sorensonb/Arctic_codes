@@ -70,7 +70,8 @@ program omi_frequency
   synop_idx = 1
 
   !data_path = "/home/bsorenson/OMI/shawn_analysis/test_dir/"
-  data_path = "/Research/OMI/out_files-monthly.20210518/"
+  !data_path = "/Research/OMI/out_files-monthly.20210518/"
+  data_path = "/Research/OMI/out_files-monthly_test/"
 
   ! Set up lat/lon grids
   ! --------------------

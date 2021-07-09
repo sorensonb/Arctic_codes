@@ -17,6 +17,8 @@ module h5_vars
   implicit none
 
   integer                                           :: temp_switch
+  integer                                           :: i_num_bad
+  integer,dimension(:),allocatable                  :: i_bad_list
  
   integer(hsize_t), dimension(:), allocatable       :: AI_dims
   integer(hsize_t), dimension(:), allocatable       :: AZM_dims

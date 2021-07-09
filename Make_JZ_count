@@ -4,6 +4,7 @@ EXEC = omi_exec2
 COMP = h5fc
 #COMP = gfortran
 OBJECTS = h5_vars.o \
+			check_bad_rows.o \
 			count_ai_JZ.o \
 			grid_raw_data.o \
 			read_h5_AI.o \
@@ -23,6 +24,9 @@ $(EXEC): $(OBJECTS)
 
 h5_vars.o: h5_vars.f90
 	$(COMP) $(FFLAGS) -c h5_vars.f90
+
+check_bad_rows.o: check_bad_rows.f90
+	$(COMP) $(FFLAGS) -c check_bad_rows.f90
 
 count_ai_JZ.o: count_ai_JZ.f90
 	$(COMP) $(FFLAGS) -c count_ai_JZ.f90

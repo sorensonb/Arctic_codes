@@ -14,8 +14,8 @@ program omi_frequency_JZ
 !  ############################################################################
 
   use hdf5
-  use h5_vars, only : clear_arrays, temp_switch
-
+  use h5_vars, only : clear_arrays, i_bad_list
+ 
   implicit none
 
   integer                :: ii            ! loop counter
@@ -24,6 +24,7 @@ program omi_frequency_JZ
   integer                :: ai_count      ! good AI counter
   integer,dimension(3)   :: ai_count2     ! good AI counter
   integer                :: int_hr        ! integer variable for hour
+  integer                :: int_day       ! integer variable for day 
 
   real                   :: ai_thresh     ! threshold AI value
   real                   :: lat_thresh
@@ -42,6 +43,7 @@ program omi_frequency_JZ
   integer,parameter      :: io8    = 1042   ! File object for file name file
   integer,parameter      :: io6    = 1827 ! Data output file
   integer,parameter      :: errout = 1009 
+  integer,parameter      :: io10   = 1066
   integer                :: istatus
 
   character(len = 255)   :: data_path
@@ -49,7 +51,8 @@ program omi_frequency_JZ
   character(len = 255)   :: file_name_file
   character(len = 255)   :: total_file_name
 
-  integer                 :: arg_count
+  integer                :: arg_count
+  integer                :: work_day 
 
   integer :: error
   integer :: file_id
@@ -71,7 +74,6 @@ program omi_frequency_JZ
   endif
   write(*,*) "Interface opened"
 
-  !!#!temp_switch = 0
 
   call get_command_argument(1,out_file_name)
   call get_command_argument(2,file_name_file)
@@ -121,7 +123,13 @@ program omi_frequency_JZ
     write(*,*) "error opening error file."
   endif
 
-  write(errout,*) "TEST WRITE TO FILE"
+  ! open row anomaly file
+  ! ---------------
+  open(io10, file = "/home/bsorenson/OMI/"&
+    //"row_anomaly_dates_20050401_20191001.txt", iostat = istatus)
+  if(istatus /= 0) then
+    write(*,*) "error opening row file."
+  endif
 
   ! open output file
   ! ---------------
@@ -158,9 +166,21 @@ program omi_frequency_JZ
         cycle file_loop
       else
 
+        ! Extract day information from file name
+        ! --------------------------------------
+        read(total_file_name(51:52), *) int_day
+
         ! Extract time information from total_file_name
         ! ---------------------------------
         read(total_file_name(54:55), *) int_hr
+
+        ! If the day of the new file is different than the current working
+        ! day, call check_bad_row and update the bad row list
+        ! ----------------------------------------------------------------
+        if(work_day /= int_day) then
+          call check_bad_rows(errout,io10)
+          work_day = int_day
+        endif
 
         ! See if the hour exceeds the current 6 hr assimilation window.
         ! If so, calculate averages and counts and reset variables.
@@ -213,10 +233,13 @@ program omi_frequency_JZ
     enddo file_loop  
   endif
 
+  if(allocated(i_bad_list)) deallocate(i_bad_list)
+
   deallocate(grids)
   deallocate(i_counts)
   deallocate(lat_range)
   deallocate(lon_range)
+  close(io10)
   close(io8)
   close(io6)
   close(errout)  
