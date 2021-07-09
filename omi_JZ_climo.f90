@@ -4,12 +4,27 @@ program omi_JZ_climo
 !   omi_JZ_climo.f90
 !
 ! PURPOSE:
+!   Calculate monthly averages of screened AI (following the JZ criteria) and
+!   write the averages to an output file.
 ! 
 ! CALLS:
-!   mie_calc.f90
+!   Modules:
+!     - hdf5
+!     - h5_vars (custom module, shared between count and climo analyses)
+!   Subroutines:
+!     - check_bad_rows
+!     - clear_arrays (from h5_vars)
+!     - grid_raw_data_climo
+!     - print_climo
+!     - read_h5_AI
+!     - read_h5_LAT
+!     - read_h5_LON
+!     - read_h5_XTRACK
+!     - read_h5_AZM
+!     - read_h5_GPQF
 !
 ! MODIFICATIONS:
-!   Blake Sorenson <blake.sorenson@und.edu>     - 2018/10/24:
+!   Blake Sorenson <blake.sorenson@und.edu>     - 2021/07/09:
 !     Written
 !
 !  ############################################################################
@@ -20,54 +35,55 @@ program omi_JZ_climo
   implicit none
 
   integer                :: ii            ! loop counter
-  integer                :: jj            ! loop counter
-  integer                :: index1        
-  integer                :: index2        
   integer                :: i_size        ! array size
-  integer                :: ai_count      ! good AI counter
   integer                :: int_month     ! integer variable for month
   integer                :: int_day       ! integer variable for day 
+  integer                :: arg_count     ! Number of arguments passed to exec
+  integer                :: work_month    ! currently analyzed month
+  integer                :: work_day 
+  integer                :: error         ! error flag
+  integer                :: istatus
+  integer                :: file_id       ! id for current HDF5 file
 
-  real                   :: ai_thresh     ! threshold AI value
-  real                   :: lat_thresh
-  real                   :: lat_gridder
-  real                   :: avg_ai
+  real                   :: lat_thresh    ! latitude threshold. Only analyze
+                                          ! data north of this value.
+  real                   :: lat_gridder   ! Used for setting up the latitude
+                                          ! grid
 
-  logical                :: l_in_time
-
-  real,dimension(:), allocatable :: lat_range
-  real,dimension(:), allocatable :: lon_range   
-  real,dimension(:,:), allocatable :: grids
-  integer,dimension(:,:), allocatable :: i_counts
+  real,dimension(:), allocatable      :: lat_range ! latitude grid
+  real,dimension(:), allocatable      :: lon_range ! longitude grid
+  real,dimension(:,:), allocatable    :: grids     ! quarter-degree AI grid
+                                                   ! values.
+  integer,dimension(:,:), allocatable :: i_counts  ! quarter-degree AI counts
 
   ! File read variables
   integer,parameter      :: io8    = 42   ! File object for file name file
-  integer,parameter      :: io7    = 22   ! File object for each data file 
   integer,parameter      :: io6    = 1827 ! Data output file
-  integer,parameter      :: errout = 9 
-  integer,parameter      :: io10   = 1066
-  integer                :: error
-  integer                :: istatus
+  integer,parameter      :: errout = 9    ! Error file
+  integer,parameter      :: io10   = 1066 ! Row anomaly file
 
-  character(len = 255)   :: data_path
-  character(len = 255)   :: out_file_name
-  character(len = 255)   :: file_name_file
-  character(len = 255)   :: total_file_name
+  character(len = 255)   :: out_file_name   ! output file name
+  character(len = 255)   :: file_name_file  ! name of file containing the 
+                                            ! list of HDF5 file names to 
+                                            ! be analyzed
+  character(len = 255)   :: total_file_name ! file name read from each line 
+                                            ! of file_name_file
 
-  integer                :: arg_count
-  integer                :: work_month 
-  integer                :: work_day 
-  integer                :: file_id
-  integer                :: i_num_row
-  integer                :: temp_bad_row
 
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+  ! Check command line arguments
+  ! ----------------------------
   arg_count = command_argument_count()
   if(arg_count /= 2) then
     write(*,*) 'SYNTAX: ./omi_exec out_file_name file_name_file'
     return
   endif
+
+  ! Pull the output file name and input file list file from the command line
+  ! ------------------------------------------------------------------------
+  call get_command_argument(1,out_file_name)
+  call get_command_argument(2,file_name_file)
 
   ! Initialize the HDF5 interface
   ! -----------------------------
@@ -78,14 +94,9 @@ program omi_JZ_climo
   endif
   write(*,*) "Interface opened"
 
-
-  call get_command_argument(1,out_file_name)
-  call get_command_argument(2,file_name_file)
-
+  ! Initialize the working month to -1
+  ! ----------------------------------
   work_month = -1
-
-  !data_path = "/home/bsorenson/OMI/JZ_analysis/test_dir/"
-  data_path = "/Research/OMI/H5_files/"
 
   ! Set up lat/lon grids
   ! --------------------
@@ -134,18 +145,28 @@ program omi_JZ_climo
   endif
   write(io6,'(a4,2x,3(a7))') 'Date','Lat Lon','Avg','#_obs'
 
-  ! Read the file names from the file name file
+  ! Initialize the work_day value to -1
+  ! -----------------------------------
+  work_day = -1
+
+  ! Open the file name file
+  ! -----------------------
   open(io8, file = trim(file_name_file), iostat = istatus)
   if(istatus > 0) then
     write(errout,*) "ERROR: Problem reading "//trim(file_name_file)
     return 
   else
-    ! Loop over the file
+    ! Loop over the file name file
+    ! ----------------------------
     file_loop: do
-      ! Read the current data from the file
+      ! Read the current total_file_name from the file
+      ! ----------------------------------------------
       read(io8, '(A)', iostat=istatus) total_file_name
       if(istatus < 0) then 
         write(*,*) "End of "//trim(file_name_file)//" found"
+        ! Print the final month of data to the output file using
+        ! print_climo
+        ! --------------------------------------------------------
         call print_climo(io6,grids,i_counts,i_size,total_file_name(44:47),&
                          work_month,lat_range,lon_range)
         exit
@@ -173,6 +194,7 @@ program omi_JZ_climo
         ! If the month of the new file is greater than the current working
         ! month, call print_climo and print the grid values to the output
         ! file.
+        ! ----------------------------------------------------------------
         if(work_month == -1) then
           work_month = int_month
         else if(work_month /= int_month) then
@@ -182,34 +204,33 @@ program omi_JZ_climo
         endif
 
         ! Open the HDF5 file
+        ! ------------------
         call h5fopen_f(total_file_name, H5F_ACC_RDWR_F, file_id, error)
         if(error /= 0) then
           write(*,*) 'FATAL ERROR: could not open file'
           return
         endif
-        !write(*,*) 'File opened'
 
         ! Read in the necessary data using the read routines
         ! --------------------------------------------------
-        call read_h5_AI(file_id,error)
-        call read_h5_LAT(file_id,error)
-        call read_h5_LON(file_id,error)
-        call read_h5_XTRACK(file_id,error)   
-        call read_h5_AZM(file_id,error) 
-        call read_h5_GPQF(file_id,error)
+        call read_h5_AI(file_id)
+        call read_h5_LAT(file_id)
+        call read_h5_LON(file_id)
+        call read_h5_XTRACK(file_id)   
+        call read_h5_AZM(file_id) 
+        call read_h5_GPQF(file_id)
 
         ! Close file
+        ! ----------
         call h5fclose_f(file_id, error)
         if(error /= 0) then
           write(*,*) 'FATAL ERROR: could not close file'
           return
         endif
-        !write(*,*) 'File closed'
-
 
         ! Insert this new data into the grid 
         ! ----------------------------------
-        call grid_raw_data_climo(errout,grids,i_counts,i_size,&
+        call grid_raw_data_climo(grids,i_counts,i_size,&
                 lat_gridder,lat_thresh)
 
         ! Deallocate all the arrays for the next pass
@@ -219,8 +240,13 @@ program omi_JZ_climo
     enddo file_loop  
   endif
 
+  ! If, for some reason, the list of bad rows was not deallocated from
+  ! before, deallocate it.
+  ! ------------------------------------------------------------------
   if(allocated(i_bad_list)) deallocate(i_bad_list)
 
+  ! Deallocate the remaining allocated arrays and close all files
+  ! -------------------------------------------------------------
   close(io8)
   close(io6)
   close(io10)
@@ -231,6 +257,7 @@ program omi_JZ_climo
   deallocate(lon_range)
   
   ! Close the HDF5 interface
+  ! ------------------------
   call h5close_f(error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: Could not close HDF5 library'

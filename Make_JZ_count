@@ -16,7 +16,7 @@ OBJECTS = h5_vars.o \
 			synop_time_check.o \
 			omi_frequency_JZ.o
 
-FFLAGS = -g -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
+FFLAGS = -g -O2 -Wall -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
 LDFLAGS = -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
 
 $(EXEC): $(OBJECTS)

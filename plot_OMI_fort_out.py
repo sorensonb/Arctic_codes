@@ -1,31 +1,13 @@
 #!/usr/bin/env python
 """
   NAME:
-    plot_single_OMI.py
+    plot_OMI_fort_out.py
 
   PURPOSE:
-    Plot data from a raw OMI HDF5 file using cartopy. See the 'path_dict'
-    dictionary keys for accepted variables.
-
-    NOTE: If running on a computer that is not Blake Sorenson's office computer,
-    change the 'base_path' variable to point to the directory containing the
-    HDF5 OMI files.
 
   SYNTAX:
-    $ python plot_single_OMI.py date variable row_max
-
-       - date: for a single-swath image, use a format of YYYYMMDDHH
-               for a daily average, use a format of YYYYMMDD
-       - variable: variable name from the HDF5 file. This code is only
-               set up to handle certain variables right now, so to see
-               which variables are currently allowed, see either the syntax
-               message or the keys to any of the dictionaries found below
-       - row_max:  the maximum row to plot data through. For example, if you
-               only want to plot rows 1 to 23, use a row_max value of 23.
-               Otherwise, use a value of 60 to plot all rows.
 
   EXAMPLE:
-    $ python plot_single_OMI.py 201807260741 UVAerosolIndex 60 
 
   MODIFICATIONS:
     Blake Sorenson <blake.sorenson@und.edu>     - 2021/04/01:
@@ -42,7 +24,9 @@ import pandas as pd
 
 if(len(sys.argv)<3):
     print("SYNTAX: python plot_OMI_fort_out.py out_file min_lat")
-    print("        name is of format: omi_counts_YYYY_YYYY.txt")
+    print("        name is of format: omi_counts_YYYY_YYYY_ZZZ_type.txt")
+    print("           ZZZ  = 100 * AI thresh (i.e., 060)")
+    print("           type = JZ or shawn")
     print("        min_lat is of format: 65,70,75,80,85")
     sys.exit()
 
@@ -58,7 +42,9 @@ min_lat   = sys.argv[2]
 name_split = file_name.strip().split('_')
 start_year = name_split[2]
 end_year   = name_split[3]
-ai_thresh  = float(int(name_split[4].split('.')[0])/100)
+ai_thresh  = float(int(name_split[4])/100)
+dtype      = name_split[5].split('.')[0]
+
 print(ai_thresh)
 
 in_data = pd.read_csv(file_name, delim_whitespace=True)
@@ -103,7 +89,7 @@ ax.plot(daily_dt_dates,daily_counts_65,label='daily')
 ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
 ax.legend()
 ax.set_ylabel('Counts')
-ax.set_title('AI Counts: Threshold of '+str(ai_thresh)+\
+ax.set_title('AI Counts ' + dtype + ': Threshold of '+str(ai_thresh)+\
     '\nNorth of '+min_lat+'$^{o}$')
 ax.grid()
 plt.show()

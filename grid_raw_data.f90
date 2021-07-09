@@ -1,15 +1,15 @@
-subroutine grid_raw_data(errout,grids,i_counts,i_size,&
-             lat_gridder,lat_thresh)
+subroutine grid_raw_data(grids,i_counts,i_size,lat_gridder,lat_thresh)
 !
 !  NAME:
 !    grid_raw_data
 !
 !  PURPOSE:
-!    Loop over each line from the current OMI AI perturbation text file and
-!    insert each AI perturbation value into the grid if it meets the criteria.
+!    Loop over each value from the current OMI HDF5 file and
+!    insert each AI value into the grid if it meets the criteria.
 !
 !  CALLS:
-!    None
+!   Modules:
+!     - h5_vars (custom module, shared between count and climo analyses)
 !
 !  MODIFICATIONS:
 !    Blake Sorenson <blake.sorenson@und.edu>     - 2021/06/10: Written
@@ -24,22 +24,20 @@ subroutine grid_raw_data(errout,grids,i_counts,i_size,&
 
   implicit none
 
-  integer                :: io7
-  integer                :: errout
-  integer                :: i_size
-  real                   :: grids(1440,i_size)
-  integer                :: i_counts(1440,i_size)
-  real                   :: lat_gridder
-  real                   :: lat_thresh
+  real                   :: grids(1440,i_size)     ! quarter-degree AI grid
+                                                   ! values.
+  integer                :: i_counts(1440,i_size)  ! quarter-degree AI counts
+  integer                :: i_size                 ! lat array size
+  real                   :: lat_gridder            ! lat grid value
+  real                   :: lat_thresh             ! Latitude threshold value
 
-  integer                :: ii
-  integer                :: jj
-  integer                :: kk
-  integer                :: istatus
-  integer                :: index1        
-  integer                :: index2        
-
-  integer                :: i_sfc_flag
+  integer                :: ii                     ! loop counter
+  integer                :: jj                     ! loop counter
+  integer                :: kk                     ! loop counter    
+  integer                :: index1                 ! index in grid
+  integer                :: index2                 ! index in grid
+  integer                :: i_sfc_flag             ! sfc QC flag from the GPQF
+                                                   ! flag
 
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
  
@@ -79,6 +77,8 @@ subroutine grid_raw_data(errout,grids,i_counts,i_size,&
         if(index2 < 1) index2 = 1
         if(index2 > 1440) index2 = 1440
 
+        ! Insert the current AI value from the file into the running average
+        ! ------------------------------------------------------------------ 
         grids(index2,index1) = ((grids(index2,index1) * &
             i_counts(index2,index1)) + AI_data(jj,ii)) / &
            (i_counts(index2,index1)+1)
@@ -86,7 +86,5 @@ subroutine grid_raw_data(errout,grids,i_counts,i_size,&
       endif
     enddo row_loop
   enddo time_loop
-
-  !!#!temp_switch = 1
 
 end subroutine grid_raw_data

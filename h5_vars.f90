@@ -1,13 +1,17 @@
 module h5_vars
 !
 ! NAME:
+!   h5_vars
 !
 ! PURPOSE:
+!   Contain the data arrays and dimensions for all variable types, as well as
+!   some functions.
 ! 
 ! CALLS:
+!   None.
 !
 ! MODIFICATIONS:
-!   Blake Sorenson <blake.sorenson@und.edu>     - 2018/10/24:
+!   Blake Sorenson <blake.sorenson@und.edu>     - 2021/07/09:
 !     Written
 !
 !  ############################################################################
@@ -16,7 +20,6 @@ module h5_vars
 
   implicit none
 
-  integer                                           :: temp_switch
   integer                                           :: i_num_bad
   integer,dimension(:),allocatable                  :: i_bad_list
  
@@ -28,7 +31,7 @@ module h5_vars
   integer(hsize_t), dimension(:), allocatable       :: XTRACK_dims
   real(kind=8), dimension(:,:), allocatable, target :: AI_data
   real(kind=8), dimension(:,:), allocatable, target :: AZM_data
-  integer, dimension(:,:), allocatable, target   :: GPQF_data
+  integer, dimension(:,:), allocatable, target      :: GPQF_data
   real(kind=8), dimension(:,:), allocatable, target :: LAT_data
   real(kind=8), dimension(:,:), allocatable, target :: LON_data
   integer, dimension(:,:), allocatable, target      :: XTRACK_data
@@ -67,7 +70,6 @@ module h5_vars
 
       integer,intent(in) :: i_gpqf
       integer            :: i_flag
-      integer            :: ii 
 
       ! Check each bit and update i_flag accordingly
       i_flag = 64 * bit_check(i_gpqf,14) + &

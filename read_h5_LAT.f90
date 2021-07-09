@@ -1,15 +1,20 @@
-subroutine read_h5_LAT(file_id,error)
-!subroutine read_h5_dataset(file_id,data_path,LAT_dims,&
-!    H52DDoubledataset,error)
+subroutine read_h5_LAT(file_id)
 !
 ! NAME:
+!   read_h5_AI
 !
 ! PURPOSE:
-! 
-! callS:
+!   Read Latitude data from an HDF5 file pointed to by file_id 
+!   and store the data in AI_data (and the dimensions in AI_dims) from
+!   h5_vars.
+!  
+! CALLS:
+!   Modules:
+!     - hdf5
+!     - h5_vars (custom module, shared between count and climo analyses)
 !
 ! MODIFICATIONS:
-!   Blake Sorenson <blake.sorenson@und.edu>     - 2018/10/24:
+!   Blake Sorenson <blake.sorenson@und.edu>     - 2021/07/09:
 !     Written
 
 !  ############################################################################
@@ -19,32 +24,30 @@ subroutine read_h5_LAT(file_id,error)
 
   implicit none
   
-  integer :: file_id
-  !integer(hsize_t),dimension(:),allocatable :: LAT_dims
-  !!real(kind=8), dimension(:,:), allocatable, target, intent(out)     :: H52DDoubledataset
-  integer :: error
+  integer                         :: file_id     ! File id for the HDF5 file
+  integer                         :: error       ! error flag
 
-  integer :: ii 
-  integer :: ds_id
-  integer :: dspace
-  integer :: ndims
-  integer(hsize_t), dimension(1)                 :: dims
-  integer(hsize_t), dimension(4)                 :: datadims
-  integer(hsize_t), dimension(4)                 :: maxdatadims
+  integer                         :: ii          ! loop counter
+  integer                         :: ds_id       ! dataset ID
+  integer                         :: dspace      ! dataspace 
+  integer                         :: ndims       ! number of dimensions in file
+  integer(hsize_t), dimension(1)  :: dims        ! dimensions
+  integer(hsize_t), dimension(4)  :: datadims    ! all data dimensions
+  integer(hsize_t), dimension(4)  :: maxdatadims ! max data dims
  
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-  !write(*,*) "Inside read_h5_LAT"
- 
-  ! Open dataset
+  ! Open LAT dataset
+  ! ----------------
   call h5dopen_f(file_id, 'HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation'&
         //' Fields/Latitude', ds_id, error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not open dataset'
     return
   endif
-  !write(*,*) 'Dataset opened'
 
+  ! Determine the dataset dataspace
+  ! -------------------------------
   call h5dget_space_f(ds_id, dspace, error)
   if (error /= 0) then
     write(*,*) " FATAL ERROR: Error determining dataspace"
@@ -101,7 +104,5 @@ subroutine read_h5_LAT(file_id,error)
     write(*,*) 'FATAL ERROR: could not close dataset'
     return
   endif
-  !write(*,*) 'Dataset closed'
-
 
 end subroutine read_h5_LAT

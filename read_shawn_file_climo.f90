@@ -18,18 +18,18 @@ subroutine read_shawn_file_climo(io7,errout,c_total_file_name,grids,i_counts,i_s
 
   implicit none
 
-  integer                :: io7
-  integer                :: errout
-  integer                :: i_size
-  character(len = 255)   :: c_total_file_name 
-  real                   :: grids(360,i_size)
-  integer                :: i_counts(360,i_size)
-  real                   :: lat_gridder
-  real                   :: lat_thresh
+  integer                :: io7                   ! file pointer for shawn file
+  integer                :: errout                ! error file pointer
+  integer                :: i_size                ! array size
+  character(len = 255)   :: c_total_file_name     ! total file name
+  real                   :: grids(360,i_size)    ! quarter-degree AI grid
+  integer                :: i_counts(360,i_size) ! AI counts
+  real                   :: lat_gridder           !
+  real                   :: lat_thresh            ! threshold lat value
 
-  integer                :: istatus
-  integer                :: index1        
-  integer                :: index2        
+  integer                :: istatus               ! read status
+  integer                :: index1                ! omi file index
+  integer                :: index2                ! omi file index
 
   ! Variables from each line in Shawn's files
   real                   :: lat
@@ -62,7 +62,6 @@ subroutine read_shawn_file_climo(io7,errout,c_total_file_name,grids,i_counts,i_s
       write(errout, *) "       cycling data_loop"
       cycle data_loop
     else if(istatus < 0) then
-      !write(errout, *) "End of data in file: ",trim(c_total_file_name)
       exit data_loop
     endif
     ! Read a line from the file
@@ -78,6 +77,8 @@ subroutine read_shawn_file_climo(io7,errout,c_total_file_name,grids,i_counts,i_s
       if(index2 < 1) index2 = 1
       if(index2 > 360) index2 = 360
 
+      ! Average the current value into the grid
+      ! ---------------------------------------
       grids(index2,index1) = ((grids(index2,index1) * &
           i_counts(index2,index1)) + clean_ai) / &
          (i_counts(index2,index1)+1)

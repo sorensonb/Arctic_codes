@@ -4,12 +4,19 @@ program omi_frequency
 !   omi_frequency.f90
 !
 ! PURPOSE:
+!   Calculate counts of high-AI (w.r.t. a user-defined threshold) quarter
+!   degree grid-boxes for AI perturbations averaged into 4 +/- 3hr windows 
+!   (00, 06, 12, and 18). Since these codes read AI data directly from the 
+!   HDF5 files, the hdf5 module is required.
 ! 
 ! CALLS:
-!   mie_calc.f90
+!   Subroutines:
+!     - count_ai
+!     - read_shawn_file
+!     - synop_time_check
 !
 ! MODIFICATIONS:
-!   Blake Sorenson <blake.sorenson@und.edu>     - 2018/10/24:
+!   Blake Sorenson <blake.sorenson@und.edu>     - 2021/07/09:
 !     Written
 !
 !  ############################################################################
@@ -17,28 +24,29 @@ program omi_frequency
   implicit none
 
   integer                :: ii            ! loop counter
-  integer                :: jj            ! loop counter
-  integer                :: index1        
-  integer                :: index2        
-  integer                :: synop_idx
+  integer                :: synop_idx     ! index of current synoptic time
   integer                :: i_size        ! array size
-  integer                :: ai_count      ! good AI counter
-  integer,dimension(3)   :: ai_count2     ! good AI counter
   integer                :: int_hr        ! integer variable for hour
+  integer                :: arg_count     ! Number of arguments passed to exec
 
   real                   :: ai_thresh     ! threshold AI value
-  real                   :: lat_thresh
-  real                   :: lat_gridder
-  real                   :: avg_ai
+  real                   :: lat_thresh    ! latitude threshold. Only analyze
+                                          ! data north of this value.
+  real                   :: lat_gridder   ! Used for setting up the latitude
+                                          ! grid
 
-  logical                :: l_in_time
+  logical                :: l_in_time     ! used to determine if the current
+                                          ! hour falls within the synoptic time
+                                          ! range.
 
-  real,dimension(:), allocatable :: lat_range
-  real,dimension(:), allocatable :: lon_range   
-  real,dimension(:,:), allocatable :: grids
-  integer,dimension(:,:), allocatable :: i_counts
+  real,dimension(:), allocatable      :: lat_range ! latitude grid
+  real,dimension(:), allocatable      :: lon_range ! longitude grid
+  real,dimension(:,:), allocatable    :: grids     ! quarter-degree AI grid
+                                                   ! values.
+  integer,dimension(:,:), allocatable :: i_counts  ! quarter-degree AI counts
 
-  integer,dimension(4)   :: synop_times 
+  integer,dimension(4)   :: synop_times     ! list containing the 4 synoptic
+                                            ! times
 
   ! File read variables
   integer,parameter      :: io8    = 42   ! File object for file name file
@@ -47,15 +55,17 @@ program omi_frequency
   integer,parameter      :: errout = 9 
   integer                :: istatus
 
-  character(len = 255)   :: data_path
-  character(len = 255)   :: out_file_name
-  character(len = 255)   :: date_file_name
-  character(len = 12)    :: dtg
-
-  integer                 :: arg_count
+  character(len = 255)   :: data_path       ! path to data files
+  character(len = 12)    :: dtg             ! dtg from each line of file
+  character(len = 255)   :: out_file_name   ! output file name
+  character(len = 255)   :: date_file_name  ! name of file containing the 
+                                            ! list of shawn file names to 
+                                            ! be analyzed
 
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+  ! Check command line arguments
+  ! ----------------------------
   arg_count = command_argument_count()
   if(arg_count /= 2) then
     write(*,*) 'SYNTAX: ./omi_exec out_file_name date_file_name'
@@ -64,12 +74,11 @@ program omi_frequency
   call get_command_argument(1,out_file_name)
   call get_command_argument(2,date_file_name)
 
-  ai_count2(:) = 0
-
+  ! Set up the synoptic time list
+  ! -----------------------------
   synop_times = [0,6,12,18] 
   synop_idx = 1
 
-  !data_path = "/home/bsorenson/OMI/shawn_analysis/test_dir/"
   !data_path = "/Research/OMI/out_files-monthly.20210518/"
   data_path = "/Research/OMI/out_files-monthly_test/"
 
@@ -88,8 +97,7 @@ program omi_frequency
     lon_range(ii) = -180.0 + (ii-1)*0.25
   enddo
 
-
-  ! Initialize grid arrays and set to -9 initially
+  ! Initialize grid arrays and set to 0 initially
   ! ----------------------------------------------
 
   allocate(grids(1440,i_size))
@@ -117,7 +125,6 @@ program omi_frequency
   ! high AI values
   ! -------------------------------------------------------------
   ai_thresh = 0.6
-  ai_count  = 0
 
   ! Read the file names from the file name file
   open(io8, file = trim(date_file_name), iostat = istatus)
@@ -125,10 +132,11 @@ program omi_frequency
     write(errout,*) "ERROR: Problem reading "//trim(date_file_name)
     return 
   else
-    !call process_files()
-    ! Loop over the file
+    ! Loop over the dtg file
+    ! ----------------------------
     file_loop: do
       ! Read the current dtg from the file
+      ! ----------------------------------
       read(io8, *, iostat=istatus) dtg
       if(istatus < 0) then 
         write(*,*) "End of "//trim(date_file_name)//" found"
@@ -149,31 +157,7 @@ program omi_frequency
         if(.not. l_in_time) then 
           call count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
                         dtg,lat_range)
-                       ! ai_count,dtg)
-          !! Loop over the grid and count up grids with high AI
-          !do ii=1,i_size
-          !  do jj=1,1440
-          !    if(i_counts(jj,ii) > 0) then
-          !      avg_ai = grids(jj,ii)/i_counts(jj,ii)
-          !      if(avg_ai > ai_thresh) then
-          !        ai_count = ai_count + 1
-          !      endif 
-          !    endif
-          !  enddo  
-          !enddo  
-
-          !write(io6,*) dtg(1:8),synop_times(synop_idx), ai_count
-        
-          !! Reset grid arrays
-          !synop_idx = synop_idx + 1
-          !if(synop_idx == 5) synop_idx = 1
-          !ai_count = 0     
-          !grids(:,:) = 0.
-          !i_counts(:,:) = 0
-
         endif  
-
-        write(*,*) trim(data_path)//dtg
 
         ! Open the shawn file and look at contents
         open(io7, file = trim(data_path)//dtg, iostat = istatus)
@@ -183,47 +167,20 @@ program omi_frequency
           cycle file_loop
         endif
 
+        ! Read data from the current file and insert into the grids
+        ! ---------------------------------------------------------
         call read_shawn_file(io7,errout,trim(data_path)//dtg,grids,i_counts,&
                              i_size,lat_gridder,lat_thresh)
-        ! Loop over the file
-        ! -------------------------
-        !data_loop: do
-        !  read(io7, *, iostat = istatus)  &
-        !          lat, lon, raw_ai, filter, clean_ai,v5,v6,v7,v8,v9,v10,&
-        !            v11,v12,v13,v14
-        !  if(istatus > 0) then
-        !    write(errout, *) "ERROR: error reading data from ",data_path//dtg
-        !    write(errout, *) "       cycling data_loop"
-        !    cycle data_loop
-        !  else if(istatus < 0) then
-        !    write(errout, *) "End of data in file: ",data_path//dtg
-        !    exit data_loop
-        !  endif
-        !  ! Read a line from the file
 
-        !  if(lat > lat_thresh) then
-        !    ! Average the data into the grid?
-        !    ! -------------------------------
-        !    index1 = floor(lat*4 - lat_gridder)
-        !    index2 = floor(lon*4 + 720)
-
-        !    if(index1 < 1) index1 = 1
-        !    if(index1 > i_size) index1 = i_size
-        !    if(index2 < 1) index2 = 1
-        !    if(index2 > 1440) index2 = 1440
-
-        !    grids(index2,index1) = ((grids(index2,index1) * &
-        !        i_counts(index2,index1)) + clean_ai) / &
-        !       (i_counts(index2,index1)+1)
-        !    i_counts(index2,index1) = i_counts(index2,index1) + 1
-        !  endif
-        !enddo data_loop
-        
+        ! Close the current shawn file
+        ! ----------------------------
         close(io7)
       endif
     enddo file_loop  
   endif
 
+  ! Deallocate the remaining allocated arrays and close all files
+  ! -------------------------------------------------------------
   deallocate(grids)
   deallocate(i_counts)
   deallocate(lat_range)
@@ -232,5 +189,4 @@ program omi_frequency
   close(io6)
   close(errout)  
   
-
 end program omi_frequency

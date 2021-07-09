@@ -2,8 +2,10 @@ subroutine print_climo(io6,grids,i_counts,i_size,c_year,work_month,&
                        lat_range,lon_range)
 !
 !  NAME:
+!    print_climo
 !
 !  PURPOSE:
+!    Print the current monthly averages to the output file.
 !
 !  CALLS:
 !    None
@@ -15,24 +17,25 @@ subroutine print_climo(io6,grids,i_counts,i_size,c_year,work_month,&
 
   implicit none
 
-  integer                :: io6
-  real                   :: grids(360,i_size)
-  integer                :: i_counts(360,i_size)
-  integer                :: i_size        ! array size
-  character(len = 4)     :: c_year
-  integer                :: work_month
-  real,dimension(i_size) :: lat_range
-  real,dimension(360)    :: lon_range
+  integer                :: io6                  ! output file object
+  real                   :: grids(360,i_size)    ! gridded AI data
+  integer                :: i_counts(360,i_size) ! AI counts
+  integer                :: i_size               ! array size
+  character(len = 4)     :: c_year               ! string year
+  integer                :: work_month           ! current month
+  real,dimension(i_size) :: lat_range            ! lat grid
+  real,dimension(360)    :: lon_range            ! lon grid
 
-  integer                :: ii
-  integer                :: jj
+  integer                :: ii                   ! loop counter
+  integer                :: jj                   ! loop counter
 
-  character(len = 6)     :: outstring
-  character(len = 255)   :: out_fmt
+  character(len = 6)     :: outstring            ! working string for date
+  character(len = 255)   :: out_fmt              ! format string for output
 
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
- 
-  !write(*,*) "In print_climo"
+
+  ! Set up the output string differently if the month only has 1 digit
+  ! ------------------------------------------------------------------ 
   if(work_month < 10) then
     outstring = c_year//'0'
     out_fmt = '(a5,i1,i4,i5,1x,f9.5,i6)'
@@ -41,7 +44,8 @@ subroutine print_climo(io6,grids,i_counts,i_size,c_year,work_month,&
     out_fmt = '(a4,i2,i4,i5,1x,f9.5,i6)'
   endif    
 
-  ! Loop over the grid and count up grids with high AI
+  ! Loop over the grid and write the climatology
+  ! --------------------------------------------
   write(*,*) outstring,work_month
   do ii=1,i_size
     do jj=1,360
@@ -50,8 +54,8 @@ subroutine print_climo(io6,grids,i_counts,i_size,c_year,work_month,&
     enddo  
   enddo  
 
-
   ! Reset grid arrays
+  ! -----------------
   grids(:,:) = 0.
   i_counts(:,:) = 0
 
