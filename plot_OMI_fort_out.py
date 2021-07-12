@@ -39,7 +39,7 @@ min_lat   = sys.argv[2]
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 # Extract date information from the file name
-name_split = file_name.strip().split('_')
+name_split = file_name.strip().split('/')[-1].split('_')
 start_year = name_split[2]
 end_year   = name_split[3]
 ai_thresh  = float(int(name_split[4])/100)
@@ -86,7 +86,7 @@ daily_xrange = x_range[::4]
 fig1, ax = plt.subplots()
 ax.plot(dt_dates,count65,label='synoptic')
 ax.plot(daily_dt_dates,daily_counts_65,label='daily')
-ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
 ax.legend()
 ax.set_ylabel('Counts')
 ax.set_title('AI Counts ' + dtype + ': Threshold of '+str(ai_thresh)+\
