@@ -152,22 +152,30 @@ def readOMI(inputfile,start_date,end_date,key=None):
     for line in f:
         templine = line.strip().split()
         if(len(templine)>1):
+            if(len(templine) == 5):
+                loc_key = str(templine[1])+'x'+str(templine[2])
+                avg_idx = 3
+                cnt_idx = 4
+            else:
+                loc_key = templine[1] 
+                avg_idx = 2
+                cnt_idx = 3
             if((int(templine[0])>=start_date) & (int(templine[0])<=end_date)):
                 if(key is not None):
-                    if(templine[1]==key):
+                    if(loc_key==key):
                         OMI_data[key][templine[0]] = {}
-                        OMI_data[key][templine[0]]['avg']=float(templine[2])
-                        OMI_data[key][templine[0]]['#_obs']=int(templine[3])
+                        OMI_data[key][templine[0]]['avg']=float(templine[avg_idx])
+                        OMI_data[key][templine[0]]['#_obs']=int(templine[cnt_idx])
                 else:
                     # If the current lat/lon pair are not found in the dictionary's
                     # keys, then make a new subdictionary for it.
-                    if(templine[1] not in OMI_data.keys()):
-                        OMI_data[templine[1]] = {}
+                    if(loc_key not in OMI_data.keys()):
+                        OMI_data[loc_key] = {}
                     # If the current lat/lon pair are already in the dictionary's
                     # keys, then add the new data to the subdictionary
-                    OMI_data[templine[1]][templine[0]]={}
-                    OMI_data[templine[1]][templine[0]]['avg']=float(templine[2])
-                    OMI_data[templine[1]][templine[0]]['#_obs']=int(templine[3])
+                    OMI_data[loc_key][templine[0]]={}
+                    OMI_data[loc_key][templine[0]]['avg']=float(templine[avg_idx])
+                    OMI_data[loc_key][templine[0]]['#_obs']=int(templine[cnt_idx])
     f.close()    
 
     return OMI_data

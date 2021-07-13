@@ -52,6 +52,7 @@ program omi_shawn_climo
   character(len = 255)   :: date_file_name  ! name of file containing the 
                                             ! list of shawn file names to 
                                             ! be analyzed
+  character(len = 4)     :: c_work_year     ! holds the previous year
 
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -146,10 +147,12 @@ program omi_shawn_climo
         ! ----------------------------------------------------------------
         if(work_month == -1) then
           work_month = int_month
+          c_work_year = dtg(1:4) 
         else if(work_month /= int_month) then
-          call print_climo(io6,grids,i_counts,i_size,dtg(1:4),work_month,&
+          call print_climo(io6,grids,i_counts,i_size,c_work_year,work_month,&
                            lat_range,lon_range)
           work_month = int_month
+          c_work_year = dtg(1:4)  
         endif
 
         ! Open the shawn file and look at contents

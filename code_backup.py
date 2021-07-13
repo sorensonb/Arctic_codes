@@ -10,21 +10,6 @@ from datetime import datetime
 base_dir = "/home/bsorenson/Research/"
 dest_dir = "/home/bsorenson/Arctic_codes/"
 
-
-sat_dict = {
-    4:13, \
-    10:13, \
-}
-
-date_dtm = datetime(year=2019,month=2,day=7,hour=21)
-
-
-if(date_dtm.month in sat_dict.keys()):
-    month_lim = sat_dict[date_dtm.month]
-
-
-
-
 # ---------------------------------------------------------------------------- 
 # Backup the backup script
 # ---------------------------------------------------------------------------- 

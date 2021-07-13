@@ -68,7 +68,7 @@ program omi_JZ_climo
                                             ! be analyzed
   character(len = 255)   :: total_file_name ! file name read from each line 
                                             ! of file_name_file
-
+  character(len = 4)     :: c_work_year     ! holds the previous year
 
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -167,7 +167,7 @@ program omi_JZ_climo
         ! Print the final month of data to the output file using
         ! print_climo
         ! --------------------------------------------------------
-        call print_climo(io6,grids,i_counts,i_size,total_file_name(44:47),&
+        call print_climo(io6,grids,i_counts,i_size,c_work_year,&
                          work_month,lat_range,lon_range)
         exit
       else if(istatus > 0) then
@@ -188,7 +188,7 @@ program omi_JZ_climo
         endif
 
         ! Extract month information from dtg
-        ! ---------------------------------
+        ! ----------------------------------
         read(total_file_name(49:50), *) int_month
 
         ! If the month of the new file is greater than the current working
@@ -197,10 +197,12 @@ program omi_JZ_climo
         ! ----------------------------------------------------------------
         if(work_month == -1) then
           work_month = int_month
+          c_work_year = total_file_name(44:47)  
         else if(work_month /= int_month) then
-          call print_climo(io6,grids,i_counts,i_size,total_file_name(44:47),&
+          call print_climo(io6,grids,i_counts,i_size,c_work_year,&
                            work_month,lat_range,lon_range)
           work_month = int_month
+          c_work_year = total_file_name(44:47)  
         endif
 
         ! Open the HDF5 file
