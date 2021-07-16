@@ -3,6 +3,7 @@
 EXEC = omi_exec2
 COMP = h5fc
 #COMP = gfortran
+LIB_PATH = ../JZ_lib/
 OBJECTS = h5_vars.o \
 			check_bad_rows.o \
 			count_ai_JZ.o \
@@ -22,11 +23,11 @@ LDFLAGS = -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
 $(EXEC): $(OBJECTS)
 	$(COMP) $(LDFLAGS) $(OBJECTS) -o $(EXEC)
 
-h5_vars.o: h5_vars.f90
-	$(COMP) $(FFLAGS) -c h5_vars.f90
+h5_vars.o: $(LIB_PATH)h5_vars.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)h5_vars.f90
 
-check_bad_rows.o: check_bad_rows.f90
-	$(COMP) $(FFLAGS) -c check_bad_rows.f90
+check_bad_rows.o: $(LIB_PATH)check_bad_rows.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)check_bad_rows.f90
 
 count_ai_JZ.o: count_ai_JZ.f90
 	$(COMP) $(FFLAGS) -c count_ai_JZ.f90
@@ -34,28 +35,28 @@ count_ai_JZ.o: count_ai_JZ.f90
 grid_raw_data.o: grid_raw_data.f90
 	$(COMP) $(FFLAGS) -c grid_raw_data.f90
 
-read_h5_AI.o: read_h5_AI.f90
-	$(COMP) $(FFLAGS) -c read_h5_AI.f90
+read_h5_AI.o: $(LIB_PATH)read_h5_AI.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_AI.f90
 
-read_h5_AZM.o: read_h5_AZM.f90
-	$(COMP) $(FFLAGS) -c read_h5_AZM.f90
+read_h5_AZM.o: $(LIB_PATH)read_h5_AZM.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_AZM.f90
 
-read_h5_GPQF.o: read_h5_GPQF.f90
-	$(COMP) $(FFLAGS) -c read_h5_GPQF.f90
+read_h5_GPQF.o: $(LIB_PATH)read_h5_GPQF.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_GPQF.f90
 
-read_h5_LAT.o: read_h5_LAT.f90
-	$(COMP) $(FFLAGS) -c read_h5_LAT.f90
+read_h5_LAT.o: $(LIB_PATH)read_h5_LAT.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_LAT.f90
 
-read_h5_LON.o: read_h5_LON.f90
-	$(COMP) $(FFLAGS) -c read_h5_LON.f90
+read_h5_LON.o: $(LIB_PATH)read_h5_LON.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_LON.f90
 
-read_h5_XTRACK.o: read_h5_XTRACK.f90
-	$(COMP) $(FFLAGS) -c read_h5_XTRACK.f90
+read_h5_XTRACK.o: $(LIB_PATH)read_h5_XTRACK.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_XTRACK.f90
 
 synop_time_check.o: synop_time_check.f90
 	$(COMP) $(FFLAGS) -c synop_time_check.f90
 
-omi_frequency_JZ.o: omi_frequency_JZ.f90 h5_vars.f90
+omi_frequency_JZ.o: omi_frequency_JZ.f90 $(LIB_PATH)h5_vars.f90
 	$(COMP) $(FFLAGS) -c omi_frequency_JZ.f90
 
 clean:
