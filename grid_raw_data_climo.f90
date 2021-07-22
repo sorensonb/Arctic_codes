@@ -46,24 +46,30 @@ subroutine grid_raw_data_climo(grids,i_counts,i_size,lat_gridder,lat_thresh)
   time_loop: do ii=1,AI_dims(2)
     row_loop: do jj=1,AI_dims(1) 
 
-      ! Account for bad rows here
-      ! Cycle loop if this index in bad rows
-      ! ------------------------------------
-      if(allocated(i_bad_list)) then
-        do kk=1,i_num_bad
-          if(jj == i_bad_list(kk)) cycle row_loop
-        enddo
-      endif
+      ! NOTE: for BS0, comment out the bad row check as well as the 
+      !       AZM and ground pixel checks
+      ! ============================================
+      !!#!! Account for bad rows here
+      !!#!! Cycle loop if this index in bad rows
+      !!#!! ------------------------------------
+      !!#!if(allocated(i_bad_list)) then
+      !!#!  do kk=1,i_num_bad
+      !!#!    if(jj == i_bad_list(kk)) cycle row_loop
+      !!#!  enddo
+      !!#!endif
 
-      ! Use the get_ice_flags function from h5_vars to extract the sfc type
-      ! flag from the ground pixel quality flag
-      ! -------------------------------------------------------------------
-      i_sfc_flag = get_ice_flags(GPQF_data(jj,ii))
+      !! Use the get_ice_flags function from h5_vars to extract the sfc type
+      !! flag from the ground pixel quality flag
+      !! -------------------------------------------------------------------
+      !i_sfc_flag = get_ice_flags(GPQF_data(jj,ii))
+
+      ! NOTE: BS1: remove the AZM and GPQF checks while retaining the
+      !       bad row check.
 
       if((XTRACK_data(jj,ii) == 0) .and. &
           (LAT_data(jj,ii) > lat_thresh) .and. &
-          (AZM_data(jj,ii) > 100) .and. &
           (AI_data(jj,ii) > -2e5) .and. &
+          (AZM_data(jj,ii) > 100) .and. &
           ! VJZ2: no snow-free land either
           ( (i_sfc_flag >= 1 .and. i_sfc_flag <= 101) .or. &
             (i_sfc_flag == 104) )) then

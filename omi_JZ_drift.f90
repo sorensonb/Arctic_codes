@@ -14,8 +14,8 @@ program omi_JZ_drift
 !   Subroutines:
 !     - check_bad_rows
 !     - clear_arrays (from h5_vars)
-!     - grid_raw_data_climo
-!     - print_climo
+!     - grid_raw_data_drift
+!     - print_drift
 !     - read_h5_AI
 !     - read_h5_LAT
 !     - read_h5_LON
@@ -24,7 +24,7 @@ program omi_JZ_drift
 !     - read_h5_GPQF
 !
 ! MODIFICATIONS:
-!   Blake Sorenson <blake.sorenson@und.edu>     - 2021/07/09:
+!   Blake Sorenson <blake.sorenson@und.edu>     - 2021/07/16:
 !     Written
 !
 !  ############################################################################
@@ -34,8 +34,6 @@ program omi_JZ_drift
 
   implicit none
 
-  integer                :: ii            ! loop counter
-  integer                :: i_size        ! array size
   integer                :: int_month     ! integer variable for month
   integer                :: int_day       ! integer variable for day 
   integer                :: arg_count     ! Number of arguments passed to exec
@@ -45,16 +43,9 @@ program omi_JZ_drift
   integer                :: istatus
   integer                :: file_id       ! id for current HDF5 file
 
-  real                   :: lat_thresh    ! latitude threshold. Only analyze
-                                          ! data north of this value.
-  real                   :: lat_gridder   ! Used for setting up the latitude
-                                          ! grid
-
-  real,dimension(:), allocatable      :: lat_range ! latitude grid
-  real,dimension(:), allocatable      :: lon_range ! longitude grid
-  real,dimension(:,:), allocatable    :: grids     ! quarter-degree AI grid
+  real                   :: avg_ai        ! quarter-degree AI grid
                                                    ! values.
-  integer,dimension(:,:), allocatable :: i_counts  ! quarter-degree AI counts
+  integer                :: i_count       ! quarter-degree AI counts
 
   ! File read variables
   integer,parameter      :: io8    = 42   ! File object for file name file
@@ -94,33 +85,15 @@ program omi_JZ_drift
   endif
   write(*,*) "Interface opened"
 
-  ! Initialize the working month to -1
-  ! ----------------------------------
+  ! Initialize the working month and day to -1
+  ! ------------------------------------------
   work_month = -1
+  work_day = -1
 
-  ! Set up lat/lon grids
-  ! --------------------
-  lat_thresh = 65.
-  lat_gridder = lat_thresh
-  i_size = (90. - lat_thresh)
-  allocate(lat_range(i_size))
-  do ii=1,i_size
-    lat_range(ii) = lat_thresh + (ii-1)
-  enddo
-
-  allocate(lon_range(360))
-  do ii=1,360
-    lon_range(ii) = -180.0 + (ii-1)
-  enddo
-
-  ! Initialize grid arrays and set to -9 initially
-  ! ----------------------------------------------
-
-  allocate(grids(360,i_size))
-  allocate(i_counts(360,i_size))
-
-  grids(:,:) = 0.
-  i_counts(:,:) = 0
+  ! Initialize avg value / counts and set to 0 initially
+  ! ----------------------------------------------------
+  avg_ai     = 0.
+  i_count    = 0
 
   ! open debug file
   ! ---------------
@@ -143,11 +116,7 @@ program omi_JZ_drift
   if(istatus /= 0) then
     write(errout,*) "ERROR: error opening climo output file."
   endif
-  write(io6,'(a4,2x,3(a7))') 'Date','Lat Lon','Avg','#_obs'
-
-  ! Initialize the work_day value to -1
-  ! -----------------------------------
-  work_day = -1
+  write(io6,'(a4,2x,3(a8))') 'Date','Lat Lon','Avg','#_obs'
 
   ! Open the file name file
   ! -----------------------
@@ -167,8 +136,7 @@ program omi_JZ_drift
         ! Print the final month of data to the output file using
         ! print_climo
         ! --------------------------------------------------------
-        call print_climo(io6,grids,i_counts,i_size,c_work_year,&
-                         work_month,lat_range,lon_range)
+        call print_drift(io6,avg_ai,i_count,c_work_year,work_month)
         exit
       else if(istatus > 0) then
         write(errout,*) "ERROR: problem reading total_file_name"
@@ -199,8 +167,7 @@ program omi_JZ_drift
           work_month = int_month
           c_work_year = total_file_name(44:47)  
         else if(work_month /= int_month) then
-          call print_climo(io6,grids,i_counts,i_size,c_work_year,&
-                           work_month,lat_range,lon_range)
+          call print_drift(io6,avg_ai,i_count,c_work_year,work_month)
           work_month = int_month
           c_work_year = total_file_name(44:47)  
         endif
@@ -232,8 +199,7 @@ program omi_JZ_drift
 
         ! Insert this new data into the grid 
         ! ----------------------------------
-        call grid_raw_data_climo(grids,i_counts,i_size,&
-                lat_gridder,lat_thresh)
+        call grid_raw_data_drift(avg_ai,i_count)
 
         ! Deallocate all the arrays for the next pass
         ! -------------------------------------------
@@ -253,10 +219,6 @@ program omi_JZ_drift
   close(io6)
   close(io10)
   close(errout)  
-  deallocate(grids)
-  deallocate(i_counts)
-  deallocate(lat_range)
-  deallocate(lon_range)
   
   ! Close the HDF5 interface
   ! ------------------------

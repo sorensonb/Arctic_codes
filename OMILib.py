@@ -1613,7 +1613,8 @@ def plotOMI_NCDF_SingleMonth(OMI_data,version,time_idx,minlat=60,save=False):
         'VJZ2': 'No Snow-free Land',
         'VJZ4': 'XTrack == 0, not 4',
         'VJZ5': 'AI >= 0',
-        'VBS1': 'Bad Row Screening Only'
+        'VBS1': 'Bad Row Screening Only',
+        'VBS0': 'No Bad Row Screening'
     }
 
     # Make copy of OMI_data array
