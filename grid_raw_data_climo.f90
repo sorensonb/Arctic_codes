@@ -44,7 +44,19 @@ subroutine grid_raw_data_climo(grids,i_counts,i_size,lat_gridder,lat_thresh)
   ! Loop over the array contents
   ! -------------------------
   time_loop: do ii=1,AI_dims(2)
-    row_loop: do jj=1,AI_dims(1) 
+    ! For BS2, use only rows 1 through 21, which should be unaffected through
+    ! the entire dataset.
+    ! -----------------------------------------------------------------------
+    row_loop: do jj=1,21 
+    !row_loop: do jj=1,AI_dims(1) 
+
+      ! For JZ2_7, only use the rows with azimuth angle greater than 100
+      ! and are good for the entire time period
+      ! ----------------------------------------------------------------
+      !!#!if((jj == 49) .or. &
+      !!#!   (jj == 50) .or. &
+      !!#!   !(jj == 53) .or. &
+      !!#!   (jj >= 56)) then 
 
       ! NOTE: for BS0, comment out the bad row check as well as the 
       !       AZM and ground pixel checks
@@ -58,10 +70,10 @@ subroutine grid_raw_data_climo(grids,i_counts,i_size,lat_gridder,lat_thresh)
       !!#!  enddo
       !!#!endif
 
-      !! Use the get_ice_flags function from h5_vars to extract the sfc type
-      !! flag from the ground pixel quality flag
-      !! -------------------------------------------------------------------
-      !i_sfc_flag = get_ice_flags(GPQF_data(jj,ii))
+      ! Use the get_ice_flags function from h5_vars to extract the sfc type
+      ! flag from the ground pixel quality flag
+      ! -------------------------------------------------------------------
+      i_sfc_flag = get_ice_flags(GPQF_data(jj,ii))
 
       ! NOTE: BS1: remove the AZM and GPQF checks while retaining the
       !       bad row check.
@@ -69,7 +81,9 @@ subroutine grid_raw_data_climo(grids,i_counts,i_size,lat_gridder,lat_thresh)
       if((XTRACK_data(jj,ii) == 0) .and. &
           (LAT_data(jj,ii) > lat_thresh) .and. &
           (AI_data(jj,ii) > -2e5) .and. &
-          (AZM_data(jj,ii) > 100) .and. &
+          ! BS2: use rows 1-21, so must comment out AZM check
+          ! -------------------------------------------------
+          !(AZM_data(jj,ii) > 100) .and. & 
           ! VJZ2: no snow-free land either
           ( (i_sfc_flag >= 1 .and. i_sfc_flag <= 101) .or. &
             (i_sfc_flag == 104) )) then
@@ -90,6 +104,7 @@ subroutine grid_raw_data_climo(grids,i_counts,i_size,lat_gridder,lat_thresh)
            (i_counts(index2,index1)+1)
         i_counts(index2,index1) = i_counts(index2,index1) + 1
       endif
+      !!#!endif
     enddo row_loop
   enddo time_loop
 

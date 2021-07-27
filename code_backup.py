@@ -118,6 +118,13 @@ cmnd = "scp "+rain_dir+"JZ_analysis/drift_analysis/Make* "+dest_dir
 print(cmnd)
 os.system(cmnd)
 
+cmnd = "scp "+rain_dir+"JZ_analysis/row_analysis/*.f90 "+dest_dir
+print(cmnd)
+os.system(cmnd)
+cmnd = "scp "+rain_dir+"JZ_analysis/row_analysis/Make* "+dest_dir
+print(cmnd)
+os.system(cmnd)
+
 cmnd = "scp "+rain_dir+"JZ_analysis/JZ_lib/*.f90 "+dest_dir
 print(cmnd)
 os.system(cmnd)
