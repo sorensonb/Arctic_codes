@@ -451,7 +451,8 @@ def readOMI_NCDF(infile='/home/bsorenson/Research/OMI/omi_ai_V003_2005_2020.nc',
         [(start_date + relativedelta(months=mi)).strftime('%Y%m') for mi in \
         OMI_data['MONTH']]
 
-    OMI_data = calcOMI_MonthClimo(OMI_data)
+    if(calc_month == True):
+        OMI_data = calcOMI_MonthClimo(OMI_data)
 
     # to add months to datetime object, do
     ###from dateutil.relativedelta import relativedelta
@@ -1664,7 +1665,7 @@ def plotOMI_Climo(OMI_data,start_date,end_date,save=False,trend_type='standard',
 
 # Plots a single month of OMI climatology data (assumed to be from the 
 # netCDF file).
-def plotOMI_NCDF_SingleMonth(OMI_data,time_idx,minlat=60,save=False):
+def plotOMI_NCDF_SingleMonth(OMI_data,time_idx,minlat=65,save=False):
 
     version = OMI_data['VERSION']
     label_dict = {
@@ -1710,8 +1711,8 @@ def plotOMI_NCDF_SingleMonth(OMI_data,time_idx,minlat=60,save=False):
     mesh = ax.pcolormesh(OMI_data['LON'], OMI_data['LAT'],mask_AI,transform = datacrs,cmap = colormap,\
             vmin = -1.0, vmax = 1.5)
     ax.set_extent([-180,180,minlat,90],datacrs)
-    ax.set_xlim(-3430748.535086173,3430748.438879491)
-    ax.set_ylim(-3413488.8763307533,3443353.899053069)
+    #ax.set_xlim(-3430748.535086173,3430748.438879491)
+    #ax.set_ylim(-3413488.8763307533,3443353.899053069)
     cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
         aspect=50,shrink = 0.845)
     cbar.ax.tick_params(labelsize=14)
@@ -2006,8 +2007,8 @@ def plotOMI_MonthClimo(OMI_data,month_idx,minlat = 60,save=False):
             OMI_data['MONTH_CLIMO'][month_idx,:,:],transform = datacrs,\
             cmap = colormap, vmin = -1.0, vmax = 1.5)
     ax.set_extent([-180,180,minlat,90],datacrs)
-    ax.set_xlim(-3430748.535086173,3430748.438879491)
-    ax.set_ylim(-3413488.8763307533,3443353.899053069)
+    #ax.set_xlim(-3430748.535086173,3430748.438879491)
+    #ax.set_ylim(-3413488.8763307533,3443353.899053069)
     cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
         aspect=50,shrink = 0.845)
     cbar.ax.tick_params(labelsize=14)
@@ -2582,6 +2583,9 @@ def plot_compare_trends(OMI_data1,OMI_data2,month,save=False):
     #mask_trend1 = np.ma.masked_where(OMI_trend1 == 0,OMI_trend1)
     #mask_trend2 = np.ma.masked_where(OMI_trend2 == 0,OMI_trend2)
 
+    print("Pearson:  ",pearsonr(mask_trend1,mask_trend2))
+    print("Spearman: ",spearmanr(mask_trend1,mask_trend2))
+
     xy = np.vstack([mask_trend1,mask_trend2])
     z = stats.gaussian_kde(xy)(xy)
 
@@ -2604,13 +2608,14 @@ def plot_compare_trends(OMI_data1,OMI_data2,month,save=False):
     plt.close('all')
     fig1 = plt.figure()
     plt.scatter(mask_trend1,mask_trend2,c=z,s=8)
-    plt.plot(test_x,predictions,color='black',linestyle='--',label='Huber')
+    plt.plot(test_x,predictions,color='tab:green',linestyle='--',label='Huber Fit')
     # Plot an unrobust fit line using linear regression
     # -------------------------------------------------
     plt.plot(np.unique(mask_trend1),np.poly1d(np.polyfit(mask_trend1,\
-        mask_trend2,1))(np.unique(mask_trend1)),color='red',linestyle='--',label='Polyfit')
+        mask_trend2,1))(np.unique(mask_trend1)),color='tab:orange',\
+        linestyle='--',label='Polyfit Fit')
     # Plot a one-to-one line
-    plt.plot(xs,xs,label='1-1')
+    plt.plot(xs,xs,label='1-1',color='tab:red')
     if((month == 0) | (month == 1)):
         plt.xlim(-0.5,0.3)
         plt.ylim(-0.5,0.3)
@@ -2620,6 +2625,15 @@ def plot_compare_trends(OMI_data1,OMI_data2,month,save=False):
     elif((month == 3)):
         plt.xlim(-0.5,0.5)
         plt.ylim(-0.5,0.5)
+    elif((month == 4)):
+        plt.xlim(-0.5,0.7)
+        plt.ylim(-0.5,0.7)
+    elif((month == 5)):
+        plt.xlim(-0.5,0.5)
+        plt.ylim(-0.5,0.5)
+    else:
+        plt.xlim(-0.3,0.3)
+        plt.ylim(-0.3,0.3)
     plt.legend()
     plt.xlabel(OMI_data1['VERSION'])
     plt.ylabel(OMI_data2['VERSION'])

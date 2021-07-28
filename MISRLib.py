@@ -281,24 +281,29 @@ def readMISR_New(start_date,end_date,minlat=45,filetype='clr100'):
             fin.close()
     return MISR_dict
 
-def readMISR_NCDF(infile='/home/bsorenson/Research/MISR/misr_gridded_aod_clr100.nc',minlat=45):
+def readMISR_NCDF(infile='/home/bsorenson/Research/MISR/misr_aod_clr100_2000_2019.nc',\
+                calc_month = True,minlat=65):
     # Read in data to netCDF object
     in_data = Dataset(infile,'r')
 
     # Set up dictionary to hold data
     MISR_data = {}
+
+    # Set up date strings in the file
+    MISR_data['MONTH'] = in_data['MONTH'][:]
+    start_date = datetime(year = 2000, month = 3, day = 1)
+    MISR_data['DATES'] = \
+        [(start_date + relativedelta(months=mi)).strftime('%Y%m') for mi in \
+        MISR_data['MONTH']]
     
     MISR_data['AOD'] = in_data['AOD'][:,:,:]
     MISR_data['OB_COUNT'] = in_data['OB_COUNT'][:,:,:]
     MISR_data['LAT'] = in_data['Latitude'][:,:]
     MISR_data['LON'] = in_data['Longitude'][:,:]
-    MISR_data['MONTH'] = in_data['MONTH'][:]
+    MISR_data['VERSION'] = version = infile.split('/')[-1].split('_')[2]
 
-    # Set up date strings in the file
-    start_date = datetime(year = 2000, month = 3, day = 1)
-    MISR_data['DATES'] = \
-        [(start_date + relativedelta(months=mi)).strftime('%Y%m') for mi in \
-        MISR_data['MONTH']]
+    if(calc_month == True):
+        MISR_data = calcMISR_MonthClimo(MISR_data)
 
     # to add months to datetime object, do
     ###from dateutil.relativedelta import relativedelta
@@ -1348,9 +1353,166 @@ def plotMISR_Climo(MISR_dict,save=False,trend_type='standard',season='',start_da
     else:
         plt.show()
 
+# Designed to work with the netCDF data
+def plotMISR_MonthTrend(MISR_data,month_idx=None,save=False,\
+        trend_type='standard',season='',minlat=30.,return_trend=False):
+    version = MISR_data['VERSION']
+    label_dict = {
+        'clr100': '0% Cloud Fraction'
+    }
+    trend_label=''
+    if(trend_type=='thiel-sen'):
+        trend_label='_thielSen'
+
+    if(month_idx == None):
+        month_adder = ''
+        month_idx = 0
+        index_jumper = 1
+        do_month = False
+        v_max = 0.5
+        v_min = -0.5
+    else:
+        month_adder = '_month'
+        if(version == 'V003'):
+            index_jumper = 12
+        else:
+            index_jumper = 6 
+        do_month = True
+        v_max = 0.7
+        v_min = -0.7
+
+    lat_ranges = np.arange(minlat,90,1.0)
+    lon_ranges = np.arange(-180,180,1.0)
+
+    # Set up mapping variables 
+    datacrs = ccrs.PlateCarree() 
+    colormap = plt.cm.bwr
+    if(minlat < 45):
+        mapcrs = ccrs.Miller()
+    else:
+        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
+
+    # Pull the beginning and ending dates into datetime objects
+    start_date = datetime.strptime(MISR_data['DATES'][month_idx::index_jumper][0],'%Y%m')
+    end_date   = datetime.strptime(MISR_data['DATES'][month_idx::index_jumper][-1],'%Y%m')
+
+    # Make copy of MISR_data array
+    print(MISR_data['DATES'][month_idx::index_jumper])
+    local_data   = np.copy(MISR_data['AI'][month_idx::index_jumper,:,:])
+    local_counts = np.copy(MISR_data['OB_COUNT'][month_idx::index_jumper,:,:])
+    local_mask = np.ma.masked_where(local_counts == 0, local_data)
+    local_mask = np.ma.masked_where(local_mask == -999.9, local_mask)
+    ai_trends = np.zeros(local_data.shape[1:])
+    print(local_data.shape)
+
+    plt.close('all')
+    fig0 = plt.figure()
+    # 79 x 152: 14, 332
+    latx = 14
+    lonx = 332
+    ## 75 x -150: 10, 30
+    #latx = 10
+    #lonx = 30
+    plt.plot(MISR_data['DATES'][month_idx::index_jumper],local_mask[:,latx,lonx])
+    plt.title(str(int(lat_ranges[latx])) + 'x'+str(int(lon_ranges[lonx]))+\
+                '\n'+start_date.strftime('%b') + ' ' + MISR_data['VERSION']) 
+    if(save == True):
+        month_adder = ''
+        if(do_month == True):
+            month_adder = '_' + start_date.strftime('%b') 
+        outname = 'omi_ai_time_series' + month_adder + '_' + \
+            str(int(lat_ranges[latx])) + 'x'+str(int(lon_ranges[lonx])) + \
+            '_' + version + '.png'
+        plt.savefig(outname)
+        print("Saved image",outname)
+    #return local_mask[:,latx,lonx]
+    
+
+    # Make figure title
+    #date_month = datetime(year = 1,month = month_idx+1, day = 1).strftime('%B')
+    month_string = ''
+    if(do_month == True):
+        month_string = start_date.strftime('%B') + ' '
+
+    title = 'MISR AI ' + month_string + 'Trends ('+version+')\n'+\
+        start_date.strftime('%b. %Y') + ' - ' + end_date.strftime('%b. %Y')
+
+    # Loop over all the keys and print the regression slopes 
+    # Grab the averages for the key
+    for i in range(0,len(lat_ranges)-1):
+        for j in range(0,len(lon_ranges)-1):
+            # Check the current max and min
+            x_vals = np.arange(0,len(local_mask[:,i,j]))
+            # Find the slope of the line of best fit for the time series of
+            # average data
+            if(trend_type=='standard'): 
+                slope, intercept, r_value, p_value, std_err = \
+                    stats.linregress(x_vals,local_mask[:,i,j])
+                ai_trends[i,j] = slope * len(x_vals)
+            else:
+                #The slope
+                S=0
+                sm=0
+                nx = len(local_mask[:,i,j])
+                num_d=int(nx*(nx-1)/2)  # The number of elements in avgs
+                Sn=np.zeros(num_d)
+                for si in range(0,nx-1):
+                    for sj in range(si+1,nx):
+                        # Find the slope between the two points
+                        Sn[sm] = (local_mask[si,i,j]-local_mask[sj,i,j])/\
+                                 (si-sj) 
+                        sm=sm+1
+                    # Endfor
+                # Endfor
+                Snsorted=sorted(Sn)
+                sm=int(num_d/2.)
+                print(dictkey,len(Snsorted))
+                if(len(Snsorted)==1):
+                    color=(0,0,0,0) 
+                else:
+                    if(2*sm    == num_d):
+                        slope=0.5*(Snsorted[sm]+Snsorted[sm+1])
+                    if((2*sm)+1 == num_d): 
+                        slope=Snsorted[sm+1]
+                    ai_trends[i,j] = slope*len(avgs)
+
+    print(np.min(ai_trends),np.max(ai_trends))
+
+    # Make figure
+    fig1 = plt.figure(figsize = (8,8))
+    ax = plt.axes(projection = mapcrs)
+    ax.gridlines()
+    ax.coastlines(resolution='50m')
+    mesh = ax.pcolormesh(MISR_data['LON'], MISR_data['LAT'],\
+            ai_trends,transform = datacrs,\
+            cmap = colormap,vmin=v_min,vmax=v_max)
+    ax.set_extent([-180,180,minlat,90],datacrs)
+    ax.set_xlim(-3430748.535086173,3430748.438879491)
+    ax.set_ylim(-3413488.8763307533,3443353.899053069)
+    cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.2),\
+        orientation='horizontal',pad=0,aspect=50,shrink = 0.845)
+    cbar.ax.tick_params(labelsize=14)
+    cbar.set_label('UV Aerosol Index Trend',fontsize=16,weight='bold')
+    ax.set_title(title)
+
+    if(save == True):
+        month_adder = ''
+        if(do_month == True):
+            month_adder = '_' + start_date.strftime('%b') 
+        out_name = 'omi_ai_trend' + month_adder + '_' + \
+            start_date.strftime('%Y%m') + '_' + end_date.strftime('%Y%m') + \
+            '_' + version + '.png'
+        plt.savefig(out_name,dpi=300)
+        print("Saved image",out_name)
+    else:
+        plt.show()
+
+    if(return_trend == True):
+        return ai_trends
+
 # Plots a single month of MISR climatology data (assumed to be from the 
 # netCDF file).
-def plotMISR_NCDF_SingleMonth(MISR_data,time_idx,clr=90,minlat=60,save=False):
+def plotMISR_NCDF_SingleMonth(MISR_data,time_idx,clr=100,minlat=60,save=False):
 
     if(clr is not None):
         cld = 100 - clr
@@ -1382,6 +1544,9 @@ def plotMISR_NCDF_SingleMonth(MISR_data,time_idx,clr=90,minlat=60,save=False):
 
     # Mask any missing values
     mask_AOD = np.ma.masked_where(local_data == -999.9, local_data)
+    
+    # Mask any data below the threshold latitude
+    mask_AOD = np.ma.masked_where(MISR_data['LAT'] < minlat,mask_AOD)
 
     # Make figure title
     first_date = MISR_data['DATES'][time_idx]
@@ -1399,7 +1564,9 @@ def plotMISR_NCDF_SingleMonth(MISR_data,time_idx,clr=90,minlat=60,save=False):
     #ax.set_xlim(-3430748.535086173,3430748.438879491)
     #ax.set_ylim(-3413488.8763307533,3443353.899053069)
     cbar = plt.colorbar(mesh,ticks = np.arange(0.0,4.1,0.1),orientation='horizontal',pad=0,\
-        aspect=50,shrink = 0.905,label='Aerosol Optical Depth')
+        aspect=50,shrink = 0.845)
+    cbar.ax.tick_params(labelsize=14)
+    cbar.set_label('Aerosol Optical Depth',fontsize=16,weight='bold')
     ax.set_title(title)
 
     if(save == True):
@@ -1512,12 +1679,13 @@ def plotMISR_MonthClimo(MISR_data,month_idx,minlat = 60,save=False):
         mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
 
     # Pull the beginning and ending dates into datetime objects
-    start_date = datetime.strptime(MISR_data['DATES'][0],'%Y%m')
+    start_date = datetime.strptime(MISR_data['DATES'][month_idx],'%Y%m')
     end_date   = datetime.strptime(MISR_data['DATES'][-1],'%Y%m')
 
     # Make figure title
-    date_month = datetime(year = 1,month = month_idx+1, day = 1).strftime('%B')
-    title = 'MISR AOD ' + date_month + ' Climatology\n'+\
+    #date_month = datetime(year = 1,month = month_idx+1, day = 1).strftime('%B')
+    #date_month = datetime.strftime(start_date,"%Y%m").strptime("%B")
+    title = 'MISR AOD ' + start_date.strftime('%B')+ ' Climatology\n'+\
         start_date.strftime('%b. %Y') + ' - ' + end_date.strftime('%b. %Y')
 
     # Make figure
@@ -1527,13 +1695,13 @@ def plotMISR_MonthClimo(MISR_data,month_idx,minlat = 60,save=False):
     ax.coastlines(resolution='50m')
     mesh = ax.pcolormesh(MISR_data['LON'], MISR_data['LAT'],\
             MISR_data['MONTH_CLIMO'][month_idx,:,:],transform = datacrs,\
-            cmap = colormap, vmin = -1.0, vmax = 1.5)
+            cmap = colormap, vmin = 0.0, vmax = 0.5)
     ax.set_extent([-180,180,minlat,90],datacrs)
     #ax.set_xlim(-3430748.535086173,3430748.438879491)
     #ax.set_ylim(-3413488.8763307533,3443353.899053069)
     cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5), \
         orientation='horizontal',pad=0,aspect=50,shrink = 0.905,\
-        label='Aerosol Index')
+        label='AOD')
     ax.set_title(title)
 
     if(save == True):

@@ -146,16 +146,26 @@ os.system(cmnd)
 ##!#cmnd = "cp "+base_dir+"OMI/run_Average_AerosolIndexCalculator "+dest_dir
 ##!#print(cmnd)
 ##!#os.system(cmnd)
-## ---------------------------------------------------------------------------- 
-## MISR analysis
-## ---------------------------------------------------------------------------- 
-#print("MISR")
-#cmnd = "cp "+base_dir+"MISR/*.py "+dest_dir
+# ---------------------------------------------------------------------------- 
+# MISR analysis
+# ---------------------------------------------------------------------------- 
+print("MISR")
+cmnd = "cp "+base_dir+"MISR/*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
+cmnd = "cp "+base_dir+"MISR/*.c "+dest_dir
+print(cmnd)
+os.system(cmnd)
+
+# Get codes from JPSS
+jpss_dir = "bsorenson@raindrop.atmos.und.edu:/home/blake.sorenson/MISR/"
+cmnd = "scp "+jpss_dir+"*.c "+dest_dir
+print(cmnd)
+os.system(cmnd)
+#cmnd = "scp "+jpss_dir+"*.py "+dest_dir
 #print(cmnd)
 #os.system(cmnd)
-#cmnd = "cp "+base_dir+"MISR/*.c "+dest_dir
-#print(cmnd)
-#os.system(cmnd)
+
 ## ---------------------------------------------------------------------------- 
 ## MODIS analysis
 ## ---------------------------------------------------------------------------- 
