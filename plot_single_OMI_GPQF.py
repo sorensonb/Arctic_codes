@@ -48,7 +48,7 @@ latmax =  90
 #date = sys.argv[1]
 
 # Set up the dictionary
-latmin = 60 
+latmin = 45 
 
 # Set up values for gridding the AI data
 lat_gridder = latmin * 4.
@@ -92,14 +92,15 @@ total_list = subprocess.check_output('ls '+base_path+'OMI-Aura_L2-OMAERUV_'+year
 g_GPQF = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
 count_GPQF = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
 
+row_min = 0
 for fileI in range(len(total_list)):
     # read in data directly from HDF5 files
     data = h5py.File(total_list[fileI],'r')
     print(total_list[fileI])
 
-    LAT_flat  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude'][:,0:row_max].flatten()
-    LON_flat  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude'][:,0:row_max].flatten()
-    GPQF_flat = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags'][:,0:row_max].flatten()
+    LAT_flat  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude'][:,row_min:row_max].flatten()
+    LON_flat  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude'][:,row_min:row_max].flatten()
+    GPQF_flat = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags'][:,row_min:row_max].flatten()
 
     GPQF_decode = np.array([get_ice_flags(val) for val in GPQF_flat])
 

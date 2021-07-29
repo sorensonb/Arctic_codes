@@ -158,7 +158,7 @@ print(cmnd)
 os.system(cmnd)
 
 # Get codes from JPSS
-jpss_dir = "bsorenson@raindrop.atmos.und.edu:/home/blake.sorenson/MISR/"
+jpss_dir = "bsorenson@jpss.atmos.und.edu:/home/blake.sorenson/MISR/"
 cmnd = "scp "+jpss_dir+"*.c "+dest_dir
 print(cmnd)
 os.system(cmnd)

@@ -150,7 +150,7 @@ total_list = subprocess.check_output('ls '+base_path+'OMI-Aura_L2-OMAERUV_'+\
     year+'m'+date+'t'+time+'*.he5',shell=True).decode('utf-8').strip().split('\n')
 
 # Set up values for gridding the AI data
-latmin = 60 
+latmin = 65 
 lat_gridder = latmin * 4.
 
 lat_ranges = np.arange(latmin,90.1,0.25)
@@ -188,7 +188,7 @@ for fileI in range(len(total_list)):
 
     # Loop over the values and rows 
     for i in range(PDATA.shape[0]):
-        for j in range(0,row_max):
+        for j in range(50,row_max):
             if((PDATA[i,j]>-2e5)):
             #if((j != 52) & (PDATA[i,j]>-2e5)):
             # Only plot if XTrack flag is met
@@ -232,6 +232,14 @@ axs[0].coastlines(resolution = '50m')
 # for pcolormesh.
 plot_lat, plot_lon = np.meshgrid(lat_ranges,lon_ranges)
 mask_UVAI = np.ma.masked_where(count == 0, UVAI)
+
+# Determine the percentage of grid boxes that are actually filled
+# with values.
+total_boxes = mask_UVAI.size
+total_good = mask_UVAI.count()
+pcnt_good = (total_good / total_boxes) * 100.
+print("Total_boxes = ",total_boxes,"Total good = ",total_good)
+print("Percent good = ",pcnt_good)
 
 plt.title('OMI ' + variable + str_wave + ' '+plot_time)
 mesh = axs[0].pcolormesh(plot_lon, plot_lat,mask_UVAI,transform = datacrs,cmap = colormap,\

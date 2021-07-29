@@ -100,7 +100,7 @@ program omi_JZ_climo
 
   ! Set up lat/lon grids
   ! --------------------
-  lat_thresh = 65.
+  lat_thresh = 45.
   lat_gridder = lat_thresh
   i_size = (90. - lat_thresh)
   allocate(lat_range(i_size))

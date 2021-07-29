@@ -1252,12 +1252,14 @@ def plotOMI(OMI_data,start_date,end_date,save=False,trend_type='standard',file_t
 
 # Designed to work with the netCDF data
 def plotOMI_MonthTrend(OMI_data,month_idx=None,save=False,\
-        trend_type='standard',season='',minlat=30.,return_trend=False):
+        trend_type='standard',season='',minlat=65.,return_trend=False):
     version = OMI_data['VERSION']
     label_dict = {
         'V003': 'Only XTrack == 0',
         'VJZ2': 'No Snow-free Land',
         'VJZ28': 'No Snow-free Land, Only Pure Good Rows',
+        'VJZ282': 'No Snow-free Land, Only Pure Good Rows',
+        'VJZ29': 'Include Snow-free Land, Only Pure Good Rows',
         'VJZ4': 'XTrack == 0, not 4',
         'VJZ5': 'AI >= 0',
         'VBS0': 'No Bad Row Screening',
@@ -1310,26 +1312,26 @@ def plotOMI_MonthTrend(OMI_data,month_idx=None,save=False,\
     print(local_data.shape)
 
     plt.close('all')
-    fig0 = plt.figure()
-    # 79 x 152: 14, 332
-    latx = 14
-    lonx = 332
-    ## 75 x -150: 10, 30
-    #latx = 10
-    #lonx = 30
-    plt.plot(OMI_data['DATES'][month_idx::index_jumper],local_mask[:,latx,lonx])
-    plt.title(str(int(lat_ranges[latx])) + 'x'+str(int(lon_ranges[lonx]))+\
-                '\n'+start_date.strftime('%b') + ' ' + OMI_data['VERSION']) 
-    if(save == True):
-        month_adder = ''
-        if(do_month == True):
-            month_adder = '_' + start_date.strftime('%b') 
-        outname = 'omi_ai_time_series' + month_adder + '_' + \
-            str(int(lat_ranges[latx])) + 'x'+str(int(lon_ranges[lonx])) + \
-            '_' + version + '.png'
-        plt.savefig(outname)
-        print("Saved image",outname)
-    #return local_mask[:,latx,lonx]
+    ##!#fig0 = plt.figure()
+    ##!## 79 x 152: 14, 332
+    ##!#latx = 14
+    ##!#lonx = 332
+    ##!### 75 x -150: 10, 30
+    ##!##latx = 10
+    ##!##lonx = 30
+    ##!#plt.plot(OMI_data['DATES'][month_idx::index_jumper],local_mask[:,latx,lonx])
+    ##!#plt.title(str(int(lat_ranges[latx])) + 'x'+str(int(lon_ranges[lonx]))+\
+    ##!#            '\n'+start_date.strftime('%b') + ' ' + OMI_data['VERSION']) 
+    ##!#if(save == True):
+    ##!#    month_adder = ''
+    ##!#    if(do_month == True):
+    ##!#        month_adder = '_' + start_date.strftime('%b') 
+    ##!#    outname = 'omi_ai_time_series' + month_adder + '_' + \
+    ##!#        str(int(lat_ranges[latx])) + 'x'+str(int(lon_ranges[lonx])) + \
+    ##!#        '_' + version + '.png'
+    ##!#    plt.savefig(outname)
+    ##!#    print("Saved image",outname)
+    ##!##return local_mask[:,latx,lonx]
     
 
     # Make figure title
@@ -1343,8 +1345,8 @@ def plotOMI_MonthTrend(OMI_data,month_idx=None,save=False,\
 
     # Loop over all the keys and print the regression slopes 
     # Grab the averages for the key
-    for i in range(0,len(lat_ranges)-1):
-        for j in range(0,len(lon_ranges)-1):
+    for i in range(0,len(lat_ranges)):
+        for j in range(0,len(lon_ranges)):
             # Check the current max and min
             x_vals = np.arange(0,len(local_mask[:,i,j]))
             # Find the slope of the line of best fit for the time series of
@@ -1381,6 +1383,8 @@ def plotOMI_MonthTrend(OMI_data,month_idx=None,save=False,\
                     ai_trends[i,j] = slope*len(avgs)
 
     print(np.min(ai_trends),np.max(ai_trends))
+   
+    ai_trends = np.ma.masked_where(OMI_data['LAT'] < minlat, ai_trends)
 
     # Make figure
     fig1 = plt.figure(figsize = (8,8))
@@ -1391,8 +1395,8 @@ def plotOMI_MonthTrend(OMI_data,month_idx=None,save=False,\
             ai_trends,transform = datacrs,\
             cmap = colormap,vmin=v_min,vmax=v_max)
     ax.set_extent([-180,180,minlat,90],datacrs)
-    ax.set_xlim(-3430748.535086173,3430748.438879491)
-    ax.set_ylim(-3413488.8763307533,3443353.899053069)
+    #ax.set_xlim(-3430748.535086173,3430748.438879491)
+    #ax.set_ylim(-3413488.8763307533,3443353.899053069)
     cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.2),\
         orientation='horizontal',pad=0,aspect=50,shrink = 0.845)
     cbar.ax.tick_params(labelsize=14)
@@ -1672,6 +1676,8 @@ def plotOMI_NCDF_SingleMonth(OMI_data,time_idx,minlat=65,save=False):
         'V003': 'Only XTrack == 0',
         'VJZ2': 'No Snow-free Land',
         'VJZ28': 'No Snow-free Land, Only Pure Good Rows',
+        'VJZ282': 'No Snow-free Land, Only Pure Good Rows',
+        'VJZ29': 'Include Snow-free Land, Only Pure Good Rows',
         'VJZ4': 'XTrack == 0, not 4',
         'VJZ5': 'AI >= 0',
         'VBS0': 'No Bad Row Screening',
@@ -1697,6 +1703,10 @@ def plotOMI_NCDF_SingleMonth(OMI_data,time_idx,minlat=65,save=False):
     # Mask any missing values
     mask_AI = np.ma.masked_where(local_count == 0, local_data)
     mask_AI = np.ma.masked_where(mask_AI == -999.9, mask_AI)
+
+    # Mask any data below the threshold latitude
+    mask_AI = np.ma.masked_where(OMI_data['LAT'] < minlat,mask_AI)
+
 
     # Make figure title
     first_date = OMI_data['DATES'][time_idx]
@@ -1810,12 +1820,16 @@ def plotOMI_NCDF_Climo(OMI_data,start_idx=0,end_idx=None,season = '',minlat=60,\
     ax.gridlines()
     ax.coastlines(resolution='50m')
     mesh = ax.pcolormesh(OMI_data['LON'], OMI_data['LAT'],OMI_climo,transform = datacrs,cmap = colormap,\
-            vmin = -1.0, vmax = 0.5)
+            vmin = -1.0, vmax = 1.0)
     ax.set_extent([-180,180,minlat,90],datacrs)
-    ax.set_xlim(-3430748.535086173,3430748.438879491)
-    ax.set_ylim(-3413488.8763307533,3443353.899053069)
+    #ax.set_xlim(-3430748.535086173,3430748.438879491)
+    #ax.set_ylim(-3413488.8763307533,3443353.899053069)
+    #cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
+    #    aspect=50,shrink = 0.905,label='Aerosol Index')
     cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
-        aspect=50,shrink = 0.905,label='Aerosol Index')
+        aspect=50,shrink = 0.845)
+    cbar.ax.tick_params(labelsize=14)
+    cbar.set_label('UV Aerosol Index',fontsize=16,weight='bold')
     ax.set_title(title)
 
     if(save == True):
@@ -1987,6 +2001,12 @@ def plotOMI_MonthClimo(OMI_data,month_idx,minlat = 60,save=False):
     else:
         mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
 
+    # Make copy of OMI_data array
+    local_data  = np.copy(OMI_data['MONTH_CLIMO'][month_idx,:,:])
+    # Mask any missing values
+    mask_AI = np.ma.masked_where(local_data == -999.9, local_data)
+    mask_AI = np.ma.masked_where(OMI_data['LAT'] < minlat, mask_AI)
+
     # Pull the beginning and ending dates into datetime objects
     start_date = datetime.strptime(OMI_data['DATES'][month_idx],'%Y%m')
     end_date   = datetime.strptime(OMI_data['DATES'][-1],'%Y%m')
@@ -2004,7 +2024,7 @@ def plotOMI_MonthClimo(OMI_data,month_idx,minlat = 60,save=False):
     ax.gridlines()
     ax.coastlines(resolution='50m')
     mesh = ax.pcolormesh(OMI_data['LON'], OMI_data['LAT'],\
-            OMI_data['MONTH_CLIMO'][month_idx,:,:],transform = datacrs,\
+            mask_AI,transform = datacrs,\
             cmap = colormap, vmin = -1.0, vmax = 1.5)
     ax.set_extent([-180,180,minlat,90],datacrs)
     #ax.set_xlim(-3430748.535086173,3430748.438879491)
