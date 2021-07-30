@@ -80,11 +80,12 @@ program omi_frequency
   synop_idx = 1
 
   !data_path = "/Research/OMI/out_files-monthly.20210518/"
-  data_path = "/Research/OMI/out_files-monthly_test/"
+  !data_path = "/Research/OMI/out_files-monthly_test/"
+  data_path = "/Research/OMI/out_files-ltc/"
 
   ! Set up lat/lon grids
   ! --------------------
-  lat_thresh = 65.
+  lat_thresh = 60.
   lat_gridder = lat_thresh * 4.
   i_size = (90. - lat_thresh) * 4.
   allocate(lat_range(i_size))
@@ -119,7 +120,8 @@ program omi_frequency
   if(istatus /= 0) then
     write(errout,*) "ERROR: error opening data count output file."
   endif
-  write(io6,'(a10,5(a6))') 'Date','Cnt65','Cnt70','Cnt75','Cnt80','Cnt85'
+  write(io6,'(a10,6(a6))') 'Date','Cnt60','Cnt65','Cnt70','Cnt75','Cnt80',&
+    'Cnt85'
  
   ! Set up count variables to count the number of grid boxes with
   ! high AI values

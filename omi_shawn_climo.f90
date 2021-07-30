@@ -71,11 +71,12 @@ program omi_shawn_climo
   ! ----------------------------------
   work_month = -1
 
-  data_path = "/Research/OMI/out_files-monthly.20210518/"
+  data_path = "/Research/OMI/out_files-ltc/"
+  !data_path = "/Research/OMI/out_files-monthly.20210518/"
 
   ! Set up lat/lon grids
   ! --------------------
-  lat_thresh = 65.
+  lat_thresh = 60.
   lat_gridder = lat_thresh
   i_size = (90. - lat_thresh)
   allocate(lat_range(i_size))

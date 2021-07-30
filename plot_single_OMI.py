@@ -188,7 +188,7 @@ for fileI in range(len(total_list)):
 
     # Loop over the values and rows 
     for i in range(PDATA.shape[0]):
-        for j in range(50,row_max):
+        for j in range(0,row_max):
             if((PDATA[i,j]>-2e5)):
             #if((j != 52) & (PDATA[i,j]>-2e5)):
             # Only plot if XTrack flag is met

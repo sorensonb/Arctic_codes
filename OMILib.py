@@ -1264,7 +1264,8 @@ def plotOMI_MonthTrend(OMI_data,month_idx=None,save=False,\
         'VJZ5': 'AI >= 0',
         'VBS0': 'No Bad Row Screening',
         'VBS1': 'Bad Row Screening Only',
-        'VBS2': 'Only Rows 1-22'
+        'VBS2': 'Only Rows 1-22',
+        'VSJ2': 'Perturbation Analysis'
     }
     trend_label=''
     if(trend_type=='thiel-sen'):
@@ -1682,8 +1683,16 @@ def plotOMI_NCDF_SingleMonth(OMI_data,time_idx,minlat=65,save=False):
         'VJZ5': 'AI >= 0',
         'VBS0': 'No Bad Row Screening',
         'VBS1': 'Bad Row Screening Only',
-        'VBS2': 'Only Rows 1-22'
+        'VBS2': 'Only Rows 1-22',
+        'VSJ2': 'Perturbation Analysis'
     }
+
+    if(version == 'VSJ2'):
+        data_type = '(Perturbation)'
+        label_adder = 'perturbation'
+    else:
+        data_type = '(Screened)'
+        label_adder = ''
 
     # Make copy of OMI_data array
     local_data  = np.copy(OMI_data['AI'][time_idx,:,:])
@@ -1710,7 +1719,7 @@ def plotOMI_NCDF_SingleMonth(OMI_data,time_idx,minlat=65,save=False):
 
     # Make figure title
     first_date = OMI_data['DATES'][time_idx]
-    title = 'OMI AI (Screened)\n'+label_dict[version]+'\n'+first_date
+    title = 'OMI AI '+data_type+'\n'+label_dict[version]+'\n'+first_date
 
     # Make figure
     plt.close('all')
@@ -1726,7 +1735,7 @@ def plotOMI_NCDF_SingleMonth(OMI_data,time_idx,minlat=65,save=False):
     cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
         aspect=50,shrink = 0.845)
     cbar.ax.tick_params(labelsize=14)
-    cbar.set_label('UV Aerosol Index',fontsize=16,weight='bold')
+    cbar.set_label('UV Aerosol Index'+label_adder,fontsize=16,weight='bold')
     ax.set_title(title)
 
     if(save == True):
@@ -1993,9 +2002,17 @@ def plotOMI_MonthClimo(OMI_data,month_idx,minlat = 60,save=False):
 
     version = OMI_data['VERSION']
 
+    if(version == 'VSJ2'):
+        max_AI = 0.5
+        min_AI = -0.5
+        colormap = plt.cm.bwr
+    else:
+        max_AI = 1.5
+        min_AI = -1.5
+        colormap = plt.cm.jet
+
     # Set up mapping variables 
     datacrs = ccrs.PlateCarree() 
-    colormap = plt.cm.jet
     if(minlat < 45):
         mapcrs = ccrs.Miller()
     else:
@@ -2025,7 +2042,7 @@ def plotOMI_MonthClimo(OMI_data,month_idx,minlat = 60,save=False):
     ax.coastlines(resolution='50m')
     mesh = ax.pcolormesh(OMI_data['LON'], OMI_data['LAT'],\
             mask_AI,transform = datacrs,\
-            cmap = colormap, vmin = -1.0, vmax = 1.5)
+            cmap = colormap, vmin = min_AI, vmax = max_AI)
     ax.set_extent([-180,180,minlat,90],datacrs)
     #ax.set_xlim(-3430748.535086173,3430748.438879491)
     #ax.set_ylim(-3413488.8763307533,3443353.899053069)
