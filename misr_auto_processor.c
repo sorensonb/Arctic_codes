@@ -512,7 +512,7 @@ int main(int argc, char *argv[]) {
     char lon_name[]  = "Longitude";
     char flag_name[] = "Aerosol_Retrieval_Screening_Flags";
     char cld_prm_name[] = "Cloud_Screening_Parameter";
-    char avg_file_start[] = "/home/blake.sorenson/MISR/misr_avg_aod_clr100";
+    char avg_file_start[] = "/home/blake.sorenson/MISR/control/misr_avg_aod_control";
     char *temp_str,*dir_year,*dir_month,*temp_dir,*file_name,*outfile_name;
     char *dir_day;
 
@@ -632,8 +632,8 @@ int main(int argc, char *argv[]) {
                         	    float*  lat      = (float*)  get_variable_data_by_name(file_name, meta_group, lat_name);
                         	    size_t* lon_dims = (size_t*) get_variable_dims_by_name(file_name, meta_group, lon_name);		// NOTE! This is not returning int!!! 
                         	    float*  lon      = (float*)  get_variable_data_by_name(file_name, meta_group, lon_name);
-                        	    size_t* cld_dims = (size_t*) get_variable_dims_by_name(file_name, data_group, cld_prm_name);		// NOTE! This is not returning int!!! 
-                        	    float*  cld      = (float*)  get_variable_data_by_name(file_name, data_group, cld_prm_name);
+                        	    //size_t* cld_dims = (size_t*) get_variable_dims_by_name(file_name, data_group, cld_prm_name);		// NOTE! This is not returning int!!! 
+                        	    //float*  cld      = (float*)  get_variable_data_by_name(file_name, data_group, cld_prm_name);
 
                                 // Compare the sizes of each dimension
 	                            //size_t unc_width  = unc_dims[0];
@@ -648,19 +648,20 @@ int main(int argc, char *argv[]) {
 	                            size_t lon_width  = lon_dims[0];
 	                            size_t lon_height = lon_dims[1];
 	                            size_t lon_levels = lon_dims[2];
-	                            size_t cld_width  = cld_dims[0];
-	                            size_t cld_height = cld_dims[1];
-	                            size_t cld_levels = cld_dims[2];
+	                            //size_t cld_width  = cld_dims[0];
+	                            //size_t cld_height = cld_dims[1];
+	                            //size_t cld_levels = cld_dims[2];
 
                                 //max_unc = unc_width*unc_height;
                                 max_aod = aod_width*aod_height;
                                 max_lat = lat_width*lat_height;
                                 max_lon = lon_width*lon_height;
-                                max_cld = cld_width*cld_height;
+                                //max_cld = cld_width*cld_height;
                 
-                                if((max_aod!=max_lat) | (max_aod!=max_lon) | (max_lat!=max_lon) | (max_aod!=max_cld))
+                                if((max_aod!=max_lat) | (max_aod!=max_lon) | (max_lat!=max_lon))// | (max_aod!=max_cld))
                                 {
-                                    printf("Different sizes. aod=%d lat=%d lon=%d cld=%d\n",max_aod,max_lat,max_lon,max_cld);
+                                    printf("Different sizes. aod=%d lat=%d lon=%d\n",max_aod,max_lat,max_lon);
+                                    //printf("Different sizes. aod=%d lat=%d lon=%d cld=%d\n",max_aod,max_lat,max_lon,max_cld);
                                 }
 
                                 // Read data from this filename
@@ -701,7 +702,7 @@ int main(int argc, char *argv[]) {
                                             lat_index = (int)floor(lat[index]*(1./grid_resolution) - lat_gridder);
                                             lon_index = (int)floor(lon[index])+180;
                                             // For now, only use regions with clear percentage > 90%
-                                            if((lat[index]>latmin) & (lon[index]>-300) & (cld[index] == 1.0))
+                                            if((lat[index]>latmin) & (lon[index]>-300))// & (cld[index] == 1.0))
                                             {
                                                 //printf("Yay5: lat = %f index = %d, lon = %f index = %d\n",lat[index],lat_index,lon[index],lon_index);
                                                 // Update AOD values
@@ -748,12 +749,12 @@ int main(int argc, char *argv[]) {
                                 //free(unc_raw);
                                 free(lat);
                                 free(lon);
-                                free(cld);
+                                //free(cld);
                                 free(aod_dims);
                                 //free(unc_dims);
                                 free(lat_dims);
                                 free(lon_dims);
-                                free(cld_dims);
+                                //free(cld_dims);
                             }
                         }
                     }

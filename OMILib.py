@@ -2086,12 +2086,24 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,minlat=65
     else:
         index_jumper = 6 
 
+    # Get the labels figured out
+    new_label_dict = {
+        'VBS1': 'Control',
+        'VJZ29': 'Screening Method',
+        'VSJ2': 'Perturbation Method'
+    } 
+    colorbar_label_size = 13
+    axis_title_size = 14.5
+    row_label_size = 14.5
+
     # Pull the beginning and ending dates into datetime objects
     start_date = datetime.strptime(OMI_data1['DATES'][month_idx],'%Y%m')
 
-    fig = plt.figure(1, figsize=(16,12))
-    plt.suptitle('OMI Comparisons '+start_date.strftime("%B"),fontsize=18,fontweight=4)
-    gs = gridspec.GridSpec(nrows=2, ncols=3, hspace = 0.06, wspace = 0.0005)
+    #fig = plt.figure()
+    fig = plt.figure(1, figsize=(16,10))
+    plt.suptitle('OMI Comparisons: '+start_date.strftime("%B"),y=0.95,\
+        fontsize=18,fontweight=4,weight='bold')
+    gs = gridspec.GridSpec(nrows=2, ncols=3, hspace = 0.001, wspace = 0.15)
 
     # - - - - - - - - - - - - - - - - - - - - -
     # Plot the climatologies along the top row
@@ -2111,9 +2123,14 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,minlat=65
     #ax00.gridlines()
     ax00.coastlines(resolution='50m')
     mesh00 = ax00.pcolormesh(OMI_data1['LON'],OMI_data1['LAT'],mask_AI,\
-            transform=ccrs.PlateCarree(),vmin=-1.0,vmax=1.5,cmap=colormap)
-    ax00.set_title(OMI_data1['VERSION'])
-    cbar00 = plt.colorbar(mesh00,ticks = np.arange(-2.0,4.1,0.5),orientation='vertical')
+            transform=ccrs.PlateCarree(),vmin=-1.0,vmax=1.0,cmap=colormap)
+    ax00.set_title(new_label_dict[OMI_data1['VERSION']]+'\n',weight='bold',\
+        fontsize=axis_title_size)
+    cbar00 = plt.colorbar(mesh00,ticks = np.arange(-2.0,4.1,0.5),orientation='vertical',\
+        extend='both',shrink=0.8)
+    cbar00.set_label('UV Aerosol Index',weight='bold',fontsize=colorbar_label_size)
+    fig.text(0.10, 0.70, 'Climatology', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size)
     #cbar00 = plt.colorbar(mesh00,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
     #    aspect=50,shrink = 0.845)
     #cbar00.ax.tick_params(labelsize=14)
@@ -2133,9 +2150,12 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,minlat=65
     #ax10.gridlines()
     ax10.coastlines(resolution='50m')
     mesh10 = ax10.pcolormesh(OMI_data2['LON'],OMI_data2['LAT'],mask_AI,\
-            transform=ccrs.PlateCarree(),vmin=-1.0,vmax=1.5,cmap=colormap)
-    ax10.set_title(OMI_data2['VERSION'])
-    cbar10 = plt.colorbar(mesh10,ticks = np.arange(-2.0,4.1,0.5),orientation='vertical')
+            transform=ccrs.PlateCarree(),vmin=-1.0,vmax=1.0,cmap=colormap)
+    ax10.set_title(new_label_dict[OMI_data2['VERSION']]+'\n',weight='bold',\
+            fontsize=axis_title_size)
+    cbar10 = plt.colorbar(mesh10,ticks = np.arange(-2.0,4.1,0.5),orientation='vertical',\
+        extend='both',shrink=0.8)
+    cbar10.set_label('UV Aerosol Index',weight='bold',fontsize=colorbar_label_size)
     #cbar10 = plt.colorbar(mesh10,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
     #    aspect=50,shrink = 0.845)
     #cbar10.ax.tick_params(labelsize=14)
@@ -2155,11 +2175,13 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,minlat=65
     #ax20.gridlines()
     ax20.coastlines(resolution='50m')
     mesh20 = ax20.pcolormesh(OMI_data3['LON'],OMI_data3['LAT'],mask_AI,\
-            transform=ccrs.PlateCarree(),vmin=-1.0,vmax=1.5,cmap=colormap)
-    ax20.set_title(OMI_data2['VERSION'] + ' April')
-    cbar20 = plt.colorbar(mesh20,ticks = np.arange(-2.0,4.1,0.5),orientation='vertical')
+            transform=ccrs.PlateCarree(),vmin=-1.0,vmax=1.0,cmap=colormap)
+    ax20.set_title(new_label_dict[OMI_data3['VERSION']]+'\n',weight='bold',\
+        fontsize=axis_title_size)
+    cbar20 = plt.colorbar(mesh20,ticks = np.arange(-2.0,4.1,0.5),orientation='vertical',\
+        extend='both',shrink=0.8)
     #cbar20.ax.tick_params(labelsize=14)
-    cbar20.set_label('AI Perturbation',weight='bold')
+    cbar20.set_label('AI Perturbation',weight='bold',fontsize=colorbar_label_size)
 
     # Plot Trends
     # -----------
@@ -2193,12 +2215,17 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,minlat=65
     ax01 = plt.subplot(gs[1,0],projection=mapcrs)
     ax01.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
     ax01.set_boundary(circle, transform=ax01.transAxes)
+    fig.text(0.10, 0.30, 'Trend', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size)
     #ax01.gridlines()
     ax01.coastlines(resolution='50m')
     mesh01 = ax01.pcolormesh(OMI_data1['LON'],OMI_data1['LAT'],ai_trends,\
             transform=ccrs.PlateCarree(),vmin=-0.7,vmax=0.7,cmap=colormap)
-    ax01.set_title(OMI_data1['VERSION']+ ' Trend')
-    cbar01 = plt.colorbar(mesh01,ticks = np.arange(-1.0,1.1,0.2),orientation='vertical')
+    #ax01.set_title(OMI_data1['VERSION']+ '\n\n')
+    cbar01 = plt.colorbar(mesh01,ticks = np.arange(-1.0,1.1,0.2),orientation='vertical',\
+        extend='both',shrink=0.8)
+    cbar01.set_label('AI Trend (AI/Study Period)',weight='bold',\
+        fontsize=colorbar_label_size)
     #cbar01 = plt.colorbar(mesh01,ticks = np.arange(-2.0,4.1,0.2),orientation='horizontal',pad=0,\
     #    aspect=50,shrink = 0.845)
     #cbar01.ax.tick_params(labelsize=14)
@@ -2237,8 +2264,11 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,minlat=65
     ax11.coastlines(resolution='50m')
     mesh11 = ax11.pcolormesh(OMI_data2['LON'],OMI_data2['LAT'],ai_trends,\
             transform=ccrs.PlateCarree(),vmin=-0.7,vmax=0.7,cmap=colormap)
-    ax11.set_title(OMI_data2['VERSION']+ ' Trend')
-    cbar11 = plt.colorbar(mesh11,ticks = np.arange(-1.0,1.1,0.2),orientation='vertical')
+    #ax11.set_title(OMI_data2['VERSION']+ ' Trend')
+    cbar11 = plt.colorbar(mesh11,ticks = np.arange(-1.0,1.1,0.2),orientation='vertical',\
+        extend='both',shrink=0.8)
+    cbar11.set_label('AI Trend (AI/Study Period)',weight='bold',\
+        fontsize=colorbar_label_size)
     #$cbar11 = plt.colorbar(mesh11,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
     #$    aspect=50,shrink = 0.845)
     #$cbar11.ax.tick_params(labelsize=14)
@@ -2279,20 +2309,23 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,minlat=65
     ax21.coastlines(resolution='50m')
     mesh21 = ax21.pcolormesh(OMI_data3['LON'],OMI_data3['LAT'],ai_trends,\
             transform=ccrs.PlateCarree(),vmin=-0.7,vmax=0.7,cmap=colormap)
-    ax21.set_title(OMI_data3['VERSION']+ ' Trend')
-    cbar21 = plt.colorbar(mesh21,ticks = np.arange(-1.0,1.1,0.2),orientation='vertical')
+    #ax21.set_title(OMI_data3['VERSION']+ ' Trend')
+    cbar21 = plt.colorbar(mesh21,ticks = np.arange(-1.0,1.1,0.2),orientation='vertical',\
+        extend='both',shrink=0.8)
+    cbar21.set_label('AI Pert. Trend (AI/Study Period)',weight='bold',\
+        fontsize=colorbar_label_size)
     #cbar20 = plt.colorbar(mesh20,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
     #    aspect=50,shrink = 0.845)
     #cbar20.ax.tick_params(labelsize=14)
-    #cbar20.set_label('UV Aerosol Index',fontsize=16,weight='bold')
 
-    print("YAYYY")
-
-    #if(ice_data['season_adder'].strip()=='sunlight'):
-    #    plt.savefig('paper_figure1_sunlight.png',dpi=300)
-    #else:
-    #    plt.savefig('paper_figure1.png',dpi=300)
-    plt.show()
+    outname = 'omi_ai_comps_'+start_date.strftime("%b")+'_'+\
+        OMI_data1['VERSION']+'v'+OMI_data2['VERSION']+\
+        'v'+OMI_data3['VERSION']+'.png'
+    if(save == True):
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
 
 def plot_omi_da(OMI_da_nc,save=False):
 

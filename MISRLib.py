@@ -1710,3 +1710,19 @@ def plotMISR_MonthClimo(MISR_data,month_idx,minlat = 60,save=False):
         print("Saved image",out_name)
     else:
         plt.show()
+
+def count_diffs(MISR_data1,MISR_data2,start_idx = 202):
+    # Data assumed to be the same shape
+    local_data1 = np.copy(MISR_data1['OB_COUNT'])
+    local_data2 = np.copy(MISR_data2['OB_COUNT'])
+
+    mask_data1 = np.ma.masked_where((local_data1 == -99),local_data1)
+    mask_data2 = np.ma.masked_where((local_data2 == -99),local_data2)
+
+    for ii in range(start_idx,len(MISR_data1['DATES'])):
+        count1 = np.nansum(mask_data1[ii,:,:])
+        count2 = np.nansum(mask_data2[ii,:,:])
+        print(MISR_data1['DATES'][ii],count2/count1)
+
+
+
