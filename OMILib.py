@@ -29,6 +29,7 @@ import matplotlib.colors as cm
 import cartopy.crs as ccrs
 from mpl_toolkits.basemap import Basemap
 from matplotlib.patches import Polygon
+import matplotlib.path as mpath
 import matplotlib.colors as color
 from matplotlib.colors import rgb2hex,Normalize
 from matplotlib.cm import ScalarMappable
@@ -2059,6 +2060,240 @@ def plotOMI_MonthClimo(OMI_data,month_idx,minlat = 60,save=False):
     else:
         plt.show()
 
+def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,minlat=65,save=False):
+
+    # Compute a circle in axes coordinates, which we can use as a boundary
+    # for the map. We can pan/zoom as much as we like - the boundary will be
+    # permanently circular.
+    theta = np.linspace(0, 2*np.pi, 100)
+    center, radius = [0.5, 0.5], 0.5
+    verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+    circle = mpath.Path(verts * radius + center)
+
+
+
+    colormap = plt.cm.jet
+    mapcrs = ccrs.NorthPolarStereo()
+    datacrs = ccrs.PlateCarree()
+
+    trend_type = 'standard'
+
+    lat_ranges = np.arange(minlat,90,1.0)
+    lon_ranges = np.arange(-180,180,1.0)
+
+    if(OMI_data1['VERSION'] == 'V003'):
+        index_jumper = 12
+    else:
+        index_jumper = 6 
+
+    # Pull the beginning and ending dates into datetime objects
+    start_date = datetime.strptime(OMI_data1['DATES'][month_idx],'%Y%m')
+
+    fig = plt.figure(1, figsize=(16,12))
+    plt.suptitle('OMI Comparisons '+start_date.strftime("%B"),fontsize=18,fontweight=4)
+    gs = gridspec.GridSpec(nrows=2, ncols=3, hspace = 0.06, wspace = 0.0005)
+
+    # - - - - - - - - - - - - - - - - - - - - -
+    # Plot the climatologies along the top row
+    # - - - - - - - - - - - - - - - - - - - - -
+       
+    # Plot DATA1 climos
+    # -----------------
+    # Make copy of OMI_data array
+    local_data  = np.copy(OMI_data1['MONTH_CLIMO'][month_idx,:,:])
+    # Mask any missing values
+    mask_AI = np.ma.masked_where(local_data == -999.9, local_data)
+    mask_AI = np.ma.masked_where(OMI_data1['LAT'] < minlat, mask_AI)
+
+    ax00 = plt.subplot(gs[0,0],projection=mapcrs)
+    ax00.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
+    ax00.set_boundary(circle, transform=ax00.transAxes)
+    #ax00.gridlines()
+    ax00.coastlines(resolution='50m')
+    mesh00 = ax00.pcolormesh(OMI_data1['LON'],OMI_data1['LAT'],mask_AI,\
+            transform=ccrs.PlateCarree(),vmin=-1.0,vmax=1.5,cmap=colormap)
+    ax00.set_title(OMI_data1['VERSION'])
+    cbar00 = plt.colorbar(mesh00,ticks = np.arange(-2.0,4.1,0.5),orientation='vertical')
+    #cbar00 = plt.colorbar(mesh00,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
+    #    aspect=50,shrink = 0.845)
+    #cbar00.ax.tick_params(labelsize=14)
+    #cbar00.set_label('UV Aerosol Index',fontsize=16,weight='bold')
+
+    # Plot DATA2 climos
+    # -----------------
+    # Make copy of OMI_data array
+    local_data  = np.copy(OMI_data2['MONTH_CLIMO'][month_idx,:,:])
+    # Mask any missing values
+    mask_AI = np.ma.masked_where(local_data == -999.9, local_data)
+    mask_AI = np.ma.masked_where(OMI_data2['LAT'] < minlat, mask_AI)
+
+    ax10 = plt.subplot(gs[0,1],projection=mapcrs)
+    ax10.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
+    ax10.set_boundary(circle, transform=ax10.transAxes)
+    #ax10.gridlines()
+    ax10.coastlines(resolution='50m')
+    mesh10 = ax10.pcolormesh(OMI_data2['LON'],OMI_data2['LAT'],mask_AI,\
+            transform=ccrs.PlateCarree(),vmin=-1.0,vmax=1.5,cmap=colormap)
+    ax10.set_title(OMI_data2['VERSION'])
+    cbar10 = plt.colorbar(mesh10,ticks = np.arange(-2.0,4.1,0.5),orientation='vertical')
+    #cbar10 = plt.colorbar(mesh10,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
+    #    aspect=50,shrink = 0.845)
+    #cbar10.ax.tick_params(labelsize=14)
+    #cbar10.set_label('UV Aerosol Index',fontsize=16,weight='bold')
+     
+    # Plot DATA3 climatology 
+    # -----------------
+    # Make copy of OMI_data array
+    local_data  = np.copy(OMI_data3['MONTH_CLIMO'][month_idx,:,:])
+    # Mask any missing values
+    mask_AI = np.ma.masked_where(local_data == -999.9, local_data)
+    mask_AI = np.ma.masked_where(OMI_data3['LAT'] < minlat, mask_AI)
+
+    ax20 = plt.subplot(gs[0,2],projection=mapcrs)
+    ax20.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
+    ax20.set_boundary(circle, transform=ax20.transAxes)
+    #ax20.gridlines()
+    ax20.coastlines(resolution='50m')
+    mesh20 = ax20.pcolormesh(OMI_data3['LON'],OMI_data3['LAT'],mask_AI,\
+            transform=ccrs.PlateCarree(),vmin=-1.0,vmax=1.5,cmap=colormap)
+    ax20.set_title(OMI_data2['VERSION'] + ' April')
+    cbar20 = plt.colorbar(mesh20,ticks = np.arange(-2.0,4.1,0.5),orientation='vertical')
+    #cbar20.ax.tick_params(labelsize=14)
+    cbar20.set_label('AI Perturbation',weight='bold')
+
+    # Plot Trends
+    # -----------
+    colormap = plt.cm.bwr
+
+    # Plot DATA1 trends
+    # Make copy of OMI_data array
+    local_data   = np.copy(OMI_data1['AI'][month_idx::index_jumper,:,:])
+    local_counts = np.copy(OMI_data1['OB_COUNT'][month_idx::index_jumper,:,:])
+    local_mask = np.ma.masked_where(local_counts == 0, local_data)
+    local_mask = np.ma.masked_where(local_mask == -999.9, local_mask)
+    ai_trends = np.zeros(local_data.shape[1:])
+    # Loop over all the keys and print the regression slopes 
+    # Grab the averages for the key
+    for i in range(0,len(lat_ranges)):
+        for j in range(0,len(lon_ranges)):
+            # Check the current max and min
+            x_vals = np.arange(0,len(local_mask[:,i,j]))
+            # Find the slope of the line of best fit for the time series of
+            # average data
+            if(trend_type=='standard'): 
+                slope, intercept, r_value, p_value, std_err = \
+                    stats.linregress(x_vals,local_mask[:,i,j])
+                ai_trends[i,j] = slope * len(x_vals)
+            else:
+                print("Ignoring MK trend for now")
+
+   
+    ai_trends = np.ma.masked_where(OMI_data1['LAT'] < minlat, ai_trends)
+
+    ax01 = plt.subplot(gs[1,0],projection=mapcrs)
+    ax01.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
+    ax01.set_boundary(circle, transform=ax01.transAxes)
+    #ax01.gridlines()
+    ax01.coastlines(resolution='50m')
+    mesh01 = ax01.pcolormesh(OMI_data1['LON'],OMI_data1['LAT'],ai_trends,\
+            transform=ccrs.PlateCarree(),vmin=-0.7,vmax=0.7,cmap=colormap)
+    ax01.set_title(OMI_data1['VERSION']+ ' Trend')
+    cbar01 = plt.colorbar(mesh01,ticks = np.arange(-1.0,1.1,0.2),orientation='vertical')
+    #cbar01 = plt.colorbar(mesh01,ticks = np.arange(-2.0,4.1,0.2),orientation='horizontal',pad=0,\
+    #    aspect=50,shrink = 0.845)
+    #cbar01.ax.tick_params(labelsize=14)
+    #cbar01.set_label('UV Aerosol Index',fontsize=16,weight='bold')
+     
+    # Plot DATA2 trends
+    # -----------------
+    # Make copy of OMI_data array
+    local_data   = np.copy(OMI_data2['AI'][month_idx::index_jumper,:,:])
+    local_counts = np.copy(OMI_data2['OB_COUNT'][month_idx::index_jumper,:,:])
+    local_mask = np.ma.masked_where(local_counts == 0, local_data)
+    local_mask = np.ma.masked_where(local_mask == -999.9, local_mask)
+    ai_trends = np.zeros(local_data.shape[1:])
+    # Loop over all the keys and print the regression slopes 
+    # Grab the averages for the key
+    for i in range(0,len(np.arange(np.min(OMI_data2['LAT']),90))):
+        for j in range(0,len(lon_ranges)):
+            # Check the current max and min
+            x_vals = np.arange(0,len(local_mask[:,i,j]))
+            # Find the slope of the line of best fit for the time series of
+            # average data
+            if(trend_type=='standard'): 
+                slope, intercept, r_value, p_value, std_err = \
+                    stats.linregress(x_vals,local_mask[:,i,j])
+                ai_trends[i,j] = slope * len(x_vals)
+            else:
+                print("Ignoring MK trend for now")
+
+   
+    ai_trends = np.ma.masked_where(OMI_data2['LAT'] < minlat, ai_trends)
+
+    ax11 = plt.subplot(gs[1,1],projection=mapcrs)
+    ax11.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
+    ax11.set_boundary(circle, transform=ax11.transAxes)
+    #ax11.gridlines()
+    ax11.coastlines(resolution='50m')
+    mesh11 = ax11.pcolormesh(OMI_data2['LON'],OMI_data2['LAT'],ai_trends,\
+            transform=ccrs.PlateCarree(),vmin=-0.7,vmax=0.7,cmap=colormap)
+    ax11.set_title(OMI_data2['VERSION']+ ' Trend')
+    cbar11 = plt.colorbar(mesh11,ticks = np.arange(-1.0,1.1,0.2),orientation='vertical')
+    #$cbar11 = plt.colorbar(mesh11,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
+    #$    aspect=50,shrink = 0.845)
+    #$cbar11.ax.tick_params(labelsize=14)
+    #$cbar11.set_label('UV Aerosol Index',fontsize=16,weight='bold')
+     
+    # - - - - - - - - - - - - - - - - -
+    # Plot the DATA3 trends
+    # - - - - - - - - - - - - - - - - - 
+
+    # Make copy of OMI_data array
+    local_data   = np.copy(OMI_data3['AI'][month_idx::index_jumper,:,:])
+    local_counts = np.copy(OMI_data3['OB_COUNT'][month_idx::index_jumper,:,:])
+    local_mask = np.ma.masked_where(local_counts == 0, local_data)
+    local_mask = np.ma.masked_where(local_mask == -999.9, local_mask)
+    ai_trends = np.zeros(local_data.shape[1:])
+    # Loop over all the keys and print the regression slopes 
+    # Grab the averages for the key
+    for i in range(0,len(np.arange(np.min(OMI_data3['LAT']),90))):
+        for j in range(0,len(lon_ranges)):
+            # Check the current max and min
+            x_vals = np.arange(0,len(local_mask[:,i,j]))
+            # Find the slope of the line of best fit for the time series of
+            # average data
+            if(trend_type=='standard'): 
+                slope, intercept, r_value, p_value, std_err = \
+                    stats.linregress(x_vals,local_mask[:,i,j])
+                ai_trends[i,j] = slope * len(x_vals)
+            else:
+                print("Ignoring MK trend for now")
+
+   
+    ai_trends = np.ma.masked_where(OMI_data3['LAT'] < minlat, ai_trends)
+       
+    ax21 = plt.subplot(gs[1,2],projection=mapcrs)
+    ax21.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
+    ax21.set_boundary(circle, transform=ax21.transAxes)
+    #ax21.gridlines()
+    ax21.coastlines(resolution='50m')
+    mesh21 = ax21.pcolormesh(OMI_data3['LON'],OMI_data3['LAT'],ai_trends,\
+            transform=ccrs.PlateCarree(),vmin=-0.7,vmax=0.7,cmap=colormap)
+    ax21.set_title(OMI_data3['VERSION']+ ' Trend')
+    cbar21 = plt.colorbar(mesh21,ticks = np.arange(-1.0,1.1,0.2),orientation='vertical')
+    #cbar20 = plt.colorbar(mesh20,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
+    #    aspect=50,shrink = 0.845)
+    #cbar20.ax.tick_params(labelsize=14)
+    #cbar20.set_label('UV Aerosol Index',fontsize=16,weight='bold')
+
+    print("YAYYY")
+
+    #if(ice_data['season_adder'].strip()=='sunlight'):
+    #    plt.savefig('paper_figure1_sunlight.png',dpi=300)
+    #else:
+    #    plt.savefig('paper_figure1.png',dpi=300)
+    plt.show()
+
 def plot_omi_da(OMI_da_nc,save=False):
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
@@ -2679,4 +2914,4 @@ def plot_compare_trends(OMI_data1,OMI_data2,month,save=False):
         plt.savefig(outname)
     else:
         plt.show()
-    return mask_trend1,mask_trend2
+    #return mask_trend1,mask_trend2
