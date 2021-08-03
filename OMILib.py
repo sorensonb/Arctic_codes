@@ -47,6 +47,17 @@ from sklearn.preprocessing import StandardScaler
 def get_ice_flags(value):
     return int(format(value,"016b")[-15:-8],2)
 
+# Compute a circle in axes coordinates, which we can use as a boundary
+# for the map. We can pan/zoom as much as we like - the boundary will be
+# permanently circular.
+theta = np.linspace(0, 2*np.pi, 100)
+center, radius = [0.5, 0.5], 0.5
+verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+circle = mpath.Path(verts * radius + center)
+
+
+
+
 # Class MidpointNormalize is used to center the colorbar on zero
 class MidpointNormalize(Normalize):
     """
@@ -1397,6 +1408,7 @@ def plotOMI_MonthTrend(OMI_data,month_idx=None,save=False,\
             ai_trends,transform = datacrs,\
             cmap = colormap,vmin=v_min,vmax=v_max)
     ax.set_extent([-180,180,minlat,90],datacrs)
+    ax.set_boundary(circle, transform=ax.transAxes)
     #ax.set_xlim(-3430748.535086173,3430748.438879491)
     #ax.set_ylim(-3413488.8763307533,3443353.899053069)
     cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.2),\
@@ -1730,6 +1742,7 @@ def plotOMI_NCDF_SingleMonth(OMI_data,time_idx,minlat=65,save=False):
     ax.coastlines(resolution='50m')
     mesh = ax.pcolormesh(OMI_data['LON'], OMI_data['LAT'],mask_AI,transform = datacrs,cmap = colormap,\
             vmin = -1.0, vmax = 1.5)
+    ax.set_boundary(circle, transform=ax.transAxes)
     ax.set_extent([-180,180,minlat,90],datacrs)
     #ax.set_xlim(-3430748.535086173,3430748.438879491)
     #ax.set_ylim(-3413488.8763307533,3443353.899053069)
@@ -1832,6 +1845,7 @@ def plotOMI_NCDF_Climo(OMI_data,start_idx=0,end_idx=None,season = '',minlat=60,\
     mesh = ax.pcolormesh(OMI_data['LON'], OMI_data['LAT'],OMI_climo,transform = datacrs,cmap = colormap,\
             vmin = -1.0, vmax = 1.0)
     ax.set_extent([-180,180,minlat,90],datacrs)
+    ax.set_boundary(circle, transform=ax.transAxes)
     #ax.set_xlim(-3430748.535086173,3430748.438879491)
     #ax.set_ylim(-3413488.8763307533,3443353.899053069)
     #cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
@@ -1930,6 +1944,7 @@ def plotOMI_NCDF_Climo_FourPanel(OMI_data,start_idx=0,end_idx=169,minlat=60,\
     ax0.coastlines(resolution='50m')
     mesh0 = ax0.pcolormesh(OMI_data['LON'], OMI_data['LAT'],OMI_spring_climo,\
             transform = datacrs,cmap = colormap,vmin = vmin_r, vmax = vmax_r)
+    ax0.set_boundary(circle, transform=ax0.transAxes)
     cbar0 = plt.colorbar(mesh0,ticks = np.arange(-2.0,4.1,0.5), \
         orientation='horizontal',pad=0,aspect=50,shrink = 0.905,\
         label='Aerosol Index')
@@ -1944,6 +1959,7 @@ def plotOMI_NCDF_Climo_FourPanel(OMI_data,start_idx=0,end_idx=169,minlat=60,\
     ax1.coastlines(resolution='50m')
     mesh1 = ax1.pcolormesh(OMI_data['LON'], OMI_data['LAT'],OMI_summer_climo,\
             transform = datacrs,cmap = colormap,vmin = vmin_r, vmax = vmax_r)
+    ax1.set_boundary(circle, transform=ax1.transAxes)
     cbar1 = plt.colorbar(mesh1,ticks = np.arange(-2.0,4.1,0.5), \
         orientation='horizontal',pad=0,aspect=50,shrink = 0.905,\
         label='Aerosol Index')
@@ -1958,6 +1974,7 @@ def plotOMI_NCDF_Climo_FourPanel(OMI_data,start_idx=0,end_idx=169,minlat=60,\
     ax2.coastlines(resolution='50m')
     mesh2 = ax2.pcolormesh(OMI_data['LON'], OMI_data['LAT'],OMI_autumn_climo,\
             transform = datacrs,cmap = colormap,vmin = vmin_r, vmax = vmax_r)
+    ax2.set_boundary(circle, transform=ax2.transAxes)
     cbar2 = plt.colorbar(mesh2,ticks = np.arange(-2.0,4.1,0.5), \
         orientation='horizontal',pad=0,aspect=50,shrink = 0.905,\
         label='Aerosol Index')
@@ -1972,6 +1989,7 @@ def plotOMI_NCDF_Climo_FourPanel(OMI_data,start_idx=0,end_idx=169,minlat=60,\
     ax3.coastlines(resolution='50m')
     mesh3 = ax3.pcolormesh(OMI_data['LON'], OMI_data['LAT'],OMI_winter_climo,\
             transform = datacrs,cmap = colormap,vmin = vmin_r, vmax = vmax_r)
+    ax3.set_boundary(circle, transform=ax3.transAxes)
     cbar3 = plt.colorbar(mesh3,ticks = np.arange(-2.0,4.1,0.5), \
         orientation='horizontal',pad=0,aspect=50,shrink = 0.905,\
         label='Aerosol Index')
@@ -2045,6 +2063,7 @@ def plotOMI_MonthClimo(OMI_data,month_idx,minlat = 60,save=False):
             mask_AI,transform = datacrs,\
             cmap = colormap, vmin = min_AI, vmax = max_AI)
     ax.set_extent([-180,180,minlat,90],datacrs)
+    ax.set_boundary(circle, transform=ax.transAxes)
     #ax.set_xlim(-3430748.535086173,3430748.438879491)
     #ax.set_ylim(-3413488.8763307533,3443353.899053069)
     cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
@@ -2061,16 +2080,6 @@ def plotOMI_MonthClimo(OMI_data,month_idx,minlat = 60,save=False):
         plt.show()
 
 def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,minlat=65,save=False):
-
-    # Compute a circle in axes coordinates, which we can use as a boundary
-    # for the map. We can pan/zoom as much as we like - the boundary will be
-    # permanently circular.
-    theta = np.linspace(0, 2*np.pi, 100)
-    center, radius = [0.5, 0.5], 0.5
-    verts = np.vstack([np.sin(theta), np.cos(theta)]).T
-    circle = mpath.Path(verts * radius + center)
-
-
 
     colormap = plt.cm.jet
     mapcrs = ccrs.NorthPolarStereo()

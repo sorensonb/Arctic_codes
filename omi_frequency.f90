@@ -27,6 +27,8 @@ program omi_frequency
   integer                :: synop_idx     ! index of current synoptic time
   integer                :: i_size        ! array size
   integer                :: int_hr        ! integer variable for hour
+  integer                :: int_day       ! integer variable for day
+  integer                :: work_day 
   integer                :: arg_count     ! Number of arguments passed to exec
 
   real                   :: ai_thresh     ! threshold AI value
@@ -128,6 +130,10 @@ program omi_frequency
   ! -------------------------------------------------------------
   ai_thresh = 0.6
 
+  ! Initialize the work_day value to -1
+  ! -----------------------------------
+  work_day = -1
+
   ! Read the file names from the file name file
   open(io8, file = trim(date_file_name), iostat = istatus)
   if(istatus > 0) then
@@ -152,14 +158,29 @@ program omi_frequency
         ! ---------------------------------
         read(dtg(9:10), *) int_hr
 
-        ! See if the hour exceeds the current 6 hr assimilation window.
-        ! If so, calculate averages and counts and reset variables.
-        ! ------------------------------------------------------------
-        call synop_time_check(synop_idx, int_hr, l_in_time)
-        if(.not. l_in_time) then 
+        ! Extract day information from file name
+        ! --------------------------------------
+        read(dtg(7:8), *) int_day
+
+        !!#!! See if the hour exceeds the current 6 hr assimilation window.
+        !!#!! If so, calculate averages and counts and reset variables.
+        !!#!! ------------------------------------------------------------
+        !!#!call synop_time_check(synop_idx, int_hr, l_in_time)
+        !!#!if(.not. l_in_time) then 
+        !!#!  call count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
+        !!#!                dtg,lat_range)
+        !!#!endif  
+
+        ! For VSJ22, calculating daily averages instead of synoptic avgs
+        ! --------------------------------------------------------------
+        ! If the day of the new file is different than the current working
+        ! day, call count_ai and find the counts in the daily averages
+        ! ----------------------------------------------------------------
+        if(work_day /= int_day) then
           call count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
                         dtg,lat_range)
-        endif  
+          work_day = int_day
+        endif
 
         ! Open the shawn file and look at contents
         open(io7, file = trim(data_path)//dtg, iostat = istatus)

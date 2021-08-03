@@ -46,6 +46,14 @@ import h5py
 def get_ice_flags(value):
     return int(format(value,"016b")[-15:-8],2)
 
+# Compute a circle in axes coordinates, which we can use as a boundary
+# for the map. We can pan/zoom as much as we like - the boundary will be
+# permanently circular.
+theta = np.linspace(0, 2*np.pi, 100)
+center, radius = [0.5, 0.5], 0.5
+verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+circle = mpath.Path(verts * radius + center)
+
 var_dict = {
     'UVAerosolIndex':          {'min': -2.0, 'max': 3.0 },\
 }
@@ -231,6 +239,7 @@ mesh0 = ax0.pcolormesh(plot_lon, plot_lat,mask_UVAI,transform = datacrs,cmap = c
 
 # Center the figure over the Arctic
 ax0.set_extent([-180,180,latmin,90],ccrs.PlateCarree())
+ax0.set_boundary(circle, transform=ax0.transAxes)
 
 # Depending on the desired variable, set the appropriate colorbar ticks
 tickvals = np.arange(-2.0,4.1,1.0)
@@ -259,6 +268,7 @@ mesh1 = ax1.pcolormesh(plot_lon, plot_lat,mask_UVAI_JZ,transform = datacrs,cmap 
 
 # Center the figure over the Arctic
 ax1.set_extent([-180,180,latmin,90],ccrs.PlateCarree())
+ax1.set_boundary(circle, transform=ax1.transAxes)
 
 # Depending on the desired variable, set the appropriate colorbar ticks
 tickvals = np.arange(-2.0,4.1,1.0)
@@ -287,6 +297,7 @@ mesh2 = ax2.pcolormesh(plot_lon, plot_lat,mask_UVAI_sh,transform = datacrs,cmap 
 
 # Center the figure over the Arctic
 ax2.set_extent([-180,180,latmin,90],ccrs.PlateCarree())
+ax2.set_boundary(circle, transform=ax2.transAxes)
 
 # Depending on the desired variable, set the appropriate colorbar ticks
 tickvals = np.arange(-2.0,4.1,1.0)

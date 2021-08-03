@@ -87,15 +87,20 @@ subroutine count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
     enddo  
   enddo  
 
-  if(synop_times(synop_idx) < 12) then
-    write(*,*) dtg(1:8)//'0',synop_times(synop_idx)
-    write(io6,'(a9,i1,6(i6))') dtg(1:8)//'0',synop_times(synop_idx),&
-      ai_count_60,ai_count_65,ai_count_70,ai_count_75,ai_count_80,ai_count_85
-  else
-    write(*,*) dtg(1:8),synop_times(synop_idx)
-    write(io6,'(a8,i2,6(i6))') dtg(1:8),synop_times(synop_idx), &
-      ai_count_60,ai_count_65,ai_count_70,ai_count_75,ai_count_80,ai_count_85
-  endif    
+  ! For VSJ22, printing daily averages
+  ! ----------------------------------
+  !!#!if(synop_times(synop_idx) < 12) then
+  !!#!  write(*,*) dtg(1:8)//'0',synop_times(synop_idx)
+  !!#!  write(io6,'(a9,i1,6(i6))') dtg(1:8)//'0',synop_times(synop_idx),&
+  !!#!    ai_count_60,ai_count_65,ai_count_70,ai_count_75,ai_count_80,ai_count_85
+  !!#!else
+  !!#!  write(*,*) dtg(1:8),synop_times(synop_idx)
+  !!#!  write(io6,'(a8,i2,6(i6))') dtg(1:8),synop_times(synop_idx), &
+  !!#!    ai_count_60,ai_count_65,ai_count_70,ai_count_75,ai_count_80,ai_count_85
+  !!#!endif    
+  write(*,*) dtg(1:8)
+  write(io6,'(a8,i1,6(i6))') dtg(1:8),&
+    ai_count_60,ai_count_65,ai_count_70,ai_count_75,ai_count_80,ai_count_85
 
   ! Reset grid arrays
   ! -----------------

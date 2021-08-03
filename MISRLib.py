@@ -1711,18 +1711,65 @@ def plotMISR_MonthClimo(MISR_data,month_idx,minlat = 60,save=False):
     else:
         plt.show()
 
-def count_diffs(MISR_data1,MISR_data2,start_idx = 202):
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#
+# The following two function are used to generate box plots that show the
+# percent of data north of each latitude band that is removed by screening
+# out all MISR scenes with clear pixel fractions below 100%. 
+#
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# Calculate the percentage of data removed by the cloud screening parameter.
+# Calculates the difference 
+def count_diffs(MISR_data1,MISR_data2,start_idx = 202,minlat=65):
     # Data assumed to be the same shape
     local_data1 = np.copy(MISR_data1['OB_COUNT'])
     local_data2 = np.copy(MISR_data2['OB_COUNT'])
 
-    mask_data1 = np.ma.masked_where((local_data1 == -99),local_data1)
-    mask_data2 = np.ma.masked_where((local_data2 == -99),local_data2)
+    mask_data1 = np.ma.masked_where(((local_data1 == -99) | \
+        (MISR_data1['LAT'] < minlat)),local_data1)
+    mask_data2 = np.ma.masked_where(((local_data2 == -99) | \
+        (MISR_data2['LAT'] < minlat)),local_data2)
+
+    ratios = np.zeros(len(range(start_idx,len(MISR_data1['DATES']))))
 
     for ii in range(start_idx,len(MISR_data1['DATES'])):
         count1 = np.nansum(mask_data1[ii,:,:])
-        count2 = np.nansum(mask_data2[ii,:,:])
-        print(MISR_data1['DATES'][ii],count2/count1)
+        count2 = np.nansum(mask_data2[ii,:,:])  
+        ratios[ii] = 1.0 - count2/count1
+    #    print(MISR_data1['DATES'][ii],count2,count1,np.round((count2/count1),3))
 
+    return ratios
 
+# Generate box plots for the percentage of data removed by the
+# cloud screening parameter for data north of each latitude band
+# between 45 and 85 degrees north. 
+# To make the figure, read in the misr_aod_control_200003_201912.nc and
+# misr_aod_clr100_200003_201912.nc files into MISR_control and MISR_clr100,
+# respectively, using readMISR_NCDF, and run the function using
+# >>> count_diffs_box_plot(MISR_control,MISR_clr100)
+def count_diffs_box_plot(MISR_data1,MISR_data2,save=False):
+    lats = np.arange(45,85,5)
+    total_ratios = np.zeros((len(lats),len(MISR_data1['DATES'])))
 
+    plt.close('all')
+    fig1,ax = plt.subplots()
+    for ii in range(len(lats)):
+        total_ratios[ii,:] = count_diffs(MISR_data1,\
+            MISR_data2,start_idx=0,minlat=lats[ii])
+
+    ax.violinplot([total_ratios[ii,:][~np.isnan(total_ratios[ii,:])]\
+        for ii in range(len(lats))])
+    labels = [str(int(lat))+'$^{o}$ N' for lat in np.arange(40,85,5)]
+    ax.set_xticklabels(labels)
+    yvals = ax.get_yticks()
+    ax.set_yticklabels(['{:,.0%}'.format(x) for x in yvals])
+    ax.set_title("Percent of MISR AOD data north of each latitude\nremoved"+\
+        " by inclusion of only 100% clear scenes")
+    ax.grid(axis='y')
+    if(save == True):
+        outname = "misr_aod_pcnt_removal_ctrl_vs_clr100.png"
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()

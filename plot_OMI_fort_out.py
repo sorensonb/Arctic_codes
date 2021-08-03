@@ -24,10 +24,11 @@ import pandas as pd
 
 if(len(sys.argv)<3):
     print("SYNTAX: python plot_OMI_fort_out.py out_file min_lat")
-    print("        name is of format: omi_counts_YYYY_YYYY_ZZZ_type.txt")
+    print("        name is of format: omi_VERSION_counts_YYYY_YYYY_ZZZ.txt")
+    #print("        name is of format: omi_VERSION_counts_YYYY_YYYY_ZZZ.txt")
+    print("           VERSION = VSJ2")
     print("           ZZZ  = 100 * AI thresh (i.e., 060)")
-    print("           type = JZ or shawn")
-    print("        min_lat is of format: 65,70,75,80,85")
+    print("        min_lat is of format: 60,65,70,75,80,85")
     sys.exit()
 
 file_name = sys.argv[1]
@@ -40,10 +41,10 @@ min_lat   = sys.argv[2]
 
 # Extract date information from the file name
 name_split = file_name.strip().split('/')[-1].split('_')
-start_year = name_split[2]
-end_year   = name_split[3]
-ai_thresh  = float(int(name_split[4])/100)
-dtype      = name_split[5].split('.')[0]
+dtype      = name_split[1]
+start_year = name_split[3]
+end_year   = name_split[4]
+ai_thresh  = float(int(name_split[5].split('.')[0])/100)
 
 print(ai_thresh)
 
@@ -58,8 +59,9 @@ count65  = in_data['Cnt'+min_lat].values
 #count85  = in_data['Cnt85'].values
 x_range = np.arange(len(dates))
 
-# Calculate daily averages
-daily_counts_65 = [np.average(tmparr) for tmparr in \
+# Calculate daily totals
+#daily_counts_65 = [np.average(tmparr) for tmparr in \
+daily_counts_65 = [np.sum(tmparr) for tmparr in \
     np.array_split(count65,len(count65)/4)]
 ##daily_counts_70 = [np.average(tmparr) for tmparr in \
 ##    np.array_split(count70,len(count70)/4)]
@@ -84,7 +86,7 @@ daily_xrange = x_range[::4]
 #xrange_18 = x_range[3::4]
 
 fig1, ax = plt.subplots()
-ax.plot(dt_dates,count65,label='synoptic')
+#ax.plot(dt_dates,count65,label='synoptic')
 ax.plot(daily_dt_dates,daily_counts_65,label='daily')
 ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
 ax.legend()
@@ -92,6 +94,12 @@ ax.set_ylabel('Counts')
 ax.set_title('AI Counts ' + dtype + ': Threshold of '+str(ai_thresh)+\
     '\nNorth of '+min_lat+'$^{o}$')
 ax.grid()
+
+save = False
+if(save == True):
+    outname = "ai_counts_total_" + dtype + ".png"
+    plt.savefig(outname,dpi=300)
+    print("Saved image",outname) 
 plt.show()
 
 #fig2 = plt.figure()
