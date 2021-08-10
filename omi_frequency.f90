@@ -59,6 +59,7 @@ program omi_frequency
 
   character(len = 255)   :: data_path       ! path to data files
   character(len = 12)    :: dtg             ! dtg from each line of file
+  character(len = 12)    :: c_work_dtg        ! dtg from each line of file
   character(len = 255)   :: out_file_name   ! output file name
   character(len = 255)   :: date_file_name  ! name of file containing the 
                                             ! list of shawn file names to 
@@ -176,10 +177,14 @@ program omi_frequency
         ! If the day of the new file is different than the current working
         ! day, call count_ai and find the counts in the daily averages
         ! ----------------------------------------------------------------
-        if(work_day /= int_day) then
-          call count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
-                        dtg,lat_range)
+        if(work_day == -1) then
           work_day = int_day
+          c_work_dtg = dtg 
+        else if(work_day /= int_day) then
+          call count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
+                        c_work_dtg,lat_range)
+          work_day = int_day
+          c_work_dtg = dtg 
         endif
 
         ! Open the shawn file and look at contents

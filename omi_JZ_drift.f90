@@ -151,7 +151,7 @@ program omi_JZ_drift
         ! day, call check_bad_row and update the bad row list
         ! ----------------------------------------------------------------
         if(work_day /= int_day) then
-          call check_bad_rows(errout,io10)
+          call check_bad_rows(total_file_name,errout,io10)
           work_day = int_day
         endif
 

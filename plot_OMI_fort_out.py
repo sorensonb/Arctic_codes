@@ -61,8 +61,9 @@ x_range = np.arange(len(dates))
 
 # Calculate daily totals
 #daily_counts_65 = [np.average(tmparr) for tmparr in \
-daily_counts_65 = [np.sum(tmparr) for tmparr in \
-    np.array_split(count65,len(count65)/4)]
+if(dtype != 'vsj22'):
+    daily_counts_65 = [np.sum(tmparr) for tmparr in \
+        np.array_split(count65,len(count65)/4)]
 ##daily_counts_70 = [np.average(tmparr) for tmparr in \
 ##    np.array_split(count70,len(count70)/4)]
 ##daily_counts_75 = [np.average(tmparr) for tmparr in \
@@ -71,9 +72,12 @@ daily_counts_65 = [np.sum(tmparr) for tmparr in \
 ##    np.array_split(count80,len(count80)/4)]
 ##daily_counts_85 = [np.average(tmparr) for tmparr in \
 ##    np.array_split(count85,len(count85)/4)]
-daily_dt_dates = dt_dates[::4]
-daily_dates = dates[::4]/100
-daily_xrange = x_range[::4]
+    daily_dt_dates = dt_dates[::4]
+    daily_dates = dates[::4]/100
+    daily_xrange = x_range[::4]
+else:
+    daily_counts_65 = counts
+    daily_dates = dates
 
 ## Split by synoptic time
 #count_00 = count[0::4]

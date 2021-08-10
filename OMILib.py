@@ -1320,7 +1320,7 @@ def plotOMI_MonthTrend(OMI_data,month_idx=None,save=False,\
     local_data   = np.copy(OMI_data['AI'][month_idx::index_jumper,:,:])
     local_counts = np.copy(OMI_data['OB_COUNT'][month_idx::index_jumper,:,:])
     local_mask = np.ma.masked_where(local_counts == 0, local_data)
-    local_mask = np.ma.masked_where(local_mask == -999.9, local_mask)
+    local_mask = np.ma.masked_where((local_mask == -999.9) & (OMI_data['LAT'] < minlat), local_mask)
     ai_trends = np.zeros(local_data.shape[1:])
     print(local_data.shape)
 
@@ -1358,7 +1358,7 @@ def plotOMI_MonthTrend(OMI_data,month_idx=None,save=False,\
 
     # Loop over all the keys and print the regression slopes 
     # Grab the averages for the key
-    for i in range(0,len(lat_ranges)):
+    for i in range(0,len(np.arange(np.min(OMI_data['LAT']),90))):
         for j in range(0,len(lon_ranges)):
             # Check the current max and min
             x_vals = np.arange(0,len(local_mask[:,i,j]))
