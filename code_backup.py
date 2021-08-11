@@ -41,11 +41,11 @@ os.system(cmnd)
 ## ---------------------------------------------------------------------------- 
 ## CERES raw codes
 ## ---------------------------------------------------------------------------- 
-#print("CERES")
+print("CERES")
 #cmnd = "cp "+base_dir+"CERES/*.py "+dest_dir
-#cmnd = "find "+base_dir+"CERES/ -type f -name \"*.py\" | xargs cp -t "+dest_dir
-#print(cmnd)
-#os.system(cmnd)
+cmnd = "find "+base_dir+"CERES/ -type f -name \"*.py\" | xargs cp -t "+dest_dir
+print(cmnd)
+os.system(cmnd)
 #cmnd = "cp "+base_dir+"CERES/*.c "+dest_dir
 #print(cmnd)
 #os.system(cmnd)

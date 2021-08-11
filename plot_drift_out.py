@@ -44,6 +44,8 @@ elif(version == 'jz27'):
     title_string = 'Only rows 49, 50, 53, and 56-60'
 elif(version == 'jz28'):
     title_string = 'Only rows 49, 50, and 56-60'
+elif(version == 'jz210'):
+    title_string = 'Only good rows, no 43 for Jul/Aug 2019'
 elif(version == 'bs2'):
     title_string = 'Only rows 1 - 21'
 else:
@@ -57,8 +59,10 @@ if(len(sys.argv) == 3):
         title_string2 = 'Only rows 49, 50, 53, and 56-60'
     elif(version2 == 'jz28'):
         title_string2 = 'Only rows 49, 50, and 56-60'
-    elif(version == 'bs2'):
-        title_string = 'Only rows 1 - 21'
+    elif(version2 == 'jz210'):
+        title_string2 = 'Only good rows, no 43 for Jul/Aug 2019'
+    elif(version2 == 'bs2'):
+        title_string2 = 'Only rows 1 - 21'
     else:
         title_string2 = ''
 

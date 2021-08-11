@@ -77,7 +77,7 @@ ax.grid(which='major',axis='y',linewidth=1.0,color='black')
 ax.set_xlabel('Year')
 ax.set_ylabel('Row Number')
 
-outname = 'bad_rows_'+start_year + '_'+end_year+'.png'
+outname = 'bad_rows_'+start_year + '_'+end_year+'_2.png'
 plt.savefig(outname,dpi=300)
 print("Saved image",outname)
 plt.show()

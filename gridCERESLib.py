@@ -28,6 +28,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 #import matplotlib.colors as color
+import matplotlib.path as mpath
 from matplotlib.colors import rgb2hex,Normalize
 from matplotlib import cm
 from matplotlib.cm import ScalarMappable
@@ -41,6 +42,14 @@ from os import system
 import glob
 # The commands module was discontinued for Python 3, so if the user
 # is using python 2, import commands instead
+
+# Compute a circle in axes coordinates, which we can use as a boundary
+# for the map. We can pan/zoom as much as we like - the boundary will be
+# permanently circular.
+theta = np.linspace(0, 2*np.pi, 100)
+center, radius = [0.5, 0.5], 0.5
+verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+circle = mpath.Path(verts * radius + center)
 
 def covariance(x,y):
     avg_x = np.average(x)
@@ -114,7 +123,7 @@ def readgridCERES(start_date,end_date,param,satellite = 'Aqua',minlat=60.5,seaso
     elif(season=='sunlight'):
         sunlight=True
    
-    lat_ranges = np.arange(minlat,90.5,1.0)
+    lat_ranges = np.arange(minlat,89.5,1.0)
     lon_ranges = np.arange(0.5,360.5,1.0)
 
     # Grab all the files
@@ -257,6 +266,116 @@ def readgridCERES_daily(start_date,end_date,param,satellite = 'Aqua',minlat=60.5
 
     return CERES_data
 
+# Data period is of format YYYYMMDDHH
+def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'):
+    CERES_data_hrly = {}
+
+    var_dict = {
+        'SWF': 'CERES_SW_TOA_flux___upwards',
+        'LWF': 'CERES_LW_TOA_flux___upwards'
+    }
+  
+    lat_ranges = np.arange(minlat,90.0,1.0)
+    lon_ranges = np.arange(0.0,360.0,1.0)
+
+    # Grab all the files
+    if(satellite == 'Terra'):
+        base_path = '/home/bsorenson/data/CERES/SSF_1Deg/daily/Terra/CERES_SSF1deg-Day_Terra-MODIS_Ed4.1_Subset_'
+    else:
+        base_path = '/home/bsorenson/data/CERES/SSF_1Deg/daily/Aqua/CERES_SSF1deg-Day_Aqua-MODIS_Ed4.1_Subset_'
+    total_list = sorted(glob.glob(base_path+'CERES_SSF_*.nc'))
+
+    # Convert the desired dt to a datetime object to use for finding the file
+    # -----------------------------------------------------------------------
+    day = False
+    if(len(data_dt) == 10):
+        str_fmt = "%Y%m%d%H"
+        hour_adder = 1
+        hour_subtracter = 1
+    elif(len(data_dt) == 8):
+        print("Daily average")
+        day = True
+        str_fmt = "%Y%m%d"
+        hour_subtracter = 0
+        hour_adder = 23
+        day_adder = 'daily_'
+    else:
+        print("INVALID PLOT TIME")
+        sys.exit()
+    
+    dt_data_begin = datetime.strftime(str_fmt,data_dt) - 
+        relativedelta(hours = hour_subtracter)
+    dt_data_end   = datetime.strftime(str_fmt,data_dt)
+
+    # Loop over the list of current CERES data files and find the one that  
+    # corresponds to the desired datetime
+    # --------------------------------------------------------------------
+    good_list = []
+    for tfile in total_list:
+        split_file = tfile.strip().split('/')[-1].split('_')
+        begin_date = datetime.strptime(split_file[-1][:10],"%Y%m%d%H")
+        end_date   = datetime.strptime(split_file[-1][11:21],"%Y%m%d%H")
+        if((dt_data_begin >= begin_date) & (dt_data_dt <= end_date)):
+            print("Found matching file",tfile)
+            good_list.append(tfile)
+            #work_file = tfile
+    #total_list = [base_path+'CERES_SSF_Aqua-XTRK_Edition4A_Subset_2008042200-2008042223.nc']
+    #total_list = subprocess.check_output('ls '+base_path+'CERES_SSF_Aqua-XTRK_Edition4A_Subset_'+year+date+'*.nc',\
+    #          shell=True).decode('utf-8').strip().split('\n')
+    
+    # Set up values for gridding the AI data
+    lat_gridder = minlat * 4.
+
+    swf_grid = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    count = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    base_date = datetime(year=1970,month=1,day=1)
+    
+    for fileI in range(len(good_list)):
+        # read in data directly from HDF5 files
+        print(good_list[fileI])
+        data = Dataset(good_list[fileI],'r')
+        lat   = 90. - data.variables['Colatitude_of_CERES_FOV_at_surface'][:]
+        lon   = data.variables['Longitude_of_CERES_FOV_at_surface'][:]
+        lon[lon>179.99] = -360.+lon[lon>179.99]
+        flux  = data.variables[var_dict[invar]][:]
+        time  = data.variables['time'][:]
+    
+        # Loop over the values and rows 
+        for i in range(flux.shape[0]):
+            #if((albedo[i,j]>-20) & (reflectance[i,j]>-20)):
+            local_time = base_date + relativedelta(days = time[i])
+            if((local_time >= dt_data_begin) & (local_time < dt_data_end)):
+                if((flux[i] < 5000) and (flux[i] > 0)):
+                    index1 = int(np.floor(lat[i]*4 - lat_gridder))
+                    index2 = int(np.floor(lon[i]*4 + 720.))
+                    
+                    if(index1 < 0): index1 = 0
+                    if(index1 > 719): index1 = 719
+                    if(index2 < 0): index2 = 0                                                                                            
+                    if(index2 > 1439): index2 = 1439
+              
+                    swf_grid[index2, index1] = (swf_grid[index2,index1]*count[index2,index1] + flux[i])/(count[index2,index1]+1)
+                    #UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + diff)/(count[index2,index1]+1)
+                    #UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + plotAI[i,j])/(count[index2,index1]+1)
+                    #if((ii==1309) and (ii2==59)): print UVAI[index1,index2]
+                    count[index2, index1] = count[index2,index1] + 1
+        data.close()
+    
+    CERES_data_hrly['param'] = var_dict[param]
+    CERES_data_hrly['data']   = swf_grid
+    CERES_data_hrly['date'] = data_dt
+    CERES_data_hrly['lat'] = lat_ranges
+    CERES_data_hrly['lon'] = lon_rangs
+    CERES_data_hrly['satellite'] = satellite
+     
+    #start_date = datetime.strptime(str(start_date),'%Y%m')
+    #end_date = datetime.strptime(str(end_date),'%Y%m') +timedelta(days=31)
+    #
+    #tempdate = data.variables['time'].units
+    #orig_date = datetime.strptime(tempdate.split()[2]+' '+tempdate.split()[3],'%Y-%m-%d %H:%M:%S')
+
+    return CERES_data_hrly
+
 # This function assumes the data is being read from the CERES_data dictionary 
 def calcCERES_MonthClimo(CERES_data):
 
@@ -268,19 +387,23 @@ def calcCERES_MonthClimo(CERES_data):
     local_mask = np.ma.masked_where(local_data == -999.9, local_data)
 
     # Calculate monthly climatologies
-    # Assume all Aqua CERES data starting at 200207 is read in previously
-    month_climo[0,:,:]  = np.nanmean(local_mask[6::12,:,:],axis=0)  # January 
-    month_climo[1,:,:]  = np.nanmean(local_mask[7::12,:,:],axis=0)  # February
-    month_climo[2,:,:]  = np.nanmean(local_mask[8::12,:,:],axis=0)  # March 
-    month_climo[3,:,:]  = np.nanmean(local_mask[9::12,:,:],axis=0)  # April 
-    month_climo[4,:,:]  = np.nanmean(local_mask[10::12,:,:],axis=0) # May 
-    month_climo[5,:,:]  = np.nanmean(local_mask[11::12,:,:],axis=0) # June 
-    month_climo[6,:,:]  = np.nanmean(local_mask[0::12,:,:],axis=0)  # July 
-    month_climo[7,:,:]  = np.nanmean(local_mask[1::12,:,:],axis=0)  # August 
-    month_climo[8,:,:]  = np.nanmean(local_mask[2::12,:,:],axis=0)  # September 
-    month_climo[9,:,:]  = np.nanmean(local_mask[3::12,:,:],axis=0)  # October 
-    month_climo[10,:,:] = np.nanmean(local_mask[4::12,:,:],axis=0)  # November
-    month_climo[11,:,:] = np.nanmean(local_mask[5::12,:,:],axis=0)  # December
+    for m_i in range(12):
+        month_climo[m_i,:,:] = np.nanmean(local_mask[m_i::12,:,:],axis=0)
+        print("Month: ",CERES_data['dates'][m_i][4:]) 
+    ##!## Calculate monthly climatologies
+    ##!## Assume all Aqua CERES data starting at 200207 is read in previously
+    ##!#month_climo[0,:,:]  = np.nanmean(local_mask[6::12,:,:],axis=0)  # January 
+    ##!#month_climo[1,:,:]  = np.nanmean(local_mask[7::12,:,:],axis=0)  # February
+    ##!#month_climo[2,:,:]  = np.nanmean(local_mask[8::12,:,:],axis=0)  # March 
+    ##!#month_climo[3,:,:]  = np.nanmean(local_mask[9::12,:,:],axis=0)  # April 
+    ##!#month_climo[4,:,:]  = np.nanmean(local_mask[10::12,:,:],axis=0) # May 
+    ##!#month_climo[5,:,:]  = np.nanmean(local_mask[11::12,:,:],axis=0) # June 
+    ##!#month_climo[6,:,:]  = np.nanmean(local_mask[0::12,:,:],axis=0)  # July 
+    ##!#month_climo[7,:,:]  = np.nanmean(local_mask[1::12,:,:],axis=0)  # August 
+    ##!#month_climo[8,:,:]  = np.nanmean(local_mask[2::12,:,:],axis=0)  # September 
+    ##!#month_climo[9,:,:]  = np.nanmean(local_mask[3::12,:,:],axis=0)  # October 
+    ##!#month_climo[10,:,:] = np.nanmean(local_mask[4::12,:,:],axis=0)  # November
+    ##!#month_climo[11,:,:] = np.nanmean(local_mask[5::12,:,:],axis=0)  # December
 
     # Insert data into dictionary
     CERES_data['MONTH_CLIMO'] = month_climo
@@ -883,50 +1006,50 @@ def icePlots(infile,monthfix=False):
 
     return extent,trends,months,years,deseasonal_ext
 
-def all_years(ice_avgs,alb_avgs,years,monthfix,minlat):
-    colors = np.arange(2001,2019) 
- 
-    cmap = cm.bwr
-    #norm = Normalize(vmin=vmin,vmax=vmax)
-    norm = matplotlib.colors.Normalize(vmin=2001,vmax=2018) 
-    mapper = ScalarMappable(norm=norm,cmap=cmap)
-    ccolors = ['red','darkorange','gold',\
-               'yellow','greenyellow','green',\
-               'springgreen','aquamarine','aqua',\
-               'deepskyblue','cornflowerblue','blue',\
-               'mediumslateblue','blueviolet','darkviolet',\
-               'purple','fuchsia','deeppink']
-    fig    = plt.figure(figsize=(8,7))
-    ax = fig.add_subplot(111)
-    #fig.set_figheight(8)
-    #fig.set_figwidth(10)
-    ax.set_xlim(3,17)
-    ax.set_ylim(0.3,0.65) 
-    patches = []
-    for xi in range(18):
-        pairs = []
-        for yi in range(12):
-            index = xi*12+yi
-            if(alb_avgs[index]!=-420):
-                pairs.append((ice_avgs[index],alb_avgs[index]))
-        color = mapper.to_rgba(2001+xi)
-        color2 = rgb2hex(color)
-        poly = Polygon(pairs,fill=False,edgecolor=color2) 
-        #poly = Polygon(pairs,fill=False,edgecolor=ccolors[xi]) 
-        plt.gca().add_patch(poly)
-        patches.append(poly) 
-    cax = fig.add_axes([0.91,0.11,0.025,0.77])
-    cb = ColorbarBase(cax,cmap=cmap,norm=norm,orientation='vertical')
-    #p = PatchCollection(patches,alpha=0.4)
-    #p.set_array(np.array(colors))
-    #ax.add_collection(p)
-    #fig.colorbar(p,ax=ax)
-    ax.set_xlabel('Sea Ice Extent (Mkm$^{2}$)')
-    ax.set_ylabel('Clear-sky Albedo')
-    outname = 'yearly_scatter_ice_vs_alb'+CERES_dict['month_fix']+'_'+str(int(CERES_dict['lat'][0]))+'.png'
-    fig.savefig(outname,dpi=300)
-    print('Saved image ',outname)
-    #plt.show()
+##!#def all_years(ice_avgs,alb_avgs,years,monthfix,minlat):
+##!#    colors = np.arange(2001,2019) 
+##!# 
+##!#    cmap = cm.bwr
+##!#    #norm = Normalize(vmin=vmin,vmax=vmax)
+##!#    norm = matplotlib.colors.Normalize(vmin=2001,vmax=2018) 
+##!#    mapper = ScalarMappable(norm=norm,cmap=cmap)
+##!#    ccolors = ['red','darkorange','gold',\
+##!#               'yellow','greenyellow','green',\
+##!#               'springgreen','aquamarine','aqua',\
+##!#               'deepskyblue','cornflowerblue','blue',\
+##!#               'mediumslateblue','blueviolet','darkviolet',\
+##!#               'purple','fuchsia','deeppink']
+##!#    fig    = plt.figure(figsize=(8,7))
+##!#    ax = fig.add_subplot(111)
+##!#    #fig.set_figheight(8)
+##!#    #fig.set_figwidth(10)
+##!#    ax.set_xlim(3,17)
+##!#    ax.set_ylim(0.3,0.65) 
+##!#    patches = []
+##!#    for xi in range(18):
+##!#        pairs = []
+##!#        for yi in range(12):
+##!#            index = xi*12+yi
+##!#            if(alb_avgs[index]!=-420):
+##!#                pairs.append((ice_avgs[index],alb_avgs[index]))
+##!#        color = mapper.to_rgba(2001+xi)
+##!#        color2 = rgb2hex(color)
+##!#        poly = Polygon(pairs,fill=False,edgecolor=color2) 
+##!#        #poly = Polygon(pairs,fill=False,edgecolor=ccolors[xi]) 
+##!#        plt.gca().add_patch(poly)
+##!#        patches.append(poly) 
+##!#    cax = fig.add_axes([0.91,0.11,0.025,0.77])
+##!#    cb = ColorbarBase(cax,cmap=cmap,norm=norm,orientation='vertical')
+##!#    #p = PatchCollection(patches,alpha=0.4)
+##!#    #p.set_array(np.array(colors))
+##!#    #ax.add_collection(p)
+##!#    #fig.colorbar(p,ax=ax)
+##!#    ax.set_xlabel('Sea Ice Extent (Mkm$^{2}$)')
+##!#    ax.set_ylabel('Clear-sky Albedo')
+##!#    outname = 'yearly_scatter_ice_vs_alb'+CERES_dict['month_fix']+'_'+str(int(CERES_dict['lat'][0]))+'.png'
+##!#    fig.savefig(outname,dpi=300)
+##!#    print('Saved image ',outname)
+##!#    #plt.show()
 
 # This function automatically regenerates all known figures 
 def plotCERES_AllPlots(CERES_dict,CERES_dict_summer,CERES_dict_winter,minlat=31., \
@@ -1173,13 +1296,173 @@ def plotCERES_MonthClimo(CERES_data,month_idx,minlat = 60):
             CERES_data['MONTH_CLIMO'][month_idx,:,:],transform = datacrs,\
             cmap = colormap)
     ax.set_extent([-180,180,minlat,90],datacrs)
-    ax.set_xlim(-3430748.535086173,3430748.438879491)
-    ax.set_ylim(-3413488.8763307533,3443353.899053069)
+    ax.set_extent([-180,180,minlat,90],datacrs)
+    ax.set_boundary(circle, transform=ax.transAxes)
+    #ax.set_xlim(-3430748.535086173,3430748.438879491)
+    #ax.set_ylim(-3413488.8763307533,3443353.899053069)
     cbar = plt.colorbar(mesh,ticks = np.arange(0.0,400.,25.),orientation='horizontal',pad=0,\
-        aspect=50,shrink = 0.905,label=CERES_data['parm_name'])
+        aspect=50,shrink = 0.845,label=CERES_data['parm_name'])
     ax.set_title(title)
 
     plt.show()
+
+# Designed to work with the netCDF data
+def plotCERES_MonthTrend(CERES_data,month_idx=None,save=False,\
+        trend_type='standard',season='',minlat=65.,return_trend=False):
+    trend_label=''
+    if(trend_type=='thiel-sen'):
+        trend_label='_thielSen'
+
+    if(month_idx == None):
+        month_adder = ''
+        month_idx = 0
+        index_jumper = 1
+        do_month = False
+        v_max = 30.
+        v_min = -30.
+    else:
+        month_adder = '_month'
+        if(CERES_data['season'] == 'sunlight'):
+            index_jumper = 6
+        else:   
+            index_jumper = 12
+        do_month = True
+        v_max = 30.
+        v_min = -30.
+
+    lat_ranges = np.arange(minlat,90,1.0)
+    lon_ranges = np.arange(-180,180,1.0)
+
+    # Set up mapping variables 
+    datacrs = ccrs.PlateCarree() 
+    colormap = plt.cm.bwr
+    if(minlat < 45):
+        mapcrs = ccrs.Miller()
+    else:
+        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
+
+    # Pull the beginning and ending dates into datetime objects
+    start_date = datetime.strptime(CERES_data['dates'][month_idx::index_jumper][0],'%Y%m')
+    end_date   = datetime.strptime(CERES_data['dates'][month_idx::index_jumper][-1],'%Y%m')
+
+    # Make copy of CERES_data array
+    print(CERES_data['dates'][month_idx::index_jumper])
+    local_data   = np.copy(CERES_data['data'][month_idx::index_jumper,:,:])
+    #local_counts = np.copy(CERES_data['OB_COUNT'][month_idx::index_jumper,:,:])
+    #local_mask = np.ma.masked_where(local_counts == 0, local_data)
+    local_mask = np.ma.masked_where((local_data == -999.9) & (CERES_data['lat'] < minlat), local_data)
+    ceres_trends = np.zeros(local_data.shape[1:])
+    print(local_data.shape)
+
+    plt.close('all')
+    ##!#fig0 = plt.figure()
+    ##!## 79 x 152: 14, 332
+    ##!#latx = 14
+    ##!#lonx = 332
+    ##!### 75 x -150: 10, 30
+    ##!##latx = 10
+    ##!##lonx = 30
+    ##!#plt.plot(CERES_data['DATES'][month_idx::index_jumper],local_mask[:,latx,lonx])
+    ##!#plt.title(str(int(lat_ranges[latx])) + 'x'+str(int(lon_ranges[lonx]))+\
+    ##!#            '\n'+start_date.strftime('%b') + ' ' + CERES_data['VERSION']) 
+    ##!#if(save == True):
+    ##!#    month_adder = ''
+    ##!#    if(do_month == True):
+    ##!#        month_adder = '_' + start_date.strftime('%b') 
+    ##!#    outname = 'omi_ai_time_series' + month_adder + '_' + \
+    ##!#        str(int(lat_ranges[latx])) + 'x'+str(int(lon_ranges[lonx])) + \
+    ##!#        '_' + version + '.png'
+    ##!#    plt.savefig(outname)
+    ##!#    print("Saved image",outname)
+    ##!##return local_mask[:,latx,lonx]
+    
+
+    # Make figure title
+    #date_month = datetime(year = 1,month = month_idx+1, day = 1).strftime('%B')
+    month_string = ''
+    if(do_month == True):
+        month_string = start_date.strftime('%B') + ' '
+
+    title = 'CERES ' + CERES_data['param'] + ' ' + month_string + 'Trends'\
+        '\n'+start_date.strftime('%b. %Y') + ' - ' +\
+        end_date.strftime('%b. %Y')
+
+    # Loop over all the keys and print the regression slopes 
+    # Grab the averages for the key
+    for i in range(0,len(lat_ranges)):
+        for j in range(0,len(lon_ranges)):
+            # Check the current max and min
+            x_vals = np.arange(0,len(local_mask[:,i,j]))
+            # Find the slope of the line of best fit for the time series of
+            # average data
+            if(trend_type=='standard'): 
+                slope, intercept, r_value, p_value, std_err = \
+                    stats.linregress(x_vals,local_mask[:,i,j])
+                ceres_trends[i,j] = slope * len(x_vals)
+            else:
+                #The slope
+                S=0
+                sm=0
+                nx = len(local_mask[:,i,j])
+                num_d=int(nx*(nx-1)/2)  # The number of elements in avgs
+                Sn=np.zeros(num_d)
+                for si in range(0,nx-1):
+                    for sj in range(si+1,nx):
+                        # Find the slope between the two points
+                        Sn[sm] = (local_mask[si,i,j]-local_mask[sj,i,j])/\
+                                 (si-sj) 
+                        sm=sm+1
+                    # Endfor
+                # Endfor
+                Snsorted=sorted(Sn)
+                sm=int(num_d/2.)
+                print(dictkey,len(Snsorted))
+                if(len(Snsorted)==1):
+                    color=(0,0,0,0) 
+                else:
+                    if(2*sm    == num_d):
+                        slope=0.5*(Snsorted[sm]+Snsorted[sm+1])
+                    if((2*sm)+1 == num_d): 
+                        slope=Snsorted[sm+1]
+                    ceres_trends[i,j] = slope*len(avgs)
+
+    print(np.min(ceres_trends),np.max(ceres_trends))
+   
+    ceres_trends = np.ma.masked_where(CERES_data['lat'] < minlat, ceres_trends)
+
+    # Make figure
+    fig1 = plt.figure(figsize = (8,8))
+    ax = plt.axes(projection = mapcrs)
+    ax.gridlines()
+    ax.coastlines(resolution='50m')
+    mesh = ax.pcolormesh(CERES_data['lon'], CERES_data['lat'],\
+            ceres_trends,transform = datacrs,\
+            cmap = colormap,vmin=v_min,vmax=v_max)
+    ax.set_extent([-180,180,minlat,90],datacrs)
+    ax.set_boundary(circle, transform=ax.transAxes)
+    #ax.set_xlim(-3430748.535086173,3430748.438879491)
+    #ax.set_ylim(-3413488.8763307533,3443353.899053069)
+    cbar = plt.colorbar(mesh,ticks = np.arange(-200.,400.,5.),\
+        orientation='horizontal',pad=0,aspect=50,shrink = 0.845,\
+        label = CERES_data['parm_name'])
+    cbar.ax.tick_params(labelsize=14)
+    cbar.set_label('',fontsize=16,weight='bold')
+    ax.set_title(title)
+
+    if(save == True):
+        month_adder = ''
+        if(do_month == True):
+            month_adder = '_' + start_date.strftime('%b') 
+        out_name = 'omi_ai_trend' + month_adder + '_' + \
+            start_date.strftime('%Y%m') + '_' + end_date.strftime('%Y%m') + \
+            '.png'
+        plt.savefig(out_name,dpi=300)
+        print("Saved image",out_name)
+    else:
+        plt.show()
+
+    if(return_trend == True):
+        return ceres_trends
 
 # Plot a daily monthly anomalies, which are daily data with that month's
 # climatology subtracted 
@@ -1225,3 +1508,87 @@ def plotCERES_Daily_MonthAnomaly(CERES_data,CERES_daily_data,day_idx,minlat = 60
         print('Saved image '+out_name)
     else:
         plt.show()
+
+def plot_compare_OMI_CERES_trends(OMI_data,CERES_data,month,minlat=65,save=False):
+    from OMILib import plotOMI_MonthTrend
+    OMI_trend = plotOMI_MonthTrend(OMI_data,month_idx=month,save=True,\
+                trend_type='standard',season='',minlat=minlat,return_trend=True)
+    CERES_trend = plotCERES_MonthTrend(CERES_data,month_idx=month,save=True,\
+                trend_type='standard',season='',minlat=minlat,return_trend=True)
+    # Convert the index to a string using datetime
+    if(month != None):
+        dt_obj = datetime.strptime(OMI_data['DATES'][month],"%Y%m")
+        title = 'OMI AI / CERES ' + CERES_data['param'] + '\n'+ \
+            dt_obj.strftime("%b") + " Trend Comparison"
+        outname = 'omi_ceres_trend_comp_'+dt_obj.strftime("%b")+'_'+\
+            OMI_data['VERSION']+'vCERES.png'
+    else:
+        title = 'OMI AI / CERES ' + CERES_data['param'] + ' Trend Comparison'
+        outname = 'omi_ceres_trend_comp_'+\
+            OMI_data1['VERSION']+'vCERES.png'
+
+    mask_trend1 = np.array(OMI_trend[(OMI_trend != 0) & (CERES_trend != 0)])
+    mask_trend2 = np.array(CERES_trend[(OMI_trend != 0) & (CERES_trend != 0)])
+    #mask_trend1 = np.ma.masked_where(OMI_trend1 == 0,OMI_trend1)
+    #mask_trend2 = np.ma.masked_where(OMI_trend2 == 0,OMI_trend2)
+
+    print("Pearson:  ",pearsonr(mask_trend1,mask_trend2))
+    print("Spearman: ",spearmanr(mask_trend1,mask_trend2))
+
+    xy = np.vstack([mask_trend1,mask_trend2])
+    z = stats.gaussian_kde(xy)(xy)
+
+    # Plot a somewhat-robust best fit line using Huber Regression
+    # -----------------------------------------------------------
+    x_scaler,y_scaler = StandardScaler(), StandardScaler()
+    x_train = x_scaler.fit_transform(mask_trend1[...,None])
+    y_train = y_scaler.fit_transform(mask_trend2[...,None])
+
+    model = HuberRegressor(epsilon=1)
+    model.fit(x_train,y_train)
+    
+    test_x = np.array([np.min(mask_trend1),np.max(mask_trend1)])
+    predictions = y_scaler.inverse_transform(\
+        model.predict(x_scaler.transform(test_x[...,None])))
+
+    # One to one line stuff
+    xs = np.arange(np.min(mask_trend1),np.max(mask_trend1),0.1)
+
+    plt.close('all')
+    fig1 = plt.figure()
+    plt.scatter(mask_trend1,mask_trend2,c=z,s=8)
+    plt.plot(test_x,predictions,color='tab:green',linestyle='--',label='Huber Fit')
+    # Plot an unrobust fit line using linear regression
+    # -------------------------------------------------
+    plt.plot(np.unique(mask_trend1),np.poly1d(np.polyfit(mask_trend1,\
+        mask_trend2,1))(np.unique(mask_trend1)),color='tab:orange',\
+        linestyle='--',label='Polyfit Fit')
+    # Plot a one-to-one line
+    plt.plot(xs,xs,label='1-1',color='tab:red')
+    ##if((month == 0) | (month == 1)):
+    ##    plt.xlim(-0.5,0.3)
+    ##    plt.ylim(-0.5,0.3)
+    ##elif((month == 2)):
+    ##    plt.xlim(-0.6,0.5)
+    ##    plt.ylim(-0.6,0.5)
+    ##elif((month == 3)):
+    ##    plt.xlim(-0.5,0.5)
+    ##    plt.ylim(-0.5,0.5)
+    ##elif((month == 4)):
+    ##    plt.xlim(-0.5,0.7)
+    ##    plt.ylim(-0.5,0.7)
+    ##elif((month == 5)):
+    ##    plt.xlim(-0.5,0.5)
+    ##    plt.ylim(-0.5,0.5)
+    ##else:
+    ##    plt.xlim(-0.3,0.3)
+    ##    plt.ylim(-0.3,0.3)
+    plt.legend()
+    plt.xlabel(OMI_data['VERSION'])
+    plt.ylabel('CERES')
+    plt.title(title)
+    if(save == True):
+        plt.savefig(outname)
+    else:
+        plt.show()
+    #return mask_trend1,mask_trend2

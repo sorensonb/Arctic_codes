@@ -54,7 +54,8 @@ subroutine grid_raw_data_drift(avg_ai,i_count)
       endif
 
       ! 
-      if((jj > 20)) then
+      if((jj > 45) .and. &
+         (jj /= 43)) then
       !!#!if((jj == 49) .or. &
       !!#!   (jj == 50) .or. &
       !!#!   !(jj == 53) .or. &
