@@ -51,6 +51,16 @@ center, radius = [0.5, 0.5], 0.5
 verts = np.vstack([np.sin(theta), np.cos(theta)]).T
 circle = mpath.Path(verts * radius + center)
 
+max_dict = {
+    'SWF': 600.,
+    'LWF': 240.
+}
+
+min_dict = {
+    'SWF': 0.,
+    'LWF': 160.
+}
+
 def covariance(x,y):
     avg_x = np.average(x)
     avg_y = np.average(y)
@@ -275,14 +285,14 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'
         'LWF': 'CERES_LW_TOA_flux___upwards'
     }
   
-    lat_ranges = np.arange(minlat,90.0,1.0)
-    lon_ranges = np.arange(0.0,360.0,1.0)
+    lat_ranges = np.arange(minlat,90.0,0.25)
+    lon_ranges = np.arange(-180.0,180.0,0.25)
 
     # Grab all the files
     if(satellite == 'Terra'):
-        base_path = '/home/bsorenson/data/CERES/SSF_1Deg/daily/Terra/CERES_SSF1deg-Day_Terra-MODIS_Ed4.1_Subset_'
+        base_path = '/home/bsorenson/data/CERES/SSF_Level2/Terra/'
     else:
-        base_path = '/home/bsorenson/data/CERES/SSF_1Deg/daily/Aqua/CERES_SSF1deg-Day_Aqua-MODIS_Ed4.1_Subset_'
+        base_path = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/'
     total_list = sorted(glob.glob(base_path+'CERES_SSF_*.nc'))
 
     # Convert the desired dt to a datetime object to use for finding the file
@@ -303,9 +313,10 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'
         print("INVALID PLOT TIME")
         sys.exit()
     
-    dt_data_begin = datetime.strftime(str_fmt,data_dt) - 
-        relativedelta(hours = hour_subtracter)
-    dt_data_end   = datetime.strftime(str_fmt,data_dt)
+    dt_data_begin = datetime.strptime(data_dt,str_fmt) 
+    #    relativedelta(hours = hour_subtracter)
+    dt_data_end   = datetime.strptime(data_dt,str_fmt) + \
+         relativedelta(hours = hour_subtracter)
 
     # Loop over the list of current CERES data files and find the one that  
     # corresponds to the desired datetime
@@ -315,7 +326,7 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'
         split_file = tfile.strip().split('/')[-1].split('_')
         begin_date = datetime.strptime(split_file[-1][:10],"%Y%m%d%H")
         end_date   = datetime.strptime(split_file[-1][11:21],"%Y%m%d%H")
-        if((dt_data_begin >= begin_date) & (dt_data_dt <= end_date)):
+        if((dt_data_begin >= begin_date) & (dt_data_end <= end_date)):
             print("Found matching file",tfile)
             good_list.append(tfile)
             #work_file = tfile
@@ -337,7 +348,7 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'
         lat   = 90. - data.variables['Colatitude_of_CERES_FOV_at_surface'][:]
         lon   = data.variables['Longitude_of_CERES_FOV_at_surface'][:]
         lon[lon>179.99] = -360.+lon[lon>179.99]
-        flux  = data.variables[var_dict[invar]][:]
+        flux  = data.variables[var_dict[param]][:]
         time  = data.variables['time'][:]
     
         # Loop over the values and rows 
@@ -345,7 +356,7 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'
             #if((albedo[i,j]>-20) & (reflectance[i,j]>-20)):
             local_time = base_date + relativedelta(days = time[i])
             if((local_time >= dt_data_begin) & (local_time < dt_data_end)):
-                if((flux[i] < 5000) and (flux[i] > 0)):
+                if((flux[i] < 5000) and (flux[i] > 0) and (lat[i] >= minlat)):
                     index1 = int(np.floor(lat[i]*4 - lat_gridder))
                     index2 = int(np.floor(lon[i]*4 + 720.))
                     
@@ -353,19 +364,24 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'
                     if(index1 > 719): index1 = 719
                     if(index2 < 0): index2 = 0                                                                                            
                     if(index2 > 1439): index2 = 1439
-              
-                    swf_grid[index2, index1] = (swf_grid[index2,index1]*count[index2,index1] + flux[i])/(count[index2,index1]+1)
+             
+                    try: 
+                        swf_grid[index2, index1] = (swf_grid[index2,index1]*count[index2,index1] + flux[i])/(count[index2,index1]+1)
+                    except IndexError:
+                        print(lat[i],lon[i],index1,index2)
                     #UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + diff)/(count[index2,index1]+1)
                     #UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + plotAI[i,j])/(count[index2,index1]+1)
                     #if((ii==1309) and (ii2==59)): print UVAI[index1,index2]
                     count[index2, index1] = count[index2,index1] + 1
         data.close()
     
-    CERES_data_hrly['param'] = var_dict[param]
+    CERES_data_hrly['param'] = param
+    CERES_data_hrly['parm_name'] = var_dict[param]
     CERES_data_hrly['data']   = swf_grid
+    CERES_data_hrly['counts'] = count
     CERES_data_hrly['date'] = data_dt
     CERES_data_hrly['lat'] = lat_ranges
-    CERES_data_hrly['lon'] = lon_rangs
+    CERES_data_hrly['lon'] = lon_ranges
     CERES_data_hrly['satellite'] = satellite
      
     #start_date = datetime.strptime(str(start_date),'%Y%m')
@@ -1050,6 +1066,44 @@ def icePlots(infile,monthfix=False):
 ##!#    fig.savefig(outname,dpi=300)
 ##!#    print('Saved image ',outname)
 ##!#    #plt.show()
+
+def plotCERES_hrly(CERES_data_hrly,minlat,save=False):
+
+    # Set up mapping variables 
+    datacrs = ccrs.PlateCarree() 
+    colormap = plt.cm.jet
+    if(minlat < 45):
+        mapcrs = ccrs.Miller()
+    else:
+        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
+
+    local_data = np.copy(CERES_data_hrly['data'])
+
+    plot_lat, plot_lon = np.meshgrid(CERES_data_hrly['lat'],CERES_data_hrly['lon'])
+    mask_flux = np.ma.masked_where(CERES_data_hrly['counts'] == 0, local_data)
+   
+    plt.close('all') 
+    fig = plt.figure(figsize=(8,8))
+    ax = plt.axes(projection = mapcrs)
+    ax.gridlines()
+    ax.coastlines(resolution = '50m')
+    plt.title('CERES ' + CERES_data_hrly['param'] + ' ' + CERES_data_hrly['date'])
+    #plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
+    mesh = ax.pcolormesh(plot_lon, plot_lat,mask_flux,transform = datacrs,cmap = colormap,\
+            vmin = min_dict[CERES_data_hrly['param']], \
+            vmax = max_dict[CERES_data_hrly['param']])
+    ax.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
+            #vmin = var_dict[variable]['min'], vmax = var_dict[variable]['max'])
+    cbar = plt.colorbar(mesh,orientation='horizontal',pad=0,\
+        aspect=50,shrink = 0.845,label=CERES_data_hrly['param'])
+    
+    if(save == True):
+        out_name = 'ceres_single_pass_' + day_adder + invar.lower() +'_'+plot_time+'.png'       
+        plt.savefig(out_name,dpi=300)
+        print('Saved image '+out_name)
+    else:
+        plt.show()
+
 
 # This function automatically regenerates all known figures 
 def plotCERES_AllPlots(CERES_dict,CERES_dict_summer,CERES_dict_winter,minlat=31., \
