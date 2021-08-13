@@ -150,7 +150,7 @@ total_list = subprocess.check_output('ls '+base_path+'OMI-Aura_L2-OMAERUV_'+\
     year+'m'+date+'t'+time+'*.he5',shell=True).decode('utf-8').strip().split('\n')
 
 # Set up values for gridding the AI data
-latmin = 65 
+latmin = 60 
 lat_gridder = latmin * 4.
 
 lat_ranges = np.arange(latmin,90.1,0.25)
@@ -261,7 +261,7 @@ cbar = plt.colorbar(mesh,ticks = tickvals,orientation='horizontal',pad=0,\
 cbar.ax.tick_params(labelsize=14)
 cbar.set_label('UV Aerosol Index',fontsize=16,weight='bold')
 
-save = False
+save = True 
 if(save == True):
     out_name = 'omi_single_pass_'+name_dict[variable] + str_wave + '_'+\
         plot_time+'_rows_0to'+str(row_max)+'.png'

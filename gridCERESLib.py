@@ -53,7 +53,7 @@ circle = mpath.Path(verts * radius + center)
 
 max_dict = {
     'SWF': 600.,
-    'LWF': 240.
+    'LWF': 280.
 }
 
 min_dict = {
@@ -307,7 +307,7 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'
         day = True
         str_fmt = "%Y%m%d"
         hour_subtracter = 0
-        hour_adder = 23
+        hour_adder = 24
         day_adder = 'daily_'
     else:
         print("INVALID PLOT TIME")
@@ -316,7 +316,9 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'
     dt_data_begin = datetime.strptime(data_dt,str_fmt) 
     #    relativedelta(hours = hour_subtracter)
     dt_data_end   = datetime.strptime(data_dt,str_fmt) + \
-         relativedelta(hours = hour_subtracter)
+         relativedelta(hours = hour_adder)
+
+    print(dt_data_begin,dt_data_end)
 
     # Loop over the list of current CERES data files and find the one that  
     # corresponds to the desired datetime
@@ -326,7 +328,10 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'
         split_file = tfile.strip().split('/')[-1].split('_')
         begin_date = datetime.strptime(split_file[-1][:10],"%Y%m%d%H")
         end_date   = datetime.strptime(split_file[-1][11:21],"%Y%m%d%H")
-        if((dt_data_begin >= begin_date) & (dt_data_end <= end_date)):
+        if((dt_data_begin >= begin_date) & (dt_data_end <= end_date) | \
+           (dt_data_begin == end_date) | \
+           ((day == True) & (dt_data_begin == begin_date)) & \
+            ((dt_data_end - relativedelta(hours=1)) == end_date)):
             print("Found matching file",tfile)
             good_list.append(tfile)
             #work_file = tfile
@@ -340,13 +345,14 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'
     swf_grid = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
     count = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
     base_date = datetime(year=1970,month=1,day=1)
-    
+ 
     for fileI in range(len(good_list)):
         # read in data directly from HDF5 files
         print(good_list[fileI])
         data = Dataset(good_list[fileI],'r')
         lat   = 90. - data.variables['Colatitude_of_CERES_FOV_at_surface'][:]
         lon   = data.variables['Longitude_of_CERES_FOV_at_surface'][:]
+        sza   = data.variables['CERES_solar_zenith_at_surface'][:]
         lon[lon>179.99] = -360.+lon[lon>179.99]
         flux  = data.variables[var_dict[param]][:]
         time  = data.variables['time'][:]
@@ -356,7 +362,8 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'
             #if((albedo[i,j]>-20) & (reflectance[i,j]>-20)):
             local_time = base_date + relativedelta(days = time[i])
             if((local_time >= dt_data_begin) & (local_time < dt_data_end)):
-                if((flux[i] < 5000) and (flux[i] > 0) and (lat[i] >= minlat)):
+                if((flux[i] < 5000) and (flux[i] > 0) and (lat[i] >= minlat)\
+                   and (sza[i] < 75)):
                     index1 = int(np.floor(lat[i]*4 - lat_gridder))
                     index2 = int(np.floor(lon[i]*4 + 720.))
                     
@@ -1067,7 +1074,7 @@ def icePlots(infile,monthfix=False):
 ##!#    print('Saved image ',outname)
 ##!#    #plt.show()
 
-def plotCERES_hrly(CERES_data_hrly,minlat,save=False):
+def plotCERES_hrly(CERES_data_hrly,minlat=60,save=False):
 
     # Set up mapping variables 
     datacrs = ccrs.PlateCarree() 
@@ -1098,7 +1105,8 @@ def plotCERES_hrly(CERES_data_hrly,minlat,save=False):
         aspect=50,shrink = 0.845,label=CERES_data_hrly['param'])
     
     if(save == True):
-        out_name = 'ceres_single_pass_' + day_adder + invar.lower() +'_'+plot_time+'.png'       
+        out_name = 'ceres_single_pass_' + CERES_data_hrly['param'].lower() + \
+            '_' + CERES_data_hrly['date'] + '.png'
         plt.savefig(out_name,dpi=300)
         print('Saved image '+out_name)
     else:
