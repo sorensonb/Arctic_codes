@@ -195,7 +195,8 @@ os.system(cmnd)
 # --------------------------------
 
 # Change to Arctic codes directory
-os.chdir('/home/bsorenson/Arctic_codes/')
+os.chdir(dest_dir)
+#os.chdir('/home/bsorenson/Arctic_codes/')
 
 # Add new stuff
 os.system('git add .')
