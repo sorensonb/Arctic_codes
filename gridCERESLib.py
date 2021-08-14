@@ -342,6 +342,7 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'
     # Set up values for gridding the AI data
     lat_gridder = minlat * 4.
 
+
     swf_grid = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
     count = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
     base_date = datetime(year=1970,month=1,day=1)
