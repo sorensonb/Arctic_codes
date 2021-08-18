@@ -1,6 +1,6 @@
 # Comment line
 
-EXEC = omi_exec2
+EXEC = omi_JZ_count_exec
 COMP = h5fc
 #COMP = gfortran
 LIB_PATH = ../JZ_lib/

@@ -46,11 +46,18 @@ start_year = name_split[3]
 end_year   = name_split[4]
 ai_thresh  = float(int(name_split[5].split('.')[0])/100)
 
+if((dtype != 'vsj22') & (dtype != 'vjz2112')):
+    day_avgs = True
+    time_fmt = "%Y%m%d"
+else:
+    day_avgs = False
+    time_fmt = "%Y%m%d%H"
+
 print(ai_thresh)
 
 in_data = pd.read_csv(file_name, delim_whitespace=True)
 dates  = in_data['Date'].values
-dt_dates = [datetime.strptime(str(tmpdate),"%Y%m%d%H") \
+dt_dates = [datetime.strptime(str(tmpdate),time_fmt) \
     for tmpdate in dates]
 count65  = in_data['Cnt'+min_lat].values
 #count70  = in_data['Cnt70'].values
@@ -61,7 +68,7 @@ x_range = np.arange(len(dates))
 
 # Calculate daily totals
 #daily_counts_65 = [np.average(tmparr) for tmparr in \
-if(dtype != 'vsj22'):
+if(not day_avgs):
     daily_counts_65 = [np.sum(tmparr) for tmparr in \
         np.array_split(count65,len(count65)/4)]
 ##daily_counts_70 = [np.average(tmparr) for tmparr in \
@@ -76,8 +83,9 @@ if(dtype != 'vsj22'):
     daily_dates = dates[::4]/100
     daily_xrange = x_range[::4]
 else:
-    daily_counts_65 = counts
+    daily_counts_65 = count65
     daily_dates = dates
+    daily_dt_dates = dt_dates
 
 ## Split by synoptic time
 #count_00 = count[0::4]
@@ -90,9 +98,10 @@ else:
 #xrange_18 = x_range[3::4]
 
 fig1, ax = plt.subplots()
-#ax.plot(dt_dates,count65,label='synoptic')
+#if(dtype != 'vsj22'):
+#    ax.plot(dt_dates,count65,label='synoptic')
 ax.plot(daily_dt_dates,daily_counts_65,label='daily')
-ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+#ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
 ax.legend()
 ax.set_ylabel('Counts')
 ax.set_title('AI Counts ' + dtype + ': Threshold of '+str(ai_thresh)+\

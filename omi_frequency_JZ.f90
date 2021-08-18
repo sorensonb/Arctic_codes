@@ -67,6 +67,7 @@ program omi_frequency_JZ
   integer,dimension(4)   :: synop_times     ! list containing the 4 synoptic
                                             ! times
 
+  character(len = 10)    :: c_work_dtg      ! dtg from each line of file
   character(len = 255)   :: out_file_name   ! output file name
   character(len = 255)   :: file_name_file  ! name of file containing the 
                                             ! list of HDF5 file names to 
@@ -111,7 +112,7 @@ program omi_frequency_JZ
 
   ! Set up lat/lon grids
   ! --------------------
-  lat_thresh = 65.
+  lat_thresh = 60.
   lat_gridder = lat_thresh * 4.
   i_size = (90. - lat_thresh) * 4.
 
@@ -156,7 +157,8 @@ program omi_frequency_JZ
   if(istatus /= 0) then
     write(errout,*) "ERROR: error opening data count output file."
   endif
-  write(io6,'(a10,5(a6))') 'Date','Cnt65','Cnt70','Cnt75','Cnt80','Cnt85'
+  write(io6,'(a10,6(a6))') 'Date','Cnt60','Cnt65','Cnt70','Cnt75','Cnt80',&
+    'Cnt85'
 
   ! Initialize the work_day value to -1
   ! -----------------------------------
@@ -183,6 +185,8 @@ program omi_frequency_JZ
       read(io8, '(A)', iostat=istatus) total_file_name
       if(istatus < 0) then 
         write(*,*) "End of "//trim(file_name_file)//" found"
+        call count_ai_JZ(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
+                      total_file_name,lat_range)
         exit
       else if(istatus > 0) then
         write(errout,*) "ERROR: problem reading total_file_name"
@@ -213,6 +217,17 @@ program omi_frequency_JZ
           call count_ai_JZ(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
                         total_file_name,lat_range)
         endif  
+        !!#!if(work_day == -1) then
+        !!#!  call check_bad_rows(total_file_name,errout,io10)
+        !!#!  work_day = int_day
+        !!#!  c_work_dtg = total_file_name(44:47)//total_file_name(49:52)
+        !!#!else if(work_day /= int_day) then
+        !!#!  call count_ai_JZ(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
+        !!#!                c_work_dtg,lat_range)
+        !!#!  call check_bad_rows(total_file_name,errout,io10)
+        !!#!  work_day = int_day
+        !!#!  c_work_dtg = total_file_name(44:47)//total_file_name(49:52)
+        !!#!endif
 
         ! Open the HDF5 file
         ! ------------------

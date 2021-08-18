@@ -35,20 +35,19 @@ program omi_JZ_row
   implicit none
 
   integer                :: ii            ! loop counter
-  integer                :: i_size        ! array size
+  !!#!integer                :: i_size        ! array size
   integer                :: int_month     ! integer variable for month
-  integer                :: int_day       ! integer variable for day 
+  !!#!integer                :: int_day       ! integer variable for day 
   integer                :: arg_count     ! Number of arguments passed to exec
   integer                :: work_month    ! currently analyzed month
-  integer                :: work_day 
+  !!#!integer                :: work_day 
   integer                :: error         ! error flag
   integer                :: istatus
   integer                :: file_id       ! id for current HDF5 file
 
-  real,dimension(:,:), allocatable    :: row_avgs     ! quarter-degree AI grid
+  integer,dimension(:), allocatable    :: row_avgs     ! quarter-degree AI grid
                                                    ! values.
-  integer,dimension(:,:), allocatable :: i_counts  ! quarter-degree AI counts
-
+  real                   :: lat_thresh
   ! File read variables
   integer,parameter      :: io8    = 42   ! File object for file name file
   integer,parameter      :: io6    = 1827 ! Data output file
@@ -61,7 +60,7 @@ program omi_JZ_row
                                             ! be analyzed
   character(len = 255)   :: total_file_name ! file name read from each line 
                                             ! of file_name_file
-  character(len = 4)     :: c_work_year     ! holds the previous year
+  !!#!character(len = 4)     :: c_work_year     ! holds the previous year
 
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -93,7 +92,7 @@ program omi_JZ_row
 
   !!#!! Set up lat/lon row_avgs
   !!#!! --------------------
-  !!#!lat_thresh = 65.
+  lat_thresh = 65.
   !!#!lat_gridder = lat_thresh
   !!#!i_size = (90. - lat_thresh)
   !!#!allocate(lat_range(i_size))
@@ -110,10 +109,10 @@ program omi_JZ_row
   ! ----------------------------------------------
 
   allocate(row_avgs(60))
-  allocate(i_counts(60))
+  !!#!allocate(i_counts(60))
 
-  row_avgs(:,:) = 0.
-  i_counts(:,:) = 0
+  row_avgs(:) = 0
+  !!#!i_counts(:,:) = 0
 
   ! open debug file
   ! ---------------
@@ -122,13 +121,13 @@ program omi_JZ_row
     write(*,*) "error opening error file."
   endif
 
-  ! open row anomaly file
-  ! ---------------
-  open(io10, file = "/home/bsorenson/OMI/"&
-    //"row_anomaly_dates_20050401_20191001.txt", iostat = istatus)
-  if(istatus /= 0) then
-    write(*,*) "error opening row file."
-  endif
+  !!#!! open row anomaly file
+  !!#!! ---------------
+  !!#!open(io10, file = "/home/bsorenson/OMI/"&
+  !!#!  //"row_anomaly_dates_20050401_20191001.txt", iostat = istatus)
+  !!#!if(istatus /= 0) then
+  !!#!  write(*,*) "error opening row file."
+  !!#!endif
 
   ! open output file
   ! ---------------
@@ -136,11 +135,11 @@ program omi_JZ_row
   if(istatus /= 0) then
     write(errout,*) "ERROR: error opening climo output file."
   endif
-  write(io6,'(a4,2x,3(a7))') 'Date','Lat Lon','Avg','#_obs'
+  write(io6,'(2a12)') 'Row Num','Row switch'
 
-  ! Initialize the work_day value to -1
-  ! -----------------------------------
-  work_day = -1
+  !!#!! Initialize the work_day value to -1
+  !!#!! -----------------------------------
+  !!#!work_day = -1
 
   ! Open the file name file
   ! -----------------------
@@ -168,17 +167,17 @@ program omi_JZ_row
         cycle file_loop
       else
 
-        ! Extract day information from file name
-        ! --------------------------------------
-        read(total_file_name(51:52), *) int_day
+        !!#!! Extract day information from file name
+        !!#!! --------------------------------------
+        !!#!read(total_file_name(51:52), *) int_day
 
-        ! If the day of the new file is different than the current working
-        ! day, call check_bad_row and update the bad row list
-        ! ----------------------------------------------------------------
-        if(work_day /= int_day) then
-          call check_bad_rows(errout,io10)
-          work_day = int_day
-        endif
+        !!#!!!#!! If the day of the new file is different than the current working
+        !!#!!!#!! day, call check_bad_row and update the bad row list
+        !!#!!!#!! ----------------------------------------------------------------
+        !!#!!!#!if(work_day /= int_day) then
+        !!#!!!#!  call check_bad_rows(errout,io10)
+        !!#!!!#!  work_day = int_day
+        !!#!!!#!endif
 
         ! Extract month information from dtg
         ! ----------------------------------
@@ -190,13 +189,14 @@ program omi_JZ_row
         ! ----------------------------------------------------------------
         if(work_month == -1) then
           work_month = int_month
-          c_work_year = total_file_name(44:47)  
+          write(*,*) total_file_name(44:50)
         else if(work_month /= int_month) then
           !!#!call print_climo(io6,row_avgs,i_counts,i_size,c_work_year,&
           !!#!                 work_month,lat_range,lon_range)
           work_month = int_month
-          c_work_year = total_file_name(44:47)  
+          write(*,*) total_file_name(44:50)
         endif
+        !!#!c_work_year = total_file_name(44:47)  
 
         ! Open the HDF5 file
         ! ------------------
@@ -209,11 +209,11 @@ program omi_JZ_row
         ! Read in the necessary data using the read routines
         ! --------------------------------------------------
         call read_h5_AI(file_id)
-        !call read_h5_LAT(file_id)
+        call read_h5_LAT(file_id)
         !call read_h5_LON(file_id)
         call read_h5_XTRACK(file_id)   
         !call read_h5_AZM(file_id) 
-        call read_h5_GPQF(file_id)
+        !call read_h5_GPQF(file_id)
 
         ! Close file
         ! ----------
@@ -225,8 +225,7 @@ program omi_JZ_row
 
         ! Insert this new data into the grid 
         ! ----------------------------------
-        call grid_raw_data_climo(row_avgs,i_counts,i_size,&
-                lat_gridder,lat_thresh)
+        call check_row_xtrack(row_avgs,lat_thresh,errout)
 
         ! Deallocate all the arrays for the next pass
         ! -------------------------------------------
@@ -235,21 +234,25 @@ program omi_JZ_row
     enddo file_loop  
   endif
 
-  ! If, for some reason, the list of bad rows was not deallocated from
-  ! before, deallocate it.
-  ! ------------------------------------------------------------------
-  if(allocated(i_bad_list)) deallocate(i_bad_list)
+  do ii=1,60
+    write(io6,*) ii,row_avgs(ii)
+  enddo
+
+  !!#!! If, for some reason, the list of bad rows was not deallocated from
+  !!#!! before, deallocate it.
+  !!#!! ------------------------------------------------------------------
+  !!#!if(allocated(i_bad_list)) deallocate(i_bad_list)
 
   ! Deallocate the remaining allocated arrays and close all files
   ! -------------------------------------------------------------
   close(io8)
   close(io6)
-  close(io10)
+  !!#!close(io10)
   close(errout)  
   deallocate(row_avgs)
-  deallocate(i_counts)
-  deallocate(lat_range)
-  deallocate(lon_range)
+  !!#!deallocate(i_counts)
+  !!#!deallocate(lat_range)
+  !!#!deallocate(lon_range)
   
   ! Close the HDF5 interface
   ! ------------------------

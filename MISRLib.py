@@ -37,6 +37,7 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.colorbar import ColorbarBase
 from scipy import stats
 from netCDF4 import Dataset
+from glob import glob
 # The commands module was discontinued for Python 3, so if the user
 # is using python 2, import commands instead
 if(sys.version_info[0] < 3):
@@ -280,6 +281,134 @@ def readMISR_New(start_date,end_date,minlat=45,filetype='clr100'):
             # end for loop (file)
             fin.close()
     return MISR_dict
+
+# Data period is of format YYYYMMDDHH
+def readMISR_hrly(data_dt,minlat=60.0,season='all'):
+    MISR_data_hrly = {}
+    
+    lat_ranges = np.arange(minlat,90.0,0.25)
+    lon_ranges = np.arange(-180.0,180.0,0.25)
+
+    # Grab all available MISR names
+    base_path = '/home/bsorenson/data/MISR/'
+    total_list = sorted(glob(base_path+'MISR*.nc'))
+
+    # Convert the desired dt to a datetime object to use for finding the file
+    # -----------------------------------------------------------------------
+    day = False
+    if(len(data_dt) == 10):
+        str_fmt = "%Y%m%d%H"
+        hour_adder = 1
+        hour_subtracter = 1
+    elif(len(data_dt) == 8):
+        print("Daily average")
+        day = True
+        str_fmt = "%Y%m%d"
+        hour_subtracter = 0
+        hour_adder = 24
+        day_adder = 'daily_'
+    else:
+        print("INVALID PLOT TIME")
+        return    
+    
+    dt_data_begin = datetime.strptime(data_dt,str_fmt) 
+    #    relativedelta(hours = hour_subtracter)
+    dt_data_end   = datetime.strptime(data_dt,str_fmt) + \
+         relativedelta(hours = hour_adder)
+
+    print(dt_data_begin,dt_data_end)
+
+    # Loop over the list of current MISR data files and find the one that  
+    # corresponds to the desired datetime
+    # --------------------------------------------------------------------
+    good_list = []
+    for tfile in total_list:
+        data = Dataset(tfile,'r')
+        time_str = data['4.4_KM_PRODUCTS/Time'].units
+        base_date = datetime.strptime(time_str.split('.')[0],"seconds since %Y-%m-%dT%H:%M:%S")
+        begin_date = base_date + relativedelta(seconds = data['4.4_KM_PRODUCTS/Time'][0])
+        end_date = base_date + relativedelta(seconds = data['4.4_KM_PRODUCTS/Time'][-1])
+        data.close()
+
+        #if(((file_begin >= dt_data_begin) & (file_end <= dt_data_end)) | \
+        #((file_begin >= dt_data_begin) & (file_end > dt_data_end)) | \
+        #((file_end < dt_data_end) & (file_begin < dt_data_begin))):
+
+        #print(begin_date,end_date)
+        if(((end_date >= dt_data_begin) & (begin_date <= dt_data_end)) | \
+            ((day) & (begin_date.day == dt_data_begin.day) & \
+            (begin_date.month == dt_data_begin.month) & \
+            (begin_date.day == dt_data_begin.day))):
+        ##!#if(((dt_data_begin >= begin_date) & (dt_data_begin <= end_date)) | \
+        ##!#   ((dt_data_end >= begin_date) & (dt_data_end < end_date))):
+          # (dt_data_begin == end_date) | \
+          # ((day == True) & (dt_data_begin == begin_date)) & \
+          #  ((dt_data_end - relativedelta(hours=1)) == end_date)):
+            print("Found matching file",tfile)
+            good_list.append(tfile)
+   
+    if(len(good_list) == 0):
+        print("ERROR: No valid files found")
+        return MISR_data_hrly
+ 
+    # Set up values for gridding the AI data
+    lat_gridder = minlat * 4.
+
+    aod_grid = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    count = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+ 
+    for fileI in range(len(good_list)):
+        # read in data directly from HDF5 files
+        print(good_list[fileI])
+        data = Dataset(good_list[fileI],'r')
+        lat   = data['4.4_KM_PRODUCTS/Latitude'][:,:].flatten()
+        lon   = data['4.4_KM_PRODUCTS/Longitude'][:,:].flatten()
+        aod   = data['4.4_KM_PRODUCTS/Aerosol_Optical_Depth'][:,:].flatten()
+  
+        # Loop over the values and rows 
+        for ii in range(aod.shape[0]):
+            #for jj in range(aod.shape[1]): 
+            #if((albedo[i,j]>-20) & (reflectance[i,j]>-20)):
+            #if((local_time >= dt_data_begin) & (local_time < dt_data_end)):
+            if((aod[ii] < 5000) and (aod[ii] > 0) and \
+                    (lat[ii] >= minlat)):
+                index1 = int(np.floor(lat[ii]*4 - lat_gridder))
+                index2 = int(np.floor(lon[ii]*4 + 720.))
+                
+                if(index1 < 0): index1 = 0
+                if(index1 > 719): index1 = 719
+                if(index2 < 0): index2 = 0                                                                                            
+                if(index2 > 1439): index2 = 1439
+            
+                try: 
+                    #swf_grid[index2, index1] = (swf_grid[index2,index1]*count[index2,index1] + flux[i])/(count[index2,index1]+1)
+                    aod_grid[index2, index1] = aod_grid[index2,index1] + aod[ii]
+                except IndexError:
+                    print(lat[ii,jj],lon[ii,jj],index1,index2)
+                #UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + diff)/(count[index2,index1]+1)
+                #UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + plotAI[i,j])/(count[index2,index1]+1)
+                #if((ii==1309) and (ii2==59)): print UVAI[index1,index2]
+                count[index2, index1] = count[index2,index1] + 1
+        data.close()
+  
+    # Finally, average the values
+    # --------------------------- 
+    aod_grid[count > 0] = aod_grid[count > 0] / count[count > 0]
+     
+    MISR_data_hrly['param'] = 'aod'
+    MISR_data_hrly['aod']   = aod_grid
+    MISR_data_hrly['counts'] = count
+    MISR_data_hrly['date'] = data_dt
+    MISR_data_hrly['lat'] = lat_ranges
+    MISR_data_hrly['lon'] = lon_ranges
+     
+    #start_date = datetime.strptime(str(start_date),'%Y%m')
+    #end_date = datetime.strptime(str(end_date),'%Y%m') +timedelta(days=31)
+    #
+    #tempdate = data.variables['time'].units
+    #orig_date = datetime.strptime(tempdate.split()[2]+' '+tempdate.split()[3],'%Y-%m-%d %H:%M:%S')
+
+    return MISR_data_hrly
 
 def readMISR_NCDF(infile='/home/bsorenson/Research/MISR/misr_aod_clr100_2000_2019.nc',\
                 calc_month = True,minlat=65):
@@ -1708,6 +1837,43 @@ def plotMISR_MonthClimo(MISR_data,month_idx,minlat = 60,save=False):
         out_name = 'misr_aod_month_climo_' + date_month + '.png'
         plt.savefig(out_name,dpi=300)
         print("Saved image",out_name)
+    else:
+        plt.show()
+
+def plotMISR_hrly(MISR_data_hrly,minlat=60,save=False):
+
+    # Set up mapping variables 
+    datacrs = ccrs.PlateCarree() 
+    colormap = plt.cm.jet
+    if(minlat < 45):
+        mapcrs = ccrs.Miller()
+    else:
+        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
+
+    local_data = np.copy(MISR_data_hrly['aod'])
+
+    plot_lat, plot_lon = np.meshgrid(MISR_data_hrly['lat'],MISR_data_hrly['lon'])
+    mask_flux = np.ma.masked_where(MISR_data_hrly['counts'] == 0, local_data)
+   
+    plt.close('all') 
+    fig = plt.figure(figsize=(8,8))
+    ax = plt.axes(projection = mapcrs)
+    ax.gridlines()
+    ax.coastlines(resolution = '50m')
+    plt.title('MISR ' + MISR_data_hrly['param'] + ' ' + MISR_data_hrly['date'])
+    #plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
+    mesh = ax.pcolormesh(plot_lon, plot_lat,mask_flux,transform = datacrs,cmap = colormap,\
+            vmin = 0., \
+            vmax = 0.5)
+    ax.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
+            #vmin = var_dict[variable]['min'], vmax = var_dict[variable]['max'])
+    cbar = plt.colorbar(mesh,orientation='horizontal',pad=0,\
+        aspect=50,shrink = 0.845,label=MISR_data_hrly['param'])
+    
+    if(save == True):
+        out_name = 'misr_single_pass_aod_' + MISR_data_hrly['date'] + '.png'
+        plt.savefig(out_name,dpi=300)
+        print('Saved image '+out_name)
     else:
         plt.show()
 

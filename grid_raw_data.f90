@@ -44,7 +44,10 @@ subroutine grid_raw_data(grids,i_counts,i_size,lat_gridder,lat_thresh)
   ! Loop over the array contents
   ! -------------------------
   time_loop: do ii=1,AI_dims(2)
-    row_loop: do jj=1,AI_dims(1) 
+    ! JZ211: only rows 55 to 60
+    ! -------------------------
+    !row_loop: do jj=1,AI_dims(1) 
+    row_loop: do jj=55,AI_dims(1) 
 
       ! Account for bad rows here
       ! Cycle loop if this index in bad rows
