@@ -21,6 +21,8 @@ program omi_frequency
 !
 !  ############################################################################
 
+  use omi_fort_lib, only : lat_lon_area
+
   implicit none
 
   integer                :: ii            ! loop counter
@@ -66,6 +68,8 @@ program omi_frequency
                                             ! be analyzed
 
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+  !!#!write(*,*) lat_lon_area(70.25,70.0,50.75,50.50)
 
   ! Check command line arguments
   ! ----------------------------

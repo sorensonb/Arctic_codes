@@ -2,7 +2,9 @@
 
 COMP = gfortran
 EXEC = omi_count_exec
-OBJECTS = omi_frequency.o \
+FORT_LIB_PATH = ../../fort_lib/
+OBJECTS = omi_fort_lib.o \
+			omi_frequency.o \
 			count_ai.o \
 			synop_time_check.o \
 			read_shawn_file.o
@@ -12,8 +14,8 @@ FFLAGS = -g -O2 -Wall
 $(EXEC): $(OBJECTS)
 	$(COMP) $(OBJECTS) -o $(EXEC)
 
-omi_frequency.o: omi_frequency.f90
-	$(COMP) $(FFLAGS) -c omi_frequency.f90
+omi_fort_lib.o: $(FORT_LIB_PATH)omi_fort_lib.f90
+	$(COMP) $(FFLAGS) -c $(FORT_LIB_PATH)omi_fort_lib.f90
 
 count_ai.o: count_ai.f90
 	$(COMP) $(FFLAGS) -c count_ai.f90
@@ -23,6 +25,9 @@ synop_time_check.o: synop_time_check.f90
 
 read_shawn_file.o: read_shawn_file.f90
 	$(COMP) $(FFLAGS) -c read_shawn_file.f90
+
+omi_frequency.o: omi_frequency.f90 $(FORT_LIB_PATH)omi_fort_lib.f90
+	$(COMP) $(FFLAGS) -c omi_frequency.f90
 
 clean:
 	rm $(EXEC) $(OBJECTS)

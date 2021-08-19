@@ -320,6 +320,8 @@ def readOMI_single_swath(plot_time,row_max,coccolith = False):
     OMI_single_dict['lon'] = lon_ranges
     OMI_single_dict['AI'] = g_UVAI_354
     OMI_single_dict['AI_count'] = count_UVAI_354
+    OMI_single_dict['date'] = plot_time
+    OMI_single_dict['row_max'] = row_max
     if(coccolith):
         OMI_single_dict['NRAD500'] = g_NRAD_500
         OMI_single_dict['NRAD500_count'] = count_NRAD_500
@@ -2388,6 +2390,51 @@ def plot_omi_da(OMI_da_nc,save=False):
         out_name = 'omi_da_ai_'+\
             plot_time+'.png'
         plt.savefig(out_name)
+        print('Saved image '+out_name)
+    else:
+        plt.show()
+
+def plotOMI_hrly(OMI_data_hrly,minlat=60,save=False):
+
+    # Set up mapping variables 
+    datacrs = ccrs.PlateCarree() 
+    colormap = plt.cm.jet
+    if(minlat < 45):
+        mapcrs = ccrs.Miller()
+    else:
+        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
+
+    local_data = np.copy(OMI_data_hrly['AI'])
+
+    plot_lat, plot_lon = np.meshgrid(OMI_data_hrly['lat'],OMI_data_hrly['lon'])
+    mask_AI = np.ma.masked_where(OMI_data_hrly['AI_count'] == 0, local_data)
+
+    # Determine the percentage of grid boxes that are actually filled
+    # with values.
+    total_boxes = mask_AI.size
+    total_good = mask_AI.count()
+    pcnt_good = (total_good / total_boxes) * 100.
+    print("Total_boxes = ",total_boxes,"Total good = ",total_good)
+    print("Percent good = ",pcnt_good)
+   
+    plt.close('all') 
+    fig = plt.figure(figsize=(8,8))
+    ax = plt.axes(projection = mapcrs)
+    ax.gridlines()
+    ax.coastlines(resolution = '50m')
+    plt.title('OMI AI ' + OMI_data_hrly['date'])
+    #plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
+    mesh = ax.pcolormesh(plot_lon, plot_lat,mask_AI,transform = datacrs,cmap = colormap,\
+            vmin = -2.0,vmax = 4.0)
+    ax.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
+            #vmin = var_dict[variable]['min'], vmax = var_dict[variable]['max'])
+    cbar = plt.colorbar(mesh,orientation='horizontal',pad=0,\
+        aspect=50,shrink = 0.845,label='UV Aerosol Index')
+    
+    if(save == True):
+        out_name = 'omi_single_pass_uvai_' + OMI_data_hrly['date'] + \
+            '_rows_0to' + str(OMI_data_hrly['row_max']) + '.png'
+        plt.savefig(out_name,dpi=300)
         print('Saved image '+out_name)
     else:
         plt.show()

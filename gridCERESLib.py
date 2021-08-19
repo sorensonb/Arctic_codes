@@ -289,7 +289,8 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'
 
     var_dict = {
         'SWF': 'CERES_SW_TOA_flux___upwards',
-        'LWF': 'CERES_LW_TOA_flux___upwards'
+        'LWF': 'CERES_LW_TOA_flux___upwards',
+        'ClearSkyFraction': 'Clear_Sky_Fraction'
     }
   
     lat_ranges = np.arange(minlat,90.0,0.25)
@@ -337,11 +338,12 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'
         end_date   = datetime.strptime(split_file[-1][11:21],"%Y%m%d%H")
         if((dt_data_begin >= begin_date) & (dt_data_end <= end_date) | \
            (dt_data_begin == end_date) | \
-           ((day == True) & (dt_data_begin == begin_date)) & \
-            ((dt_data_end - relativedelta(hours=1)) == end_date)):
+           ((day == True) & (begin_date >= dt_data_begin) & \
+           (end_date <= dt_data_end))):
             print("Found matching file",tfile)
             good_list.append(tfile)
             #work_file = tfile
+
     #total_list = [base_path+'CERES_SSF_Aqua-XTRK_Edition4A_Subset_2008042200-2008042223.nc']
     #total_list = subprocess.check_output('ls '+base_path+'CERES_SSF_Aqua-XTRK_Edition4A_Subset_'+year+date+'*.nc',\
     #          shell=True).decode('utf-8').strip().split('\n')
@@ -370,8 +372,12 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'
             #if((albedo[i,j]>-20) & (reflectance[i,j]>-20)):
             local_time = base_date + relativedelta(days = time[i])
             if((local_time >= dt_data_begin) & (local_time < dt_data_end)):
-                if((flux[i] < 5000) and (flux[i] > 0) and (lat[i] >= minlat)\
-                   and (sza[i] < 75)):
+                if((flux[i] < 5000) and (flux[i] > 0) and (lat[i] >= minlat)):
+                   #and (sza[i] < 80)):
+                    # Skip over the really small flux values when doing
+                    # daily averages
+                    if(day and (sza[i] >= 77)):
+                        continue 
                     index1 = int(np.floor(lat[i]*4 - lat_gridder))
                     index2 = int(np.floor(lon[i]*4 + 720.))
                     

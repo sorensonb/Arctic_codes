@@ -261,7 +261,7 @@ cbar = plt.colorbar(mesh,ticks = tickvals,orientation='horizontal',pad=0,\
 cbar.ax.tick_params(labelsize=14)
 cbar.set_label('UV Aerosol Index',fontsize=16,weight='bold')
 
-save = False
+save = True 
 if(save == True):
     out_name = 'omi_single_pass_'+name_dict[variable] + str_wave + '_'+\
         plot_time+'_rows_0to'+str(row_max)+'.png'
