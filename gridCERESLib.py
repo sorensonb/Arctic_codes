@@ -56,12 +56,18 @@ circle = mpath.Path(verts * radius + center)
 
 max_dict = {
     'SWF': 600.,
-    'LWF': 280.
+    'LWF': 280.,
+    'clr': 100.,
+    'cld': 100.,
+    'alb': 1.
 }
 
 min_dict = {
     'SWF': 0.,
-    'LWF': 160.
+    'LWF': 160.,
+    'clr': 0.,
+    'cld': 0.,
+    'alb': 0.
 }
 
 def covariance(x,y):
@@ -290,7 +296,9 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'
     var_dict = {
         'SWF': 'CERES_SW_TOA_flux___upwards',
         'LWF': 'CERES_LW_TOA_flux___upwards',
-        'ClearSkyFraction': 'Clear_Sky_Fraction'
+        'clr': 'Clear_layer_overlap_percent_coverages',
+        'cld': 'Clear_layer_overlap_percent_coverages',
+        'alb': 'CERES_broadband_surface_albedo'
     }
   
     lat_ranges = np.arange(minlat,90.0,0.25)
@@ -364,15 +372,27 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'
         lon   = data.variables['Longitude_of_CERES_FOV_at_surface'][:]
         sza   = data.variables['CERES_solar_zenith_at_surface'][:]
         lon[lon>179.99] = -360.+lon[lon>179.99]
-        flux  = data.variables[var_dict[param]][:]
+        if(param == 'clr'):
+            # clear layer overlap indices:
+            #    0 - clear
+            #    1 - lower
+            #    2 - upper
+            #    3 - upper over lower
+            flux  = data.variables[var_dict[param]][:,0]
+        elif(param == 'cld'):
+            flux  = data.variables[var_dict[param]][:,1] + \
+                    data.variables[var_dict[param]][:,2] 
+        else:
+            flux  = data.variables[var_dict[param]][:]
         time  = data.variables['time'][:]
     
-        # Loop over the values and rows 
+        # Loop over the values and rows
+        print(flux.shape) 
         for i in range(flux.shape[0]):
             #if((albedo[i,j]>-20) & (reflectance[i,j]>-20)):
             local_time = base_date + relativedelta(days = time[i])
             if((local_time >= dt_data_begin) & (local_time < dt_data_end)):
-                if((flux[i] < 5000) and (flux[i] > 0) and (lat[i] >= minlat)):
+                if((flux[i] < 5000) and (flux[i] >= 0) and (lat[i] >= minlat)):
                    #and (sza[i] < 80)):
                     # Skip over the really small flux values when doing
                     # daily averages
@@ -1703,7 +1723,7 @@ def plot_compare_OMI_CERES_trends(OMI_data,CERES_data,month,minlat=65,save=False
 def plot_compare_OMI_CERES_hrly(OMI_hrly,CERES_hrly,minlat=65,save=False):
 
     # Mask any empty boxes
-    max_AI = 0.5
+    max_AI = -200.0
     mask_AI = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
         (CERES_hrly['counts'] == 0) | (OMI_hrly['AI'] < max_AI)),OMI_hrly['AI'])
     mask_flux = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \

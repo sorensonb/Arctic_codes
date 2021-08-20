@@ -20,6 +20,8 @@ subroutine count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
 !
 !  ###########################################################################
 
+  use omi_fort_lib, only : lat_lon_area
+
   implicit none
 
   integer                :: io6                    ! output file object

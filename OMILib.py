@@ -2425,7 +2425,7 @@ def plotOMI_hrly(OMI_data_hrly,minlat=60,save=False):
     plt.title('OMI AI ' + OMI_data_hrly['date'])
     #plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
     mesh = ax.pcolormesh(plot_lon, plot_lat,mask_AI,transform = datacrs,cmap = colormap,\
-            vmin = -2.0,vmax = 4.0)
+            vmin = -2.0,vmax = 12.0)
     ax.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
             #vmin = var_dict[variable]['min'], vmax = var_dict[variable]['max'])
     cbar = plt.colorbar(mesh,orientation='horizontal',pad=0,\
