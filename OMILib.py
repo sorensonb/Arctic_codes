@@ -259,6 +259,8 @@ def readOMI_single_swath(plot_time,row_max,coccolith = False):
         #for i in range(albedo.shape[0]):
         for i in range(UVAI.shape[0]):
             for j in range(0,row_max):
+                if(j == 52):
+                    continue
                 #if((albedo[i,j]>-20) & (reflectance[i,j]>-20)):
                 if(UVAI[i,j]>-2e5):
                 #if(plotAI[i,j]>-20):
@@ -1280,6 +1282,7 @@ def plotOMI_MonthTrend(OMI_data,month_idx=None,save=False,\
         'VJZ28': 'No Snow-free Land, Only Pure Good Rows',
         'VJZ282': 'No Snow-free Land, Only Pure Good Rows',
         'VJZ29': 'Include Snow-free Land, Only Pure Good Rows',
+        'VJZ211': 'Include Snow-free Land, Rows 55 - 60',
         'VJZ4': 'XTrack == 0, not 4',
         'VJZ5': 'AI >= 0',
         'VBS0': 'No Bad Row Screening',
@@ -1700,6 +1703,7 @@ def plotOMI_NCDF_SingleMonth(OMI_data,time_idx,minlat=65,save=False):
         'VJZ28': 'No Snow-free Land, Only Pure Good Rows',
         'VJZ282': 'No Snow-free Land, Only Pure Good Rows',
         'VJZ29': 'Include Snow-free Land, Only Pure Good Rows',
+        'VJZ211': 'Include Snow-free Land, Rows 55 - 60',
         'VJZ4': 'XTrack == 0, not 4',
         'VJZ5': 'AI >= 0',
         'VBS0': 'No Bad Row Screening',

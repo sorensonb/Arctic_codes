@@ -392,7 +392,7 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'
             #if((albedo[i,j]>-20) & (reflectance[i,j]>-20)):
             local_time = base_date + relativedelta(days = time[i])
             if((local_time >= dt_data_begin) & (local_time < dt_data_end)):
-                if((flux[i] < 5000) and (flux[i] >= 0) and (lat[i] >= minlat)):
+                if((flux[i] < 5000) and (flux[i] > 0) and (lat[i] >= minlat)):
                    #and (sza[i] < 80)):
                     # Skip over the really small flux values when doing
                     # daily averages
@@ -1720,14 +1720,86 @@ def plot_compare_OMI_CERES_trends(OMI_data,CERES_data,month,minlat=65,save=False
         plt.show()
     #return mask_trend1,mask_trend2
 
-def plot_compare_OMI_CERES_hrly(OMI_hrly,CERES_hrly,minlat=65,save=False):
+def plot_compare_OMI_CERES_hrly(OMI_date,CERES_date,minlat=65,save=False):
+#def plot_compare_OMI_CERES_hrly(OMI_hrly,CERES_hrly,minlat=65,save=False):
 
+    if('/home/bsorenson/Research/OMI' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/OMI')
+    from OMILib import readOMI_single_swath
+
+    # Set up mapping variables 
+    datacrs = ccrs.PlateCarree() 
+    colormap = plt.cm.jet
+    if(minlat < 45):
+        mapcrs = ccrs.Miller()
+    else:
+        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
+
+    # Step 1: read in OMI and CERES data
+    # ----------------------------------
+    OMI_hrly = readOMI_single_swath(OMI_date,60)
+    CERES_hrly = readgridCERES_hrly(CERES_date,'SWF')
+
+    # Step 2: Set up figure to have 3 panels
+    # --------------------------------------
+    plt.close('all')
+    #fig, axs = plt.subplots(1,3,subplot_kw={'projection': mapcrs})
+    fig = plt.figure(figsize=(17,5))
+    ax0 = fig.add_subplot(1,3,2,projection = mapcrs)
+    ax1 = fig.add_subplot(1,3,3,projection = mapcrs)
+    ax2 = fig.add_subplot(1,3,1)
+
+    # Step 3: Plot OMI and CERES data in first two panels
+    # ---------------------------------------------------
+    local_data = np.copy(OMI_hrly['AI'])
+
+    plot_lat, plot_lon = np.meshgrid(OMI_hrly['lat'],OMI_hrly['lon'])
+    mask_AI = np.ma.masked_where(OMI_hrly['AI_count'] == 0, local_data)
+
+    ax0.gridlines()
+    ax0.coastlines(resolution = '50m')
+    ax0.set_title('OMI AI ' + OMI_hrly['date'])
+    #plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
+    mesh0 = ax0.pcolormesh(plot_lon, plot_lat,mask_AI,transform = datacrs,cmap = colormap,\
+            vmin = -2.0,vmax = 4.0)
+    ax0.set_extent([-180,180,minlat,90],datacrs)
+            #vmin = var_dict[variable]['min'], vmax = var_dict[variable]['max'])
+    ax0.set_boundary(circle, transform=ax0.transAxes)
+    cbar = plt.colorbar(mesh0,ax=ax0,orientation='vertical',pad=0.02,\
+        aspect=50,shrink = 1.000,label='UV Aerosol Index')
+
+    local_data = np.copy(CERES_hrly['data'])
+
+    plot_lat, plot_lon = np.meshgrid(CERES_hrly['lat'],CERES_hrly['lon'])
+    mask_flux = np.ma.masked_where(CERES_hrly['counts'] == 0, local_data)
+
+    ax1.gridlines()
+    ax1.coastlines(resolution = '50m')
+    ax1.set_title('CERES ' + CERES_hrly['param'] + ' ' + CERES_hrly['date'])
+    #plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
+    mesh1 = ax1.pcolormesh(plot_lon, plot_lat,mask_flux,transform = datacrs,cmap = colormap,\
+            vmin = min_dict[CERES_hrly['param']], \
+            vmax = max_dict[CERES_hrly['param']])
+    ax1.set_extent([-180,180,minlat,90],datacrs)
+    ax1.set_boundary(circle, transform=ax1.transAxes)
+            #vmin = var_dict[variable]['min'], vmax = var_dict[variable]['max'])
+    cbar = plt.colorbar(mesh1,ax=ax1,orientation='vertical',pad=0.02,\
+        aspect=50,shrink = 1.000,label=CERES_hrly['param'])
+    
+    # Step 4: Plot scatter OMI and CERES comparison in third panel
+    # ------------------------------------------------------------
+
+    # Make gridded lat and lon arrays to use for coloring the plot
+    glat, glon = np.meshgrid(OMI_hrly['lat'],OMI_hrly['lon'])
+    
     # Mask any empty boxes
-    max_AI = -200.0
+    max_AI = -200.
     mask_AI = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
         (CERES_hrly['counts'] == 0) | (OMI_hrly['AI'] < max_AI)),OMI_hrly['AI'])
     mask_flux = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
         (CERES_hrly['counts'] == 0) | (OMI_hrly['AI'] < max_AI)),CERES_hrly['data'])
+    mask_lat  = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
+        (CERES_hrly['counts'] == 0) | (OMI_hrly['AI'] < max_AI)),glat)
     ##!## Convert the index to a string using datetime
     ##!#if(month != None):
     ##!#    dt_obj = datetime.strptime(OMI_data['DATES'][month],"%Y%m")
@@ -1763,9 +1835,13 @@ def plot_compare_OMI_CERES_hrly(OMI_hrly,CERES_hrly,minlat=65,save=False):
     ##!## One to one line stuff
     ##!#xs = np.arange(np.min(mask_AI),np.max(mask_AI),0.1)
 
-    plt.close('all')
-    fig1 = plt.figure()
-    plt.scatter(mask_AI,mask_flux,s=8)
+    #plt.close('all')
+    #fig1 = plt.figure()
+    scat = ax2.scatter(mask_AI,mask_flux,c=mask_lat,s=8)
+    cbar = plt.colorbar(scat,ax=ax2,orientation='vertical',\
+        label='Latitude',pad=0.02,aspect=50)
+    ax2.set_title(OMI_hrly['date'])
+    #plt.title(OMI_hrly['date'])
     #plt.scatter(mask_AI,mask_flux,c=z,s=8)
     #plt.plot(test_x,predictions,color='tab:green',linestyle='--',label='Huber Fit')
     #plt.plot(test_x,predictions,color='tab:green',linestyle='--',label='Huber Fit')
@@ -1794,12 +1870,16 @@ def plot_compare_OMI_CERES_hrly(OMI_hrly,CERES_hrly,minlat=65,save=False):
     ##else:
     ##    plt.xlim(-0.3,0.3)
     ##    plt.ylim(-0.3,0.3)
-    plt.legend()
-    plt.xlabel('OMI')
-    plt.ylabel('CERES')
+    #axs[2].legend()
+    ax2.set_xlabel('OMI')
+    ax2.set_ylabel('CERES')
+    #plt.subplots_adjust(wspace=0.1, hspace=0.10)
+    plt.tight_layout()
     #plt.title(title)
+    outname = 'omi_ceres_compare_'+OMI_date+'.png'
     if(save == True):
-        plt.savefig(outname)
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
     else:
         plt.show()
     #return mask_AI,mask_flux

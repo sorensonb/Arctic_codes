@@ -34,6 +34,7 @@ program omi_frequency
   integer                :: arg_count     ! Number of arguments passed to exec
 
   real                   :: ai_thresh     ! threshold AI value
+  real                   :: prev_lat 
   real                   :: lat_thresh    ! latitude threshold. Only analyze
                                           ! data north of this value.
   real                   :: lat_gridder   ! Used for setting up the latitude
@@ -43,6 +44,7 @@ program omi_frequency
                                           ! hour falls within the synoptic time
                                           ! range.
 
+  real,dimension(:), allocatable      :: grid_areas
   real,dimension(:), allocatable      :: lat_range ! latitude grid
   real,dimension(:), allocatable      :: lon_range ! longitude grid
   real,dimension(:,:), allocatable    :: grids     ! quarter-degree AI grid
@@ -88,7 +90,7 @@ program omi_frequency
 
   !data_path = "/Research/OMI/out_files-monthly.20210518/"
   !data_path = "/Research/OMI/out_files-monthly_test/"
-  data_path = "/Research/OMI/out_files-ltc/"
+  data_path = "/Research/OMI/out_files-ltc2/"
 
   ! Set up lat/lon grids
   ! --------------------
@@ -96,8 +98,17 @@ program omi_frequency
   lat_gridder = lat_thresh * 4.
   i_size = (90. - lat_thresh) * 4.
   allocate(lat_range(i_size))
+  allocate(grid_areas(i_size))
+  prev_lat = lat_thresh
   do ii=1,i_size
     lat_range(ii) = lat_thresh + (ii-1)*0.25
+    
+    ! Since the distance between longitude lines is the same at any latitude
+    ! band, only need a 1-d array to hold all the areas along each latitude
+    ! line.
+    ! ----------------------------------------------------------------------
+    grid_areas(ii) = lat_lon_area(lat_range(ii)+0.25,lat_range(ii),90.25,90.0)
+    !write(*,*) grid_areas(ii),lat_range(ii)+0.25,lat_range(ii),90.25,90.0
   enddo
 
   allocate(lon_range(1440))
@@ -127,8 +138,8 @@ program omi_frequency
   if(istatus /= 0) then
     write(errout,*) "ERROR: error opening data count output file."
   endif
-  write(io6,'(a10,6(a6))') 'Date','Cnt60','Cnt65','Cnt70','Cnt75','Cnt80',&
-    'Cnt85'
+  write(io6,'(a10,6(1x,a10))') 'Date','Area60','Area65','Area70','Area75',&
+    'Area80','Area85'
  
   ! Set up count variables to count the number of grid boxes with
   ! high AI values
@@ -173,7 +184,7 @@ program omi_frequency
         !!#!call synop_time_check(synop_idx, int_hr, l_in_time)
         !!#!if(.not. l_in_time) then 
         !!#!  call count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
-        !!#!                dtg,lat_range)
+        !!#!                dtg,lat_range,grid_areas)
         !!#!endif  
 
         ! For VSJ22, calculating daily averages instead of synoptic avgs
@@ -186,7 +197,7 @@ program omi_frequency
           c_work_dtg = dtg 
         else if(work_day /= int_day) then
           call count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
-                        c_work_dtg,lat_range)
+                        c_work_dtg,lat_range,grid_areas)
           work_day = int_day
           c_work_dtg = dtg 
         endif
@@ -217,6 +228,7 @@ program omi_frequency
   deallocate(i_counts)
   deallocate(lat_range)
   deallocate(lon_range)
+  deallocate(grid_areas)
   close(io8)
   close(io6)
   close(errout)  

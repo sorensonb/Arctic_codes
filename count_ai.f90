@@ -1,5 +1,5 @@
 subroutine count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
-                        dtg,lat_range)
+                        dtg,lat_range,grid_areas)
 !
 !  NAME:
 !    count_ai
@@ -20,7 +20,7 @@ subroutine count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
 !
 !  ###########################################################################
 
-  use omi_fort_lib, only : lat_lon_area
+  !use omi_fort_lib, only : lat_lon_area
 
   implicit none
 
@@ -31,17 +31,18 @@ subroutine count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
   integer                :: i_counts(1440,i_size)  ! AI counts
   real                   :: ai_thresh              ! threshold AI value
   character(len = 12)    :: dtg                    ! datetimegroup
-  real,dimension(i_size) :: lat_range              ! latitude grid
+  real                   :: lat_range(i_size)      ! latitude grid
+  real                   :: grid_areas(i_size)     ! lat/lon box areas
 
-  integer        :: ai_count_60   ! good AI counter north of 65
-  integer        :: ai_count_65   ! good AI counter north of 65
-  integer        :: ai_count_70   ! good AI counter north of 70
-  integer        :: ai_count_75   ! good AI counter north of 75
-  integer        :: ai_count_80   ! good AI counter north of 80
-  integer        :: ai_count_85   ! good AI counter north of 85
-  integer        :: ii            ! loop counter 
-  integer        :: jj            ! loop counter
-  real           :: avg_ai
+  real                   :: ai_count_60   ! good AI counter north of 65
+  real                   :: ai_count_65   ! good AI counter north of 65
+  real                   :: ai_count_70   ! good AI counter north of 70
+  real                   :: ai_count_75   ! good AI counter north of 75
+  real                   :: ai_count_80   ! good AI counter north of 80
+  real                   :: ai_count_85   ! good AI counter north of 85
+  integer                :: ii            ! loop counter 
+  integer                :: jj            ! loop counter
+  real                   :: avg_ai
 
   integer,dimension(4)   :: synop_times 
 
@@ -51,12 +52,12 @@ subroutine count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
   ! ---------------------------- 
   synop_times = [0,6,12,18] 
 
-  ai_count_60 = 0 
-  ai_count_65 = 0 
-  ai_count_70 = 0 
-  ai_count_75 = 0 
-  ai_count_80 = 0 
-  ai_count_85 = 0 
+  ai_count_60 = 0. 
+  ai_count_65 = 0. 
+  ai_count_70 = 0. 
+  ai_count_75 = 0. 
+  ai_count_80 = 0. 
+  ai_count_85 = 0. 
 
   ! Loop over the grid and count up grids with high average AI for this
   ! synoptic time.
@@ -67,17 +68,23 @@ subroutine count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
         avg_ai = grids(jj,ii)
         if(avg_ai > ai_thresh) then
           if(lat_range(ii) >= 60.) then
-            ai_count_60 = ai_count_60 + 1
+            ai_count_60 = ai_count_60 + grid_areas(ii)
+            !ai_count_60 = ai_count_60 + 1
             if(lat_range(ii) >= 65.) then
-              ai_count_65 = ai_count_65 + 1
+              ai_count_65 = ai_count_65 + grid_areas(ii)
+              !ai_count_65 = ai_count_65 + 1
               if(lat_range(ii) >= 70.) then
-                ai_count_70 = ai_count_70 + 1
+                ai_count_70 = ai_count_70 + grid_areas(ii)
+                !ai_count_70 = ai_count_70 + 1
                 if(lat_range(ii) >= 75.) then
-                  ai_count_75 = ai_count_75 + 1
+                  ai_count_75 = ai_count_75 + grid_areas(ii)
+                  !ai_count_75 = ai_count_75 + 1
                   if(lat_range(ii) >= 80.) then
-                    ai_count_80 = ai_count_80 + 1
+                    ai_count_80 = ai_count_80 + grid_areas(ii)
+                    !ai_count_80 = ai_count_80 + 1
                     if(lat_range(ii) >= 85.) then
-                      ai_count_85 = ai_count_85 + 1
+                      ai_count_85 = ai_count_85 + grid_areas(ii)
+                      !ai_count_85 = ai_count_85 + 1
                     endif
                   endif
                 endif
@@ -101,7 +108,7 @@ subroutine count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
   !!#!    ai_count_60,ai_count_65,ai_count_70,ai_count_75,ai_count_80,ai_count_85
   !!#!endif    
   write(*,*) dtg(1:8)
-  write(io6,'(a8,6(i6))') dtg(1:8),&
+  write(io6,'(a8,6(1x,f10.0))') dtg(1:8),&
     ai_count_60,ai_count_65,ai_count_70,ai_count_75,ai_count_80,ai_count_85
 
   ! Reset grid arrays
