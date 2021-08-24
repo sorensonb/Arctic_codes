@@ -1720,7 +1720,8 @@ def plot_compare_OMI_CERES_trends(OMI_data,CERES_data,month,minlat=65,save=False
         plt.show()
     #return mask_trend1,mask_trend2
 
-def plot_compare_OMI_CERES_hrly(OMI_date,CERES_date,minlat=65,save=False):
+def plot_compare_OMI_CERES_hrly(OMI_date,CERES_date,minlat=65,max_AI = -200.,\
+        only_sea_ice = False,save=False):
 #def plot_compare_OMI_CERES_hrly(OMI_hrly,CERES_hrly,minlat=65,save=False):
 
     if('/home/bsorenson/Research/OMI' not in sys.path):
@@ -1737,7 +1738,7 @@ def plot_compare_OMI_CERES_hrly(OMI_date,CERES_date,minlat=65,save=False):
 
     # Step 1: read in OMI and CERES data
     # ----------------------------------
-    OMI_hrly = readOMI_single_swath(OMI_date,60)
+    OMI_hrly = readOMI_single_swath(OMI_date,60,only_sea_ice = only_sea_ice)
     CERES_hrly = readgridCERES_hrly(CERES_date,'SWF')
 
     # Step 2: Set up figure to have 3 panels
@@ -1784,7 +1785,7 @@ def plot_compare_OMI_CERES_hrly(OMI_date,CERES_date,minlat=65,save=False):
     ax1.set_boundary(circle, transform=ax1.transAxes)
             #vmin = var_dict[variable]['min'], vmax = var_dict[variable]['max'])
     cbar = plt.colorbar(mesh1,ax=ax1,orientation='vertical',pad=0.02,\
-        aspect=50,shrink = 1.000,label=CERES_hrly['param'])
+        aspect=50,shrink = 1.000,label=CERES_hrly['param'] + ' [W/m2]')
     
     # Step 4: Plot scatter OMI and CERES comparison in third panel
     # ------------------------------------------------------------
@@ -1793,13 +1794,14 @@ def plot_compare_OMI_CERES_hrly(OMI_date,CERES_date,minlat=65,save=False):
     glat, glon = np.meshgrid(OMI_hrly['lat'],OMI_hrly['lon'])
     
     # Mask any empty boxes
-    max_AI = -200.
     mask_AI = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
         (CERES_hrly['counts'] == 0) | (OMI_hrly['AI'] < max_AI)),OMI_hrly['AI'])
     mask_flux = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
         (CERES_hrly['counts'] == 0) | (OMI_hrly['AI'] < max_AI)),CERES_hrly['data'])
-    mask_lat  = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
-        (CERES_hrly['counts'] == 0) | (OMI_hrly['AI'] < max_AI)),glat)
+    mask_sza  = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
+        (CERES_hrly['counts'] == 0) | (OMI_hrly['AI'] < max_AI)),OMI_hrly['SZA'])
+    #mask_lat  = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
+    #    (CERES_hrly['counts'] == 0) | (OMI_hrly['AI'] < max_AI)),glat)
     ##!## Convert the index to a string using datetime
     ##!#if(month != None):
     ##!#    dt_obj = datetime.strptime(OMI_data['DATES'][month],"%Y%m")
@@ -1837,9 +1839,10 @@ def plot_compare_OMI_CERES_hrly(OMI_date,CERES_date,minlat=65,save=False):
 
     #plt.close('all')
     #fig1 = plt.figure()
-    scat = ax2.scatter(mask_AI,mask_flux,c=mask_lat,s=8)
+    #scat = ax2.scatter(mask_AI,mask_flux,c=mask_lat,s=8)
+    scat = ax2.scatter(mask_AI,mask_flux,c=mask_sza,s=8)
     cbar = plt.colorbar(scat,ax=ax2,orientation='vertical',\
-        label='Latitude',pad=0.02,aspect=50)
+        label='Solar Zenith Angle',pad=0.02,aspect=50)
     ax2.set_title(OMI_hrly['date'])
     #plt.title(OMI_hrly['date'])
     #plt.scatter(mask_AI,mask_flux,c=z,s=8)
@@ -1871,8 +1874,8 @@ def plot_compare_OMI_CERES_hrly(OMI_date,CERES_date,minlat=65,save=False):
     ##    plt.xlim(-0.3,0.3)
     ##    plt.ylim(-0.3,0.3)
     #axs[2].legend()
-    ax2.set_xlabel('OMI')
-    ax2.set_ylabel('CERES')
+    ax2.set_xlabel('OMI AI')
+    ax2.set_ylabel('CERES ' + CERES_hrly['param'])
     #plt.subplots_adjust(wspace=0.1, hspace=0.10)
     plt.tight_layout()
     #plt.title(title)

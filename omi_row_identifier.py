@@ -33,8 +33,8 @@ if(len(sys.argv)<2):
 
 plot_time = sys.argv[1]
 
-start_year = 2005
-end_year   = 2019
+start_year = 2020
+end_year   = 2020
 
 # This is the path that points to the HDF5 OMI files. This must be changed
 # if running on a new system.

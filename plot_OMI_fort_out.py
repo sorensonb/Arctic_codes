@@ -42,24 +42,44 @@ min_lat   = sys.argv[2]
 # Extract date information from the file name
 name_split = file_name.strip().split('/')[-1].split('_')
 dtype      = name_split[1]
+vtype      = name_split[2]  # counts or areas?
 start_year = name_split[3]
 end_year   = name_split[4]
 ai_thresh  = float(int(name_split[5].split('.')[0])/100)
 
-if((dtype != 'vsj22') & (dtype != 'vjz2112')):
-    day_avgs = True
-    time_fmt = "%Y%m%d"
+#if((dtype != 'vsj22') & (dtype != 'vjz2112')):
+#    time_fmt = "%Y%m%d"
+#else:
+#    time_fmt = "%Y%m%d%H"
+
+if(vtype == 'areas'):
+    data_str = 'Area'
+    divider = 1e5
+    axis_label = 'Area of high AI [10$^{5}$ km$^{2}$]'
+elif(vtype == 'counts'):
+    data_str = 'Cnt'
+    divider = 1
+    axis_label = 'Count of quarter-degree lat/lon grids of high AI'
 else:
-    day_avgs = False
-    time_fmt = "%Y%m%d%H"
+    print("INVALID VARIABLE TYPE. Must be areas or counts")
+    sys.exit()
 
 print(ai_thresh)
 
 in_data = pd.read_csv(file_name, delim_whitespace=True)
 dates  = in_data['Date'].values
+if(len(str(dates[0])) == 10):
+    time_fmt = "%Y%m%d%H"
+    day_avgs = False
+elif(len(str(dates[0])) == 8):
+    time_fmt = "%Y%m%d"
+    day_avgs = True
+else:
+    print("INVALID DATE FORMAT")
+    sys.exit()
 dt_dates = [datetime.strptime(str(tmpdate),time_fmt) \
     for tmpdate in dates]
-count65  = in_data['Cnt'+min_lat].values
+count65  = in_data[data_str + min_lat].values / divider
 #count70  = in_data['Cnt70'].values
 #count75  = in_data['Cnt75'].values
 #count80  = in_data['Cnt80'].values
@@ -103,14 +123,14 @@ fig1, ax = plt.subplots()
 ax.plot(daily_dt_dates,daily_counts_65,label='daily')
 #ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
 ax.legend()
-ax.set_ylabel('Counts')
-ax.set_title('AI Counts ' + dtype + ': Threshold of '+str(ai_thresh)+\
+ax.set_ylabel(axis_label)
+ax.set_title('AI ' + vtype.title() + ' ' + dtype + ': Threshold of '+str(ai_thresh)+\
     '\nNorth of '+min_lat+'$^{o}$')
 ax.grid()
 
 save = False
 if(save == True):
-    outname = "ai_counts_total_" + dtype + ".png"
+    outname = "ai_" + vtype + "_total_" + dtype + ".png"
     plt.savefig(outname,dpi=300)
     print("Saved image",outname) 
 plt.show()

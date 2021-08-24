@@ -193,11 +193,11 @@ def readOMI(inputfile,start_date,end_date,key=None):
 
     return OMI_data
 
-def readOMI_single_swath(plot_time,row_max,coccolith = False):
+def readOMI_single_swath(plot_time,row_max,only_sea_ice = True,coccolith = False):
     n_p = 1440
     nl = 720
-    lonmin = -180
-    lonmax = 180
+    lonmin = -180.
+    lonmax = 180.
     latmin = 60.
     latmax = 90.
     # Set up values for gridding the AI data
@@ -221,8 +221,12 @@ def readOMI_single_swath(plot_time,row_max,coccolith = False):
         count_SALB_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
     g_UVAI_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
     count_UVAI_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    g_SZA = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    count_SZA = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
 
     algae = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+
+    print("only_sea_ice = ",only_sea_ice)
 
     year = plot_time[:4]
     date = plot_time[4:8]
@@ -245,6 +249,8 @@ def readOMI_single_swath(plot_time,row_max,coccolith = False):
         LON     = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude']
         UVAI    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex']
         XTRACK  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/XTrackQualityFlags']
+        GPQF    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags']
+        SZA     = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/SolarZenithAngle']
         if(coccolith):
             NRAD    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/NormRadiance']
             REFL    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/Reflectivity']
@@ -262,42 +268,49 @@ def readOMI_single_swath(plot_time,row_max,coccolith = False):
                 if(j == 52):
                     continue
                 #if((albedo[i,j]>-20) & (reflectance[i,j]>-20)):
-                if(UVAI[i,j]>-2e5):
-                #if(plotAI[i,j]>-20):
+                if(LAT[i,j] > latmin):
+                    if((UVAI[i,j]>-2e5) & (XTRACK[i,j] == 0)):
+                        # 0       :  snow-free land
+                        # 1 - 100 :  sea ice concentration (percent)
+                        # 101     :  permanent ice (greenland, antarctica)
+                        # 103     :  dry snow
+                        # 104     :  ocean   
+                        GPQF_decode = get_ice_flags(GPQF[i,j])
+                        if(only_sea_ice and not (((GPQF_decode >= 1) & (GPQF_decode <= 100)))):
+                        #if(only_sea_ice and not (((GPQF_decode >= 1) & (GPQF_decode <= 100)) | (GPQF_decode == 104)  )):
+                            continue
                     # Only plot if XTrack flag is met
-                    if((XTRACK[i,j] == 0)):
-                    #if((XTRACK[i,j] == 0) | (XTRACK[i,j] == 4)):
                         # Print values to text file
-                        if(LAT[i,j] > latmin):
-                            counter+=1
-                        #if((plotXTrack[i,j] == 0) | ((plotXTrack[i,j] & 4 == 4))):
-                            index1 = int(np.floor(LAT[i,j]*4 - lat_gridder))
-                            index2 = int(np.floor(LON[i,j]*4 + 720.))
-                            #index1 = int(np.floor(plotLAT[i,j]*4 + 360.))
-                            #index2 = int(np.floor(plotLON[i,j]*4 + 720.))
+                        counter+=1
+                        index1 = int(np.floor(LAT[i,j]*4 - lat_gridder))
+                        index2 = int(np.floor(LON[i,j]*4 + 720.))
+                        #index1 = int(np.floor(plotLAT[i,j]*4 + 360.))
+                        #index2 = int(np.floor(plotLON[i,j]*4 + 720.))
                         
-                            if(index1 < 0): index1 = 0
-                            if(index1 > len(lat_ranges)-1): index1 = len(lat_ranges) - 1
-                            if(index2 < 0): index2 = 0                                                                                            
-                            if(index2 > 1439): index2 = 1439
+                        if(index1 < 0): index1 = 0
+                        if(index1 > len(lat_ranges)-1): index1 = len(lat_ranges) - 1
+                        if(index2 < 0): index2 = 0                                                                                            
+                        if(index2 > 1439): index2 = 1439
                    
-                            #if(diff<0.2): 
-                            #    UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + AI[i,j])/(count[index2,index1]+1)
-                            if(coccolith):
-                                g_NRAD_354[index2, index1] = (g_NRAD_354[index2,index1]*count_NRAD_354[index2,index1] + NRAD[i,j,0])/(count_NRAD_354[index2,index1]+1)
-                                g_NRAD_388[index2, index1] = (g_NRAD_388[index2,index1]*count_NRAD_388[index2,index1] + NRAD[i,j,1])/(count_NRAD_388[index2,index1]+1)
-                                g_NRAD_500[index2, index1] = (g_NRAD_500[index2,index1]*count_NRAD_500[index2,index1] + NRAD[i,j,2])/(count_NRAD_500[index2,index1]+1)
-                                g_REFL_354[index2, index1] = (g_REFL_354[index2,index1]*count_REFL_354[index2,index1] + REFL[i,j,0])/(count_REFL_354[index2,index1]+1)
-                                g_REFL_388[index2, index1] = (g_REFL_388[index2,index1]*count_REFL_388[index2,index1] + REFL[i,j,1])/(count_REFL_388[index2,index1]+1)
-                                g_SALB_354[index2, index1] = (g_SALB_354[index2,index1]*count_SALB_354[index2,index1] + SALB[i,j,0])/(count_SALB_354[index2,index1]+1)
-                                count_NRAD_354[index2,index1] = count_NRAD_354[index2,index1] + 1
-                                count_NRAD_388[index2,index1] = count_NRAD_388[index2,index1] + 1
-                                count_NRAD_500[index2,index1] = count_NRAD_500[index2,index1] + 1
-                                count_REFL_354[index2,index1] = count_REFL_354[index2,index1] + 1
-                                count_REFL_388[index2,index1] = count_REFL_388[index2,index1] + 1
-                                count_SALB_354[index2,index1] = count_SALB_354[index2,index1] + 1
-                            g_UVAI_354[index2, index1] = (g_UVAI_354[index2,index1]*count_UVAI_354[index2,index1] + UVAI[i,j])/(count_UVAI_354[index2,index1]+1)
-                            count_UVAI_354[index2,index1] = count_UVAI_354[index2,index1] + 1
+                        #if(diff<0.2): 
+                        #    UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + AI[i,j])/(count[index2,index1]+1)
+                        if(coccolith):
+                            g_NRAD_354[index2, index1] = (g_NRAD_354[index2,index1]*count_NRAD_354[index2,index1] + NRAD[i,j,0])/(count_NRAD_354[index2,index1]+1)
+                            g_NRAD_388[index2, index1] = (g_NRAD_388[index2,index1]*count_NRAD_388[index2,index1] + NRAD[i,j,1])/(count_NRAD_388[index2,index1]+1)
+                            g_NRAD_500[index2, index1] = (g_NRAD_500[index2,index1]*count_NRAD_500[index2,index1] + NRAD[i,j,2])/(count_NRAD_500[index2,index1]+1)
+                            g_REFL_354[index2, index1] = (g_REFL_354[index2,index1]*count_REFL_354[index2,index1] + REFL[i,j,0])/(count_REFL_354[index2,index1]+1)
+                            g_REFL_388[index2, index1] = (g_REFL_388[index2,index1]*count_REFL_388[index2,index1] + REFL[i,j,1])/(count_REFL_388[index2,index1]+1)
+                            g_SALB_354[index2, index1] = (g_SALB_354[index2,index1]*count_SALB_354[index2,index1] + SALB[i,j,0])/(count_SALB_354[index2,index1]+1)
+                            count_NRAD_354[index2,index1] = count_NRAD_354[index2,index1] + 1
+                            count_NRAD_388[index2,index1] = count_NRAD_388[index2,index1] + 1
+                            count_NRAD_500[index2,index1] = count_NRAD_500[index2,index1] + 1
+                            count_REFL_354[index2,index1] = count_REFL_354[index2,index1] + 1
+                            count_REFL_388[index2,index1] = count_REFL_388[index2,index1] + 1
+                            count_SALB_354[index2,index1] = count_SALB_354[index2,index1] + 1
+                        g_UVAI_354[index2, index1] = (g_UVAI_354[index2,index1]*count_UVAI_354[index2,index1] + UVAI[i,j])/(count_UVAI_354[index2,index1]+1)
+                        count_UVAI_354[index2,index1] = count_UVAI_354[index2,index1] + 1
+                        g_SZA[index2, index1] = (g_SZA[index2,index1]*count_SZA[index2,index1] + SZA[i,j])/(count_SZA[index2,index1]+1)
+                        count_SZA[index2,index1] = count_SZA[index2,index1] + 1
 
   
     if(coccolith): 
@@ -322,6 +335,8 @@ def readOMI_single_swath(plot_time,row_max,coccolith = False):
     OMI_single_dict['lon'] = lon_ranges
     OMI_single_dict['AI'] = g_UVAI_354
     OMI_single_dict['AI_count'] = count_UVAI_354
+    OMI_single_dict['SZA'] = g_SZA
+    OMI_single_dict['SZA_count'] = count_SZA
     OMI_single_dict['date'] = plot_time
     OMI_single_dict['row_max'] = row_max
     if(coccolith):

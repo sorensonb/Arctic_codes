@@ -225,7 +225,7 @@ program omi_JZ_row
 
         ! Insert this new data into the grid 
         ! ----------------------------------
-        call check_row_xtrack(row_avgs,lat_thresh,errout)
+        call check_row_xtrack(row_avgs,lat_thresh)
 
         ! Deallocate all the arrays for the next pass
         ! -------------------------------------------
