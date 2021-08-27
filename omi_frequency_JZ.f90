@@ -34,6 +34,7 @@ program omi_frequency_JZ
 
   use hdf5
   use h5_vars, only : clear_arrays, i_bad_list
+  use omi_fort_lib, only : lat_lon_area
  
   implicit none
 
@@ -58,6 +59,7 @@ program omi_frequency_JZ
                                           ! hour falls within the synoptic time
                                           ! range.
 
+  real,dimension(:), allocatable      :: grid_areas
   real,dimension(:), allocatable      :: lat_range ! latitude grid
   real,dimension(:), allocatable      :: lon_range ! longitude grid
   real,dimension(:,:), allocatable    :: grids     ! quarter-degree AI grid
@@ -117,8 +119,16 @@ program omi_frequency_JZ
   i_size = (90. - lat_thresh) * 4.
 
   allocate(lat_range(i_size))
+  allocate(grid_areas(i_size))
   do ii=1,i_size
     lat_range(ii) = lat_thresh + (ii-1)*0.25
+
+    ! Since the distance between longitude lines is the same at any latitude
+    ! band, only need a 1-d array to hold all the areas along each latitude
+    ! line.
+    ! ----------------------------------------------------------------------
+    grid_areas(ii) = lat_lon_area(lat_range(ii)+0.25,lat_range(ii),90.25,90.0)
+    !write(*,*) grid_areas(ii),lat_range(ii)+0.25,lat_range(ii),90.25,90.0
   enddo
 
   allocate(lon_range(1440))
@@ -157,8 +167,8 @@ program omi_frequency_JZ
   if(istatus /= 0) then
     write(errout,*) "ERROR: error opening data count output file."
   endif
-  write(io6,'(a10,6(a6))') 'Date','Cnt60','Cnt65','Cnt70','Cnt75','Cnt80',&
-    'Cnt85'
+  write(io6,'(a10,6(1x,a10))') 'Date','Area60','Area65','Area70','Area75',&
+    'Area80','Area85'
 
   ! Initialize the work_day value to -1
   ! -----------------------------------
@@ -186,7 +196,7 @@ program omi_frequency_JZ
       if(istatus < 0) then 
         write(*,*) "End of "//trim(file_name_file)//" found"
         call count_ai_JZ(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
-                      total_file_name,lat_range)
+                        c_work_dtg,lat_range,grid_areas)
         exit
       else if(istatus > 0) then
         write(errout,*) "ERROR: problem reading total_file_name"
@@ -201,33 +211,33 @@ program omi_frequency_JZ
         ! ---------------------------------
         read(total_file_name(54:55), *) int_hr
 
-        ! If the day of the new file is different than the current working
-        ! day, call check_bad_row and update the bad row list
-        ! ----------------------------------------------------------------
-        if(work_day /= int_day) then
+        !!! If the day of the new file is different than the current working
+        !!! day, call check_bad_row and update the bad row list
+        !!! ----------------------------------------------------------------
+        !!if(work_day /= int_day) then
+        !!  call check_bad_rows(total_file_name,errout,io10)
+        !!  work_day = int_day
+        !!endif
+
+        !!#!! See if the hour exceeds the current 6 hr assimilation window.
+        !!#!! If so, calculate averages and counts and reset variables.
+        !!#!! ------------------------------------------------------------
+        !!#!call synop_time_check(synop_idx, int_hr, l_in_time)
+        !!#!if(.not. l_in_time) then 
+        !!#!  call count_ai_JZ(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
+        !!#!                total_file_name,lat_range)
+        !!#!endif  
+        if(work_day == -1) then
           call check_bad_rows(total_file_name,errout,io10)
           work_day = int_day
-        endif
-
-        ! See if the hour exceeds the current 6 hr assimilation window.
-        ! If so, calculate averages and counts and reset variables.
-        ! ------------------------------------------------------------
-        call synop_time_check(synop_idx, int_hr, l_in_time)
-        if(.not. l_in_time) then 
+          c_work_dtg = total_file_name(44:47)//total_file_name(49:52)
+        else if(work_day /= int_day) then
           call count_ai_JZ(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
-                        total_file_name,lat_range)
-        endif  
-        !!#!if(work_day == -1) then
-        !!#!  call check_bad_rows(total_file_name,errout,io10)
-        !!#!  work_day = int_day
-        !!#!  c_work_dtg = total_file_name(44:47)//total_file_name(49:52)
-        !!#!else if(work_day /= int_day) then
-        !!#!  call count_ai_JZ(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
-        !!#!                c_work_dtg,lat_range)
-        !!#!  call check_bad_rows(total_file_name,errout,io10)
-        !!#!  work_day = int_day
-        !!#!  c_work_dtg = total_file_name(44:47)//total_file_name(49:52)
-        !!#!endif
+                        c_work_dtg,lat_range,grid_areas)
+          call check_bad_rows(total_file_name,errout,io10)
+          work_day = int_day
+          c_work_dtg = total_file_name(44:47)//total_file_name(49:52)
+        endif
 
         ! Open the HDF5 file
         ! ------------------

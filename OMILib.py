@@ -2417,29 +2417,29 @@ def plot_omi_da(OMI_da_nc,save=False):
     else:
         plt.show()
 
-
-time_dict = {
-    '20200319': {
-        'start': 15,
-        'synop_max': 36
-    },
-    '20190411': {
-        'start': 12,
-        'synop_max': 18
-    }
-}
-
-first_back = time_dict['20200319']['start']-6
-secnd_back = time_dict['20200319']['start']-12
-
-if(first_back % 6 == 0):
-    end_time = time_dict['20200319']['synop_max'] + 1
-else:
-    end_time = 19
-
-for ftime in range(0,end_time):
-    file_name = ......'/hrrr.t' + str(first_back).zfill(2)+'z.wrfsfcf' + str(ftime).zfill(2) +' 
-    hrrr.t06z.wrfsfcf17z.20200319.grib2'
+###
+###time_dict = {
+###    '20200319': {
+###        'start': 15,
+###        'synop_max': 36
+###    },
+###    '20190411': {
+###        'start': 12,
+###        'synop_max': 18
+###    }
+###}
+###
+###first_back = time_dict['20200319']['start']-6
+###secnd_back = time_dict['20200319']['start']-12
+###
+###if(first_back % 6 == 0):
+###    end_time = time_dict['20200319']['synop_max'] + 1
+###else:
+###    end_time = 19
+###
+###for ftime in range(0,end_time):
+###    file_name = ......'/hrrr.t' + str(first_back).zfill(2)+'z.wrfsfcf' + str(ftime).zfill(2) +' 
+###    hrrr.t06z.wrfsfcf17z.20200319.grib2'
 
 def plotOMI_hrly(OMI_data_hrly,minlat=60,save=False):
 
