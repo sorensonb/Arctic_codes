@@ -1774,7 +1774,7 @@ def plot_compare_OMI_CERES_hrly(OMI_date,CERES_date,minlat=65,max_AI = -200.,\
     plot_lat, plot_lon = np.meshgrid(CERES_hrly['lat'],CERES_hrly['lon'])
     mask_flux = np.ma.masked_where(CERES_hrly['counts'] == 0, local_data)
 
-    ax1.gridlines()
+    ax1.gridlines(ylocs = np.arange(minlat,90,5))
     ax1.coastlines(resolution = '50m')
     ax1.set_title('CERES ' + CERES_hrly['param'] + ' ' + CERES_hrly['date'])
     #plt.title('OMI Reflectivity - Surface Albedo '+plot_time)

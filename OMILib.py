@@ -276,8 +276,9 @@ def readOMI_single_swath(plot_time,row_max,only_sea_ice = True,coccolith = False
                         # 103     :  dry snow
                         # 104     :  ocean   
                         GPQF_decode = get_ice_flags(GPQF[i,j])
-                        if(only_sea_ice and not (((GPQF_decode >= 1) & (GPQF_decode <= 100)))):
-                        #if(only_sea_ice and not (((GPQF_decode >= 1) & (GPQF_decode <= 100)) | (GPQF_decode == 104)  )):
+                        #if(only_sea_ice and not (((GPQF_decode == 101) & (SZA[i,j] < 60)))):
+                        if(only_sea_ice and not (((GPQF_decode >= 1) & (GPQF_decode <= 101)) )):
+                        #if(only_sea_ice and not (((GPQF_decode >= 0) & (GPQF_decode <= 101)) | (GPQF_decode == 104)  )):
                             continue
                     # Only plot if XTrack flag is met
                         # Print values to text file
@@ -2106,6 +2107,8 @@ def plotOMI_MonthClimo(OMI_data,month_idx,minlat = 60,save=False):
     else:
         plt.show()
 
+# Generate a six-panel figure comparing the climatology and trend between 3
+# versions of the OMI data.
 def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,minlat=65,save=False):
 
     colormap = plt.cm.jet
@@ -2126,6 +2129,7 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,minlat=65
     new_label_dict = {
         'VBS1': 'Control',
         'VJZ29': 'Screening Method',
+        'VJZ211': 'Screening Method',
         'VSJ2': 'Perturbation Method'
     } 
     colorbar_label_size = 13
@@ -2413,6 +2417,30 @@ def plot_omi_da(OMI_da_nc,save=False):
     else:
         plt.show()
 
+
+time_dict = {
+    '20200319': {
+        'start': 15,
+        'synop_max': 36
+    },
+    '20190411': {
+        'start': 12,
+        'synop_max': 18
+    }
+}
+
+first_back = time_dict['20200319']['start']-6
+secnd_back = time_dict['20200319']['start']-12
+
+if(first_back % 6 == 0):
+    end_time = time_dict['20200319']['synop_max'] + 1
+else:
+    end_time = 19
+
+for ftime in range(0,end_time):
+    file_name = ......'/hrrr.t' + str(first_back).zfill(2)+'z.wrfsfcf' + str(ftime).zfill(2) +' 
+    hrrr.t06z.wrfsfcf17z.20200319.grib2'
+
 def plotOMI_hrly(OMI_data_hrly,minlat=60,save=False):
 
     # Set up mapping variables 
@@ -2444,7 +2472,7 @@ def plotOMI_hrly(OMI_data_hrly,minlat=60,save=False):
     plt.title('OMI AI ' + OMI_data_hrly['date'])
     #plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
     mesh = ax.pcolormesh(plot_lon, plot_lat,mask_AI,transform = datacrs,cmap = colormap,\
-            vmin = -2.0,vmax = 12.0)
+            vmin = -2.0,vmax = 4.0)
     ax.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
             #vmin = var_dict[variable]['min'], vmax = var_dict[variable]['max'])
     cbar = plt.colorbar(mesh,orientation='horizontal',pad=0,\
