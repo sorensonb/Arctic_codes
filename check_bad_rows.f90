@@ -95,6 +95,8 @@ subroutine check_bad_rows(c_in_name,errout,io10)
         enddo
       endif
 
+      write(errout,*) c_in_name(44:52)//' '//trim(dtg), i_bad_list
+
       ! Advance to the next line
       ! ------------------------
       read(io10,*)

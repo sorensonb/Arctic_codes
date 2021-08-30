@@ -27,6 +27,7 @@ from dateutil.relativedelta import relativedelta
 import matplotlib.pyplot as plt
 import matplotlib.colors as cm
 import cartopy.crs as ccrs
+from cartopy.util import add_cyclic_point
 from mpl_toolkits.basemap import Basemap
 from matplotlib.patches import Polygon
 import matplotlib.path as mpath
@@ -265,11 +266,11 @@ def readOMI_single_swath(plot_time,row_max,only_sea_ice = True,coccolith = False
         #for i in range(albedo.shape[0]):
         for i in range(UVAI.shape[0]):
             for j in range(0,row_max):
-                if(j == 52):
-                    continue
+                #if(j == 52):
+                #    continue
                 #if((albedo[i,j]>-20) & (reflectance[i,j]>-20)):
                 if(LAT[i,j] > latmin):
-                    if((UVAI[i,j]>-2e5) & (XTRACK[i,j] == 0)):
+                    if((UVAI[i,j]>-2e5) & ((XTRACK[i,j] == 0) | (XTRACK[i,j] == 4))):
                         # 0       :  snow-free land
                         # 1 - 100 :  sea ice concentration (percent)
                         # 101     :  permanent ice (greenland, antarctica)
@@ -2153,16 +2154,21 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,minlat=65
     # -----------------
     # Make copy of OMI_data array
     local_data  = np.copy(OMI_data1['MONTH_CLIMO'][month_idx,:,:])
+    # Grid the data, fill in white space
+    cyclic_data,cyclic_lons = add_cyclic_point(local_data,OMI_data1['LON'][0,:])
+    plat,plon = np.meshgrid(OMI_data1['LAT'][:,0],cyclic_lons)   
+  
     # Mask any missing values
-    mask_AI = np.ma.masked_where(local_data == -999.9, local_data)
-    mask_AI = np.ma.masked_where(OMI_data1['LAT'] < minlat, mask_AI)
+    mask_AI = np.ma.masked_where(cyclic_data == -999.9, cyclic_data)
+    mask_AI = np.ma.masked_where(plat.T < minlat, mask_AI)
+
 
     ax00 = plt.subplot(gs[0,0],projection=mapcrs)
     ax00.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
     ax00.set_boundary(circle, transform=ax00.transAxes)
     #ax00.gridlines()
     ax00.coastlines(resolution='50m')
-    mesh00 = ax00.pcolormesh(OMI_data1['LON'],OMI_data1['LAT'],mask_AI,\
+    mesh00 = ax00.pcolormesh(plon,plat,mask_AI.T,\
             transform=ccrs.PlateCarree(),vmin=-1.0,vmax=1.0,cmap=colormap)
     ax00.set_title(new_label_dict[OMI_data1['VERSION']]+'\n',weight='bold',\
         fontsize=axis_title_size)
@@ -2180,16 +2186,20 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,minlat=65
     # -----------------
     # Make copy of OMI_data array
     local_data  = np.copy(OMI_data2['MONTH_CLIMO'][month_idx,:,:])
+    # Grid the data, fill in white space
+    cyclic_data,cyclic_lons = add_cyclic_point(local_data,OMI_data2['LON'][0,:])
+    plat,plon = np.meshgrid(OMI_data2['LAT'][:,0],cyclic_lons)   
+  
     # Mask any missing values
-    mask_AI = np.ma.masked_where(local_data == -999.9, local_data)
-    mask_AI = np.ma.masked_where(OMI_data2['LAT'] < minlat, mask_AI)
+    mask_AI = np.ma.masked_where(cyclic_data == -999.9, cyclic_data)
+    mask_AI = np.ma.masked_where(plat.T < minlat, mask_AI)
 
     ax10 = plt.subplot(gs[0,1],projection=mapcrs)
     ax10.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
     ax10.set_boundary(circle, transform=ax10.transAxes)
     #ax10.gridlines()
     ax10.coastlines(resolution='50m')
-    mesh10 = ax10.pcolormesh(OMI_data2['LON'],OMI_data2['LAT'],mask_AI,\
+    mesh10 = ax10.pcolormesh(plon,plat,mask_AI.T,\
             transform=ccrs.PlateCarree(),vmin=-1.0,vmax=1.0,cmap=colormap)
     ax10.set_title(new_label_dict[OMI_data2['VERSION']]+'\n',weight='bold',\
             fontsize=axis_title_size)
@@ -2205,16 +2215,20 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,minlat=65
     # -----------------
     # Make copy of OMI_data array
     local_data  = np.copy(OMI_data3['MONTH_CLIMO'][month_idx,:,:])
+    # Grid the data, fill in white space
+    cyclic_data,cyclic_lons = add_cyclic_point(local_data,OMI_data3['LON'][0,:])
+    plat,plon = np.meshgrid(OMI_data3['LAT'][:,0],cyclic_lons)   
+  
     # Mask any missing values
-    mask_AI = np.ma.masked_where(local_data == -999.9, local_data)
-    mask_AI = np.ma.masked_where(OMI_data3['LAT'] < minlat, mask_AI)
+    mask_AI = np.ma.masked_where(cyclic_data == -999.9, cyclic_data)
+    mask_AI = np.ma.masked_where(plat.T < minlat, mask_AI)
 
     ax20 = plt.subplot(gs[0,2],projection=mapcrs)
     ax20.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
     ax20.set_boundary(circle, transform=ax20.transAxes)
     #ax20.gridlines()
     ax20.coastlines(resolution='50m')
-    mesh20 = ax20.pcolormesh(OMI_data3['LON'],OMI_data3['LAT'],mask_AI,\
+    mesh20 = ax20.pcolormesh(plon,plat,mask_AI.T,\
             transform=ccrs.PlateCarree(),vmin=-1.0,vmax=1.0,cmap=colormap)
     ax20.set_title(new_label_dict[OMI_data3['VERSION']]+'\n',weight='bold',\
         fontsize=axis_title_size)
@@ -2231,9 +2245,14 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,minlat=65
     # Make copy of OMI_data array
     local_data   = np.copy(OMI_data1['AI'][month_idx::index_jumper,:,:])
     local_counts = np.copy(OMI_data1['OB_COUNT'][month_idx::index_jumper,:,:])
-    local_mask = np.ma.masked_where(local_counts == 0, local_data)
+    # Grid the data, fill in white space
+    cyclic_data,cyclic_lons = add_cyclic_point(local_data,OMI_data1['LON'][0,:])
+    cyclic_counts,cyclic_lons = add_cyclic_point(local_counts,OMI_data1['LON'][0,:])
+    plat,plon = np.meshgrid(OMI_data1['LAT'][:,0],cyclic_lons)   
+  
+    local_mask = np.ma.masked_where(cyclic_counts == 0, cyclic_data)
     local_mask = np.ma.masked_where(local_mask == -999.9, local_mask)
-    ai_trends = np.zeros(local_data.shape[1:])
+    ai_trends = np.zeros(cyclic_data.shape[1:])
     # Loop over all the keys and print the regression slopes 
     # Grab the averages for the key
     for i in range(0,len(lat_ranges)):
@@ -2250,7 +2269,7 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,minlat=65
                 print("Ignoring MK trend for now")
 
    
-    ai_trends = np.ma.masked_where(OMI_data1['LAT'] < minlat, ai_trends)
+    ai_trends = np.ma.masked_where(plat.T < minlat, ai_trends)
 
     ax01 = plt.subplot(gs[1,0],projection=mapcrs)
     ax01.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
@@ -2259,7 +2278,7 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,minlat=65
         rotation='vertical',weight='bold',fontsize=row_label_size)
     #ax01.gridlines()
     ax01.coastlines(resolution='50m')
-    mesh01 = ax01.pcolormesh(OMI_data1['LON'],OMI_data1['LAT'],ai_trends,\
+    mesh01 = ax01.pcolormesh(plon,plat,ai_trends.T,\
             transform=ccrs.PlateCarree(),vmin=-0.7,vmax=0.7,cmap=colormap)
     #ax01.set_title(OMI_data1['VERSION']+ '\n\n')
     cbar01 = plt.colorbar(mesh01,ticks = np.arange(-1.0,1.1,0.2),orientation='vertical',\
@@ -2276,9 +2295,14 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,minlat=65
     # Make copy of OMI_data array
     local_data   = np.copy(OMI_data2['AI'][month_idx::index_jumper,:,:])
     local_counts = np.copy(OMI_data2['OB_COUNT'][month_idx::index_jumper,:,:])
-    local_mask = np.ma.masked_where(local_counts == 0, local_data)
+    # Grid the data, fill in white space
+    cyclic_data,cyclic_lons = add_cyclic_point(local_data,OMI_data2['LON'][0,:])
+    cyclic_counts,cyclic_lons = add_cyclic_point(local_counts,OMI_data2['LON'][0,:])
+    plat,plon = np.meshgrid(OMI_data2['LAT'][:,0],cyclic_lons)   
+
+    local_mask = np.ma.masked_where(cyclic_counts == 0, cyclic_data)
     local_mask = np.ma.masked_where(local_mask == -999.9, local_mask)
-    ai_trends = np.zeros(local_data.shape[1:])
+    ai_trends = np.zeros(cyclic_data.shape[1:])
     # Loop over all the keys and print the regression slopes 
     # Grab the averages for the key
     for i in range(0,len(np.arange(np.min(OMI_data2['LAT']),90))):
@@ -2295,14 +2319,14 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,minlat=65
                 print("Ignoring MK trend for now")
 
    
-    ai_trends = np.ma.masked_where(OMI_data2['LAT'] < minlat, ai_trends)
+    ai_trends = np.ma.masked_where(plat.T < minlat, ai_trends)
 
     ax11 = plt.subplot(gs[1,1],projection=mapcrs)
     ax11.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
     ax11.set_boundary(circle, transform=ax11.transAxes)
     #ax11.gridlines()
     ax11.coastlines(resolution='50m')
-    mesh11 = ax11.pcolormesh(OMI_data2['LON'],OMI_data2['LAT'],ai_trends,\
+    mesh11 = ax11.pcolormesh(plon,plat,ai_trends.T,\
             transform=ccrs.PlateCarree(),vmin=-0.7,vmax=0.7,cmap=colormap)
     #ax11.set_title(OMI_data2['VERSION']+ ' Trend')
     cbar11 = plt.colorbar(mesh11,ticks = np.arange(-1.0,1.1,0.2),orientation='vertical',\
@@ -2321,9 +2345,14 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,minlat=65
     # Make copy of OMI_data array
     local_data   = np.copy(OMI_data3['AI'][month_idx::index_jumper,:,:])
     local_counts = np.copy(OMI_data3['OB_COUNT'][month_idx::index_jumper,:,:])
-    local_mask = np.ma.masked_where(local_counts == 0, local_data)
+    # Grid the data, fill in white space
+    cyclic_data,cyclic_lons = add_cyclic_point(local_data,OMI_data3['LON'][0,:])
+    cyclic_counts,cyclic_lons = add_cyclic_point(local_counts,OMI_data3['LON'][0,:])
+    plat,plon = np.meshgrid(OMI_data3['LAT'][:,0],cyclic_lons)   
+
+    local_mask = np.ma.masked_where(cyclic_counts == 0, cyclic_data)
     local_mask = np.ma.masked_where(local_mask == -999.9, local_mask)
-    ai_trends = np.zeros(local_data.shape[1:])
+    ai_trends = np.zeros(cyclic_data.shape[1:])
     # Loop over all the keys and print the regression slopes 
     # Grab the averages for the key
     for i in range(0,len(np.arange(np.min(OMI_data3['LAT']),90))):
@@ -2340,14 +2369,14 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,minlat=65
                 print("Ignoring MK trend for now")
 
    
-    ai_trends = np.ma.masked_where(OMI_data3['LAT'] < minlat, ai_trends)
+    ai_trends = np.ma.masked_where(plat.T < minlat, ai_trends)
        
     ax21 = plt.subplot(gs[1,2],projection=mapcrs)
     ax21.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
     ax21.set_boundary(circle, transform=ax21.transAxes)
     #ax21.gridlines()
     ax21.coastlines(resolution='50m')
-    mesh21 = ax21.pcolormesh(OMI_data3['LON'],OMI_data3['LAT'],ai_trends,\
+    mesh21 = ax21.pcolormesh(plon,plat,ai_trends.T,\
             transform=ccrs.PlateCarree(),vmin=-0.7,vmax=0.7,cmap=colormap)
     #ax21.set_title(OMI_data3['VERSION']+ ' Trend')
     cbar21 = plt.colorbar(mesh21,ticks = np.arange(-1.0,1.1,0.2),orientation='vertical',\
