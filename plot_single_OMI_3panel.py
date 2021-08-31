@@ -307,7 +307,7 @@ cbar2 = plt.colorbar(mesh2,ticks = tickvals,orientation='horizontal',pad=0,\
 #cbar2.ax.tick_params(labelsize=14)
 cbar2.set_label('UV Aerosol Index Perturbation',weight='bold')
 
-save = True 
+save = False
 if(save == True):
     out_name = 'omi_single_pass_uvai_' +\
         plot_time+'_3panel.png'

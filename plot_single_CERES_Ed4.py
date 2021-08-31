@@ -136,7 +136,7 @@ count = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
 base_date = datetime(year=1970,month=1,day=1)
 
 for fileI in range(len(total_list)):
-    # read in data directly from HDF5 files
+    # read in data directly from netCDF files
     print(total_list[fileI])
     data = Dataset(total_list[fileI],'r')
     lat   = 90. - data.variables['Colatitude_of_CERES_FOV_at_surface'][:]
