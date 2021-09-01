@@ -90,7 +90,7 @@ program omi_frequency
 
   !data_path = "/Research/OMI/out_files-monthly.20210518/"
   !data_path = "/Research/OMI/out_files-monthly_test/"
-  data_path = "/Research/OMI/out_files-ltc2/"
+  data_path = "/Research/OMI/out_files-ltc3/"
 
   ! Set up lat/lon grids
   ! --------------------
@@ -164,6 +164,8 @@ program omi_frequency
       read(io8, *, iostat=istatus) dtg
       if(istatus < 0) then 
         write(*,*) "End of "//trim(date_file_name)//" found"
+        call count_ai(io6,grids,i_counts,i_size,ai_thresh,synop_idx,&
+                      c_work_dtg,lat_range,grid_areas)
         exit
       else if(istatus > 0) then
         write(errout,*) "ERROR: problem reading dtg"

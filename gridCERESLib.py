@@ -1755,7 +1755,8 @@ def plot_compare_OMI_CERES_hrly(OMI_date,CERES_date,minlat=65,max_AI = -200.,\
     local_data = np.copy(OMI_hrly['AI'])
 
     plot_lat, plot_lon = np.meshgrid(OMI_hrly['lat'],OMI_hrly['lon'])
-    mask_AI = np.ma.masked_where(OMI_hrly['AI_count'] == 0, local_data)
+    mask_AI = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
+        (OMI_hrly['lat'] < minlat)), local_data)
 
     ax0.gridlines()
     ax0.coastlines(resolution = '50m')
@@ -1772,7 +1773,8 @@ def plot_compare_OMI_CERES_hrly(OMI_date,CERES_date,minlat=65,max_AI = -200.,\
     local_data = np.copy(CERES_hrly['data'])
 
     plot_lat, plot_lon = np.meshgrid(CERES_hrly['lat'],CERES_hrly['lon'])
-    mask_flux = np.ma.masked_where(CERES_hrly['counts'] == 0, local_data)
+    mask_flux = np.ma.masked_where(((CERES_hrly['counts'] == 0) | \
+        (CERES_hrly['lat'] < minlat)), local_data)
 
     ax1.gridlines(ylocs = np.arange(minlat,90,5))
     ax1.coastlines(resolution = '50m')

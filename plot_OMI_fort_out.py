@@ -34,7 +34,7 @@ if(len(sys.argv)<3):
 second_file = False
 file_name = sys.argv[1]
 min_lat   = sys.argv[2]
-if(len(min_lat.strip().split('.')) != 0):
+if(len(min_lat.strip().split('.')) != 1):
     # Second file provided
     second_file = True
     file_name2 = sys.argv[2]
