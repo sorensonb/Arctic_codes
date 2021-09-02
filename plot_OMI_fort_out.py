@@ -11,7 +11,7 @@
 
   MODIFICATIONS:
     Blake Sorenson <blake.sorenson@und.edu>     - 2021/04/01:
-      Written (modification of AerosolIndexPlotting_Procedure_August112014t0046.pro by rcontreras) 
+      Written 
 
 """
 

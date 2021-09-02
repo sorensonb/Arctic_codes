@@ -194,12 +194,12 @@ def readOMI(inputfile,start_date,end_date,key=None):
 
     return OMI_data
 
-def readOMI_single_swath(plot_time,row_max,only_sea_ice = True,coccolith = False):
+def readOMI_single_swath(plot_time,row_max,only_sea_ice = True,latmin=65,coccolith = False):
     n_p = 1440
     nl = 720
     lonmin = -180.
     lonmax = 180.
-    latmin = 60.
+    #latmin = 60.
     latmax = 90.
     # Set up values for gridding the AI data
     lat_gridder = latmin * 4.

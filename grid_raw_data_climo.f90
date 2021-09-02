@@ -51,6 +51,7 @@ subroutine grid_raw_data_climo(grids,i_counts,i_size,lat_gridder,lat_thresh)
     ! For JZ211: only use rows 55 - 60
     ! --------------------------------
     row_loop: do jj=55,AI_dims(1) 
+    !row_loop: do jj=1,AI_dims(1) 
 
       ! For JZ2_7, only use the rows with azimuth angle greater than 100
       ! and are good for the entire time period
@@ -87,6 +88,7 @@ subroutine grid_raw_data_climo(grids,i_counts,i_size,lat_gridder,lat_thresh)
 
       if((XTRACK_data(jj,ii) == 0) .and. &
           (LAT_data(jj,ii) > lat_thresh) .and. &
+          !(AI_data(jj,ii) > -2e5)) then
           (AI_data(jj,ii) > -2e5) .and. &
           ! BS2: use rows 1-21, so must comment out AZM check
           ! -------------------------------------------------
