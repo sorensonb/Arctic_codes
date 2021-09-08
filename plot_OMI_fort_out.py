@@ -174,6 +174,68 @@ if second_file:
 #xrange_12 = x_range[2::4]
 #xrange_18 = x_range[3::4]
 
+# 
+
+
+# Add up the areas for each year
+daily_dt_dates = np.array(daily_dt_dates)
+daily_counts_65 = np.array(daily_counts_65)
+
+years = np.arange(int(start_year),int(end_year))
+yearly_totals = np.zeros(len(years))
+
+# Create a 2d array to hold all the area data from each day
+day_values = np.full((int(datetime(year=2008,month=9,day=30).strftime('%j')) \
+    - int(datetime(year=2008,month=4,day=1).strftime('%j'))+1, len(years)+1),-9.)
+
+# Insert each day's area data into the array
+for xx in range(len(daily_dt_dates)):
+    indices = int(daily_dt_dates[xx].strftime('%j')) - \
+        int(datetime(year=daily_dt_dates[xx].year,month=4,\
+        day=1).strftime('%j')), daily_dt_dates[xx].year - \
+        daily_dt_dates[0].year 
+    day_values[indices] = daily_counts_65[xx]
+
+# Mask any -9s, which are caused by days without data
+mask_values = np.ma.masked_where(day_values == -9,day_values)
+# Calculate the mean and standard deviation of the areas for each
+# day of the year.
+mask_day_avgs = np.nanmean(mask_values,axis=1)
+mask_day_stds = np.nanstd(mask_values,axis=1)
+
+# Use a 1-sigma check to mask any daily_counts_65 values that are
+# outside of the average
+new_daily_counts = np.full((len(daily_dt_dates)),-9.)
+for xx in range(len(daily_dt_dates)):
+    indices = int(daily_dt_dates[xx].strftime('%j')) - \
+        int(datetime(year=daily_dt_dates[xx].year,month=4,\
+        day=1).strftime('%j')), daily_dt_dates[xx].year - \
+        daily_dt_dates[0].year 
+    if((daily_counts_65[xx] - mask_day_avgs[indices[0]]) > 1. * \
+        mask_day_stds[indices[0]]):
+        new_daily_counts[xx] = daily_counts_65[xx]
+
+fig0 = plt.figure()
+for ii, year in enumerate(years):
+    yearly_totals[ii] = np.sum(daily_counts_65[np.where( \
+        (daily_dt_dates >= datetime(year,4,1)) & \
+        (daily_dt_dates <= datetime(year,9,30)))])
+    print(len(daily_dt_dates[np.where( \
+        (daily_dt_dates >= datetime(year,4,1)) & \
+        (daily_dt_dates <= datetime(year,9,30)))]))
+    plt.plot(np.arange(len(daily_dt_dates[np.where( \
+        (daily_dt_dates >= datetime(year,4,1)) & \
+        (daily_dt_dates <= datetime(year,9,30)))])),\
+        daily_counts_65[np.where( \
+        (daily_dt_dates >= datetime(year,4,1)) & \
+        (daily_dt_dates <= datetime(year,9,30)))],label=str(year))
+plt.plot(mask_day_avgs,label='avg',color='black')
+#daily_dt_dates[np.where( (daily_dt_dates >= datetime(2018,4,1)) & (daily_dt_dates <= datetime(2018,9,30)))
+plt.legend()
+
+fig2 = plt.figure()
+plt.plot(years,yearly_totals)
+
 fig1, ax = plt.subplots()
 #if(dtype != 'vsj22'):
 #    ax.plot(dt_dates,count65,label='synoptic')
