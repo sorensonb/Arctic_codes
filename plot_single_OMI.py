@@ -52,6 +52,7 @@ path_dict = {
     'UVAerosolIndex':          'Data Fields/',\
     'PixelQualityFlags':       'Data Fields/',\
     'MeasurementQualityFlags': 'Data Fields/',\
+    'FinalAlgorithmFlags':     'Data Fields/',\
     'ViewingZenithAngle':      'Geolocation Fields/',\
     'SolarZenithAngle':        'Geolocation Fields/',\
     'RelativeZenithAngle':     'Geolocation Fields/',\
@@ -67,6 +68,7 @@ name_dict = {
     'UVAerosolIndex':          'uvai',\
     'PixelQualityFlags':       'pxlqf',\
     'MeasurementQualityFlags': 'msmtqf',\
+    'FinalAlgorithmFlags':     'falgf',\
     'ViewingZenithAngle':      'vza',\
     'SolarZenithAngle':        'sza',\
     'RelativeZenithAngle':     'rza',\
@@ -76,11 +78,12 @@ name_dict = {
 var_dict = {
     'SurfaceAlbedo':           {'min': 0.0,  'max': 1.0},\
     'Reflectivity':            {'min': 0.0,  'max': 1.0},\
-    'NormRadiance':            {'min': 0.0,  'max': 0.1},\
+    'NormRadiance':            {'min': 0.0,  'max': 0.2},\
     'CloudFraction':           {'min': None, 'max': None},\
     'UVAerosolIndex':          {'min': -2.0, 'max': 3.0 },\
     'PixelQualityFlags':       {'min': None, 'max': None},\
     'MeasurementQualityFlags': {'min': None, 'max': None},\
+    'FinalAlgorithmFlags':     {'min':    0, 'max':    8},\
     'ViewingZenithAngle':      {'min': 0.0,  'max': 180.},\
     'SolarZenithAngle':        {'min': None, 'max': None},\
     'RelativeZenithAngle':     {'min': None, 'max': None},\
@@ -250,16 +253,20 @@ axs[0].set_extent([-180,180,latmin,90],ccrs.PlateCarree())
 
 # Depending on the desired variable, set the appropriate colorbar ticks
 if(variable == 'NormRadiance'):
-    tickvals = np.arange(0.0,0.101,0.01)
+    tickvals = np.arange(0.0,1.010,0.10)
 elif(variable == 'Reflectivity'):
     tickvals = np.arange(0.0,1.1,0.10)
+elif(variable == 'FinalAlgorithmFlags'):
+    tickvals = np.arange(0,9)
+elif(variable == 'SolarZenithAngle'):
+    tickvals = np.arange(0,90,10)
 else:
     tickvals = np.arange(-2.0,4.1,0.5)
 
 cbar = plt.colorbar(mesh,ticks = tickvals,orientation='horizontal',pad=0,\
     aspect=50,shrink = 0.850)
 cbar.ax.tick_params(labelsize=14)
-cbar.set_label('UV Aerosol Index',fontsize=16,weight='bold')
+cbar.set_label(variable,fontsize=16,weight='bold')
 
 save = False
 if(save == True):

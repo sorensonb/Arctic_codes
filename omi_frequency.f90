@@ -90,7 +90,7 @@ program omi_frequency
 
   !data_path = "/Research/OMI/out_files-monthly.20210518/"
   !data_path = "/Research/OMI/out_files-monthly_test/"
-  data_path = "/Research/OMI/out_files-ltc3/"
+  data_path = "/Research/OMI/out_files-ltc3/new/"
 
   ! Set up lat/lon grids
   ! --------------------

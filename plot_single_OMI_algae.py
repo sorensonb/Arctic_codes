@@ -121,7 +121,7 @@ if(latmin<45):
     ax = plt.axes(projection = ccrs.Miller())
     #m = Basemap(projection='mill',lon_0=0,resolution='l')
 else:
-    axs[0] = plt.axes(projection = ccrs.NorthPolarStereo(central_longitude = 35.))
+    axs[0] = plt.axes(projection = ccrs.NorthPolarStereo())
     #ax = plt.axes(projection = ccrs.NorthPolarStereo(central_longitude = 45.))
 
 #fig = plt.gcf()
@@ -263,7 +263,8 @@ for fileI in range(len(total_list)):
 #mask_r388_avgs = np.nanmean(np.ma.masked_where(g_REFL_388[:,:] < -2e5, g_REFL_388[:,:]),axis=0)
 
 # CALCULATIONS
-plot_calc = 1.0 - (g_NRAD_388 / g_NRAD_354)
+plot_calc = 1.0 - (1.0 / (g_NRAD_500 - g_NRAD_354))
+#plot_calc = 1.0 - (g_NRAD_388 / g_NRAD_354)
 
 #UVAI = plot_calc
 #count = count_NRAD_500
@@ -308,7 +309,7 @@ y_index_N40 = 9
 x_index_80 = 1351
 y_index_N50 = 30
 
-data.close()
+#data.close()
 
 plot_lat, plot_lon = np.meshgrid(LATalt,LONalt)
 mask_UVAI = np.ma.masked_where(((count_NRAD_354 == 0)), plot_calc)
@@ -323,8 +324,9 @@ plt.title('OMI Algae ' + plot_time)
 #plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
 mesh = axs[0].pcolormesh(plot_lon, plot_lat,mask_UVAI,transform = datacrs,cmap = colormap,\
         #vmin = -2.0, vmax = 3.0)
-        vmin = 0.0, vmax = 0.3)
-axs[0].set_extent([10,55,65,80],ccrs.PlateCarree())
+        vmin = 0, vmax = 200)
+axs[0].set_extent([-180,180,65,90],ccrs.PlateCarree())
+#axs[0].set_extent([10,55,65,80],ccrs.PlateCarree())
 #axs[0].set_xlim(-0630748.535086173,2230748.438879491)
 #axs[0].set_ylim(-2513488.8763307533,0343353.899053069)
 #ax.set_xlim(-4170748.535086173,4167222.438879491)

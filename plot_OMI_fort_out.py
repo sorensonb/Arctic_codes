@@ -203,6 +203,13 @@ mask_values = np.ma.masked_where(day_values == -9,day_values)
 mask_day_avgs = np.nanmean(mask_values,axis=1)
 mask_day_stds = np.nanstd(mask_values,axis=1)
 
+mean_total_std = np.nanstd(mask_values)
+#mean_std = np.nanmean(mask_day_stds)
+
+# Calculate the
+lower_range = mask_day_avgs - mean_total_std * 0.75
+upper_range = mask_day_avgs + mean_total_std * 0.75
+
 # Use a 1-sigma check to mask any daily_counts_65 values that are
 # outside of the average
 new_daily_counts = np.full((len(daily_dt_dates)),-9.)
@@ -212,8 +219,12 @@ for xx in range(len(daily_dt_dates)):
         day=1).strftime('%j')), daily_dt_dates[xx].year - \
         daily_dt_dates[0].year 
     if((daily_counts_65[xx] - mask_day_avgs[indices[0]]) > 1. * \
+    #if((daily_counts_65[xx] - mask_day_avgs[indices[0]]) < 0.5 * \
         mask_day_stds[indices[0]]):
+        #daily_counts_65[xx] = -9
         new_daily_counts[xx] = daily_counts_65[xx]
+
+daily_counts_65 = np.ma.masked_where(daily_counts_65 == -9,daily_counts_65)
 
 fig0 = plt.figure()
 for ii, year in enumerate(years):
@@ -230,6 +241,8 @@ for ii, year in enumerate(years):
         (daily_dt_dates >= datetime(year,4,1)) & \
         (daily_dt_dates <= datetime(year,9,30)))],label=str(year))
 plt.plot(mask_day_avgs,label='avg',color='black')
+plt.plot(upper_range,label='+avg σ',linestyle='--',color='black')
+plt.plot(lower_range,label='-avg σ',linestyle='--',color='black')
 #daily_dt_dates[np.where( (daily_dt_dates >= datetime(2018,4,1)) & (daily_dt_dates <= datetime(2018,9,30)))
 plt.legend()
 

@@ -2129,9 +2129,11 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,minlat=65
     # Get the labels figured out
     new_label_dict = {
         'VBS1': 'Control',
+        'VBS0': 'Control',
         'VJZ29': 'Screening Method',
         'VJZ211': 'Screening Method',
-        'VSJ2': 'Perturbation Method'
+        'VSJ2': 'Perturbation Method',
+        'VSJ4': 'Perturbation Method'
     } 
     colorbar_label_size = 13
     axis_title_size = 14.5
@@ -3021,13 +3023,23 @@ def plot_compare_trends(OMI_data1,OMI_data2,month,save=False):
         outname = 'omi_ai_trend_comp_'+\
             OMI_data1['VERSION']+'v'+OMI_data2['VERSION']+'.png'
 
-    mask_trend1 = np.array(OMI_trend1[(OMI_trend1 != 0) & (OMI_trend2 != 0)])
-    mask_trend2 = np.array(OMI_trend2[(OMI_trend1 != 0) & (OMI_trend2 != 0)])
+    OMI_trend2[np.where(np.isnan(OMI_trend1) | np.isnan(OMI_trend2))] = -999.
+    OMI_trend1[np.where(np.isnan(OMI_trend1) | np.isnan(OMI_trend2))] = -999.
+    mask_trend1 = np.array(OMI_trend1[(OMI_trend1 != 0) & \
+        (OMI_trend2 != 0) & (OMI_trend1 != -999.) & \
+        (OMI_trend2 != -999.)])
+    mask_trend2 = np.array(OMI_trend2[(OMI_trend1 != 0) & \
+        (OMI_trend2 != 0) & (OMI_trend1 != -999.) & \
+        (OMI_trend2 != -999.)])
     #mask_trend1 = np.ma.masked_where(OMI_trend1 == 0,OMI_trend1)
     #mask_trend2 = np.ma.masked_where(OMI_trend2 == 0,OMI_trend2)
 
-    print("Pearson:  ",pearsonr(mask_trend1,mask_trend2))
-    print("Spearman: ",spearmanr(mask_trend1,mask_trend2))
+    print(mask_trend1.shape,mask_trend2.shape)
+
+    rval_p = pearsonr(mask_trend1,mask_trend2)[0]
+    rval_s = spearmanr(mask_trend1,mask_trend2)[0]
+    print("Pearson:  ",rval_p)
+    print("Spearman: ",rval_s)
 
     xy = np.vstack([mask_trend1,mask_trend2])
     z = stats.gaussian_kde(xy)(xy)
@@ -3080,7 +3092,24 @@ def plot_compare_trends(OMI_data1,OMI_data2,month,save=False):
     plt.legend()
     plt.xlabel(OMI_data1['VERSION'])
     plt.ylabel(OMI_data2['VERSION'])
-    plt.title(title)
+    # Add the correlations to the graph
+    ##!#x_pos = (plt.gca().get_xlim()[1] - \
+    ##!#    plt.gca().get_xlim()[0])*0.7 + \
+    ##!#    plt.gca().get_xlim()[0]
+    ##!#y_pos = (plt.gca().get_ylim()[1] - \
+    ##!#    plt.gca().get_ylim()[0])*0.05 + \
+    ##!#    plt.gca().get_ylim()[0]
+    ##!#plt.text(x_pos,y_pos,\
+    ##!#    'Pearson r     = '+str(np.round(rval_p,3)))
+    ##!#x_pos = (plt.gca().get_xlim()[1] - \
+    ##!#    plt.gca().get_xlim()[0])*0.7 + \
+    ##!#    plt.gca().get_xlim()[0]
+    ##!#y_pos = (plt.gca().get_ylim()[1] - \
+    ##!#    plt.gca().get_ylim()[0])*0.1 + \
+    ##!#    plt.gca().get_ylim()[0]
+    ##!#plt.text(x_pos,y_pos,\
+    ##!#    'Spearman r = '+str(np.round(rval_s,3)))
+    plt.title(title+'\n Pearson Correlation = ' + str(np.round(rval_p,3)))
     if(save == True):
         plt.savefig(outname)
     else:
