@@ -1484,9 +1484,9 @@ def plotCERES_MonthTrend(CERES_data,month_idx=None,save=False,\
         month_adder = ''
         if(do_month == True):
             month_adder = '_' + start_date.strftime('%b') 
-        outname = 'omi_ai_time_series' + month_adder + '_' + \
+        outname = 'ceres_'+CERES_data['param'] + '_time_series' + month_adder + '_' + \
             str(int(lat_ranges[latx])) + 'x'+str(int(lon_ranges[lonx])) + \
-            '_' + version + '.png'
+            '.png'
         plt.savefig(outname)
         print("Saved image",outname)
     ##!##return local_mask[:,latx,lonx]
@@ -1647,17 +1647,38 @@ def plot_compare_OMI_CERES_trends(OMI_data,CERES_data,month,minlat=65,save=False
         outname = 'omi_ceres_trend_comp_'+\
             OMI_data1['VERSION']+'vCERES.png'
 
+    # Flip the CERES data to convert the longitudes from 0 - 360 to -180 - 180
+    # ------------------------------------------------------------------------
+    local_lon = np.copy(CERES_data['lon'])
+    local_lat = np.copy(CERES_data['lat'])
+    over_180  = np.where(CERES_data['lon'][0,:] >= 179.9999)
+    under_180 = np.where(CERES_data['lon'][0,:] < 179.9999)
+
+    for ii in range(local_lon.shape[0]):
+        local_lon[ii,:] = np.concatenate([local_lon[ii,:][over_180] - 360.,\
+            local_lon[ii,:][under_180]])
+        local_lat[ii,:] = np.concatenate([local_lat[ii,:][over_180],\
+            local_lat[ii,:][under_180]])
+        CERES_trend[ii,:] = np.concatenate([CERES_trend[ii,:][over_180],\
+            CERES_trend[ii,:][under_180]])
+    
+
     # First, mask any OMI data that are outside the bounds of the CERES data
     # Assume that the OMI data are larger than the CERES data
     # ----------------------------------------------------------------------
-    mask_OMI_trend = np.ma.masked_where((OMI_JZ29['LAT'] < \
-            (np.min(CERES_data['lat']) - 0.5)) & \
-            (OMI_JZ29['LAT'] > (np.max(CERES_data['lat']) - 0.5)),OMI_trend)
+    OMI_trend[np.where(np.isnan(OMI_trend))] = -999.
+    where_matching = np.where((OMI_data['LAT'][:,0] >= \
+        (np.min(CERES_data['lat']) - 0.5)) & (OMI_data['LAT'][:,0] <= (np.max(CERES_data['lat']) - 0.5)))[0]
+    OMI_trend = OMI_trend[where_matching, :]
 
-    mask_trend1 = np.array(OMI_trend[(OMI_trend != 0) & (CERES_trend != 0)])
-    mask_trend2 = np.array(CERES_trend[(OMI_trend != 0) & (CERES_trend != 0)])
+    mask_trend1 = np.array(OMI_trend[(OMI_trend != 0) & (CERES_trend != 0) & (OMI_trend != -999.)])
+    mask_trend2 = np.array(CERES_trend[(OMI_trend != 0) & (CERES_trend != 0) & (OMI_trend != -999.)])
     #mask_trend1 = np.ma.masked_where(OMI_trend1 == 0,OMI_trend1)
     #mask_trend2 = np.ma.masked_where(OMI_trend2 == 0,OMI_trend2)
+
+    return mask_trend1,OMI_trend
+
+    print(mask_trend1.shape,mask_trend2.shape)
 
     print("Pearson:  ",pearsonr(mask_trend1,mask_trend2))
     print("Spearman: ",spearmanr(mask_trend1,mask_trend2))
@@ -1887,4 +1908,4 @@ def plot_compare_OMI_CERES_hrly(OMI_date,CERES_date,minlat=65,max_AI = -200.,\
         print("Saved image",outname)
     else:
         plt.show()
-    #return mask_AI,mask_flux
+    return mask_AI,mask_flux
