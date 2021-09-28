@@ -2,6 +2,7 @@
 
 COMP = gfortran
 EXEC = omi_climo_exec
+FORT_LIB_PATH = ../../fort_lib/
 OBJECTS = omi_shawn_climo.o \
 			print_climo.o \
 			read_shawn_file_climo.o
@@ -14,8 +15,8 @@ $(EXEC): $(OBJECTS)
 omi_shawn_climo.o: omi_shawn_climo.f90
 	$(COMP) $(FFLAGS) -c omi_shawn_climo.f90
 
-print_climo.o: print_climo.f90
-	$(COMP) $(FFLAGS) -c print_climo.f90
+print_climo.o: $(FORT_LIB_PATH)print_climo.f90
+	$(COMP) $(FFLAGS) -c $(FORT_LIB_PATH)print_climo.f90
 
 read_shawn_file_climo.o: read_shawn_file_climo.f90
 	$(COMP) $(FFLAGS) -c read_shawn_file_climo.f90

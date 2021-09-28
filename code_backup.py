@@ -74,7 +74,8 @@ os.system(cmnd)
 # OMI Codes
 # ---------------------------------------------------------------------------- 
 print("OMI")
-cmnd = "find "+base_dir+"OMI/ -type f -name \"*.py\" | xargs cp -t "+dest_dir
+final_dir = dest_dir + 'OMI/'
+cmnd = "find "+base_dir+"OMI/ -type f -name \"*.py\" | xargs cp -t "+final_dir
 #cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
 print(cmnd)
 os.system(cmnd)
@@ -82,50 +83,64 @@ os.system(cmnd)
 #print(cmnd)
 #os.system(cmnd)
 # Get codes from Raindrop
+# -----------------------
 rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/OMI/"
-cmnd = "scp "+rain_dir+"shawn_analysis/count_analysis/*.f90 "+dest_dir
+
+final_dir = dest_dir + 'OMI/processing/shawn_analysis/count_analysis/'
+cmnd = "scp "+rain_dir+"shawn_analysis/count_analysis/*.f90 "+final_dir
 print(cmnd)
 os.system(cmnd)
-cmnd = "scp "+rain_dir+"shawn_analysis/count_analysis/Make* "+dest_dir
+cmnd = "scp "+rain_dir+"shawn_analysis/count_analysis/Make* "+final_dir
 print(cmnd)
 os.system(cmnd)
 
-cmnd = "scp "+rain_dir+"shawn_analysis/climo_analysis/*.f90 "+dest_dir
+final_dir = dest_dir + 'OMI/processing/shawn_analysis/climo_analysis/'
+cmnd = "scp "+rain_dir+"shawn_analysis/climo_analysis/*.f90 "+final_dir
 print(cmnd)
 os.system(cmnd)
-cmnd = "scp "+rain_dir+"shawn_analysis/climo_analysis/Make* "+dest_dir
-print(cmnd)
-os.system(cmnd)
-
-cmnd = "scp "+rain_dir+"JZ_analysis/climo_analysis/*.f90 "+dest_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "scp "+rain_dir+"JZ_analysis/climo_analysis/Make* "+dest_dir
+cmnd = "scp "+rain_dir+"shawn_analysis/climo_analysis/Make* "+final_dir
 print(cmnd)
 os.system(cmnd)
 
-cmnd = "scp "+rain_dir+"JZ_analysis/count_analysis/*.f90 "+dest_dir
+final_dir = dest_dir + 'OMI/processing/JZ_analysis/climo_analysis/'
+cmnd = "scp "+rain_dir+"JZ_analysis/climo_analysis/*.f90 "+final_dir
 print(cmnd)
 os.system(cmnd)
-cmnd = "scp "+rain_dir+"JZ_analysis/count_analysis/Make* "+dest_dir
-print(cmnd)
-os.system(cmnd)
-
-cmnd = "scp "+rain_dir+"JZ_analysis/drift_analysis/*.f90 "+dest_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "scp "+rain_dir+"JZ_analysis/drift_analysis/Make* "+dest_dir
+cmnd = "scp "+rain_dir+"JZ_analysis/climo_analysis/Make* "+final_dir
 print(cmnd)
 os.system(cmnd)
 
-cmnd = "scp "+rain_dir+"JZ_analysis/row_analysis/*.f90 "+dest_dir
+final_dir = dest_dir + 'OMI/processing/JZ_analysis/count_analysis/'
+cmnd = "scp "+rain_dir+"JZ_analysis/count_analysis/*.f90 "+final_dir
 print(cmnd)
 os.system(cmnd)
-cmnd = "scp "+rain_dir+"JZ_analysis/row_analysis/Make* "+dest_dir
+cmnd = "scp "+rain_dir+"JZ_analysis/count_analysis/Make* "+final_dir
 print(cmnd)
 os.system(cmnd)
 
-cmnd = "scp "+rain_dir+"JZ_analysis/JZ_lib/*.f90 "+dest_dir
+final_dir = dest_dir + 'OMI/processing/JZ_analysis/drift_analysis/'
+cmnd = "scp "+rain_dir+"JZ_analysis/drift_analysis/*.f90 "+final_dir
+print(cmnd)
+os.system(cmnd)
+cmnd = "scp "+rain_dir+"JZ_analysis/drift_analysis/Make* "+final_dir
+print(cmnd)
+os.system(cmnd)
+
+final_dir = dest_dir + 'OMI/processing/JZ_analysis/row_analysis/'
+cmnd = "scp "+rain_dir+"JZ_analysis/row_analysis/*.f90 "+final_dir
+print(cmnd)
+os.system(cmnd)
+cmnd = "scp "+rain_dir+"JZ_analysis/row_analysis/Make* "+final_dir
+print(cmnd)
+os.system(cmnd)
+
+final_dir = dest_dir + 'OMI/processing/JZ_analysis/JZ_lib/'
+cmnd = "scp "+rain_dir+"JZ_analysis/JZ_lib/*.f90 "+final_dir
+print(cmnd)
+os.system(cmnd)
+
+final_dir = dest_dir + 'OMI/processing/fort_lib/'
+cmnd = "scp "+rain_dir+"/fort_lib/*.f90 "+final_dir
 print(cmnd)
 os.system(cmnd)
 

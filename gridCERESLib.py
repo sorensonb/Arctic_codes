@@ -1458,37 +1458,37 @@ def plotCERES_MonthTrend(CERES_data,month_idx=None,save=False,\
     local_mask = np.ma.masked_where(((local_data == -999.) | (CERES_data['lat'] < minlat)), local_data)
     ceres_trends = np.zeros(local_data.shape[1:])
 
-    print(local_mask.shape)
+    print('CERES mask shape = ',local_mask.shape)
 
-    plt.close('all')
-    fig0 = plt.figure()
-    # 79 x 152: 14, 332
-    latx = 8
-    lonx = 100
-    ## 75 x -150: 10, 30
-    #latx = 10
-    #lonx = 30
-    test_vals = local_mask[:,latx,lonx][~local_mask[:,latx,lonx].mask]
-    #test_vals = local_mask[:,latx,lonx]
-    print(test_vals)
-    x_vals = np.arange(len(test_vals))
-    slope, intercept, r_value, p_value, std_err = \
-        stats.linregress(x_vals,test_vals)
-    print(local_mask[:,latx,lonx])
-    print(slope,slope * len(x_vals))
-    plt.plot(x_vals,test_vals)
-    plt.plot(x_vals,slope * x_vals + intercept,color='red')
-    plt.title(str(int(lat_ranges[latx])) + 'x'+str(int(lon_ranges[lonx]))+\
-                '\n'+start_date.strftime('%b') + ' ' + CERES_data['satellite']) 
-    if(save == True):
-        month_adder = ''
-        if(do_month == True):
-            month_adder = '_' + start_date.strftime('%b') 
-        outname = 'ceres_'+CERES_data['param'] + '_time_series' + month_adder + '_' + \
-            str(int(lat_ranges[latx])) + 'x'+str(int(lon_ranges[lonx])) + \
-            '.png'
-        plt.savefig(outname)
-        print("Saved image",outname)
+    ##!#plt.close('all')
+    ##!#fig0 = plt.figure()
+    ##!## 79 x 152: 14, 332
+    ##!#latx = 8
+    ##!#lonx = 100
+    ##!### 75 x -150: 10, 30
+    ##!##latx = 10
+    ##!##lonx = 30
+    ##!#test_vals = local_mask[:,latx,lonx][~local_mask[:,latx,lonx].mask]
+    ##!##test_vals = local_mask[:,latx,lonx]
+    ##!#print(test_vals)
+    ##!#x_vals = np.arange(len(test_vals))
+    ##!#slope, intercept, r_value, p_value, std_err = \
+    ##!#    stats.linregress(x_vals,test_vals)
+    ##!#print(local_mask[:,latx,lonx])
+    ##!#print(slope,slope * len(x_vals))
+    ##!#plt.plot(x_vals,test_vals)
+    ##!#plt.plot(x_vals,slope * x_vals + intercept,color='red')
+    ##!#plt.title(str(int(lat_ranges[latx])) + 'x'+str(int(lon_ranges[lonx]))+\
+    ##!#            '\n'+start_date.strftime('%b') + ' ' + CERES_data['satellite']) 
+    ##!#if(save == True):
+    ##!#    month_adder = ''
+    ##!#    if(do_month == True):
+    ##!#        month_adder = '_' + start_date.strftime('%b') 
+    ##!#    outname = 'ceres_'+CERES_data['param'] + '_time_series' + month_adder + '_' + \
+    ##!#        str(int(lat_ranges[latx])) + 'x'+str(int(lon_ranges[lonx])) + \
+    ##!#        '.png'
+    ##!#    plt.savefig(outname)
+    ##!#    print("Saved image",outname)
     ##!##return local_mask[:,latx,lonx]
     
 
@@ -1575,7 +1575,7 @@ def plotCERES_MonthTrend(CERES_data,month_idx=None,save=False,\
             month_adder = '_' + start_date.strftime('%b') 
         out_name = 'ceres_' + CERES_data['param'] + '_trend'+ month_adder + '_' + \
             start_date.strftime('%Y%m') + '_' + end_date.strftime('%Y%m') + \
-            '.png'
+            '_min' + str(int(minlat)) + '.png'
         plt.savefig(out_name,dpi=300)
         print("Saved image",out_name)
     else:
@@ -1629,12 +1629,15 @@ def plotCERES_Daily_MonthAnomaly(CERES_data,CERES_daily_data,day_idx,minlat = 60
     else:
         plt.show()
 
-def plot_compare_OMI_CERES_trends(OMI_data,CERES_data,month,minlat=65,save=False):
+def plot_compare_OMI_CERES_trends(OMI_data,CERES_data,month,minlat=65,\
+        save=False):
     from OMILib import plotOMI_MonthTrend
     OMI_trend = plotOMI_MonthTrend(OMI_data,month_idx=month,save=True,\
-                trend_type='standard',season='',minlat=minlat,return_trend=True)
+                trend_type='standard',season='',minlat=minlat,\
+                return_trend=True)
     CERES_trend = plotCERES_MonthTrend(CERES_data,month_idx=month,save=True,\
-                trend_type='standard',season='',minlat=minlat,return_trend=True)
+                trend_type='standard',season='',minlat=minlat,\
+                return_trend=True)
     # Convert the index to a string using datetime
     if(month != None):
         dt_obj = datetime.strptime(OMI_data['DATES'][month],"%Y%m")
@@ -1645,7 +1648,7 @@ def plot_compare_OMI_CERES_trends(OMI_data,CERES_data,month,minlat=65,save=False
     else:
         title = 'OMI AI / CERES ' + CERES_data['param'] + ' Trend Comparison'
         outname = 'omi_ceres_trend_comp_'+\
-            OMI_data1['VERSION']+'vCERES.png'
+            OMI_data1['VERSION']+'vCERES_min' + str(minlat) + '.png'
 
     # Flip the CERES data to convert the longitudes from 0 - 360 to -180 - 180
     # ------------------------------------------------------------------------
@@ -1661,24 +1664,24 @@ def plot_compare_OMI_CERES_trends(OMI_data,CERES_data,month,minlat=65,save=False
             local_lat[ii,:][under_180]])
         CERES_trend[ii,:] = np.concatenate([CERES_trend[ii,:][over_180],\
             CERES_trend[ii,:][under_180]])
-    
-
+   
+    print("Before removal, ",CERES_trend.shape)
+ 
     # First, mask any OMI data that are outside the bounds of the CERES data
     # Assume that the OMI data are larger than the CERES data
     # ----------------------------------------------------------------------
     OMI_trend[np.where(np.isnan(OMI_trend))] = -999.
     where_matching = np.where((OMI_data['LAT'][:,0] >= \
-        (np.min(CERES_data['lat']) - 0.5)) & (OMI_data['LAT'][:,0] <= (np.max(CERES_data['lat']) - 0.5)))[0]
+        (np.min(local_lat) - 0.5)) & (OMI_data['LAT'][:,0] <= \
+        (np.max(local_lat) - 0.5)))[0]
     OMI_trend = OMI_trend[where_matching, :]
 
-    mask_trend1 = np.array(OMI_trend[(OMI_trend != 0) & (CERES_trend != 0) & (OMI_trend != -999.)])
-    mask_trend2 = np.array(CERES_trend[(OMI_trend != 0) & (CERES_trend != 0) & (OMI_trend != -999.)])
-    #mask_trend1 = np.ma.masked_where(OMI_trend1 == 0,OMI_trend1)
-    #mask_trend2 = np.ma.masked_where(OMI_trend2 == 0,OMI_trend2)
+    mask_trend1 = np.array(OMI_trend[  (OMI_trend != 0) & (CERES_trend != 0) \
+        & (OMI_trend != -999.) & (CERES_trend != -999.)])
+    mask_trend2 = np.array(CERES_trend[(OMI_trend != 0) & (CERES_trend != 0) \
+        & (OMI_trend != -999.) & (CERES_trend != -999.)])
 
-    return mask_trend1,OMI_trend
-
-    print(mask_trend1.shape,mask_trend2.shape)
+    print(mask_trend1.shape, mask_trend2.shape)
 
     print("Pearson:  ",pearsonr(mask_trend1,mask_trend2))
     print("Spearman: ",spearmanr(mask_trend1,mask_trend2))
@@ -1699,9 +1702,6 @@ def plot_compare_OMI_CERES_trends(OMI_data,CERES_data,month,minlat=65,save=False
     predictions = y_scaler.inverse_transform(\
         model.predict(x_scaler.transform(test_x[...,None])))
 
-    # One to one line stuff
-    xs = np.arange(np.min(mask_trend1),np.max(mask_trend1),0.1)
-
     plt.close('all')
     fig1 = plt.figure()
     plt.scatter(mask_trend1,mask_trend2,c=z,s=8)
@@ -1711,8 +1711,7 @@ def plot_compare_OMI_CERES_trends(OMI_data,CERES_data,month,minlat=65,save=False
     plt.plot(np.unique(mask_trend1),np.poly1d(np.polyfit(mask_trend1,\
         mask_trend2,1))(np.unique(mask_trend1)),color='tab:orange',\
         linestyle='--',label='Polyfit Fit')
-    # Plot a one-to-one line
-    plt.plot(xs,xs,label='1-1',color='tab:red')
+
     ##if((month == 0) | (month == 1)):
     ##    plt.xlim(-0.5,0.3)
     ##    plt.ylim(-0.5,0.3)
@@ -1734,7 +1733,7 @@ def plot_compare_OMI_CERES_trends(OMI_data,CERES_data,month,minlat=65,save=False
     plt.legend()
     plt.xlabel(OMI_data['VERSION'])
     plt.ylabel('CERES')
-    plt.title(title)
+    plt.title(title + '\nMinlat = ' + str(minlat))
     if(save == True):
         plt.savefig(outname)
     else:

@@ -4,6 +4,7 @@ EXEC = omi_JZ_climo_exec
 COMP = h5fc
 #COMP = gfortran
 LIB_PATH = ../JZ_lib/
+FORT_LIB_PATH = ../../fort_lib/
 OBJECTS = h5_vars.o \
 			check_bad_rows.o \
 			grid_raw_data_climo.o \
@@ -49,8 +50,8 @@ read_h5_LON.o: $(LIB_PATH)read_h5_LON.f90
 read_h5_XTRACK.o: $(LIB_PATH)read_h5_XTRACK.f90
 	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_XTRACK.f90
 
-print_climo.o: print_climo.f90
-	$(COMP) $(FFLAGS) -c print_climo.f90
+print_climo.o: $(FORT_LIB_PATH)print_climo.f90
+	$(COMP) $(FFLAGS) -c $(FORT_LIB_PATH)print_climo.f90
 
 omi_JZ_climo.o: omi_JZ_climo.f90 $(LIB_PATH)h5_vars.f90
 	$(COMP) $(FFLAGS) -c omi_JZ_climo.f90

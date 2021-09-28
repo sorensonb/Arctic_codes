@@ -20,8 +20,8 @@ omi_fort_lib.o: $(FORT_LIB_PATH)omi_fort_lib.f90
 count_ai.o: count_ai.f90
 	$(COMP) $(FFLAGS) -c count_ai.f90
 
-synop_time_check.o: synop_time_check.f90
-	$(COMP) $(FFLAGS) -c synop_time_check.f90
+synop_time_check.o: $(FORT_LIB_PATH)synop_time_check.f90
+	$(COMP) $(FFLAGS) -c $(FORT_LIB_PATH)synop_time_check.f90
 
 read_shawn_file.o: read_shawn_file.f90
 	$(COMP) $(FFLAGS) -c read_shawn_file.f90
