@@ -15,7 +15,6 @@ from netCDF4 import Dataset
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colors as cm
-from matplotlib.lines import Line2D
 from matplotlib.dates import DateFormatter
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import cartopy
@@ -25,6 +24,7 @@ from datetime import datetime,timedelta
 from dateutil.relativedelta import relativedelta
 import subprocess
 from scipy import stats
+from pyhdf import SD
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 # Set up global variables
@@ -39,6 +39,61 @@ zoom_dict = {
 proj_dict = {
     'Finland': ccrs.NorthPolarStereo(central_longitude = 35.) 
 }
+
+channel_dict = {
+    1:  {'Bandwidth': [0.620, 0.670]},\
+    2:  {'Bandwidth': [0.841, 0.876]},\
+    3:  {'Bandwidth': [0.459, 0.479]},\
+    4:  {'Bandwidth': [0.545, 0.565]},\
+    5:  {'Bandwidth': [1.230, 1.250]},\
+    6:  {'Bandwidth': [1.628, 1.652]},\
+    7:  {'Bandwidth': [2.105, 2.155]},\
+    8:  {'Bandwidth': [0.405, 0.420]},\
+    9:  {'Bandwidth': [0.438, 0.448]},\
+    10: {'Bandwidth': [0.483, 0.493]},\
+    11: {'Bandwidth': [0.526, 0.536]},\
+    12: {'Bandwidth': [0.546, 0.556]},\
+    13: {'Bandwidth': [0.662, 0.672]},\
+    14: {'Bandwidth': [0.673, 0.683]},\
+    15: {'Bandwidth': [0.743, 0.753]},\
+    16: {'Bandwidth': [0.862, 0.877]},\
+    17: {'Bandwidth': [0.890, 0.920]},\
+    18: {'Bandwidth': [0.931, 0.941]},\
+    19: {'Bandwidth': [0.915, 0.965]},\
+    20: {'Bandwidth': [3.660, 3.840]},\
+    21: {'Bandwidth': [3.929, 3.989]},\
+    22: {'Bandwidth': [3.929, 3.989]},\
+    23: {'Bandwidth': [4.020, 4.080]},\
+    24: {'Bandwidth': [4.433, 4.498]},\
+    25: {'Bandwidth': [4.482, 4.549]},\
+    26: {'Bandwidth': [1.360, 1.390]},\
+    27: {'Bandwidth': [6.535, 6.895]},\
+    28: {'Bandwidth': [7.175, 7.475]},\
+    29: {'Bandwidth': [8.400, 8.700]},\
+    30: {'Bandwidth': [9.580, 9.880]},\
+    31: {
+        'Name': 'EV_1KM_Emissive',\
+        'Index': 10,\
+        'Bandwidth': [10.780, 11.280]
+    },\
+    32: {
+        'Name': 'EV_1KM_Emissive',\
+        'Index': 11,\
+        'Bandwidth': [11.770, 12.270]
+    },\
+    33: {'Bandwidth': [13.185, 13.485]},\
+    34: {'Bandwidth': [13.485, 13.785]},\
+    35: {'Bandwidth': [13.785, 14.085]},\
+    36: {'Bandwidth': [14.085, 14.385]}
+}
+
+plot_limits_dict = {
+    '2021-08-05': {
+        'Lat': [39.0, 42.0],
+        'Lon': [-122.0, -119.0]
+    }
+}
+
 
 # Start_date and end_date must be formatted as 
 # "YYYYMMDD"
@@ -369,6 +424,134 @@ def grid_data_trends(modis_dict):
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+def plot_true_color(filename):
+    modis = SD.SD(filename)
+
+    dat = modis.attributes().get('CoreMetadata.0').split()
+    indx = dat.index('EQUATORCROSSINGDATE')+9
+    cross_date = dat[indx]
+
+    lat5 = modis.select('Latitude').get()
+    lon5 = modis.select('Longitude').get()
+
+    red   = modis.select('EV_250_Aggr1km_RefSB').get()[0]
+    green = modis.select('EV_500_Aggr1km_RefSB').get()[1]
+    blue  = modis.select('EV_500_Aggr1km_RefSB').get()[0]
+
+    red   = red[::5,::5]
+    green = green[::5,::5]
+    blue  = blue[::5,::5]
+
+    red_scale    = modis.select('EV_250_Aggr1km_RefSB').attributes().get('reflectance_scales')[0]
+    red_offset   = modis.select('EV_250_Aggr1km_RefSB').attributes().get('reflectance_offsets')[0]
+    green_scale  = modis.select('EV_500_Aggr1km_RefSB').attributes().get('reflectance_scales')[1]
+    green_offset = modis.select('EV_500_Aggr1km_RefSB').attributes().get('reflectance_offsets')[1]
+    blue_scale   = modis.select('EV_500_Aggr1km_RefSB').attributes().get('reflectance_scales')[0]
+    blue_offset  = modis.select('EV_500_Aggr1km_RefSB').attributes().get('reflectance_offsets')[0]
+
+    modis.end()
+
+    red   = (red - red_offset) * red_scale
+    green = (green - green_offset) * green_scale
+    blue  = (blue - blue_offset) * blue_scale
+
+    red   = red*(255./1.1) 
+    green = green*(255./1.1) 
+    blue  = blue*(255./1.1) 
+
+    old_val = np.array([0,30,60,120,190,255])
+    ehn_val = np.array([0,110,160,210,240,255])
+    red     = np.interp(red,old_val,ehn_val) / 255.
+    old_val = np.array([0,30,60,120,190,255])
+    ehn_val = np.array([0,110,160,200,230,240])
+    green   = np.interp(green,old_val,ehn_val) / 255.
+    old_val = np.array([0,30,60,120,190,255])
+    ehn_val = np.array([0,100,150,210,240,255])
+    blue    = np.interp(blue,old_val,ehn_val) / 255.
+  
+    image = np.zeros((red.shape[0],red.shape[1],3))
+    image[:,:,0] = red
+    image[:,:,1] = green
+    image[:,:,2] = blue
+   
+    colortuple = tuple(np.array([image[:,:,0].flatten(), \
+        image[:,:,1].flatten(), image[:,:,2].flatten()]).transpose().tolist())
+ 
+    fig1 = plt.figure()
+    ax = plt.axes(projection = ccrs.LambertConformal())
+
+    image = np.ma.masked_where(np.isnan(image),image)
+
+    print(lon5.shape, lat5.shape, image.shape)
+
+    ax.pcolormesh(lon5,lat5,image[:,:,0],color= colortuple, shading='auto', \
+        transform = ccrs.PlateCarree()) 
+    
+    ax.add_feature(cfeature.BORDERS)
+    ax.add_feature(cfeature.STATES)
+    ax.coastlines()
+
+    plt.show()
+
+def plot_MODIS_channel(filename,channel):
+
+    modis = SD.SD(filename)
+
+    dat = modis.attributes().get('CoreMetadata.0').split()
+    indx = dat.index('EQUATORCROSSINGDATE')+9
+    cross_date = dat[indx]
+
+    print(cross_date)
+
+    lat5 = modis.select('Latitude').get()
+    lon5 = modis.select('Longitude').get()
+
+    data  = modis.select(channel_dict[channel]['Name']).get()[channel_dict[channel]['Index']]
+
+    data  = data[::5,::5]
+
+    data_scale    = modis.select(channel_dict[channel]['Name']).attributes().get('radiance_scales')[channel_dict[channel]['Index']]
+    data_offset   = modis.select(channel_dict[channel]['Name']).attributes().get('radiance_offsets')[channel_dict[channel]['Index']]
+
+    data = (data - data_offset) * data_scale
+
+    # Define constants for converting radiances to temperatures
+    lmbda = (1e-6) * (np.average(channel_dict[channel]['Bandwidth'])) # in m
+    c_const = 3e8
+    h_const = 6.626e-34 # J*s
+    k_const = 1.381e-23 # J/K
+
+    data = ((h_const * c_const)/(k_const * lmbda)) * (np.log((2.0 * h_const * (c_const ** 2.0) / \
+        ((lmbda**5.0) * data)) + 1) ** -1.)
+
+    print("Data max = ",np.max(data), "  Data min = ",np.min(data))
+
+    modis.end()
+
+    fig1 = plt.figure()
+    ax = plt.axes(projection = ccrs.LambertConformal())
+
+    mesh = ax.pcolormesh(lon5,lat5,data,cmap = 'plasma', shading='auto', \
+        transform = ccrs.PlateCarree()) 
+
+    cbar = plt.colorbar(mesh,orientation='horizontal',pad=0,\
+        aspect=50,shrink = 0.850)
+    cbar.ax.tick_params(labelsize=14)
+    cbar.set_label('Blackbody Temperature [K]',fontsize=16,weight='bold')
+    
+    ax.add_feature(cfeature.BORDERS)
+    ax.add_feature(cfeature.STATES)
+    ax.coastlines()
+    print(plot_limits_dict.keys())
+    ax.set_extent([plot_limits_dict[cross_date]['Lon'][0], \
+        plot_limits_dict[cross_date]['Lon'][1], \
+        plot_limits_dict[cross_date]['Lat'][0], \
+        plot_limits_dict[cross_date]['Lat'][1]], \
+        ccrs.PlateCarree())
+    ax.set_title('Channel ' + str(channel))
+
+    plt.show()
+ 
 def plot_modis_data(modis_data,minlat=60,tind=0,zoom = None,save=False):
 
     data = modis_data['data'][tind,:,:]
@@ -821,152 +1004,4 @@ def albedo_effect_test(modis_data,ice_data,tind,start_thick,save=False):
     ax.set_ylim(-2913488.8763307533,2943353.899053069)
     ax.set_title(modis_data['titles'][tind])
     plt.show()
-
-
-
-##!## This code replicates Jianglong's figure showing how the April - September
-##!## modis concentration values have changed over the time period
-##!## NOTE: To run, do something like
-##!## >>> all_modis_data = read_modis('all')
-##!## >>> all_modis_data = grid_data_conc(all_modis_data)
-##!## and then
-##!## >>> plot_apr_sep_changes(all_modis_data)
-##!#def plot_apr_sep_changes(modis_dict):
-##!#  
-##!#    inseason = modis_dict['season_adder'].strip()
-##!# 
-##!#    upper_vals = np.array([100,80,60,40])
-##!#    lower_vals = np.array([80,60,40,20])
-##!#
-##!#    # Generate 3-year averages for 3 time periods:
-##!#    # 2001-2003
-##!#    # 2008-2011
-##!#    # 2016-2018
-##!#   
-##!#    # For now, look at April - September 
-##!#    if(inseason=='sunlight'):
-##!#        num_months = 6
-##!#        start_idx  = 0
-##!#    else:
-##!#        num_months = 12
-##!#        start_idx  = 4
-##!#    # Dimensions of modis_avgs are
-##!#    # 0 - year blocks (size = 3, see above)
-##!#    # 1 - months      (size = num_months)
-##!#    # 2 - modis values  (size = 4)
-##!#    modis_avgs = np.zeros((3,num_months,len(upper_vals)))
-##!#    indices = [0,8,15]
-##!#  
-##!#    # Base the locations for each modis concentration range on the average
-##!#    # April concentration between 2001 and 2003
-##!#
-##!#    avg_Apr_old = \
-##!#        np.average(modis_dict['grid_modis_conc'][start_idx::num_months,:,:][:3,:,:],axis=0)
-##!# 
-##!#    # Use the locations during the first April average to base everything
-##!#    # on
-##!#    locations_80_100 = np.where((avg_Apr_old <= 100.) & (avg_Apr_old > 80.)) 
-##!#    locations_60_80  = np.where((avg_Apr_old <= 80.)  & (avg_Apr_old > 60.)) 
-##!#    locations_40_60  = np.where((avg_Apr_old <= 60.)  & (avg_Apr_old > 40.)) 
-##!#    locations_20_40  = np.where((avg_Apr_old <= 40.)  & (avg_Apr_old > 20.)) 
-##!#
-##!#    # Fill the modis_avgs array with the data for each time period 
-##!#    for ri in range(len(indices)):
-##!#        for mi in range(num_months):
-##!#            print("Year block = ",ri,"  Month = ",mi)
-##!#            # Deal with 80 to 100
-##!#            ##temp_arr = np.zeros((3,len(locations_80_100)))
-##!#            ##temp_arr[0] = modis_dict['grid_modis_conc'][mi::num_months][indices[ri]][locations_80_100]
-##!#            ##temp_arr[1] = modis_dict['grid_modis_conc'][mi::num_months][indices[ri] + 1][locations_80_100]
-##!#            ##temp_arr[2] = modis_dict['grid_modis_conc'][mi::num_months][indices[ri] + 2][locations_80_100]
-##!#            #modis_avgs[ri,mi,0] = np.average(temp_arr)
-##!#            modis_avgs[ri,mi,0] = \
-##!#                np.average(np.average(modis_dict['grid_modis_conc'][mi::num_months,:,:]
-##!#                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_80_100])
-##!#
-##!#            ### Deal with 60 to 80
-##!#            ##temp_arr = np.zeros((3,len(locations_60_80)))
-##!#            ##temp_arr[0] = modis_dict['grid_modis_conc'][mi::num_months][indices[ri]][locations_60_80]
-##!#            ##temp_arr[1] = modis_dict['grid_modis_conc'][mi::num_months][indices[ri] + 1][locations_60_80]
-##!#            ##temp_arr[2] = modis_dict['grid_modis_conc'][mi::num_months][indices[ri] + 2][locations_60_80]
-##!#            ##modis_avgs[ri,mi,1] = np.average(temp_arr)
-##!#            modis_avgs[ri,mi,1] = \
-##!#                np.average(np.average(modis_dict['grid_modis_conc'][mi::num_months,:,:]
-##!#                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_60_80])
-##!#
-##!#            # Deal with 40 to 60
-##!#            ##temp_arr = np.zeros((3,len(locations_40_60)))
-##!#            ##temp_arr[0] = modis_dict['grid_modis_conc'][mi::num_months][indices[ri]][locations_40_60]
-##!#            ##temp_arr[1] = modis_dict['grid_modis_conc'][mi::num_months][indices[ri] + 1][locations_40_60]
-##!#            ##temp_arr[2] = modis_dict['grid_modis_conc'][mi::num_months][indices[ri] + 2][locations_40_60]
-##!#            #modis_avgs[ri,mi,2] = np.average(temp_arr)
-##!#            modis_avgs[ri,mi,2] = \
-##!#                np.average(np.average(modis_dict['grid_modis_conc'][mi::num_months,:,:]
-##!#                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_40_60])
-##!#
-##!#            # Deal with 40 to 60
-##!#            ##temp_arr = np.zeros((3,len(locations_20_40)))
-##!#            ##temp_arr[0] = modis_dict['grid_modis_conc'][mi::num_months][indices[ri]][locations_20_40]
-##!#            ##temp_arr[1] = modis_dict['grid_modis_conc'][mi::num_months][indices[ri] + 1][locations_20_40]
-##!#            ##temp_arr[2] = modis_dict['grid_modis_conc'][mi::num_months][indices[ri] + 2][locations_20_40]
-##!#            ##modis_avgs[ri,mi,3] = np.average(temp_arr)
-##!#            modis_avgs[ri,mi,3] = \
-##!#                np.average(np.average(modis_dict['grid_modis_conc'][mi::num_months,:,:]
-##!#                    [indices[ri]:indices[ri] + 3,:,:],axis = 0)[locations_20_40])
-##!#
-##!#            #modis_avgs[ri,mi] = \
-##!#                #np.average(modis_dict['grid_modis_conc'][0::num_months]
-##!#                #    [indices[ri]:indices[ri] + 3],axis = 0)
-##!#
-##!#    # Generate the figure
-##!#    plt.close()
-##!#    fig1 = plt.figure(figsize=(8,6))
-##!#    ax = plt.subplot()
-##!#    if(inseason=='sunlight'):
-##!#        months = ['Apr','May','June','July','Aug','Sep']
-##!#    else:
-##!#        months = ['Dec','Jan','Feb','Mar','Apr','May',\
-##!#                  'June','July','Aug','Sep','Oct','Nov']
-##!#    # Plot the 2001 - 2003 data
-##!#    ax.plot(modis_avgs[0,:,0],color='black')
-##!#    ax.plot(modis_avgs[0,:,1],color='tab:blue')
-##!#    ax.plot(modis_avgs[0,:,2],color='tab:green')
-##!#    ax.plot(modis_avgs[0,:,3],color='tab:red')
-##!#    # Plot the 2009 - 2011 data
-##!#    ax.plot(modis_avgs[1,:,0],'--',color='black')
-##!#    ax.plot(modis_avgs[1,:,1],'--',color='tab:blue')
-##!#    ax.plot(modis_avgs[1,:,2],'--',color='tab:green')
-##!#    ax.plot(modis_avgs[1,:,3],'--',color='tab:red')
-##!#    # Plot the 2016 - 2018 data
-##!#    ax.plot(modis_avgs[2,:,0],linestyle='dotted',color='black')
-##!#    ax.plot(modis_avgs[2,:,1],linestyle='dotted',color='tab:blue')
-##!#    ax.plot(modis_avgs[2,:,2],linestyle='dotted',color='tab:green')
-##!#    ax.plot(modis_avgs[2,:,3],linestyle='dotted',color='tab:red')
-##!#    ax.set_xticks(np.arange(num_months),months)
-##!#    ax.set_ylabel('Ice Concentration [%]')
-##!#
-##!#    # Shrink the current axis's height by 10% to make room for the legend
-##!#    box = ax.get_position()
-##!#    ax.set_position([box.x0, box.y0 + box.height * 0.1,\
-##!#                    box.width, box.height * 0.9])
-##!#
-##!#    # Make the legend
-##!#    custom_lines = [Line2D([0],[0],color='black'),\
-##!#                    Line2D([0],[0],color='black'),\
-##!#                    Line2D([0],[0],color='tab:blue'),\
-##!#                    Line2D([0],[0],linestyle='dashed',color='black'),\
-##!#                    Line2D([0],[0],color='tab:green'),\
-##!#                    Line2D([0],[0],linestyle='dotted',color='black'),\
-##!#                    Line2D([0],[0],color='tab:red')]
-##!#    ax.legend(custom_lines,['80 - 100%',\
-##!#                             '2001 - 2003',\
-##!#                             '60 - 80%',\
-##!#                             '2009 - 2011',\
-##!#                             '40 - 60%',\
-##!#                             '2016 - 2018',\
-##!#                             '20 - 40%'],\
-##!#              loc = 'upper center',bbox_to_anchor=(0.5,-0.05),\
-##!#              fancybox=True,shadow=True,ncol=4)
-##!#    plt.show()
-##!#    plt.close()
 
