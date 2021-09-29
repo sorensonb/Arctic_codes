@@ -1,10 +1,12 @@
 """
   NAME:
-    CryoSat2Lib.py
 
   PURPOSE:
-    House all the functions used for reading and working with the modis data
-
+  
+    NOTE: The MODIS channel and true color functions are designed to work with
+    HDF MODIS files retriefed from 
+    the data ordering website at this address:
+    https://ladsweb.modaps.eosdis.nasa.gov/search/order/1/MODIS:Aqua
 
 
 """
@@ -41,59 +43,225 @@ proj_dict = {
 }
 
 channel_dict = {
-    1:  {'Bandwidth': [0.620, 0.670]},\
-    2:  {'Bandwidth': [0.841, 0.876]},\
-    3:  {'Bandwidth': [0.459, 0.479]},\
-    4:  {'Bandwidth': [0.545, 0.565]},\
-    5:  {'Bandwidth': [1.230, 1.250]},\
-    6:  {'Bandwidth': [1.628, 1.652]},\
-    7:  {'Bandwidth': [2.105, 2.155]},\
-    8:  {'Bandwidth': [0.405, 0.420]},\
-    9:  {'Bandwidth': [0.438, 0.448]},\
-    10: {'Bandwidth': [0.483, 0.493]},\
-    11: {'Bandwidth': [0.526, 0.536]},\
-    12: {'Bandwidth': [0.546, 0.556]},\
-    13: {'Bandwidth': [0.662, 0.672]},\
-    14: {'Bandwidth': [0.673, 0.683]},\
-    15: {'Bandwidth': [0.743, 0.753]},\
-    16: {'Bandwidth': [0.862, 0.877]},\
-    17: {'Bandwidth': [0.890, 0.920]},\
-    18: {'Bandwidth': [0.931, 0.941]},\
-    19: {'Bandwidth': [0.915, 0.965]},\
-    20: {'Bandwidth': [3.660, 3.840]},\
-    21: {'Bandwidth': [3.929, 3.989]},\
-    22: {'Bandwidth': [3.929, 3.989]},\
-    23: {'Bandwidth': [4.020, 4.080]},\
-    24: {'Bandwidth': [4.433, 4.498]},\
-    25: {'Bandwidth': [4.482, 4.549]},\
-    26: {'Bandwidth': [1.360, 1.390]},\
-    27: {'Bandwidth': [6.535, 6.895]},\
-    28: {'Bandwidth': [7.175, 7.475]},\
-    29: {'Bandwidth': [8.400, 8.700]},\
-    30: {'Bandwidth': [9.580, 9.880]},\
-    31: {
+    '1': {
+        'Name': 'EV_250_Aggr1km_RefSB',\
+        'Index': 0,\
+        'Bandwidth': [0.620, 0.670]
+    },\
+    '2': {
+        'Name': 'EV_250_Aggr1km_RefSB',\
+        'Index': 1,\
+        'Bandwidth': [0.841, 0.876]
+    },\
+    '3': {
+        'Name': 'EV_500_Aggr1km_RefSB',\
+        'Index': 0,\
+        'Bandwidth': [0.459, 0.479]
+    },\
+    '4': {
+        'Name': 'EV_500_Aggr1km_RefSB',\
+        'Index': 1,\
+        'Bandwidth': [0.545, 0.565]
+    },\
+    '5': {
+        'Name': 'EV_500_Aggr1km_RefSB',\
+        'Index': 2,\
+        'Bandwidth': [1.230, 1.250]
+    },\
+    '6': {
+        'Name': 'EV_500_Aggr1km_RefSB',\
+        'Index': 3,\
+        'Bandwidth': [1.628, 1.652]
+    },\
+    '7': {
+        'Name': 'EV_500_Aggr1km_RefSB',\
+        'Index': 4,\
+        'Bandwidth': [2.105, 2.155]
+    },\
+    '8': {
+        'Name': 'EV_1KM_RefSB',\
+        'Index': 0,\
+        'Bandwidth': [0.405, 0.420]
+    },\
+    '9': {
+        'Name': 'EV_1KM_RefSB',\
+        'Index': 1,\
+        'Bandwidth': [0.438, 0.448]
+    },\
+    '10': {
+        'Name': 'EV_1KM_RefSB',\
+        'Index': 2,\
+        'Bandwidth': [0.483, 0.493]
+    },\
+    '11': {
+        'Name': 'EV_1KM_RefSB',\
+        'Index': 3,\
+        'Bandwidth': [0.526, 0.536]
+    },\
+    '12': {
+        'Name': 'EV_1KM_RefSB',\
+        'Index': 4,\
+        'Bandwidth': [0.546, 0.556]
+    },\
+    '13lo': {
+        'Name': 'EV_1KM_RefSB',\
+        'Index': 5,\
+        'Bandwidth': [0.662, 0.672]
+    },\
+    '13hi': {
+        'Name': 'EV_1KM_RefSB',\
+        'Index': 6,\
+        'Bandwidth': [0.662, 0.672]
+    },\
+    '14lo': {
+        'Name': 'EV_1KM_RefSB',\
+        'Index': 7,\
+        'Bandwidth': [0.673, 0.683]
+    },\
+    '14hi': {
+        'Name': 'EV_1KM_RefSB',\
+        'Index': 8,\
+        'Bandwidth': [0.673, 0.683]
+    },\
+    '15': {
+        'Name': 'EV_1KM_RefSB',\
+        'Index': 9,\
+        'Bandwidth': [0.743, 0.753]
+    },\
+    '16': {
+        'Name': 'EV_1KM_RefSB',\
+        'Index': 10,\
+        'Bandwidth': [0.862, 0.877]
+    },\
+    '17': {
+        'Name': 'EV_1KM_RefSB',\
+        'Index': 11,\
+        'Bandwidth': [0.890, 0.920]
+    },\
+    '18': {
+        'Name': 'EV_1KM_RefSB',\
+        'Index': 12,\
+        'Bandwidth': [0.931, 0.941]
+    },\
+    '19': {
+        'Name': 'EV_1KM_RefSB',\
+        'Index': 13,\
+        'Bandwidth': [0.915, 0.965]
+    },\
+    '20': {
+        'Name': 'EV_1KM_Emissive',\
+        'Index': 0,\
+        'Bandwidth': [3.660, 3.840]
+    },\
+    '21': {
+        'Name': 'EV_1KM_Emissive',\
+        'Index': 1,\
+        'Bandwidth': [3.929, 3.989]
+    },\
+    '22': {
+        'Name': 'EV_1KM_Emissive',\
+        'Index': 2,\
+        'Bandwidth': [3.929, 3.989]
+    },\
+    '23': {
+        'Name': 'EV_1KM_Emissive',\
+        'Index': 3,\
+        'Bandwidth': [4.020, 4.080]
+    },\
+    '24': {
+        'Name': 'EV_1KM_Emissive',\
+        'Index': 4,\
+        'Bandwidth': [4.433, 4.498]
+    },\
+    '25': {
+        'Name': 'EV_1KM_Emissive',\
+        'Index': 5,\
+        'Bandwidth': [4.482, 4.549]
+    },\
+    '26': {
+        'Name': 'EV_1KM_RefSB',\
+        'Index': 14,\
+        'Bandwidth': [1.360, 1.390]
+    },\
+    '27': {
+        'Name': 'EV_1KM_Emissive',\
+        'Index': 6,\
+        'Bandwidth': [6.535, 6.895]
+    },\
+    '28': {
+        'Name': 'EV_1KM_Emissive',\
+        'Index': 7,\
+        'Bandwidth': [7.175, 7.475]
+    },\
+    '29': {
+        'Name': 'EV_1KM_Emissive',\
+        'Index': 8,\
+        'Bandwidth': [8.400, 8.700]
+    },\
+    '30': {
+        'Name': 'EV_1KM_Emissive',\
+        'Index': 9,\
+        'Bandwidth': [9.580, 9.880]
+    },\
+    '31': {
         'Name': 'EV_1KM_Emissive',\
         'Index': 10,\
         'Bandwidth': [10.780, 11.280]
     },\
-    32: {
+    '32': {
         'Name': 'EV_1KM_Emissive',\
         'Index': 11,\
         'Bandwidth': [11.770, 12.270]
     },\
-    33: {'Bandwidth': [13.185, 13.485]},\
-    34: {'Bandwidth': [13.485, 13.785]},\
-    35: {'Bandwidth': [13.785, 14.085]},\
-    36: {'Bandwidth': [14.085, 14.385]}
-}
-
-plot_limits_dict = {
-    '2021-08-05': {
-        'Lat': [39.0, 42.0],
-        'Lon': [-122.0, -119.0]
+    '33': {
+        'Name': 'EV_1KM_Emissive',\
+        'Index': 12,\
+        'Bandwidth': [13.185, 13.485]
+    },\
+    '34': {
+        'Name': 'EV_1KM_Emissive',\
+        'Index': 13,\
+        'Bandwidth': [13.485, 13.785]
+    },\
+    '35': {
+        'Name': 'EV_1KM_Emissive',\
+        'Index': 14,\
+        'Bandwidth': [13.785, 14.085]
+    },\
+    '36': {
+        'Name': 'EV_1KM_Emissive',\
+        'Index': 15,\
+        'Bandwidth': [14.085, 14.385]
     }
 }
 
+plot_limits_dict = {
+    "2021-08-05": {
+        'Lat': [39.5, 42.5],
+        'Lon': [-123.0, -118.0]
+    }
+}
+
+def getCorners(centers):
+    one = centers[:-1,:]
+    two = centers[1:,:]
+    d1 = (two - one) / 2.0
+    one = one - d1
+    two = two + d1
+    stepOne = np.zeros((centers.shape[0] + 1, centers.shape[1]))
+    stepOne[:-2,:] = one
+    stepOne[-2:,:] = two[-2:,:]
+    one = stepOne[:,:-1]
+    two = stepOne[:,1:]
+    d2 = (two - one) / 2.
+    one = one - d2
+    two = two + d2
+    stepTwo = np.zeros((centers.shape[0] + 1, centers.shape[1] + 1))
+    stepTwo[:,:-2] = one
+    stepTwo[:,-2:] = two[:,-2:]
+    return stepTwo
+    
+    
 
 # Start_date and end_date must be formatted as 
 # "YYYYMMDD"
@@ -424,12 +592,12 @@ def grid_data_trends(modis_dict):
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-def plot_true_color(filename):
+def plot_true_color(filename,zoom=True):
     modis = SD.SD(filename)
 
     dat = modis.attributes().get('CoreMetadata.0').split()
     indx = dat.index('EQUATORCROSSINGDATE')+9
-    cross_date = dat[indx]
+    cross_date = dat[indx][1:len(dat[indx])-1]
 
     lat5 = modis.select('Latitude').get()
     lon5 = modis.select('Longitude').get()
@@ -476,7 +644,10 @@ def plot_true_color(filename):
    
     colortuple = tuple(np.array([image[:,:,0].flatten(), \
         image[:,:,1].flatten(), image[:,:,2].flatten()]).transpose().tolist())
- 
+
+    cornerLats = getCorners(lat5) ; cornerLons = getCorners(lon5)
+    
+    plt.close('all') 
     fig1 = plt.figure()
     ax = plt.axes(projection = ccrs.LambertConformal())
 
@@ -484,71 +655,107 @@ def plot_true_color(filename):
 
     print(lon5.shape, lat5.shape, image.shape)
 
-    ax.pcolormesh(lon5,lat5,image[:,:,0],color= colortuple, shading='auto', \
+    ax.pcolormesh(cornerLons,cornerLats,image[:,:,0],color= colortuple, shading='auto', \
         transform = ccrs.PlateCarree()) 
     
     ax.add_feature(cfeature.BORDERS)
     ax.add_feature(cfeature.STATES)
     ax.coastlines()
+    if(zoom):
+        ax.set_extent([plot_limits_dict[cross_date]['Lon'][0], \
+            plot_limits_dict[cross_date]['Lon'][1], \
+            plot_limits_dict[cross_date]['Lat'][0], \
+            plot_limits_dict[cross_date]['Lat'][1]], \
+            ccrs.PlateCarree())
 
     plt.show()
 
-def plot_MODIS_channel(filename,channel):
+def plot_MODIS_channel(filename,channel,zoom=True):
 
     modis = SD.SD(filename)
 
     dat = modis.attributes().get('CoreMetadata.0').split()
     indx = dat.index('EQUATORCROSSINGDATE')+9
-    cross_date = dat[indx]
+    cross_date = dat[indx][1:len(dat[indx])-1]
 
     print(cross_date)
 
     lat5 = modis.select('Latitude').get()
     lon5 = modis.select('Longitude').get()
 
-    data  = modis.select(channel_dict[channel]['Name']).get()[channel_dict[channel]['Index']]
+    data  = modis.select(channel_dict[str(channel)]['Name']).get()[channel_dict[str(channel)]['Index']]
 
     data  = data[::5,::5]
 
-    data_scale    = modis.select(channel_dict[channel]['Name']).attributes().get('radiance_scales')[channel_dict[channel]['Index']]
-    data_offset   = modis.select(channel_dict[channel]['Name']).attributes().get('radiance_offsets')[channel_dict[channel]['Index']]
+    # Thermal emission data
+    if((channel >= 20) & (channel != 26)):
+        data_scale    = modis.select(channel_dict[str(channel)]['Name']\
+            ).attributes().get('radiance_scales')[channel_dict[str(channel)]['Index']]
+        data_offset   = modis.select(channel_dict[str(channel)]['Name']\
+            ).attributes().get('radiance_offsets')[channel_dict[str(channel)]['Index']]
 
-    data = (data - data_offset) * data_scale
+        data = (data - data_offset) * data_scale
 
-    # Define constants for converting radiances to temperatures
-    lmbda = (1e-6) * (np.average(channel_dict[channel]['Bandwidth'])) # in m
-    c_const = 3e8
-    h_const = 6.626e-34 # J*s
-    k_const = 1.381e-23 # J/K
+        # Define constants for converting radiances to temperatures
+        lmbda = (1e-6) * (np.average(channel_dict[str(channel)]['Bandwidth'])) # in m
+        print("Average wavelength = ",np.average(channel_dict[str(channel)]['Bandwidth']))
+        c_const = 3e8
+        h_const = 6.626e-34 # J*s
+        k_const = 1.381e-23 # J/K
 
-    data = ((h_const * c_const)/(k_const * lmbda)) * (np.log((2.0 * h_const * (c_const ** 2.0) / \
-        ((lmbda**5.0) * data)) + 1) ** -1.)
+        data = (h_const * c_const) / \
+            (lmbda * k_const * np.log( ((2.0 * h_const * (c_const**2.0) ) / \
+            ((lmbda**4.) * (lmbda / 1e-6) * data ) ) + 1.0 ) )
+        #data = ((h_const * c_const)/(k_const * lmbda)) * (np.log((2.0 * h_const * (c_const ** 2.0) / \
+        #    ((lmbda**5.0) * data)) + 1) ** -1.)
+
+        colors = 'plasma'
+        label = 'Blackbody Temperature [K]'
+
+    # Reflectances
+    else:
+        data_scale    = modis.select(channel_dict[str(channel)]['Name']\
+            ).attributes().get('reflectance_scales')[channel_dict[str(channel)]['Index']]
+        data_offset   = modis.select(channel_dict[str(channel)]['Name']\
+            ).attributes().get('reflectance_offsets')[channel_dict[str(channel)]['Index']]
+
+        # Calculate reflectance using the scales and offsets
+        # -------------------------------------------------
+        data = ((data - data_offset) * data_scale)
+
+        colors = 'Greys_r'
+        label = 'Reflectance'
+ 
+        print('yay')    
 
     print("Data max = ",np.max(data), "  Data min = ",np.min(data))
 
     modis.end()
 
+    plt.close('all')
     fig1 = plt.figure()
     ax = plt.axes(projection = ccrs.LambertConformal())
 
-    mesh = ax.pcolormesh(lon5,lat5,data,cmap = 'plasma', shading='auto', \
+    mesh = ax.pcolormesh(lon5,lat5,data,cmap = colors, shading='auto', \
         transform = ccrs.PlateCarree()) 
 
     cbar = plt.colorbar(mesh,orientation='horizontal',pad=0,\
         aspect=50,shrink = 0.850)
     cbar.ax.tick_params(labelsize=14)
-    cbar.set_label('Blackbody Temperature [K]',fontsize=16,weight='bold')
+    cbar.set_label(label,fontsize=16,weight='bold')
     
     ax.add_feature(cfeature.BORDERS)
     ax.add_feature(cfeature.STATES)
     ax.coastlines()
-    print(plot_limits_dict.keys())
-    ax.set_extent([plot_limits_dict[cross_date]['Lon'][0], \
-        plot_limits_dict[cross_date]['Lon'][1], \
-        plot_limits_dict[cross_date]['Lat'][0], \
-        plot_limits_dict[cross_date]['Lat'][1]], \
-        ccrs.PlateCarree())
-    ax.set_title('Channel ' + str(channel))
+    if(zoom):
+        ax.set_extent([plot_limits_dict[cross_date]['Lon'][0], \
+            plot_limits_dict[cross_date]['Lon'][1], \
+            plot_limits_dict[cross_date]['Lat'][0], \
+            plot_limits_dict[cross_date]['Lat'][1]], \
+            ccrs.PlateCarree())
+    ax.set_title('Channel ' + str(channel) + '\n' + \
+        str(channel_dict[str(channel)]['Bandwidth'][0]) + ' μm - ' + \
+        str(channel_dict[str(channel)]['Bandwidth'][1]) + ' μm')
 
     plt.show()
  
