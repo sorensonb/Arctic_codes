@@ -24,6 +24,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from datetime import datetime,timedelta
 from dateutil.relativedelta import relativedelta
+from scipy.stats import pearsonr,spearmanr
 import subprocess
 from scipy import stats
 from pyhdf import SD
@@ -237,8 +238,16 @@ channel_dict = {
 
 plot_limits_dict = {
     "2021-08-05": {
-        'Lat': [39.5, 42.5],
-        'Lon': [-123.0, -118.0]
+        '2125': {
+            'Lat': [39.5, 42.5],
+            'Lon': [-121.5, -119.5]
+        }
+    },
+    "2021-08-06": {
+        '2025': {
+            'Lat': [36.0, 39.0],
+            'Lon': [-118.0, -114.0]
+        }
     }
 }
 
@@ -598,6 +607,7 @@ def plot_true_color(filename,zoom=True):
     dat = modis.attributes().get('CoreMetadata.0').split()
     indx = dat.index('EQUATORCROSSINGDATE')+9
     cross_date = dat[indx][1:len(dat[indx])-1]
+    cross_time = filename.strip().split('/')[-1].split('.')[2]
 
     lat5 = modis.select('Latitude').get()
     lon5 = modis.select('Longitude').get()
@@ -662,15 +672,19 @@ def plot_true_color(filename,zoom=True):
     ax.add_feature(cfeature.STATES)
     ax.coastlines()
     if(zoom):
-        ax.set_extent([plot_limits_dict[cross_date]['Lon'][0], \
-            plot_limits_dict[cross_date]['Lon'][1], \
-            plot_limits_dict[cross_date]['Lat'][0], \
-            plot_limits_dict[cross_date]['Lat'][1]], \
+        ax.set_extent([plot_limits_dict[cross_date][cross_time]['Lon'][0], \
+                       plot_limits_dict[cross_date][cross_time]['Lon'][1], \
+                       plot_limits_dict[cross_date][cross_time]['Lat'][0], \
+                       plot_limits_dict[cross_date][cross_time]['Lat'][1]], \
             ccrs.PlateCarree())
 
     plt.show()
 
-def plot_MODIS_channel(filename,channel,zoom=True):
+def read_MODIS_channel(filename, channel, zoom = False):
+
+    print("Reading MODIS channel",channel," from ",filename)
+
+    MODIS_data = {}
 
     modis = SD.SD(filename)
 
@@ -728,36 +742,447 @@ def plot_MODIS_channel(filename,channel,zoom=True):
  
         print('yay')    
 
-    print("Data max = ",np.max(data), "  Data min = ",np.min(data))
-
     modis.end()
+
+    MODIS_data['data'] = data
+    MODIS_data['lat']  = lat5
+    MODIS_data['lon']  = lon5
+    MODIS_data['variable']  = label
+    MODIS_data['cross_date']  = cross_date
+    MODIS_data['channel']  = channel
+    MODIS_data['colors']  = colors
+    MODIS_data['file_time'] = filename.strip().split('/')[-1].split('.')[2]
+
+    if(zoom):
+        # Mask MODIS_data['data'] that are outside the desired range
+        # --------------------------------------------
+        MODIS_data['data'][(((MODIS_data['lat'] < plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0]) | \
+                             (MODIS_data['lat'] > plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1])) | \
+                            ((MODIS_data['lon'] < plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][0]) | \
+                             (MODIS_data['lon'] > plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][1])))] = -999.
+        MODIS_data['lat'][ (((MODIS_data['lat'] < plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0]) | \
+                             (MODIS_data['lat'] > plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1])) | \
+                            ((MODIS_data['lon'] < plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][0]) | \
+                             (MODIS_data['lon'] > plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][1])))] = -999.
+        MODIS_data['lon'][ (((MODIS_data['lat'] < plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0]) | \
+                             (MODIS_data['lat'] > plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1])) | \
+                            ((MODIS_data['lon'] < plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][0]) | \
+                             (MODIS_data['lon'] > plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][1])))] = -999.
+
+        MODIS_data['data'] = np.ma.masked_where(MODIS_data['data'] == -999., MODIS_data['data'])
+        MODIS_data['lat'] = np.ma.masked_where(MODIS_data['lat'] == -999., MODIS_data['lat'])
+        MODIS_data['lon'] = np.ma.masked_where(MODIS_data['lon'] == -999., MODIS_data['lon'])
+
+
+    return MODIS_data
+
+def plot_MODIS_channel(filename,channel,zoom=True):
+
+    if(channel == 'red'):
+        channel = 1
+    elif(channel == 'green'):
+        channel = 4
+    elif(channel == 'blue'):
+        channel = 3
+
+    # Call read_MODIS_channel to read the desired MODIS data from the
+    # file and put it in a dictionary
+    # ---------------------------------------------------------------
+    MODIS_data = read_MODIS_channel(filename, channel)
+
+    print("Data max = ",np.max(MODIS_data['data']), "  Data min = ",np.min(MODIS_data['data']))
 
     plt.close('all')
     fig1 = plt.figure()
     ax = plt.axes(projection = ccrs.LambertConformal())
 
-    mesh = ax.pcolormesh(lon5,lat5,data,cmap = colors, shading='auto', \
+    mesh = ax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\
+        MODIS_data['data'],cmap = MODIS_data['colors'], shading='auto', \
         transform = ccrs.PlateCarree()) 
 
     cbar = plt.colorbar(mesh,orientation='horizontal',pad=0,\
         aspect=50,shrink = 0.850)
     cbar.ax.tick_params(labelsize=14)
-    cbar.set_label(label,fontsize=16,weight='bold')
+    cbar.set_label(MODIS_data['variable'],fontsize=16,weight='bold')
     
     ax.add_feature(cfeature.BORDERS)
     ax.add_feature(cfeature.STATES)
     ax.coastlines()
     if(zoom):
-        ax.set_extent([plot_limits_dict[cross_date]['Lon'][0], \
-            plot_limits_dict[cross_date]['Lon'][1], \
-            plot_limits_dict[cross_date]['Lat'][0], \
-            plot_limits_dict[cross_date]['Lat'][1]], \
-            ccrs.PlateCarree())
+        ax.set_extent([plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][0], \
+                       plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][1], \
+                       plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0], \
+                       plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1]],\
+                       ccrs.PlateCarree())
     ax.set_title('Channel ' + str(channel) + '\n' + \
         str(channel_dict[str(channel)]['Bandwidth'][0]) + ' μm - ' + \
         str(channel_dict[str(channel)]['Bandwidth'][1]) + ' μm')
 
     plt.show()
+
+def compare_MODIS_3panel(filename,channel1,channel2,channel3,zoom=True,save=False):
+
+    if(channel1== 'red'):
+        channel1= 1
+    elif(channel1== 'green'):
+        channel1= 4
+    elif(channel1== 'blue'):
+        channel1= 3
+
+    # Step 1: Call read_MODIS_channel to read the desired MODIS data from the
+    # file and put it in a dictionary
+    # -----------------------------------------------------------------------
+    MODIS_data1 = read_MODIS_channel(filename, channel1, zoom = False)
+    MODIS_data2 = read_MODIS_channel(filename, channel2, zoom = False)
+    MODIS_data3 = read_MODIS_channel(filename, channel3, zoom = False)
+
+    print("Data1 max = ",np.max(MODIS_data1['data']), "  Data1 min = ",np.min(MODIS_data1['data']))
+    print("Data2 max = ",np.max(MODIS_data2['data']), "  Data2 min = ",np.min(MODIS_data2['data']))
+    print("Data3 max = ",np.max(MODIS_data3['data']), "  Data3 min = ",np.min(MODIS_data3['data']))
+
+    # Create copies to set the minimum and maximums for each plot
+    # -----------------------------------------------------------
+    cpy_1 = np.copy(MODIS_data1['data'])
+    cpy_2 = np.copy(MODIS_data2['data'])
+    cpy_3 = np.copy(MODIS_data3['data'])
+
+    cpy_1 = np.ma.masked_where((((MODIS_data1['lat'] < plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][0]) | \
+                         (MODIS_data1['lat'] > plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][1])) | \
+                        ((MODIS_data1['lon'] < plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lon'][0]) | \
+                         (MODIS_data1['lon'] > plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lon'][1]))), cpy_1)
+    cpy_2 = np.ma.masked_where((((MODIS_data2['lat'] < plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][0]) | \
+                         (MODIS_data2['lat'] > plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][1])) | \
+                        ((MODIS_data2['lon'] < plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lon'][0]) | \
+                         (MODIS_data2['lon'] > plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lon'][1]))), cpy_2)
+    cpy_3 = np.ma.masked_where((((MODIS_data3['lat'] < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) | \
+                         (MODIS_data3['lat'] > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1])) | \
+                        ((MODIS_data3['lon'] < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) | \
+                         (MODIS_data3['lon'] > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]))), cpy_3)
+
+    # Step 2: Set up figure to have 3 panels
+    # --------------------------------------
+    datacrs = ccrs.PlateCarree() 
+    mapcrs = ccrs.LambertConformal()
+
+    plt.close('all')
+    fig = plt.figure(figsize=(14.5,5))
+    ax0 = fig.add_subplot(1,3,1,projection = mapcrs)
+    ax1 = fig.add_subplot(1,3,2,projection = mapcrs)
+    ax2 = fig.add_subplot(1,3,3,projection = mapcrs)
+
+    # Step 3: Plot the MODIS channel data in the first 2 panels
+    # ---------------------------------------------------------
+    mesh0 = ax0.pcolormesh(MODIS_data1['lon'],MODIS_data1['lat'],\
+        MODIS_data1['data'],cmap = MODIS_data1['colors'], shading='auto', \
+        vmin = np.nanmin(cpy_1), vmax = np.nanmax(cpy_1), transform = datacrs) 
+
+    cbar0 = plt.colorbar(mesh0,ax=ax0,orientation='vertical',\
+        pad=0.03,label=MODIS_data1['variable'])
+    #cbar0 = plt.colorbar(mesh0,cax = ax0, orientation='horizontal',pad=0,\
+    #    aspect=50,shrink = 0.850)
+    #cbar0.ax.tick_params(labelsize=14)
+    #cbar0.set_label(MODIS_data1['variable'],fontsize=16,weight='bold')
+   
+    ax0.add_feature(cfeature.BORDERS)
+    ax0.add_feature(cfeature.STATES)
+    ax0.coastlines()
+    if(zoom):
+        ax0.set_extent([plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lon'][0], \
+                        plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lon'][1], \
+                        plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][0], \
+                        plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][1]],\
+                        datacrs)
+    ax0.set_title('MODIS Ch. ' + str(channel1) + '\n' + \
+        str(channel_dict[str(channel1)]['Bandwidth'][0]) + ' μm - ' + \
+        str(channel_dict[str(channel1)]['Bandwidth'][1]) + ' μm')
+
+    # Plot channel 2
+    mesh1 = ax1.pcolormesh(MODIS_data2['lon'],MODIS_data2['lat'],\
+        MODIS_data2['data'],cmap = MODIS_data2['colors'], shading='auto', \
+        vmin = np.nanmin(cpy_2), vmax = np.nanmax(cpy_2), transform = datacrs) 
+
+    cbar1 = plt.colorbar(mesh1,ax=ax1,orientation='vertical',\
+        pad=0.03,label=MODIS_data2['variable'])
+    #cbar1 = plt.colorbar(mesh1,cax = ax1,orientation='horizontal',pad=1,\
+    #    aspect=51,shrink = 1.851)
+    #cbar1.ax.tick_params(labelsize=14)
+    #cbar1.set_label(MODIS_data2['variable'],fontsize=16,weight='bold')
+    
+    ax1.add_feature(cfeature.BORDERS)
+    ax1.add_feature(cfeature.STATES)
+    ax1.coastlines()
+    if(zoom):
+        ax1.set_extent([plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lon'][0], \
+                        plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lon'][1], \
+                        plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][0], \
+                        plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][1]],\
+                        datacrs)
+    ax1.set_title('MODIS Ch. ' + str(channel2) + '\n' + \
+        str(channel_dict[str(channel2)]['Bandwidth'][0]) + ' μm - ' + \
+        str(channel_dict[str(channel2)]['Bandwidth'][1]) + ' μm')
+
+    # Plot channel 3
+    mesh2 = ax2.pcolormesh(MODIS_data3['lon'],MODIS_data3['lat'],\
+        MODIS_data3['data'],cmap = MODIS_data3['colors'], shading='auto', \
+        vmin = np.nanmin(cpy_3), vmax = np.nanmax(cpy_3), transform = datacrs) 
+
+    cbar2 = plt.colorbar(mesh2,ax=ax2,orientation='vertical',\
+        pad=0.03,label=MODIS_data3['variable'])
+    #cbar1 = plt.colorbar(mesh1,cax = ax1,orientation='horizontal',pad=1,\
+    #    aspect=51,shrink = 1.851)
+    #cbar1.ax.tick_params(labelsize=14)
+    #cbar1.set_label(MODIS_data2['variable'],fontsize=16,weight='bold')
+    
+    ax2.add_feature(cfeature.BORDERS)
+    ax2.add_feature(cfeature.STATES)
+    ax2.coastlines()
+    if(zoom):
+        ax2.set_extent([plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0], \
+                        plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1], \
+                        plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0], \
+                        plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]],\
+                        datacrs)
+    ax2.set_title('MODIS Ch. ' + str(channel3) + '\n' + \
+        str(channel_dict[str(channel3)]['Bandwidth'][0]) + ' μm - ' + \
+        str(channel_dict[str(channel3)]['Bandwidth'][1]) + ' μm')
+
+    cross_date = MODIS_data1['cross_date']
+    file_time  = MODIS_data1['file_time']
+    if(save):
+        pdate = cross_date[:4] + cross_date[5:7] + cross_date[8:10] + file_time
+        outname = 'modis_compare_ch' + str(channel1) + '_vs_ch' + \
+            str(channel2) + '_ch' + str(channel3) + '_' + pdate + '_3panel.png'
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else: 
+        plt.show()
+    
+
+def compare_MODIS_channels(filename,channel1,channel2,zoom=True,save=False):
+
+    if(channel1 == 'red'):
+        channel1 = 1
+    elif(channel1 == 'green'):
+        channel1 = 4
+    elif(channel1 == 'blue'):
+        channel1 = 3
+
+    # Step 1: Call read_MODIS_channel to read the desired MODIS data from the
+    # file and put it in a dictionary
+    # -----------------------------------------------------------------------
+    MODIS_data1 = read_MODIS_channel(filename, channel1, zoom = zoom)
+    MODIS_data2 = read_MODIS_channel(filename, channel2, zoom = zoom)
+
+    print("Data1 max = ",np.max(MODIS_data1['data']), "  Data1 min = ",np.min(MODIS_data1['data']))
+    print("Data2 max = ",np.max(MODIS_data2['data']), "  Data2 min = ",np.min(MODIS_data2['data']))
+
+    print(MODIS_data1['data'].shape, MODIS_data2['data'].shape)
+
+    # Step 2: Set up figure to have 3 panels
+    # --------------------------------------
+    datacrs = ccrs.PlateCarree() 
+    mapcrs = ccrs.LambertConformal()
+
+    plt.close('all')
+    fig = plt.figure(figsize=(14.5,5))
+    ax0 = fig.add_subplot(1,3,2,projection = mapcrs)
+    ax1 = fig.add_subplot(1,3,3,projection = mapcrs)
+    ax2 = fig.add_subplot(1,3,1)
+
+    # Step 3: Plot the MODIS channel data in the first 2 panels
+    # ---------------------------------------------------------
+    mesh0 = ax0.pcolormesh(MODIS_data1['lon'],MODIS_data1['lat'],\
+        MODIS_data1['data'],cmap = MODIS_data1['colors'], shading='auto', \
+        transform = datacrs) 
+
+    cbar0 = plt.colorbar(mesh0,ax=ax0,orientation='vertical',\
+        pad=0.03,label=MODIS_data1['variable'])
+    #cbar0 = plt.colorbar(mesh0,cax = ax0, orientation='horizontal',pad=0,\
+    #    aspect=50,shrink = 0.850)
+    #cbar0.ax.tick_params(labelsize=14)
+    #cbar0.set_label(MODIS_data1['variable'],fontsize=16,weight='bold')
+   
+    ax0.add_feature(cfeature.BORDERS)
+    ax0.add_feature(cfeature.STATES)
+    ax0.coastlines()
+    if(zoom):
+        ax0.set_extent([plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lon'][0], \
+                        plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lon'][1], \
+                        plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][0], \
+                        plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][1]],\
+                        datacrs)
+    ax0.set_title('MODIS Ch. ' + str(channel1) + '\n' + \
+        str(channel_dict[str(channel1)]['Bandwidth'][0]) + ' μm - ' + \
+        str(channel_dict[str(channel1)]['Bandwidth'][1]) + ' μm')
+
+    # Plot channel 2
+    mesh1 = ax1.pcolormesh(MODIS_data2['lon'],MODIS_data2['lat'],\
+        MODIS_data2['data'],cmap = MODIS_data2['colors'], shading='auto', \
+        transform = datacrs) 
+
+    cbar1 = plt.colorbar(mesh1,ax=ax1,orientation='vertical',\
+        pad=0.03,label=MODIS_data2['variable'])
+    #cbar1 = plt.colorbar(mesh1,cax = ax1,orientation='horizontal',pad=1,\
+    #    aspect=51,shrink = 1.851)
+    #cbar1.ax.tick_params(labelsize=14)
+    #cbar1.set_label(MODIS_data2['variable'],fontsize=16,weight='bold')
+    
+    ax1.add_feature(cfeature.BORDERS)
+    ax1.add_feature(cfeature.STATES)
+    ax1.coastlines()
+    if(zoom):
+        ax1.set_extent([plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lon'][0], \
+                        plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lon'][1], \
+                        plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][0], \
+                        plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][1]],\
+                        datacrs)
+    ax1.set_title('MODIS Ch. ' + str(channel2) + '\n' + \
+        str(channel_dict[str(channel2)]['Bandwidth'][0]) + ' μm - ' + \
+        str(channel_dict[str(channel2)]['Bandwidth'][1]) + ' μm')
+
+    
+    # Step 4: Plot scatter MODIS channel comparison in third panel
+    # ------------------------------------------------------------
+    #if(MODIS_data1['variable'] == 'Blackbody Temperature [K]'):
+    #    max_ch = 350.
+    #if(MODIS_data2['variable'] == 'Blackbody Temperature [K]'):
+    max_ch = 350.
+
+    tmp_data1 = np.copy(MODIS_data1['data'])
+    tmp_data2 = np.copy(MODIS_data2['data'])
+
+
+    tmp_data1 = np.ma.masked_where( (MODIS_data1['data'] > max_ch) | \
+        (MODIS_data2['data'] > max_ch), tmp_data1)
+    tmp_data2 = np.ma.masked_where( (MODIS_data1['data'] > max_ch) | \
+        (MODIS_data2['data'] > max_ch), tmp_data2)
+
+
+    plot_data1 = tmp_data1.compressed()
+    plot_data2 = tmp_data2.compressed()
+
+    rval_p = pearsonr(plot_data1,plot_data2)[0]
+    #rval_s = spearmanr(tmp_data1,tmp_data2)[0]
+    print("Pearson:  ",rval_p)
+    #print("Spearman: ",rval_s)
+
+    xy = np.vstack([plot_data1,plot_data2])
+    z = stats.gaussian_kde(xy)(xy)
+
+    ax2.scatter(plot_data1,plot_data2,c=z,s=6)
+    ax2.set_xlabel('Ch. ' + str(MODIS_data1['channel']) +' ' + MODIS_data1['variable'])
+    ax2.set_ylabel('Ch. ' + str(MODIS_data2['channel']) +' ' + MODIS_data2['variable'])
+    ax2.set_title('Pearson correlation: '+str(np.round(rval_p, 3)))
+
+    if(save):
+        cross_date = MODIS_data1['cross_date']
+        file_time  = MODIS_data1['file_time']
+        pdate = cross_date[:4] + cross_date[5:7] + cross_date[8:10] + file_time
+        outname = 'modis_compare_ch' + str(channel1) + '_ch' + str(channel2) + '_' + pdate + '_3panel.png'
+        plt.savefig(outname,dpi=300)
+        print('Saved image',outname)
+    else:
+        plt.show()
+
+def compare_MODIS_3scatter(filename,channel0,channel1,channel2,channel3,save=False):
+
+    if(channel1 == 'red'):
+        channel1 = 1
+    elif(channel1 == 'green'):
+        channel1 = 4
+    elif(channel1 == 'blue'):
+        channel1 = 3
+
+    # Step 1: Call read_MODIS_channel to read the desired MODIS data from the
+    # file and put it in a dictionary
+    # -----------------------------------------------------------------------
+    MODIS_data0 = read_MODIS_channel(filename, channel0, zoom = True)
+    MODIS_data1 = read_MODIS_channel(filename, channel1, zoom = True)
+    MODIS_data2 = read_MODIS_channel(filename, channel2, zoom = True)
+    MODIS_data3 = read_MODIS_channel(filename, channel3, zoom = True)
+
+    print("Data0 max = ",np.max(MODIS_data0['data']), "  Data0 min = ",np.min(MODIS_data0['data']))
+    print("Data1 max = ",np.max(MODIS_data1['data']), "  Data1 min = ",np.min(MODIS_data1['data']))
+    print("Data2 max = ",np.max(MODIS_data2['data']), "  Data2 min = ",np.min(MODIS_data2['data']))
+    print("Data3 max = ",np.max(MODIS_data3['data']), "  Data3 min = ",np.min(MODIS_data3['data']))
+
+    max_ch = 350.
+
+    tmp_data0 = np.copy(MODIS_data0['data'])
+    tmp_data1 = np.copy(MODIS_data1['data'])
+    tmp_data2 = np.copy(MODIS_data2['data'])
+    tmp_data3 = np.copy(MODIS_data3['data'])
+
+    tmp_data0 = np.ma.masked_where( (MODIS_data0['data'] > max_ch) | \
+        (MODIS_data1['data'] > max_ch) | (MODIS_data2['data'] > max_ch) | \
+        (MODIS_data3['data'] > max_ch), tmp_data0)
+    tmp_data1 = np.ma.masked_where( (MODIS_data0['data'] > max_ch) | \
+        (MODIS_data1['data'] > max_ch) | (MODIS_data2['data'] > max_ch) | \
+        (MODIS_data3['data'] > max_ch), tmp_data1)
+    tmp_data2 = np.ma.masked_where( (MODIS_data0['data'] > max_ch) | \
+        (MODIS_data1['data'] > max_ch) | (MODIS_data2['data'] > max_ch) | \
+        (MODIS_data3['data'] > max_ch), tmp_data2)
+    tmp_data3 = np.ma.masked_where( (MODIS_data0['data'] > max_ch) | \
+        (MODIS_data1['data'] > max_ch) | (MODIS_data2['data'] > max_ch) | \
+        (MODIS_data3['data'] > max_ch), tmp_data3)
+
+    plot_data0 = tmp_data0.compressed()
+    plot_data1 = tmp_data1.compressed()
+    plot_data2 = tmp_data2.compressed()
+    plot_data3 = tmp_data3.compressed()
+
+    cross_date = MODIS_data0['cross_date']
+    file_time  = MODIS_data0['file_time']
+
+    plt.close('all')
+    fig = plt.figure(figsize=(5,13))
+    ax0 = fig.add_subplot(3,1,1)
+    ax1 = fig.add_subplot(3,1,2)
+    ax2 = fig.add_subplot(3,1,3)
+
+    xy = np.vstack([plot_data0,plot_data1])
+    z = stats.gaussian_kde(xy)(xy)
+    ax0.scatter(plot_data0,plot_data1,c=z,s=6)
+    ax0.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
+        str(np.average(channel_dict[str(channel0)]['Bandwidth'])) \
+        + ' μm] ' + MODIS_data0['variable'])
+    ax0.set_ylabel('Ch. ' + str(MODIS_data1['channel']) +' [' + \
+        str(np.average(channel_dict[str(channel1)]['Bandwidth'])) \
+        + ' μm] ' + MODIS_data1['variable'])
+    ax0.set_title('Aqua MODIS ' + cross_date + ' ' + file_time)
+    #ax0.set_title('Pearson correlation: '+str(np.round(rval_p, 3)))
+
+    xy = np.vstack([plot_data0,plot_data2])
+    z = stats.gaussian_kde(xy)(xy)
+    ax1.scatter(plot_data0,plot_data2,c=z,s=6)
+    ax1.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
+        str(np.average(channel_dict[str(channel0)]['Bandwidth'])) \
+        + ' μm] ' + MODIS_data0['variable'])
+    ax1.set_ylabel('Ch. ' + str(MODIS_data2['channel']) +' [' + \
+        str(np.average(channel_dict[str(channel2)]['Bandwidth'])) \
+        + ' μm] ' + MODIS_data2['variable'])
+    #ax0.set_title('Pearson correlation: '+str(np.round(rval_p, 3)))
+
+    xy = np.vstack([plot_data0,plot_data3])
+    z = stats.gaussian_kde(xy)(xy)
+    ax2.scatter(plot_data0,plot_data3,c=z,s=6)
+    ax2.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
+        str(np.average(channel_dict[str(channel0)]['Bandwidth'])) \
+        + ' μm] ' + MODIS_data0['variable'])
+    ax2.set_ylabel('Ch. ' + str(MODIS_data3['channel']) +' [' + \
+        str(np.average(channel_dict[str(channel3)]['Bandwidth'])) \
+        + ' μm] ' + MODIS_data3['variable'])
+    #ax0.set_title('Pearson correlation: '+str(np.round(rval_p, 3)))
+
+    if(save):
+        pdate = cross_date[:4] + cross_date[5:7] + cross_date[8:10] + file_time
+        outname = 'modis_compare_ch' + str(channel0) + '_vs_ch' + \
+            str(channel1) + '_ch' + str(channel2) + '_ch' + \
+            str(channel3) + '_' + pdate + '_3scatter.png'
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else: 
+        plt.show()
  
 def plot_modis_data(modis_data,minlat=60,tind=0,zoom = None,save=False):
 
