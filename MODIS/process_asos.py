@@ -52,8 +52,8 @@ for ii, station in enumerate(station_names):
     tmpc_stn_hz = np.copy(tmpc_stn)
     tmpc_stn_nohz = np.copy(tmpc_stn)
     print(pwxc_stn.shape, tmpc_stn_hz.shape, tmpc_stn_nohz.shape, time_stn.shape)
-    tmpc_stn_hz   = np.ma.masked_where(tmpc_stn[np.where(pwxc_stn == 'HZ')], tmpc_stn_hz)
-    tmpc_stn_nohz = np.ma.masked_where(tmpc_stn[np.where(pwxc_stn != 'HZ')], tmpc_stn_nohz)
+    tmpc_stn_hz   = np.ma.masked_where(pwxc_stn != 'HZ', tmpc_stn_hz)
+    tmpc_stn_nohz = np.ma.masked_where(pwxc_stn == 'HZ', tmpc_stn_nohz)
 
     # Convert times to datetime objects
     # In the file, the times are in UTC, so convert to CDT (-5 hrs)
@@ -62,7 +62,7 @@ for ii, station in enumerate(station_names):
             for ttime in time_stn]
 
     ax.plot(dtime_stn,tmpc_stn_nohz,label=station, color=colors[ii])
-    ax.plot(dtime_stn,tmpc_stn_hz,label=station,linestlye='--', color=colors[ii])
+    ax.plot(dtime_stn,tmpc_stn_hz,'--', label=station, color=colors[ii])
     print(station, lat_stn, lon_stn)
     ax2.text(lon_stn, lat_stn, station, transform=datacrs)
 
