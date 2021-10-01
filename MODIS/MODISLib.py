@@ -270,7 +270,28 @@ def getCorners(centers):
     stepTwo[:,-2:] = two[:,-2:]
     return stepTwo
     
-    
+  
+# Determine areas of an image that are in smoke, defined by:
+#    (ch1_refl - ch5_refl) < mean(ch1_refl - ch5_refl) * 0.25
+def find_plume(filename):
+    MODIS_ch1  = read_MODIS_channel(filename, 1,  zoom = True)
+    MODIS_ch5  = read_MODIS_channel(filename, 5,  zoom = True)
+    MODIS_ch31 = read_MODIS_channel(filename, 31, zoom = True)
+
+    screen_limit = 0.25
+    max_ch = 350.
+    test_data = MODIS_ch1['data'] - MODIS_ch5['data']
+    hash_data   = np.ma.masked_where(test_data <  \
+        (np.nanmean(test_data) * screen_limit), MODIS_ch1['data'])
+    nohash_data = np.ma.masked_where(test_data >= \
+        (np.nanmean(test_data) * screen_limit), MODIS_ch1['data'])
+
+    hash_data = np.ma.masked_where(MODIS_ch31['data'] > max_ch, hash_data)
+    nohash_data = np.ma.masked_where(MODIS_ch31['data'] > max_ch, nohash_data)
+    print(hash_data[np.where(MODIS_ch31['data'] < max_ch)])
+    print(nohash_data[np.where(MODIS_ch31['data'] < max_ch)])
+
+    return hash_data, nohash_data
 
 # Start_date and end_date must be formatted as 
 # "YYYYMMDD"
@@ -832,9 +853,9 @@ def compare_MODIS_3panel(filename,channel1,channel2,channel3,zoom=True,save=Fals
     # Step 1: Call read_MODIS_channel to read the desired MODIS data from the
     # file and put it in a dictionary
     # -----------------------------------------------------------------------
-    MODIS_data1 = read_MODIS_channel(filename, channel1, zoom = False)
-    MODIS_data2 = read_MODIS_channel(filename, channel2, zoom = False)
-    MODIS_data3 = read_MODIS_channel(filename, channel3, zoom = False)
+    MODIS_data1 = read_MODIS_channel(filename, channel1, zoom = True)
+    MODIS_data2 = read_MODIS_channel(filename, channel2, zoom = True)
+    MODIS_data3 = read_MODIS_channel(filename, channel3, zoom = True)
 
     print("Data1 max = ",np.max(MODIS_data1['data']), "  Data1 min = ",np.min(MODIS_data1['data']))
     print("Data2 max = ",np.max(MODIS_data2['data']), "  Data2 min = ",np.min(MODIS_data2['data']))
@@ -858,6 +879,44 @@ def compare_MODIS_3panel(filename,channel1,channel2,channel3,zoom=True,save=Fals
                          (MODIS_data3['lat'] > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1])) | \
                         ((MODIS_data3['lon'] < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) | \
                          (MODIS_data3['lon'] > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]))), cpy_3)
+
+
+    
+    ###test_data = MODIS_data2['data'] - MODIS_data3['data']
+    ###hash_data = np.ma.masked_where(test_data < (np.nanmean(test_data) * 0.25), test_data)
+    ####test_data = (MODIS_data3['data'] - np.nanmean(MODIS_data3['data']))
+    ###fig = plt.figure()
+    ###ax0 = fig.add_subplot(1,1,1,projection = mapcrs)
+
+    ###hash_data2 = np.ma.masked_where(((MODIS_data2['data'] < \
+    ###    np.nanmean(MODIS_data2['data'])) & (MODIS_data3['data'] < \
+    ###    np.nanmean(MODIS_data3['data']))),MODIS_data2['data'])
+    ###hash_data3 = np.ma.masked_where(((MODIS_data2['data'] < \
+    ###    np.nanmean(MODIS_data2['data'])) & (MODIS_data3['data'] < \
+    ###    np.nanmean(MODIS_data3['data']))),MODIS_data3['data'])
+    ###mesh0 = ax0.pcolormesh(MODIS_data2['lon'],MODIS_data2['lat'],\
+    ###    MODIS_data2['data'],cmap = MODIS_data2['colors'], shading='auto', \
+    ###    vmin = np.nanmin(MODIS_data2['data']), vmax = np.nanmax(MODIS_data2['data']), transform = datacrs) 
+    ###hash2 = ax0.pcolor(MODIS_data2['lon'],MODIS_data2['lat'],\
+    ###    hash_data, hatch = '///', alpha=0., transform = datacrs),
+    ###cbar0 = plt.colorbar(mesh0,ax=ax0,orientation='vertical',\
+    ###    pad=0.03,label=MODIS_data2['variable'])
+    ###ax0.add_feature(cfeature.BORDERS)
+    ###ax0.add_feature(cfeature.STATES)
+    ###ax0.coastlines()
+    ###if(zoom):
+    ###    ax0.set_extent([plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lon'][0], \
+    ###                    plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lon'][1], \
+    ###                    plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][0], \
+    ###                    plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][1]],\
+    ###                    datacrs)
+    ###plt.show()
+    ###return
+
+    #nohash_data1 = np.ma.masked_where(MODIS_data1['data'] >= \
+    #    np.nanmean(MODIS_data1['data']),MODIS_data1['data'])
+    #nohash_data2 = np.ma.masked_where(MODIS_data1['data'] >= \
+    #    np.nanmean(MODIS_data1['data']),MODIS_data2['data'])
 
     # Step 2: Set up figure to have 3 panels
     # --------------------------------------
@@ -900,6 +959,9 @@ def compare_MODIS_3panel(filename,channel1,channel2,channel3,zoom=True,save=Fals
     mesh1 = ax1.pcolormesh(MODIS_data2['lon'],MODIS_data2['lat'],\
         MODIS_data2['data'],cmap = MODIS_data2['colors'], shading='auto', \
         vmin = np.nanmin(cpy_2), vmax = np.nanmax(cpy_2), transform = datacrs) 
+    hash2 = ax1.pcolor(MODIS_data2['lon'],MODIS_data2['lat'],\
+        hash_data2, hatch = '///', alpha=0., transform = datacrs),
+
 
     cbar1 = plt.colorbar(mesh1,ax=ax1,orientation='vertical',\
         pad=0.03,label=MODIS_data2['variable'])
@@ -925,6 +987,8 @@ def compare_MODIS_3panel(filename,channel1,channel2,channel3,zoom=True,save=Fals
     mesh2 = ax2.pcolormesh(MODIS_data3['lon'],MODIS_data3['lat'],\
         MODIS_data3['data'],cmap = MODIS_data3['colors'], shading='auto', \
         vmin = np.nanmin(cpy_3), vmax = np.nanmax(cpy_3), transform = datacrs) 
+    hash3 = ax2.pcolor(MODIS_data3['lon'],MODIS_data3['lat'],\
+        hash_data3, hatch = '///', alpha=0., transform = datacrs),
 
     cbar2 = plt.colorbar(mesh2,ax=ax2,orientation='vertical',\
         pad=0.03,label=MODIS_data3['variable'])
@@ -967,6 +1031,7 @@ def compare_MODIS_channels(filename,channel1,channel2,zoom=True,save=False):
     elif(channel1 == 'blue'):
         channel1 = 3
 
+    # -----------------------------------------------------------------------
     # Step 1: Call read_MODIS_channel to read the desired MODIS data from the
     # file and put it in a dictionary
     # -----------------------------------------------------------------------
@@ -978,6 +1043,9 @@ def compare_MODIS_channels(filename,channel1,channel2,zoom=True,save=False):
 
     print(MODIS_data1['data'].shape, MODIS_data2['data'].shape)
 
+
+
+    # --------------------------------------
     # Step 2: Set up figure to have 3 panels
     # --------------------------------------
     datacrs = ccrs.PlateCarree() 
@@ -993,7 +1061,7 @@ def compare_MODIS_channels(filename,channel1,channel2,zoom=True,save=False):
     # ---------------------------------------------------------
     mesh0 = ax0.pcolormesh(MODIS_data1['lon'],MODIS_data1['lat'],\
         MODIS_data1['data'],cmap = MODIS_data1['colors'], shading='auto', \
-        transform = datacrs) 
+        transform = datacrs)
 
     cbar0 = plt.colorbar(mesh0,ax=ax0,orientation='vertical',\
         pad=0.03,label=MODIS_data1['variable'])
@@ -1040,26 +1108,77 @@ def compare_MODIS_channels(filename,channel1,channel2,zoom=True,save=False):
         str(channel_dict[str(channel2)]['Bandwidth'][0]) + ' μm - ' + \
         str(channel_dict[str(channel2)]['Bandwidth'][1]) + ' μm')
 
+    ##!## Shade areas that are inside the plume, defined currently as areas
+    ##!## with reflectance below the mean
+    ##!## -----------------------------------------------------------------
+    ##!#if(MODIS_data1['variable'] == 'Reflectance'):
+    ##!#    hash_data1 = np.ma.masked_where(MODIS_data1['data'] < \
+    ##!#        np.nanmean(MODIS_data1['data']),MODIS_data1['data'])
+    ##!#    hash_data2 = np.ma.masked_where(MODIS_data1['data'] < \
+    ##!#        np.nanmean(MODIS_data1['data']),MODIS_data2['data'])
+
+    ##!#    nohash_data1 = np.ma.masked_where(MODIS_data1['data'] >= \
+    ##!#        np.nanmean(MODIS_data1['data']),MODIS_data1['data'])
+    ##!#    nohash_data2 = np.ma.masked_where(MODIS_data1['data'] >= \
+    ##!#        np.nanmean(MODIS_data1['data']),MODIS_data2['data'])
+
+    ##!#    hash1 = ax0.pcolor(MODIS_data1['lon'],MODIS_data1['lat'],\
+    ##!#        hash_data1, hatch = '///', alpha=0., transform = datacrs),
+    ##!#    hash2 = ax1.pcolor(MODIS_data2['lon'],MODIS_data2['lat'],\
+    ##!#        hash_data2, hatch = '///', alpha=0., transform = datacrs),
+    ##!#if(MODIS_data2['variable'] == 'Reflectance'):
+    ##!#    hash_data2 = np.ma.masked_where(MODIS_data2['data'] < \
+    ##!#        np.nanmean(MODIS_data2['data']),MODIS_data2['data'])
+    ##!#    hash_data1 = np.ma.masked_where(MODIS_data2['data'] < \
+    ##!#        np.nanmean(MODIS_data2['data']),MODIS_data1['data'])
+
+    ##!#    nohash_data2 = np.ma.masked_where(MODIS_data2['data'] >= \
+    ##!#        np.nanmean(MODIS_data2['data']),MODIS_data2['data'])
+    ##!#    nohash_data1 = np.ma.masked_where(MODIS_data2['data'] >= \
+    ##!#        np.nanmean(MODIS_data2['data']),MODIS_data1['data'])
+    ##!#
+
+    ##!#    hash2 = ax1.pcolor(MODIS_data2['lon'],MODIS_data2['lat'],\
+    ##!#        hash_data2, hatch = '///', alpha=0., transform = datacrs),
+    ##!#    hash1 = ax0.pcolor(MODIS_data1['lon'],MODIS_data1['lat'],\
+    ##!#        hash_data1, hatch = '///', alpha=0., transform = datacrs),
+    
+    hash_data1, nohash_data1 = find_plume(filename) 
+    hash2 = ax1.pcolor(MODIS_data2['lon'],MODIS_data2['lat'],\
+        hash_data1, hatch = '///', alpha=0., transform = datacrs),
+    hash1 = ax0.pcolor(MODIS_data1['lon'],MODIS_data1['lat'],\
+        hash_data1, hatch = '///', alpha=0., transform = datacrs),
+
     
     # Step 4: Plot scatter MODIS channel comparison in third panel
     # ------------------------------------------------------------
-    #if(MODIS_data1['variable'] == 'Blackbody Temperature [K]'):
-    #    max_ch = 350.
-    #if(MODIS_data2['variable'] == 'Blackbody Temperature [K]'):
+
+    # Figure out which pixels are in the plume
+    # ----------------------------------------
     max_ch = 350.
 
     tmp_data1 = np.copy(MODIS_data1['data'])
     tmp_data2 = np.copy(MODIS_data2['data'])
-
 
     tmp_data1 = np.ma.masked_where( (MODIS_data1['data'] > max_ch) | \
         (MODIS_data2['data'] > max_ch), tmp_data1)
     tmp_data2 = np.ma.masked_where( (MODIS_data1['data'] > max_ch) | \
         (MODIS_data2['data'] > max_ch), tmp_data2)
 
+    ###hash_data1 = np.ma.masked_where((hash_data1 > max_ch) | \
+    ###    (hash_data2 > max_ch), hash_data1)
+    ###hash_data2 = np.ma.masked_where((hash_data1 > max_ch) | \
+    ###    (hash_data2 > max_ch), hash_data2)
+    ###nohash_data1 = np.ma.masked_where((nohash_data1 > max_ch) | \
+    ###    (nohash_data2 > max_ch), nohash_data1)
+    ###nohash_data2 = np.ma.masked_where((nohash_data1 > max_ch) | \
+    ###    (nohash_data2 > max_ch), nohash_data2)
 
     plot_data1 = tmp_data1.compressed()
     plot_data2 = tmp_data2.compressed()
+
+    ###print("Hash 1 size:", hash_data1.compressed().shape, "  Hash 2 size: ", hash_data2.compressed().shape)
+    ###print("No Hash 1 size:", nohash_data1.compressed().shape, "  No Hash 2 size: ", nohash_data2.compressed().shape)
 
     rval_p = pearsonr(plot_data1,plot_data2)[0]
     #rval_s = spearmanr(tmp_data1,tmp_data2)[0]
@@ -1069,20 +1188,30 @@ def compare_MODIS_channels(filename,channel1,channel2,zoom=True,save=False):
     xy = np.vstack([plot_data1,plot_data2])
     z = stats.gaussian_kde(xy)(xy)
 
-    ax2.scatter(plot_data1,plot_data2,c=z,s=6)
+    #ax2.scatter(plot_data1,plot_data2,c=z,s=6)
+    ax2.scatter(MODIS_data1['data'][np.where(~hash_data1.mask)], \
+        MODIS_data2['data'][np.where(~hash_data1.mask)], s=6, \
+        color='tab:blue', label='Inside Plume')
+    ax2.scatter(MODIS_data1['data'][np.where(hash_data1.mask)], \
+        MODIS_data2['data'][np.where(hash_data1.mask)], s=6, \
+        color='tab:orange', label='Outside Plume')
+    #ax2.scatter(nohash_data1.compressed(), nohash_data2.compressed(), s=6, \
+    #    color='tab:orange', label='Outside Plume')
     ax2.set_xlabel('Ch. ' + str(MODIS_data1['channel']) +' ' + MODIS_data1['variable'])
     ax2.set_ylabel('Ch. ' + str(MODIS_data2['channel']) +' ' + MODIS_data2['variable'])
     ax2.set_title('Pearson correlation: '+str(np.round(rval_p, 3)))
-
+    ax2.legend()
     if(save):
         cross_date = MODIS_data1['cross_date']
         file_time  = MODIS_data1['file_time']
         pdate = cross_date[:4] + cross_date[5:7] + cross_date[8:10] + file_time
-        outname = 'modis_compare_ch' + str(channel1) + '_ch' + str(channel2) + '_' + pdate + '_3panel.png'
+        outname = 'modis_compare_ch' + str(channel1) + '_ch' + str(channel2) + '_' + pdate + '_2pannelscatter.png'
         plt.savefig(outname,dpi=300)
         print('Saved image',outname)
     else:
         plt.show()
+
+    #return hash_data1, nohash_data1, MODIS_data1, MODIS_data2
 
 def compare_MODIS_3scatter(filename,channel0,channel1,channel2,channel3,save=False):
 
