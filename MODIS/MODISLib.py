@@ -28,6 +28,7 @@ from scipy.stats import pearsonr,spearmanr
 import subprocess
 from scipy import stats
 from pyhdf import SD
+import pandas as pd
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 # Set up global variables
@@ -237,18 +238,50 @@ channel_dict = {
 }
 
 plot_limits_dict = {
+    "2021-07-20": {
+        '2125': {
+            'asos': 'asos_data_20210720.csv',
+            'modis': 'MYD021KM.A2021201.2125.061.2021202154814.hdf',
+            'Lat': [39.5, 42.0],
+            'Lon': [-122.0, -119.5]
+        }
+    },
+    "2021-07-22": {
+        '2110': {
+            'asos': 'asos_california_20210722.csv',
+            'modis': 'MYD021KM.A2021203.2110.061.2021204155922.hdf',
+            'Lat': [39.5, 42.0],
+            'Lon': [-122.0, -119.5]
+        }
+    },
     "2021-08-05": {
         '2125': {
+            'asos': 'asos_california_20210805.csv',
             'Lat': [39.5, 42.5],
             'Lon': [-121.5, -119.5]
         }
     },
     "2021-08-06": {
         '2025': {
+            'asos': 'asos_nevada_20210806.csv',
             'Lat': [36.0, 39.0],
             'Lon': [-118.0, -114.0]
         }
-    }
+    },
+    "2021-08-17": {
+        '2145': {
+            'asos': 'asos_data_20210817.csv',
+            'Lat': [38.0, 42.0],
+            'Lon': [-122.0, -117.0]
+        }
+    },
+    "2021-08-30": {
+        '2115': {
+            'asos': 'asos_data_20210830.csv',
+            'Lat': [38.0, 40.0],
+            'Lon': [-121.0, -118.5]
+        }
+    } 
 }
 
 def getCorners(centers):
@@ -269,8 +302,19 @@ def getCorners(centers):
     stepTwo[:,:-2] = one
     stepTwo[:,-2:] = two[:,-2:]
     return stepTwo
-    
-  
+   
+def plot_ASOS_locs(pax,MODIS_data,color='red'):
+    # Read in the correct ASOS file 
+    asos_file = plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['asos']
+    df = pd.read_csv(asos_file)
+
+    station_names = set(df['station'].values)
+    for ii, station in enumerate(station_names):
+        lat_stn = df['lat'][df['station'] == station].values[0]
+        lon_stn = df['lon'][df['station'] == station].values[0]
+        pax.text(lon_stn, lat_stn, station, fontsize=10,weight='bold', \
+            transform=datacrs, color=color)
+
 # Determine areas of an image that are in smoke, defined by:
 #    (ch1_refl - ch5_refl) < mean(ch1_refl - ch5_refl) * 0.25
 def find_plume(filename):
@@ -797,7 +841,7 @@ def read_MODIS_channel(filename, channel, zoom = False):
 
     return MODIS_data
 
-def plot_MODIS_channel(filename,channel,zoom=True):
+def plot_MODIS_channel(filename,channel,zoom=True,show_smoke=False):
 
     if(channel == 'red'):
         channel = 1
@@ -815,11 +859,20 @@ def plot_MODIS_channel(filename,channel,zoom=True):
 
     plt.close('all')
     fig1 = plt.figure()
-    ax = plt.axes(projection = ccrs.LambertConformal())
+    datacrs = ccrs.PlateCarree()
+    mapcrs = ccrs.LambertConformal()
+    ax = plt.axes(projection = mapcrs)
 
     mesh = ax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\
         MODIS_data['data'],cmap = MODIS_data['colors'], shading='auto', \
-        transform = ccrs.PlateCarree()) 
+        transform = datacrs) 
+
+    if(show_smoke):
+        # Determine where the smoke is located
+        # ------------------------------------
+        hash_data1, nohash_data1 = find_plume(filename) 
+        hash0 = ax0.pcolor(MODIS_data['lon'],MODIS_data['lat'],\
+            hash_data1, hatch = '///', alpha=0., transform = datacrs)
 
     cbar = plt.colorbar(mesh,orientation='horizontal',pad=0,\
         aspect=50,shrink = 0.850)
@@ -841,7 +894,8 @@ def plot_MODIS_channel(filename,channel,zoom=True):
 
     plt.show()
 
-def compare_MODIS_3panel(filename,channel1,channel2,channel3,zoom=True,save=False):
+def compare_MODIS_3panel(filename,channel1,channel2,channel3,zoom=True,save=False,\
+        plot_ASOS_loc = False, show_smoke = True):
 
     if(channel1== 'red'):
         channel1= 1
@@ -918,6 +972,7 @@ def compare_MODIS_3panel(filename,channel1,channel2,channel3,zoom=True,save=Fals
     #nohash_data2 = np.ma.masked_where(MODIS_data1['data'] >= \
     #    np.nanmean(MODIS_data1['data']),MODIS_data2['data'])
 
+
     # Step 2: Set up figure to have 3 panels
     # --------------------------------------
     datacrs = ccrs.PlateCarree() 
@@ -941,7 +996,7 @@ def compare_MODIS_3panel(filename,channel1,channel2,channel3,zoom=True,save=Fals
     #    aspect=50,shrink = 0.850)
     #cbar0.ax.tick_params(labelsize=14)
     #cbar0.set_label(MODIS_data1['variable'],fontsize=16,weight='bold')
-   
+
     ax0.add_feature(cfeature.BORDERS)
     ax0.add_feature(cfeature.STATES)
     ax0.coastlines()
@@ -959,8 +1014,6 @@ def compare_MODIS_3panel(filename,channel1,channel2,channel3,zoom=True,save=Fals
     mesh1 = ax1.pcolormesh(MODIS_data2['lon'],MODIS_data2['lat'],\
         MODIS_data2['data'],cmap = MODIS_data2['colors'], shading='auto', \
         vmin = np.nanmin(cpy_2), vmax = np.nanmax(cpy_2), transform = datacrs) 
-    hash2 = ax1.pcolor(MODIS_data2['lon'],MODIS_data2['lat'],\
-        hash_data2, hatch = '///', alpha=0., transform = datacrs),
 
 
     cbar1 = plt.colorbar(mesh1,ax=ax1,orientation='vertical',\
@@ -987,8 +1040,19 @@ def compare_MODIS_3panel(filename,channel1,channel2,channel3,zoom=True,save=Fals
     mesh2 = ax2.pcolormesh(MODIS_data3['lon'],MODIS_data3['lat'],\
         MODIS_data3['data'],cmap = MODIS_data3['colors'], shading='auto', \
         vmin = np.nanmin(cpy_3), vmax = np.nanmax(cpy_3), transform = datacrs) 
-    hash3 = ax2.pcolor(MODIS_data3['lon'],MODIS_data3['lat'],\
-        hash_data3, hatch = '///', alpha=0., transform = datacrs),
+
+    if(show_smoke):
+        # Determine where the smoke is located
+        # ------------------------------------
+        hash_data1, nohash_data1 = find_plume(filename) 
+        hash0 = ax0.pcolor(MODIS_data1['lon'],MODIS_data1['lat'],\
+            hash_data1, hatch = '///', alpha=0., transform = datacrs)
+        hash1 = ax1.pcolor(MODIS_data2['lon'],MODIS_data2['lat'],\
+            hash_data1, hatch = '///', alpha=0., transform = datacrs)
+        hash2 = ax2.pcolor(MODIS_data3['lon'],MODIS_data3['lat'],\
+            hash_data1, hatch = '///', alpha=0., transform = datacrs)
+    
+
 
     cbar2 = plt.colorbar(mesh2,ax=ax2,orientation='vertical',\
         pad=0.03,label=MODIS_data3['variable'])
@@ -1010,6 +1074,12 @@ def compare_MODIS_3panel(filename,channel1,channel2,channel3,zoom=True,save=Fals
         str(channel_dict[str(channel3)]['Bandwidth'][0]) + ' μm - ' + \
         str(channel_dict[str(channel3)]['Bandwidth'][1]) + ' μm')
 
+    if(plot_ASOS_loc):
+        print("Plotting ASOS site")
+        plot_ASOS_locs(ax0,MODIS_data1,color='black')
+        plot_ASOS_locs(ax1,MODIS_data1)
+        plot_ASOS_locs(ax2,MODIS_data1)
+
     cross_date = MODIS_data1['cross_date']
     file_time  = MODIS_data1['file_time']
     if(save):
@@ -1022,7 +1092,8 @@ def compare_MODIS_3panel(filename,channel1,channel2,channel3,zoom=True,save=Fals
         plt.show()
     
 
-def compare_MODIS_channels(filename,channel1,channel2,zoom=True,save=False):
+def compare_MODIS_channels(filename,channel1,channel2,zoom=True,save=False,\
+        plot_ASOS_loc = False,show_smoke = True):
 
     if(channel1 == 'red'):
         channel1 = 1
@@ -1042,8 +1113,6 @@ def compare_MODIS_channels(filename,channel1,channel2,zoom=True,save=False):
     print("Data2 max = ",np.max(MODIS_data2['data']), "  Data2 min = ",np.min(MODIS_data2['data']))
 
     print(MODIS_data1['data'].shape, MODIS_data2['data'].shape)
-
-
 
     # --------------------------------------
     # Step 2: Set up figure to have 3 panels
@@ -1143,12 +1212,14 @@ def compare_MODIS_channels(filename,channel1,channel2,zoom=True,save=False):
     ##!#    hash1 = ax0.pcolor(MODIS_data1['lon'],MODIS_data1['lat'],\
     ##!#        hash_data1, hatch = '///', alpha=0., transform = datacrs),
     
-    hash_data1, nohash_data1 = find_plume(filename) 
-    hash2 = ax1.pcolor(MODIS_data2['lon'],MODIS_data2['lat'],\
-        hash_data1, hatch = '///', alpha=0., transform = datacrs),
-    hash1 = ax0.pcolor(MODIS_data1['lon'],MODIS_data1['lat'],\
-        hash_data1, hatch = '///', alpha=0., transform = datacrs),
-
+    if(show_smoke):
+        # Determine where the smoke is located
+        # ------------------------------------
+        hash_data1, nohash_data1 = find_plume(filename) 
+        hash2 = ax1.pcolor(MODIS_data2['lon'],MODIS_data2['lat'],\
+            hash_data1, hatch = '///', alpha=0., transform = datacrs),
+        hash1 = ax0.pcolor(MODIS_data1['lon'],MODIS_data1['lat'],\
+            hash_data1, hatch = '///', alpha=0., transform = datacrs),
     
     # Step 4: Plot scatter MODIS channel comparison in third panel
     # ------------------------------------------------------------
@@ -1201,6 +1272,12 @@ def compare_MODIS_channels(filename,channel1,channel2,zoom=True,save=False):
     ax2.set_ylabel('Ch. ' + str(MODIS_data2['channel']) +' ' + MODIS_data2['variable'])
     ax2.set_title('Pearson correlation: '+str(np.round(rval_p, 3)))
     ax2.legend()
+
+    if(plot_ASOS_loc):
+        print("Plotting ASOS site")
+        plot_ASOS_locs(ax0,MODIS_data1)
+        plot_ASOS_locs(ax1,MODIS_data1)
+
     if(save):
         cross_date = MODIS_data1['cross_date']
         file_time  = MODIS_data1['file_time']

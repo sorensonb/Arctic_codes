@@ -352,10 +352,16 @@ def readOMI_single_swath(plot_time,row_max,only_sea_ice = True,latmin=65,coccoli
 def writeOMI_toNCDF(OMI_data,file_name,minlat=30):
     lat_ranges = np.arange(minlat,90.5,1.0)
     lon_ranges = np.arange(-180,180,1.0)
-    
+   
+    # Create a new netCDF dataset to write to
+    # --------------------------------------- 
     nc = Dataset(file_name,'w',format='NETCDF4')
   
     # Dimensions = lat, lon, time
+    # Create the sizes of each dimension in the file. In this case,
+    # the dimensions are "# of latitude", "# of longitude", and 
+    # "# of times in the file". 
+    # -------------------------------------------------------------
     testdict = OMI_data['70x5']
     testkeys = list(testdict.keys())
     num_lat = len(lat_ranges)
@@ -373,11 +379,19 @@ def writeOMI_toNCDF(OMI_data,file_name,minlat=30):
     times = np.array([(datetime.strptime(tmpx,'%Y%m').year - base_date.year) \
         * 12 + datetime.strptime(tmpx,'%Y%m').month - base_date.month \
         for tmpx in testkeys])
-    
+   
+    # Use the dimension size variables to actually create dimensions in 
+    # the file.
+    # ----------------------------------------------------------------- 
     n_time = nc.createDimension('nmth',num_time)
     n_lat  = nc.createDimension('dlat',num_lat)
     n_lon  = nc.createDimension('dlon',num_lon)
 
+    # Create variables for the three dimensions. Note that since these
+    # are variables, they are still given 'dimensions' using 'nmth',
+    # 'dlat', and 'dlon'. Latitude and longitude are each 2-d grids, 
+    # so they are given 2 dimensions (dlat, dlon).
+    # ----------------------------------------------------------------
     MONTH=nc.createVariable('MONTH','i2',('nmth'))
     MONTH.description='Months since January 2005'
     LAT=nc.createVariable('Latitude','i2',('dlat','dlon'))
@@ -386,12 +400,20 @@ def writeOMI_toNCDF(OMI_data,file_name,minlat=30):
     LON=nc.createVariable('Longitude','i2',('dlat','dlon'))
     LON.description='Longitude'
     LON.units='Degrees'
+   
+    # Create a variable for the AI data, dimensioned using all three
+    # dimensions.
+    # --------------------------------------------------------------  
     AI = nc.createVariable('AI','f4',('nmth','dlat','dlon'))
     AI.description='Monthly Averaged Aerosol Index (using JZ method)'
     OB_COUNT=nc.createVariable('OB_COUNT','i2',('nmth','dlat','dlon'))
     OB_COUNT.description='# of OMI AI measurements used in each monthly average'
 
-    # Fill in dimension variables
+    # Fill in dimension variables one-by-one.
+    # NOTE: not sure if you can insert the entire data array into the
+    # dimension (for example, doing MONTH = times), so this could be
+    # something for you to try. Might make this faster if it works
+    # ---------------------------------------------------------------
     for i in range(num_time):
         MONTH[i] = times[i]
     for i in range(num_lat):
@@ -400,6 +422,9 @@ def writeOMI_toNCDF(OMI_data,file_name,minlat=30):
             LON[i,j]=lon_ranges[j]
 
     # Fill in actual variables
+    # I have a bunch of extra stuff in here for handling the dictionary
+    # keys, which you will likely not need for your data
+    # ------------------------------------------------------------------
     for i in range(num_lat):
         print(lat_ranges[i])
         for j in range(num_lon):
@@ -417,6 +442,9 @@ def writeOMI_toNCDF(OMI_data,file_name,minlat=30):
                     else:
                         AI[m,i,j] = OMI_data[dictkey][timekey]['avg']
                         OB_COUNT[m,i,j] = OMI_data[dictkey][timekey]['#_obs']
+
+    # Close the netCDF file, which actually saves it.
+    # -----------------------------------------------
     nc.close()
 
 def write_da_to_NCDF(avgAI,counts,latmin,da_time):
@@ -427,43 +455,68 @@ def write_da_to_NCDF(avgAI,counts,latmin,da_time):
     lat_ranges = np.arange(latmin,90.1,0.25)
     lon_ranges = np.arange(-180,180.1,0.25)
 
+    # Create a new netCDF dataset to write to
+    # --------------------------------------- 
     outfile = '/home/bsorenson/Research/OMI/omi_ai_da_'+da_time.strftime("%Y%m%d%H") + '.nc'
     nc = Dataset(outfile,'w',format='NETCDF4')
   
     # Dimensions = lon, lat
+    # Create the sizes of each dimension in the file. In this case,
+    # the dimensions are "# of latitude" and "# of longitude"
+    # -------------------------------------------------------------
     num_lon = len(lon_ranges)
     num_lat = len(lat_ranges)
     
+    # Use the dimension size variables to actually create dimensions in 
+    # the file.
+    # ----------------------------------------------------------------- 
     n_lon  = nc.createDimension('nlon',num_lon)
     n_lat  = nc.createDimension('nlat',num_lat)
 
+    # Create variables for the three dimensions. Note that since these
+    # are variables, they are still given 'dimensions' using 'dlat', 
+    # and 'dlon'. Latitude and longitude are each 2-d grids, so they are 
+    # given 2 dimensions (dlat, dlon).
+    # ------------------------------------------------------------------
     LON=nc.createVariable('lon','f4',('nlon','nlat'))
     LON.description='Longitude'
     LON.units='Degrees'
     LAT=nc.createVariable('lat','f4',('nlon','nlat'))
     LAT.description='Latitude'
     LAT.units='Degrees'
+
+    # Create a variable for the AI data, dimensioned using both 
+    # dimensions.
+    # ---------------------------------------------------------  
     AI = nc.createVariable('AI','f4',('nlon','nlat'))
     AI.description='Quality controlled aerosol index data during the data assimilation window ('+\
         da_time.strftime("%Y%m%d%H") + ' +/- 3 hrs)'
     AI_COUNT=nc.createVariable('AI_COUNT','i2',('nlon','nlat'))
     AI_COUNT.description='# of OMI AI measurements used in each grid box'
 
-    # Fill in dimension variables
+    # Fill in dimension variables one-by-one.
+    # NOTE: not sure if you can insert the entire data array into the
+    # dimension (for example, doing :
+    #      LAT, LON = np.meshgrid(lat_ranges,lon_ranges) ),
+    # so this could be
+    # something for you to try. Might make this faster if it works
+    # ---------------------------------------------------------------
     for yi in range(num_lon):
         for xj in range(num_lat):
             LON[yi,xj]=lon_ranges[yi]
             LAT[yi,xj]=lat_ranges[xj]
 
     # Fill in actual variables
-    ###AI = avgAI
-    ###AI_COUNT = counts
-
+    # ------------------------
     for yi in range(num_lon):
         for xj in range(num_lat):
             AI[yi,xj] = avgAI[yi,xj]
             AI_COUNT[yi,xj] = counts[yi,xj]
+
+    # Save, write, and close the netCDF file
+    # --------------------------------------
     nc.close()
+
     print("Saved file ",outfile)  
    
 def readOMI_NCDF(infile='/home/bsorenson/Research/OMI/omi_ai_V003_2005_2020.nc',\

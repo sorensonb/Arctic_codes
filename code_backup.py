@@ -186,7 +186,8 @@ os.system(cmnd)
 # ---------------------------------------------------------------------------- 
 print("MODIS")
 final_dir = dest_dir + 'MODIS/'
-cmnd = "cp "+base_dir+"MODIS/*.py "+final_dir
+cmnd = "find "+base_dir+"MODIS/ -type f -name \"*.py\" | xargs cp -t "+final_dir
+#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
 print(cmnd)
 os.system(cmnd)
 ## ---------------------------------------------------------------------------- 
