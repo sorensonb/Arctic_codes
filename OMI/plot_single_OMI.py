@@ -39,6 +39,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as color
 import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 import subprocess
 import h5py
 
@@ -153,7 +154,7 @@ total_list = subprocess.check_output('ls '+base_path+'OMI-Aura_L2-OMAERUV_'+\
     year+'m'+date+'t'+time+'*.he5',shell=True).decode('utf-8').strip().split('\n')
 
 # Set up values for gridding the AI data
-latmin = 60 
+latmin = 30 
 lat_gridder = latmin * 4.
 
 lat_ranges = np.arange(latmin,90.1,0.25)
@@ -279,8 +280,12 @@ mesh = ax.pcolormesh(plot_lon, plot_lat,mask_UVAI,transform = datacrs,cmap = col
         shading='auto')
 
 # Center the figure over the Arctic
-ax.set_extent([-180,180,latmin,90],ccrs.PlateCarree())
-
+#ax.set_extent([-180,180,latmin,90],ccrs.PlateCarree())
+#ax.set_extent([-121.5, -119.5, 39.5, 42.5], datacrs) # Values for 2021/08/05 plume case
+#ax.set_extent([-118.0, -114.0, 36.0, 39.0], datacrs) # Values for 2021/08/06 plume case
+ax.set_extent([-122.0, -119.5, 39.5, 42.0], datacrs) # Values for 2021/08/05 plume case
+ax.add_feature(cfeature.BORDERS)
+ax.add_feature(cfeature.STATES)
 # Depending on the desired variable, set the appropriate colorbar ticks
 if(variable == 'NormRadiance'):
     tickvals = np.arange(0.0,1.010,0.10)
