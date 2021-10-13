@@ -34,8 +34,12 @@ day   = int(date[6:8])
 print(date)
 files = main(year,month,day)
 
+outfile = 'asos_data_' + date + '.csv'
+if(os.path.exists(outfile)):
+    outfile = 'asos_data_' + date + '_2.csv'
+
 convert_temp = False
-with open ('asos_data_' + date + '.csv','w') as fout:
+with open (outfile,'w') as fout:
     for ii, ffile in enumerate(files):
         print(ffile)
         with open(ffile,'r') as fin:
@@ -66,4 +70,4 @@ with open ('asos_data_' + date + '.csv','w') as fout:
                 fout.write(tmpline+'\n')
         #print("rm "+ffile) 
         os.system("rm " + ffile)
-    print("saved file",'asos_data_' + date + '.csv')
+    print("saved file",outfile)

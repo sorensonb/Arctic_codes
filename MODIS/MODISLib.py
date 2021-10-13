@@ -242,7 +242,7 @@ plot_limits_dict = {
     "2021-07-20": {
         '2125': {
             'asos': 'asos_data_20210720.csv',
-            'modis': 'MYD021KM.A2021201.2125.061.2021202154814.hdf',
+            'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021201.2125.061.2021202154814.hdf',
             'Lat': [39.5, 42.0],
             'Lon': [-122.0, -119.5]
         }
@@ -250,14 +250,21 @@ plot_limits_dict = {
     "2021-07-22": {
         '2110': {
             'asos': 'asos_california_20210722.csv',
-            'modis': 'MYD021KM.A2021203.2110.061.2021204155922.hdf',
+            'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021203.2110.061.2021204155922.hdf',
             'Lat': [39.5, 42.0],
             'Lon': [-122.0, -119.5]
         }
     },
     "2021-08-05": {
+        '2120': {
+            'asos': 'asos_data_20210805.csv',
+            'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021217.2120.061.2021218164201.hdf',
+            'Lat': [36.0, 39.0],
+            'Lon': [-118.0, -114.0]
+        },
         '2125': {
             'asos': 'asos_california_20210805.csv',
+            'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021217.2125.061.2021218161010.hdf',
             'Lat': [39.5, 42.5],
             'Lon': [-121.5, -119.5]
         }
@@ -265,6 +272,7 @@ plot_limits_dict = {
     "2021-08-06": {
         '2025': {
             'asos': 'asos_nevada_20210806.csv',
+            'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021218.2025.061.2021219151802.hdf',
             'omi': '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0806t1943-o90747_v003-2021m0808t031152.he5',
             'Lat': [36.0, 39.0],
             'Lon': [-118.0, -114.0]
@@ -280,6 +288,7 @@ plot_limits_dict = {
     "2021-08-30": {
         '2115': {
             'asos': 'asos_data_20210830.csv',
+            'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021242.2115.061.2021243183953.hdf',
             'Lat': [38.0, 40.0],
             'Lon': [-121.0, -118.5]
         }
@@ -326,13 +335,22 @@ def nearest_grid_values(MODIS_data):
     # Pull the event time from the plot_limits_dict
     event_date = datetime.strptime(MODIS_data['cross_date'], "%Y-%m-%d")
     first_time = MODIS_data['file_time']
-    event_dtime = event_date + timedelta(hours = int(first_time[:2]), \
-        minutes = int(first_time[2:4]))
+    event_dtime = event_date + timedelta(hours = int(first_time[:2]))
+    # Test what happens if looking at the data near the hour
+    #event_dtime = event_date + timedelta(hours = int(first_time[:2]), \
+    #    minutes = int(first_time[2:4]))
+    print("Overpass time",event_dtime)
 
-    begin_range = event_dtime - timedelta(minutes = 30)
-    end_range   = event_dtime + timedelta(minutes = 30)
+    begin_range = event_dtime - timedelta(minutes = 10)
+    end_range   = event_dtime + timedelta(minutes = 10)
 
+    compare_dict = {}
     station_names = sorted(set(df['station'].values))
+    compare_dict['modis_time'] = event_dtime.strftime('%Y%m%d%H%M')
+    compare_dict['stations'] = station_names
+    compare_dict['stn_data'] = np.zeros((len(station_names)))
+    compare_dict['mds_data'] = np.zeros((len(station_names)))
+ 
     for ii, station in enumerate(station_names):
         print(station)
         # Get the correct ob data
@@ -342,14 +360,22 @@ def nearest_grid_values(MODIS_data):
 
         stn_df = stn_df[ begin_range : end_range]
         s_idx = np.argmin(np.abs((stn_df.index - event_dtime).total_seconds())) 
+        if(stn_df['tmpc'][s_idx] == 'M'):
+            stn_tmps = pd.to_numeric(stn_df['tmpc'], errors='coerce').values
+            s_idx = np.where(~np.isnan(stn_tmps))[0][0]
 
         # Find the matching grid index
         m_idx = nearest_gridpoint(lat_stn, lon_stn, MODIS_data['lat'], \
             MODIS_data['lon'])
-        m_data = MODIS_data['data'][m_idx]
-       
+        m_data = MODIS_data['data'][m_idx][0]
+      
+        compare_dict['stn_data'][ii] = stn_df['tmpc'][s_idx]
+        compare_dict['mds_data'][ii] = m_data
+ 
         print(station, lat_stn, MODIS_data['lat'][m_idx][0], \
-            lon_stn, MODIS_data['lon'][m_idx][0], stn_df['tmpc'][s_idx], m_data[0] )
+            lon_stn, MODIS_data['lon'][m_idx][0], stn_df['tmpc'][s_idx], m_data )
+
+    return compare_dict
 
  
 # Plot the downloaded ASOS stations for each case
@@ -941,8 +967,13 @@ def plot_MODIS_channel(filename,channel,zoom=True,show_smoke=False):
 
     plt.show()
 
-def compare_MODIS_3panel(filename,channel1,channel2,channel3,zoom=True,save=False,\
-        plot_ASOS_loc = False, show_smoke = True, compare_OMI = False):
+# date_str of format "YYYYMMDDHHMM"
+def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=False,\
+        plot_ASOS_loc = False, show_smoke = True, compare_OMI = False, \
+        return_MODIS = False):
+
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+    filename = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
 
     if(channel1== 'red'):
         channel1= 1
@@ -1049,7 +1080,7 @@ def compare_MODIS_3panel(filename,channel1,channel2,channel3,zoom=True,save=Fals
         MODIS_data3['data'],cmap = MODIS_data3['colors'], shading='auto', \
         vmin = np.nanmin(cpy_3), vmax = np.nanmax(cpy_3), transform = datacrs) 
     cbar2 = plt.colorbar(mesh2,ax=ax2,orientation='vertical',\
-        pad=0.03,label=MODIS_data3['variable'])
+        pad=0.03,shrink=0.845,label=MODIS_data3['variable'])
     
     ax2.add_feature(cfeature.BORDERS)
     ax2.add_feature(cfeature.STATES)
@@ -1077,6 +1108,7 @@ def compare_MODIS_3panel(filename,channel1,channel2,channel3,zoom=True,save=Fals
     
 
     if(compare_OMI):
+        print("Reading OMI data")
         data = h5py.File(plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['omi'],'r')
         LAT   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude'][:,:]
         LON   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude'][:,:]
@@ -1113,6 +1145,7 @@ def compare_MODIS_3panel(filename,channel1,channel2,channel3,zoom=True,save=Fals
 
     cross_date = MODIS_data1['cross_date']
     file_time  = MODIS_data1['file_time']
+    plt.suptitle(cross_date + ' ' + file_time)
     if(save):
         pdate = cross_date[:4] + cross_date[5:7] + cross_date[8:10] + file_time
         outname = 'modis_compare_ch' + str(channel1) + '_vs_ch' + \
@@ -1125,7 +1158,8 @@ def compare_MODIS_3panel(filename,channel1,channel2,channel3,zoom=True,save=Fals
     else: 
         plt.show()
 
-    return(MODIS_data1)
+    if(return_MODIS):
+        return MODIS_data1
     
 
 def compare_MODIS_channels(filename,channel1,channel2,zoom=True,save=False,\
@@ -1425,6 +1459,42 @@ def compare_MODIS_3scatter(filename,channel0,channel1,channel2,channel3,save=Fal
         print("Saved image",outname)
     else: 
         plt.show()
+
+
+# Compare colocated MODIS and ob data for two dates
+def colocate_comparison(date1, date2, channel = 31):
+    # Read in MODIS data for both cases
+    # ---------------------------------
+    dt_date_str1 = datetime.strptime(date1,"%Y%m%d%H%M")
+    dt_date_str2 = datetime.strptime(date2,"%Y%m%d%H%M")
+    filename1 = plot_limits_dict[dt_date_str1.strftime('%Y-%m-%d')][dt_date_str1.strftime('%H%M')]['modis']
+    filename2 = plot_limits_dict[dt_date_str2.strftime('%Y-%m-%d')][dt_date_str2.strftime('%H%M')]['modis']
+
+    MODIS_data1 = read_MODIS_channel(filename1, channel, zoom = True)
+    MODIS_data2 = read_MODIS_channel(filename2, channel, zoom = True)
+
+    # Use the colocation code to extract matching data
+    # ------------------------------------------------
+    compare_data1 = nearest_grid_values(MODIS_data1)
+    compare_data2 = nearest_grid_values(MODIS_data2)
+
+    # Plot the data
+    # -------------
+
+    plt.close('all')
+    fig, ax = plt.subplots()
+    print(compare_data1['stations'])
+    ax.plot(np.arange(len(compare_data1['stations'])), compare_data1['stn_data'], color='tab:blue', label = '05 Stations')
+    ax.plot(np.arange(len(compare_data1['stations'])), compare_data2['stn_data'], color = 'tab:blue', linestyle = '--', label = '06 Stations')
+
+    ax2 = ax.twinx()
+    ax2.plot(np.arange(len(compare_data1['stations'])),compare_data1['mds_data'], color='tab:orange', label = '05 Modis')
+    ax2.plot(np.arange(len(compare_data1['stations'])),compare_data2['mds_data'], color='tab:orange', linestyle = '--', label = '06 Modis')
+  
+    ax.set_xticks(np.arange(len(compare_data1['stations']))) 
+    ax.set_xticklabels(compare_data1['stations'])
+ 
+    plt.show()
  
 def plot_modis_data(modis_data,minlat=60,tind=0,zoom = None,save=False):
 
