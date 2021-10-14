@@ -9,10 +9,16 @@ from auto_asos_downloader import *
 import os
 import sys
 import numpy as np
-
-print("yay")
+import requests
+import pandas as pd
 
 #files = main()
+
+##!#def get_elevation(lat, lon):
+##!#    query = ('https://nationalmap.gov/epqs/pqs.php'f'?x={lon}&y={lat}&units=Meters&output=json')
+##!#    r = requests.get(query).json()  # json object, various ways you can extract value
+##!#    elevation = r['USGS_Elevation_Point_Query_Service']['Elevation_Query']['Elevation']
+##!#    return elevation
 
 args = sys.argv
 if(len(sys.argv) < 3):
@@ -22,6 +28,10 @@ if(len(sys.argv) < 3):
 
 date = sys.argv[1]
 stns = sys.argv[2:]
+
+# Create dictionary to hold the elevations for each station
+# ---------------------------------------------------------
+##stn_dict = {}
 
 with open("./stations.txt","w") as fout:
     for stn in sys.argv[2:]:
@@ -52,19 +62,32 @@ with open (outfile,'w') as fout:
                 tmpline = line.strip()
                 splitline = tmpline.split(',')
                 if((idx == 5) & (jj == 0)):
+                    ##!#splitline.append('elevation')
                     if('tmpc' not in splitline):
                         convert_temp = True
                         splitline.append('tmpc')
-                        tmpline = ','.join(splitline)
+                    tmpline = ','.join(splitline)
                 else:
                     if(convert_temp):
                         if(jj > 0):
+                            # See if the elevation has already been retreived
+                            # -----------------------------------------------
+                            ##!#if(splitline[0] not in stn_dict.keys()):
+                            ##!#    # Find elevation for current station
+                            ##!#    stn_dict[splitline[0]] = get_elevation(float(splitline[3]), float(splitline[2]))
+
+                            # Insert elevation data to current line
+                            # -------------------------------------
+                            ##!#splitline.append(str(stn_dict[splitline[0]]))
+                     
+                            # Insert  tmpc data
+                            # -----------------
                             if(splitline[4] == 'M'):
                                 tmpc = 'M'
                             else:
                                 tmpc = np.round((float(splitline[4]) - 32.) * 5./9., 1)
-
                             splitline.append(str(tmpc))
+
                             tmpline = ','.join(splitline)
                     
                 fout.write(tmpline+'\n')

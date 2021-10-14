@@ -111,7 +111,7 @@ def main(year,month,day):
     startts = event_date - timedelta(days = 2)
     endts   = event_date + timedelta(days = 3)
 
-    service = SERVICE + "data=all&tz=Etc/UTC&format=comma&latlon=yes&"
+    service = SERVICE + "data=all&tz=Etc/UTC&format=comma&latlon=yes&elev=yes&"
 
     service += startts.strftime("year1=%Y&month1=%m&day1=%d&")
     service += endts.strftime("year2=%Y&month2=%m&day2=%d&")

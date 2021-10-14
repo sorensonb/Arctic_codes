@@ -1360,7 +1360,8 @@ def compare_MODIS_channels(filename,channel1,channel2,zoom=True,save=False,\
 
     #return hash_data1, nohash_data1, MODIS_data1, MODIS_data2
 
-def compare_MODIS_3scatter(filename,channel0,channel1,channel2,channel3,save=False):
+def compare_MODIS_3scatter(filename,channel0,channel1,channel2,channel3,\
+        save=False, compare_OMI = False):
 
     if(channel1 == 'red'):
         channel1 = 1
@@ -1401,20 +1402,35 @@ def compare_MODIS_3scatter(filename,channel0,channel1,channel2,channel3,save=Fal
     tmp_data3 = np.ma.masked_where( (MODIS_data0['data'] > max_ch) | \
         (MODIS_data1['data'] > max_ch) | (MODIS_data2['data'] > max_ch) | \
         (MODIS_data3['data'] > max_ch), tmp_data3)
+    tmp_lat0  = np.ma.masked_where( (MODIS_data0['data'] > max_ch) | \
+        (MODIS_data1['data'] > max_ch) | (MODIS_data2['data'] > max_ch) | \
+        (MODIS_data3['data'] > max_ch), MODIS_data0['lat'])
+    tmp_lon0  = np.ma.masked_where( (MODIS_data0['data'] > max_ch) | \
+        (MODIS_data1['data'] > max_ch) | (MODIS_data2['data'] > max_ch) | \
+        (MODIS_data3['data'] > max_ch), MODIS_data0['lon'])
 
     plot_data0 = tmp_data0.compressed()
     plot_data1 = tmp_data1.compressed()
     plot_data2 = tmp_data2.compressed()
     plot_data3 = tmp_data3.compressed()
+    plot_lat0  = tmp_lat0.compressed()
+    plot_lon0  = tmp_lon0.compressed()
 
     cross_date = MODIS_data0['cross_date']
     file_time  = MODIS_data0['file_time']
 
     plt.close('all')
-    fig = plt.figure(figsize=(5,13))
-    ax0 = fig.add_subplot(3,1,1)
-    ax1 = fig.add_subplot(3,1,2)
-    ax2 = fig.add_subplot(3,1,3)
+    if(compare_OMI):
+        fig = plt.figure(figsize=(9,9))
+        ax0 = fig.add_subplot(2,2,1)
+        ax1 = fig.add_subplot(2,2,2)
+        ax2 = fig.add_subplot(2,2,3)
+        ax3 = fig.add_subplot(2,2,4)
+    else:
+        fig = plt.figure(figsize=(5,13))
+        ax0 = fig.add_subplot(3,1,1)
+        ax1 = fig.add_subplot(3,1,2)
+        ax2 = fig.add_subplot(3,1,3)
 
     xy = np.vstack([plot_data0,plot_data1])
     z = stats.gaussian_kde(xy)(xy)
@@ -1450,11 +1466,60 @@ def compare_MODIS_3scatter(filename,channel0,channel1,channel2,channel3,save=Fal
         + ' μm] ' + MODIS_data3['variable'])
     #ax0.set_title('Pearson correlation: '+str(np.round(rval_p, 3)))
 
+    if(compare_OMI):
+        print("Reading OMI data")
+        data = h5py.File(plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['omi'],'r')
+        LAT   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude'][:,:]
+        LON   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude'][:,:]
+        UVAI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex'][:,:]
+        XTRACK = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/XTrackQualityFlags'][:,:]
+        mask_LAT = np.ma.masked_where((XTRACK < -2e5) | (UVAI < -2e5), LAT)
+        mask_LON = np.ma.masked_where((XTRACK < -2e5) | (UVAI < -2e5), LON)
+        mask_UVAI = np.ma.masked_where((XTRACK < -2e5) | (UVAI < -2e5), UVAI)
+        mask_LAT  = np.ma.masked_where((((LAT < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) | \
+                             (LAT > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1])) | \
+                            ((LON < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) | \
+                             (LON > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]))), mask_LAT)
+        mask_LON  = np.ma.masked_where((((LAT < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) | \
+                             (LAT > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1])) | \
+                            ((LON < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) | \
+                             (LON > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]))), mask_LON)
+        mask_UVAI = np.ma.masked_where((((LAT < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) | \
+                             (LAT > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1])) | \
+                            ((LON < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) | \
+                             (LON > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]))), mask_UVAI)
+
+        # Colocate the masked OMI data with the MODIS channel0 data
+        # ---------------------------------------------------------
+
+        # Find the gridpoint in the gridded lat/lon data that 
+        # corresponds to the station at slat and slon
+        # ---------------------------------------------------- 
+        o_idx = nearest_gridpoint(slat, slon, grid_lat, grid_lon):
+        
+        xy = np.vstack([plot_data0,plot_data2])
+        z = stats.gaussian_kde(xy)(xy)
+        ax1.scatter(plot_data0,plot_data2,c=z,s=6)
+        ax1.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
+            str(np.average(channel_dict[str(channel0)]['Bandwidth'])) \
+            + ' μm] ' + MODIS_data0['variable'])
+        ax1.set_ylabel('Ch. ' + str(MODIS_data2['channel']) +' [' + \
+            str(np.average(channel_dict[str(channel2)]['Bandwidth'])) \
+            + ' μm] ' + MODIS_data2['variable'])
+        
+
+        data.close()
+        
+
     if(save):
         pdate = cross_date[:4] + cross_date[5:7] + cross_date[8:10] + file_time
         outname = 'modis_compare_ch' + str(channel0) + '_vs_ch' + \
             str(channel1) + '_ch' + str(channel2) + '_ch' + \
             str(channel3) + '_' + pdate + '_3scatter.png'
+        if(compare_OMI):
+            outname = 'modis_compare_ch' + str(channel0) + '_vs_ch' + \
+                str(channel1) + '_ch' + str(channel2) + '_ch' + \
+                str(channel3) + '_omi_' + pdate + '_3scatter.png'
         plt.savefig(outname,dpi=300)
         print("Saved image",outname)
     else: 
