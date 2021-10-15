@@ -89,7 +89,7 @@ def download_alldata():
     endts = datetime.datetime(2012, 9, 1)
     interval = datetime.timedelta(hours=24)
 
-    service = SERVICE + "data=all&tz=Etc/UTC&format=comma&latlon=yes&"
+    service = SERVICE + "data=all&tz=Etc/UTC&format=comma&latlon=yes&elev=yes&"
 
     now = startts
     while now < endts:
