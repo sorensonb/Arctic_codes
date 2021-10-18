@@ -29,6 +29,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as cm
 from matplotlib.dates import DateFormatter
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from matplotlib.tri import Triangulation
 import cartopy
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
@@ -245,6 +246,7 @@ plot_limits_dict = {
         '2125': {
             'asos': 'asos_data_20210720.csv',
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021201.2125.061.2021202154814.hdf',
+            'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072010-2021072021.nc',
             'Lat': [39.5, 42.0],
             'Lon': [-122.0, -119.5]
         }
@@ -253,6 +255,7 @@ plot_limits_dict = {
         '2110': {
             'asos': 'asos_california_20210722.csv',
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021203.2110.061.2021204155922.hdf',
+            'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072210-2021072221.nc',
             'Lat': [39.5, 42.0],
             'Lon': [-122.0, -119.5]
         }
@@ -401,7 +404,7 @@ def find_plume(filename):
     MODIS_ch5  = read_MODIS_channel(filename, 5,  zoom = True)
     MODIS_ch31 = read_MODIS_channel(filename, 31, zoom = True)
 
-    screen_limit = 0.30
+    screen_limit = 0.40
     max_ch = 350.
     test_data = MODIS_ch1['data'] - MODIS_ch5['data']
     hash_data   = np.ma.masked_where(test_data <  \
@@ -975,7 +978,7 @@ def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False):
 # date_str of format "YYYYMMDDHHMM"
 def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=False,\
         plot_ASOS_loc = False, show_smoke = True, compare_OMI = False, \
-        return_MODIS = False):
+        compare_CERES = False, return_MODIS = False):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
     filename = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
@@ -1024,12 +1027,22 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
     mapcrs = ccrs.LambertConformal()
 
     plt.close('all')
-    if(compare_OMI):
+    if(compare_OMI and compare_CERES):
+        fig = plt.figure(figsize=(12,9))
+        ax0 = fig.add_subplot(2,3,1,projection = mapcrs)
+        ax1 = fig.add_subplot(2,3,2,projection = mapcrs)
+        ax2 = fig.add_subplot(2,3,3,projection = mapcrs)
+        axo = fig.add_subplot(2,3,4,projection = mapcrs)
+        axcs = fig.add_subplot(2,3,5,projection = mapcrs)
+        axcl = fig.add_subplot(2,3,6,projection = mapcrs)
+    elif((compare_OMI and not compare_CERES) or (not compare_OMI and compare_CERES)):
         fig = plt.figure(figsize=(9,9))
         ax0 = fig.add_subplot(2,2,1,projection = mapcrs)
         ax1 = fig.add_subplot(2,2,2,projection = mapcrs)
         ax2 = fig.add_subplot(2,2,3,projection = mapcrs)
-        ax3 = fig.add_subplot(2,2,4,projection = mapcrs)
+        axcs = None
+        axcl = axo = fig.add_subplot(2,2,4,projection = mapcrs)
+        
     else:
         fig = plt.figure(figsize=(14.5,5))
         ax0 = fig.add_subplot(1,3,1,projection = mapcrs)
@@ -1125,20 +1138,100 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
                             ((LON < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) | \
                              (LON > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]))), mask_UVAI)
 
-        mesh3 = ax3.pcolormesh(LON,LAT,mask_UVAI, cmap = 'plasma', shading='auto', \
+        mesh3 = axo.pcolormesh(LON,LAT,mask_UVAI, cmap = 'plasma', shading='auto', \
             vmin = np.nanmin(mask_UVAI), vmax = np.nanmax(mask_UVAI), transform = datacrs) 
-        ax3.add_feature(cfeature.BORDERS)
-        ax3.add_feature(cfeature.STATES)
-        ax3.coastlines()
+        axo.add_feature(cfeature.BORDERS)
+        axo.add_feature(cfeature.STATES)
+        axo.coastlines()
         if(zoom):
-            ax3.set_extent([plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0], \
+            axo.set_extent([plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0], \
                             plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1], \
                             plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0], \
                             plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]],\
                             datacrs)
-        cbar3 = plt.colorbar(mesh3,ax=ax3,orientation='vertical',\
+        cbar3 = plt.colorbar(mesh3,ax=axo,orientation='vertical',\
             pad=0.03,label='OMI UVAI')
-        ax3.set_title('OMI UVAI')
+        axo.set_title('OMI UVAI')
+        data.close()
+
+    if(compare_CERES):
+        print("Reading CERES data")
+
+        # NOTE: need to use the time variable to screen out any data
+        # that are not close to the event time.
+
+        data = Dataset(plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['ceres'],'r')
+        LAT   = 90. - data.variables['Colatitude_of_CERES_FOV_at_surface'][:]
+        LON   = data.variables['Longitude_of_CERES_FOV_at_surface'][:]
+        LON[LON>179.99] = -360.+LON[LON>179.99]
+        swflux  = data.variables['CERES_SW_TOA_flux___upwards'][:]
+        lwflux  = data.variables['CERES_LW_TOA_flux___upwards'][:]
+        time  = data.variables['time'][:]
+
+        mask_swf = np.ma.masked_where((((LAT < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) | \
+                                        (LAT > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1])) | \
+                                       ((LON < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) | \
+                                        (LON > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]))), swflux)
+        mask_lwf = np.ma.masked_where((((LAT < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) | \
+                                        (LAT > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1])) | \
+                                       ((LON < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) | \
+                                        (LON > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]))), lwflux)
+
+
+        # Removed masked data
+        nomask_lLON = LON[~mask_lwf.mask]
+        nomask_lLAT = LAT[~mask_lwf.mask]
+        nomask_lwf = mask_lwf.compressed()
+        triMeshl = Triangulation(nomask_lLON,nomask_lLAT)
+        # Reshape the data to make it work with pcolormesh
+        ##!#first_size = int(np.sqrt(mask_swf.shape)) 
+        ##!#max_size = int(first_size ** 2.)
+        ##!#mask_swf = mask_swf[:max_size].reshape((first_size, first_size))
+        ##!#mask_lwf = mask_lwf[:max_size].reshape((first_size, first_size))
+        ##!#LAT = LAT[:max_size].reshape((first_size, first_size))
+        ##!#LON = LON[:max_size].reshape((first_size, first_size))
+        
+        if(axcs is not None):
+            nomask_sLON = LON[~mask_swf.mask]
+            nomask_sLAT = LAT[~mask_swf.mask]
+            nomask_swf = mask_swf.compressed()
+            triMeshs = Triangulation(nomask_sLON,nomask_sLAT)
+            scat3 = axcs.scatter(nomask_sLON, nomask_sLAT,nomask_swf, transform = datacrs)
+            #mesh3 = axcs.tricontourf(triMeshs,nomask_swf, cmap = 'plasma', shading='auto', \
+            #    vmin = np.nanmin(mask_swf), vmax = np.nanmax(mask_swf), transform = datacrs) 
+#            mesh3 = axcs.pcolormesh(LON,LAT,mask_swf, cmap = 'plasma', shading='auto', \
+#                vmin = np.nanmin(mask_swf), vmax = np.nanmax(mask_swf), transform = datacrs) 
+            axcs.add_feature(cfeature.BORDERS)
+            axcs.add_feature(cfeature.STATES)
+            axcs.coastlines()
+            if(zoom):
+                axcs.set_extent([plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0], \
+                                plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1], \
+                                plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0], \
+                                plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]],\
+                                datacrs)
+            cbar3 = plt.colorbar(mesh3,ax=axcs,orientation='vertical',\
+                pad=0.03,label='TOA SWF [W/m2]')
+            axcs.set_title('CERES SWF')
+
+        scat4 = axcl.scatter(nomask_lLON, nomask_lLAT,s = 6,c = nomask_lwf,cmap='plasma', transform = datacrs)
+        #mesh4 = axcl.tricontourf(triMeshl,nomask_lwf, cmap = 'plasma', shading='auto', \
+        #    vmin = np.nanmin(mask_lwf), vmax = np.nanmax(mask_lwf), transform = datacrs) 
+        ##!#mesh4 = axcl.tricontourf(LON,LAT,mask_lwf, cmap = 'plasma', shading='auto', \
+        ##!#    vmin = np.nanmin(mask_lwf), vmax = np.nanmax(mask_lwf), transform = datacrs) 
+        axcl.add_feature(cfeature.BORDERS)
+        axcl.add_feature(cfeature.STATES)
+        axcl.coastlines()
+        if(zoom):
+            axcl.set_extent([plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0], \
+                            plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1], \
+                            plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0], \
+                            plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]],\
+                            datacrs)
+        #cbar4 = plt.colorbar(mesh4,ax=axcl,orientation='vertical',\
+        #    pad=0.03,label='TOA LWF [W/m2]')
+        axcl.set_title('CERES LWF')
+
         data.close()
 
     if(plot_ASOS_loc):
@@ -1146,7 +1239,8 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
         plot_ASOS_locs(ax0,MODIS_data1,color='black')
         plot_ASOS_locs(ax1,MODIS_data1)
         plot_ASOS_locs(ax2,MODIS_data1)
-        if(compare_OMI): plot_ASOS_locs(ax3,MODIS_data1,color='black')
+        if(compare_OMI): plot_ASOS_locs(axo,MODIS_data1,color='black')
+        if(compare_CERES): plot_ASOS_locs(axcl,MODIS_data1,color='black')
 
     cross_date = MODIS_data1['cross_date']
     file_time  = MODIS_data1['file_time']
@@ -1442,10 +1536,10 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
         ax2 = fig.add_subplot(2,2,3)
         ax3 = fig.add_subplot(2,2,4)
     else:
-        fig = plt.figure(figsize=(5,13))
-        ax0 = fig.add_subplot(3,1,1)
-        ax1 = fig.add_subplot(3,1,2)
-        ax2 = fig.add_subplot(3,1,3)
+        fig = plt.figure(figsize=(17,5))
+        ax0 = fig.add_subplot(1,3,1)
+        ax1 = fig.add_subplot(1,3,2)
+        ax2 = fig.add_subplot(1,3,3)
 
     #xy = np.vstack([plot_data0,plot_data1])
     #z = stats.gaussian_kde(xy)(xy)
@@ -1453,10 +1547,10 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
 
     ax0.scatter(tmp_data0[np.where(~hash_data1.mask)], \
         tmp_data1[np.where(~hash_data1.mask)], s=6, \
-        color='tab:blue', label='Inside Plume')
+        color='tab:blue')
     ax0.scatter(tmp_data0[np.where(hash_data1.mask)], \
         tmp_data1[np.where(hash_data1.mask)], s=6, \
-        color='tab:orange', label='Outside Plume')
+        color='tab:orange')
 
     ax0.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
         str(np.average(channel_dict[str(channel0)]['Bandwidth'])) \
@@ -1472,10 +1566,10 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
     #ax1.scatter(plot_data0,plot_data2,c=z,s=6)
     ax1.scatter(tmp_data0[np.where(~hash_data1.mask)], \
         tmp_data2[np.where(~hash_data1.mask)], s=6, \
-        color='tab:blue', label='Inside Plume')
+        color='tab:blue')
     ax1.scatter(tmp_data0[np.where(hash_data1.mask)], \
         tmp_data2[np.where(hash_data1.mask)], s=6, \
-        color='tab:orange', label='Outside Plume')
+        color='tab:orange')
 
     ax1.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
         str(np.average(channel_dict[str(channel0)]['Bandwidth'])) \
@@ -1490,10 +1584,10 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
     #ax2.scatter(plot_data0,plot_data3,c=z,s=6)
     ax2.scatter(tmp_data0[np.where(~hash_data1.mask)], \
         tmp_data3[np.where(~hash_data1.mask)], s=6, \
-        color='tab:blue', label='Inside Plume')
+        color='tab:blue',label = 'Inside plume')
     ax2.scatter(tmp_data0[np.where(hash_data1.mask)], \
         tmp_data3[np.where(hash_data1.mask)], s=6, \
-        color='tab:orange', label='Outside Plume')
+        color='tab:orange', label = 'Outside plume')
     ax2.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
         str(np.average(channel_dict[str(channel0)]['Bandwidth'])) \
         + ' μm] ' + MODIS_data0['variable'])
@@ -1530,6 +1624,9 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
         # Colocate the masked OMI data with the MODIS channel0 data
         # ---------------------------------------------------------
         print("Colocating OMI data")
+
+        # Remove the nans from the MODIS data, lats, and lons for both the
+        # in-the-plume (hashed) and outside-the-plume (nohashed) data
         hash_plot_data0   = tmp_data0[np.where(~hash_data1.mask)].compressed()
         nohash_plot_data0 = tmp_data0[np.where(hash_data1.mask)].compressed()
         hash_plot_lat0   = tmp_lat0[np.where(~hash_data1.mask)].compressed()
@@ -1540,10 +1637,11 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
         if(avg_pixel):
             print('averaging MODIS pixels')
 
-            max_MODIS_lat = np.nanmax(tmp_lat0)
-            min_MODIS_lat = np.nanmin(tmp_lat0)
-            max_MODIS_lon = np.nanmax(tmp_lon0)
-            min_MODIS_lon = np.nanmin(tmp_lon0)
+            ##!## Determine the extreme bounds of the current 
+            ##!#max_MODIS_lat = np.nanmax(tmp_lat0)
+            ##!#min_MODIS_lat = np.nanmin(tmp_lat0)
+            ##!#max_MODIS_lon = np.nanmax(tmp_lon0)
+            ##!#min_MODIS_lon = np.nanmin(tmp_lon0)
 
             # Extract the OMI corner latitudes and longitudes
             # ----------------------------------------------- 
@@ -1559,26 +1657,115 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
             work_LON   = mask_LON.compressed()
             work_UVAI  = mask_UVAI.compressed()
 
-            hash_work_crnrLAT = crnr_LAT[np.where(~np.isnan(mask_UVAI)==True)[0],\
+            work_crnrLAT = crnr_LAT[np.where(~np.isnan(mask_UVAI)==True)[0],\
                 np.where(~np.isnan(mask_UVAI)==True)[1],:] 
-            hash_work_crnrLON = crnr_LON[np.where(~np.isnan(mask_UVAI)==True)[0],\
+            work_crnrLON = crnr_LON[np.where(~np.isnan(mask_UVAI)==True)[0],\
                 np.where(~np.isnan(mask_UVAI)==True)[1],:] 
-            nohash_work_crnrLAT = crnr_LAT[np.where(np.isnan(mask_UVAI)==True)[0],\
-                np.where(~np.isnan(mask_UVAI)==True)[1],:] 
-            nohash_work_crnrLON = crnr_LON[np.where(np.isnan(mask_UVAI)==True)[0],\
-                np.where(~np.isnan(mask_UVAI)==True)[1],:] 
+
+            # Declare full arrays to hold the averaged MODIS data
+            # Must be dimensioned to the shape of the OMI data
+            # ---------------------------------------------------
+            print("work UVAI shape = ",work_UVAI.shape)
+            hash_avg_modis   = np.full(work_UVAI.shape,np.nan)
+            hash_avg_mlat    = np.full(work_UVAI.shape,np.nan)
+            hash_avg_mlon    = np.full(work_UVAI.shape,np.nan)
+            nohash_avg_modis = np.full(work_UVAI.shape,np.nan)
+            nohash_avg_mlat  = np.full(work_UVAI.shape,np.nan)
+            nohash_avg_mlon  = np.full(work_UVAI.shape,np.nan)
 
             # Loop over screened out OMI pixels
             # ---------------------------------
+            print("corners shape:",work_crnrLAT.shape)
             for ii in range(work_crnrLAT.shape[0]):
 
                 # For each OMI pixel, find the in-plume and out-of-plume MODIS
-                # pixels that fit within the lat/lon corners
+                # pixels that are close to the OMI corner values
                 # -------------------------------------------------------------
-                hash_in = 
-                # use where statement to find MODIS pixels within the lat/lon
-                # bounds. Then make polygon and figure out pixels within
-                # polygon. 
+                hash_in = np.where((hash_plot_lat0 >= np.nanmin(work_crnrLAT[ii,:])) & \
+                                   (hash_plot_lat0 <= np.nanmax(work_crnrLAT[ii,:])) & \
+                                   (hash_plot_lon0 >= np.nanmin(work_crnrLON[ii,:])) & \
+                                   (hash_plot_lon0 <= np.nanmax(work_crnrLON[ii,:])) )
+                nohash_in = np.where((nohash_plot_lat0 >= np.nanmin(work_crnrLAT[ii,:])) & \
+                                     (nohash_plot_lat0 <= np.nanmax(work_crnrLAT[ii,:])) & \
+                                     (nohash_plot_lon0 >= np.nanmin(work_crnrLON[ii,:])) & \
+                                     (nohash_plot_lon0 <= np.nanmax(work_crnrLON[ii,:])) )
+
+                # Use the indices to pull out the MODIS pixels
+                hash_modis_data   = hash_plot_data0[hash_in]
+                hash_modis_lat    = hash_plot_lat0[hash_in]
+                hash_modis_lon    = hash_plot_lon0[hash_in]
+                nohash_modis_data = nohash_plot_data0[nohash_in]
+                nohash_modis_lat  = nohash_plot_lat0[nohash_in]
+                nohash_modis_lon  = nohash_plot_lon0[nohash_in]
+
+                #print(work_crnrLAT[ii,:], work_crnrLON[ii,:], hash_modis_lat, \
+                #    nohash_modis_lat)
+            
+                # Use the corner values to make a Polygon and determine if
+                # each close MODIS pixel is within the OMI pixel
+                # --------------------------------------------------------
+
+                # Generate a Polygon using the OMI corner points
+                points = []
+                for x, y in zip(work_crnrLON[ii,:], work_crnrLAT[ii,:]):
+                    points.append((x,y))
+                omi_poly = Polygon(points)
+              
+                inside_hash = [omi_poly.contains(Point(hlon, hlat)) for \
+                    hlon, hlat in zip(hash_modis_lon, hash_modis_lat)]
+                inside_nohash = [omi_poly.contains(Point(nlon, nlat)) for \
+                    nlon, nlat in zip(nohash_modis_lon, nohash_modis_lat)]
+       
+                if((len(inside_hash) > 0) & (True in inside_hash)):
+                    hash_avg_modis[ii] = np.average(hash_modis_data[inside_hash])
+                    hash_avg_mlat[ii]  = np.average(hash_modis_lat[inside_hash])
+                    hash_avg_mlon[ii]  = np.average(hash_modis_lon[inside_hash])
+
+                if((len(inside_nohash) > 0) & (True in inside_nohash)):
+                    nohash_avg_modis[ii] = np.average(nohash_modis_data[inside_nohash])
+                    nohash_avg_mlat[ii]  = np.average(nohash_modis_lat[inside_nohash])
+                    nohash_avg_mlon[ii]  = np.average(nohash_modis_lon[inside_nohash])
+
+                ##!## Loop over the close MODIS pixels and determine which ones
+                ##!## are within the polygon
+                ##!## ---------------------------------------------------------
+                ##!#for jj in range(len(hash_modis_data)):
+
+                ##!#    # Average each MODIS value that is within the polygon
+                ##!#    # into a value, and insert the value into the avg
+                ##!#    # modis array for hash and nohash.
+                ##!#    # --------------------------------------------------- 
+                ##!#    mpoint = Point(hash_modis_lon[jj], hash_modis_lat[jj])
+
+                ##!#    inside_vals = [omi_poly.contains(mpoint)  ] 
+
+            # end screened corner data loop
+
+            # Plot the screened OMI data vs the averaged MODIS data
+            # -----------------------------------------------------
+
+            #print('hashed averaged MODIS data = ',hash_avg_modis)
+            #print('nohashed averaged MODIS data = ',nohash_avg_modis)
+
+            print(work_UVAI[~np.ma.masked_invalid(hash_avg_modis).mask])
+            
+            ax3.scatter(np.ma.masked_invalid(hash_avg_modis).compressed(), \
+                work_UVAI[~np.ma.masked_invalid(hash_avg_modis).mask], s=6, \
+                color='tab:blue')
+            #ax3.scatter(np.ma.masked_invalid(nohash_avg_modis).compressed(), \
+            #    work_UVAI[~np.ma.masked_invalid(nohash_avg_modis).mask], s=6, \
+            #    color='tab:orange')
+            #ax3.scatter(nohash_plot_data0, nohash_match_OMI, s=6, \
+            #    color='tab:orange', label='Outside Plume')
+
+            ax3.set_xlabel('Averaged Ch. ' + str(MODIS_data0['channel']) +' [' + \
+                str(np.average(channel_dict[str(channel0)]['Bandwidth'])) \
+                + ' μm] ' + MODIS_data0['variable'])
+            ax3.set_ylabel('OMI UVAI')
+
+            # Plot hash_avg_modis against mask_UVAI 
+
+            # Plot nohash_avg_modis against mask_UVAI 
  
         else:
             hash_match_OMI   = np.full(hash_plot_data0.shape,-9.)
@@ -1621,9 +1808,9 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
             #ax3.scatter(plot_data0,match_OMI,c=z,s=6)
 
             ax3.scatter(hash_plot_data0, hash_match_OMI, s=6, \
-                color='tab:blue', label='Inside Plume')
+                color='tab:blue')
             #ax3.scatter(nohash_plot_data0, nohash_match_OMI, s=6, \
-            #    color='tab:orange', label='Outside Plume')
+            #    color='tab:orange')
 
             ax3.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
                 str(np.average(channel_dict[str(channel0)]['Bandwidth'])) \
@@ -1632,7 +1819,16 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
         
         data.close()
 
-        
+    # End compare_OMI
+       
+    lines_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
+    lines, labels = [sum(lol, []) for lol in zip(*lines_labels)]
+    if(compare_OMI):
+        plt.legend(lines, labels, loc = 'lower center', bbox_to_anchor = (0, 0.01, 1, 1),\
+            bbox_transform = plt.gcf().transFigure, ncol=2)
+    else:
+        plt.legend(lines, labels, loc = 'right', bbox_to_anchor = (0, 0., 1.0, 1),\
+            bbox_transform = plt.gcf().transFigure, ncol=1)
 
     if(save):
         pdate = cross_date[:4] + cross_date[5:7] + cross_date[8:10] + file_time

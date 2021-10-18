@@ -80,7 +80,7 @@ end_date   = datetime.strptime(plot_time,str_fmt) + relativedelta(hours = hour_a
 
 print(start_date,end_date)
 
-base_path = '/home/bsorenson/data/CERES/SSFLevel2/'
+base_path = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/'
 
 n_p = 1440
 nl = 720
@@ -91,7 +91,7 @@ nl = 720
 lonmin = -180
 lonmax = 180
 latmax =  90
-latmin = 60 
+latmin = 30 
 
 # Set up values for gridding the AI data
 lat_gridder = latmin * 4.
@@ -199,7 +199,7 @@ ax.set_extent([-180,180,latmin,90],ccrs.PlateCarree())
 cbar = plt.colorbar(mesh,orientation='horizontal',pad=0,\
     aspect=50,shrink = 0.905,label=invar)
 
-save = True
+save = False
 if(save == True):
     out_name = 'ceres_single_pass_' + day_adder + invar.lower() +'_'+plot_time+'.png'       
     plt.savefig(out_name,dpi=300)
