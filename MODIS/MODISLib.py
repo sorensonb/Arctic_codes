@@ -33,6 +33,8 @@ from matplotlib.tri import Triangulation
 import cartopy
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
+from satpy.scene import Scene
+from glob import glob
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 # Set up global variables
@@ -746,6 +748,58 @@ def grid_data_trends(modis_dict):
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+def plot_true_color_satpy(date_str,zoom=True,save=False):
+
+    # Determine the correct MODIS file associated with the date
+    # ---------------------------------------------------------
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+    filename = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
+    print(filename)
+    day_filenames = glob(filename[:50]+'*')
+
+    # Use satpy (Scene) to open the file
+    # ----------------------------------
+    scn = Scene(reader = 'modis_l1b', filenames = day_filenames)
+
+    scn.load(['1'])
+
+    my_area = scn['1'].attrs['area'].compute_optimal_bb_area({\
+        'proj': 'lcc', 'lon_0': -122., 'lat_0': 37., 'lat_1': 40., 'lat_2': 40.})
+    new_scn = scn.resample(my_area)
+
+    crs = new_scn['1'].attrs['area'].to_cartopy_crs()
+    ax = plt.axes(projection=crs)
+    print(new_scn)
+    ax.coastlines()
+    ax.gridlines()
+    ax.set_global()
+    plt.imshow(new_scn['1'], cmap='Greys_r',transform=crs, extent=crs.bounds, origin='upper')
+    #cbar = plt.colorbar()
+    #cbar.set_label("Kelvin")
+    if(zoom):
+        lat_lims = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']
+        lon_lims = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']
+        ax.set_extent([lat_lims[0],lat_lims[1],lon_lims[0],lon_lims[1]],\
+                       crs)
+    plt.show()
+
+    """
+
+    # Extract the true-color data
+    # ---------------------------
+    scn.load(['true_color'])
+
+    scn.save_dataset('true_color','test_image_true'+date_str+'.png')
+    scn.show('true_color')
+
+    # Overlay the imagery on cartopy
+    # ------------------------------
+    ##my_area
+
+    # Save the image
+    # --------------
+    """
+
 def plot_true_color(filename,zoom=True):
     modis = SD.SD(filename)
 
@@ -1035,14 +1089,19 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
         axo = fig.add_subplot(2,3,4,projection = mapcrs)
         axcs = fig.add_subplot(2,3,5,projection = mapcrs)
         axcl = fig.add_subplot(2,3,6,projection = mapcrs)
-    elif((compare_OMI and not compare_CERES) or (not compare_OMI and compare_CERES)):
+    elif((compare_CERES and not compare_OMI)):
+        fig = plt.figure(figsize=(12,9))
+        ax0 = fig.add_subplot(2,3,1,projection = mapcrs)
+        ax1 = fig.add_subplot(2,3,2,projection = mapcrs)
+        ax2 = fig.add_subplot(2,3,3,projection = mapcrs)
+        axcs = fig.add_subplot(2,3,4,projection = mapcrs)
+        axcl = fig.add_subplot(2,3,5,projection = mapcrs)
+    elif((compare_OMI and not compare_CERES)):
         fig = plt.figure(figsize=(9,9))
         ax0 = fig.add_subplot(2,2,1,projection = mapcrs)
         ax1 = fig.add_subplot(2,2,2,projection = mapcrs)
         ax2 = fig.add_subplot(2,2,3,projection = mapcrs)
-        axcs = None
-        axcl = axo = fig.add_subplot(2,2,4,projection = mapcrs)
-        
+        axo = fig.add_subplot(2,2,4,projection = mapcrs)
     else:
         fig = plt.figure(figsize=(14.5,5))
         ax0 = fig.add_subplot(1,3,1,projection = mapcrs)
@@ -1053,7 +1112,7 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
     # ---------------------------------------------------------
     mesh0 = ax0.pcolormesh(MODIS_data1['lon'],MODIS_data1['lat'],\
         MODIS_data1['data'],cmap = MODIS_data1['colors'], shading='auto', \
-        vmin = np.nanmin(cpy_1), vmax = np.nanmax(cpy_1), transform = datacrs) 
+        vmin = np.nanmin(cpy_1), vmax = 330, transform = datacrs) 
 
     cbar0 = plt.colorbar(mesh0,ax=ax0,orientation='vertical',\
         pad=0.03,label=MODIS_data1['variable'])
@@ -1098,7 +1157,7 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
         MODIS_data3['data'],cmap = MODIS_data3['colors'], shading='auto', \
         vmin = np.nanmin(cpy_3), vmax = np.nanmax(cpy_3), transform = datacrs) 
     cbar2 = plt.colorbar(mesh2,ax=ax2,orientation='vertical',\
-        pad=0.03,shrink=0.845,label=MODIS_data3['variable'])
+        pad=0.03,label=MODIS_data3['variable'])
     
     ax2.add_feature(cfeature.BORDERS)
     ax2.add_feature(cfeature.STATES)
@@ -1113,17 +1172,6 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
         str(channel_dict[str(channel3)]['Bandwidth'][0]) + ' μm - ' + \
         str(channel_dict[str(channel3)]['Bandwidth'][1]) + ' μm')
 
-    if(show_smoke):
-        # Determine where the smoke is located
-        # ------------------------------------
-        hash_data1, nohash_data1 = find_plume(filename) 
-        hash0 = ax0.pcolor(MODIS_data1['lon'],MODIS_data1['lat'],\
-            hash_data1, hatch = '///', alpha=0., transform = datacrs)
-        hash1 = ax1.pcolor(MODIS_data2['lon'],MODIS_data2['lat'],\
-            hash_data1, hatch = '///', alpha=0., transform = datacrs)
-        hash2 = ax2.pcolor(MODIS_data3['lon'],MODIS_data3['lat'],\
-            hash_data1, hatch = '///', alpha=0., transform = datacrs)
-    
 
     if(compare_OMI):
         print("Reading OMI data")
@@ -1159,6 +1207,11 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
 
         # NOTE: need to use the time variable to screen out any data
         # that are not close to the event time.
+        base_date = datetime(year=1970,month=1,day=1)
+        start_date = dt_date_str - timedelta(hours = 1)
+        end_date   = dt_date_str + timedelta(hours = 2)
+
+        print(start_date, end_date)
 
         data = Dataset(plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['ceres'],'r')
         LAT   = 90. - data.variables['Colatitude_of_CERES_FOV_at_surface'][:]
@@ -1167,55 +1220,77 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
         swflux  = data.variables['CERES_SW_TOA_flux___upwards'][:]
         lwflux  = data.variables['CERES_LW_TOA_flux___upwards'][:]
         time  = data.variables['time'][:]
+        local_time = np.array([base_date + relativedelta(days = ttime) for ttime in time])
 
-        mask_swf = np.ma.masked_where((((LAT < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) | \
-                                        (LAT > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1])) | \
-                                       ((LON < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) | \
-                                        (LON > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]))), swflux)
-        mask_lwf = np.ma.masked_where((((LAT < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) | \
-                                        (LAT > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1])) | \
-                                       ((LON < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) | \
-                                        (LON > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]))), lwflux)
+        mask_LAT = LAT[ \
+            (LAT >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
+            (LAT <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
+            (LON >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
+            (LON <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
+            (swflux > 0) & (lwflux > 0)]
+        mask_LON = LON[ \
+            (LAT >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
+            (LAT <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
+            (LON >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
+            (LON <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
+            (swflux > 0) & (lwflux > 0)]
+        mask_swf = swflux[ \
+            (LAT >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
+            (LAT <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
+            (LON >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
+            (LON <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
+            (swflux > 0) & (lwflux > 0)]
+        mask_lwf = lwflux[ \
+            (LAT >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
+            (LAT <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
+            (LON >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
+            (LON <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
+            (swflux > 0) & (lwflux > 0)]
+        mask_time = local_time[ \
+            (LAT >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
+            (LAT <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
+            (LON >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
+            (LON <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
+            (swflux > 0) & (lwflux > 0)]
 
-
+        return mask_LAT, mask_LON, mask_swf, mask_lwf, mask_time
+   
         # Removed masked data
-        nomask_lLON = LON[~mask_lwf.mask]
-        nomask_lLAT = LAT[~mask_lwf.mask]
-        nomask_lwf = mask_lwf.compressed()
-        triMeshl = Triangulation(nomask_lLON,nomask_lLAT)
-        # Reshape the data to make it work with pcolormesh
+        triMesh = Triangulation(mask_LON,mask_LAT)
+
+        ##!## Reshape the data to make it work with pcolormesh
         ##!#first_size = int(np.sqrt(mask_swf.shape)) 
         ##!#max_size = int(first_size ** 2.)
         ##!#mask_swf = mask_swf[:max_size].reshape((first_size, first_size))
         ##!#mask_lwf = mask_lwf[:max_size].reshape((first_size, first_size))
         ##!#LAT = LAT[:max_size].reshape((first_size, first_size))
         ##!#LON = LON[:max_size].reshape((first_size, first_size))
-        
-        if(axcs is not None):
-            nomask_sLON = LON[~mask_swf.mask]
-            nomask_sLAT = LAT[~mask_swf.mask]
-            nomask_swf = mask_swf.compressed()
-            triMeshs = Triangulation(nomask_sLON,nomask_sLAT)
-            scat3 = axcs.scatter(nomask_sLON, nomask_sLAT,nomask_swf, transform = datacrs)
-            #mesh3 = axcs.tricontourf(triMeshs,nomask_swf, cmap = 'plasma', shading='auto', \
-            #    vmin = np.nanmin(mask_swf), vmax = np.nanmax(mask_swf), transform = datacrs) 
-#            mesh3 = axcs.pcolormesh(LON,LAT,mask_swf, cmap = 'plasma', shading='auto', \
-#                vmin = np.nanmin(mask_swf), vmax = np.nanmax(mask_swf), transform = datacrs) 
-            axcs.add_feature(cfeature.BORDERS)
-            axcs.add_feature(cfeature.STATES)
-            axcs.coastlines()
-            if(zoom):
-                axcs.set_extent([plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0], \
-                                plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1], \
-                                plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0], \
-                                plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]],\
-                                datacrs)
-            cbar3 = plt.colorbar(mesh3,ax=axcs,orientation='vertical',\
-                pad=0.03,label='TOA SWF [W/m2]')
-            axcs.set_title('CERES SWF')
+      
+        print(np.nanmax(mask_LAT.compressed()), np.min(mask_LAT.compressed()))
+        print(np.nanmax(LAT), np.nanmin(LAT))
+        print(plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'])
+ 
+        #scat3 = axcs.scatter(mask_LON, mask_LAT,mask_swf, transform = datacrs)
+        mesh3 = axcs.scatter(mask_LON.compressed(), mask_LAT.compressed(),s = 120,marker='s',c = mask_swf.compressed(),cmap='plasma', transform = datacrs)
+        #mesh3 = axcs.tricontourf(triMesh,mask_swf, cmap = 'plasma', shading='auto', \
+        #    vmin = np.nanmin(mask_swf), vmax = np.nanmax(mask_swf), transform = datacrs) 
+#        mesh3 = axcs.pcolormesh(LON,LAT,mask_swf, cmap = 'plasma', shading='auto', \
+#            vmin = np.nanmin(mask_swf), vmax = np.nanmax(mask_swf), transform = datacrs) 
+        axcs.add_feature(cfeature.BORDERS)
+        axcs.add_feature(cfeature.STATES)
+        axcs.coastlines()
+        if(zoom):
+            axcs.set_extent([plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0], \
+                             plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1], \
+                             plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0], \
+                             plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]],\
+                             datacrs)
+        cbar3 = plt.colorbar(mesh3,ax=axcs,orientation='vertical',\
+            pad=0.03,label='TOA SWF [W/m2]')
+        axcs.set_title('CERES SWF')
 
-        scat4 = axcl.scatter(nomask_lLON, nomask_lLAT,s = 6,c = nomask_lwf,cmap='plasma', transform = datacrs)
-        #mesh4 = axcl.tricontourf(triMeshl,nomask_lwf, cmap = 'plasma', shading='auto', \
+        mesh4 = axcl.scatter(mask_LON.compressed(), mask_LAT.compressed(),s = 120,marker = 's',c = mask_lwf.compressed(),cmap='plasma', transform = datacrs)
+        #mesh4 = axcl.tricontourf(triMesh,mask_lwf, cmap = 'plasma', shading='auto', \
         #    vmin = np.nanmin(mask_lwf), vmax = np.nanmax(mask_lwf), transform = datacrs) 
         ##!#mesh4 = axcl.tricontourf(LON,LAT,mask_lwf, cmap = 'plasma', shading='auto', \
         ##!#    vmin = np.nanmin(mask_lwf), vmax = np.nanmax(mask_lwf), transform = datacrs) 
@@ -1228,11 +1303,31 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
                             plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0], \
                             plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]],\
                             datacrs)
-        #cbar4 = plt.colorbar(mesh4,ax=axcl,orientation='vertical',\
-        #    pad=0.03,label='TOA LWF [W/m2]')
+            cbar4 = plt.colorbar(mesh4,ax=axcl,orientation='vertical',\
+                pad=0.03,label='TOA LWF [W/m2]')
         axcl.set_title('CERES LWF')
 
         data.close()
+
+    if(show_smoke):
+        # Determine where the smoke is located
+        # ------------------------------------
+        hash_data1, nohash_data1 = find_plume(filename) 
+        hash0 = ax0.pcolor(MODIS_data1['lon'],MODIS_data1['lat'],\
+            hash_data1, hatch = '///', alpha=0., transform = datacrs)
+        hash1 = ax1.pcolor(MODIS_data2['lon'],MODIS_data2['lat'],\
+            hash_data1, hatch = '///', alpha=0., transform = datacrs)
+        hash2 = ax2.pcolor(MODIS_data3['lon'],MODIS_data3['lat'],\
+            hash_data1, hatch = '///', alpha=0., transform = datacrs)
+        if(compare_OMI): 
+            hash3 = axo.pcolor(MODIS_data3['lon'],MODIS_data3['lat'],\
+                hash_data1, hatch = '///', alpha=0., transform = datacrs)
+        if(compare_CERES): 
+            hash4 = axcs.pcolor(MODIS_data3['lon'],MODIS_data3['lat'],\
+                hash_data1, hatch = '///', alpha=0., transform = datacrs)
+            hash5 = axcl.pcolor(MODIS_data3['lon'],MODIS_data3['lat'],\
+                hash_data1, hatch = '///', alpha=0., transform = datacrs)
+    
 
     if(plot_ASOS_loc):
         print("Plotting ASOS site")
@@ -1240,7 +1335,9 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
         plot_ASOS_locs(ax1,MODIS_data1)
         plot_ASOS_locs(ax2,MODIS_data1)
         if(compare_OMI): plot_ASOS_locs(axo,MODIS_data1,color='black')
-        if(compare_CERES): plot_ASOS_locs(axcl,MODIS_data1,color='black')
+        if(compare_CERES): 
+            plot_ASOS_locs(axcs,MODIS_data1,color='black')
+            plot_ASOS_locs(axcl,MODIS_data1,color='black')
 
     cross_date = MODIS_data1['cross_date']
     file_time  = MODIS_data1['file_time']
