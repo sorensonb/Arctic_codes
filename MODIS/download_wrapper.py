@@ -67,6 +67,7 @@ with open (outfile,'w') as fout:
                         convert_temp = True
                         splitline.append('tmpc')
                     tmpline = ','.join(splitline)
+                    tmpf_idx = splitline.index('tmpf')
                 else:
                     if(convert_temp):
                         if(jj > 0):
@@ -82,10 +83,10 @@ with open (outfile,'w') as fout:
                      
                             # Insert  tmpc data
                             # -----------------
-                            if(splitline[4] == 'M'):
+                            if(splitline[tmpf_idx] == 'M'):
                                 tmpc = 'M'
                             else:
-                                tmpc = np.round((float(splitline[4]) - 32.) * 5./9., 1)
+                                tmpc = np.round((float(splitline[tmpf_idx]) - 32.) * 5./9., 1)
                             splitline.append(str(tmpc))
 
                             tmpline = ','.join(splitline)

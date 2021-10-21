@@ -30,8 +30,8 @@ infile = sys.argv[1]
 df = pd.read_csv(infile)
 
 # Make some figures
-fig1,ax = plt.subplots()
-fig1.set_size_inches(8,5)
+fig1,ax = plt.subplots(figsize=(12,5))
+#fig1.set_size_inches()
 
 mapcrs = ccrs.LambertConformal()
 datacrs = ccrs.PlateCarree()
@@ -84,8 +84,9 @@ for ii, station in enumerate(station_names):
     #dtime_sus = [datetime.strptime(ttime,"%Y-%m-%d %H:%M") - timedelta(hours=5) \
             for ttime in time_stn]
 
-    ax.plot(dtime_stn,tmpc_stn_nohz,label=station, color=colors[ii])
-    ax.plot(dtime_stn,tmpc_stn_hz,'--', label=station, color=colors[ii])
+    ax.plot(dtime_stn,tmpc_stn,label=station, color=colors[ii])
+    #ax.plot(dtime_stn,tmpc_stn_nohz,label=station, color=colors[ii])
+    #ax.plot(dtime_stn,tmpc_stn_hz,'--', label=station, color=colors[ii])
     print(station, lat_stn, lon_stn)
     ax2.text(lon_stn, lat_stn, station, transform=datacrs, color=colors[ii])
 
@@ -116,92 +117,14 @@ ax2.coastlines()
 ax2.add_feature(cfeature.STATES)
 ax2.add_feature(cfeature.LAKES)
 ax2.add_feature(cfeature.RIVERS)
+ax2.set_title(event_dtime.strftime('%Y-%m-%d %H:%M'))
 
-##ax3.set_xlabel('Time [UTC]')
-##ax3.set_ylabel('Wind Direction [degrees]')
-##ax3.legend()
  
+series_name = "asos_time_series_"+event_dtime.strftime('%Y%m%d%H%M')+'.png'
+map_name    = "asos_site_map_"+event_dtime.strftime('%Y%m%d%H%M')+'.png'
+fig1.savefig(series_name,dpi=300)
+print("Saved image",series_name)
+fig2.savefig(map_name,dpi=300)
+print("Saved image",map_name)
 plt.show() 
 
-# Plot the station locations
-
-
-sys.exit()
-##!## Grab the precip data for each station
-##!#time_sus  = df['valid'][df['station'] == 'SUS'].values
-##!#prcp_sus  = df['p01i'][df['station'] == 'SUS'].values
-##!#vsby_sus  = df['vsby'][df['station'] == 'SUS'].values
-##!#codes_sus = df['wxcodes'][df['station'] == 'SUS'].values
-##!#
-##!#time_fyg  = df['valid'][df['station'] == 'FYG'].values
-##!#prcp_fyg  = df['p01i'][df['station'] == 'FYG'].values
-##!#vsby_fyg  = df['vsby'][df['station'] == 'FYG'].values
-##!#codes_fyg = df['wxcodes'][df['station'] == 'FYG'].values
-##!#
-##!## Mask any missing precip values
-##!#prcp_sus[(prcp_sus == 'M') | (prcp_sus == 'T')] = '0.000'
-##!#prcp_fyg[(prcp_fyg == 'M') | (prcp_fyg == 'T')] = '0.000'
-##!#
-##!#prcp_sus = np.asfarray(prcp_sus,float)
-##!#prcp_fyg = np.asfarray(prcp_fyg,float)
-##!#
-##!## Convert times to datetime objects
-##!## In the file, the times are in UTC, so convert to CDT (-5 hrs)
-##!#dtime_sus = [datetime.strptime(ttime,"%Y-%m-%d %H:%M") - timedelta(hours=5) \
-##!##dtime_sus = [datetime.strptime(ttime,"%Y-%m-%d %H:%M") - timedelta(hours=5) \
-##!#        for ttime in time_sus]
-##!#dtime_fyg = [datetime.strptime(ttime,"%Y-%m-%d %H:%M") - timedelta(hours=5) \
-##!##dtime_fyg = [datetime.strptime(ttime,"%Y-%m-%d %H:%M") - timedelta(hours=5) \
-##!#        for ttime in time_fyg]
-##!#
-##!#
-##!###!## Loop over arrays and calculate 5-minute precip values
-##!###!## from the 1-hour total precip values
-##!###!## For SUS, the precip cycles at the 55 minute obs
-##!###!#prcp_5min_sus = np.zeros(len(prcp_sus))
-##!###!#prcp_5min_fyg = np.zeros(len(prcp_fyg))
-##!###!#for pi in range(1,len(prcp_sus)):
-##!###!#    if(prcp_sus[pi] < prcp_sus[pi-1]):
-##!###!#    #if(dtime_sus[pi].minute == 55):
-##!###!#        prcp_5min_sus[pi] = prcp_sus[pi]
-##!###!#    else:
-##!###!#        prcp_5min_sus[pi] = prcp_sus[pi] - prcp_sus[pi-1]
-##!###!## For FYG, the precip cycles at the 15 minute obs
-##!###!#for pi in range(1,len(prcp_fyg)):
-##!###!#    if(prcp_fyg[pi] < prcp_fyg[pi-1]):
-##!###!#    #if(dtime_fyg[pi].minute == 15):
-##!###!#        prcp_5min_fyg[pi] = prcp_fyg[pi]
-##!###!#    else:
-##!###!#        prcp_5min_fyg[pi] = prcp_fyg[pi] - prcp_fyg[pi-1]
-##!#
-##!#
-##!###!## Calculate cumulative sum of prcip
-##!###!#prcp_csum_sus = np.cumsum(prcp_5min_sus)
-##!###!#prcp_csum_fyg = np.cumsum(prcp_5min_fyg)
-##!###!#
-##!###!## Set up a line for the time of the incident
-##!###!## Use local time of 3:15 pm CDT
-##!###!#event_dtime = datetime.strptime("2017-04-29 15:15","%Y-%m-%d %H:%M") 
-##!#
-##!## Plot the data
-##!## -------------
-##!#ax.plot(dtime_sus,prcp_csum_sus,label='[SUS] St.LOUIS/SPIRIT')
-##!#ax.plot(dtime_fyg,prcp_csum_fyg,label='[FYG] Washington')
-##!##plt.plot(dtime_sus,prcp_5min_sus,label='SUS')
-##!##plt.plot(dtime_fyg,prcp_5min_fyg,label='FYG')
-##!## Plot a vertical line at the time of the crash
-##!## ---------------------------------------------
-##!#ax.axvline(event_dtime,color='tab:red',lw=2,alpha=0.75,label='Crash time')
-##!## Format the x axis
-##!## -----------------
-##!#date_fmt = mdates.DateFormatter("%H:%M %b %d")
-##!#ax.xaxis.set_major_formatter(date_fmt)
-##!#fig1.autofmt_xdate()
-##!## Format other plot characteristics
-##!## ---------------------------------
-##!#ax.grid()
-##!#ax.legend()
-##!#ax.set_title("Regional Airport Precipitation Measurements")
-##!#ax.set_ylabel('Precipitation (inches)')
-##!#plt.savefig('precip_amounts.png',dpi=300)
-##!#plt.show()
