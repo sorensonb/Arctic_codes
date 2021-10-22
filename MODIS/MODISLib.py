@@ -241,8 +241,26 @@ channel_dict = {
         'Name': 'EV_1KM_Emissive',\
         'Index': 15,\
         'Bandwidth': [14.085, 14.385]
+    },\
+    'wv_ir': {
+        'Name': 'Water_Vapor_Infrared',\
+        'Index': None,
+        'Bandwidth': None 
+    },\
+    'wv_nir': {
+        'Name': 'Water_Vapor_Near_Infrared',\
+        'Index': None,
+        'Bandwidth': None 
     }
 }
+
+for key in channel_dict.keys():
+    if(channel_dict[key]['Bandwidth'] is not None):
+        channel_dict[key]['Bandwidth_label'] = \
+            str(channel_dict[key]['Bandwidth'][0]) + ' μm - ' + \
+            str(channel_dict[key]['Bandwidth'][1]) + ' μm'
+    else:
+        channel_dict[key]['Bandwidth_label'] = ''
 
 plot_limits_dict = {
     "2021-07-20": {
@@ -269,6 +287,7 @@ plot_limits_dict = {
         '2110': {
             'asos': 'asos_data_20210722.csv',
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021203.2110.061.2021204155922.hdf',
+            'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021203.2110.061.2021204163638.hdf',
             'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072210-2021072221.nc',
             'Lat': [39.5, 42.0],
             'Lon': [-122.0, -119.5],
@@ -296,6 +315,7 @@ plot_limits_dict = {
         '2025': {
             'asos': 'asos_nevada_20210806.csv',
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021218.2025.061.2021219151802.hdf',
+            'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021218.2025.061.2021219152751.hdf',
             'omi': '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0806t1943-o90747_v003-2021m0808t031152.he5',
             'Lat': [36.0, 39.0],
             'Lon': [-118.0, -114.0],
@@ -428,10 +448,10 @@ def plot_ASOS_locs(pax,MODIS_data,color='red'):
 
 # Determine areas of an image that are in smoke, defined by:
 #    (ch1_refl - ch5_refl) < mean(ch1_refl - ch5_refl) * 0.25
-def find_plume(filename):
-    MODIS_ch1  = read_MODIS_channel(filename, 1,  zoom = True)
-    MODIS_ch5  = read_MODIS_channel(filename, 5,  zoom = True)
-    MODIS_ch31 = read_MODIS_channel(filename, 31, zoom = True)
+def find_plume(dt_date_str):
+    MODIS_ch1  = read_MODIS_channel(dt_date_str, 1,  zoom = True)
+    MODIS_ch5  = read_MODIS_channel(dt_date_str, 5,  zoom = True)
+    MODIS_ch31 = read_MODIS_channel(dt_date_str, 31, zoom = True)
 
     screen_limit = 0.40
     max_ch = 350.
@@ -936,8 +956,18 @@ def plot_true_color(filename,zoom=True):
 
     plt.show()
 
-def read_MODIS_channel(filename, channel, zoom = False):
+# dt_date_str is of format YYYYMMDDHHMM
+def read_MODIS_channel(date_str, channel, zoom = False):
 
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    # Extract the filename given the channel
+    # --------------------------------------
+    if(str(channel)[:2] == 'wv'):
+        filename = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['mdswv']
+    else:
+        filename = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
+    
     print("Reading MODIS channel",channel," from ",filename)
 
     MODIS_data = {}
@@ -953,48 +983,112 @@ def read_MODIS_channel(filename, channel, zoom = False):
     lat5 = modis.select('Latitude').get()
     lon5 = modis.select('Longitude').get()
 
-    data  = modis.select(channel_dict[str(channel)]['Name']).get()[channel_dict[str(channel)]['Index']]
+    data  = modis.select(channel_dict[str(channel)]['Name']).get()
+    if(str(channel)[2:] != '_ir'):
+        if(str(channel) != 'wv_nir'):
+            data = data[channel_dict[str(channel)]['Index']]
+        data  = data[::5,::5]
 
-    data  = data[::5,::5]
+        if(data.shape != lat5.shape):
+            data = data[:lat5.shape[0], :lat5.shape[1]]
 
-    # Thermal emission data
-    if((channel >= 20) & (channel != 26)):
+
+    if(str(channel)[:2] == 'wv'):
         data_scale    = modis.select(channel_dict[str(channel)]['Name']\
-            ).attributes().get('radiance_scales')[channel_dict[str(channel)]['Index']]
+            ).attributes().get('scale_factor')
         data_offset   = modis.select(channel_dict[str(channel)]['Name']\
-            ).attributes().get('radiance_offsets')[channel_dict[str(channel)]['Index']]
-
-        data = (data - data_offset) * data_scale
-
-        # Define constants for converting radiances to temperatures
-        lmbda = (1e-6) * (np.average(channel_dict[str(channel)]['Bandwidth'])) # in m
-        print("Average wavelength = ",np.average(channel_dict[str(channel)]['Bandwidth']))
-        c_const = 3e8
-        h_const = 6.626e-34 # J*s
-        k_const = 1.381e-23 # J/K
-
-        data = (h_const * c_const) / \
-            (lmbda * k_const * np.log( ((2.0 * h_const * (c_const**2.0) ) / \
-            ((lmbda**4.) * (lmbda / 1e-6) * data ) ) + 1.0 ) )
-        #data = ((h_const * c_const)/(k_const * lmbda)) * (np.log((2.0 * h_const * (c_const ** 2.0) / \
-        #    ((lmbda**5.0) * data)) + 1) ** -1.)
-
-        colors = 'plasma'
-        label = 'Blackbody Temperature [K]'
-
-    # Reflectances
-    else:
-        data_scale    = modis.select(channel_dict[str(channel)]['Name']\
-            ).attributes().get('reflectance_scales')[channel_dict[str(channel)]['Index']]
-        data_offset   = modis.select(channel_dict[str(channel)]['Name']\
-            ).attributes().get('reflectance_offsets')[channel_dict[str(channel)]['Index']]
+            ).attributes().get('add_offset')
+        # Extract the fill value and make sure any missing values are
+        # removed.
+        # -----------------------------------------------------------
+        mask_val = modis.select(channel_dict[str(channel)]['Name']\
+            ).attributes().get('_FillValue')
+        bad_locations = np.where(data == mask_val)
 
         # Calculate reflectance using the scales and offsets
         # -------------------------------------------------
         data = ((data - data_offset) * data_scale)
 
-        colors = 'Greys_r'
-        label = 'Reflectance'
+        # Convert any missing data to nans
+        # --------------------------------
+        data[bad_locations] = np.nan
+        data = np.ma.masked_invalid(data)
+
+        colors = 'plasma'
+        try:
+            label = modis.select(channel_dict[str(channel)]['Name']\
+                ).attributes().get('long_name') +  ' [' + \
+                modis.select(channel_dict[str(channel)]['Name']\
+                ).attributes().get('units') + ']'
+        except:
+            label = modis.select(channel_dict[str(channel)]['Name']\
+                ).attributes().get('long_name') +  ' [' + \
+                modis.select(channel_dict[str(channel)]['Name']\
+                ).attributes().get('unit') + ']'
+    else:
+        channel = int(channel)
+        # Thermal emission data
+        if((channel >= 20) & (channel != 26)):
+            data_scale    = modis.select(channel_dict[str(channel)]['Name']\
+                ).attributes().get('radiance_scales')[channel_dict[str(channel)]['Index']]
+            data_offset   = modis.select(channel_dict[str(channel)]['Name']\
+                ).attributes().get('radiance_offsets')[channel_dict[str(channel)]['Index']]
+
+            # Extract the fill value and make sure any missing values are
+            # removed.
+            # -----------------------------------------------------------
+            mask_val = modis.select(channel_dict[str(channel)]['Name']\
+                ).attributes().get('_FillValue')
+            bad_locations = np.where(data == mask_val)
+
+            data = ((data - data_offset) * data_scale)
+
+            # Define constants for converting radiances to temperatures
+            lmbda = (1e-6) * (np.average(channel_dict[str(channel)]['Bandwidth'])) # in m
+            print("Average wavelength = ",np.average(channel_dict[str(channel)]['Bandwidth']))
+            c_const = 3e8
+            h_const = 6.626e-34 # J*s
+            k_const = 1.381e-23 # J/K
+
+            data = (h_const * c_const) / \
+                (lmbda * k_const * np.log( ((2.0 * h_const * (c_const**2.0) ) / \
+                ((lmbda**4.) * (lmbda / 1e-6) * data ) ) + 1.0 ) )
+            #data = ((h_const * c_const)/(k_const * lmbda)) * (np.log((2.0 * h_const * (c_const ** 2.0) / \
+            #    ((lmbda**5.0) * data)) + 1) ** -1.)
+
+            # Convert any missing data to nans
+            # --------------------------------
+            data[bad_locations] = np.nan
+            data = np.ma.masked_invalid(data)
+
+            colors = 'plasma'
+            label = 'Blackbody Temperature [K]'
+
+        # Reflectances
+        else:
+            data_scale    = modis.select(channel_dict[str(channel)]['Name']\
+                ).attributes().get('reflectance_scales')[channel_dict[str(channel)]['Index']]
+            data_offset   = modis.select(channel_dict[str(channel)]['Name']\
+                ).attributes().get('reflectance_offsets')[channel_dict[str(channel)]['Index']]
+
+            # Extract the fill value and make sure any missing values are
+            # removed.
+            # -----------------------------------------------------------
+            mask_val = modis.select(channel_dict[str(channel)]['Name']\
+                ).attributes().get('_FillValue')
+            bad_locations = np.where(data == mask_val)
+
+            # Calculate reflectance using the scales and offsets
+            # -------------------------------------------------
+            data = ((data - data_offset) * data_scale)
+
+            # Convert any missing data to nans
+            # --------------------------------
+            data[bad_locations] = np.nan
+            data = np.ma.masked_invalid(data)
+
+            colors = 'Greys_r'
+            label = 'Reflectance'
  
     modis.end()
 
@@ -1049,7 +1143,7 @@ def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False):
     # Call read_MODIS_channel to read the desired MODIS data from the
     # file and put it in a dictionary
     # ---------------------------------------------------------------
-    MODIS_data = read_MODIS_channel(filename, channel)
+    MODIS_data = read_MODIS_channel(dt_date_str, channel)
 
     print("Data max = ",np.max(MODIS_data['data']), "  Data min = ",np.min(MODIS_data['data']))
 
@@ -1085,8 +1179,7 @@ def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False):
                        plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1]],\
                        ccrs.PlateCarree())
     ax.set_title('Channel ' + str(channel) + '\n' + \
-        str(channel_dict[str(channel)]['Bandwidth'][0]) + ' μm - ' + \
-        str(channel_dict[str(channel)]['Bandwidth'][1]) + ' μm')
+        channel_dict[str(channel)]['Bandwidth_label']) 
 
     plt.show()
 
@@ -1108,9 +1201,9 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
     # Step 1: Call read_MODIS_channel to read the desired MODIS data from the
     # file and put it in a dictionary
     # -----------------------------------------------------------------------
-    MODIS_data1 = read_MODIS_channel(filename, channel1, zoom = True)
-    MODIS_data2 = read_MODIS_channel(filename, channel2, zoom = True)
-    MODIS_data3 = read_MODIS_channel(filename, channel3, zoom = True)
+    MODIS_data1 = read_MODIS_channel(dt_date_str.strftime("%Y%m%d%H%M"), channel1, zoom = True)
+    MODIS_data2 = read_MODIS_channel(dt_date_str.strftime("%Y%m%d%H%M"), channel2, zoom = True)
+    MODIS_data3 = read_MODIS_channel(dt_date_str.strftime("%Y%m%d%H%M"), channel3, zoom = True)
 
     ##!#print("Data1 max = ",np.max(MODIS_data1['data']), "  Data1 min = ",np.min(MODIS_data1['data']))
     ##!#print("Data2 max = ",np.max(MODIS_data2['data']), "  Data2 min = ",np.min(MODIS_data2['data']))
@@ -1188,16 +1281,18 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
                         plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][0], \
                         plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][1]],\
                         datacrs)
-    ax0.set_title('MODIS Ch. ' + str(channel1) + '\n' + \
-        str(channel_dict[str(channel1)]['Bandwidth'][0]) + ' μm - ' + \
-        str(channel_dict[str(channel1)]['Bandwidth'][1]) + ' μm')
+    #ax0.set_title('MODIS Ch. ' + str(channel1) + '\n' + \
+    #    str(channel_dict[str(channel1)]['Bandwidth'][0]) + ' μm - ' + \
+    #    str(channel_dict[str(channel1)]['Bandwidth'][1]) + ' μm')
+    ax0.set_title('Channel ' + str(channel1) + '\n' + \
+        channel_dict[str(channel1)]['Bandwidth_label']) 
 
 
     # Plot channel 2
     mesh1 = ax1.pcolormesh(MODIS_data2['lon'],MODIS_data2['lat'],\
         MODIS_data2['data'],cmap = MODIS_data2['colors'], shading='auto', \
         vmin = np.nanmin(MODIS_data2['data']), \
-        vmax = np.nanmax(MODIS_data2['data']), transform = datacrs) 
+        vmax = 2., transform = datacrs) 
 
 
     cbar1 = plt.colorbar(mesh1,ax=ax1,orientation='vertical',\
@@ -1212,9 +1307,11 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
                         plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][0], \
                         plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][1]],\
                         datacrs)
-    ax1.set_title('MODIS Ch. ' + str(channel2) + '\n' + \
-        str(channel_dict[str(channel2)]['Bandwidth'][0]) + ' μm - ' + \
-        str(channel_dict[str(channel2)]['Bandwidth'][1]) + ' μm')
+    #ax1.set_title('MODIS Ch. ' + str(channel2) + '\n' + \
+    #    str(channel_dict[str(channel2)]['Bandwidth'][0]) + ' μm - ' + \
+    #    str(channel_dict[str(channel2)]['Bandwidth'][1]) + ' μm')
+    ax1.set_title('Channel ' + str(channel2) + '\n' + \
+        channel_dict[str(channel2)]['Bandwidth_label']) 
 
     # Plot channel 3
     mesh2 = ax2.pcolormesh(MODIS_data3['lon'],MODIS_data3['lat'],\
@@ -1233,9 +1330,11 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
                         plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0], \
                         plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]],\
                         datacrs)
-    ax2.set_title('MODIS Ch. ' + str(channel3) + '\n' + \
-        str(channel_dict[str(channel3)]['Bandwidth'][0]) + ' μm - ' + \
-        str(channel_dict[str(channel3)]['Bandwidth'][1]) + ' μm')
+    #ax2.set_title('MODIS Ch. ' + str(channel3) + '\n' + \
+    #    str(channel_dict[str(channel3)]['Bandwidth'][0]) + ' μm - ' + \
+    #    str(channel_dict[str(channel3)]['Bandwidth'][1]) + ' μm')
+    ax2.set_title('Channel ' + str(channel3) + '\n' + \
+        channel_dict[str(channel3)]['Bandwidth_label']) 
 
 
     if(compare_OMI):
@@ -1375,28 +1474,28 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
     if(show_smoke):
         # Determine where the smoke is located
         # ------------------------------------
-        hash_data1, nohash_data1 = find_plume(filename) 
+        hash_data1, nohash_data1 = find_plume(dt_date_str.strftime('%Y%m%d%H%M')) 
         hash0 = ax0.pcolor(MODIS_data1['lon'],MODIS_data1['lat'],\
-            hash_data1, hatch = '///', alpha=0., transform = datacrs)
+            hash_data1[:MODIS_data1['lat'].shape[0], :MODIS_data1['lat'].shape[1]], hatch = '///', alpha=0., transform = datacrs)
         hash1 = ax1.pcolor(MODIS_data2['lon'],MODIS_data2['lat'],\
-            hash_data1, hatch = '///', alpha=0., transform = datacrs)
+            hash_data1[:MODIS_data2['lat'].shape[0], :MODIS_data2['lat'].shape[1]], hatch = '///', alpha=0., transform = datacrs)
         hash2 = ax2.pcolor(MODIS_data3['lon'],MODIS_data3['lat'],\
-            hash_data1, hatch = '///', alpha=0., transform = datacrs)
+            hash_data1[:MODIS_data3['lat'].shape[0], :MODIS_data3['lat'].shape[1]], hatch = '///', alpha=0., transform = datacrs)
         if(compare_OMI): 
             hash3 = axo.pcolor(MODIS_data3['lon'],MODIS_data3['lat'],\
-                hash_data1, hatch = '///', alpha=0., transform = datacrs)
+                hash_data1[:MODIS_data3['lat'].shape[0], :MODIS_data3['lat'].shape[1]], hatch = '///', alpha=0., transform = datacrs)
         if(compare_CERES): 
             hash4 = axcs.pcolor(MODIS_data3['lon'],MODIS_data3['lat'],\
-                hash_data1, hatch = '///', alpha=0., transform = datacrs)
+                hash_data1[:MODIS_data3['lat'].shape[0], :MODIS_data3['lat'].shape[1]], hatch = '///', alpha=0., transform = datacrs)
             hash5 = axcl.pcolor(MODIS_data3['lon'],MODIS_data3['lat'],\
-                hash_data1, hatch = '///', alpha=0., transform = datacrs)
+                hash_data1[:MODIS_data3['lat'].shape[0], :MODIS_data3['lat'].shape[1]], hatch = '///', alpha=0., transform = datacrs)
     
 
     if(plot_ASOS_loc):
         print("Plotting ASOS site")
-        plot_ASOS_locs(ax0,MODIS_data1,color='black')
-        plot_ASOS_locs(ax1,MODIS_data1)
-        plot_ASOS_locs(ax2,MODIS_data1)
+        plot_ASOS_locs(ax0,MODIS_data1,color='lime')
+        plot_ASOS_locs(ax1,MODIS_data1,color='lime')
+        plot_ASOS_locs(ax2,MODIS_data1,color='lime')
         if(compare_OMI): plot_ASOS_locs(axo,MODIS_data1,color='black')
         if(compare_CERES): 
             plot_ASOS_locs(axcs,MODIS_data1,color='black')
@@ -1438,8 +1537,8 @@ def compare_MODIS_channels(date_str,channel1,channel2,zoom=True,save=False,\
     # Step 1: Call read_MODIS_channel to read the desired MODIS data from the
     # file and put it in a dictionary
     # -----------------------------------------------------------------------
-    MODIS_data1 = read_MODIS_channel(filename, channel1, zoom = zoom)
-    MODIS_data2 = read_MODIS_channel(filename, channel2, zoom = zoom)
+    MODIS_data1 = read_MODIS_channel(dt_date_str.strftime('%Y%m%d%H%M'), channel1, zoom = zoom)
+    MODIS_data2 = read_MODIS_channel(dt_date_str.strftime('%Y%m%d%H%M'), channel2, zoom = zoom)
 
     print("Data1 max = ",np.max(MODIS_data1['data']), "  Data1 min = ",np.min(MODIS_data1['data']))
     print("Data2 max = ",np.max(MODIS_data2['data']), "  Data2 min = ",np.min(MODIS_data2['data']))
@@ -1480,9 +1579,11 @@ def compare_MODIS_channels(date_str,channel1,channel2,zoom=True,save=False,\
                         plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][0], \
                         plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][1]],\
                         datacrs)
-    ax0.set_title('MODIS Ch. ' + str(channel1) + '\n' + \
-        str(channel_dict[str(channel1)]['Bandwidth'][0]) + ' μm - ' + \
-        str(channel_dict[str(channel1)]['Bandwidth'][1]) + ' μm')
+    #ax0.set_title('MODIS Ch. ' + str(channel1) + '\n' + \
+    #    str(channel_dict[str(channel1)]['Bandwidth'][0]) + ' μm - ' + \
+    #    str(channel_dict[str(channel1)]['Bandwidth'][1]) + ' μm')
+    ax0.set_title('Channel ' + str(channel1) + '\n' + \
+        channel_dict[str(channel1)]['Bandwidth_label']) 
 
     # Plot channel 2
     mesh1 = ax1.pcolormesh(MODIS_data2['lon'],MODIS_data2['lat'],\
@@ -1505,9 +1606,11 @@ def compare_MODIS_channels(date_str,channel1,channel2,zoom=True,save=False,\
                         plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][0], \
                         plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][1]],\
                         datacrs)
-    ax1.set_title('MODIS Ch. ' + str(channel2) + '\n' + \
-        str(channel_dict[str(channel2)]['Bandwidth'][0]) + ' μm - ' + \
-        str(channel_dict[str(channel2)]['Bandwidth'][1]) + ' μm')
+    #ax1.set_title('MODIS Ch. ' + str(channel2) + '\n' + \
+    #    str(channel_dict[str(channel2)]['Bandwidth'][0]) + ' μm - ' + \
+    #    str(channel_dict[str(channel2)]['Bandwidth'][1]) + ' μm')
+    ax1.set_title('Channel ' + str(channel2) + '\n' + \
+        channel_dict[str(channel2)]['Bandwidth_label']) 
 
     ##!## Shade areas that are inside the plume, defined currently as areas
     ##!## with reflectance below the mean
@@ -1547,7 +1650,7 @@ def compare_MODIS_channels(date_str,channel1,channel2,zoom=True,save=False,\
     if(show_smoke):
         # Determine where the smoke is located
         # ------------------------------------
-        hash_data1, nohash_data1 = find_plume(filename) 
+        hash_data1, nohash_data1 = find_plume(dt_date_str.strftime('%Y%m%d%H%M')) 
         hash2 = ax1.pcolor(MODIS_data2['lon'],MODIS_data2['lat'],\
             hash_data1, hatch = '///', alpha=0., transform = datacrs),
         hash1 = ax0.pcolor(MODIS_data1['lon'],MODIS_data1['lat'],\
@@ -1639,10 +1742,10 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
     # Step 1: Call read_MODIS_channel to read the desired MODIS data from the
     # file and put it in a dictionary
     # -----------------------------------------------------------------------
-    MODIS_data0 = read_MODIS_channel(filename, channel0, zoom = True)
-    MODIS_data1 = read_MODIS_channel(filename, channel1, zoom = True)
-    MODIS_data2 = read_MODIS_channel(filename, channel2, zoom = True)
-    MODIS_data3 = read_MODIS_channel(filename, channel3, zoom = True)
+    MODIS_data0 = read_MODIS_channel(dt_date_str.strftime('%Y%m%d%H%M'), channel0, zoom = True)
+    MODIS_data1 = read_MODIS_channel(dt_date_str.strftime('%Y%m%d%H%M'), channel1, zoom = True)
+    MODIS_data2 = read_MODIS_channel(dt_date_str.strftime('%Y%m%d%H%M'), channel2, zoom = True)
+    MODIS_data3 = read_MODIS_channel(dt_date_str.strftime('%Y%m%d%H%M'), channel3, zoom = True)
 
     print("Data0 max = ",np.max(MODIS_data0['data']), "  Data0 min = ",np.min(MODIS_data0['data']))
     print("Data1 max = ",np.max(MODIS_data1['data']), "  Data1 min = ",np.min(MODIS_data1['data']))
@@ -1653,7 +1756,7 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
 
     # Determine where the smoke is located
     # ------------------------------------
-    hash_data1, nohash_data1 = find_plume(filename) 
+    hash_data1, nohash_data1 = find_plume(dt_date_str.strftime('%Y%m%d%H%M')) 
 
     tmp_data0 = np.copy(MODIS_data0['data'])
     tmp_data1 = np.copy(MODIS_data1['data'])
@@ -1729,11 +1832,11 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
         color='tab:orange')
 
     ax0.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
-        str(np.average(channel_dict[str(channel0)]['Bandwidth'])) \
-        + ' μm] ' + MODIS_data0['variable'])
+        channel_dict[str(channel0)]['Bandwidth_label'] + \
+        MODIS_data0['variable'])
     ax0.set_ylabel('Ch. ' + str(MODIS_data1['channel']) +' [' + \
-        str(np.average(channel_dict[str(channel1)]['Bandwidth'])) \
-        + ' μm] ' + MODIS_data1['variable'])
+        channel_dict[str(channel1)]['Bandwidth_label'] + \
+        MODIS_data1['variable'])
     plt.suptitle('Aqua MODIS ' + cross_date + ' ' + file_time)
     #ax0.set_title('Pearson correlation: '+str(np.round(rval_p, 3)))
 
@@ -1748,11 +1851,11 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
         color='tab:orange')
 
     ax1.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
-        str(np.average(channel_dict[str(channel0)]['Bandwidth'])) \
-        + ' μm] ' + MODIS_data0['variable'])
+        channel_dict[str(channel0)]['Bandwidth_label'] + \
+        MODIS_data0['variable'])
     ax1.set_ylabel('Ch. ' + str(MODIS_data2['channel']) +' [' + \
-        str(np.average(channel_dict[str(channel2)]['Bandwidth'])) \
-        + ' μm] ' + MODIS_data2['variable'])
+        channel_dict[str(channel2)]['Bandwidth_label'] + \
+        MODIS_data2['variable'])
     #ax0.set_title('Pearson correlation: '+str(np.round(rval_p, 3)))
 
     #xy = np.vstack([plot_data0,plot_data3])
@@ -1764,12 +1867,13 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
     ax2.scatter(tmp_data0[np.where(hash_data1.mask)], \
         tmp_data3[np.where(hash_data1.mask)], s=6, \
         color='tab:orange', label = 'Outside plume')
+
     ax2.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
-        str(np.average(channel_dict[str(channel0)]['Bandwidth'])) \
-        + ' μm] ' + MODIS_data0['variable'])
+        channel_dict[str(channel0)]['Bandwidth_label'] + \
+        MODIS_data0['variable'])
     ax2.set_ylabel('Ch. ' + str(MODIS_data3['channel']) +' [' + \
-        str(np.round(np.average(channel_dict[str(channel3)]['Bandwidth']),3)) \
-        + ' μm] ' + MODIS_data3['variable'])
+        channel_dict[str(channel3)]['Bandwidth_label'] + \
+        MODIS_data3['variable'])
     #ax0.set_title('Pearson correlation: '+str(np.round(rval_p, 3)))
 
     # Remove the nans from the MODIS data, lats, and lons for both the
@@ -1943,8 +2047,8 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
             #    color='tab:orange', label='Outside Plume')
 
             axo.set_xlabel('Averaged Ch. ' + str(MODIS_data1['channel']) +' [' + \
-                str(np.average(channel_dict[str(channel1)]['Bandwidth'])) \
-                + ' μm] ' + MODIS_data1['variable'])
+                channel_dict[str(channel1)]['Bandwidth_label'] + \
+                MODIS_data1['variable'])
             axo.set_ylabel('OMI UVAI')
 
             # Plot hash_avg_modis against mask_UVAI 
@@ -1997,8 +2101,8 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
             #    color='tab:orange')
 
             axo.set_xlabel('Ch. ' + str(MODIS_data1['channel']) +' [' + \
-                str(np.average(channel_dict[str(channel1)]['Bandwidth'])) \
-                + ' μm] ' + MODIS_data1['variable'])
+                channel_dict[str(channel1)]['Bandwidth_label'] + \
+                MODIS_data1['variable'])
             axo.set_ylabel('OMI UVAI')
         
         data.close()
@@ -2114,11 +2218,11 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
             ##!#    s = 6, color='tab:orange')
 
             axcl.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
-                str(np.average(channel_dict[str(channel0)]['Bandwidth'])) \
-                + ' μm] ' + MODIS_data0['variable'])
+                channel_dict[str(channel0)]['Bandwidth_label'] + \
+                MODIS_data0['variable'])
             axcs.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
-                str(np.average(channel_dict[str(channel0)]['Bandwidth'])) \
-                + ' μm] ' + MODIS_data0['variable'])
+                channel_dict[str(channel0)]['Bandwidth_label'] + \
+                MODIS_data0['variable'])
             axcl.set_ylabel('CERES LWF [W/m2]')
             axcs.set_ylabel('CERES SWF [W/m2]')
 
@@ -2157,8 +2261,8 @@ def colocate_comparison(date1, date2, channel = 31):
     filename1 = plot_limits_dict[dt_date_str1.strftime('%Y-%m-%d')][dt_date_str1.strftime('%H%M')]['modis']
     filename2 = plot_limits_dict[dt_date_str2.strftime('%Y-%m-%d')][dt_date_str2.strftime('%H%M')]['modis']
 
-    MODIS_data1 = read_MODIS_channel(filename1, channel, zoom = True)
-    MODIS_data2 = read_MODIS_channel(filename2, channel, zoom = True)
+    MODIS_data1 = read_MODIS_channel(dt_date_str1.strftime('%Y%m%d%H%M'), channel, zoom = True)
+    MODIS_data2 = read_MODIS_channel(dt_date_str2.strftime('%Y%m%d%H%M'), channel, zoom = True)
 
     #print(MODIS_data1,MODIS_data2)
 
