@@ -190,6 +190,16 @@ cmnd = "find "+base_dir+"MODIS/ -type f -name \"*.py\" | xargs cp -t "+final_dir
 #cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
 print(cmnd)
 os.system(cmnd)
+# ---------------------------------------------------------------------------- 
+# AIRS analysis
+# ---------------------------------------------------------------------------- 
+print("AIRS")
+final_dir = dest_dir + 'AIRS/'
+cmnd = "find "+base_dir+"AIRS/ -type f -name \"*.py\" | xargs cp -t "+final_dir
+#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
+
 ## ---------------------------------------------------------------------------- 
 ## Siphon/Metpy Codes
 ## ---------------------------------------------------------------------------- 
