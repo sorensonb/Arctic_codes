@@ -221,6 +221,13 @@ def plot_AIRS_tlevel(filename,level,zoom=True,save=False):
     # ---------------------
     data = Dataset(filename,'r')
 
+    # Extract orbit information
+    # -------------------------
+    idx = getattr(data,'coremetadata').split().index('EQUATORCROSSINGDATE')
+    cross_date = getattr(data,'coremetadata').split()[idx+9]
+    idx = getattr(data,'coremetadata').split().index('EQUATORCROSSINGTIME')
+    cross_time = getattr(data,'coremetadata').split()[idx+9]
+
     # Extract lat, lon, and temperature data for level
     # ------------------------------------------------
     lon = data.variables['lonAIRS'][:,:,1,1]
@@ -239,9 +246,11 @@ def plot_AIRS_tlevel(filename,level,zoom=True,save=False):
     mesh = ax.pcolormesh(lon, lat, tmp, transform = datacrs, \
         cmap = 'plasma', shading = 'auto')
     cbar = plt.colorbar(mesh, ax = ax)
+    ax.add_feature(cfeature.BORDERS)
+    ax.add_feature(cfeature.STATES)
     ax.set_extent([np.nanmin(lon), np.nanmax(lon),\
         np.nanmin(lat), np.nanmax(lat)], datacrs)
-    ax.set_title(str(level))
+    ax.set_title(cross_date + ' ' + cross_time + '\n' + str(level))
     plt.show() 
 
     """
@@ -312,6 +321,8 @@ def plot_AIRS_tlevel(filename,level,zoom=True,save=False):
 
 def plot_AIRS_tprof(filename,slat,slon,zoom=True,save=False):
 
+    '/INVENTORYMETADATA/MEASUREDPARAMETER/ORBITCALCULATEDSPATIALDOMAIN/ORBITALCALCULATEDSPATIALDOMAINCONTAINER/EQUATORCROSSINGTIME'
+ 
     # Read in the AIRS file
     # ---------------------
     data = Dataset(filename,'r')
