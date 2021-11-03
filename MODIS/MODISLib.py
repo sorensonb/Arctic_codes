@@ -268,6 +268,7 @@ plot_limits_dict = {
             'asos': 'asos_data_20210720.csv',
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021201.2125.061.2021202154814.hdf',
             'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072010-2021072021.nc',
+            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.20.214.L2.SUBS2RET.v6.0.32.0.G21202153435.hdf'],
             'Lat': [39.5, 42.0],
             'Lon': [-122.0, -119.5]
         }
@@ -277,6 +278,7 @@ plot_limits_dict = {
             'asos': 'asos_data_20210722.csv',
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021202.2030.061.2021203174050.hdf',
             'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072109-2021072122.nc',
+            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.21.205.L2.SUBS2RET.v6.0.32.0.G21203185004.hdf'],
             'Lat': [39.5, 42.0],
             'Lon': [-122.0, -119.5],
             'modis_Lat': [39.0, 42.5],
@@ -289,6 +291,7 @@ plot_limits_dict = {
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021203.2110.061.2021204155922.hdf',
             'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021203.2110.061.2021204163638.hdf',
             'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072210-2021072221.nc',
+            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.22.212.L2.SUBS2RET.v6.0.32.0.G21204140844.hdf'],
             'Lat': [39.5, 42.0],
             'Lon': [-122.0, -119.5],
             'modis_Lat': [39.0, 42.5],
@@ -299,12 +302,14 @@ plot_limits_dict = {
         '2120': {
             'asos': 'asos_data_20210805.csv',
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021217.2120.061.2021218164201.hdf',
+            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.05.214.L2.SUBS2RET.v6.0.32.0.G21218175548.hdf'],
             'Lat': [36.0, 39.0],
             'Lon': [-118.0, -114.0]
         },
         '2125': {
             'asos': 'asos_california_20210805.csv',
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021217.2125.061.2021218161010.hdf',
+            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.05.214.L2.SUBS2RET.v6.0.32.0.G21218175548.hdf'],
             'Lat': [39.5, 42.5],
             'Lon': [-121.5, -119.5],
             'modis_Lat': [39.0, 42.5],
@@ -316,6 +321,8 @@ plot_limits_dict = {
             'asos': 'asos_nevada_20210806.csv',
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021218.2025.061.2021219151802.hdf',
             'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021218.2025.061.2021219152751.hdf',
+            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.06.204.L2.SUBS2RET.v6.0.32.0.G21219130523.hdf',\
+                     '/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.06.205.L2.SUBS2RET.v6.0.32.0.G21219130455.hdf'],
             'omi': '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0806t1943-o90747_v003-2021m0808t031152.he5',
             'Lat': [36.0, 39.0],
             'Lon': [-118.0, -114.0],
@@ -334,6 +341,7 @@ plot_limits_dict = {
         '2115': {
             'asos': 'asos_data_20210830.csv',
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021242.2115.061.2021243183953.hdf',
+            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.30.213.L2.SUBS2RET.v6.0.32.0.G21243151114.hdf'],
             'Lat': [38.0, 40.0],
             'Lon': [-121.0, -118.5]
         }
@@ -1292,7 +1300,7 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
     mesh1 = ax1.pcolormesh(MODIS_data2['lon'],MODIS_data2['lat'],\
         MODIS_data2['data'],cmap = MODIS_data2['colors'], shading='auto', \
         vmin = np.nanmin(MODIS_data2['data']), \
-        vmax = 2., transform = datacrs) 
+        vmax = np.nanmax(MODIS_data2['data']), transform = datacrs) 
 
 
     cbar1 = plt.colorbar(mesh1,ax=ax1,orientation='vertical',\
