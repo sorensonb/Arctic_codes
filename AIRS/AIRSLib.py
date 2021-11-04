@@ -122,16 +122,41 @@ datacrs = ccrs.PlateCarree()
 ##!#}
 
 var_dict = {
-    'tmp': 'Temperature [K]',
-    'H2O': 'Water Vapor Mass Mixing Ratio [g/kg dry air]'
+    'label': {
+        'tmp': 'Temperature [K]',
+        'H2O': 'Water Vapor Mass Mixing Ratio [g/kg dry air]'
+    },
+    'title': {
+        'tmp': 'Temperature',
+        'H2O': 'Water Vapor Mass Mixing Ratio'
+    }
 } 
+
+lim_dict = {
+    'mesh': {
+        'tmp': [265, 290],
+        'H2O': [0, 5]
+    },
+    'profile': {
+        'tmp': [200, 310],
+        'H2O': [0, 7]
+    },
+}   
+
+diff_range_dict = {
+    'tmp': [-6.,6.], \
+    'H2O': [-2.,2.],
+}   
 
 case_dict = {
     '202107222110': 'O05',
     '202107212030': 'O05',
     '202108052125': 'O05',
+    '202108042110': 'TPH',
     '202108052120': 'TPH',
     '202108062025': 'TPH',
+    '202108072110': 'TPH',
+    '202108082110': 'TPH',
 }
 
 
@@ -524,9 +549,10 @@ def plot_AIRS_station_profs(date_str,variable,yaxis = 'ght',level=4,zoom=True,\
 
     ax0.coastlines()
     mesh = ax0.pcolormesh(AIRS_data['lon'], AIRS_data['lat'], \
-        AIRS_data['tmp'][:,:,level], transform = ccrs.PlateCarree(), \
-        cmap = 'plasma', shading = 'auto')
-    cbar = plt.colorbar(mesh, ax = ax0, label = 'Temperature [K]')
+        AIRS_data[variable][:,:,level], transform = ccrs.PlateCarree(), \
+        cmap = 'plasma', shading = 'auto', vmin = lim_dict['mesh'][variable][0],\
+        vmax = lim_dict['mesh'][variable][1])
+    cbar = plt.colorbar(mesh, ax = ax0, label = var_dict['label'][variable])
     ax0.add_feature(cfeature.BORDERS)
     ax0.add_feature(cfeature.STATES)
     ax0.set_extent([np.nanmin(AIRS_data['lon'][:,:]), \
@@ -534,7 +560,7 @@ def plot_AIRS_station_profs(date_str,variable,yaxis = 'ght',level=4,zoom=True,\
         np.nanmin(AIRS_data['lat'][:,:]),\
         np.nanmax(AIRS_data['lat'][:,:])], datacrs)
     ax0.set_title('AIRS ' + str(int(AIRS_data['pressStd'][level])) + \
-        ' hPa Temperature\n' + date_str)
+        ' hPa ' + var_dict['title'][variable] + '\n' + date_str)
     if(zoom):
         ax0.set_extent([plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon'][0], \
                         plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon'][1], \
@@ -597,19 +623,22 @@ def plot_AIRS_station_profs(date_str,variable,yaxis = 'ght',level=4,zoom=True,\
     ##!#ax.plot(pdata, pght)
     ax1.set_ylabel(ylabel)
     ax1.set_ylim(yrange)
-    ax1.set_xlabel(var_dict[variable]) 
+    ax1.set_xlim(lim_dict['profile'][variable])
+    ax1.set_xlabel(var_dict['label'][variable]) 
     ax1.legend()
-    ax1.set_title('AIRS Temperature Profiles\n'+date_str)
+    ax1.set_title('AIRS ' + var_dict['title'][variable] + ' Profiles\n'+date_str)
 
     ax2.set_ylabel(ylabel)
     ax2.set_ylim(yrange)
-    ax2.set_xlabel(var_dict[variable] + ' Difference') 
+    ax2.set_xlim(diff_range_dict[variable][0], diff_range_dict[variable][1])
+    ax2.set_xlabel(var_dict['title'][variable] + ' Difference') 
     ax2.legend()
-    ax2.set_title('AIRS Temperature Profile Difference\nT(' + \
-        case_dict[date_str] + ') - T(other stations)')
+    ax2.set_title('AIRS ' + var_dict['title'][variable] + \
+        ' Profile Difference\n' + variable.upper() + '(' + \
+        case_dict[date_str] + ') - ' + variable.upper() + '(other stations)')
 
     if(save):
-        outname = 'airs_prof_3panel_' + dt_date_str.strftime('%Y%m%d%H%M') + \
+        outname = 'airs_prof_3panel_' + variable + '_' + dt_date_str.strftime('%Y%m%d%H%M') + \
             '.png'
         plt.savefig(outname,dpi=300)
         print("Saved image",outname)

@@ -298,13 +298,30 @@ plot_limits_dict = {
             'modis_Lon': [-123., -119.]
         }
     },
+    "2021-08-04": {
+        '2110': {
+            'asos': 'asos_data_20210806.csv',
+            #'asos': 'asos_nevada_20210806.csv',
+            #'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021218.2025.061.2021219151802.hdf',
+            #'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021218.2025.061.2021219152751.hdf',
+            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.04.206.L2.SUBS2RET.v6.0.32.0.G21217152448.hdf',\
+                     '/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.04.207.L2.SUBS2RET.v6.0.32.0.G21217152904.hdf'],\
+            #'omi': '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0806t1943-o90747_v003-2021m0808t031152.he5',
+            'Lat': [36.0, 39.0],
+            'Lon': [-118.0, -114.0],
+            'modis_Lat': [35.0, 40.0],
+            'modis_Lon': [-119., -113.]
+        }
+    },
     "2021-08-05": {
         '2120': {
             'asos': 'asos_data_20210805.csv',
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021217.2120.061.2021218164201.hdf',
             'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.05.214.L2.SUBS2RET.v6.0.32.0.G21218175548.hdf'],
             'Lat': [36.0, 39.0],
-            'Lon': [-118.0, -114.0]
+            'Lon': [-118.0, -114.0],
+            'modis_Lat': [35.0, 40.0],
+            'modis_Lon': [-119., -113.]
         },
         '2125': {
             'asos': 'asos_california_20210805.csv',
@@ -318,12 +335,42 @@ plot_limits_dict = {
     },
     "2021-08-06": {
         '2025': {
-            'asos': 'asos_nevada_20210806.csv',
+            'asos': 'asos_data_20210806.csv',
+            #'asos': 'asos_nevada_20210806.csv',
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021218.2025.061.2021219151802.hdf',
             'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021218.2025.061.2021219152751.hdf',
             'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.06.204.L2.SUBS2RET.v6.0.32.0.G21219130523.hdf',\
                      '/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.06.205.L2.SUBS2RET.v6.0.32.0.G21219130455.hdf'],
             'omi': '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0806t1943-o90747_v003-2021m0808t031152.he5',
+            'Lat': [36.0, 39.0],
+            'Lon': [-118.0, -114.0],
+            'modis_Lat': [35.0, 40.0],
+            'modis_Lon': [-119., -113.]
+        }
+    },
+    "2021-08-07": {
+        '2110': {
+            'asos': 'asos_data_20210806.csv',
+            #'asos': 'asos_nevada_20210806.csv',
+            #'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021218.2025.061.2021219151802.hdf',
+            #'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021218.2025.061.2021219152751.hdf',
+            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.07.212.L2.SUBS2RET.v6.0.32.0.G21220123225.hdf'],\
+            #'omi': '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0806t1943-o90747_v003-2021m0808t031152.he5',
+            'Lat': [36.0, 39.0],
+            'Lon': [-118.0, -114.0],
+            'modis_Lat': [35.0, 40.0],
+            'modis_Lon': [-119., -113.]
+        }
+    },
+    "2021-08-08": {
+        '2110': {
+            'asos': 'asos_data_20210806.csv',
+            #'asos': 'asos_nevada_20210806.csv',
+            #'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021218.2025.061.2021219151802.hdf',
+            #'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021218.2025.061.2021219152751.hdf',
+            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.08.202.L2.SUBS2RET.v6.0.32.0.G21221124420.hdf',\
+                     '/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.08.203.L2.SUBS2RET.v6.0.32.0.G21221185932.hdf'],\
+            #'omi': '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0806t1943-o90747_v003-2021m0808t031152.he5',
             'Lat': [36.0, 39.0],
             'Lon': [-118.0, -114.0],
             'modis_Lat': [35.0, 40.0],
