@@ -508,7 +508,7 @@ def find_plume(dt_date_str):
     MODIS_ch5  = read_MODIS_channel(dt_date_str, 5,  zoom = True)
     MODIS_ch31 = read_MODIS_channel(dt_date_str, 31, zoom = True)
 
-    screen_limit = 0.40
+    screen_limit = 0.20
     max_ch = 350.
     test_data = MODIS_ch1['data'] - MODIS_ch5['data']
     hash_data   = np.ma.masked_where(test_data <  \
@@ -1032,8 +1032,10 @@ def read_MODIS_channel(date_str, channel, zoom = False):
     dat = modis.attributes().get('CoreMetadata.0').split()
     indx = dat.index('EQUATORCROSSINGDATE')+9
     cross_date = dat[indx][1:len(dat[indx])-1]
+    indx = dat.index('EQUATORCROSSINGTIME')+9
+    cross_time = dat[indx][1:len(dat[indx])-1]
 
-    print(cross_date)
+    print('MODIS orbit info',cross_date,cross_time)
 
     lat5 = modis.select('Latitude').get()
     lon5 = modis.select('Longitude').get()
@@ -1215,7 +1217,8 @@ def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False):
     if(show_smoke):
         # Determine where the smoke is located
         # ------------------------------------
-        hash_data1, nohash_data1 = find_plume(filename) 
+        hash_data1, nohash_data1 = find_plume(date_str) 
+        #hash_data1, nohash_data1 = find_plume(filename) 
         hash0 = ax0.pcolor(MODIS_data['lon'],MODIS_data['lat'],\
             hash_data1, hatch = '///', alpha=0., transform = datacrs)
 
@@ -1879,57 +1882,38 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
     #z = stats.gaussian_kde(xy)(xy)
     #ax0.scatter(plot_data0,plot_data1,c=z,s=6)
 
-    ax0.scatter(tmp_data0[np.where(~hash_data1.mask)], \
-        tmp_data1[np.where(~hash_data1.mask)], s=6, \
-        color='tab:blue')
-    ax0.scatter(tmp_data0[np.where(hash_data1.mask)], \
-        tmp_data1[np.where(hash_data1.mask)], s=6, \
-        color='tab:orange')
+    def plot_scatter(lax,data1, data2, MODIS_data1, MODIS_data2, channel1, \
+            channel2, hash_data1):
+        hrval_p = spearmanr(data1[np.where(~hash_data1.mask)].compressed(), \
+            data2[np.where(~hash_data1.mask)].compressed())[0]
+        nrval_p = spearmanr(data1[np.where(hash_data1.mask)].compressed(), \
+            data2[np.where(hash_data1.mask)].compressed())[0]
+        #print("0-1 Pearson:  ",hrval_p)
+        lax.scatter(data1[np.where(hash_data1.mask)].compressed(), \
+            data2[np.where(hash_data1.mask)].compressed(), s=6, \
+            color='tab:orange')
+        lax.scatter(data1[np.where(~hash_data1.mask)].compressed(), \
+            data2[np.where(~hash_data1.mask)].compressed(), s=6, \
+            color='tab:blue')
 
-    ax0.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
-        channel_dict[str(channel0)]['Bandwidth_label'] + \
-        MODIS_data0['variable'])
-    ax0.set_ylabel('Ch. ' + str(MODIS_data1['channel']) +' [' + \
-        channel_dict[str(channel1)]['Bandwidth_label'] + \
-        MODIS_data1['variable'])
-    plt.suptitle('Aqua MODIS ' + cross_date + ' ' + file_time)
-    #ax0.set_title('Pearson correlation: '+str(np.round(rval_p, 3)))
+        lax.set_xlabel('Ch. ' + str(MODIS_data1['channel']) +' [' + \
+            channel_dict[str(channel0)]['Bandwidth_label'] + '] '+ \
+            MODIS_data1['variable'])
+        lax.set_ylabel('Ch. ' + str(MODIS_data2['channel']) +' [' + \
+            channel_dict[str(channel1)]['Bandwidth_label'] + ']' + \
+            MODIS_data2['variable'])
+        plt.suptitle('Aqua MODIS ' + cross_date + ' ' + file_time)
+        lax.set_title('Smoke correlation: '+str(np.round(hrval_p, 3))+'\n'+\
+                      'Clear correlation: '+str(np.round(nrval_p, 3)))
+    
 
-    #xy = np.vstack([plot_data0,plot_data2])
-    #z = stats.gaussian_kde(xy)(xy)
-    #ax1.scatter(plot_data0,plot_data2,c=z,s=6)
-    ax1.scatter(tmp_data0[np.where(~hash_data1.mask)], \
-        tmp_data2[np.where(~hash_data1.mask)], s=6, \
-        color='tab:blue')
-    ax1.scatter(tmp_data0[np.where(hash_data1.mask)], \
-        tmp_data2[np.where(hash_data1.mask)], s=6, \
-        color='tab:orange')
+    plot_scatter(ax0, tmp_data0, tmp_data1, MODIS_data0, MODIS_data1, \
+        channel0, channel1, hash_data1)
+    plot_scatter(ax1, tmp_data0, tmp_data2, MODIS_data0, MODIS_data2, \
+        channel0, channel2, hash_data1)
+    plot_scatter(ax2, tmp_data0, tmp_data3, MODIS_data0, MODIS_data3, \
+        channel0, channel3, hash_data1)
 
-    ax1.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
-        channel_dict[str(channel0)]['Bandwidth_label'] + \
-        MODIS_data0['variable'])
-    ax1.set_ylabel('Ch. ' + str(MODIS_data2['channel']) +' [' + \
-        channel_dict[str(channel2)]['Bandwidth_label'] + \
-        MODIS_data2['variable'])
-    #ax0.set_title('Pearson correlation: '+str(np.round(rval_p, 3)))
-
-    #xy = np.vstack([plot_data0,plot_data3])
-    #z = stats.gaussian_kde(xy)(xy)
-    #ax2.scatter(plot_data0,plot_data3,c=z,s=6)
-    ax2.scatter(tmp_data0[np.where(~hash_data1.mask)], \
-        tmp_data3[np.where(~hash_data1.mask)], s=6, \
-        color='tab:blue',label = 'Inside plume')
-    ax2.scatter(tmp_data0[np.where(hash_data1.mask)], \
-        tmp_data3[np.where(hash_data1.mask)], s=6, \
-        color='tab:orange', label = 'Outside plume')
-
-    ax2.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
-        channel_dict[str(channel0)]['Bandwidth_label'] + \
-        MODIS_data0['variable'])
-    ax2.set_ylabel('Ch. ' + str(MODIS_data3['channel']) +' [' + \
-        channel_dict[str(channel3)]['Bandwidth_label'] + \
-        MODIS_data3['variable'])
-    #ax0.set_title('Pearson correlation: '+str(np.round(rval_p, 3)))
 
     # Remove the nans from the MODIS data, lats, and lons for both the
     # in-the-plume (hashed) and outside-the-plume (nohashed) data
@@ -1955,9 +1939,9 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
         LON   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude'][:,:]
         UVAI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex'][:,:]
         XTRACK = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/XTrackQualityFlags'][:,:]
-        mask_LAT = np.ma.masked_where((XTRACK < -2e5) | (UVAI < -2e5), LAT)
-        mask_LON = np.ma.masked_where((XTRACK < -2e5) | (UVAI < -2e5), LON)
-        mask_UVAI = np.ma.masked_where((XTRACK < -2e5) | (UVAI < -2e5), UVAI)
+        mask_LAT = np.ma.masked_where( (XTRACK < -2e5) | (UVAI < 2.), LAT)
+        mask_LON = np.ma.masked_where( (XTRACK < -2e5) | (UVAI < 2.), LON)
+        mask_UVAI = np.ma.masked_where((XTRACK < -2e5) | (UVAI < 2.), UVAI)
         mask_LAT  = np.ma.masked_where((((LAT < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) | \
                              (LAT > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1])) | \
                             ((LON < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) | \
@@ -2092,6 +2076,8 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
 
             print(work_UVAI[~np.ma.masked_invalid(hash_avg_modis).mask])
             
+            hrval_p = spearmanr(np.ma.masked_invalid(hash_avg_modis).compressed(), \
+                work_UVAI[~np.ma.masked_invalid(hash_avg_modis).mask])[0]
             axo.scatter(np.ma.masked_invalid(hash_avg_modis).compressed(), \
                 work_UVAI[~np.ma.masked_invalid(hash_avg_modis).mask], s=6, \
                 color='tab:blue')
@@ -2104,6 +2090,7 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
             axo.set_xlabel('Averaged Ch. ' + str(MODIS_data1['channel']) +' [' + \
                 channel_dict[str(channel1)]['Bandwidth_label'] + \
                 MODIS_data1['variable'])
+            axo.set_title('Smoke correlation: '+str(np.round(hrval_p, 3)))
             axo.set_ylabel('OMI UVAI')
 
             # Plot hash_avg_modis against mask_UVAI 
@@ -2150,6 +2137,8 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
             #z = stats.gaussian_kde(xy)(xy)
             #axo.scatter(plot_data0,match_OMI,c=z,s=6)
 
+            hrval_p = spearmanr(hash_plot_data1, \
+                hash_match_OMI)[0]
             axo.scatter(hash_plot_data1, hash_match_OMI, s=6, \
                 color='tab:blue')
             #axo.scatter(nohash_plot_data0, nohash_match_OMI, s=6, \
@@ -2158,6 +2147,7 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
             axo.set_xlabel('Ch. ' + str(MODIS_data1['channel']) +' [' + \
                 channel_dict[str(channel1)]['Bandwidth_label'] + \
                 MODIS_data1['variable'])
+            axo.set_title('Smoke correlation: '+str(np.round(hrval_p, 3)))
             axo.set_ylabel('OMI UVAI')
         
         data.close()
@@ -2218,7 +2208,69 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
 
 
         if(avg_pixel):
-            print('(NOT) averaging MODIS pixels')
+            print('Averaging MODIS pixels')
+            
+            # Average a certain number of MODIS pixels around each CERES
+            # pixel.
+            # ----------------------------------------------------------
+            hash_match_SWF    = np.full(mask_swf.shape, np.nan)
+            hash_match_LWF    = np.full(mask_lwf.shape, np.nan)
+            hash_match_LAT    = np.full(mask_LAT.shape, np.nan)
+            hash_match_LON    = np.full(mask_LON.shape, np.nan)
+
+            # Loop over the lower-resolution AIRS data.
+            for ii in range(mask_swf.shape[0]):
+
+                # Find the gridpoint in the MODIS lat/lon data that 
+                # corresponds to the AIRS pixel
+                # ---------------------------------------------------- 
+                ho_idx = nearest_gridpoint(mask_LAT[ii], mask_LON[ii],\
+                    hash_plot_lat0, hash_plot_lon0)
+
+                if(len(ho_idx[0]) > 1):
+                    ho_idx = (np.array([ho_idx[0][0]])), \
+                        (np.array([ho_idx[1][0]]))
+        
+                # Average the n MODIS pixels around the current CERES
+                # pixel.
+                # --------------------------------------------------- 
+                hash_match_SWF[ii] = np.nanmean(hash_plot_data0[ho_idx[0][0]-1:ho_idx[0][0]+2])
+                hash_match_LWF[ii] = np.nanmean(hash_plot_data0[ho_idx[0][0]-1:ho_idx[0][0]+2])
+                #hash_match_SWF[ii] = np.nanmean(hash_plot_data0[ho_idx[0]-1:ho_idx[0]+2,\
+                #    ho_idx[1]-1:ho_idx[1]+2])
+                #hash_match_LWF[ii] = np.nanmean(hash_plot_data0[ho_idx[0]-1:ho_idx[0]+2,\
+                #    ho_idx[1]-1:ho_idx[1]+2])
+                hash_match_LAT[ii] = hash_plot_lat0[ho_idx]
+                hash_match_LON[ii] = hash_plot_lon0[ho_idx]
+            #xy = np.vstack([plot_data0,match_OMI])
+            #z = stats.gaussian_kde(xy)(xy)
+            #axo.scatter(plot_data0,match_OMI,c=z,s=6)
+
+            lrval_p = spearmanr(hash_match_LWF, \
+                mask_lwf)[0]
+            axcl.scatter(hash_match_LWF, mask_lwf,\
+                s = 6, color='tab:blue')
+
+            srval_p = spearmanr(hash_match_SWF, \
+                mask_swf)[0]
+            axcs.scatter(hash_match_SWF, mask_swf,\
+                s = 6, color='tab:blue')
+            ##!#axcl.scatter(nohash_plot_data0, nohash_match_LWF,\
+            ##!#    s = 6, color='tab:orange')
+            ##!#axcs.scatter(nohash_plot_data0, nohash_match_SWF,\
+            ##!#    s = 6, color='tab:orange')
+
+            axcl.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
+                channel_dict[str(channel0)]['Bandwidth_label'] + \
+                MODIS_data0['variable'])
+            axcl.set_title('Smoke correlation: '+str(np.round(lrval_p, 3)))
+            axcs.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
+                channel_dict[str(channel0)]['Bandwidth_label'] + \
+                MODIS_data0['variable'])
+            axcs.set_title('Smoke correlation: '+str(np.round(srval_p, 3)))
+            axcl.set_ylabel('CERES LWF [W/m2]')
+            axcs.set_ylabel('CERES SWF [W/m2]')
+
         else:
             hash_match_SWF   = np.full(hash_plot_data0.shape,-9.)
             hash_match_LWF   = np.full(hash_plot_data0.shape,-9.)
@@ -2263,8 +2315,13 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
             #z = stats.gaussian_kde(xy)(xy)
             #axo.scatter(plot_data0,match_OMI,c=z,s=6)
 
+            lrval_p = spearmanr(hash_plot_data0, \
+                hash_match_LWF)[0]
             axcl.scatter(hash_plot_data0, hash_match_LWF,\
                 s = 6, color='tab:blue')
+
+            srval_p = spearmanr(hash_plot_data0, \
+                hash_match_SWF)[0]
             axcs.scatter(hash_plot_data0, hash_match_SWF,\
                 s = 6, color='tab:blue')
             ##!#axcl.scatter(nohash_plot_data0, nohash_match_LWF,\
@@ -2275,9 +2332,11 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
             axcl.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
                 channel_dict[str(channel0)]['Bandwidth_label'] + \
                 MODIS_data0['variable'])
+            axcl.set_title('Smoke correlation: '+str(np.round(lrval_p, 3)))
             axcs.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
                 channel_dict[str(channel0)]['Bandwidth_label'] + \
                 MODIS_data0['variable'])
+            axcs.set_title('Smoke correlation: '+str(np.round(srval_p, 3)))
             axcl.set_ylabel('CERES LWF [W/m2]')
             axcs.set_ylabel('CERES SWF [W/m2]')
 

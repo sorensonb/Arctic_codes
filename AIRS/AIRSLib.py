@@ -34,7 +34,8 @@ from satpy.scene import Scene
 from satpy.writers import get_enhanced_image
 from glob import glob
 sys.path.append('/home/bsorenson/Research/MODIS')
-from MODISLib import plot_limits_dict
+from MODISLib import plot_limits_dict, read_MODIS_channel, find_plume,\
+    nearest_gridpoint
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 # Set up global variables
@@ -392,7 +393,7 @@ def read_AIRS(date_str, zoom = False):
         idx = getattr(data,'coremetadata').split().index('EQUATORCROSSINGTIME')
         cross_time = getattr(data,'coremetadata').split()[idx+9]
 
-        print("cross date, time =",cross_date,cross_time)
+        print("AIRS orbit info",cross_date,cross_time)
 
         # Extract lat, lon, and temperature data for current file
         # -------------------------------------------------------
@@ -744,6 +745,216 @@ def compare_AIRS_profs(date_str1,date_str2,variable,yaxis = 'ght',level=4,\
     if(save):
         outname = 'airs_prof_diffs_' + dt_date_str1.strftime('%Y%m%d%H%M') + \
             '_' + dt_date_str2.strftime('%Y%m%d%H%M') + '.png'
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show() 
+
+# Make a 3-panel image containing a map of near-surface temperatures,
+def compare_AIRS_plume_prof(date_str,variable,yaxis = 'ght',level=4,\
+        zoom=True,save=False):
+
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    # -----------------------------------------------------------------------
+    # Step 1: Read in the station data for the current case to identify 
+    # the station locations.
+    # -----------------------------------------------------------------------
+    #asos_file = plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['asos']
+    asos_file = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        [dt_date_str.strftime('%H%M')]['asos']
+    df = pd.read_csv(asos_file)
+
+    # -----------------------------------------------------------------------
+    # Step 3: Call read_AIRS to read the desired AIRS data from the
+    # file and put it in a dictionary
+    # -----------------------------------------------------------------------
+    print(date_str)
+    AIRS_data = read_AIRS(date_str, zoom = zoom)
+
+    # -----------------------------------------------------------------------
+    # Step 4: Call read_MODIS_channel to read the desired MODIS data from the
+    # file and call find_plume to identify the locations of the plume
+    # -----------------------------------------------------------------------
+    MODIS_data = read_MODIS_channel(date_str, 31)
+
+    hash_data, nohash_data = find_plume(date_str) 
+
+    # -----------------------------------------------------------------------
+    # Step 5: Use the MODIS grid and plume locations to find the plume
+    # locations in the AIRS grid.
+    # -----------------------------------------------------------------------
+    max_ch = 350.
+    tmp_data = np.ma.masked_where( (MODIS_data['data'] > max_ch) , \
+        MODIS_data['data'])
+    tmp_lat  = np.ma.masked_where( (MODIS_data['data'] > max_ch), \
+        MODIS_data['lat'])
+    tmp_lon  = np.ma.masked_where( (MODIS_data['data'] > max_ch), \
+        MODIS_data['lon'])
+
+    # Remove any AIRS data that are outside of the region of interest
+    # ---------------------------------------------------------------
+    airs_ingrid = np.where((AIRS_data['lat'] >= plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0]) & \
+        (AIRS_data['lat'] <= plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1]) & \
+        (AIRS_data['lon'] >= plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][0]) & \
+        (AIRS_data['lon'] <= plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][1]) & \
+        (AIRS_data[variable][:,:,level] > 0))
+
+    yval = yaxis
+    if(yaxis == 'ght'):
+        ylabel = 'Geopotential Height [km]' 
+        yrange = (0., 18.)
+        #pght  = AIRS_data[yval][a_idx[0][0], a_idx[1][0],:len(pdata)] / 1000.
+    elif(yaxis == 'press'):
+        ylabel = 'Pressure [mb]'
+        if(variable == 'H2O'):
+            yval = yval + variable
+        elif(variable == 'tmp'):
+            yval = yval + 'Std'
+        yrange = (1000., 50.)
+        #pght  = AIRS_data[yval][:len(pdata)]
+
+
+    mask_AIRS_lat = AIRS_data['lat'][airs_ingrid]
+    mask_AIRS_lon = AIRS_data['lon'][airs_ingrid]
+    mask_AIRS_data = AIRS_data[variable][airs_ingrid[0], airs_ingrid[1],:]
+    mask_AIRS_yval = AIRS_data[yval][airs_ingrid[0], airs_ingrid[1],:]
+
+    hash_plot_data   = MODIS_data['data'][np.where(~hash_data.mask)]
+    nohash_plot_data = MODIS_data['data'][np.where(hash_data.mask)]
+    hash_plot_lat    = MODIS_data['lat'][np.where(~hash_data.mask)]
+    nohash_plot_lat  = MODIS_data['lat'][np.where(hash_data.mask)]
+    hash_plot_lon    = MODIS_data['lon'][np.where(~hash_data.mask)]
+    nohash_plot_lon  = MODIS_data['lon'][np.where(hash_data.mask)]
+
+    hash_match_airs   = np.full(mask_AIRS_data.shape, np.nan)
+    hash_match_yval   = np.full(mask_AIRS_yval.shape, np.nan)
+    hash_match_lat    = np.full(mask_AIRS_lat.shape, np.nan)
+    hash_match_lon    = np.full(mask_AIRS_lon.shape, np.nan)
+    nohash_match_airs = np.full(mask_AIRS_data.shape, np.nan)
+    nohash_match_yval = np.full(mask_AIRS_yval.shape, np.nan)
+    nohash_match_lat  = np.full(mask_AIRS_lat.shape, np.nan)
+    nohash_match_lon  = np.full(mask_AIRS_lon.shape, np.nan)
+
+    # Loop over the lower-resolution AIRS data.
+    for ii in range(mask_AIRS_data.shape[0]):
+
+        # Find the gridpoint in the MODIS lat/lon data that 
+        # corresponds to the AIRS pixel
+        # ---------------------------------------------------- 
+        ho_idx = nearest_gridpoint(mask_AIRS_lat[ii], mask_AIRS_lon[ii],\
+            hash_plot_lat, hash_plot_lon)
+        no_idx = nearest_gridpoint(mask_AIRS_lat[ii], mask_AIRS_lon[ii],\
+            nohash_plot_lat, nohash_plot_lon)
+
+        if(len(ho_idx[0]) > 1):
+            ho_idx = (np.array([ho_idx[0][0]])), (np.array([ho_idx[1][0]]))
+        if(len(no_idx[0]) > 1):
+            no_idx = (np.array([no_idx[0][0]])), (np.array([no_idx[1][0]]))
+
+        # Calculate the distance between the matching hashed pixel and
+        # the matching nohashed pixel. Depending on whichever MODIS classified
+        # pixel is the closest, classify the AIRS pixel accordingly.
+        # --------------------------------------------------------------------
+        dist_hash = np.sqrt(\
+            (mask_AIRS_lat[ii] - hash_plot_lat[ho_idx])**2. + \
+            (mask_AIRS_lon[ii] - hash_plot_lon[ho_idx])**2.)
+        dist_nohash = np.sqrt(\
+            (mask_AIRS_lat[ii] - nohash_plot_lat[no_idx])**2. + \
+            (mask_AIRS_lon[ii] - nohash_plot_lon[no_idx])**2.)
+
+        if(dist_hash <= dist_nohash):
+            hash_match_airs[ii,:] = mask_AIRS_data[ii,:]
+            hash_match_yval[ii,:] = mask_AIRS_yval[ii,:]
+            hash_match_lat[ii]  = mask_AIRS_lat[ii]
+            hash_match_lon[ii]  = mask_AIRS_lon[ii]
+            #print('smoke',dist_hash, dist_nohash, np.round(mask_AIRS_lat[ii],4), \
+            #    hash_plot_lat[ho_idx], np.round(mask_AIRS_lon[ii],4), hash_plot_lon[ho_idx])
+        else:
+            nohash_match_airs[ii,:] = mask_AIRS_data[ii,:]
+            nohash_match_yval[ii,:] = mask_AIRS_yval[ii,:]
+            nohash_match_lat[ii]  = mask_AIRS_lat[ii]
+            nohash_match_lon[ii]  = mask_AIRS_lon[ii]
+            #print('clear',dist_hash, dist_nohash, np.round(mask_AIRS_lat[ii],4), \
+            #    nohash_plot_lat[no_idx], np.round(mask_AIRS_lon[ii],4), nohash_plot_lon[no_idx])
+
+    # -----------------------------------------------------------------------
+    # Step 6: Calculate the average in-plume and out-of-plume profile
+    # -----------------------------------------------------------------------
+    avg_inplume  = np.nanmean(hash_match_airs,axis=0) 
+    avg_outplume = np.nanmean(nohash_match_airs,axis=0) 
+    diff_prof = avg_inplume - avg_outplume
+
+
+    avg_inplume_yval  = np.nanmean(hash_match_yval,axis=0) / 1000.
+    avg_outplume_yval = np.nanmean(nohash_match_yval,axis=0) / 1000.
+    
+    avg_diff_yval = np.nanmean([avg_inplume_yval, avg_outplume_yval],axis=0)
+
+    # -----------------------------------------------------------------------
+    # Step 7: Set up the figure
+    # -----------------------------------------------------------------------
+    plt.close('all')
+    fig = plt.figure(figsize=(18,4))
+    ax0 = fig.add_subplot(1,3,1)
+    ax1 = fig.add_subplot(1,3,2)
+    ax2 = fig.add_subplot(1,3,3,projection = ccrs.LambertConformal())
+
+    # -----------------------------------------------------------------------
+    # Step 7: Plot the data
+    # -----------------------------------------------------------------------
+    ax0.plot(avg_inplume, avg_inplume_yval[:len(avg_inplume)], label = 'In-plume')
+    ax0.plot(avg_outplume, avg_outplume_yval[:len(avg_outplume)], label = 'Out-of-plume')
+
+    ax1.plot(diff_prof, avg_diff_yval[:len(diff_prof)])
+
+    mesh = ax2.pcolormesh(AIRS_data['lon'],AIRS_data['lat'],\
+        AIRS_data[variable][:,:,level], cmap = 'plasma', shading='auto', \
+        vmin = lim_dict['mesh'][variable][0], \
+        vmax = lim_dict['mesh'][variable][1], \
+        #vmin = np.nanmin(AIRS_data[variable][airs_ingrid[0],airs_ingrid[1],level]), \
+        #vmax = np.nanmax(AIRS_data[variable][airs_ingrid[0],airs_ingrid[1],level]), \
+        transform = datacrs) 
+    #hash0 = ax2.pcolor(hash_match_lon,hash_match_lat,\
+    #    hash_match_airs[:,level], hatch = '///', alpha=0., transform = datacrs)
+    hash0 = ax2.pcolor(MODIS_data['lon'],MODIS_data['lat'],\
+        hash_data[:MODIS_data['lat'].shape[0], :MODIS_data['lat'].shape[1]],\
+        hatch = '///', alpha=0., transform = datacrs)
+    cbar = plt.colorbar(mesh, ax = ax2, label = var_dict['label'][variable])
+    if(zoom):
+        ax2.set_extent([plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][0], \
+                        plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][1], \
+                        plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0], \
+                        plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1]],\
+                        datacrs)
+    ax2.add_feature(cfeature.BORDERS)
+    ax2.add_feature(cfeature.STATES)
+    ax2.coastlines()
+ 
+    #colors = ['tab:blue','tab:orange','tab:green','tab:red','tab:purple',\
+    #          'tab:brown','tab:pink','tab:gray','tab:olive','tab:cyan']
+ 
+    # Plot a 0 line
+    # -------------
+    ax1.plot(np.zeros(int(yrange[1]-yrange[0]+1)),np.arange(yrange[0],yrange[1]+1),'--',color='black')
+
+    ax0.set_ylabel(ylabel)
+    ax0.set_ylim(yrange)
+    ax0.set_xlabel(var_dict['label'][variable]) 
+    ax0.legend()
+
+    ax0.set_title('AIRS Average ' + var_dict['title'][variable]+ '\n' + date_str)
+    ax1.set_ylabel(ylabel)
+    ax1.set_ylim(yrange)
+    ax1.set_xlabel(var_dict['label'][variable]) 
+    ax1.set_title('AIRS Average In-plume / Out-of-plume difference')
+
+    ax2.set_title('AIRS ' + str(int(AIRS_data['pressStd'][level])) + \
+        ' hPa ' + var_dict['title'][variable] + '\n' + date_str)
+
+    if(save):
+        outname = 'airs_plume_diffs_' + variable + '_' + dt_date_str.strftime('%Y%m%d%H%M')+\
+            '.png'
         plt.savefig(outname,dpi=300)
         print("Saved image",outname)
     else:
