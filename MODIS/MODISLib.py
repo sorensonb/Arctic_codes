@@ -40,7 +40,7 @@ from glob import glob
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 # Set up global variables
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-mapcrs = ccrs.NorthPolarStereo(central_longitude = 45.)
+mapcrs = ccrs.LambertConformal()
 datacrs = ccrs.PlateCarree()
 
 zoom_dict = {
@@ -263,6 +263,19 @@ for key in channel_dict.keys():
         channel_dict[key]['Bandwidth_label'] = ''
 
 plot_limits_dict = {
+    "2021-07-13": {
+        '2110': {
+            'asos': 'asos_data_20210713.csv',
+            #'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021203.2110.061.2021204155922.hdf',
+            #'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021203.2110.061.2021204163638.hdf',
+            #'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072210-2021072221.nc',
+            #'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.22.212.L2.SUBS2RET.v6.0.32.0.G21204140844.hdf'],
+            'Lat': [39.5, 42.0],
+            'Lon': [-122.0, -119.5],
+            'modis_Lat': [39.0, 42.5],
+            'modis_Lon': [-123., -119.]
+        }
+    },
     "2021-07-20": {
         '2125': {
             'asos': 'asos_data_20210720.csv',
@@ -326,6 +339,7 @@ plot_limits_dict = {
         '2125': {
             'asos': 'asos_california_20210805.csv',
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021217.2125.061.2021218161010.hdf',
+            'ceres': '/home/bsorenson/data/CERES/FLASHFlux/Aqua/FLASH_SSF_Aqua_Version4A_Subset_2021080508-2021080521.nc',
             'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.05.214.L2.SUBS2RET.v6.0.32.0.G21218175548.hdf'],
             'Lat': [39.5, 42.5],
             'Lon': [-121.5, -119.5],
@@ -339,6 +353,7 @@ plot_limits_dict = {
             #'asos': 'asos_nevada_20210806.csv',
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021218.2025.061.2021219151802.hdf',
             'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021218.2025.061.2021219152751.hdf',
+            'ceres': '/home/bsorenson/data/CERES/FLASHFlux/Aqua/FLASH_SSF_Aqua_Version4A_Subset_2021080609-2021080620.nc',
             'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.06.204.L2.SUBS2RET.v6.0.32.0.G21219130523.hdf',\
                      '/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.06.205.L2.SUBS2RET.v6.0.32.0.G21219130455.hdf'],
             'omi': '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0806t1943-o90747_v003-2021m0808t031152.he5',
@@ -850,8 +865,7 @@ def grid_data_trends(modis_dict):
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-def plot_true_color_satpy(date_str,zoom=True,save=False,composite=False):
-
+def read_true_color(date_str,composite = False):
     # Determine the correct MODIS file associated with the date
     # ---------------------------------------------------------
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
@@ -890,6 +904,12 @@ def plot_true_color_satpy(date_str,zoom=True,save=False,composite=False):
     # Extract the map projection from the data for plotting
     # -----------------------------------------------------
     crs = new_scn['true_color'].attrs['area'].to_cartopy_crs()
+
+    return var, crs, lat_lims, lon_lims
+
+def plot_true_color_satpy(date_str,ax = None,zoom=True,save=False,composite=False):
+
+    var, crs, lat_lims, lon_lims = read_true_color(date_str,composite=composite)
 
     # Plot the true-color data
     # ------------------------
@@ -990,7 +1010,7 @@ def plot_true_color(filename,zoom=True):
     
     plt.close('all') 
     fig1 = plt.figure()
-    ax = plt.axes(projection = ccrs.LambertConformal())
+    ax = plt.axes(projection = mapcrs)
 
     image = np.ma.masked_where(np.isnan(image),image)
 
@@ -1207,7 +1227,7 @@ def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False):
     plt.close('all')
     fig1 = plt.figure()
     datacrs = ccrs.PlateCarree()
-    mapcrs = ccrs.LambertConformal()
+    #mapcrs = ccrs.LambertConformal()
     ax = plt.axes(projection = mapcrs)
 
     mesh = ax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\
@@ -1290,7 +1310,7 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
     # Step 2: Set up figure to have 3 panels
     # --------------------------------------
     datacrs = ccrs.PlateCarree() 
-    mapcrs = ccrs.LambertConformal()
+    #mapcrs = ccrs.LambertConformal()
 
     plt.close('all')
     if(compare_OMI and compare_CERES):
@@ -1476,7 +1496,7 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
             (swflux > 0) & (lwflux > 0)]
 
         # Removed masked data
-        triMesh = Triangulation(mask_LON,mask_LAT)
+        ##!#triMesh = Triangulation(mask_LON,mask_LAT)
 
         ##!## Reshape the data to make it work with pcolormesh
         ##!#first_size = int(np.sqrt(mask_swf.shape)) 
@@ -1491,7 +1511,9 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
         print(plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'])
  
         #scat3 = axcs.scatter(mask_LON, mask_LAT,mask_swf, transform = datacrs)
-        mesh3 = axcs.scatter(mask_LON.compressed(), mask_LAT.compressed(),s = 120,marker='s',c = mask_swf.compressed(),cmap='plasma', transform = datacrs)
+        mesh3 = axcs.scatter(mask_LON.compressed(), mask_LAT.compressed(),\
+            s = 120,marker='s',c = mask_swf.compressed(),cmap='plasma', \
+            transform = datacrs)
         #mesh3 = axcs.tricontourf(triMesh,mask_swf, cmap = 'plasma', shading='auto', \
         #    vmin = np.nanmin(mask_swf), vmax = np.nanmax(mask_swf), transform = datacrs) 
 #        mesh3 = axcs.pcolormesh(LON,LAT,mask_swf, cmap = 'plasma', shading='auto', \
@@ -1509,7 +1531,10 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
             pad=0.03,label='TOA SWF [W/m2]')
         axcs.set_title('CERES SWF')
 
-        mesh4 = axcl.scatter(mask_LON.compressed(), mask_LAT.compressed(),s = 120,marker = 's',c = mask_lwf.compressed(),cmap='plasma', transform = datacrs)
+        print(mask_LON.compressed().shape, mask_LAT.compressed().shape, mask_lwf.compressed().shape)
+        mesh4 = axcl.scatter(mask_LON, mask_LAT,\
+            s = 120,marker = 's',c = mask_lwf,cmap='plasma', \
+            transform = datacrs)
         #mesh4 = axcl.tricontourf(triMesh,mask_lwf, cmap = 'plasma', shading='auto', \
         #    vmin = np.nanmin(mask_lwf), vmax = np.nanmax(mask_lwf), transform = datacrs) 
         ##!#mesh4 = axcl.tricontourf(LON,LAT,mask_lwf, cmap = 'plasma', shading='auto', \
@@ -1607,7 +1632,7 @@ def compare_MODIS_channels(date_str,channel1,channel2,zoom=True,save=False,\
     # Step 2: Set up figure to have 3 panels
     # --------------------------------------
     datacrs = ccrs.PlateCarree() 
-    mapcrs = ccrs.LambertConformal()
+    #mapcrs = ccrs.LambertConformal()
 
     plt.close('all')
     fig = plt.figure(figsize=(14.5,5))
@@ -2366,6 +2391,99 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
         plt.show()
 
 
+def plot_combined_imagery(date_str,zoom=True,save=False,composite=True):
+    
+    # ------------------------------------------------------------------------
+    #
+    # For 20210722:
+    #   1. True color 20210721       2. True color 20210722
+    #   3. Ch 1 20210722             4. Ch 5 20210722
+    #   5. Ch 31 20210722            6. WV 20210722
+    #   7. CERES SW 20210722         8. CERES LW 20210722
+    #
+    # ------------------------------------------------------------------------
+    
+    plt.close('all')
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    # Read true color data for this date
+    var, crs, lat_lims, lon_lims = read_true_color(date_str,composite=composite)
+
+    if(date_str == '202107222110'):
+        # Read true color data for the previous date
+        prev_date_str = datetime.strptime('202107212030',"%Y%m%d%H%M")
+        var1, crs1, lat_lims1, lon_lims1 = read_true_color('202107212030',\
+            composite=composite)
+
+        fig = plt.figure(figsize=(9,12))
+        ax5 = fig.add_subplot(4,2,1,projection = crs1)   # Previous day true      
+        ax0 = fig.add_subplot(4,2,2,projection = crs)    # true color
+        ax1 = fig.add_subplot(4,2,3,projection = mapcrs) # Ch 1
+        ax2 = fig.add_subplot(4,2,4,projection = mapcrs) # Ch 5
+        ax3 = fig.add_subplot(4,2,5,projection = mapcrs) # Ch 31
+        ax4 = fig.add_subplot(4,2,6,projection = mapcrs) # WV
+        ax6 = fig.add_subplot(4,2,7,projection = mapcrs) # SW
+        ax7 = fig.add_subplot(4,2,8,projection = mapcrs) # LW
+
+        # Plot the true-color data for the previous date
+        # ----------------------------------------------
+        ax5.imshow(var1.data, transform = crs1, extent=(var1.x[0], var1.x[-1], \
+            var1.y[-1], var1.y[0]), origin='upper')
+
+        # Zoom in the figure if desired
+        # -----------------------------
+        if(zoom):
+            ax5.set_extent([lon_lims1[0],lon_lims1[1],lat_lims1[0],\
+                lat_lims1[1]],crs = datacrs)
+        ax5.set_title('Aqua MODIS\n' + prev_date_str.strftime('%Y-%m-%d %H:%M'))
+
+    elif(date_str == '202108062025'):
+
+        fig = plt.figure(12,12)
+        ax0 = fig.add_subplot(2,3,1,projection = crs)    # True color
+        ax1 = fig.add_subplot(2,3,2,projection = mapcrs) # Ch 1
+        ax2 = fig.add_subplot(2,3,3,projection = mapcrs) # Ch 5
+        ax3 = fig.add_subplot(2,3,4,projection = mapcrs) # Ch 31
+        ax4 = fig.add_subplot(2,3,5,projection = mapcrs) # WV 
+        ax5 = fig.add_subplot(2,3,6,projection = mapcrs) # OMI AI
+    
+
+    # ----------------------------------------------------------------------
+    #
+    # Plot the true-color data
+    #
+    # ----------------------------------------------------------------------
+    ax0.imshow(var.data, transform = crs, extent=(var.x[0], var.x[-1], var.y[-1], var.y[0]), origin='upper')
+
+    # Zoom in the figure if desired
+    # -----------------------------
+    if(zoom):
+        ax0.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+                       crs = datacrs)
+        zoom_add = '_zoom'
+    else:
+        zoom_add = ''
+
+    ax0.set_title('Aqua MODIS\n'+dt_date_str.strftime('%Y-%m-%d %H:%M'))
+
+    # ----------------------------------------------------------------------
+    #
+    # Plot the 
+    #
+    # ----------------------------------------------------------------------
+
+
+
+
+
+    plt.show()
+    ##!#if(save):
+    ##!#    outname = 'modis_true_color_' + date_str + zoom_add + cmpst_add + '.png'
+    ##!#    plt.savefig(outname,dpi=300)
+    ##!#    print("Saved image",outname)
+    ##!#else:
+    ##!#    plt.show()
+
 # Compare colocated MODIS and ob data for two dates
 def colocate_comparison(date1, date2, channel = 31):
     # Read in MODIS data for both cases
@@ -2428,456 +2546,3 @@ def colocate_comparison(date1, date2, channel = 31):
     plt.legend() 
     plt.show()
  
-def plot_modis_data(modis_data,minlat=60,tind=0,zoom = None,save=False):
-
-    data = modis_data['data'][tind,:,:]
-    colormap = plt.cm.jet
-    mask_data = np.ma.masked_where(data == -9., data)
-    mask_data = np.ma.masked_invalid(mask_data)
-
-    print(modis_data['titles'][0])
-    splitter = modis_data['titles'][0].split('/')[-1]
-    plot_date = datetime.strptime(splitter[1:5],'%Y') + \
-        relativedelta(days = int(splitter[5:8])-1)
-
-    if(minlat > 50):
-        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0)
-    else:
-        mapcrs = ccrs.Robinson()
-
-    plot_lat, plot_lon = np.meshgrid(modis_data['lat'],modis_data['lon'])
-
-    plt.close()
-    fig1 = plt.figure(figsize=(8,8))
-    if(zoom == None):
-        ax = plt.axes(projection = mapcrs)
-        ax.set_extent([-180,180,minlat,90],datacrs)
-        saver = ''
-    else:
-        ax = plt.axes(projection = proj_dict[zoom])
-        #ax.set_extent([17,49,68,75],datacrs)
-        ax.set_extent(zoom_dict[zoom],datacrs)
-        saver = '_'+zoom 
-    ax.gridlines()
-    ax.coastlines(resolution='50m')
-    mesh = ax.pcolormesh(plot_lon,plot_lat,mask_data.T,\
-            transform = datacrs, norm = cm.LogNorm(vmin = modis_data['pticks'][0],\
-            vmax = modis_data['pticks'][-1]),cmap = colormap)
-    #CS = ax.contour(longitude,latitude,smooth_thick,[0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0],transform = datacrs)
-    
-    # Adjust and make it look good
-    #ax.add_feature(cfeature.LAND,zorder=100,edgecolor='darkgrey',facecolor='darkgrey')
-    ax.set_title('MODIS '+modis_data['ptitle']+'\n'+plot_date.strftime('%Y%m%d'))
-    cbar = plt.colorbar(mesh,ticks = modis_data['pticks'],orientation='horizontal',pad=0,\
-        aspect=50,shrink = 0.905, label=modis_data['label'])
-    cbar.ax.set_xticklabels(modis_data['ptick_labels'])
-    #ax.set_xlim(-4170748.535086173,4167222.438879491)
-    #ax.set_ylim(-2913488.8763307533,2943353.899053069)
-    #ax.set_title(datetime.strftime(base_dtm,'%B %Y') + ' CryoSat-2 Data')
-
-    if(save == True):
-        outname = 'modis_'+modis_data['grabber'] + '_' + plot_date.strftime('%Y%m%d') + saver + '.png'
-        plt.savefig(outname,dpi=300)
-        print("Saved image",outname)
-    else:
-        plt.show()
-
-# Plot a histogram of 25 x 25 km grid data
-def plot_modis_hist(modis_data,tind,variable,bins = 100,save = False):
-    data = modis_data[variable][tind,:,:]
-    mask_data = np.ma.masked_where(data < -999., data)
-
-    # Make a datetime object from the structure date
-    # ----------------------------------------------
-    if(len(modis_data['dates'][tind]) == 6):
-        str_fmt = '%Y%m'
-    elif(len(modis_data['dates'][tind]) == 8):
-        str_fmt = '%Y%m%d'
-
-    base_dtm = datetime.strptime(modis_data['dates'][tind],str_fmt)
-
-    # Set up the x axis label
-    # -----------------------
-    if(variable == 'ice_thick'):
-        xlabel = 'Derived Sea Ice Thickness [m]' 
-    elif(variable == 'ice_con'):
-        xlabel = 'Sea Ice Concentration [%]' 
-
-    bin_heights,bin_borders = np.histogram(mask_data.compressed(),bins=bins)
-    bin_widths = np.diff(bin_borders)
-    bin_centers = bin_borders[:-1] + bin_widths / 2
-
-    t_init = models.Gaussian1D()
-    fit_t = fitting.LevMarLSQFitter()
-    t = fit_t(t_init, bin_centers, bin_heights)
-
-    print('Amplitude: ',np.round(t.amplitude.value,3))
-    print('Mean:      ',np.round(t.mean.value,3))
-    print('StDev:     ',np.round(t.stddev.value,3))
-
-    x_interval_for_fit = np.linspace(bin_centers[0],bin_centers[-1],100)
-    plt.close()
-    plt.figure()
-    plt.bar(bin_centers,bin_heights,width=bin_widths,label='histogram')
-    plt.plot(x_interval_for_fit,t(x_interval_for_fit),label='fit',c='tab:red')
-    plt.xlabel(xlabel)
-    plt.ylabel('Counts')
-    plt.title(datetime.strftime(base_dtm,'%B %Y') + ' CryoSat-2 Data')
-    plt.legend()
-    #plt.close()
-    #plt.hist(mask_data.compressed(),bins=bins)
-    #plt.title(modis_data['dates'][tind] + ' '+variable)
-    #plt.xlabel(xlabel)
-    #plt.ylabel('Counts')
-    #plt.title(datetime.strftime(base_dtm,'%B %Y') + ' CryoSat-2 Data')
-
-    if(save == True):
-        outname = 'modissat2_' + variable + '_' + datetime.strftime(base_dtm,'%Y%m%d') + '_hist.png'
-        plt.savefig(outname,dpi=300)
-        print("Saved image",outname)
-    else:
-        plt.show()
-
-# plot_grid_data generates a plot of the /
-def plot_grid_data(modis_data,t_ind,pvar,adjusted=False,save=False):
-    lon_ranges  = np.arange(-180.,180.,1.0)
-    lat_ranges  = np.arange(30.,90.,1.0)
-
-    if(pvar=='grid_con'):
-        plabel = "Percent Ice Concentration"
-    elif(pvar=='grid_thick'):
-        plabel = "Sea Ice Thickness"
-
-    local_grid_modis = np.copy(modis_dict['grid_modis_conc'][t_ind,:,:])
-    local_grid_modis_bad = np.copy(modis_dict['grid_modis_conc'][t_ind,:,:])
-
-    local_grid_modis[local_grid_modis==-999.] = np.nan
-    local_grid_modis_bad[local_grid_modis!=-999.] = np.nan
-    plot_good_data = ma.masked_invalid(local_grid_modis)
-    plot_land_data = ma.masked_invalid(local_grid_modis_bad)
-
-    colormap = plt.cm.ocean
-    #coolwarm = plt.cm.coolwarm
-    #ax = plt.axes(projection=ccrs.NorthPolarStereo())
-    file_adder=''
-    if(adjusted==True):
-        file_adder='_adjusted'
-        fig1 = plt.figure(figsize=(8,5))
-        ax = plt.axes(projection=ccrs.NorthPolarStereo(central_longitude=45.))
-    else:
-        fig1 = plt.figure()
-        ax = plt.axes(projection=ccrs.NorthPolarStereo())
-    ax.set_extent([-180,180,45,90],ccrs.PlateCarree())
-    ax.gridlines()
-    mesh = plt.pcolormesh(lon_ranges,lat_ranges,plot_good_data,\
-            transform=ccrs.PlateCarree(),vmin=0,vmax=100,cmap=colormap)
-    if(adjusted==True):
-        ax.add_feature(cartopy.feature.LAND,zorder=100,edgecolor='darkgrey',facecolor='darkgrey')
-        axins = inset_axes(ax,width="5%",height="100%",loc='lower left',\
-                    bbox_to_anchor=(1.05,0.,1,1),bbox_transform=ax.transAxes,\
-                    borderpad=0)
-        cbar = plt.colorbar(mesh,cax=axins,cmap=colormap,label=plabel)
-        ax.set_xlim(-5170748.535086173,5167222.438879491)
-        ax.set_ylim(-3913488.8763307533,3943353.899053069)
-        #ender = '_adjusted'+ender
-    else:
-        plt.pcolormesh(plot_land_data,cmap=plt.cm.Greys,vmin=-10,vmax=10)
-        cbar = plt.colorbar(mesh,cmap=colormap,label=plabel)
-    ax.coastlines()
-
-
-    #fig1 = plt.figure(figsize=(9,5))
-    #plt.pcolormesh(plot_good_data,cmap=plt.cm.bwr,vmin=-50,vmax=50)
-    #plt.colorbar(label='Percent Ice Concentration Trend (%)')
-    #plt.pcolormesh(plot_land_data,cmap=plt.cm.Greys,vmin=-10,vmax=10)
-    #plt.gca().invert_xaxis()
-    #plt.gca().invert_yaxis()
-    ax.set_title('Gridded NSIDC Sea Ice Concentration\n'+modis_dict['titles'][t_ind])
-    if(save==True):
-        outname = 'modis_conc_gridded_200012_201812'+modis_dict['file_adder']+file_adder+'.png'
-        plt.savefig(outname,dpi=300)
-        print("Saved image ",outname)
-    else:
-        plt.show()
-   
-# Plot the trends for the 25x25 km grid data 
-def plot_trend(modis_data,variable):
-    data = modis_data[variable][:,:]
-    colormap = plt.cm.bwr
-    mask_data = np.ma.masked_where(data == np.nan, data)
-
-    plt.close()
-    ax = plt.axes(projection = mapcrs)
-    ax.gridlines()
-    ax.coastlines()
-    ax.set_extent([-180,180,60,90])
-    mesh = ax.pcolormesh(modis_data['lon'],modis_data['lat'],mask_data,\
-            transform = datacrs, cmap = colormap,vmin=min_dict[variable],\
-            vmax=max_dict[variable])
-    #CS = ax.contour(modis_data['lon'],modis_data['lat'],np.ma.masked_where(modis_data['thick_trends'][:,:] == np.nan,modis_data['thick_trends'][:,:]),\
-    #        np.linspace(-0.5,0.5,5),transform = datacrs)
-    
-    # Adjust and make it look good
-    ax.add_feature(cfeature.LAND,zorder=100,edgecolor='darkgrey',facecolor='darkgrey')
-    cbar = plt.colorbar(mesh,ticks = tick_dict[variable],orientation='horizontal',pad=0,aspect=50,label=variable)
-    cbar.ax.set_xticklabels(tick_label_dict[variable])
-    ax.set_xlim(-4170748.535086173,4167222.438879491)
-    ax.set_ylim(-2913488.8763307533,2943353.899053069)
-    ax.set_title(variable)
-    plt.show()
-
-def plot_grid_trend(modis_dict,adjusted=False,save=False):
-    lon_ranges  = np.arange(-180.,180.,1.0)
-    lat_ranges  = np.arange(30.,90.,1.0)
-
-    local_grid_modis = np.copy(modis_dict['grid_modis'])
-    local_grid_modis_bad = np.copy(modis_dict['grid_modis'])
-
-    local_grid_modis[local_grid_modis==-999.] = np.nan
-    local_grid_modis_bad[local_grid_modis!=-999.] = np.nan
-    plot_good_data = ma.masked_invalid(local_grid_modis)
-    plot_land_data = ma.masked_invalid(local_grid_modis_bad)
-
-    colormap = plt.cm.bwr
-    #coolwarm = plt.cm.coolwarm
-    #ax = plt.axes(projection=ccrs.NorthPolarStereo())
-    file_adder=''
-    if(adjusted==True):
-        file_adder='_adjusted'
-        fig1 = plt.figure(figsize=(8,5))
-        ax = plt.axes(projection=ccrs.NorthPolarStereo(central_longitude=45.))
-    else:
-        fig1 = plt.figure()
-        ax = plt.axes(projection=ccrs.NorthPolarStereo())
-    ax.set_extent([-180,180,45,90],ccrs.PlateCarree())
-    ax.gridlines()
-    mesh = plt.pcolormesh(lon_ranges,lat_ranges,plot_good_data,\
-            transform=ccrs.PlateCarree(),vmin=-50,vmax=50,cmap=colormap)
-    if(adjusted==True):
-        ax.add_feature(cartopy.feature.LAND,zorder=100,edgecolor='darkgrey',facecolor='darkgrey')
-        axins = inset_axes(ax,width="5%",height="100%",loc='lower left',\
-                    bbox_to_anchor=(1.05,0.,1,1),bbox_transform=ax.transAxes,\
-                    borderpad=0)
-        cbar = plt.colorbar(mesh,cax=axins,cmap=colormap,label='Ice Concentration Trend [%]')
-        ax.set_xlim(-5170748.535086173,5167222.438879491)
-        ax.set_ylim(-3913488.8763307533,3943353.899053069)
-        #ender = '_adjusted'+ender
-    else:
-        plt.pcolormesh(plot_land_data,cmap=plt.cm.Greys,vmin=-10,vmax=10)
-        cbar = plt.colorbar(mesh,cmap=colormap,label='Ice Concentration Trend [%]')
-    ax.coastlines()
-
-
-    #fig1 = plt.figure(figsize=(9,5))
-    #plt.pcolormesh(plot_good_data,cmap=plt.cm.bwr,vmin=-50,vmax=50)
-    #plt.colorbar(label='Percent Ice Concentration Trend (%)')
-    #plt.pcolormesh(plot_land_data,cmap=plt.cm.Greys,vmin=-10,vmax=10)
-    #plt.gca().invert_xaxis()
-    #plt.gca().invert_yaxis()
-    if(modis_dict['season_adder']!=''):
-        ax.set_title('NSIDC Sea Ice Concentration'+modis_dict['season_adder'].title()+\
-            ' Trends\nJan 2001 to Dec 2018')
-    else:
-        ax.set_title('NSIDC Sea Ice Concentration Trends\nJan 2001 to Dec 2018')
-    if(save==True):
-        outname = 'modis_trend_gridded_200101_201812'+modis_dict['file_adder']+file_adder+'.png'
-        plt.savefig(outname,dpi=300)
-        print("Saved image ",outname)
-    else:
-        plt.show()
-    
-def plot_grid_time_series(modis_dict,lat_ind,lon_ind,thielsen=False):
-    inseason = modis_dict['season_adder'].strip()
-    temp_data = modis_dict['grid_modis_conc'][:,lat_ind,lon_ind]
-    interpx = np.arange(len(temp_data))
-    #interpx = years
-    ##interper = np.poly1d(np.polyfit(interpx,temp_data,1)) 
-    ### Normalize trend by dividing by number of years
-    ##trend = (interper(interpx[-1])-interper(interpx[0]))
-
-    slope, intercept, r_value, p_value, std_err = stats.linregress(interpx,temp_data)
-    ##print(slope/len(test_dict[dictkey].keys())
-    regress_y = interpx*slope+intercept
-    trend = regress_y[-1] - regress_y[0]
-
-    if(thielsen==True):
-        #The slope
-        S=0
-        sm=0
-        nx = len(temp_data)
-        num_d=int(nx*(nx-1)/2)  # The number of elements in avgs
-        Sn=np.zeros(num_d)
-        for si in range(0,nx-1):
-            for sj in range(si+1,nx):
-                # Find the slope between the two points
-                Sn[sm] = (temp_data[si]-temp_data[sj])/(si-sj) 
-                sm=sm+1
-            # Endfor
-        # Endfor
-        Snsorted=sorted(Sn)
-        sm=int(num_d/2.)
-        if(2*sm    == num_d):
-            tsslope=0.5*(Snsorted[sm]+Snsorted[sm+1])
-        if(2*sm+1 == num_d): 
-            tsslope=Snsorted[sm+1]
-        regress_ts = interpx*tsslope+intercept
-        trend = regress_ts[-1]-regress_ts[0]
-
-    fig1 = plt.figure() 
-    plt.title('Gridded Ice Data: '+str(modis_dict['grid_lat'][lat_ind])+'x'+\
-                str(modis_dict['grid_lon'][lon_ind])+'\n'+inseason.title()+\
-                ' season of each year)')
-    plt.plot(temp_data,label='observations') 
-    plt.plot(regress_y,'--',label='trend')
-    plt.ylabel('Ice Concentration [%]')
-    plt.legend()
-    outname = 'nsidc_grid_time_series_'+inseason+'_'+str(int(modis_dict['grid_lat'][lat_ind]))+'x'+\
-                str(int(modis_dict['grid_lon'][lon_ind]))+'.png'
-    plt.savefig(outname,dpi=300)
-    print("Saved image ",outname)   
-    plt.show()
-
-# tind indicates the reference time to check concentrations and thicknesses before
-# plotting time series 
-# Syntax to run:
-# >>> import sys
-# >>> sys.path.append('/home/bsorenson/Research/Ice_analysis')
-# >>> from CryoSat2Lib import *
-# >>> from IceLib import *
-# >>> ice_data = read_ice('all')
-# >>> modis_data = read_modis('all','201011','201911')
-# >>> albedo_effect_test(modis_data,ice_data,11,1.8)
-# This makes the figure "modissat2_melt_time_20120301.png"
-def albedo_effect_test(modis_data,ice_data,tind,start_thick,save=False):
-#def albedo_effect_test(modis_data,tind,start_thick):
-
-    # Find the time index in the NSIDC ice structure that matches
-    # with the time index in the CryoSat2 structure
-    ice_ind = 0
-    for xi in range(len(ice_data['titles'])):
-        if(ice_data['titles'][xi][7:13] == modis_data['dates'][tind]):
-            ice_ind = xi
-
-    low_thick   = start_thick - 0.01
-    high_thick = start_thick + 0.01
-
-    # Identify regions with the thickness desired by 'start_thick'
-    test_con = ice_data['data'][ice_ind,:,:][(modis_data['ice_thick'][tind,:,:] >= low_thick) & \
-                    (modis_data['ice_thick'][tind,:,:] < high_thick)]
-    test_lats = ice_data['lat'][:,:][(modis_data['ice_thick'][tind,:,:] >= low_thick) & \
-                    (modis_data['ice_thick'][tind,:,:] < high_thick)]
-    ##test_con = modis_data['ice_con'][tind,:,:][(modis_data['ice_thick'][tind,:,:] >= low_thick) & \
-    ##                (modis_data['ice_thick'][tind,:,:] < high_thick)]
-    ice_cons = np.zeros((12,test_con.size))
-
-    colors = plt.cm.plasma(np.linspace(0,1,test_con.size))
-
-    # Extract time series for the year (assuming October is the reference
-    # month, the next 7 indices
-    # -------------------------------------------------------------------
-    count = 0
-    for ti in range(ice_ind,ice_ind+12):
-    #for ti in range(tind,tind+12):
-        ice_cons[count,:] = ice_data['data'][ti,:,:][(modis_data['ice_thick'][tind,:,:] >= low_thick) & \
-                    (modis_data['ice_thick'][tind,:,:] < high_thick)] 
-        #ice_cons[count,:] = modis_data['ice_con'][ti,:,:][(modis_data['ice_thick'][tind,:,:] >= low_thick) & \
-        #            (modis_data['ice_thick'][tind,:,:] < high_thick)] 
-        count+=1
-
-    # Go through and calculate the number of months to melt 50% of the
-    # beginning ice concentration. For each grid point, plot starting
-    # ice concentration on the x axis and the number of months to melt
-    # on the y axis
-    # ----------------------------------------------------------------
-
-    # Set up colorbar to color the lines by latitude
-    # ----------------------------------------------
-    norm = mpl.colors.Normalize(vmin = test_lats.min(), vmax = test_lats.max())
-    cmap = mpl.cm.ScalarMappable(norm = norm, cmap = mpl.cm.plasma)
-    cmap.set_array([])
-    c = np.arange(int(test_lats.min()),int(test_lats.max()))
-
-    # Set up a base datetime object for the x axis
-    base_dtm = datetime.strptime(modis_data['dates'][tind],'%Y%m')
-    dates = [base_dtm + timedelta(days = int(xval * 31)) for xval in np.arange(12)]
-
-    # Plot the total time series data. Also, calculate
-    # the difference in ice concentration over the next four months
-    # -------------------------------------------------------------
-    diff = np.zeros(ice_cons.shape[1])
-    melt_months = np.zeros(ice_cons.shape[1])
-    melt_limit = 0  # when zero, means complete melting
-
-    fig, axs = plt.subplots(2,dpi=100)
-    fig.set_size_inches(9,5.5)
-    for xi in range(ice_cons.shape[1]):
-        # Plot the time series for the current grid box
-        axs[0].plot(dates,ice_cons[:,xi],c = cmap.to_rgba(test_lats[xi]))
-
-        # Calculate the difference
-        diff[xi] = ice_cons[0,xi] - ice_cons[4,xi] 
-
-        # Determine how long it takes 
-        try:
-            melt_months[xi] = np.argwhere(ice_cons[:,xi] <= melt_limit)[0][0]
-        except:
-            melt_months[xi] = -9 
-
-    axs[0].xaxis.set_major_formatter(DateFormatter('%b %Y'))    
-    
-    #fig.colorbar(cmap, ticks = c)
-    axs[0].set_ylabel('Ice concentration [%]')
-    axs[0].set_title(datetime.strftime(base_dtm,'%B %Y') + '\n' + str(start_thick) + ' m Thickness ')
-
-    # Plot the differences
-    # ---------------------
-    #fig2,ax2 = plt.subplots(dpi=100)
-    p_scat = axs[1].scatter(ice_cons[0,:][melt_months > -9],melt_months[melt_months > -9],cmap = mpl.cm.plasma,c = cmap.to_rgba(test_lats[melt_months > -9]))
-    axs[1].set_ylabel('Months needed to melt\n below ' + str(melt_limit) + '% ice concentration')
-    #axs[1].set_ylim(bottom = 0)
-    #p_scat = axs[1].scatter(ice_cons[0,:],diff[:],cmap = mpl.cm.plasma,s = 12,c = cmap.to_rgba(test_lats[:]))
-    #axs[1].set_ylabel('Ice concentration decrease \nfrom '+datetime.strftime(base_dtm,'%B') + \
-    #    ' to ' + datetime.strftime(base_dtm + timedelta(days = int(4 * 31)),'%B') + ' [%]')
-    cbar_ax = fig.add_axes([0.92,0.11,0.02,0.77])
-    fig.colorbar(cmap,cax = cbar_ax,ticks = c[::2],label = 'Latitude [$^{o}$]')
-    #fig2.colorbar(cmap, ticks = c)
-    axs[1].set_xlabel(datetime.strftime(base_dtm,'%B %Y') + ' Concentration')
-
-    if(save == True):
-        outname = 'modissat2_melt_time_' + datetime.strftime(base_dtm,'%Y%m%d') + '.png'
-        plt.savefig(outname,dpi=300)
-        print("Saved image",outname)
-    else:
-        plt.show()
-    return
-
-
-    # Plot 
-    #mask_data = np.ma.masked_where(data < -999., data)
-
-    if(variable[:4] == 'grid'):
-        lat_vals = modis_data['grid_lat']
-        lon_vals = modis_data['grid_lon']
-    else:
-        lat_vals = modis_data['lat']
-        lon_vals = modis_data['lon']
-
-    plt.close()
-    ax = plt.axes(projection = mapcrs)
-    ax.gridlines()
-    ax.coastlines()
-    ax.set_extent([-180,180,60,90])
-    mesh = ax.pcolormesh(lon_vals,lat_vals,mask_data,\
-            transform = datacrs, cmap = colormap,vmin=min_dict[variable],\
-            vmax=max_dict[variable])
-    #CS = ax.contour(longitude,latitude,smooth_thick,[0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0],transform = datacrs)
-    
-    # Adjust and make it look good
-    ax.add_feature(cfeature.LAND,zorder=100,edgecolor='darkgrey',facecolor='darkgrey')
-    cbar = plt.colorbar(mesh,ticks = tick_dict[variable],orientation='horizontal',pad=0,aspect=50,label=variable)
-    cbar.ax.set_xticklabels(tick_label_dict[variable])
-    ax.set_xlim(-4170748.535086173,4167222.438879491)
-    ax.set_ylim(-2913488.8763307533,2943353.899053069)
-    ax.set_title(modis_data['titles'][tind])
-    plt.show()
-

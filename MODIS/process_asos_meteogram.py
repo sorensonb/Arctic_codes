@@ -104,12 +104,13 @@ event_dtime = event_date + timedelta(hours = int(first_time[:2]), \
 
 # Plot a vertical line at the time of the crash
 # ---------------------------------------------
-ax.axvline(event_dtime,color='tab:red',lw=2,alpha=0.75)
+ax.axvline(event_dtime,color='black',lw=2,alpha=0.75,label='MODIS')
 #ax3.axvline(event_dtime,color='tab:red',lw=2,alpha=0.75)
 
 ax.set_xlabel('Time [UTC]')
 ax.set_ylabel('Temperature [degC]')
 ax.legend()
+ax.set_title(event_dtime.strftime('%Y-%m-%d %H:%M'))
  
 ax2.set_extent([np.min(df['lon']) - 1.0, np.max(df['lon']) + 1.0,\
      np.min(df['lat']) - 1.0, np.max(df['lat']) + 1.0],datacrs)
