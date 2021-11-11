@@ -543,7 +543,7 @@ def find_plume(dt_date_str):
     MODIS_ch5  = read_MODIS_channel(dt_date_str, 5,  zoom = True)
     MODIS_ch31 = read_MODIS_channel(dt_date_str, 31, zoom = True)
 
-    screen_limit = 0.20
+    screen_limit = 0.05
     max_ch = 350.
     test_data = MODIS_ch1['data'] - MODIS_ch5['data']
     hash_data   = np.ma.masked_where(test_data <  \
@@ -2183,7 +2183,7 @@ def plot_MODIS_spatial(MODIS_data, pax, zoom):
 
 # dtype must be 'SWF' or 'LWF'
 def plot_CERES_spatial(date_str, mask_LAT, mask_LON, mask_data, dtype, pax, \
-        zoom = False):
+        vmin = None, vmax = None, zoom = False):
 
     #print(plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'])
 
@@ -2195,7 +2195,7 @@ def plot_CERES_spatial(date_str, mask_LAT, mask_LON, mask_data, dtype, pax, \
     #scat3 = axcs.scatter(mask_LON, mask_LAT,mask_swf, transform = datacrs)
     mesh3 = pax.scatter(mask_LON.compressed(), mask_LAT.compressed(),\
         s =  90,marker='s',c = mask_data.compressed(),cmap='plasma', \
-        transform = datacrs)
+        vmin = vmin, vmax = vmax, transform = datacrs)
     pax.add_feature(cfeature.BORDERS)
     pax.add_feature(cfeature.STATES)
     pax.coastlines()
@@ -2442,7 +2442,8 @@ def plot_scatter_OMI(date_str, MODIS_data, pax, avg_pixel = False):
         pax.set_ylabel('OMI UVAI')
         
 
-def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False):
+def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
+        plume_only = True):
 
     # Determine where the smoke is located
     # ------------------------------------
@@ -2474,264 +2475,300 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False):
     tmp_lat  = np.ma.masked_where((abs(tmp_data) > max_ch), tmp_lat)
     tmp_lon  = np.ma.masked_where((abs(tmp_data) > max_ch), tmp_lon)
 
-    # Remove the nans from the MODIS data, lats, and lons for both the
-    # in-the-plume (hashed) and outside-the-plume (nohashed) data
-    hash_plot_data   = tmp_data[np.where(~hash_data.mask)].compressed()
-    nohash_plot_data = tmp_data[np.where(hash_data.mask)].compressed()
-    hash_plot_lat    = tmp_lat[np.where(~hash_data.mask)].compressed()
-    nohash_plot_lat  = tmp_lat[np.where(hash_data.mask)].compressed()
-    hash_plot_lon    = tmp_lon[np.where(~hash_data.mask)].compressed()
-    nohash_plot_lon  = tmp_lon[np.where(hash_data.mask)].compressed()
-
-    ##!#hash_plot_data1   = tmp_data0[np.where(~hash_data1.mask)].compressed()
-    ##!#nohash_plot_data1 = tmp_data0[np.where(hash_data1.mask)].compressed()
-    ##!#hash_plot_lat1    = tmp_lat0[np.where(~hash_data1.mask)].compressed()
-    ##!#nohash_plot_lat1  = tmp_lat0[np.where(hash_data1.mask)].compressed()
-    ##!#hash_plot_lon1    = tmp_lon0[np.where(~hash_data1.mask)].compressed()
-    ##!#nohash_plot_lon1  = tmp_lon0[np.where(hash_data1.mask)].compressed()
-
-
+    hash_check_lat    = tmp_lat[np.where(~hash_data.mask)].compressed()
+    hash_check_lon    = tmp_lon[np.where(~hash_data.mask)].compressed()
+    if(plume_only):
+        # Remove the nans from the MODIS data, lats, and lons for both the
+        # in-the-plume (hashed) and outside-the-plume (nohashed) data
+        hash_plot_data   = tmp_data[np.where(~hash_data.mask)].compressed()
+        nohash_plot_data = tmp_data[np.where(hash_data.mask)].compressed()
+        hash_plot_lat    = tmp_lat[np.where(~hash_data.mask)].compressed()
+        nohash_plot_lat  = tmp_lat[np.where(hash_data.mask)].compressed()
+        hash_plot_lon    = tmp_lon[np.where(~hash_data.mask)].compressed()
+        nohash_plot_lon  = tmp_lon[np.where(hash_data.mask)].compressed()
+    else:
+        hash_plot_data = tmp_data    
+        hash_plot_lat  = tmp_lat    
+        hash_plot_lon  = tmp_lon    
     mask_LAT, mask_LON, mask_swf, mask_lwf = read_CERES_match_MODIS(date_str)
-
-
 
     crnr_LAT = getCorners_1d(mask_LAT.data) ; crnr_LON = getCorners_1d(mask_LON)
 
 
+    #if(avg_pixel):
     
-    ##!## NOTE: need to use the time variable to screen out any data
-    ##!## that are not close to the event time.
-    ##!#base_date = datetime(year=1970,month=1,day=1)
-    ##!#start_date = dt_date_str - timedelta(hours = 1)
-    ##!#end_date   = dt_date_str + timedelta(hours = 2)
+    # Average a certain number of MODIS pixels around each CERES
+    # pixel.
+    # ----------------------------------------------------------
 
-    ##!#print(start_date, end_date)
+    # total arrays are dimensioned to the size of the CERES
+    # arrays. Contain all matched MODIS data (in and out)
+    total_match_SWF    = np.full(mask_swf.shape, np.nan)
+    total_match_LWF    = np.full(mask_lwf.shape, np.nan)
+    total_match_LAT    = np.full(mask_LAT.shape, np.nan)
+    total_match_LON    = np.full(mask_LON.shape, np.nan)
+    # hash arrays are dimensioned to the size of the CERES
+    # arrays. Contain only in-plume matched MODIS data
+    hash_match_SWF    = np.full(mask_swf.shape, np.nan)
+    hash_match_LWF    = np.full(mask_lwf.shape, np.nan)
+    hash_match_LAT    = np.full(mask_LAT.shape, np.nan)
+    hash_match_LON    = np.full(mask_LON.shape, np.nan)
+    # nohash arrays are dimensioned to the size of the CERES
+    # arrays. Contain only out=of-plume matched MODIS data
+    nohash_match_SWF    = np.full(mask_swf.shape, np.nan)
+    nohash_match_LWF    = np.full(mask_lwf.shape, np.nan)
+    nohash_match_LAT    = np.full(mask_LAT.shape, np.nan)
+    nohash_match_LON    = np.full(mask_LON.shape, np.nan)
 
-    ##!#data = Dataset(plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['ceres'],'r')
-    ##!#LAT   = 90. - data.variables['Colatitude_of_CERES_FOV_at_surface'][:]
-    ##!#LON   = data.variables['Longitude_of_CERES_FOV_at_surface'][:]
-    ##!#LON[LON>179.99] = -360.+LON[LON>179.99]
-    ##!#swflux  = data.variables['CERES_SW_TOA_flux___upwards'][:]
-    ##!#lwflux  = data.variables['CERES_LW_TOA_flux___upwards'][:]
-    ##!#time  = data.variables['time'][:]
-    ##!#local_time = np.array([base_date + relativedelta(days = ttime) for ttime in time])
-    ##!#data.close()
+    print(hash_plot_lat.shape)
 
-    ##!#mask_LAT = LAT[ \
-    ##!#    (LAT >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
-    ##!#    (LAT <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
-    ##!#    (LON >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
-    ##!#    (LON <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
-    ##!#    (swflux > 0) & (lwflux > 0)]
-    ##!#mask_LON = LON[ \
-    ##!#    (LAT >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
-    ##!#    (LAT <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
-    ##!#    (LON >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
-    ##!#    (LON <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
-    ##!#    (swflux > 0) & (lwflux > 0)]
-    ##!#mask_swf = swflux[ \
-    ##!#    (LAT >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
-    ##!#    (LAT <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
-    ##!#    (LON >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
-    ##!#    (LON <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
-    ##!#    (swflux > 0) & (lwflux > 0)]
-    ##!#mask_lwf = lwflux[ \
-    ##!#    (LAT >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
-    ##!#    (LAT <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
-    ##!#    (LON >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
-    ##!#    (LON <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
-    ##!#    (swflux > 0) & (lwflux > 0)]
-    ##!#mask_time = local_time[ \
-    ##!#    (LAT >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
-    ##!#    (LAT <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
-    ##!#    (LON >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
-    ##!#    (LON <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
-    ##!#    (swflux > 0) & (lwflux > 0)]
+    # Loop over the lower-resolution CERES data.    
+    # Either grab the nearest MODIS pixel to the CERES pixel
+    # OR average the MODIS pixels within a certain range of the
+    # CERES pixel.
+    # ---------------------------------------------------------
+    for ii in range(mask_swf.shape[0]):
 
+        lat_list = sorted([crnr_LAT[ii], crnr_LAT[ii+1]])
+        lon_list = sorted([crnr_LON[ii], crnr_LON[ii+1]])
 
-    if(avg_pixel):
-        print('Averaging MODIS pixels')
-        
-        # Average a certain number of MODIS pixels around each CERES
-        # pixel.
+        # NEW APPROACH: use calculated pixel corners and use where 
+        # statement to find all MODIS pixels within the CERES bounds
         # ----------------------------------------------------------
-        hash_match_SWF    = np.full(mask_swf.shape, np.nan)
-        hash_match_LWF    = np.full(mask_lwf.shape, np.nan)
-        hash_match_LAT    = np.full(mask_LAT.shape, np.nan)
-        hash_match_LON    = np.full(mask_LON.shape, np.nan)
-        nohash_match_SWF    = np.full(mask_swf.shape, np.nan)
-        nohash_match_LWF    = np.full(mask_lwf.shape, np.nan)
-        nohash_match_LAT    = np.full(mask_LAT.shape, np.nan)
-        nohash_match_LON    = np.full(mask_LON.shape, np.nan)
-
-        print(hash_plot_lat.shape)
-
-        # Loop over the lower-resolution AIRS data.
-        for ii in range(mask_swf.shape[0]):
-
-            lat_list = sorted([crnr_LAT[ii], crnr_LAT[ii+1]])
-            lon_list = sorted([crnr_LON[ii], crnr_LON[ii+1]])
-
-            # NEW APPROACH: use calculated pixel corners and use where 
-            # statement to find all MODIS pixels within the CERES bounds
-            # ----------------------------------------------------------
-            #in_idx = np.where( ((hash_plot_lat >= lat_list[0]) & \
-            #    (hash_plot_lat <= lat_list[1])) & \
-            #   ((hash_plot_lon >= lon_list[0]) & \
-            #    (hash_plot_lon <= lon_list[1])))
+        #in_idx = np.where( ((hash_plot_lat >= lat_list[0]) & \
+        #    (hash_plot_lat <= lat_list[1])) & \
+        #   ((hash_plot_lon >= lon_list[0]) & \
+        #    (hash_plot_lon <= lon_list[1])))
 
 
-            ##!## Find the gridpoint in the MODIS lat/lon data that 
-            ##!## corresponds to the AIRS pixel
-            ##!## ---------------------------------------------------- 
-            ##!#ho_idx = nearest_gridpoint(mask_LAT[ii], mask_LON[ii],\
-            ##!#    hash_plot_lat, hash_plot_lon)
+        ##!##fun_c = np.maximum(np.abs(grid_lat - slat), \
+        ##!##    np.abs(grid_lon - slon))
+        ##!##m_idx = np.where(fun_c == np.min(fun_c))
 
-            ##!#if(len(ho_idx[0]) > 1):
-            ##!#    ho_idx = (np.array([ho_idx[0][0]])), \
-            ##!#        (np.array([ho_idx[1][0]]))
+        if(avg_pixel):
+            ho_idx = np.where( (abs((mask_LAT[ii] - hash_plot_lat)) < 0.10) & \
+                (abs((mask_LON[ii] - hash_plot_lon)) < 0.10) )
+            
+            #hash_plot_lat    = tmp_lat[np.where(~hash_data.mask)].compressed()
+            #nohash_plot_lat  = tmp_lat[np.where(hash_data.mask)].compressed()
+            #hash_plot_lon    = tmp_lon[np.where(~hash_data.mask)].compressed()
+        else:
+            # Find the gridpoint in the MODIS lat/lon data that 
+            # corresponds to the AIRS pixel
+            # ---------------------------------------------------- 
+            ho_idx = nearest_gridpoint(mask_LAT[ii], mask_LON[ii],\
+                hash_plot_lat, hash_plot_lon)
+
+            if(len(ho_idx[0]) > 1):
+                ho_idx = (np.array([ho_idx[0][0]])), \
+                    (np.array([ho_idx[1][0]]))
    
-            ##!##fun_c = np.maximum(np.abs(grid_lat - slat), \
-            ##!##    np.abs(grid_lon - slon))
-            ##!##m_idx = np.where(fun_c == np.min(fun_c))
-
-            ho_idx = np.where( (abs((mask_LAT[ii] - hash_plot_lat)) < 0.20) & \
-                (abs((mask_LON[ii] - hash_plot_lon)) < 0.20) )
-            #no_idx = np.where( (abs((mask_LAT[ii] - hash_plot_lat)) < 0.20) & \
-            #    (abs((mask_LON[ii] - hash_plot_lon)) < 0.20) )
-
-            #print(lat_list[0], lat_list[1], lon_list[0], lon_list[1], hash_plot_lat[ho_idx], hash_plot_lon[ho_idx])
+        if(len(hash_plot_data[ho_idx]) > 0):
+            # if any smoke-classified MODIS pixel is within the CERES pixel,
+            # classify the CERES pixel as "in-plume"
+            # -------------------------------------------------------------- 
+            if(True in ~hash_data.mask[ho_idx]): 
+                hash_match_SWF[ii] = np.nanmean(hash_plot_data[ho_idx])
+                hash_match_LWF[ii] = np.nanmean(hash_plot_data[ho_idx])
+                hash_match_LAT[ii] = mask_LAT[ii]
+                hash_match_LON[ii] = mask_LON[ii]
+            else: 
+                nohash_match_SWF[ii] = np.nanmean(hash_plot_data[ho_idx])
+                nohash_match_LWF[ii] = np.nanmean(hash_plot_data[ho_idx])
+                nohash_match_LAT[ii] = mask_LAT[ii]
+                nohash_match_LON[ii] = mask_LON[ii]
+            print(mask_LAT[ii], ~hash_data.mask[ho_idx])
 
             # Average the n MODIS pixels around the current CERES
-            # pixel.
+            # pixel. 
+            # total_match arrays contain all colocated MODIS data
+            # both in-plume and out-of-plume.
             # --------------------------------------------------- 
+            total_match_SWF[ii] = np.nanmean(hash_plot_data[ho_idx])
+            total_match_LWF[ii] = np.nanmean(hash_plot_data[ho_idx])
+            total_match_LAT[ii] = mask_LAT[ii]
+            total_match_LON[ii] = mask_LON[ii]
 
 
-            #print(lat_list[0], lat_list[+1], lon_list[0], lon_list[1], hash_plot_lat[in_idx], \
-            #    hash_plot_lon[in_idx], in_idx)
+    #plt.close('all')
+    fig = plt.figure(figsize=(8,5))
+    dt_date_str = datetime.strptime(date_str, "%Y%m%d%H%M")
+    mapcrs = ccrs.LambertConformal(central_longitude = \
+        np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
+        central_latitude = \
+    np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
 
+    tax1 = fig.add_subplot(2,3,1,projection = mapcrs) # smoke SW
+    tax2 = fig.add_subplot(2,3,2,projection = mapcrs) # smoke LW
+    tax3 = fig.add_subplot(2,3,3,projection = mapcrs) # smoke CH31
+    tax4 = fig.add_subplot(2,3,4,projection = mapcrs) # total SW
+    tax5 = fig.add_subplot(2,3,5,projection = mapcrs) # total LW
+    tax6 = fig.add_subplot(2,3,6,projection = mapcrs) # total CH31
 
-            hash_match_SWF[ii] = np.nanmean(hash_plot_data[ho_idx])
-            hash_match_LWF[ii] = np.nanmean(hash_plot_data[ho_idx])
-            #nohash_match_SWF[ii] = np.nanmean(nohash_plot_data[no_idx])
-            #nohash_match_LWF[ii] = np.nanmean(nohash_plot_data[no_idx])
-            #hash_match_SWF[ii] = np.nanmean(hash_plot_data[ho_idx[0][0]-1:ho_idx[0][0]+2])
-            #hash_match_LWF[ii] = np.nanmean(hash_plot_data[ho_idx[0][0]-1:ho_idx[0][0]+2])
-            #hash_match_SWF[ii] = np.nanmean(hash_plot_data0[ho_idx[0]-1:ho_idx[0]+2,\
-            #    ho_idx[1]-1:ho_idx[1]+2])
-            #hash_match_LWF[ii] = np.nanmean(hash_plot_data0[ho_idx[0]-1:ho_idx[0]+2,\
-            #    ho_idx[1]-1:ho_idx[1]+2])
-            hash_match_LAT[ii] = mask_LAT[ii]
-            hash_match_LON[ii] = mask_LON[ii]
-            #nohash_match_LAT[ii] = mask_LAT[ii]
-            #nohash_match_LON[ii] = mask_LON[ii]
-        #xy = np.vstack([plot_data0,match_OMI])
-        #z = stats.gaussian_kde(xy)(xy)
-        #axo.scatter(plot_data0,match_OMI,c=z,s=6)
+    #print('old: ',hash_match_LWF.shape)
+    total_match_LAT = np.ma.masked_invalid(total_match_LAT)
+    total_match_LON = np.ma.masked_invalid(total_match_LON)
+    total_match_LWF = np.ma.masked_invalid(total_match_LWF)
+    total_match_SWF = np.ma.masked_invalid(total_match_SWF)
 
-        mask_total = mask_swf + mask_lwf
+    hash_match_LAT = np.ma.masked_invalid(hash_match_LAT)
+    hash_match_LON = np.ma.masked_invalid(hash_match_LON)
+    hash_match_LWF = np.ma.masked_invalid(hash_match_LWF)
+    hash_match_SWF = np.ma.masked_invalid(hash_match_SWF)
 
-        lrval_p = spearmanr(hash_match_LWF, \
-            mask_lwf)[0]
-        pax.scatter(hash_match_LWF, mask_lwf,\
-            s = 6, color='tab:blue', label = 'LWF')
+    nohash_match_LAT = np.ma.masked_invalid(nohash_match_LAT)
+    nohash_match_LON = np.ma.masked_invalid(nohash_match_LON)
+    nohash_match_LWF = np.ma.masked_invalid(nohash_match_LWF)
+    nohash_match_SWF = np.ma.masked_invalid(nohash_match_SWF)
 
-        srval_p = spearmanr(hash_match_SWF, \
-            mask_swf)[0]
-        pax.scatter(hash_match_SWF, mask_swf,\
-            s = 6, color='tab:orange', label = 'SWF')
-        ##!#axcl.scatter(nohash_plot_data0, nohash_match_LWF,\
-        ##!#    s = 6, color='tab:orange')
-        ##!#axcs.scatter(nohash_plot_data0, nohash_match_SWF,\
-        ##!#    s = 6, color='tab:orange')
+    mask_swf = np.ma.masked_invalid(mask_swf)
+    mask_lwf = np.ma.masked_invalid(mask_lwf)
+    mask_LAT = np.ma.masked_invalid(mask_LAT)
+    mask_LON = np.ma.masked_invalid(mask_LON)
+  
+    ##!#total_match_SWF = np.ma.masked_invalid(total_match_SWF[~total_match_SWF.mask])
+    ##!#total_match_LWF = np.ma.masked_invalid(total_match_LWF[~total_match_LWF.mask])
+    ##!#total_match_LAT = np.ma.masked_invalid(total_match_LAT[~total_match_LAT.mask])
+    ##!#total_match_LON = np.ma.masked_invalid(total_match_LON[~total_match_LON.mask])
+    total_mask_swf  = np.ma.masked_invalid(mask_swf[~total_match_SWF.mask])
+    total_mask_lwf  = np.ma.masked_invalid(mask_lwf[~total_match_LWF.mask])
 
-        ##!#axcl.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
-        ##!#    channel_dict[str(channel0)]['Bandwidth_label'] + \
-        ##!#    MODIS_data0['variable'])
-        ##!#axcl.set_title('Smoke correlation: '+str(np.round(lrval_p, 3)))
-        ##!#axcs.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
-        ##!#    channel_dict[str(channel0)]['Bandwidth_label'] + \
-        ##!#    MODIS_data0['variable'])
-        ##!#axcs.set_title('Smoke correlation: '+str(np.round(srval_p, 3)))
-        ##!#axcl.set_ylabel('CERES LWF [W/m2]')
-        ##!#axcs.set_ylabel('CERES SWF [W/m2]')
+    ##!#hash_match_SWF = np.ma.masked_invalid(hash_match_SWF[~hash_match_SWF.mask])
+    ##!#hash_match_LWF = np.ma.masked_invalid(hash_match_LWF[~hash_match_LWF.mask])
+    ##!#hash_match_LAT = np.ma.masked_invalid(hash_match_LAT[~hash_match_LAT.mask])
+    ##!#hash_match_LON = np.ma.masked_invalid(hash_match_LON[~hash_match_LON.mask])
+    hash_mask_swf  = np.ma.masked_invalid(mask_swf[~hash_match_SWF.mask])
+    hash_mask_lwf  = np.ma.masked_invalid(mask_lwf[~hash_match_LWF.mask])
+ 
+    ##!#nohash_match_SWF = np.ma.masked_invalid(nohash_match_SWF[~nohash_match_SWF.mask])
+    ##!#nohash_match_LWF = np.ma.masked_invalid(nohash_match_LWF[~nohash_match_LWF.mask])
+    ##!#nohash_match_LAT = np.ma.masked_invalid(nohash_match_LAT[~nohash_match_LAT.mask])
+    ##!#nohash_match_LON = np.ma.masked_invalid(nohash_match_LON[~nohash_match_LON.mask])
+    nohash_mask_swf  = np.ma.masked_invalid(mask_swf[~nohash_match_SWF.mask])
+    nohash_mask_lwf  = np.ma.masked_invalid(mask_lwf[~nohash_match_LWF.mask])
+ 
+    plot_CERES_spatial(date_str, total_match_LAT, total_match_LON, \
+        total_mask_swf, 'SWF', tax1, zoom=True)
+    plot_CERES_spatial(date_str, total_match_LAT, total_match_LON, \
+        total_mask_lwf, 'LWF', tax2, zoom=True)
+    plot_CERES_spatial(date_str, total_match_LAT, total_match_LON, \
+        total_match_LWF, 'SWF', tax3, vmin = np.nanmin(MODIS_data['data']),\
+        vmax = np.nanmax(MODIS_data['data']), zoom=True)
+    plot_CERES_spatial(date_str, mask_LAT, mask_LON, \
+        mask_swf, 'SWF', tax4, zoom=True)
+    plot_CERES_spatial(date_str, mask_LAT, mask_LON, \
+        mask_lwf, 'LWF', tax5, zoom=True)
+    plot_MODIS_spatial(MODIS_data, tax6, zoom = True)
+ 
+    mask_total = mask_swf + mask_lwf
 
-    else:
-        hash_match_SWF   = np.full(hash_plot_data.shape,np.nan)
-        hash_match_LWF   = np.full(hash_plot_data.shape,np.nan)
-        hash_match_LAT   = np.full(hash_plot_lat.shape,np.nan)
-        hash_match_LON   = np.full(hash_plot_lon.shape,np.nan)
-        nohash_match_SWF = np.full(nohash_plot_data.shape,np.nan)
-        nohash_match_LWF = np.full(nohash_plot_data.shape,np.nan)
-        nohash_match_LAT = np.full(nohash_plot_lat.shape,np.nan)
-        nohash_match_LON = np.full(nohash_plot_lon.shape,np.nan)
+    lrval_p = spearmanr(total_match_LWF.compressed(), \
+        total_mask_lwf)[0]
 
-        for ii in range(hash_match_SWF.shape[0]):
-            # Find the gridpoint in the gridded lat/lon data that 
-            # corresponds to the station at slat and slon
-            # ---------------------------------------------------- 
-            o_idx = nearest_gridpoint(hash_plot_lat[ii], hash_plot_lon[ii],\
-                mask_LAT, mask_LON)
+    print(hash_match_LWF.compressed(), hash_mask_lwf)
+    pax.scatter(hash_match_LWF.compressed(), hash_mask_lwf,\
+        s = 14, color='tab:blue', marker='$L$',label = 'LWF')
+    pax.scatter(nohash_match_LWF.compressed(), nohash_mask_lwf,\
+        s = 14, color='tab:orange', marker='$L$',label = 'LWF')
 
-            if(len(o_idx[0]) > 1):
-                o_idx = (np.array([o_idx[0][0]])), (np.array([o_idx[1][0]]))
-            hash_match_SWF[ii] = mask_swf[o_idx]
-            hash_match_LWF[ii] = mask_lwf[o_idx]
-            hash_match_LAT[ii] = mask_LAT[o_idx] 
-            hash_match_LON[ii] = mask_LON[o_idx] 
+    srval_p = spearmanr(total_match_SWF.compressed(), \
+        total_mask_swf)[0]
+    pax.scatter(hash_match_SWF.compressed(), hash_mask_swf,\
+        s = 14, color='tab:blue', marker='$S$',label = 'SWF')
+    pax.scatter(nohash_match_SWF.compressed(), nohash_mask_swf,\
+        s = 14, color='tab:orange', marker='$S$',label = 'SWF')
+    ##!#axcl.scatter(nohash_plot_data0, nohash_match_LWF,\
+    ##!#    s = 6, color='tab:orange')
+    ##!#axcs.scatter(nohash_plot_data0, nohash_match_SWF,\
+    ##!#    s = 6, color='tab:orange')
 
-        print(nohash_plot_data.shape)
-        for ii in range(nohash_match_SWF.shape[0]):
-            # Find the gridpoint in the gridded lat/lon data that 
-            # corresponds to the station at slat and slon
-            # ---------------------------------------------------- 
-            o_idx = nearest_gridpoint(nohash_plot_lat[ii], nohash_plot_lon[ii],\
-                mask_LAT, mask_LON)
+    ##!#axcl.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
+    ##!#    channel_dict[str(channel0)]['Bandwidth_label'] + \
+    ##!#    MODIS_data0['variable'])
+    ##!#axcl.set_title('Smoke correlation: '+str(np.round(lrval_p, 3)))
+    ##!#axcs.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
+    ##!#    channel_dict[str(channel0)]['Bandwidth_label'] + \
+    ##!#    MODIS_data0['variable'])
+    ##!#axcs.set_title('Smoke correlation: '+str(np.round(srval_p, 3)))
+    ##!#axcl.set_ylabel('CERES LWF [W/m2]')
+    ##!#axcs.set_ylabel('CERES SWF [W/m2]')
 
-            #print(o_idx, o_idx[0], o_idx[0].shape)
-            if(len(o_idx[0].shape) > 1):
-                o_idx = (np.array([o_idx[0][0]])), (np.array([o_idx[1][0]]))
-            nohash_match_SWF[ii] = mask_swf[o_idx]
-            nohash_match_LWF[ii] = mask_lwf[o_idx]
-            nohash_match_LAT[ii] = mask_LAT[o_idx] 
-            nohash_match_LON[ii] = mask_LON[o_idx] 
+    ##!#else:
+    ##!#    hash_match_SWF   = np.full(hash_plot_data.shape,np.nan)
+    ##!#    hash_match_LWF   = np.full(hash_plot_data.shape,np.nan)
+    ##!#    hash_match_LAT   = np.full(hash_plot_lat.shape,np.nan)
+    ##!#    hash_match_LON   = np.full(hash_plot_lon.shape,np.nan)
+    ##!#    nohash_match_SWF = np.full(nohash_plot_data.shape,np.nan)
+    ##!#    nohash_match_LWF = np.full(nohash_plot_data.shape,np.nan)
+    ##!#    nohash_match_LAT = np.full(nohash_plot_lat.shape,np.nan)
+    ##!#    nohash_match_LON = np.full(nohash_plot_lon.shape,np.nan)
 
-        #xy = np.vstack([plot_data0,match_OMI])
-        #z = stats.gaussian_kde(xy)(xy)
-        #axo.scatter(plot_data0,match_OMI,c=z,s=6)
+    ##!#    for ii in range(hash_match_SWF.shape[0]):
+    ##!#        # Find the gridpoint in the gridded lat/lon data that 
+    ##!#        # corresponds to the station at slat and slon
+    ##!#        # ---------------------------------------------------- 
+    ##!#        o_idx = nearest_gridpoint(hash_plot_lat[ii], hash_plot_lon[ii],\
+    ##!#            mask_LAT, mask_LON)
 
-        lrval_p = spearmanr(hash_plot_data, \
-            hash_match_LWF)[0]
-        ##plt.scatter(hash_plot_data, hash_match_SWF,\
-        ##    s = 6, color='tab:blue')
-        ##plt.scatter(hash_plot_data, hash_match_LWF,\
-        ##    s = 6, color='tab:orange')
-        #axcl.scatter(hash_plot_data, hash_match_LWF,\
-        #    s = 6, color='tab:blue')
-        mask_total = mask_swf + mask_lwf
-        srval_p = spearmanr(hash_plot_data, \
-            hash_match_SWF)[0]
-        pax.scatter(hash_plot_data, hash_match_SWF,\
-            s = 6, color='tab:blue', label = 'SWF')
-        pax.scatter(hash_plot_data, hash_match_LWF,\
-            s = 6, color='tab:orange', label = 'LWF')
-        ##!#axcl.scatter(nohash_plot_data0, nohash_match_LWF,\
-        ##!#    s = 6, color='tab:orange')
-        ##!#axcs.scatter(nohash_plot_data0, nohash_match_SWF,\
-        ##!#    s = 6, color='tab:orange')
+    ##!#        if(len(o_idx[0]) > 1):
+    ##!#            o_idx = (np.array([o_idx[0][0]])), (np.array([o_idx[1][0]]))
+    ##!#        hash_match_SWF[ii] = mask_swf[o_idx]
+    ##!#        hash_match_LWF[ii] = mask_lwf[o_idx]
+    ##!#        hash_match_LAT[ii] = mask_LAT[o_idx] 
+    ##!#        hash_match_LON[ii] = mask_LON[o_idx] 
 
-    ##axcl.set_xlabel('Ch. ' + str(MODIS_data['channel']) +' [' + \
-    ##    channel_dict[str(MODIS_data['channel'])]['Bandwidth_label'] + \
-    ##    MODIS_data0['variable'])
-    ##axcl.set_title('Smoke correlation: '+str(np.round(lrval_p, 3)))
-    pax.set_xlabel('Ch. ' + str(MODIS_data['channel']) +' [' + \
-        channel_dict[str(MODIS_data['channel'])]['Bandwidth_label'] + \
-        MODIS_data['variable'])
-    pax.set_title('Smoke correlation: '+str(np.round(srval_p, 3)))
-    #axcl.set_ylabel('CERES LWF [W/m2]')
-    pax.set_ylabel('CERES Flux [W/m2]')
-    pax.legend()
-    # end compare_CERES
+    ##!#    print(nohash_plot_data.shape)
+    ##!#    for ii in range(nohash_match_SWF.shape[0]):
+    ##!#        # Find the gridpoint in the gridded lat/lon data that 
+    ##!#        # corresponds to the station at slat and slon
+    ##!#        # ---------------------------------------------------- 
+    ##!#        o_idx = nearest_gridpoint(nohash_plot_lat[ii], nohash_plot_lon[ii],\
+    ##!#            mask_LAT, mask_LON)
+
+    ##!#        #print(o_idx, o_idx[0], o_idx[0].shape)
+    ##!#        if(len(o_idx[0].shape) > 1):
+    ##!#            o_idx = (np.array([o_idx[0][0]])), (np.array([o_idx[1][0]]))
+    ##!#        nohash_match_SWF[ii] = mask_swf[o_idx]
+    ##!#        nohash_match_LWF[ii] = mask_lwf[o_idx]
+    ##!#        nohash_match_LAT[ii] = mask_LAT[o_idx] 
+    ##!#        nohash_match_LON[ii] = mask_LON[o_idx] 
+
+    ##!#    #xy = np.vstack([plot_data0,match_OMI])
+    ##!#    #z = stats.gaussian_kde(xy)(xy)
+    ##!#    #axo.scatter(plot_data0,match_OMI,c=z,s=6)
+
+    ##!#    lrval_p = spearmanr(hash_plot_data, \
+    ##!#        hash_match_LWF)[0]
+    ##!#    ##plt.scatter(hash_plot_data, hash_match_SWF,\
+    ##!#    ##    s = 6, color='tab:blue')
+    ##!#    ##plt.scatter(hash_plot_data, hash_match_LWF,\
+    ##!#    ##    s = 6, color='tab:orange')
+    ##!#    #axcl.scatter(hash_plot_data, hash_match_LWF,\
+    ##!#    #    s = 6, color='tab:blue')
+    ##!#    mask_total = mask_swf + mask_lwf
+    ##!#    srval_p = spearmanr(hash_plot_data, \
+    ##!#        hash_match_SWF)[0]
+    ##!#    pax.scatter(hash_plot_data, hash_match_SWF,\
+    ##!#        s = 6, color='tab:blue', label = 'SWF')
+    ##!#    pax.scatter(hash_plot_data, hash_match_LWF,\
+    ##!#        s = 6, color='tab:orange', label = 'LWF')
+    ##!#    ##!#axcl.scatter(nohash_plot_data0, nohash_match_LWF,\
+    ##!#    ##!#    s = 6, color='tab:orange')
+    ##!#    ##!#axcs.scatter(nohash_plot_data0, nohash_match_SWF,\
+    ##!#    ##!#    s = 6, color='tab:orange')
+
+    ##!###axcl.set_xlabel('Ch. ' + str(MODIS_data['channel']) +' [' + \
+    ##!###    channel_dict[str(MODIS_data['channel'])]['Bandwidth_label'] + \
+    ##!###    MODIS_data0['variable'])
+    ##!###axcl.set_title('Smoke correlation: '+str(np.round(lrval_p, 3)))
+    ##!#pax.set_xlabel('Ch. ' + str(MODIS_data['channel']) +' [' + \
+    ##!#    channel_dict[str(MODIS_data['channel'])]['Bandwidth_label'] + \
+    ##!#    MODIS_data['variable'])
+    ##!#pax.set_title('Smoke correlation: '+str(np.round(srval_p, 3)))
+    ##!##axcl.set_ylabel('CERES LWF [W/m2]')
+    ##!#pax.set_ylabel('CERES Flux [W/m2]')
+    ##!#pax.legend()
+    ##!## end compare_CERES
        
 
 def plot_OMI_spatial(date_str, LAT, LON, mask_UVAI, pax, zoom = False):
@@ -2924,7 +2961,7 @@ def plot_combined_imagery(date_str,channel1 = 1, channel2 = 5, channel3 = 31,\
         plt.show()
 
 def plot_combined_scatter(date_str,channel0 = 31, channel1 = 1, channel2 = 5,\
-        zoom=True,save=False,composite=True,avg_pixel=False):
+        zoom=True,save=False,composite=True,avg_pixel=False,plume_only=False):
 
     
     plt.close('all')
@@ -3070,7 +3107,8 @@ def plot_combined_scatter(date_str,channel0 = 31, channel1 = 1, channel2 = 5,\
     # Plot the CERES data
     #
     # ----------------------------------------------------------------------
-    plot_scatter_CERES(date_str, MODIS_data0, ax3, avg_pixel = avg_pixel)
+    plot_scatter_CERES(date_str, MODIS_data0, ax3, avg_pixel = avg_pixel,\
+        plume_only = plume_only)
 
     ##!#plot_CERES_spatial(date_str,mask_LAT, mask_LON, mask_swf, 'SWF', ax6, zoom = zoom)
     ##!#plot_CERES_spatial(date_str,mask_LAT, mask_LON, mask_lwf, 'LWF', ax7, zoom = zoom)
