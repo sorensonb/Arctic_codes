@@ -41,6 +41,7 @@ from glob import glob
 # Set up global variables
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 datacrs = ccrs.PlateCarree()
+debug = False
 
 zoom_dict = {
     'Finland': [10,55,65,80]
@@ -329,11 +330,12 @@ plot_limits_dict = {
         '2120': {
             'asos': 'asos_data_20210805.csv',
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021217.2120.061.2021218164201.hdf',
+            'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021217.2120.061.2021218165546.hdf',
             'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.05.214.L2.SUBS2RET.v6.0.32.0.G21218175548.hdf'],
             'Lat': [36.0, 39.0],
             'Lon': [-118.0, -114.0],
-            'modis_Lat': [35.0, 40.0],
-            'modis_Lon': [-119., -113.]
+            'modis_Lat': [36.0, 39.0],
+            'modis_Lon': [-118., -114.]
         },
         '2125': {
             'asos': 'asos_california_20210805.csv',
@@ -409,6 +411,31 @@ plot_limits_dict = {
     } 
 }
 
+def init_proj(date_str):
+    #mapcrs = Miller()
+    if(date_str == None):
+        mapcrs = ccrs.LambertConformal()
+    else:
+        dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+        mapcrs = ccrs.LambertConformal(central_longitude = \
+            np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
+            central_latitude = \
+            np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
+
+    return mapcrs
+
+def plot_trend_line(pax, xdata, ydata, color='black', linestyle = '-'):
+    # First, calculate the trend
+    zdata = np.polyfit(xdata, ydata, 1)
+
+    print("{0}x + {1}".format(*zdata))
+
+    # Then, plot the trend line on the figure
+    pax.plot(np.unique(xdata), np.poly1d(zdata)(np.unique(xdata)), \
+        color=color, linestyle = linestyle)
+
+
 def getCorners_1d(centers):
     one = centers[:-1]
     two = centers[1:]
@@ -474,7 +501,8 @@ def nearest_grid_values(MODIS_data):
     # Test what happens if looking at the data near the hour
     #event_dtime = event_date + timedelta(hours = int(first_time[:2]), \
     #    minutes = int(first_time[2:4]))
-    print("Overpass time",event_dtime)
+    if(debug):
+        print("Overpass time",event_dtime)
 
     begin_range = event_dtime - timedelta(minutes = 15)
     end_range   = event_dtime + timedelta(minutes = 15)
@@ -1032,11 +1060,13 @@ def plot_true_color(filename,zoom=True):
     
     plt.close('all') 
     fig1 = plt.figure()
+    mapcrs = init_proj()
     ax = plt.axes(projection = mapcrs)
 
     image = np.ma.masked_where(np.isnan(image),image)
-
-    print(lon5.shape, lat5.shape, image.shape)
+    
+    if(debug):
+        print(lon5.shape, lat5.shape, image.shape)
 
     ax.pcolormesh(cornerLons,cornerLats,image[:,:,0],color= colortuple, shading='auto', \
         transform = ccrs.PlateCarree()) 
@@ -1077,7 +1107,8 @@ def read_MODIS_channel(date_str, channel, zoom = False):
     indx = dat.index('EQUATORCROSSINGTIME')+9
     cross_time = dat[indx][1:len(dat[indx])-1]
 
-    print('MODIS orbit info',cross_date,cross_time)
+    if(debug):
+        print('MODIS orbit info',cross_date,cross_time)
 
     lat5 = modis.select('Latitude').get()
     lon5 = modis.select('Longitude').get()
@@ -1144,7 +1175,8 @@ def read_MODIS_channel(date_str, channel, zoom = False):
 
             # Define constants for converting radiances to temperatures
             lmbda = (1e-6) * (np.average(channel_dict[str(channel)]['Bandwidth'])) # in m
-            print("Average wavelength = ",np.average(channel_dict[str(channel)]['Bandwidth']))
+            if(debug):
+                print("Average wavelength = ",np.average(channel_dict[str(channel)]['Bandwidth']))
             c_const = 3e8
             h_const = 6.626e-34 # J*s
             k_const = 1.381e-23 # J/K
@@ -1244,16 +1276,15 @@ def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False):
     # ---------------------------------------------------------------
     MODIS_data = read_MODIS_channel(date_str, channel)
 
-    print("Data max = ",np.max(MODIS_data['data']), "  Data min = ",np.min(MODIS_data['data']))
+    if(debug):
+        print("Data max = ",np.max(MODIS_data['data']), "  Data min = ",\
+        np.min(MODIS_data['data']))
 
     plt.close('all')
     fig1 = plt.figure()
     datacrs = ccrs.PlateCarree()
     #mapcrs = ccrs.Miller()
-    mapcrs = ccrs.LambertConformal(central_longitude = \
-        np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
-        central_latitude = \
-        np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
+    mapcrs = init_proj(date_str)
     ax = plt.axes(projection = mapcrs)
 
     plot_MODIS_spatial(MODIS_data, ax, zoom)
@@ -1433,10 +1464,7 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
     # --------------------------------------
     datacrs = ccrs.PlateCarree() 
     #mapcrs = ccrs.LambertConformal()
-    mapcrs = ccrs.LambertConformal(central_longitude = \
-        np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
-        central_latitude = \
-        np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
+    mapcrs = init_proj(date_str)
 
     plt.close('all')
     if(compare_OMI and compare_CERES):
@@ -1724,6 +1752,9 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
 
     cross_date = MODIS_data1['cross_date']
     file_time  = MODIS_data1['file_time']
+
+    fig.tight_layout()
+
     plt.suptitle(cross_date + ' ' + file_time)
     if(save):
         pdate = cross_date[:4] + cross_date[5:7] + cross_date[8:10] + file_time
@@ -1761,20 +1792,23 @@ def compare_MODIS_channels(date_str,channel1,channel2,zoom=True,save=False,\
     MODIS_data1 = read_MODIS_channel(dt_date_str.strftime('%Y%m%d%H%M'), channel1, zoom = zoom)
     MODIS_data2 = read_MODIS_channel(dt_date_str.strftime('%Y%m%d%H%M'), channel2, zoom = zoom)
 
-    print("Data1 max = ",np.max(MODIS_data1['data']), "  Data1 min = ",np.min(MODIS_data1['data']))
-    print("Data2 max = ",np.max(MODIS_data2['data']), "  Data2 min = ",np.min(MODIS_data2['data']))
-
-    print(MODIS_data1['data'].shape, MODIS_data2['data'].shape)
+    if(debug):
+        print("Data1 max = ",np.max(MODIS_data1['data']), "  Data1 min = ",\
+        np.min(MODIS_data1['data']))
+        print("Data2 max = ",np.max(MODIS_data2['data']), "  Data2 min = ",np.min(MODIS_data2['data']))
+    
+        print(MODIS_data1['data'].shape, MODIS_data2['data'].shape)
 
     # --------------------------------------
     # Step 2: Set up figure to have 3 panels
     # --------------------------------------
     datacrs = ccrs.PlateCarree() 
     #mapcrs = ccrs.LambertConformal()
-    mapcrs = ccrs.LambertConformal(central_longitude = \
-        np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
-        central_latitude = \
-        np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
+    mapcrs = init_proj(date_str)
+    #mapcrs = ccrs.LambertConformal(central_longitude = \
+    #    np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
+    #    central_latitude = \
+    #    np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
 
     plt.close('all')
     fig = plt.figure(figsize=(14.5,5))
@@ -1933,6 +1967,8 @@ def compare_MODIS_channels(date_str,channel1,channel2,zoom=True,save=False,\
     ax2.set_title('Pearson correlation: '+str(np.round(rval_p, 3)))
     ax2.legend()
 
+    fig.tight_layout()
+
     if(plot_ASOS_loc):
         print("Plotting ASOS site")
         plot_ASOS_locs(ax0,MODIS_data1)
@@ -1972,10 +2008,15 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
     MODIS_data2 = read_MODIS_channel(dt_date_str.strftime('%Y%m%d%H%M'), channel2, zoom = True)
     MODIS_data3 = read_MODIS_channel(dt_date_str.strftime('%Y%m%d%H%M'), channel3, zoom = True)
 
-    print("Data0 max = ",np.max(MODIS_data0['data']), "  Data0 min = ",np.min(MODIS_data0['data']))
-    print("Data1 max = ",np.max(MODIS_data1['data']), "  Data1 min = ",np.min(MODIS_data1['data']))
-    print("Data2 max = ",np.max(MODIS_data2['data']), "  Data2 min = ",np.min(MODIS_data2['data']))
-    print("Data3 max = ",np.max(MODIS_data3['data']), "  Data3 min = ",np.min(MODIS_data3['data']))
+    if(debug):
+        print("Data0 max = ",np.max(MODIS_data0['data']), "  Data0 min = ",\
+        np.min(MODIS_data0['data']))
+        print("Data1 max = ",np.max(MODIS_data1['data']), "  Data1 min = ",\
+            np.min(MODIS_data1['data']))
+        print("Data2 max = ",np.max(MODIS_data2['data']), "  Data2 min = ",\
+            np.min(MODIS_data2['data']))
+        print("Data3 max = ",np.max(MODIS_data3['data']), "  Data3 min = ",\
+            np.min(MODIS_data3['data']))
 
     max_ch = 350.
 
@@ -1991,7 +2032,8 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
     tmp_lon0  = np.copy(MODIS_data0['lon'])
 
     if(not (tmp_data0.shape == tmp_data1.shape == tmp_data2.shape == tmp_data3.shape)):
-        print("shape mismatch")
+        if(debug):
+            print("shape mismatch")
         shapes = []
         shapes.append(tmp_data0.shape)
         shapes.append(tmp_data1.shape)
@@ -1999,7 +2041,8 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
         shapes.append(tmp_data3.shape)
 
         min_shape = min(shapes)
-        print(min_shape)
+        if(debug):
+            print(min_shape)
 
         tmp_data0  = tmp_data0[:min_shape[0],:min_shape[1]]
         tmp_data1  = tmp_data1[:min_shape[0],:min_shape[1]]
@@ -2134,6 +2177,8 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
         plt.legend(lines, labels, loc = 'right', bbox_to_anchor = (0, 0., 1.0, 1),\
             bbox_transform = plt.gcf().transFigure, ncol=1)
 
+    fig.tight_layout()
+
     if(save):
         pdate = cross_date[:4] + cross_date[5:7] + cross_date[8:10] + file_time
         outname = 'modis_compare_ch' + str(channel0) + '_vs_ch' + \
@@ -2194,7 +2239,7 @@ def plot_CERES_spatial(date_str, mask_LAT, mask_LON, mask_data, dtype, pax, \
 
     #scat3 = axcs.scatter(mask_LON, mask_LAT,mask_swf, transform = datacrs)
     mesh3 = pax.scatter(mask_LON.compressed(), mask_LAT.compressed(),\
-        s =  90,marker='s',c = mask_data.compressed(),cmap='plasma', \
+        s =  170,marker='s',c = mask_data.compressed(),cmap='plasma', \
         vmin = vmin, vmax = vmax, transform = datacrs)
     pax.add_feature(cfeature.BORDERS)
     pax.add_feature(cfeature.STATES)
@@ -2222,6 +2267,22 @@ def plot_scatter(lax,data1, data2, MODIS_data1, MODIS_data2, hash_data1):
     lax.scatter(data1[np.where(~hash_data1.mask)].compressed(), \
         data2[np.where(~hash_data1.mask)].compressed(), s=6, \
         color='tab:blue')
+
+    # Plot trend lines for each set
+    # -----------------------------
+    print("Calculating MODIS " + str(MODIS_data1['channel']) + ' vs ' + \
+        str(MODIS_data2['channel']) + ' smoke trend')
+    plot_trend_line(lax, \
+        data1[np.where(~hash_data1.mask)].compressed(), \
+        data2[np.where(~hash_data1.mask)].compressed(), \
+        color='tab:blue')
+
+    print("Calculating MODIS " + str(MODIS_data1['channel']) + ' vs ' + \
+        str(MODIS_data2['channel']) + ' clear trend')
+    plot_trend_line(lax, \
+        data1[np.where(hash_data1.mask)].compressed(), \
+        data2[np.where(hash_data1.mask)].compressed(), \
+        color='tab:orange')
 
     if(MODIS_data2['channel'] == 'wv_ir'):
         lax.set_ylim(lax.get_ylim()[0], 1.5)
@@ -2304,7 +2365,8 @@ def plot_scatter_OMI(date_str, MODIS_data, pax, avg_pixel = False):
         # Declare full arrays to hold the averaged MODIS data
         # Must be dimensioned to the shape of the OMI data
         # ---------------------------------------------------
-        print("work UVAI shape = ",work_UVAI.shape)
+        if(debug):
+            print("work UVAI shape = ",work_UVAI.shape)
         hash_avg_modis   = np.full(work_UVAI.shape,np.nan)
         hash_avg_mlat    = np.full(work_UVAI.shape,np.nan)
         hash_avg_mlon    = np.full(work_UVAI.shape,np.nan)
@@ -2314,11 +2376,12 @@ def plot_scatter_OMI(date_str, MODIS_data, pax, avg_pixel = False):
 
         # Loop over screened out OMI pixels
         # ---------------------------------
-        print("corners shape:",work_crnrLAT.shape)
+        if(debug):
+            print("corners shape:",work_crnrLAT.shape)
         for ii in range(work_crnrLAT.shape[0]):
 
             # For each OMI pixel, find the in-plume and out-of-plume MODIS
-            # pixels that are close to the OMI corner values
+            # pixels that are within the the OMI corner values
             # -------------------------------------------------------------
             hash_in = np.where((hash_plot_lat >= np.nanmin(work_crnrLAT[ii,:])) & \
                                (hash_plot_lat <= np.nanmax(work_crnrLAT[ii,:])) & \
@@ -2340,7 +2403,6 @@ def plot_scatter_OMI(date_str, MODIS_data, pax, avg_pixel = False):
             # Use the corner values to make a Polygon and determine if
             # each close MODIS pixel is within the OMI pixel
             # --------------------------------------------------------
-
             # Generate a Polygon using the OMI corner points
             points = []
             for x, y in zip(work_crnrLON[ii,:], work_crnrLAT[ii,:]):
@@ -2351,7 +2413,10 @@ def plot_scatter_OMI(date_str, MODIS_data, pax, avg_pixel = False):
                 hlon, hlat in zip(hash_modis_lon, hash_modis_lat)]
             inside_nohash = [omi_poly.contains(Point(nlon, nlat)) for \
                 nlon, nlat in zip(nohash_modis_lon, nohash_modis_lat)]
-   
+  
+            # If at least 1 smokey MODIS pixel is within the OMI pixel bounds, 
+            # classify the OMI pixel as smokey
+            # ----------------------------------------------------------------
             if((len(inside_hash) > 0) & (True in inside_hash)):
                 hash_avg_modis[ii] = np.average(hash_modis_data[inside_hash])
                 hash_avg_mlat[ii]  = np.average(hash_modis_lat[inside_hash])
@@ -2379,6 +2444,14 @@ def plot_scatter_OMI(date_str, MODIS_data, pax, avg_pixel = False):
         #    color='tab:orange')
         #axo.scatter(nohash_plot_data0, nohash_match_OMI, s=6, \
         #    color='tab:orange', label='Outside Plume')
+
+        # Plot trend lines for each set
+        # -----------------------------
+        print("Calculating MODIS/OMI trend")
+        plot_trend_line(pax, \
+            np.ma.masked_invalid(hash_avg_modis).compressed(), \
+            work_UVAI[~np.ma.masked_invalid(hash_avg_modis).mask], \
+            color='tab:blue')
 
         pax.set_xlabel('Averaged Ch. ' + str(MODIS_data['channel']) +' [' + \
             channel_dict[str(MODIS_data['channel'])]['Bandwidth_label'] + \
@@ -2438,6 +2511,14 @@ def plot_scatter_OMI(date_str, MODIS_data, pax, avg_pixel = False):
         hrval_p = spearmanr(hash_plot_data, \
             hash_match_OMI)[0]
         pax.scatter(hash_plot_data, hash_match_OMI, s=6, \
+            color='tab:blue')
+
+        # Plot trend lines for each set
+        # -----------------------------
+        print("Calculating MODIS/OMI trend")
+        plot_trend_line(pax, \
+            hash_plot_data, \
+            hash_match_OMI, \
             color='tab:blue')
         #axo.scatter(nohash_plot_data0, nohash_match_OMI, s=6, \
         #    color='tab:orange')
@@ -2599,11 +2680,12 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
 
     #plt.close('all')
     fig = plt.figure(figsize=(8,5))
-    dt_date_str = datetime.strptime(date_str, "%Y%m%d%H%M")
-    mapcrs = ccrs.LambertConformal(central_longitude = \
-        np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
-        central_latitude = \
-    np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
+    #dt_date_str = datetime.strptime(date_str, "%Y%m%d%H%M")
+    mapcrs = init_proj(date_str)
+    #mapcrs = ccrs.LambertConformal(central_longitude = \
+    #    np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
+    #    central_latitude = \
+    #np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
 
     tax1 = fig.add_subplot(2,3,1,projection = mapcrs) # smoke SW
     tax2 = fig.add_subplot(2,3,2,projection = mapcrs) # smoke LW
@@ -2675,22 +2757,44 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
  
     mask_total = mask_swf + mask_lwf
 
-    lrval_p = spearmanr(total_match_LWF.compressed(), \
-        total_mask_lwf)[0]
-
-    #print(hash_match_LWF.compressed(), hash_mask_lwf)
+    lhrval_p = spearmanr(hash_match_LWF.compressed(), \
+        hash_mask_lwf)[0]
+    lnrval_p = spearmanr(nohash_match_LWF.compressed(), \
+        nohash_mask_lwf)[0]
     pax.scatter(hash_match_LWF.compressed(), hash_mask_lwf,\
-        s = 18, color='tab:blue', marker='$L$',label = 'LWF smoke')
+        s = 18, color='tab:blue', marker='x',label = 'LWF smoke')
     pax.scatter(nohash_match_LWF.compressed(), nohash_mask_lwf,\
-        s = 18, color='tab:orange', marker='$L$',label = 'LWF clear')
+        s = 18, color='tab:orange', marker='x',label = 'LWF clear')
 
-    srval_p = spearmanr(total_match_SWF.compressed(), \
-        total_mask_swf)[0]
+    shrval_p = spearmanr(hash_match_SWF.compressed(), \
+        hash_mask_swf)[0]
+    snrval_p = spearmanr(nohash_match_SWF.compressed(), \
+        nohash_mask_swf)[0]
     pax.scatter(hash_match_SWF.compressed(), hash_mask_swf,\
-        s = 18, color='tab:blue', marker='$S$',label = 'SWF smoke')
+        s = 18, color='tab:blue', marker='o',label = 'SWF smoke')
     pax.scatter(nohash_match_SWF.compressed(), nohash_mask_swf,\
-        s = 18, color='tab:orange', marker='$S$',label = 'SWF clear')
+        s = 18, color='tab:orange', marker='o',label = 'SWF clear')
 
+    # Plot trend lines for each set
+    # -----------------------------
+    print("Calculating MODIS/SWF smoke trend")
+    plot_trend_line(pax, hash_match_SWF.compressed(), hash_mask_swf, \
+        color='tab:blue')
+    print("Calculating MODIS/SWF clear trend")
+    plot_trend_line(pax, nohash_match_SWF.compressed(), nohash_mask_swf, \
+        color='tab:orange')
+
+    print("Calculating MODIS/LWF smoke trend")
+    plot_trend_line(pax, hash_match_LWF.compressed(), hash_mask_lwf, \
+        color='tab:blue',  linestyle = '--')
+    print("Calculating MODIS/LWF clear trend")
+    plot_trend_line(pax, nohash_match_LWF.compressed(), nohash_mask_lwf, \
+        color='tab:orange', linestyle = '--')
+
+    pax.set_title('SWF smoke: '+str(np.round(shrval_p,3)) + '  SWF clear: ' + \
+         str(np.round(snrval_p,3)) + \
+        '\nLWF smoke: '+str(np.round(lhrval_p,3)) + '  LWF clear: ' + \
+        str(np.round(lnrval_p,3))) 
     pax.set_xlabel('Ch. ' + str(MODIS_data['channel']) +' [' + \
         channel_dict[str(MODIS_data['channel'])]['Bandwidth_label'] + \
         MODIS_data['variable'])
@@ -2880,7 +2984,8 @@ def plot_scatter_OMI_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
     ##!#nohash_match_LAT    = np.full(mask_LAT.shape, np.nan)
     ##!#nohash_match_LON    = np.full(mask_LON.shape, np.nan)
 
-    print(hash_plot_lat.shape)
+    if(debug):
+        print(hash_plot_lat.shape)
 
     # Loop over the lower-resolution CERES data.    
     # Either grab the nearest MODIS pixel to the CERES pixel
@@ -2937,7 +3042,7 @@ def plot_scatter_OMI_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
             ##!#    nohash_match_LWF[ii] = np.nanmean(hash_plot_data[ho_idx])
             ##!#    nohash_match_LAT[ii] = mask_LAT[ii]
             ##!#    nohash_match_LON[ii] = mask_LON[ii]
-            print(mask_LAT[ii], mask_LON[ii], LAT[ho_idx], LON[ho_idx])
+            #print(mask_LAT[ii], mask_LON[ii], LAT[ho_idx], LON[ho_idx])
             # ~hash_data.mask[ho_idx])
 
             # Average the n MODIS pixels around the current CERES
@@ -3028,28 +3133,77 @@ def plot_scatter_OMI_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
     ##!###!#    mask_lwf, 'LWF', tax5, zoom=True)
     ##!#plot_OMI_spatial(date_str, LAT, LON, mask_UVAI, tax6, zoom = True)
  
-    mask_total = mask_swf + mask_lwf
 
     lrval_p = spearmanr(total_omi_match_LWF.compressed(), \
         total_mask_lwf)[0]
 
     #print(hash_match_LWF.compressed(), hash_mask_lwf)
     pax.scatter(total_omi_match_LWF.compressed(), total_mask_lwf,\
-        s = 18, color='tab:orange', marker='$L$',label = 'LWF')
+        s = 18, color='tab:orange', marker='o',label = 'LWF')
+    print("Calculating OMI/LWF trend")
+    plot_trend_line(pax, total_omi_match_LWF.compressed(), total_mask_lwf, \
+        color='tab:orange')
     ##!#pax.scatter(nohash_match_LWF.compressed(), nohash_mask_lwf,\
     ##!#    s = 18, color='tab:orange', marker='$L$',label = 'LWF clear')
 
     srval_p = spearmanr(total_omi_match_SWF.compressed(), \
         total_mask_swf)[0]
     pax.scatter(total_omi_match_SWF.compressed(), total_mask_swf,\
-        s = 18, color='tab:blue', marker='$S$',label = 'SWF')
-    ##!#pax.scatter(nohash_match_SWF.compressed(), nohash_mask_swf,\
-    ##!#    s = 18, color='tab:orange', marker='$S$',label = 'SWF clear')
+        s = 18, color='tab:blue', marker='o',label = 'SWF')
+    print("Calculating OMI/SWF trend")
+    plot_trend_line(pax, total_omi_match_SWF.compressed(), total_mask_swf, \
+        color='tab:blue')
+
+    # ------------------------------------------------------------------------
+    #
+    # Calculate net forcing, which is found by
+    #   Tot = SW_N + LW_N
+    #   SW_N = SW_C - SW_A
+    #   LW_N = LW_C - LW_A
+    #   LW_C = average of all LW values for AI below 0.7
+    #   SW_C = average of all SW values for AI below 0.7
+    #
+    # ------------------------------------------------------------------------
+    clr_SW = np.nanmean(total_mask_swf[np.where(total_omi_match_SWF.compressed() < 0.7)])
+    clr_LW = np.nanmean(total_mask_lwf[np.where(total_omi_match_SWF.compressed() < 0.7)])
+    print("clear_SW = ",clr_SW," clear_LW = ",clr_LW)
+
+    net_SW = total_mask_swf - clr_SW
+    net_LW = total_mask_lwf - clr_LW
+
+    total_net = net_SW + net_LW
+
+    mask_total = total_mask_swf + total_mask_lwf
+    trval_p = spearmanr(total_omi_match_SWF.compressed(), \
+        total_net)[0]
+    ##!#mask_total = total_mask_swf + total_mask_lwf
+    ##!#trval_p = spearmanr(total_omi_match_SWF.compressed(), \
+    ##!#    mask_total)[0]
+
+
+    pax2 = pax.twinx()
+    pax2.scatter(total_omi_match_SWF.compressed(),total_net, s = 18, \
+        color='tab:olive',marker='o', label = 'Total Net')
+    print("Calculating OMI/Total Net trend")
+    plot_trend_line(pax2, total_omi_match_SWF.compressed(), total_net, \
+        color='tab:olive')
 
     pax.set_xlabel('OMI AI')
     pax.set_ylabel('CERES TOA Flux [W/m2]')
+
+    ##!#lines_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
+    ##!#lines, labels = [sum(lol, []) for lol in zip(*lines_labels)]
+    ##!#if(compare_OMI):
+    ##!#    plt.legend(lines, labels, loc = 'lower center', bbox_to_anchor = (0, 0.01, 1, 1),\
+    ##!#        bbox_transform = plt.gcf().transFigure, ncol=2)
+    ##!#else:
+    ##!#    plt.legend(lines, labels, loc = 'right', bbox_to_anchor = (0, 0., 1.0, 1),\
+    ##!#        bbox_transform = plt.gcf().transFigure, ncol=1)
+
     pax.legend()
     #pax.set_title('Smoke correlation: '+str(np.round(lrval_p, 3)))
+    pax.set_title('OMI/SWF: '+str(np.round(srval_p,3)) + '  OMI/LWF: ' + \
+        str(np.round(lrval_p,3)) + '\nOMI/Total:  ' + str(np.round(trval_p,3)))
 
 def plot_OMI_spatial(date_str, LAT, LON, mask_UVAI, pax, zoom = False):
 
@@ -3086,10 +3240,11 @@ def plot_combined_imagery(date_str,channel1 = 1, channel2 = 5, channel3 = 31,\
     
     plt.close('all')
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
-    mapcrs = ccrs.LambertConformal(central_longitude = \
-        np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
-        central_latitude = \
-        np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
+    mapcrs = init_proj(date_str)
+    #mapcrs = ccrs.LambertConformal(central_longitude = \
+    #    np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
+    #    central_latitude = \
+    #    np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
 
     # Read true color data for this date
     var, crs, lat_lims, lon_lims = read_true_color(date_str,composite=composite)
@@ -3232,6 +3387,8 @@ def plot_combined_imagery(date_str,channel1 = 1, channel2 = 5, channel3 = 31,\
             hash_data1, hatch = '////', alpha=0., transform = datacrs)
         ax7.pcolor(MODIS_data1['lon'],MODIS_data1['lat'],\
             hash_data1, hatch = '////', alpha=0., transform = datacrs)
+
+    fig.tight_layout()
 
     if(save):
         outname = 'modis_combined_imagery_' + date_str + zoom_add + '.png'
@@ -3391,7 +3548,7 @@ def plot_combined_scatter(date_str,channel0 = 31, channel1 = 1, channel2 = 5,\
     plot_scatter_CERES(date_str, MODIS_data0, ax3, avg_pixel = avg_pixel,\
         plume_only = plume_only)
 
-
+    fig.tight_layout()
 
     ##!#plot_CERES_spatial(date_str,mask_LAT, mask_LON, mask_swf, 'SWF', ax6, zoom = zoom)
     ##!#plot_CERES_spatial(date_str,mask_LAT, mask_LON, mask_lwf, 'LWF', ax7, zoom = zoom)
