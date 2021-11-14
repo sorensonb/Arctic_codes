@@ -51,6 +51,13 @@ proj_dict = {
     'Finland': ccrs.NorthPolarStereo(central_longitude = 35.) 
 }
 
+# This contains the smokey station for each case
+case_dict = {
+    '202107132110': 'O05',
+    '202107222110': 'O05',
+    '202108062025': 'TPH',
+}
+
 channel_dict = {
     '1': {
         'Name': 'EV_250_Aggr1km_RefSB',\
@@ -294,8 +301,8 @@ plot_limits_dict = {
             'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.21.205.L2.SUBS2RET.v6.0.32.0.G21203185004.hdf'],
             'Lat': [39.5, 42.0],
             'Lon': [-122.0, -119.5],
-            'modis_Lat': [39.0, 42.5],
-            'modis_Lon': [-123., -119.]
+            'modis_Lat': [39.0, 43.0],
+            'modis_Lon': [-123.0, -118.5]
         }
     },
     "2021-07-22": {
@@ -307,8 +314,10 @@ plot_limits_dict = {
             'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.22.212.L2.SUBS2RET.v6.0.32.0.G21204140844.hdf'],
             'Lat': [39.5, 42.0],
             'Lon': [-122.0, -119.5],
-            'modis_Lat': [39.5, 42.0],
-            'modis_Lon': [-122.0, -119.5]
+            #'modis_Lat': [39.5, 42.0],
+            #'modis_Lon': [-122.0, -119.5]
+            'modis_Lat': [39.0, 43.0],
+            'modis_Lon': [-123.0, -118.5]
         }
     },
     "2021-08-04": {
@@ -331,6 +340,7 @@ plot_limits_dict = {
             'asos': 'asos_data_20210805.csv',
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021217.2120.061.2021218164201.hdf',
             'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021217.2120.061.2021218165546.hdf',
+            'ceres': '/home/bsorenson/data/CERES/FLASHFlux/Aqua/FLASH_SSF_Aqua_Version4A_Subset_2021080508-2021080521.nc',
             'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.05.214.L2.SUBS2RET.v6.0.32.0.G21218175548.hdf'],
             'Lat': [36.0, 39.0],
             'Lon': [-118.0, -114.0],
@@ -552,9 +562,12 @@ def nearest_grid_values(MODIS_data):
  
 # Plot the downloaded ASOS stations for each case
 # ----------------------------------------------- 
-def plot_ASOS_locs(pax,MODIS_data,color='red'):
+def plot_ASOS_locs(pax,date_str,crs = datacrs, color='red'):
+    dt_date_str = datetime.strptime(date_str,'%Y%m%d%H%M')
+    cross_date = dt_date_str.strftime('%Y-%m-%d')
+    file_date  = dt_date_str.strftime('%H%M')
     # Read in the correct ASOS file 
-    asos_file = plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['asos']
+    asos_file = plot_limits_dict[cross_date][file_date]['asos']
     df = pd.read_csv(asos_file)
 
     station_names = set(df['station'].values)
@@ -562,7 +575,7 @@ def plot_ASOS_locs(pax,MODIS_data,color='red'):
         lat_stn = df['lat'][df['station'] == station].values[0]
         lon_stn = df['lon'][df['station'] == station].values[0]
         pax.text(lon_stn, lat_stn, station, fontsize=10,weight='bold', \
-            transform=datacrs, color=color)
+            transform=crs, color=color)
 
 # Determine areas of an image that are in smoke, defined by:
 #    (ch1_refl - ch5_refl) < mean(ch1_refl - ch5_refl) * 0.25
@@ -1742,13 +1755,13 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
 
     if(plot_ASOS_loc):
         print("Plotting ASOS site")
-        plot_ASOS_locs(ax0,MODIS_data1,color='lime')
-        plot_ASOS_locs(ax1,MODIS_data1,color='lime')
-        plot_ASOS_locs(ax2,MODIS_data1,color='lime')
-        if(compare_OMI): plot_ASOS_locs(axo,MODIS_data1,color='black')
+        plot_ASOS_locs(ax0,date_str,color='lime')
+        plot_ASOS_locs(ax1,date_str,color='lime')
+        plot_ASOS_locs(ax2,date_str,color='lime')
+        if(compare_OMI): plot_ASOS_locs(axo,date_str,color='black')
         if(compare_CERES): 
-            plot_ASOS_locs(axcs,MODIS_data1,color='black')
-            plot_ASOS_locs(axcl,MODIS_data1,color='black')
+            plot_ASOS_locs(axcs,date_str,color='black')
+            plot_ASOS_locs(axcl,date_str,color='black')
 
     cross_date = MODIS_data1['cross_date']
     file_time  = MODIS_data1['file_time']
@@ -1971,8 +1984,8 @@ def compare_MODIS_channels(date_str,channel1,channel2,zoom=True,save=False,\
 
     if(plot_ASOS_loc):
         print("Plotting ASOS site")
-        plot_ASOS_locs(ax0,MODIS_data1)
-        plot_ASOS_locs(ax1,MODIS_data1)
+        plot_ASOS_locs(ax0,date_str)
+        plot_ASOS_locs(ax1,date_str)
 
     if(save):
         cross_date = MODIS_data1['cross_date']
@@ -3435,7 +3448,7 @@ def plot_combined_scatter(date_str,channel0 = 31, channel1 = 1, channel2 = 5,\
     # For 20210722:
     #
     # ------------------------------------------------------------------------
-    if(date_str == '202107222110'):
+    if((date_str == '202107222110') | (date_str == '202108052120')):
         # Read true color data for the previous date
 
         fig = plt.figure(figsize=(9,9))
@@ -3561,6 +3574,250 @@ def plot_combined_scatter(date_str,channel0 = 31, channel1 = 1, channel2 = 5,\
             pixel_add = '_avgpixel' 
         outname = 'modis_combined_scatter_' + date_str + plume_add + \
             pixel_add + '.png'
+        fig.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
+def plot_meteogram_compare(date_str, zoom=True, save=False, composite=True, \
+        show_smoke = False):
+    
+    plt.close('all')
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+    mapcrs = init_proj(date_str)
+
+    # -----------------------------------------------------------------------     
+    #
+    # Figure format:
+    #   
+    #       1. True color / ch1 clear day      2. True color / ch1 smoke day
+    #
+    #                       3. Meteogram
+    #                       4. Meteogram
+    #       
+    # -----------------------------------------------------------------------     
+    fig = plt.figure(figsize=(8,12))
+    gs  = plt.GridSpec(3, 2, wspace=0.4, hspace=0.05, figure = fig)
+    ax2 = plt.subplot(gs[1,:])
+    ax3 = plt.subplot(gs[2,:])
+
+    # -----------------------------------------------------------------------     
+    #
+    # Axis 0: True color image of clear day
+    #
+    # -----------------------------------------------------------------------     
+
+    if(date_str == '202107222110'):
+        prev_str = '202107212030'
+    elif(date_str == '202108062025'):
+        prev_str = '202108052120'
+
+    dt_prev_str = datetime.strptime(prev_str, '%Y%m%d%H%M')
+
+    # Read true color data for both dates
+    # -----------------------------------
+    var1, crs1, lat_lims1, lon_lims1 = \
+        read_true_color(prev_str,composite=composite)
+    ax0 = plt.subplot(gs[0,0],projection=crs1)
+
+    # Plot the true-color data for the previous date
+    # ----------------------------------------------
+    ax0.imshow(var1.data, transform = crs1, extent=(var1.x[0], var1.x[-1], \
+        var1.y[-1], var1.y[0]), origin='upper')
+
+    plot_ASOS_locs(ax0,date_str,color='lime')
+
+    # Zoom in the figure if desired
+    # -----------------------------
+    if(zoom):
+        ax0.set_extent([lon_lims1[0],lon_lims1[1],lat_lims1[0],\
+            lat_lims1[1]],crs = datacrs)
+    ax0.set_title('Aqua MODIS\n' + dt_prev_str.strftime('%Y-%m-%d %H:%M'))
+
+    # -----------------------------------------------------------------------     
+    #
+    # Axis 1: True color image of smokey day
+    #
+    # -----------------------------------------------------------------------     
+    var, crs, lat_lims, lon_lims     = \
+        read_true_color(date_str,composite=composite)
+    ax1 = plt.subplot(gs[0,1],projection=crs)
+
+    # Plot the true-color data for the case date
+    # ----------------------------------------------
+    ax1.imshow(var.data, transform = crs, extent=(var.x[0], var.x[-1], \
+        var.y[-1], var.y[0]), origin='upper')
+
+    plot_ASOS_locs(ax1,date_str,color='lime')
+    # Zoom in the figure if desired
+    # -----------------------------
+    if(zoom):
+        ax1.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],\
+            lat_lims[1]],crs = datacrs)
+    ax1.set_title('Aqua MODIS\n' + dt_date_str.strftime('%Y-%m-%d %H:%M'))
+
+    # -----------------------------------------------------------------------     
+    #
+    # Axis 2: Meteogram of ASOS data     
+    # Axis 3: Difference in temperatures between smokey station and clear
+    # stations
+    #
+    # -----------------------------------------------------------------------     
+    colors = ['tab:blue','tab:orange','tab:green','tab:red','tab:purple',\
+        'tab:brown','tab:pink','tab:gray','tab:olive','tab:cyan']
+
+    # Open the ASOS data file
+    # -----------------------
+    df = pd.read_csv(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][\
+        dt_date_str.strftime('%H%M')]['asos'])
+
+    # Read ASOS data for the current date
+    # -----------------------------------
+    station_names = sorted(set(df['station'].values))
+    for ii, station in enumerate(station_names):
+        time_stn = df['valid'][df['station'] == station]
+        tmpc_stn = pd.to_numeric(df['tmpc'][df['station'] == station], errors='coerce').values
+        drct_stn = pd.to_numeric(df['drct'][df['station'] == station], errors='coerce').values
+        pwxc_stn = df['wxcodes'][df['station'] == station].values
+        lat_stn = df['lat'][df['station'] == station].values[0]
+        lon_stn = df['lon'][df['station'] == station].values[0]
+
+        # Remove masked data
+        # ------------------
+        indices = np.where(~np.isnan(tmpc_stn))
+        time_stn = time_stn.values[indices] 
+        tmpc_stn = np.ma.masked_invalid(tmpc_stn).compressed()
+        drct_stn = np.ma.masked_invalid(drct_stn).compressed()
+        pwxc_stn = pwxc_stn[indices]
+
+        time_stn = np.array([datetime.strptime(ttstn,"%Y-%m-%d %H:%M") \
+            for ttstn in time_stn])
+
+        dtime_stn = [ttime - timedelta(hours = 5) for ttime in time_stn]
+
+        if(station != case_dict[dt_date_str.strftime('%Y%m%d%H%M')]):
+            time_ref = df['valid'][df['station'] == \
+                case_dict[dt_date_str.strftime('%Y%m%d%H%M')]]
+            tmpc_ref = pd.to_numeric(df['tmpc'][df['station'] == \
+                case_dict[dt_date_str.strftime('%Y%m%d%H%M')]], errors='coerce').values
+
+            indices_ref = np.where(~np.isnan(tmpc_ref))
+            time_ref = time_ref.values[indices_ref] 
+            tmpc_ref = np.ma.masked_invalid(tmpc_ref).compressed()
+        
+            time_ref = np.array([datetime.strptime(ttref,"%Y-%m-%d %H:%M") \
+                for ttref in time_ref])
+
+            if(len(tmpc_ref) > len(tmpc_stn)):
+                # Reference data are larger than station data. Make an array
+                # of size of station data, loop over station times, find where
+                # the reference time matches the current station time, insert
+                # the reference data into the copy array.
+                # ----------------------------------------------------------
+
+                work_time = np.copy(time_stn)
+                match_tmpc_ref = np.full((tmpc_stn.size), np.nan)
+   
+                # Loop over the station times and find the station time
+                # that matches the current reference time
+                for jj in range(len(time_stn)):
+                    time_offsets = np.array([(ttref - \
+                        time_stn[jj]).total_seconds()/60. \
+                        for ttref in time_ref])
+                    close_vals = np.where(abs(time_offsets) < 10.)[0]
+                    if(len(close_vals) > 0):
+                        locator = np.argmin(abs(time_offsets[close_vals])) 
+                        match_tmpc_ref[jj] = tmpc_ref[close_vals[locator]]
+
+                tmpc_dif = match_tmpc_ref - tmpc_stn
+
+            else:
+                # Station data are larger than reference data. Make an array
+                # of size of reference data, loop over reference times, find 
+                # where the station time matches the current reference time, 
+                # insert the station data into the copy array.
+                # ----------------------------------------------------------
+                work_time = np.copy(time_ref)
+                match_tmpc_stn = np.full((tmpc_ref.size), np.nan)
+    
+                # Loop over the reference times and find the station time
+                # that matches the current reference time
+                for jj in range(len(time_ref)):
+                    time_offsets = np.array([(ttref - \
+                        time_stn[jj]).total_seconds()/60. \
+                        for ttref in time_ref])
+                    close_vals = np.where(abs(time_offsets) < 10.)[0]
+                    if(len(close_vals) > 0):
+                        locator = np.argmin(abs(time_offsets[close_vals])) 
+                        match_tmpc_stn[jj] = tmpc_stn[close_vals[locator]]
+
+                ## Loop over the reference times and grab  
+                tmpc_dif = tmpc_ref - match_tmpc_stn 
+ 
+            ax3.plot(dtime_stn,tmpc_dif,label=station, color=colors[ii])
+    
+        # Plot the temp data differently for when it reports smoke/haze
+        # -------------------------------------------------------------
+        tmpc_stn_hz = np.copy(tmpc_stn)
+        tmpc_stn_nohz = np.copy(tmpc_stn)
+        tmpc_stn_hz   = np.ma.masked_where((pwxc_stn != 'HZ') & \
+            (pwxc_stn != 'FU'), tmpc_stn_hz)
+        tmpc_stn_nohz = np.ma.masked_where((pwxc_stn == 'HZ') | \
+            (pwxc_stn == 'FU'), tmpc_stn_nohz)
+    
+        ax2.plot(dtime_stn,tmpc_stn,label=station, color=colors[ii])
+        #ax.plot(dtime_stn,tmpc_stn_nohz,label=station, color=colors[ii])
+        #ax.plot(dtime_stn,tmpc_stn_hz,'--', label=station, color=colors[ii])
+        print(station, lat_stn, lon_stn)
+        #ax2.text(lon_stn, lat_stn, station, transform=datacrs, color=colors[ii])
+    
+        #ax3.plot(dtime_stn,drct_stn_nohz,label=station, color=colors[ii])
+        #ax3.plot(dtime_stn,drct_stn_hz,'--', label=station, color=colors[ii])
+    
+    # Convert the file time to a plot_limits_dict format
+    #event_date = datetime.strptime(infile.split('/')[-1].split('_')[-1][:8], "%Y%m%d")
+    #grabber_date = event_date.strftime('%Y-%m-%d')
+    #first_time = list(plot_limits_dict[grabber_date].keys())[0]
+    
+    # Pull the event time from the plot_limits_dict
+    #event_dtime = event_date + timedelta(hours = int(first_time[:2]), \
+    #    minutes = int(first_time[2:4]))
+    
+    # Plot a vertical line at the time of the MODIS overpass
+    # ------------------------------------------------------
+    ax2.axvline(dt_date_str,color='black',lw=2,alpha=0.75,label='MODIS' \
+        + dt_date_str.strftime('%H:%M'))
+    ax3.axvline(dt_date_str,color='black',lw=2,alpha=0.75)
+
+    # Plot a vertical line at the time of the clear MODIS overpass
+    # ------------------------------------------------------------
+    ax2.axvline(dt_prev_str,color='grey',lw=2,alpha=0.75,label='MODIS' \
+        + dt_prev_str.strftime('%H:%M'))
+    ax3.axvline(dt_prev_str,color='grey',lw=2,alpha=0.75)
+
+    # Plot a horizontal line at 0
+    # ---------------------------
+    ax3.axhline(0,color='grey',linestyle='--',lw=2,alpha=0.75)
+    #ax3.axvline(event_dtime,color='tab:red',lw=2,alpha=0.75)
+
+    ax3.sharex(ax2)
+    #ax1.sharey(ax3) 
+
+ 
+    ax3.set_xlabel('Time [UTC]')
+    ax2.set_ylabel('2-m Temperature [$^{o}$C]')
+    ax3.set_ylabel('T(' + case_dict[dt_date_str.strftime('%Y%m%d%H%M')] + \
+        ') - T(other stations)')
+    ax2.legend()
+    #ax2.set_title(dt_date_str.strftime('%Y-%m-%d %H:%M'))
+    
+    ax2.tick_params(axis="x", \
+        labelbottom = False)
+ 
+    fig.tight_layout()
+
+    if(save):
+        outname = 'modis_combined_station_' + date_str + '.png'
         fig.savefig(outname,dpi=300)
         print("Saved image",outname)
     else:
