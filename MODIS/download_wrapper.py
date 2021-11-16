@@ -10,7 +10,6 @@ import os
 import sys
 import numpy as np
 import requests
-import pandas as pd
 
 #files = main()
 
@@ -21,32 +20,55 @@ import pandas as pd
 ##!#    return elevation
 
 args = sys.argv
-if(len(sys.argv) < 3):
-    print("SYNTAX: ./asos_download_wrapper.py YYYYMMDD [at least one station]")
+if(len(sys.argv) < 5):
+    print("SYNTAX: ./asos_download_wrapper.py case_date start_date end_date [at least one station]")
+    print("     case_date, start_date and end_date are both formatted YYYYMMDD")
     print("     stations must be 3-letter ICAO IDs (GFK, FAR, CKN...)")
     sys.exit()
 
-date = sys.argv[1]
-stns = sys.argv[2:]
+case_date  = sys.argv[1]
+start_date = sys.argv[2]
+end_date   = sys.argv[3]
+stns = sys.argv[4:]
 
 # Create dictionary to hold the elevations for each station
 # ---------------------------------------------------------
 ##stn_dict = {}
 
 with open("./stations.txt","w") as fout:
-    for stn in sys.argv[2:]:
+    for stn in stns:
         fout.write(stn + "\n")
 
-year  = int(date[:4])
-month = int(date[4:6])
-day   = int(date[6:8])
+# Extract year, month, and day information from the start and end dates
+# ---------------------------------------------------------------------
+s_year  = int(start_date[:4])
+s_month = int(start_date[4:6])
+s_day   = int(start_date[6:8])
 
-print(date)
-files = main(year,month,day)
+e_year  = int(end_date[:4])
+e_month = int(end_date[4:6])
+e_day   = int(end_date[6:8])
 
-outfile = 'asos_data_' + date + '.csv'
+print(start_date, end_date)
+
+outfile = 'asos_data_' + case_date + '.csv'
 if(os.path.exists(outfile)):
-    outfile = 'asos_data_' + date + '_2.csv'
+    add_num = 2
+    outfile = 'asos_data_' + case_date + '_' + str(add_num) + '.csv'
+    while(os.path.exists(outfile)):
+        print(outfile)
+        add_num += 1
+        outfile = 'asos_data_' + case_date + '_' + str(add_num) + '.csv'
+
+print(outfile)
+
+# Call the main function from auto_asos_downloader to retrieve the METARS
+# for the provided dates and the provided locations. 'files' contains a
+# list of all the auto-generated files created by the downloader, so these
+# files will be concatenated into one large file.
+# ------------------------------------------------------------------------
+files = main(s_year,s_month,s_day,e_year,e_month,e_day)
+#files = main(year,month,day)
 
 convert_temp = False
 with open (outfile,'w') as fout:

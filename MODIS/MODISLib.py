@@ -295,29 +295,62 @@ plot_limits_dict = {
     },
     "2021-07-21": {
         '2030': {
-            'asos': 'asos_data_20210722.csv',
+            'asos': 'asos_data_20210722_2.csv',
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021202.2030.061.2021203174050.hdf',
             'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072109-2021072122.nc',
             'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.21.205.L2.SUBS2RET.v6.0.32.0.G21203185004.hdf'],
+            #'Lat': [39.5, 42.0],
+            #'Lon': [-122.0, -119.5],
             'Lat': [39.5, 42.0],
             'Lon': [-122.0, -119.5],
-            'modis_Lat': [39.0, 43.0],
-            'modis_Lon': [-123.0, -118.5]
+            'data_lim': {
+                1:  [0.05, 0.5],
+                31: [270., 330.],
+            },
+            'modis_Lat': [39.5, 42.0],
+            'modis_Lon': [-122.0, -119.5]
         }
     },
     "2021-07-22": {
         '2110': {
-            'asos': 'asos_data_20210722.csv',
+            'asos': 'asos_data_20210722_2.csv',
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021203.2110.061.2021204155922.hdf',
             'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021203.2110.061.2021204163638.hdf',
             'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072210-2021072221.nc',
             'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.22.212.L2.SUBS2RET.v6.0.32.0.G21204140844.hdf'],
             'Lat': [39.5, 42.0],
             'Lon': [-122.0, -119.5],
+            #'Lat': [39.5, 42.0],
+            #'Lon': [-122.0, -119.5],
+            'data_lim': {
+                1:  [0.05, 0.5],
+                31: [270., 330.],
+            },
             #'modis_Lat': [39.5, 42.0],
             #'modis_Lon': [-122.0, -119.5]
-            'modis_Lat': [39.0, 43.0],
-            'modis_Lon': [-123.0, -118.5]
+            'modis_Lat': [39.5, 42.0],
+            'modis_Lon': [-122.0, -119.5]
+        }
+    },
+    "2021-07-23": {
+        '2155': {
+            'asos': 'asos_data_20210722_2.csv',
+            'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021204.2155.061.2021205153516.hdf',
+            #'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021203.2110.061.2021204163638.hdf',
+            #'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072210-2021072221.nc',
+            #'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.22.212.L2.SUBS2RET.v6.0.32.0.G21204140844.hdf'],
+            'Lat': [39.5, 42.0],
+            'Lon': [-122.0, -119.5],
+            #'Lat': [39.5, 42.0],
+            #'Lon': [-122.0, -119.5],
+            'data_lim': {
+                1:  [0.05, 0.5],
+                31: [270., 330.],
+            },
+            #'modis_Lat': [39.5, 42.0],
+            #'modis_Lon': [-122.0, -119.5]
+            'modis_Lat': [39.5, 42.0],
+            'modis_Lon': [-122.0, -119.5]
         }
     },
     "2021-08-04": {
@@ -378,7 +411,7 @@ plot_limits_dict = {
         '2110': {
             'asos': 'asos_data_20210806.csv',
             #'asos': 'asos_nevada_20210806.csv',
-            #'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021218.2025.061.2021219151802.hdf',
+            'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021219.2110.061.2021220151612.hdf',
             #'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021218.2025.061.2021219152751.hdf',
             'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.07.212.L2.SUBS2RET.v6.0.32.0.G21220123225.hdf'],\
             #'omi': '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0806t1943-o90747_v003-2021m0808t031152.he5',
@@ -444,6 +477,24 @@ def plot_trend_line(pax, xdata, ydata, color='black', linestyle = '-'):
     # Then, plot the trend line on the figure
     pax.plot(np.unique(xdata), np.poly1d(zdata)(np.unique(xdata)), \
         color=color, linestyle = linestyle)
+
+def plot_subplot_label(ax, label, xval = None, yval = None, transform = None, \
+        color = 'black', fontsize = 14):
+
+    if(xval is None):
+        xval = ax.get_xlim()[1] * 0.05
+    if(yval is None):
+        yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.90
+    print('Xval = ',xval, 'Yval = ',yval)
+
+    if(transform is None):
+        ax.text(xval,yval,label, \
+            color=color, weight='bold', \
+            fontsize=fontsize)
+    else:
+        ax.text(xval,yval,label, \
+            color=color, weight='bold', \
+            transform = transform, fontsize=fontsize)
 
 
 def getCorners_1d(centers):
@@ -574,8 +625,14 @@ def plot_ASOS_locs(pax,date_str,crs = datacrs, color='red'):
     for ii, station in enumerate(station_names):
         lat_stn = df['lat'][df['station'] == station].values[0]
         lon_stn = df['lon'][df['station'] == station].values[0]
-        pax.text(lon_stn, lat_stn, station, fontsize=10,weight='bold', \
-            transform=crs, color=color)
+
+        pax.plot(lon_stn, lat_stn,
+                 color=color, linewidth=2, marker='o',
+                 transform=crs,
+                 )
+
+        pax.text(lon_stn + 0.1, lat_stn + 0.1, station, fontsize=10, \
+            weight='bold', transform=crs, color=color)
 
 # Determine areas of an image that are in smoke, defined by:
 #    (ch1_refl - ch5_refl) < mean(ch1_refl - ch5_refl) * 0.25
@@ -1126,6 +1183,14 @@ def read_MODIS_channel(date_str, channel, zoom = False):
     lat5 = modis.select('Latitude').get()
     lon5 = modis.select('Longitude').get()
 
+    sza = modis.select('SolarZenith').get() * modis.select('SolarZenith').attributes().get('scale_factor')
+    vza = modis.select('SensorZenith').get() * modis.select('SensorZenith').attributes().get('scale_factor')
+
+    #print('Sensor zenith: ', modis.select('SensorZenith').get().shape)
+    #print('Sensor zenith scale: ', modis.select('SensorZenith').attributes().get('scale_factor'))
+    #print('Solar zenith: ', modis.select('SolarZenith').get().shape)
+    #print('Solar zenith scale: ', modis.select('SolarZenith').attributes().get('scale_factor'))
+
     data  = modis.select(channel_dict[str(channel)]['Name']).get()
     if(str(channel)[2:] != '_ir'):
         if(str(channel) != 'wv_nir'):
@@ -1243,6 +1308,8 @@ def read_MODIS_channel(date_str, channel, zoom = False):
     MODIS_data['data'] = data
     MODIS_data['lat']  = lat5
     MODIS_data['lon']  = lon5
+    MODIS_data['sza']  = sza
+    MODIS_data['vza']  = vza
     MODIS_data['variable']  = label
     MODIS_data['cross_date']  = cross_date
     MODIS_data['channel']  = channel
@@ -2208,10 +2275,15 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
 
 def plot_MODIS_spatial(MODIS_data, pax, zoom):
 
-    if(MODIS_data['channel'] == 'wv_ir'):
-        vmax = 1.5
+    if('data_lim' in plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']].keys()):
+        vmin = plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['data_lim'][MODIS_data['channel']][0]
+        vmax = plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['data_lim'][MODIS_data['channel']][1]
     else:
-        vmax = np.nanmax(MODIS_data['data'])
+        if(MODIS_data['channel'] == 'wv_ir'):
+            vmax = 1.5
+        else:
+            vmax = np.nanmax(MODIS_data['data'])
+        vmin = np.nanmin(MODIS_data['data'])
 
     #mesh = ax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\
     #    MODIS_data['data'],cmap = MODIS_data['colors'], shading='auto', \
@@ -2220,11 +2292,11 @@ def plot_MODIS_spatial(MODIS_data, pax, zoom):
     # Plot channel 1
     mesh1 = pax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\
         MODIS_data['data'],cmap = MODIS_data['colors'], shading='auto', \
-        vmin = np.nanmin(MODIS_data['data']), \
+        vmin = vmin, \
         vmax = vmax, transform = datacrs) 
 
     cbar1 = plt.colorbar(mesh1,ax=pax,orientation='vertical',\
-        pad=0.03,label=MODIS_data['variable'])
+        shrink = 0.870, pad=0.03,label=MODIS_data['variable'])
 
     pax.add_feature(cfeature.BORDERS)
     pax.add_feature(cfeature.STATES)
@@ -2298,7 +2370,7 @@ def plot_scatter(lax,data1, data2, MODIS_data1, MODIS_data2, hash_data1):
         color='tab:orange')
 
     if(MODIS_data2['channel'] == 'wv_ir'):
-        lax.set_ylim(lax.get_ylim()[0], 1.5)
+        lax.set_ylim(lax.get_ylim()[0], 2.0)
         #vmax = 1.5
     #else:
     #    vmax = np.nanmax(MODIS_data['data'])
@@ -3181,8 +3253,10 @@ def plot_scatter_OMI_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
     clr_LW = np.nanmean(total_mask_lwf[np.where(total_omi_match_SWF.compressed() < 0.7)])
     print("clear_SW = ",clr_SW," clear_LW = ",clr_LW)
 
-    net_SW = total_mask_swf - clr_SW
-    net_LW = total_mask_lwf - clr_LW
+    #net_SW = total_mask_swf - clr_SW
+    #net_LW = total_mask_lwf - clr_LW
+    net_SW = total_mask_swf
+    net_LW = total_mask_lwf
 
     total_net = net_SW + net_LW
 
@@ -3194,11 +3268,11 @@ def plot_scatter_OMI_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
     ##!#    mask_total)[0]
 
 
-    pax2 = pax.twinx()
-    pax2.scatter(total_omi_match_SWF.compressed(),total_net, s = 18, \
+    #pax2 = pax.twinx()
+    pax.scatter(total_omi_match_SWF.compressed(),total_net, s = 18, \
         color='tab:olive',marker='o', label = 'Total Net')
     print("Calculating OMI/Total Net trend")
-    plot_trend_line(pax2, total_omi_match_SWF.compressed(), total_net, \
+    plot_trend_line(pax, total_omi_match_SWF.compressed(), total_net, \
         color='tab:olive')
 
     pax.set_xlabel('OMI AI')
@@ -3579,8 +3653,151 @@ def plot_combined_scatter(date_str,channel0 = 31, channel1 = 1, channel2 = 5,\
     else:
         plt.show()
 
-def plot_meteogram_compare(date_str, zoom=True, save=False, composite=True, \
-        show_smoke = False):
+def plot_scatter_select(composite = True, avg_pixel = True, \
+        plume_only = False,zoom = True, save=False):
+    
+    plt.close('all')
+    date_str_July = '202107222110'
+    date_str_Aug  = '202108062025'
+    dt_date_July = datetime.strptime(date_str_July,"%Y%m%d%H%M")
+    dt_date_Aug  = datetime.strptime(date_str_Aug,"%Y%m%d%H%M")
+
+    # ----------------------------------------------------------------------
+    #
+    # Read the MODIS data
+    #
+    # ----------------------------------------------------------------------
+
+    # Call read_MODIS_channel to read the desired MODIS data from the file 
+    # and put it in a dictionary
+    # ---------------------------------------------------------------------
+    MODIS_dataJul31 = read_MODIS_channel(date_str_July,31, zoom = zoom)
+    MODIS_dataAug31 = read_MODIS_channel(date_str_Aug, 31, zoom = zoom)
+
+    ##!## Determine where the smoke is located
+    ##!## ------------------------------------
+    ##!#hash_data, nohash_data = find_plume(dt_date_str.strftime('%Y%m%d%H%M')) 
+
+    ##!#tmp_data0 = np.copy(MODIS_data0['data'])
+    ##!#tmp_data1 = np.copy(MODIS_data1['data'])
+    ##!#tmp_data2 = np.copy(MODIS_data2['data'])
+    ##!#tmp_dataw = np.copy(MODIS_dataw['data'])
+    ##!#tmp_lat0  = np.copy(MODIS_data0['lat'])
+    ##!#tmp_lon0  = np.copy(MODIS_data0['lon'])
+
+    ##!#if(not (tmp_data0.shape == tmp_data1.shape == tmp_data2.shape == \
+    ##!#        tmp_dataw.shape == hash_data.shape)):
+    ##!#    print("shape mismatch")
+    ##!#    shapes = []
+    ##!#    shapes.append(tmp_data0.shape)
+    ##!#    shapes.append(tmp_data1.shape)
+    ##!#    shapes.append(tmp_data2.shape)
+    ##!#    shapes.append(tmp_dataw.shape)
+    ##!#    shapes.append(hash_data.shape)
+
+    ##!#    min_shape = min(shapes)
+    ##!#    print(min_shape)
+
+    ##!#    tmp_data0  = tmp_data0[:min_shape[0],:min_shape[1]]
+    ##!#    tmp_data1  = tmp_data1[:min_shape[0],:min_shape[1]]
+    ##!#    tmp_data2  = tmp_data2[:min_shape[0],:min_shape[1]]
+    ##!#    tmp_dataw  = tmp_dataw[:min_shape[0],:min_shape[1]]
+    ##!#    tmp_lat0   = tmp_lat0[:min_shape[0],:min_shape[1]]
+    ##!#    tmp_lon0   = tmp_lon0[:min_shape[0],:min_shape[1]]
+    ##!#    hash_data  = hash_data[:min_shape[0],:min_shape[1]]
+
+    ##!#max_ch = 350.
+
+    ##!#tmp_data0 = np.ma.masked_where( (abs(tmp_data1) > max_ch) | \
+    ##!#    (abs(tmp_data0) > max_ch) | (abs(tmp_data2) > max_ch) | \
+    ##!#    (abs(tmp_dataw) > max_ch), tmp_data0)
+    ##!#tmp_data1 = np.ma.masked_where( (abs(tmp_data1) > max_ch) | \
+    ##!#    (abs(tmp_data0) > max_ch) | (abs(tmp_data2) > max_ch) | \
+    ##!#    (abs(tmp_dataw) > max_ch), tmp_data1)
+    ##!#tmp_data2 = np.ma.masked_where( (abs(tmp_data1) > max_ch) | \
+    ##!#    (abs(tmp_data0) > max_ch) | (abs(tmp_data2) > max_ch) | \
+    ##!#    (abs(tmp_dataw) > max_ch), tmp_data2)
+    ##!#tmp_dataw = np.ma.masked_where( (abs(tmp_data1) > max_ch) | \
+    ##!#    (abs(tmp_data0) > max_ch) | (abs(tmp_data2) > max_ch) | \
+    ##!#    (abs(tmp_dataw) > max_ch), tmp_dataw)
+    ##!###!#hash_data = np.ma.masked_where( (abs(tmp_data1) > max_ch) | \
+    ##!###!#    (abs(tmp_data0) > max_ch) | \
+    ##!###!#    (abs(tmp_data2) > max_ch) | (abs(tmp_dataw) > max_ch) | \
+    ##!###!#    (abs(hash_data) > max_ch), hash_data)
+    ##!#tmp_lat0 = np.ma.masked_where( (abs(tmp_data1) > max_ch) | \
+    ##!#    (abs(tmp_data0) > max_ch) | (abs(tmp_data2) > max_ch) | \
+    ##!#    (abs(tmp_dataw) > max_ch), tmp_lat0)
+    ##!#tmp_lon0 = np.ma.masked_where( (abs(tmp_data1) > max_ch) | \
+    ##!#    (abs(tmp_data0) > max_ch) | (abs(tmp_data2) > max_ch) | \
+    ##!#    (abs(tmp_dataw) > max_ch), tmp_lon0)
+    
+    # ----------------------------------------------------------------------
+    #
+    # Read the CERES data
+    #
+    # ----------------------------------------------------------------------
+    mask_LAT_July, mask_LON_July, mask_swf_July, mask_lwf_July = \
+        read_CERES_match_MODIS(date_str_July)
+    mask_LAT_Aug, mask_LON_Aug, mask_swf_Aug, mask_lwf_Aug = \
+        read_CERES_match_MODIS(date_str_Aug)
+
+    # ------------------------------------------------------------------------
+    #
+    # Set up the figure panels
+    #
+    # ------------------------------------------------------------------------
+    fig = plt.figure(figsize=(9,9))
+    ax0 = fig.add_subplot(2,2,1) # 0722 Ch 31 vs SW/LW
+    ax1 = fig.add_subplot(2,2,2) # 0806 Ch 31 vs SW/LW
+    ax2 = fig.add_subplot(2,2,3) # 0806 Ch 31 vs AI
+    ax3 = fig.add_subplot(2,2,4) # 0806 AI vs SW/LW
+
+    # ---------------------------------------------------------------------
+    #
+    # Read OMI data and plot Ch 31 vs OMI AI
+    #
+    # ---------------------------------------------------------------------
+    plot_scatter_OMI(date_str_Aug, MODIS_dataAug31, ax2, avg_pixel = avg_pixel)
+
+    # ----------------------------------------------------------------------
+    #
+    # Colocate the OMI and CERES data, then plot
+    #
+    # ----------------------------------------------------------------------
+    plot_scatter_OMI_CERES(date_str_Aug, MODIS_dataAug31, ax3, \
+        avg_pixel = avg_pixel, plume_only = plume_only)
+
+    # ----------------------------------------------------------------------
+    #
+    # Plot the CERES data
+    #
+    # ----------------------------------------------------------------------
+    plot_scatter_CERES(date_str_July, MODIS_dataJul31, ax0, \
+        avg_pixel = avg_pixel,plume_only = plume_only)
+    plot_scatter_CERES(date_str_Aug, MODIS_dataAug31, ax1, \
+        avg_pixel = avg_pixel,plume_only = plume_only)
+
+    fig.tight_layout()
+
+    ##!#plot_CERES_spatial(date_str,mask_LAT, mask_LON, mask_swf, 'SWF', ax6, zoom = zoom)
+    ##!#plot_CERES_spatial(date_str,mask_LAT, mask_LON, mask_lwf, 'LWF', ax7, zoom = zoom)
+    if(save):
+        plume_add = '_onlyplume'
+        pixel_add = ''
+        if(plume_only == False):
+            plume_add = '_onlyplume'
+        if(avg_pixel):
+            pixel_add = '_avgpixel' 
+        outname = 'modis_combined_scatter_select' + plume_add + \
+            pixel_add + '.png'
+        fig.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
+def plot_meteogram_compare(date_str, true_color = True, zoom=True, \
+        save=False, composite=True, show_smoke = False, \
+        plot_ASOS_loc = True, ir_data = True):
     
     plt.close('all')
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
@@ -3596,42 +3813,73 @@ def plot_meteogram_compare(date_str, zoom=True, save=False, composite=True, \
     #                       4. Meteogram
     #       
     # -----------------------------------------------------------------------     
-    fig = plt.figure(figsize=(8,12))
-    gs  = plt.GridSpec(3, 2, wspace=0.4, hspace=0.05, figure = fig)
-    ax2 = plt.subplot(gs[1,:])
-    ax3 = plt.subplot(gs[2,:])
+    if(ir_data):
+        fig = plt.figure(figsize=(12,15))
+        gs  = plt.GridSpec(4, 3, wspace=0.4, hspace=0.05, figure = fig)
+        ax3 = plt.subplot(gs[2,:])
+        ax4 = plt.subplot(gs[3,:])
+    else:
+        fig = plt.figure(figsize=(12,12))
+        gs  = plt.GridSpec(3, 3, wspace=0.4, hspace=0.05, figure = fig)
+        ax3 = plt.subplot(gs[1,:])
+        ax4 = plt.subplot(gs[2,:])
 
     # -----------------------------------------------------------------------     
     #
-    # Axis 0: True color image of clear day
+    # Axis 0: True color image of previous day
     #
     # -----------------------------------------------------------------------     
 
     if(date_str == '202107222110'):
         prev_str = '202107212030'
+        post_str = '202107232155'
     elif(date_str == '202108062025'):
         prev_str = '202108052120'
+        post_str = '202108072110'
 
     dt_prev_str = datetime.strptime(prev_str, '%Y%m%d%H%M')
+    dt_post_str = datetime.strptime(post_str, '%Y%m%d%H%M')
 
-    # Read true color data for both dates
-    # -----------------------------------
-    var1, crs1, lat_lims1, lon_lims1 = \
-        read_true_color(prev_str,composite=composite)
-    ax0 = plt.subplot(gs[0,0],projection=crs1)
+    if(true_color):
+        # Read true color data for both dates
+        # -----------------------------------
+        var1, crs1, lat_lims1, lon_lims1 = \
+            read_true_color(prev_str,composite=composite)
+        ax0 = plt.subplot(gs[0,0],projection=crs1)
 
-    # Plot the true-color data for the previous date
-    # ----------------------------------------------
-    ax0.imshow(var1.data, transform = crs1, extent=(var1.x[0], var1.x[-1], \
-        var1.y[-1], var1.y[0]), origin='upper')
+        # Plot the true-color data for the previous date
+        # ----------------------------------------------
+        ax0.imshow(var1.data, transform = crs1, extent=(var1.x[0], var1.x[-1], \
+            var1.y[-1], var1.y[0]), origin='upper')
 
-    plot_ASOS_locs(ax0,date_str,color='lime')
+        # Zoom in the figure if desired
+        # -----------------------------
+        if(zoom):
+            ax0.set_extent([lon_lims1[0],lon_lims1[1],lat_lims1[0],\
+                lat_lims1[1]],crs = datacrs)
+    else:
+        # Read MODIS Ch 31 data
+        # ---------------------
+        MODIS_data1 = read_MODIS_channel(prev_str, 1, zoom = zoom)
 
-    # Zoom in the figure if desired
-    # -----------------------------
-    if(zoom):
-        ax0.set_extent([lon_lims1[0],lon_lims1[1],lat_lims1[0],\
-            lat_lims1[1]],crs = datacrs)
+        # Plot the MODIS ch 31 data
+        # -------------------------
+        mapcrs = init_proj(date_str)
+        ax0 = plt.subplot(gs[0,0], projection = mapcrs)
+        plot_MODIS_spatial(MODIS_data1, ax0, zoom = zoom)
+
+        if(ir_data):
+            # Read MODIS Ch 31 data
+            # ---------------------
+            MODIS_data4 = read_MODIS_channel(prev_str, 31, zoom = zoom)
+
+            # Plot the MODIS ch 31 data
+            # -------------------------
+            mapcrs = init_proj(date_str)
+            ax5 = plt.subplot(gs[1,0], projection = mapcrs)
+            plot_MODIS_spatial(MODIS_data4, ax5, zoom = zoom)
+
+
     ax0.set_title('Aqua MODIS\n' + dt_prev_str.strftime('%Y-%m-%d %H:%M'))
 
     # -----------------------------------------------------------------------     
@@ -3639,27 +3887,109 @@ def plot_meteogram_compare(date_str, zoom=True, save=False, composite=True, \
     # Axis 1: True color image of smokey day
     #
     # -----------------------------------------------------------------------     
-    var, crs, lat_lims, lon_lims     = \
-        read_true_color(date_str,composite=composite)
-    ax1 = plt.subplot(gs[0,1],projection=crs)
+    if(true_color):
+        var, crs, lat_lims, lon_lims     = \
+            read_true_color(date_str,composite=composite)
+        ax1 = plt.subplot(gs[0,1],projection=crs)
 
-    # Plot the true-color data for the case date
-    # ----------------------------------------------
-    ax1.imshow(var.data, transform = crs, extent=(var.x[0], var.x[-1], \
-        var.y[-1], var.y[0]), origin='upper')
+        # Plot the true-color data for the case date
+        # ----------------------------------------------
+        ax1.imshow(var.data, transform = crs, extent=(var.x[0], var.x[-1], \
+            var.y[-1], var.y[0]), origin='upper')
 
-    plot_ASOS_locs(ax1,date_str,color='lime')
-    # Zoom in the figure if desired
-    # -----------------------------
-    if(zoom):
-        ax1.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],\
-            lat_lims[1]],crs = datacrs)
+        # Zoom in the figure if desired
+        # -----------------------------
+        if(zoom):
+            ax1.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],\
+                lat_lims[1]],crs = datacrs)
+
+    else:
+        # Read MODIS Ch 31 data
+        # ---------------------
+        MODIS_data2 = read_MODIS_channel(date_str, 1, zoom = zoom)
+
+        # Plot the MODIS ch 31 data
+        # -------------------------
+        mapcrs = init_proj(date_str)
+        ax1 = plt.subplot(gs[0,1], projection = mapcrs)
+        plot_MODIS_spatial(MODIS_data2, ax1, zoom = zoom)
+
+        if(ir_data):
+            # Read MODIS Ch 31 data
+            # ---------------------
+            MODIS_data5 = read_MODIS_channel(date_str, 31, zoom = zoom)
+
+            # Plot the MODIS ch 31 data
+            # -------------------------
+            mapcrs = init_proj(date_str)
+            ax6 = plt.subplot(gs[1,1], projection = mapcrs)
+            plot_MODIS_spatial(MODIS_data5, ax6, zoom = zoom)
+
     ax1.set_title('Aqua MODIS\n' + dt_date_str.strftime('%Y-%m-%d %H:%M'))
 
     # -----------------------------------------------------------------------     
     #
-    # Axis 2: Meteogram of ASOS data     
-    # Axis 3: Difference in temperatures between smokey station and clear
+    # Axis 2: True color image of day after 
+    #
+    # -----------------------------------------------------------------------     
+    if(true_color):
+        var2, crs2, lat_lims2, lon_lims2     = \
+            read_true_color(post_str,composite=composite)
+        ax2 = plt.subplot(gs[0,2],projection=crs2)
+
+        # Plot the true-color data for the case date
+        # ----------------------------------------------
+        ax2.imshow(var2.data, transform = crs2, extent=(var2.x[0], var2.x[-1], \
+            var2.y[-1], var2.y[0]), origin='upper')
+
+        # Zoom in the figure if desired
+        # -----------------------------
+        if(zoom):
+            ax2.set_extent([lon_lims2[0],lon_lims2[1],lat_lims2[0],\
+                lat_lims2[1]],crs = datacrs)
+
+    else:
+        # Read MODIS Ch 31 data
+        # ---------------------
+        MODIS_data3 = read_MODIS_channel(post_str, 1, zoom = zoom)
+
+        # Plot the MODIS ch 31 data
+        # -------------------------
+        mapcrs = init_proj(post_str)
+        ax2 = plt.subplot(gs[0,2], projection = mapcrs)
+        plot_MODIS_spatial(MODIS_data3, ax2, zoom = zoom)
+
+        if(ir_data):
+            # Read MODIS Ch 31 data
+            # ---------------------
+            MODIS_data6 = read_MODIS_channel(post_str, 31, zoom = zoom)
+
+            # Plot the MODIS ch 31 data
+            # -------------------------
+            mapcrs = init_proj(date_str)
+            ax7 = plt.subplot(gs[1,2], projection = mapcrs)
+            plot_MODIS_spatial(MODIS_data6, ax7, zoom = zoom)
+
+    if(plot_ASOS_loc):
+
+        # Plot the ASOS locations on the map
+        # ----------------------------------
+        plot_ASOS_locs(ax0,prev_str,color='lime')
+        plot_ASOS_locs(ax1,date_str,color='lime')
+        plot_ASOS_locs(ax2,post_str,color='lime')
+
+        if(ir_data):
+            plot_ASOS_locs(ax5,prev_str,color='lime')
+            plot_ASOS_locs(ax6,date_str,color='lime')
+            plot_ASOS_locs(ax7,post_str,color='lime')
+
+
+    ax2.set_title('Aqua MODIS\n' + dt_post_str.strftime('%Y-%m-%d %H:%M'))
+
+    # -----------------------------------------------------------------------     
+    #
+    # Axis 3: Meteogram of ASOS data     
+    # Axis 4: Difference in temperatures between smokey station and clear
     # stations
     #
     # -----------------------------------------------------------------------     
@@ -3754,7 +4084,8 @@ def plot_meteogram_compare(date_str, zoom=True, save=False, composite=True, \
                 ## Loop over the reference times and grab  
                 tmpc_dif = tmpc_ref - match_tmpc_stn 
  
-            ax3.plot(dtime_stn,tmpc_dif,label=station, color=colors[ii])
+            ax4.plot(dtime_stn,tmpc_dif, color=colors[ii])
+            #ax3.plot(dtime_stn,tmpc_dif,label=station, color=colors[ii])
     
         # Plot the temp data differently for when it reports smoke/haze
         # -------------------------------------------------------------
@@ -3765,7 +4096,7 @@ def plot_meteogram_compare(date_str, zoom=True, save=False, composite=True, \
         tmpc_stn_nohz = np.ma.masked_where((pwxc_stn == 'HZ') | \
             (pwxc_stn == 'FU'), tmpc_stn_nohz)
     
-        ax2.plot(dtime_stn,tmpc_stn,label=station, color=colors[ii])
+        ax3.plot(dtime_stn,tmpc_stn,label=station, color=colors[ii])
         #ax.plot(dtime_stn,tmpc_stn_nohz,label=station, color=colors[ii])
         #ax.plot(dtime_stn,tmpc_stn_hz,'--', label=station, color=colors[ii])
         print(station, lat_stn, lon_stn)
@@ -3782,37 +4113,81 @@ def plot_meteogram_compare(date_str, zoom=True, save=False, composite=True, \
     # Pull the event time from the plot_limits_dict
     #event_dtime = event_date + timedelta(hours = int(first_time[:2]), \
     #    minutes = int(first_time[2:4]))
-    
-    # Plot a vertical line at the time of the MODIS overpass
-    # ------------------------------------------------------
-    ax2.axvline(dt_date_str,color='black',lw=2,alpha=0.75,label='MODIS' \
-        + dt_date_str.strftime('%H:%M'))
-    ax3.axvline(dt_date_str,color='black',lw=2,alpha=0.75)
 
     # Plot a vertical line at the time of the clear MODIS overpass
     # ------------------------------------------------------------
-    ax2.axvline(dt_prev_str,color='grey',lw=2,alpha=0.75,label='MODIS' \
-        + dt_prev_str.strftime('%H:%M'))
-    ax3.axvline(dt_prev_str,color='grey',lw=2,alpha=0.75)
+    ax3.axvline(dt_prev_str,color='black',linestyle = '--', lw=2,alpha=0.75,\
+        label='' + dt_prev_str.strftime('%m/%d %H:%M'))
+    ax4.axvline(dt_prev_str,color='black',linestyle = '--',lw=2,alpha=0.75)
+    
+    # Plot a vertical line at the time of the MODIS overpass
+    # ------------------------------------------------------
+    ax3.axvline(dt_date_str,color='black',lw=2,alpha=0.75,label='' \
+        + dt_date_str.strftime('%m/%d %H:%M'))
+    ax4.axvline(dt_date_str,color='black',lw=2,alpha=0.75)
+
+    # Plot a vertical line at the time of the post MODIS overpass
+    # -----------------------------------------------------------
+    ax3.axvline(dt_post_str,color='black',linestyle = ':', lw=2,alpha=0.75,label='' \
+        + dt_post_str.strftime('%m/%d %H:%M'))
+    ax4.axvline(dt_post_str,color='black',linestyle = ':', lw=2,alpha=0.75)
 
     # Plot a horizontal line at 0
     # ---------------------------
-    ax3.axhline(0,color='grey',linestyle='--',lw=2,alpha=0.75)
+    ax4.axhline(0,color='grey',linestyle='--',lw=2,alpha=0.75)
     #ax3.axvline(event_dtime,color='tab:red',lw=2,alpha=0.75)
 
-    ax3.sharex(ax2)
+    ax4.sharex(ax3)
     #ax1.sharey(ax3) 
 
  
-    ax3.set_xlabel('Time [UTC]')
-    ax2.set_ylabel('2-m Temperature [$^{o}$C]')
-    ax3.set_ylabel('T(' + case_dict[dt_date_str.strftime('%Y%m%d%H%M')] + \
+    #ax3.set_xlabel('Time [UTC]')
+    ax3.set_ylabel('2-m Temperature [$^{o}$C]')
+    ax4.set_ylabel('T(' + case_dict[dt_date_str.strftime('%Y%m%d%H%M')] + \
         ') - T(other stations)')
-    ax2.legend()
-    #ax2.set_title(dt_date_str.strftime('%Y-%m-%d %H:%M'))
-    
-    ax2.tick_params(axis="x", \
+    #ax2.legend()
+    ax3.tick_params(axis="x", \
         labelbottom = False)
+
+    # -----------------------------------------------------------------------     
+    #
+    # Extract MODIS values at each pixel and plot on the meteograms
+    #
+    # -----------------------------------------------------------------------     
+   
+
+ 
+    # Add subplot letter labels
+    # -------------------------
+    xval = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        [dt_date_str.strftime('%H%M')]['Lon'][0] + \
+        (plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        [dt_date_str.strftime('%H%M')]['Lon'][1] - \
+        plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        [dt_date_str.strftime('%H%M')]['Lon'][0])*0.05
+    yval = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        [dt_date_str.strftime('%H%M')]['Lat'][0] + \
+        (plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        [dt_date_str.strftime('%H%M')]['Lat'][1] - \
+        plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        [dt_date_str.strftime('%H%M')]['Lat'][0])*0.90
+    plot_subplot_label(ax0, '(a)', xval = xval, yval = yval, \
+        transform = datacrs)
+    plot_subplot_label(ax1, '(b)', xval = xval, yval = yval, \
+        transform = datacrs)
+    plot_subplot_label(ax2, '(c)', xval = xval, yval = yval, \
+        transform = datacrs)
+    plot_subplot_label(ax3, '(d)', xval = dtime_stn[0])
+    plot_subplot_label(ax4, '(e)', xval = dtime_stn[0])
+
+    # Add a legend
+    # ------------
+    lines_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
+    lines, labels = [sum(lol, []) for lol in zip(*lines_labels)]
+    plt.legend(lines, labels, loc = 'lower center', bbox_to_anchor = (0, 0.05, 1, 1),\
+        bbox_transform = plt.gcf().transFigure, ncol=5)
+    #ax3.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05),
+    #          fancybox=True, shadow=True, ncol=5)
  
     fig.tight_layout()
 
@@ -3822,6 +4197,87 @@ def plot_meteogram_compare(date_str, zoom=True, save=False, composite=True, \
         print("Saved image",outname)
     else:
         plt.show()
+
+# Calculate the average diurnal cycle for each day in the provided ASOS file
+# --------------------------------------------------------------------------
+def plot_avg_meteogram(asos_file, save=False):
+    
+    # Read in the ASOS data using pandas
+    # ----------------------------------
+    df = pd.read_csv(asos_file)
+
+    # Modify the dataframe to use date as index
+    # -----------------------------------------
+    df['valid'] = pd.to_datetime(df['valid'], format = '%Y-%m-%d %H:%M') - \
+        timedelta(hours = 8)
+    df['tmpc'] = pd.to_numeric(df['tmpc'], errors = 'coerce').values
+    time_df = df.set_index('valid')
+
+    start_date = datetime(year = 2021, month = 7, day = 1, hour = 0, \
+        minute = 0)
+
+    # Determine all the unique local times
+    # ------------------------------------
+    unique_times = np.array([sorted(set((time_df.index - timedelta(\
+        hours = 8)).strftime('%H:%M:%S')))])[0]
+    unique_dtimes = np.array([datetime.strptime(tst,'%H:%M:%S') \
+        for tst in unique_times])
+
+    avg_curve_test = np.full(unique_times.shape, np.nan)
+    std_curve_test = np.full(unique_times.shape, np.nan)
+   
+    work_stn = 'CIC'
+    for ii in range(len(unique_times)):
+        #print(unique_times[ii], time_df[time_df['station'] == work_stn].index[(time_df[time_df['station'] == work_stn].index - \
+        #    timedelta(hours = 8)).strftime('%H:%M:%S') == \
+        #    unique_times[ii]])
+        avg_curve_test[ii] = np.nanmean(\
+            pd.to_numeric(time_df['tmpc'][time_df['station'] == work_stn], \
+            errors = 'coerce').values[np.where(time_df[\
+            time_df['station'] == work_stn].index.strftime('%H:%M:%S') == \
+            unique_times[ii])])
+        std_curve_test[ii] = np.nanstd(\
+            pd.to_numeric(time_df['tmpc'][time_df['station'] == work_stn], \
+            errors = 'coerce').values[np.where(time_df[\
+            time_df['station'] == work_stn].index.strftime('%H:%M:%S') == \
+            unique_times[ii])])
+        #std_curve_test[ii] = np.nanstd(pd.to_numeric(time_df['tmpc'][time_df['station'] == work_stn], \
+        #    errors = 'coerce').values[np.where(time_df[time_df['station'] == work_stn].index.strftime('%H:%M:%S') == \
+        #    unique_times[ii])])
+
+    for ii,jj in zip(avg_curve_test, unique_times):
+        print(np.round(ii,2),jj)
+    
+    plus_vals = avg_curve_test + std_curve_test
+    minus_vals = avg_curve_test - std_curve_test
+
+    fig1 = plt.figure()
+    ax2 = fig1.add_subplot(1,1,1)
+    print(avg_curve_test)
+    ax2.plot(np.ma.masked_invalid(avg_curve_test).compressed())
+    ax2.plot(np.ma.masked_invalid(plus_vals).compressed())
+    ax2.plot(np.ma.masked_invalid(minus_vals).compressed())
+
+    # For now, just plot each of the diurnal cycles
+    # ---------------------------------------------
+    fig2 = plt.figure()
+    ax = fig2.add_subplot(1,1,1)
+
+    time_df = time_df[time_df['station'] == work_stn]
+    while(start_date.day < 14):
+        subset_df = time_df[(time_df.index > start_date) & \
+            (time_df.index < start_date + timedelta(days = 1))]
+        
+        tmpc_stn = pd.to_numeric(subset_df['tmpc'], errors='coerce').values
+        local_times = subset_df.index - start_date
+        #print(local_times)
+        tmpc_stn = np.ma.masked_invalid(tmpc_stn)
+    
+        ax.plot(local_times, tmpc_stn,label=str(start_date.day))
+        start_date = start_date + timedelta(days = 1)
+
+    ax.legend()
+    plt.show() 
 
 # Compare colocated MODIS and ob data for two dates
 def colocate_comparison(date1, date2, channel = 31):

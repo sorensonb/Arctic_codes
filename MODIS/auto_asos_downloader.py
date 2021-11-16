@@ -104,12 +104,17 @@ def download_alldata():
         now += interval
 
 
-def main(year,month,day):
+#def main(year,month,day):
+def main(syear,smonth,sday,eyear,emonth,eday):
     """Our main method"""
     # timestamps in UTC to request data for
-    event_date = datetime.datetime(year, month, day)
-    startts = event_date - timedelta(days = 2)
-    endts   = event_date + timedelta(days = 3)
+    startts = datetime.datetime(syear, smonth, sday)
+    endts   = datetime.datetime(eyear, emonth, eday)
+    #"""Our main method"""
+    ## timestamps in UTC to request data for
+    #event_date = datetime.datetime(year, month, day)
+    #startts = event_date - timedelta(days = 2)
+    #endts   = event_date + timedelta(days = 3)
 
     service = SERVICE + "data=all&tz=Etc/UTC&format=comma&latlon=yes&elev=yes&"
 
