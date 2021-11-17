@@ -290,7 +290,13 @@ plot_limits_dict = {
             'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072010-2021072021.nc',
             'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.20.214.L2.SUBS2RET.v6.0.32.0.G21202153435.hdf'],
             'Lat': [39.5, 42.0],
-            'Lon': [-122.0, -119.5]
+            'Lon': [-122.0, -119.5],
+            'data_lim': {
+                1:  [0.05, 0.5],
+                31: [270., 330.],
+            },
+            'modis_Lat': [39.5, 42.0],
+            'modis_Lon': [-122.0, -119.5]
         }
     },
     "2021-07-21": {
@@ -612,14 +618,25 @@ def nearest_grid_values(MODIS_data):
 
  
 # Plot the downloaded ASOS stations for each case
-# ----------------------------------------------- 
+#
+# NOTE: if you want to plot ASOS stations from a specific file, and not
+# the default file associated with a YYYYMMDDHHMM case, pass in the
+# ASOS file name in the 'date_str' argument
+# ---------------------------------------------------------------------
 def plot_ASOS_locs(pax,date_str,crs = datacrs, color='red'):
-    dt_date_str = datetime.strptime(date_str,'%Y%m%d%H%M')
-    cross_date = dt_date_str.strftime('%Y-%m-%d')
-    file_date  = dt_date_str.strftime('%H%M')
+    if(len(date_str.split('.')) > 1):
+        asos_file = date_str
+    else:
+        dt_date_str = datetime.strptime(date_str,'%Y%m%d%H%M')
+        cross_date = dt_date_str.strftime('%Y-%m-%d')
+        file_date  = dt_date_str.strftime('%H%M')
+        asos_file = plot_limits_dict[cross_date][file_date]['asos']
+
     # Read in the correct ASOS file 
-    asos_file = plot_limits_dict[cross_date][file_date]['asos']
     df = pd.read_csv(asos_file)
+
+    if(color == 'default'):
+        color = None
 
     station_names = set(df['station'].values)
     for ii, station in enumerate(station_names):
@@ -4208,9 +4225,9 @@ def calc_meteogram_climo(training_asos_file, work_stn, save=False):
 
     # Modify the dataframe to use date as index
     # -----------------------------------------
-    # Convert from UTC to PST
+    # Convert from UTC to PDT
     df['valid'] = pd.to_datetime(df['valid'], format = '%Y-%m-%d %H:%M') - \
-        timedelta(hours = 8)
+        timedelta(hours = 7)
     df['tmpc'] = pd.to_numeric(df['tmpc'], errors = 'coerce').values
     time_df = df.set_index('valid')
 
@@ -4307,66 +4324,279 @@ def calc_meteogram_climo(training_asos_file, work_stn, save=False):
 # Plot a comparison of the diurnal cycle from the inputted day
 # with the "climatological" average from the training period
 # ------------------------------------------------------------
-def plot_asos_diurnal(date_str, work_stn):
+def plot_asos_diurnal(pax, date_str, work_stn, base_stn, plot_map = False, \
+        save = False):
     
-    dt_date_str = datetime.strptime(date_str, '%Y%m%d')
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+    case_str = date_str[:8]
 
     # Read the ASOS data for the desired date
     # ---------------------------------------
-    df = pd.read_csv('asos_data_20210722_4.csv')
+    work_data = 'asos_data_20210722_4.csv'
+    df = pd.read_csv(work_data)
+
+    # Convert from UTC to PDT
+    df['dt_valid'] = pd.to_datetime(df['valid'], format = '%Y-%m-%d %H:%M') - \
+        timedelta(hours = 7)
+    df['tmpc'] = pd.to_numeric(df['tmpc'], errors = 'coerce').values
+    time_df = df.set_index('dt_valid')
 
     # Extract only the data for the desired station at the desired
     # date
     # ------------------------------------------------------------
-    # Convert from UTC to PST
-    df['dt_valid'] = pd.to_datetime(df['valid'], format = '%Y-%m-%d %H:%M') - \
-        timedelta(hours = 8)
-    df['tmpc'] = pd.to_numeric(df['tmpc'], errors = 'coerce').values
-    time_df = df.set_index('dt_valid')
+    base_df = time_df[time_df['station'] == base_stn]
     time_df = time_df[time_df['station'] == work_stn]
     #time_df = df
 
-    # Now pull out only the data for the desired day
-    next_day = dt_date_str + timedelta(days = 1)
-    #stn_df = time_df[((time_df['dt_valid'] >= dt_date_str) & (time_df['dt_valid'] <= next_day))]
-    stn_df = time_df[dt_date_str : next_day]
-
     # Calculate the climatological cycle for the desired station
     # -----------------------------------------------------------
+    base_dtimes, base_climo, base_std = \
+        calc_meteogram_climo('asos_data_20210722_5.csv', base_stn)
     plt_dtimes, stn_climo, stn_std = \
-        calc_meteogram_climo('asos_data_20210722_3.csv', work_stn)
-    #stn_df['valid'] = stn_df.index
+        calc_meteogram_climo('asos_data_20210722_5.csv', work_stn)
 
-    # Plot the climatological data and the single day on a meteogram
-    # ---------------------------------------------------------------
-    plt.close('all')
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
+    climo_xval = np.array([(plt_dtime - plt_dtimes[0]).seconds for \
+             plt_dtime in plt_dtimes])
 
-    local_times = np.array([datetime.strptime(tst, '%Y-%m-%d %H:%M') for \
-        tst in stn_df['valid'].values]) - timedelta(hours = 8)
+    base_climo_xval = np.array([(base_dtime - base_dtimes[0]).seconds for \
+             base_dtime in base_dtimes])
+    base_mask_climo       = np.ma.masked_invalid(base_climo) 
+    base_mask_climo_times = base_climo_xval[~base_mask_climo.mask]
+    base_mask_climo_std   = base_std[~base_mask_climo.mask]
+    base_mask_climo       = base_mask_climo[~base_mask_climo.mask]
 
-    stn_xval = np.array([(local_time - local_times[0]).seconds for local_time in local_times])
-    climo_xval = np.array([(plt_dtime - plt_dtimes[0]).seconds for plt_dtime in plt_dtimes])
-
-    mask_tmp = np.ma.masked_invalid(stn_df['tmpc']) 
-    mask_climo = np.ma.masked_invalid(stn_climo) 
-
-    mask_times = stn_xval[~mask_tmp.mask]
-    mask_tmp   = mask_tmp[~mask_tmp.mask]
-
-
+    mask_climo       = np.ma.masked_invalid(stn_climo) 
     mask_climo_times = climo_xval[~mask_climo.mask]
     mask_climo_std   = stn_std[~mask_climo.mask]
     mask_climo       = mask_climo[~mask_climo.mask]
 
-    ax.plot(mask_times, mask_tmp, label = work_stn)
-    ax.plot(mask_climo_times, mask_climo, label = 'climo')
-    ax.plot(mask_climo_times, mask_climo + mask_climo_std, color = 'k', linestyle = '--', label = 'climo + std')
-    ax.plot(mask_climo_times, mask_climo - mask_climo_std, color = 'k', linestyle = ':', label = 'climo - std')
+    # Calculate the differences between the climatological profiles
+    # -------------------------------------------------------------
+    diff_climo = np.ma.masked_invalid(stn_climo) - np.ma.masked_invalid(base_climo)
+    diff_climo       = np.ma.masked_invalid(diff_climo) 
+    diff_climo_times = climo_xval[~diff_climo.mask]
+    diff_climo       = diff_climo[~diff_climo.mask]
+    
+    # Temporally colocate the two data
+    # --------------------------------
+    start_date = datetime(year = 2021, month = 7, day = 1, hour = 0, \
+        minute = 0)
+    unique_dtimes = np.array([start_date + timedelta(minutes = 15) + \
+        timedelta(minutes = 20 * ii) for ii in range(72)])
+    unique_times = np.array([dtime.strftime('%H:%M:%S') for dtime in \
+        unique_dtimes])
+
+    base_avg = np.full(unique_times.shape, np.nan)
+    time_avg = np.full(unique_times.shape, np.nan)
+
+    # Convert the time index to a datetime string format for comparisons
+    # ------------------------------------------------------------------ 
+    work_uday = datetime.strptime(case_str, '%Y%m%d')
+    #work_uday = datetime.strptime(date_str, '%Y/%m/%d')
+
+    # Now pull out only the data for the desired day
+    next_day = work_uday + timedelta(days = 1)
+
+    base_df = base_df[work_uday : next_day]
+    time_df = time_df[work_uday : next_day]
+
+    base_time_idx = base_df.index.strftime("%H:%M:%S")
+    time_time_idx = time_df.index.strftime("%H:%M:%S")
+
+    for ii in range(len(unique_dtimes)):
+        # Find the obs that are +/- 10 minutes around this ob
+        # ---------------------------------------------------
+        prev_time = (unique_dtimes[ii] - timedelta(minutes = 10)).strftime("%H:%M:%S")
+        post_time = (unique_dtimes[ii] + timedelta(minutes = 10)).strftime("%H:%M:%S")
+        locate_base = base_df['tmpc'].values[\
+            np.where((base_time_idx >= prev_time) & (base_time_idx < post_time))]
+        locate_time = time_df['tmpc'].values[\
+            np.where((time_time_idx >= prev_time) & (time_time_idx < post_time))]
+
+
+        # Insert the average and standard deviation of the selected obs
+        # within this time range for all diurnal cycles into the arrays
+        # -------------------------------------------------------------
+        if(len(locate_base) > 0):
+            base_avg[ii] = np.nanmean(locate_base)
+        if(len(locate_time) > 0):
+            time_avg[ii] = np.nanmean(locate_time)
+    
+
+    base_avg_xval = np.array([(unique_dtime - unique_dtimes[0]).seconds for \
+             unique_dtime in unique_dtimes])
+    base_avg_xval = np.array([(unique_dtime - unique_dtimes[0]).seconds for \
+             unique_dtime in unique_dtimes])
+
+    diff_local = np.ma.masked_invalid(time_avg) - np.ma.masked_invalid(base_avg)
+    diff_local       = np.ma.masked_invalid(diff_local) 
+    diff_local_times = base_avg_xval[~diff_local.mask]
+    diff_local       = diff_local[~diff_local.mask]
+    #base_avg_climo       = np.ma.masked_invalid(base_climo) 
+    #base_avg_climo_times = base_climo_xval[~base_mask_climo.mask]
+
+    mask_base_avg = np.ma.masked_invalid(base_avg)
+    mask_time_avg = np.ma.masked_invalid(time_avg)
+
+    mask_time_times = base_avg_xval[~mask_time_avg.mask]
+    mask_time_data = time_avg[~mask_time_avg.mask]
+    mask_base_times = base_avg_xval[~mask_base_avg.mask]
+    mask_base_data  = base_avg[~mask_base_avg.mask]
+
+    ##!#work_uday = datetime.strptime('2021/07/22', '%Y/%m/%d')
+
+    ##!## Now pull out only the data for the desired day
+    ##!#next_day = work_uday + timedelta(days = 1)
+
+    ##!#base_time_df = base_df[work_uday : next_day]
+    ##!#time_time_df = time_df[work_uday : next_day]
+
+    ##!#base_local_times = np.array([datetime.strptime(tst, '%Y-%m-%d %H:%M') for \
+    ##!#    tst in base_time_df['valid'].values])
+    ##!#time_local_times = np.array([datetime.strptime(tst, '%Y-%m-%d %H:%M') for \
+    ##!#    tst in time_time_df['valid'].values])
+
+    ##!#stn_xval = np.array([(base_local_time - base_local_times[0]).seconds \
+    ##!#    for base_local_time in base_local_times])
+
+
+
+    ##!#base_mask_tmp = np.ma.masked_invalid(base_time_df['tmpc']) 
+    ##!#time_mask_tmp = np.ma.masked_invalid(time_time_df['tmpc']) 
+
+    ##!##diff_day = time_mask_tmp - base_mask_tmp
+
+    ##!##print(base_mask_tmp.compressed().shape, time_mask_tmp.compressed().shape)
+
+    ##!#mask_times = stn_xval[~mask_tmp.mask]
+    ##!#mask_tmp   = mask_tmp[~mask_tmp.mask]
+
+
+
+    # Plot the climatological data and the single day on a meteogram
+    # ---------------------------------------------------------------
+    test_times = np.array([start_date + timedelta(seconds = float(val)) for val in diff_local_times])
+    test_strtimes = np.array([ttime.strftime('%H:%M') for ttime in test_times])
+
+    pax.plot(base_mask_climo_times, base_mask_climo, color = 'tab:blue', label = 'μ$_{ ' + base_stn + '}$')
+    pax.plot(mask_climo_times, mask_climo, color = 'tab:orange', label = 'μ$_{ ' + work_stn + '}$')
+    pax.plot(mask_base_times, mask_base_data, color = 'tab:blue', linestyle = '--', label = 'T$_{ ' + base_stn + '}$')
+    pax.plot(mask_time_times, mask_time_data, color = 'tab:orange', linestyle = '--', label = 'T$_{ ' + work_stn + '}$')
+    pax.set_xticks(diff_local_times[::6])
+    pax.set_xticklabels(test_strtimes[::6])
+    pax.set_ylabel('2-m Temperature [$^{o}$C]')
+    pax.set_xlabel('Local time [PDT]')
+    pax.set_title(dt_date_str.strftime('%Y-%m-%d'))
+    pax.grid()
+    pax.legend()
+    #ax.plot(mask_climo_times, mask_climo, color = 'r', label = 'μ$_{T ' + work_stn + '}$')
+    ##!#ax2.plot(diff_climo_times, diff_climo, color = 'tab:blue', label = 'μ$_{ ' + work_stn + '}$ - μ$_{ ' + base_stn + '}$')
+    ##!#ax2.plot(diff_local_times, diff_local, color = 'tab:blue', linestyle = '--', label = 'T$_{' + work_stn + '}$ - T$_{' + base_stn+'}$')
+    ##!#ax2.set_xticks(diff_local_times[::6])
+    ##!#ax2.set_xticklabels(test_strtimes[::6])
+    ##!#ax2.set_ylabel('2-m Temperature Difference [$^{o}$C]')
+    ##!#ax2.set_xlabel('Local time [PDT]')
+    ##!#ax2.set_title(dt_date_str.strftime('%Y-%m-%d'))
+    ##!#ax2.grid()
+    ##!#ax2.legend()
+
+
+    """
+    # Plot the diurnal cycle from each day in the ASOS file for the desired
+    # station
+    # ---------------------------------------------------------------------
+
+    # Extract all the unique days
+    unique_days = sorted(set([datetime.strptime(tdt,'%Y-%m-%d %H:%M'\
+        ).strftime('%Y/%m/%d') for tdt in time_df['valid'].values]))
+
+    for uday in unique_days:
+        
+        work_uday = datetime.strptime(uday, '%Y/%m/%d')
+
+        # Now pull out only the data for the desired day
+        next_day = work_uday + timedelta(days = 1)
+        #stn_df = time_df[((time_df['dt_valid'] >= dt_date_str) & (time_df['dt_valid'] <= next_day))]
+        stn_df = time_df[work_uday : next_day]
+
+        
+        local_times = np.array([datetime.strptime(tst, '%Y-%m-%d %H:%M') for \
+            tst in stn_df['valid'].values]) - timedelta(hours = 8)
+
+        stn_xval = np.array([(local_time - local_times[0]).seconds for local_time in local_times])
+
+        mask_tmp = np.ma.masked_invalid(stn_df['tmpc']) 
+
+        mask_times = stn_xval[~mask_tmp.mask]
+        mask_tmp   = mask_tmp[~mask_tmp.mask]
+
+        ax.plot(mask_times, mask_tmp, label = work_stn + ' ' + uday[5:])
+    ax.set_ylabel('2-m temperature [$^{o}$C]')
+    ax.set_title(work_stn)
     plt.legend()
     plt.show()
 
+    """
+
+def plot_total_asos_diurnal(save = False, composite = True):
+
+    # Read true color data for the previous date
+    dt_date_str20 = datetime.strptime('202107202125',"%Y%m%d%H%M")
+    var1, crs1, lat_lims1, lon_lims1 = read_true_color('202107202125',\
+        composite=composite)
+    dt_date_str21 = datetime.strptime('202107212030',"%Y%m%d%H%M")
+    var2, crs2, lat_lims2, lon_lims2 = read_true_color('202107212030',\
+        composite=composite)
+    dt_date_str22 = datetime.strptime('202107222110',"%Y%m%d%H%M")
+    var3, crs3, lat_lims3, lon_lims3 = read_true_color('202107222110',\
+        composite=composite)
+    dt_date_str23 = datetime.strptime('202107232155',"%Y%m%d%H%M")
+    var4, crs4, lat_lims4, lon_lims4 = read_true_color('202107232155',\
+        composite=composite)
+
+    fig = plt.figure(figsize=(9,15))
+    ax0 = fig.add_subplot(4,2,1,projection = crs1) # true color 7/20
+    ax1 = fig.add_subplot(4,2,3,projection = crs2) # true color 7/21
+    ax2 = fig.add_subplot(4,2,5,projection = crs3) # true color 7/22
+    ax3 = fig.add_subplot(4,2,7,projection = crs4) # true color 7/23
+    ax4 = fig.add_subplot(4,2,2) # meteo 7/20
+    ax5 = fig.add_subplot(4,2,4)   # meteo 7/21   
+    ax6 = fig.add_subplot(4,2,6) # meteo 7/22
+    ax7 = fig.add_subplot(4,2,8) # meteo 7/23
+
+    # Plot the true-color data for the case date
+    # ----------------------------------------------
+    ax0.imshow(var1.data, transform = crs1, extent=(var1.x[0], var1.x[-1], \
+        var1.y[-1], var1.y[0]), origin='upper')
+    ax1.imshow(var2.data, transform = crs2, extent=(var2.x[0], var2.x[-1], \
+        var2.y[-1], var2.y[0]), origin='upper')
+    ax2.imshow(var3.data, transform = crs3, extent=(var3.x[0], var3.x[-1], \
+        var3.y[-1], var3.y[0]), origin='upper')
+    ax3.imshow(var4.data, transform = crs4, extent=(var4.x[0], var4.x[-1], \
+        var4.y[-1], var4.y[0]), origin='upper')
+
+    ax0.set_extent([lon_lims1[0],lon_lims1[1],lat_lims1[0],\
+        lat_lims1[1]],crs = datacrs)
+    ax1.set_extent([lon_lims2[0],lon_lims2[1],lat_lims2[0],\
+        lat_lims2[1]],crs = datacrs)
+    ax2.set_extent([lon_lims3[0],lon_lims3[1],lat_lims3[0],\
+        lat_lims3[1]],crs = datacrs)
+    ax3.set_extent([lon_lims4[0],lon_lims4[1],lat_lims4[0],\
+        lat_lims4[1]],crs = datacrs)
+
+    plot_asos_diurnal(ax4, '202107202125', 'O05', 'AAT')
+    plot_asos_diurnal(ax5, '202107212030', 'O05', 'AAT')
+    plot_asos_diurnal(ax6, '202107222110', 'O05', 'AAT')
+    plot_asos_diurnal(ax7, '202107232155', 'O05', 'AAT')
+ 
+    fig.tight_layout()
+ 
+    if(save):
+        outname = 'modis_asos_meteo_combined_20210722.png'
+        fig.savefig(outname, dpi=300)
+        print("Saved image",outname)
+    else: 
+        plt.show() 
 
 # Compare colocated MODIS and ob data for two dates
 def colocate_comparison(date1, date2, channel = 31):
