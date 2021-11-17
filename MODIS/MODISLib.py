@@ -295,7 +295,7 @@ plot_limits_dict = {
     },
     "2021-07-21": {
         '2030': {
-            'asos': 'asos_data_20210722_2.csv',
+            'asos': 'asos_data_20210722_4.csv',
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021202.2030.061.2021203174050.hdf',
             'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072109-2021072122.nc',
             'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.21.205.L2.SUBS2RET.v6.0.32.0.G21203185004.hdf'],
@@ -313,7 +313,7 @@ plot_limits_dict = {
     },
     "2021-07-22": {
         '2110': {
-            'asos': 'asos_data_20210722_2.csv',
+            'asos': 'asos_data_20210722_4.csv',
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021203.2110.061.2021204155922.hdf',
             'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021203.2110.061.2021204163638.hdf',
             'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072210-2021072221.nc',
@@ -4200,14 +4200,15 @@ def plot_meteogram_compare(date_str, true_color = True, zoom=True, \
 
 # Calculate the average diurnal cycle for each day in the provided ASOS file
 # --------------------------------------------------------------------------
-def plot_avg_meteogram(asos_file, save=False):
+def calc_meteogram_climo(training_asos_file, work_stn, save=False):
     
     # Read in the ASOS data using pandas
     # ----------------------------------
-    df = pd.read_csv(asos_file)
+    df = pd.read_csv(training_asos_file)
 
     # Modify the dataframe to use date as index
     # -----------------------------------------
+    # Convert from UTC to PST
     df['valid'] = pd.to_datetime(df['valid'], format = '%Y-%m-%d %H:%M') - \
         timedelta(hours = 8)
     df['tmpc'] = pd.to_numeric(df['tmpc'], errors = 'coerce').values
@@ -4218,19 +4219,38 @@ def plot_avg_meteogram(asos_file, save=False):
 
     # Determine all the unique local times
     # ------------------------------------
-    unique_times = np.array([sorted(set((time_df.index - timedelta(\
-        hours = 8)).strftime('%H:%M:%S')))])[0]
-    unique_dtimes = np.array([datetime.strptime(tst,'%H:%M:%S') \
-        for tst in unique_times])
+    unique_dtimes = np.array([start_date + timedelta(minutes = 15) + \
+        timedelta(minutes = 20 * ii) for ii in range(72)])
+    unique_times = np.array([dtime.strftime('%H:%M:%S') for dtime in \
+        unique_dtimes])
 
+    # Create arrays to hold the average and standard deviation of the
+    # temperatures at each 20-minute interval
+    # ---------------------------------------------------------------
     avg_curve_test = np.full(unique_times.shape, np.nan)
     std_curve_test = np.full(unique_times.shape, np.nan)
-   
-    work_stn = 'CIC'
-    for ii in range(len(unique_times)):
-        #print(unique_times[ii], time_df[time_df['station'] == work_stn].index[(time_df[time_df['station'] == work_stn].index - \
-        #    timedelta(hours = 8)).strftime('%H:%M:%S') == \
-        #    unique_times[ii]])
+  
+    # Convert the time index to a datetime string format for comparisons
+    # ------------------------------------------------------------------ 
+    time_idx = time_df[time_df['station'] == work_stn].index.strftime("%H:%M:%S")
+
+    # Loop over each of the climatology times
+    # ---------------------------------------
+    for ii in range(len(unique_dtimes)):
+        # Find the obs that are +/- 10 minutes around this ob
+        # ---------------------------------------------------
+        prev_time = (unique_dtimes[ii] - timedelta(minutes = 10)).strftime("%H:%M:%S")
+        post_time = (unique_dtimes[ii] + timedelta(minutes = 10)).strftime("%H:%M:%S")
+        locate_tmpc = time_df[time_df['station'] == work_stn]['tmpc'].values[\
+            np.where((time_idx >= prev_time) & (time_idx < post_time))]
+
+        # Insert the average and standard deviation of the selected obs
+        # within this time range for all diurnal cycles into the arrays
+        # -------------------------------------------------------------
+        if(len(locate_tmpc) > 0):
+            avg_curve_test[ii] = np.nanmean(locate_tmpc)
+            std_curve_test[ii] = np.nanstd(locate_tmpc)
+        """
         avg_curve_test[ii] = np.nanmean(\
             pd.to_numeric(time_df['tmpc'][time_df['station'] == work_stn], \
             errors = 'coerce').values[np.where(time_df[\
@@ -4244,20 +4264,24 @@ def plot_avg_meteogram(asos_file, save=False):
         #std_curve_test[ii] = np.nanstd(pd.to_numeric(time_df['tmpc'][time_df['station'] == work_stn], \
         #    errors = 'coerce').values[np.where(time_df[time_df['station'] == work_stn].index.strftime('%H:%M:%S') == \
         #    unique_times[ii])])
+        """
+  
+    # Return the local times (in datetime format), the averages,
+    # and the standard deviations to the main function
+    # ----------------------------------------------------------
 
-    for ii,jj in zip(avg_curve_test, unique_times):
-        print(np.round(ii,2),jj)
-    
-    plus_vals = avg_curve_test + std_curve_test
-    minus_vals = avg_curve_test - std_curve_test
+    return unique_dtimes, avg_curve_test, std_curve_test 
+    #plus_vals = avg_curve_test + std_curve_test
+    #minus_vals = avg_curve_test - std_curve_test
 
-    fig1 = plt.figure()
-    ax2 = fig1.add_subplot(1,1,1)
-    print(avg_curve_test)
-    ax2.plot(np.ma.masked_invalid(avg_curve_test).compressed())
-    ax2.plot(np.ma.masked_invalid(plus_vals).compressed())
-    ax2.plot(np.ma.masked_invalid(minus_vals).compressed())
+    ##fig1 = plt.figure()
+    ##ax2 = fig1.add_subplot(1,1,1)
+    ##print(avg_curve_test)
+    ##ax2.plot(np.ma.masked_invalid(avg_curve_test).compressed())
+    ##ax2.plot(np.ma.masked_invalid(plus_vals).compressed())
+    ##ax2.plot(np.ma.masked_invalid(minus_vals).compressed())
 
+    """
     # For now, just plot each of the diurnal cycles
     # ---------------------------------------------
     fig2 = plt.figure()
@@ -4278,6 +4302,71 @@ def plot_avg_meteogram(asos_file, save=False):
 
     ax.legend()
     plt.show() 
+    """
+
+# Plot a comparison of the diurnal cycle from the inputted day
+# with the "climatological" average from the training period
+# ------------------------------------------------------------
+def plot_asos_diurnal(date_str, work_stn):
+    
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d')
+
+    # Read the ASOS data for the desired date
+    # ---------------------------------------
+    df = pd.read_csv('asos_data_20210722_4.csv')
+
+    # Extract only the data for the desired station at the desired
+    # date
+    # ------------------------------------------------------------
+    # Convert from UTC to PST
+    df['dt_valid'] = pd.to_datetime(df['valid'], format = '%Y-%m-%d %H:%M') - \
+        timedelta(hours = 8)
+    df['tmpc'] = pd.to_numeric(df['tmpc'], errors = 'coerce').values
+    time_df = df.set_index('dt_valid')
+    time_df = time_df[time_df['station'] == work_stn]
+    #time_df = df
+
+    # Now pull out only the data for the desired day
+    next_day = dt_date_str + timedelta(days = 1)
+    #stn_df = time_df[((time_df['dt_valid'] >= dt_date_str) & (time_df['dt_valid'] <= next_day))]
+    stn_df = time_df[dt_date_str : next_day]
+
+    # Calculate the climatological cycle for the desired station
+    # -----------------------------------------------------------
+    plt_dtimes, stn_climo, stn_std = \
+        calc_meteogram_climo('asos_data_20210722_3.csv', work_stn)
+    #stn_df['valid'] = stn_df.index
+
+    # Plot the climatological data and the single day on a meteogram
+    # ---------------------------------------------------------------
+    plt.close('all')
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+
+    local_times = np.array([datetime.strptime(tst, '%Y-%m-%d %H:%M') for \
+        tst in stn_df['valid'].values]) - timedelta(hours = 8)
+
+    stn_xval = np.array([(local_time - local_times[0]).seconds for local_time in local_times])
+    climo_xval = np.array([(plt_dtime - plt_dtimes[0]).seconds for plt_dtime in plt_dtimes])
+
+    mask_tmp = np.ma.masked_invalid(stn_df['tmpc']) 
+    mask_climo = np.ma.masked_invalid(stn_climo) 
+
+    mask_times = stn_xval[~mask_tmp.mask]
+    mask_tmp   = mask_tmp[~mask_tmp.mask]
+
+
+    mask_climo_times = climo_xval[~mask_climo.mask]
+    mask_climo_std   = stn_std[~mask_climo.mask]
+    mask_climo       = mask_climo[~mask_climo.mask]
+
+    ax.plot(mask_times, mask_tmp, label = work_stn)
+    ax.plot(mask_climo_times, mask_climo, label = 'climo')
+    ax.plot(mask_climo_times, mask_climo + mask_climo_std, color = 'k', linestyle = '--', label = 'climo + std')
+    ax.plot(mask_climo_times, mask_climo - mask_climo_std, color = 'k', linestyle = ':', label = 'climo - std')
+    plt.legend()
+    plt.show()
+
 
 # Compare colocated MODIS and ob data for two dates
 def colocate_comparison(date1, date2, channel = 31):
