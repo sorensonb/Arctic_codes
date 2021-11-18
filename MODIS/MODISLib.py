@@ -381,6 +381,7 @@ plot_limits_dict = {
             'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021217.2120.061.2021218165546.hdf',
             'ceres': '/home/bsorenson/data/CERES/FLASHFlux/Aqua/FLASH_SSF_Aqua_Version4A_Subset_2021080508-2021080521.nc',
             'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.05.214.L2.SUBS2RET.v6.0.32.0.G21218175548.hdf'],
+            'omi': '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0805t2038-o90733_v003-2021m0807t014855.he5',
             'Lat': [36.0, 39.0],
             'Lon': [-118.0, -114.0],
             'modis_Lat': [36.0, 39.0],
@@ -474,21 +475,34 @@ def init_proj(date_str):
 
     return mapcrs
 
-def plot_trend_line(pax, xdata, ydata, color='black', linestyle = '-'):
-    # First, calculate the trend
-    zdata = np.polyfit(xdata, ydata, 1)
+def plot_trend_line(pax, xdata, ydata, color='black', linestyle = '-', \
+        slope = 'thiel-sen'):
 
-    print("{0}x + {1}".format(*zdata))
+    if(slope == 'thiel-sen'):
+        res = stats.theilslopes(ydata, xdata, 0.90)
+        print("Theil-Sen: {0}x + {1}".format(res[0], res[1]))
 
-    # Then, plot the trend line on the figure
-    pax.plot(np.unique(xdata), np.poly1d(zdata)(np.unique(xdata)), \
-        color=color, linestyle = linestyle)
+        # Then, plot the trend line on the figure
+        pax.plot(xdata, res[1] + res[0] * xdata, \
+            color='k', linewidth = 2.5, linestyle = linestyle)
+        # Then, plot the trend line on the figure
+        pax.plot(xdata, res[1] + res[0] * xdata, \
+            color=color, linestyle = linestyle)
+    else:
+        # First, calculate the trend
+        zdata = np.polyfit(xdata, ydata, 1)
+
+        print("{0}x + {1}".format(*zdata))
+
+        # Then, plot the trend line on the figure
+        pax.plot(np.unique(xdata), np.poly1d(zdata)(np.unique(xdata)), \
+            color=color, linestyle = linestyle)
 
 def plot_subplot_label(ax, label, xval = None, yval = None, transform = None, \
         color = 'black', fontsize = 14):
 
     if(xval is None):
-        xval = ax.get_xlim()[1] * 0.05
+        xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * 0.05
     if(yval is None):
         yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.90
     print('Xval = ',xval, 'Yval = ',yval)
@@ -649,7 +663,7 @@ def plot_ASOS_locs(pax,date_str,crs = datacrs, color='red'):
                  )
 
         pax.text(lon_stn + 0.1, lat_stn + 0.1, station, fontsize=10, \
-            weight='bold', transform=crs, color=color)
+            weight='bold', transform=crs, color=color, backgroundcolor = 'white')
 
 # Determine areas of an image that are in smoke, defined by:
 #    (ch1_refl - ch5_refl) < mean(ch1_refl - ch5_refl) * 0.25
@@ -1200,8 +1214,9 @@ def read_MODIS_channel(date_str, channel, zoom = False):
     lat5 = modis.select('Latitude').get()
     lon5 = modis.select('Longitude').get()
 
-    sza = modis.select('SolarZenith').get() * modis.select('SolarZenith').attributes().get('scale_factor')
-    vza = modis.select('SensorZenith').get() * modis.select('SensorZenith').attributes().get('scale_factor')
+    if(str(channel)[:2] != 'wv'):
+        sza = modis.select('SolarZenith').get() * modis.select('SolarZenith').attributes().get('scale_factor')
+        vza = modis.select('SensorZenith').get() * modis.select('SensorZenith').attributes().get('scale_factor')
 
     #print('Sensor zenith: ', modis.select('SensorZenith').get().shape)
     #print('Sensor zenith scale: ', modis.select('SensorZenith').attributes().get('scale_factor'))
@@ -1325,8 +1340,9 @@ def read_MODIS_channel(date_str, channel, zoom = False):
     MODIS_data['data'] = data
     MODIS_data['lat']  = lat5
     MODIS_data['lon']  = lon5
-    MODIS_data['sza']  = sza
-    MODIS_data['vza']  = vza
+    if(str(channel)[:2] != 'wv'):
+        MODIS_data['sza']  = sza
+        MODIS_data['vza']  = vza
     MODIS_data['variable']  = label
     MODIS_data['cross_date']  = cross_date
     MODIS_data['channel']  = channel
@@ -2356,7 +2372,8 @@ def plot_CERES_spatial(date_str, mask_LAT, mask_LON, mask_data, dtype, pax, \
         pad=0.03,label=plabel)
     pax.set_title(ptitle)
 
-def plot_scatter(lax,data1, data2, MODIS_data1, MODIS_data2, hash_data1):
+def plot_scatter(lax,data1, data2, MODIS_data1, MODIS_data2, hash_data1,\
+        slope = 'thiel-sen'):
 
     hrval_p = spearmanr(data1[np.where(~hash_data1.mask)].compressed(), \
         data2[np.where(~hash_data1.mask)].compressed())[0]
@@ -2377,7 +2394,7 @@ def plot_scatter(lax,data1, data2, MODIS_data1, MODIS_data2, hash_data1):
     plot_trend_line(lax, \
         data1[np.where(~hash_data1.mask)].compressed(), \
         data2[np.where(~hash_data1.mask)].compressed(), \
-        color='tab:blue')
+        color='tab:blue', slope = slope)
 
     print("Calculating MODIS " + str(MODIS_data1['channel']) + ' vs ' + \
         str(MODIS_data2['channel']) + ' clear trend')
@@ -2633,7 +2650,7 @@ def plot_scatter_OMI(date_str, MODIS_data, pax, avg_pixel = False):
         
 
 def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
-        plume_only = True):
+        plume_only = True, plot_total_flux = False):
 
     # Determine where the smoke is located
     # ------------------------------------
@@ -2877,6 +2894,23 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
     pax.scatter(nohash_match_SWF.compressed(), nohash_mask_swf,\
         s = 18, color='tab:orange', marker='o',label = 'SWF clear')
 
+    # Plot total flux data
+    # --------------------
+    hash_match_TF   = hash_match_SWF + hash_match_LWF
+    nohash_match_TF = nohash_match_SWF + nohash_match_LWF
+    hash_mask_TF   = hash_mask_swf + hash_mask_lwf
+    nohash_mask_TF = nohash_mask_swf + nohash_mask_lwf
+
+    thrval_p = spearmanr(hash_match_TF.compressed(), \
+        hash_mask_swf)[0]
+    tnrval_p = spearmanr(nohash_match_TF.compressed(), \
+        nohash_mask_swf)[0]
+    if(plot_total_flux):
+        pax.scatter(hash_match_SWF.compressed(), hash_mask_TF,\
+            s = 18, color='tab:blue', marker='*',label = 'Total smoke')
+        pax.scatter(nohash_match_SWF.compressed(), nohash_mask_TF,\
+            s = 18, color='tab:orange', marker='*',label = 'Total clear')
+
     # Plot trend lines for each set
     # -----------------------------
     print("Calculating MODIS/SWF smoke trend")
@@ -2892,6 +2926,14 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
     print("Calculating MODIS/LWF clear trend")
     plot_trend_line(pax, nohash_match_LWF.compressed(), nohash_mask_lwf, \
         color='tab:orange', linestyle = '--')
+
+    if(plot_total_flux):
+        print("Calculating MODIS/Total smoke trend")
+        plot_trend_line(pax, hash_match_SWF.compressed(), hash_mask_TF, \
+            color='tab:blue',  linestyle = '--')
+        print("Calculating MODIS/Total clear trend")
+        plot_trend_line(pax, nohash_match_SWF.compressed(), nohash_mask_TF, \
+            color='tab:orange', linestyle = '--')
 
     pax.set_title('SWF smoke: '+str(np.round(shrval_p,3)) + '  SWF clear: ' + \
          str(np.round(snrval_p,3)) + \
@@ -3381,7 +3423,7 @@ def plot_combined_imagery(date_str,channel1 = 1, channel2 = 5, channel3 = 31,\
                 lat_lims1[1]],crs = datacrs)
         ax5.set_title('Aqua MODIS\n' + prev_date_str.strftime('%Y-%m-%d %H:%M'))
 
-    elif(date_str == '202108062025'):
+    elif((date_str == '202108062025') | (date_str == '202108052120')):
 
         fig = plt.figure(figsize=(9,12))
         ax0 = fig.add_subplot(4,2,1,projection = crs)    # True color
@@ -3539,7 +3581,7 @@ def plot_combined_scatter(date_str,channel0 = 31, channel1 = 1, channel2 = 5,\
     # For 20210722:
     #
     # ------------------------------------------------------------------------
-    if((date_str == '202107222110') | (date_str == '202108052120')):
+    if((date_str == '202107222110')):
         # Read true color data for the previous date
 
         fig = plt.figure(figsize=(9,9))
@@ -3548,7 +3590,7 @@ def plot_combined_scatter(date_str,channel0 = 31, channel1 = 1, channel2 = 5,\
         ax2 = fig.add_subplot(2,2,3) # 31 vs WV
         ax3 = fig.add_subplot(2,2,4) # 31 vs SW/LW/Total
 
-    elif(date_str == '202108062025'):
+    elif((date_str == '202108062025') | (date_str == '202108052120')):
 
         fig = plt.figure(figsize=(12,14))
         ax0 = fig.add_subplot(3,2,1) # 31 vs 1
@@ -3572,6 +3614,9 @@ def plot_combined_scatter(date_str,channel0 = 31, channel1 = 1, channel2 = 5,\
         # ----------------------------------------------------------------------
         plot_scatter_OMI_CERES(date_str, MODIS_data0, ax5, \
             avg_pixel = avg_pixel, plume_only = plume_only)
+    
+        plot_subplot_label(ax4, '(e)')
+        plot_subplot_label(ax5, '(f)')
 
     # Determine where the smoke is located
     # ------------------------------------
@@ -3651,6 +3696,13 @@ def plot_combined_scatter(date_str,channel0 = 31, channel1 = 1, channel2 = 5,\
     # ----------------------------------------------------------------------
     plot_scatter_CERES(date_str, MODIS_data0, ax3, avg_pixel = avg_pixel,\
         plume_only = plume_only)
+
+    # Add labels to all the subplots
+    # ------------------------------
+    plot_subplot_label(ax0, '(a)')
+    plot_subplot_label(ax1, '(b)')
+    plot_subplot_label(ax2, '(c)')
+    plot_subplot_label(ax3, '(d)')
 
     fig.tight_layout()
 
@@ -4541,16 +4593,20 @@ def plot_asos_diurnal(pax, date_str, work_stn, base_stn, plot_map = False, \
 def plot_total_asos_diurnal(save = False, composite = True):
 
     # Read true color data for the previous date
-    dt_date_str20 = datetime.strptime('202107202125',"%Y%m%d%H%M")
+    date_str20 = '202107202125'
+    date_str21 = '202107212030'
+    date_str22 = '202107222110'
+    date_str23 = '202107232155'
+    dt_date_str20 = datetime.strptime(date_str20,"%Y%m%d%H%M")
     var1, crs1, lat_lims1, lon_lims1 = read_true_color('202107202125',\
         composite=composite)
-    dt_date_str21 = datetime.strptime('202107212030',"%Y%m%d%H%M")
+    dt_date_str21 = datetime.strptime(date_str21,"%Y%m%d%H%M")
     var2, crs2, lat_lims2, lon_lims2 = read_true_color('202107212030',\
         composite=composite)
-    dt_date_str22 = datetime.strptime('202107222110',"%Y%m%d%H%M")
+    dt_date_str22 = datetime.strptime(date_str22,"%Y%m%d%H%M")
     var3, crs3, lat_lims3, lon_lims3 = read_true_color('202107222110',\
         composite=composite)
-    dt_date_str23 = datetime.strptime('202107232155',"%Y%m%d%H%M")
+    dt_date_str23 = datetime.strptime(date_str23,"%Y%m%d%H%M")
     var4, crs4, lat_lims4, lon_lims4 = read_true_color('202107232155',\
         composite=composite)
 
@@ -4584,10 +4640,60 @@ def plot_total_asos_diurnal(save = False, composite = True):
     ax3.set_extent([lon_lims4[0],lon_lims4[1],lat_lims4[0],\
         lat_lims4[1]],crs = datacrs)
 
-    plot_asos_diurnal(ax4, '202107202125', 'O05', 'AAT')
-    plot_asos_diurnal(ax5, '202107212030', 'O05', 'AAT')
-    plot_asos_diurnal(ax6, '202107222110', 'O05', 'AAT')
-    plot_asos_diurnal(ax7, '202107232155', 'O05', 'AAT')
+    ax0.set_title('Aqua MODIS\n'+dt_date_str20.strftime('%Y-%m-%d %H:%M'))
+    ax1.set_title('Aqua MODIS\n'+dt_date_str21.strftime('%Y-%m-%d %H:%M'))
+    ax2.set_title('Aqua MODIS\n'+dt_date_str22.strftime('%Y-%m-%d %H:%M'))
+    ax3.set_title('Aqua MODIS\n'+dt_date_str23.strftime('%Y-%m-%d %H:%M'))
+
+    plot_asos_diurnal(ax4, date_str20, 'O05', 'AAT')
+    plot_asos_diurnal(ax5, date_str21, 'O05', 'AAT')
+    plot_asos_diurnal(ax6, date_str22, 'O05', 'AAT')
+    plot_asos_diurnal(ax7, date_str23, 'O05', 'AAT')
+
+    plot_ASOS_locs(ax0,'asos_data_case_locs.csv', color = 'red')
+    plot_ASOS_locs(ax1,'asos_data_case_locs.csv', color = 'red')
+    plot_ASOS_locs(ax2,'asos_data_case_locs.csv', color = 'red')
+    plot_ASOS_locs(ax3,'asos_data_case_locs.csv', color = 'red')
+
+    dt_date_str = dt_date_str22
+    xval = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        [dt_date_str.strftime('%H%M')]['Lon'][0] + \
+        (plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        [dt_date_str.strftime('%H%M')]['Lon'][1] - \
+        plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        [dt_date_str.strftime('%H%M')]['Lon'][0])*0.05
+    yval = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        [dt_date_str.strftime('%H%M')]['Lat'][0] + \
+        (plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        [dt_date_str.strftime('%H%M')]['Lat'][1] - \
+        plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        [dt_date_str.strftime('%H%M')]['Lat'][0])*0.90
+    plot_subplot_label(ax0, '(a)',color = 'white', xval = xval, yval = yval, \
+        transform = datacrs)
+    plot_subplot_label(ax1, '(b)',color = 'white', xval = xval, yval = yval, \
+        transform = datacrs)
+    plot_subplot_label(ax2, '(c)',color = 'white', xval = xval, yval = yval, \
+        transform = datacrs)
+    plot_subplot_label(ax3, '(d)',color = 'white', xval = xval, yval = yval, \
+        transform = datacrs)
+
+    plot_subplot_label(ax4, '(e)', xval = 1200)
+    plot_subplot_label(ax5, '(f)', xval = 1200)
+    plot_subplot_label(ax6, '(g)', xval = 1200)
+    plot_subplot_label(ax7, '(h)', xval = 1200)
+
+    def plot_modis_line(dt_date, pax):
+        local_modis_time = dt_date - timedelta(hours = 7)
+        modis_diff = (local_modis_time - datetime(year=2021,month=7,\
+            day=22,hour=0,minute=0)).seconds
+        print(local_modis_time, modis_diff)
+        pax.axvline(modis_diff,color='black',linestyle = '--', lw=2,alpha=0.75,\
+            label='MODIS')
+
+    plot_modis_line(dt_date_str20, ax4)
+    plot_modis_line(dt_date_str21, ax5)
+    plot_modis_line(dt_date_str22, ax6)
+    plot_modis_line(dt_date_str23, ax7)
  
     fig.tight_layout()
  
