@@ -191,6 +191,8 @@ def onclick_climo(event):
     ai_avg = np.average(avgs)
     print(dictkey, ai_avg)
 
+# Written for old old data
+"""
 def readOMI(inputfile,start_date,end_date,key=None):
     global OMI_data
     OMI_data = {}
@@ -234,6 +236,57 @@ def readOMI(inputfile,start_date,end_date,key=None):
     f.close()    
 
     return OMI_data
+"""
+
+# NOTE: This only works for plotting 1 file time at a time. No multiple swaths
+# dtype is either "control", "JZ", or "shawn"
+def readOMI_swath2(plot_time, dtype, row_max, only_sea_ice = True, latmin = 65):
+
+    # Extract date information to use when finding the data files
+    year = plot_time[:4]
+    date = plot_time[4:8]
+    if(len(plot_time)==13):
+        time = plot_time[9:]
+    elif(len(plot_time)==12):
+        time = plot_time[8:]
+    else:
+        time = ''
+
+    if((dtype == 'control') | (dtype == 'JZ')):
+        base_path = '/home/bsorenson/data/OMI/H5_files'
+        total_list = subprocess.check_output('ls '+base_path+'OMI-Aura_L2-OMAERUV_'+\
+            year+'m'+date+'t'+time+'*.he5',shell=True).decode('utf-8').strip().split('\n')
+
+        # Depending on what the user wants, 
+        print(total_list[0])
+        data = h5py.File(total_list[0],'r')
+
+        LAT   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude'][:,:]
+        LON   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude'][:,:]
+        XTRACK = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/XTrackQualityFlags'][:,:]
+        UVAI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex'][:,:]
+        if(dtype == 'JZ'):
+            GPQF   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags'][:,:]
+            AZM    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/RelativeAzimuthAngle'][:,:]
+        #UVAI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/' + path_dict[variable] + variable][:,:]
+        ##!#if(len(UVAI.shape) == 3):
+        ##!#    # If 3 dimensions, assume that the smallest dimension is the wavelength
+        ##!#    # dimension. Find that dimension and grab the first index of that
+        ##!#    # dimension, which is the 354 nm channel.
+        ##!#    min_dim = np.min(UVAI.shape)
+        ##!#    if(UVAI.shape[2] == min_dim):
+        ##!#        UVAI = UVAI[:,:,channel_idx]
+        ##!#    elif(UVAI.shape[1] == min_dim):
+        ##!#        UVAI = UVAI[:,channel_idx,:]
+        ##!#    else:
+        ##!#        UVAI = UVAI[channel_idx,:,:]
+
+        mask_UVAI = np.ma.masked_where((XTRACK < -2e5) | (UVAI < -2e5) | (LAT < latmin), UVAI)
+
+        plot_lon = LON
+        plot_lat = LAT
+
+        data.close()
 
 def readOMI_single_swath(plot_time,row_max,only_sea_ice = True,latmin=65,coccolith = False):
     n_p = 1440
