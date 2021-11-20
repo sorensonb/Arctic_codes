@@ -2650,7 +2650,7 @@ def plot_scatter_OMI(date_str, MODIS_data, pax, avg_pixel = False):
         
 
 def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
-        plume_only = True, plot_total_flux = False):
+        plume_only = True, plot_total_flux = True):
 
     # Determine where the smoke is located
     # ------------------------------------
