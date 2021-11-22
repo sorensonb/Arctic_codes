@@ -75,7 +75,8 @@ label_dict = {
     'VBS0': 'No Bad Row Screening',
     'VBS1': 'Bad Row Screening Only',
     'VBS2': 'Only Rows 1-22',
-    'VSJ2': 'Perturbation Analysis'
+    'VSJ2': 'Perturbation Analysis',
+    'VSJ4': 'Perturbation Analysis'
 }
 
 var_dict = {
@@ -99,10 +100,28 @@ var_dict = {
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
-def plot_trend_line(pax, xdata, ydata, color='black', linestyle = '-', \
-        slope = 'thiel-sen'):
+def plot_subplot_label(ax, label, xval = None, yval = None, transform = None, \
+        color = 'black', fontsize = 14):
 
-    if(slope == 'thiel-sen'):
+    if(xval is None):
+        xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * 0.05
+    if(yval is None):
+        yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.90
+    print('Xval = ',xval, 'Yval = ',yval)
+
+    if(transform is None):
+        ax.text(xval,yval,label, \
+            color=color, weight='bold', \
+            fontsize=fontsize)
+    else:
+        ax.text(xval,yval,label, \
+            color=color, weight='bold', \
+            transform = transform, fontsize=fontsize)
+
+def plot_trend_line(pax, xdata, ydata, color='black', linestyle = '-', \
+        slope = 'theil-sen'):
+
+    if(slope == 'theil-sen'):
         res = stats.theilslopes(ydata, xdata, 0.90)
         print("Theil-Sen: {0}x + {1}".format(res[0], res[1]))
 
@@ -298,7 +317,9 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, latmin = 65):
     LON   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude'][:,:]
     XTRACK = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/XTrackQualityFlags'][:,:]
     UVAI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex'][:,:]
-    mask_UVAI = np.ma.masked_where((XTRACK < -2e5) | (UVAI < -2e5) | (LAT < latmin), UVAI)
+    GPQF   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags'][:,:]
+    GPQF_decode = np.array([[get_ice_flags(val) for val in GPQFrow] for GPQFrow in GPQF])
+    mask_UVAI = np.ma.masked_where((XTRACK != 0) | (UVAI < -2e5) | (LAT < latmin), UVAI)
     #UVAI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/' + path_dict[variable] + variable][:,:]
     ##!#if(len(UVAI.shape) == 3):
     ##!#    # If 3 dimensions, assume that the smallest dimension is the wavelength
@@ -315,18 +336,16 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, latmin = 65):
     OMI_swath['LAT'] = LAT
     OMI_swath['LON'] = LON
     OMI_swath['XTRACK'] = XTRACK
+    OMI_swath['GPQF'] = GPQF_decode
 
     if(dtype == 'JZ'):
-        GPQF   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags'][:,:]
         AZM    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/RelativeAzimuthAngle'][:,:]
-        GPQF_decode = np.array([[get_ice_flags(val) for val in GPQFrow] for GPQFrow in GPQF])
 
         mask_UVAI[~((((GPQF_decode >= 0) & (GPQF_decode <= 101)) | (GPQF_decode == 104)) & \
                       (AZM > 100))] = np.nan
         mask_UVAI = np.ma.masked_invalid(mask_UVAI)
 
         OMI_swath['AZM'] = AZM
-        OMI_swath['GPQF'] = GPQF_decode
     OMI_swath['UVAI'] = mask_UVAI
 
     data.close()
@@ -1588,8 +1607,8 @@ def plotOMI(OMI_data,start_date,end_date,save=False,trend_type='standard',file_t
         title_flabel = 'XTrack and Rows 1-23'
         outname_flabel = 'xtrack_rows1to23'
     trend_label=''
-    if(trend_type=='thiel-sen'):
-        trend_label='_thielSen'
+    if(trend_type=='theil-sen'):
+        trend_label='_theilSen'
     # If only summer months are being analyzed, remove all data except 
     # in summer
     spring = False
@@ -1858,7 +1877,7 @@ def plotOMI(OMI_data,start_date,end_date,save=False,trend_type='standard',file_t
 # ptype is either 'trend', 'climo', or 'monthclimo'
 # title is the plot title
 def plotOMI_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
-        vmin = None, vmax = None, colorbar_label_size = 16, minlat = 65.):
+        vmin = None, vmax = None, colorbar_label_size = 14, minlat = 65.):
 
     if(vmin == None):
         vmin = np.nanmin(pdata)
@@ -1895,7 +1914,6 @@ def plotOMI_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
     #cbar10.set_label('UV Aerosol Index',weight='bold',fontsize=colorbar_label_size)
     #cbar.ax.tick_params(labelsize=14)
     cbar.set_label(plabel,fontsize=colorbar_label_size,weight='bold')
-    print("USING ",ptitle)
     pax.set_title(ptitle)
 
 
@@ -1905,8 +1923,8 @@ def plotOMI_MonthTrend(OMI_data,month_idx=None,save=False,\
         title = '', label = '', pax = None):
     version = OMI_data['VERSION']
     trend_label=''
-    if(trend_type=='thiel-sen'):
-        trend_label='_thielSen'
+    if(trend_type=='theil-sen'):
+        trend_label='_theilSen'
 
     if(month_idx == None):
         month_adder = ''
@@ -1994,7 +2012,7 @@ def plotOMI_NCDF_SingleMonth(OMI_data,time_idx,minlat=65, pax = None, \
         save=False):
 
     version = OMI_data['VERSION']
-    if(version == 'VSJ2'):
+    if((version == 'VSJ2') | (version == 'VSJ4')):
         data_type = '(Perturbation)'
         label_adder = 'perturbation'
     else:
@@ -2059,7 +2077,7 @@ def plotOMI_NCDF_SingleMonth(OMI_data,time_idx,minlat=65, pax = None, \
 # May work as a stand-alone function call or to plot on a premade
 # axis by specifying the 'pax' argument
 def plotOMI_NCDF_Climo(OMI_data,start_idx=0,end_idx=None,season = '',minlat=60,\
-                       pax = None, save=False):
+                       title = '', pax = None, save=False):
 
     version = OMI_data['VERSION']
 
@@ -2124,7 +2142,9 @@ def plotOMI_NCDF_Climo(OMI_data,start_idx=0,end_idx=None,season = '',minlat=60,\
     first_date = month_objects[0].strftime("%Y%m")
     last_date = month_objects[-1].strftime("%Y%m")
     print(month_objects[0].strftime("%Y%m"),month_objects[-1].strftime("%Y%m"))
-    title = 'OMI AI Climatology\n'+first_date + ' - ' + last_date + season_dict[season]
+    if(title == ''):
+        title = 'OMI AI Climatology\n'+first_date + ' - ' + last_date + \
+            season_dict[season]
 
     # Make figure
     if(pax is None):
@@ -2174,7 +2194,7 @@ def plotOMI_NCDF_Climo(OMI_data,start_idx=0,end_idx=None,season = '',minlat=60,\
 # The same as the above function, but plots all 4 seasons in a single 4-panel
 # plot.
 #def plotOMI_NCDF_Climo_FourPanel(OMI_data,start_idx=0,end_idx=169,minlat=60,\
-def plotOMI_NCDF_Climo_SpringSummer(OMI_data,start_idx=0,end_idx=96,minlat=60,\
+def plotOMI_NCDF_Climo_SpringSummer(OMI_data,start_idx=0,end_idx=96,minlat=65,\
                        save=False):
 
     ##!## Make copy of OMI_data array
@@ -2225,8 +2245,10 @@ def plotOMI_NCDF_Climo_SpringSummer(OMI_data,start_idx=0,end_idx=96,minlat=60,\
 
     # Make figure
     plt.close('all')
-    fig1 = plt.figure(1,figsize=(9,7))
-    gs = gridspec.GridSpec(nrows=1, ncols=2)
+    fig1 = plt.figure(1,figsize=(10,5))
+    ax0 = fig1.add_subplot(1,2,1,projection = mapcrs)
+    ax1 = fig1.add_subplot(1,2,2,projection = mapcrs)
+    #gs = gridspec.GridSpec(nrows=1, ncols=2)
     #gs = gridspec.GridSpec(nrows=2, ncols=2, hspace = 0.10, wspace = 0.06)
 
     plt.suptitle(title)
@@ -2236,9 +2258,9 @@ def plotOMI_NCDF_Climo_SpringSummer(OMI_data,start_idx=0,end_idx=96,minlat=60,\
     vmin_r = -1.0
     # Make spring plot
     # ----------------
-    ax0 = plt.subplot(gs[0,0],projection=mapcrs)
+    #ax0 = plt.subplot(gs[0,0],projection=mapcrs)
     plotOMI_NCDF_Climo(OMI_data,start_idx=0,end_idx=None,season = 'spring',\
-        minlat=minlat,pax = ax0, save=False)
+        title = 'MAM', minlat=minlat,pax = ax0, save=False)
 
     ##!#ax0.set_extent([-180,180,60,90],ccrs.PlateCarree())
     ##!#ax0.gridlines()
@@ -2254,9 +2276,9 @@ def plotOMI_NCDF_Climo_SpringSummer(OMI_data,start_idx=0,end_idx=96,minlat=60,\
 
     # Make summer plot
     # ----------------
-    ax1 = plt.subplot(gs[0,1],projection=mapcrs)
+    #ax1 = plt.subplot(gs[0,1],projection=mapcrs)
     plotOMI_NCDF_Climo(OMI_data,start_idx=0,end_idx=None,season = 'summer',\
-        minlat=minlat, pax = ax1, save=False)
+        title = 'JJA', minlat=minlat, pax = ax1, save=False)
     ##!#ax1 = plt.subplot(gs[0,1],projection=mapcrs)
     ##!#ax1.set_extent([-180,180,60,90],ccrs.PlateCarree())
     ##!#ax1.gridlines()
@@ -2299,6 +2321,9 @@ def plotOMI_NCDF_Climo_SpringSummer(OMI_data,start_idx=0,end_idx=96,minlat=60,\
     ##!#    label='Aerosol Index')
     ##!#ax3.text(0., 1.02, 'D', transform = ax3.transAxes, size=15, weight = 'bold')
     ##!#ax3.set_title('Winter (DJF)')
+
+    plot_subplot_label(ax0, '(a)')
+    plot_subplot_label(ax1, '(b)')
 
     fig1.tight_layout()
 
@@ -2420,7 +2445,8 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,\
     start_date = datetime.strptime(OMI_data1['DATES'][month_idx],'%Y%m')
 
     #fig = plt.figure()
-    fig = plt.figure(1, figsize=(16,10))
+    plt.close('all')
+    fig = plt.figure(figsize=(16,10))
     plt.suptitle('OMI Comparisons: '+start_date.strftime("%B"),y=0.95,\
         fontsize=18,fontweight=4,weight='bold')
     gs = gridspec.GridSpec(nrows=2, ncols=3, hspace = 0.001, wspace = 0.15)
@@ -2458,7 +2484,7 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,\
         vmin = -1.0, vmax = 1.0, minlat = minlat)
     plotOMI_spatial(ax02, OMI_data3['LAT'], OMI_data3['LON'], mask_AI3, \
         'climo', ptitle = new_label_dict[OMI_data3['VERSION']] + '\n', \
-        plabel = 'UV AI Perturbation', \
+        plabel = 'UVAI Perturbation', \
         vmin = -1.0, vmax = 1.0, minlat = minlat)
 
     # Plot trends
@@ -2475,6 +2501,13 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,\
     plotOMI_MonthTrend(OMI_data3,month_idx=month_idx,\
         trend_type=trend_type,label = 'AI Pert. Trend (AI/Study Period)',\
         minlat=65.,title = None, pax = ax12)
+
+    plot_subplot_label(ax00, '(a)')
+    plot_subplot_label(ax01, '(b)')
+    plot_subplot_label(ax02, '(c)')
+    plot_subplot_label(ax10, '(d)')
+    plot_subplot_label(ax11, '(e)')
+    plot_subplot_label(ax12, '(f)')
 
     ##!#ax00.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
     ##!#ax00.set_boundary(circle, transform=ax00.transAxes)
@@ -2786,7 +2819,7 @@ def plot_omi_da(OMI_da_nc,save=False):
 
 # NOTE: designed to be run with an OMI single-swath dictionary from
 # readOMI_single_swath
-def plotOMI_hrly(OMI_data_hrly,minlat=60,save=False):
+def plotOMI_hrly(OMI_data_hrly, minlat = 60, pax = None, save=False):
 
     # Set up mapping variables 
     datacrs = ccrs.PlateCarree() 
@@ -2801,35 +2834,49 @@ def plotOMI_hrly(OMI_data_hrly,minlat=60,save=False):
     plot_lat, plot_lon = np.meshgrid(OMI_data_hrly['lat'],OMI_data_hrly['lon'])
     mask_AI = np.ma.masked_where(OMI_data_hrly['AI_count'] == 0, local_data)
 
-    # Determine the percentage of grid boxes that are actually filled
-    # with values.
-    total_boxes = mask_AI.size
-    total_good = mask_AI.count()
-    pcnt_good = (total_good / total_boxes) * 100.
-    print("Total_boxes = ",total_boxes,"Total good = ",total_good)
-    print("Percent good = ",pcnt_good)
+    ##!## Determine the percentage of grid boxes that are actually filled
+    ##!## with values.
+    ##!#total_boxes = mask_AI.size
+    ##!#total_good = mask_AI.count()
+    ##!#pcnt_good = (total_good / total_boxes) * 100.
+    ##!#print("Total_boxes = ",total_boxes,"Total good = ",total_good)
+    ##!#print("Percent good = ",pcnt_good)
+
+    if(pax is None):
+        plt.close('all') 
+        fig = plt.figure(figsize=(8,8))
+        ax = plt.axes(projection = mapcrs)
+        plotOMI_spatial(ax, OMI_data_hrly['LAT'], OMI_data_hrly['LON'], mask_AI, \
+            'climo', ptitle = new_label_dict[OMI_data_hrly['VERSION']] + '\n', \
+            plabel = 'UV Aerosol Index', \
+            vmin = -2.0, vmax = 4.0, minlat = minlat)
    
-    plt.close('all') 
-    fig = plt.figure(figsize=(8,8))
-    ax = plt.axes(projection = mapcrs)
-    ax.gridlines()
-    ax.coastlines(resolution = '50m')
-    plt.title('OMI AI ' + OMI_data_hrly['date'])
-    #plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
-    mesh = ax.pcolormesh(plot_lon, plot_lat,mask_AI,transform = datacrs,cmap = colormap,\
-            vmin = -2.0,vmax = 4.0)
-    ax.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
-            #vmin = var_dict[variable]['min'], vmax = var_dict[variable]['max'])
-    cbar = plt.colorbar(mesh,orientation='horizontal',pad=0,\
-        aspect=50,shrink = 0.845,label='UV Aerosol Index')
+    ##!#plt.close('all') 
+    ##!#fig = plt.figure(figsize=(8,8))
+    ##!#ax = plt.axes(projection = mapcrs)
+    ##!#ax.gridlines()
+    ##!#ax.coastlines(resolution = '50m')
+    ##!#plt.title('OMI AI ' + OMI_data_hrly['date'])
+    ##!##plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
+    ##!#mesh = ax.pcolormesh(plot_lon, plot_lat,mask_AI,transform = datacrs,cmap = colormap,\
+    ##!#        vmin = -2.0,vmax = 4.0)
+    ##!#ax.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
+    ##!#        #vmin = var_dict[variable]['min'], vmax = var_dict[variable]['max'])
+    ##!#cbar = plt.colorbar(mesh,orientation='horizontal',pad=0,\
+    ##!#    aspect=50,shrink = 0.845,label='UV Aerosol Index')
     
-    if(save == True):
-        out_name = 'omi_single_pass_uvai_' + OMI_data_hrly['date'] + \
-            '_rows_0to' + str(OMI_data_hrly['row_max']) + '.png'
-        plt.savefig(out_name,dpi=300)
-        print('Saved image '+out_name)
+        if(save == True):
+            out_name = 'omi_single_pass_uvai_' + OMI_data_hrly['date'] + \
+                '_rows_0to' + str(OMI_data_hrly['row_max']) + '.png'
+            plt.savefig(out_name,dpi=300)
+            print('Saved image '+out_name)
+        else:
+            plt.show()
     else:
-        plt.show()
+        plotOMI_spatial(pax, OMI_data_hrly['LAT'], OMI_data_hrly['LON'], mask_AI, \
+            'climo', ptitle = new_label_dict[OMI_data_hrly['VERSION']] + '\n', \
+            plabel = 'UV Aerosol Index', \
+            vmin = -2.0, vmax = 4.0, minlat = minlat)
 
 def plot_OMI_v_MODIS(MODIS_data,OMI_single_swath,save=False):
 
@@ -2916,6 +2963,8 @@ def plot_time_diff(jz28,jz2,month):
     plt.title('VJZ28 - VJZ2: ' + month)
     plt.savefig('omi_series_diff_'+month+'_jz28jz2_75N150.png')
 
+# Plots a scatter of AI trends from one datatype to those from another  
+# --------------------------------------------------------------------
 def plot_compare_trends(OMI_data1,OMI_data2,month, pax = None, \
         trend_type = 'standard', minlat = 65., save=False):
 
@@ -2987,7 +3036,7 @@ def plot_compare_trends(OMI_data1,OMI_data2,month, pax = None, \
     pax.scatter(mask_trend1,mask_trend2,c=z,s=8)
     #pax.plot(test_x,predictions,color='tab:green',linestyle='--',label='Huber Fit')
     plot_trend_line(pax, mask_trend1, mask_trend2, color='tab:green', linestyle = '-', \
-        slope = 'thiel-sen')
+        slope = 'theil-sen')
     ### Plot an unrobust fit line using linear regression
     ### -------------------------------------------------
     ##pax.plot(np.unique(mask_trend1),np.poly1d(np.polyfit(mask_trend1,\
@@ -3013,7 +3062,7 @@ def plot_compare_trends(OMI_data1,OMI_data2,month, pax = None, \
     else:
         pax.set_xlim(-0.3,0.3)
         pax.set_ylim(-0.3,0.3)
-    pax.legend()
+    pax.legend(loc = 'lower right')
     pax.set_xlabel(OMI_data1['VERSION'])
     pax.set_ylabel(OMI_data2['VERSION'])
     # Add the correlations to the graph
@@ -3041,6 +3090,186 @@ def plot_compare_trends(OMI_data1,OMI_data2,month, pax = None, \
             plt.show()
     #return mask_trend1,mask_trend2
 
+# Plot scatter comparisons of two trend types for each of the months
+def plotOMI_trend_scatter_comp(OMI_data1, OMI_data2, minlat = 65.,\
+        trend_type = 'standard', save = False):
+
+    # ----------------------------------------------------
+    #  Create a figure to hold all 6 scatter plots
+    # ----------------------------------------------------
+    plt.close('all')
+    fig1 = plt.figure(figsize = (14,10))
+    ax0 = fig1.add_subplot(2,3,1)
+    ax1 = fig1.add_subplot(2,3,2)
+    ax2 = fig1.add_subplot(2,3,3)
+    ax3 = fig1.add_subplot(2,3,4)
+    ax4 = fig1.add_subplot(2,3,5)
+    ax5 = fig1.add_subplot(2,3,6)
+
+    # ----------------------------------------------------
+    #
+    # Plot the trend comparisons for each month
+    #
+    # ----------------------------------------------------
+    plot_compare_trends(OMI_data1,OMI_data2,0, pax = ax0, \
+        trend_type = trend_type, minlat = minlat, save=False)
+    plot_compare_trends(OMI_data1,OMI_data2,1, pax = ax1, \
+        trend_type = trend_type, minlat = minlat, save=False)
+    plot_compare_trends(OMI_data1,OMI_data2,2, pax = ax2, \
+        trend_type = trend_type, minlat = minlat, save=False)
+    plot_compare_trends(OMI_data1,OMI_data2,3, pax = ax3, \
+        trend_type = trend_type, minlat = minlat, save=False)
+    plot_compare_trends(OMI_data1,OMI_data2,4, pax = ax4, \
+        trend_type = trend_type, minlat = minlat, save=False)
+    plot_compare_trends(OMI_data1,OMI_data2,5, pax = ax5, \
+        trend_type = trend_type, minlat = minlat, save=False)
+
+    plot_subplot_label(ax0, '(a)')
+    plot_subplot_label(ax1, '(b)')
+    plot_subplot_label(ax2, '(c)')
+    plot_subplot_label(ax3, '(d)')
+    plot_subplot_label(ax4, '(e)')
+    plot_subplot_label(ax5, '(f)')
+
+    #plt.suptitle(date_str)
+    fig1.tight_layout()
+
+    if(save):
+        outname = 'omi_combined_scatter_compare_' + OMI_data1['VERSION'] + \
+            'v' + OMI_data2['VERSION'] + '.png'
+        fig1.savefig(outname, dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
+# ----------------------------------------------------------------------------
+#
+# Compare 1x1 degree single-month data from OMI and CERES
+#
+# ----------------------------------------------------------------------------
+def plot_compare_OMI_CERES_grid(OMI_data, CERES_data, midx, minlat=65, \
+        max_AI = -200., only_sea_ice = False, save=False):
+#def plot_compare_OMI_CERES_hrly(OMI_hrly,CERES_hrly,minlat=65,save=False):
+
+    if('/home/bsorenson/Research/CERES/' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/CERES/')
+
+    from gridCERESLib import plotCERES_Month
+
+    # Step 1: Set up figure to have 3 panels
+    # --------------------------------------
+    plt.close('all')
+    #fig, axs = plt.subplots(1,3,subplot_kw={'projection': mapcrs})
+    fig1 = plt.figure(figsize=(17,5))
+    ax0 = fig1.add_subplot(1,3,1,projection = mapcrs)
+    ax1 = fig1.add_subplot(1,3,2,projection = mapcrs)
+    ax2 = fig1.add_subplot(1,3,3)
+
+    # Flip the CERES data to convert the longitudes from 0 - 360 to -180 - 180
+    # ------------------------------------------------------------------------
+    local_omi   = np.copy(OMI_data['AI'][midx])
+    local_lon   = np.copy(CERES_data['lon'])
+    local_lat   = np.copy(CERES_data['lat'])
+    local_ceres = np.copy(CERES_data['data'][midx])
+    over_180    = np.where(CERES_data['lon'][0,:] >= 179.9999)
+    under_180   = np.where(CERES_data['lon'][0,:] < 179.9999)
+
+    print(local_lat.shape, local_ceres.shape)
+
+    for ii in range(local_lon.shape[0]):
+        local_lon[ii,:] = np.concatenate([local_lon[ii,:][over_180] - 360.,\
+            local_lon[ii,:][under_180]])
+        local_lat[ii,:] = np.concatenate([local_lat[ii,:][over_180],\
+            local_lat[ii,:][under_180]])
+        local_ceres[ii,:] = np.concatenate([local_ceres[ii,:][over_180],\
+            local_ceres[ii,:][under_180]])
+   
+    print("Before removal, ",local_ceres.shape)
+ 
+    # First, mask any OMI data that are outside the bounds of the CERES data
+    # Assume that the OMI data are larger than the CERES data
+    # ----------------------------------------------------------------------
+    local_omi[np.where(np.isnan(local_omi))] = -999.
+    where_matching = np.where((OMI_data['LAT'][:,0] >= \
+        (np.min(local_lat) - 0.5)) & (OMI_data['LAT'][:,0] <= \
+        (np.max(local_lat) - 0.5)))[0]
+    local_omi = local_omi[where_matching, :]
+
+    mask_omi = np.array(local_omi[  (local_omi != 0) & (local_ceres != 0) \
+        & (local_omi != -999.) & (local_ceres != -999.)])
+    mask_ceres = np.array(local_ceres[(local_omi != 0) & (local_ceres != 0) \
+        & (local_omi != -999.) & (local_ceres != -999.)])
+
+    # Step 3: Plot OMI and CERES data in first two panels
+    # ---------------------------------------------------
+    plotOMI_NCDF_SingleMonth(OMI_data, midx ,minlat= minlat, pax = ax0)
+    plotCERES_Month(CERES_data, midx, pax = ax1, minlat = 65)
+
+    # Plot the scatter comparison
+    # ---------------------------
+    xy = np.vstack([mask_omi,mask_ceres])
+    z = stats.gaussian_kde(xy)(xy)
+
+    ax2.scatter(local_omi, local_ceres, c = z, s = 6)
+    plot_trend_line(ax2, local_omi, local_ceres, color='tab:green', linestyle = '-', \
+        slope = 'theil-sen')
+
+    fig1.tight_layout()
+
+    ##!## Step 4: Plot scatter OMI and CERES comparison in third panel
+    ##!## ------------------------------------------------------------
+
+    ##!## Make gridded lat and lon arrays to use for coloring the plot
+    ##!#glat, glon = np.meshgrid(OMI_hrly['lat'],OMI_hrly['lon'])
+    ##!#
+    ##!## Mask any empty boxes
+    ##!#mask_AI = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
+    ##!#    (CERES_hrly['counts'] == 0) | (OMI_hrly['AI'] < max_AI)),OMI_hrly['AI'])
+    ##!#mask_flux = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
+    ##!#    (CERES_hrly['counts'] == 0) | (OMI_hrly['AI'] < max_AI)),CERES_hrly['data'])
+    ##!#mask_sza  = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
+    ##!#    (CERES_hrly['counts'] == 0) | (OMI_hrly['AI'] < max_AI)),OMI_hrly['SZA'])
+    ##!##mask_lat  = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
+    ##!##    (CERES_hrly['counts'] == 0) | (OMI_hrly['AI'] < max_AI)),glat)
+    ##!###!## Convert the index to a string using datetime
+    ##!###!#if(month != None):
+    ##!###!#    dt_obj = datetime.strptime(OMI_data['DATES'][month],"%Y%m")
+    ##!###!#    title = 'OMI AI / CERES ' + CERES_data['param'] + '\n'+ \
+    ##!###!#        dt_obj.strftime("%b") + " Trend Comparison"
+    ##!###!#    outname = 'omi_ceres_trend_comp_'+dt_obj.strftime("%b")+'_'+\
+    ##!###!#        OMI_data['VERSION']+'vCERES.png'
+    ##!###!#else:
+    ##!###!#    title = 'OMI AI / CERES ' + CERES_data['param'] + ' Trend Comparison'
+    ##!###!#    outname = 'omi_ceres_trend_comp_'+\
+    ##!###!#        OMI_data1['VERSION']+'vCERES.png'
+
+
+    ##!##print("Pearson:  ",pearsonr(mask_AI,mask_flux))
+    ##!##print("Spearman: ",spearmanr(mask_AI,mask_flux))
+
+    ##!###!#xy = np.vstack([mask_AI,mask_flux])
+    ##!###!#z = stats.gaussian_kde(xy)(xy)
+
+
+    ##!###!## One to one line stuff
+    ##!###!#xs = np.arange(np.min(mask_AI),np.max(mask_AI),0.1)
+
+    ##!#scat = ax2.scatter(mask_AI,mask_flux,c=mask_sza,s=8)
+    ##!#cbar = plt.colorbar(scat,ax=ax2,orientation='vertical',\
+    ##!#    label='Solar Zenith Angle',pad=0.02,aspect=50)
+    ##!#ax2.set_title(OMI_hrly['date'])
+    ##!#ax2.set_xlabel('OMI AI')
+    ##!#ax2.set_ylabel('CERES ' + CERES_hrly['param'])
+    ##!#plt.tight_layout()
+    outname = 'omi_ceres_compare_'+OMI_data['DATES'][midx]+'.png'
+    if(save == True):
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+    #return mask_AI,mask_flux
+
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
 # Single-swath plotting functions
@@ -3048,17 +3277,81 @@ def plot_compare_trends(OMI_data1,OMI_data2,month, pax = None, \
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
 # NOTE: this is designed to be run with the brand new readOMI_swath_hdf
-def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., save=False):
+def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
+        vmin = None, vmax = None, title = '', label = '', save=False):
 
     variable = 'UVAerosolIndex'
 
+    if(vmin is None):
+        vmin = var_dict[variable]['min']
+    if(vmax is None):
+        vmax = var_dict[variable]['max']
+
     pax.gridlines()
     pax.coastlines(resolution = '50m')
-    pax.set_title('OMI UVAI ' + OMI_hrly['dtype'] + ' ' + OMI_hrly['date'])
-    mesh = pax.pcolormesh(OMI_hrly['LON'], OMI_hrly['LAT'], OMI_hrly[pvar],\
-            transform = datacrs, cmap = colormap,\
-            vmin = var_dict[variable]['min'], vmax = var_dict[variable]['max'],\
-            shading='auto')
+    if(title == ''):
+        title = 'OMI UVAI ' + OMI_hrly['dtype'] + ' ' + OMI_hrly['date']
+    pax.set_title(title)
+    if(pvar == 'GPQF'):
+        # Convert the GPQF flag values to ice flags
+        # -----------------------------------------
+        local_GPQF = np.full(OMI_hrly[pvar].shape,np.nan)
+
+        local_GPQF[(OMI_hrly[pvar] > 0) & (OMI_hrly[pvar] < 101)] = 9
+        local_GPQF[OMI_hrly[pvar] == 0]                           = 8
+        local_GPQF[OMI_hrly[pvar] == 101]                         = 10
+        local_GPQF[OMI_hrly[pvar] == 103]                         = 11
+        local_GPQF[OMI_hrly[pvar] == 104]                         = 12
+        local_GPQF[OMI_hrly[pvar] == 124]                         = 13
+
+        mask_GPQF = np.ma.masked_invalid(local_GPQF)
+        cmap = plt.get_cmap('jet', np.max(mask_GPQF) - np.min(mask_GPQF)+1)
+
+        cbar_labels = ['Shallow ocean','Land','Shallow inland water',\
+                        'Ocean coastline / lake shoreline',\
+                        'ephemeral (intermittent) water','Deep inland water',\
+                        'Continental shelf ocean','Deep ocean',\
+                        'Snow-free land','Sea ice',\
+                        'Permanent ice\n(Greenland, Antarctica)','Dry snow',\
+                        'Ocean','Mixed pixels\nat coastline',\
+                        'Suspect ice value','Corners']
+
+        mesh = pax.pcolormesh(OMI_hrly['LON'], OMI_hrly['LAT'], mask_GPQF,\
+                transform = datacrs, cmap = cmap,\
+                vmin = np.nanmin(mask_GPQF) - 0.5, \
+                vmax = np.nanmax(mask_GPQF) + 0.5,\
+                shading='auto')
+
+        #cbar = plt.colorbar(mesh,ax = pax, orientation='horizontal',pad=0,\
+        cbar = plt.colorbar(mesh,ax = pax, orientation='vertical',\
+            shrink = 0.8, ticks = np.arange(int(np.nanmin(mask_GPQF)), \
+            int(np.nanmax(mask_GPQF)) + 1))
+            #shrink = 0.8, ticks = np.arange(np.nanmin(mask_GPQF), \
+            #np.nanmax(mask_GPQF) + 1))
+        #cbar.ax.set_xticks(np.arange(int(np.nanmin(mask_GPQF)),int(np.nanmax(mask_GPQF)) + 1))
+        print(cbar_labels[int(np.nanmin(mask_GPQF)):int(np.nanmax(mask_GPQF))+1])
+        cbar.ax.set_yticklabels(cbar_labels[int(np.nanmin(mask_GPQF)):int(np.nanmax(mask_GPQF))+1],\
+            fontsize=10,weight = 'bold', rotation=0)
+            #fontsize=8,rotation=35)
+        
+    else:
+        mesh = pax.pcolormesh(OMI_hrly['LON'], OMI_hrly['LAT'], OMI_hrly[pvar],\
+                transform = datacrs, cmap = colormap,\
+                vmin = vmin, vmax = vmax,\
+                shading='auto')
+
+        if(label == ''):
+            if(OMI_hrly['dtype'] == 'shawn'):
+                label = 'UVAI Perturbation'
+            else:
+                label = 'UV Aerosol Index'
+
+        #cbar.set_label(variable,fontsize=16,weight='bold')
+        tickvals = np.arange(-2.0,4.1,0.5)
+        cbar = plt.colorbar(mesh,ax = pax, ticks = tickvals,\
+            orientation='vertical', shrink = 0.8, extend = 'both')
+        cbar.set_label(label,fontsize = 14, weight='bold')
+        cbar.ax.tick_params(labelsize=14)
 
     # Center the figure over the Arctic
     pax.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
@@ -3075,21 +3368,92 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., save=False)
     ##!#elif(variable == 'SolarZenithAngle'):
     ##!#    tickvals = np.arange(0,90,10)
     ##!#else:
-    tickvals = np.arange(-2.0,4.1,0.5)
     
     #cbar10.set_label('UV Aerosol Index',weight='bold',fontsize=colorbar_label_size)
     #cbar.ax.tick_params(labelsize=14)
-    if(OMI_hrly['dtype'] == 'shawn'):
-        label = 'UVAI perturbation'
+
+# Plot just a single swath on a 1-panel figure
+# --------------------------------------------
+def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
+        only_sea_ice = False, minlat = 65., save = False):
+
+    # ----------------------------------------------------
+    # Read in data
+    # ----------------------------------------------------
+    if(dtype == 'shawn'):
+        OMI_base  = readOMI_swath_shawn(date_str, latmin = minlat)
     else:
-        label = 'UV Aerosol Index'
+        OMI_base  = readOMI_swath_hdf(date_str, dtype, \
+            only_sea_ice = only_sea_ice, latmin = minlat)
 
-    #cbar.set_label(variable,fontsize=16,weight='bold')
-    cbar = plt.colorbar(mesh,ax = pax, ticks = tickvals,\
-        orientation='vertical', shrink = 0.8, extend = 'both')
-    cbar.set_label(label,fontsize = 14, weight='bold')
-    cbar.ax.tick_params(labelsize=14)
+    # ----------------------------------------------------
+    # Set up the overall figure
+    # ----------------------------------------------------
+    plt.close('all')
+    fig1 = plt.figure(figsize = (6,6))
+    ax0 = fig1.add_subplot(1,1,1, projection = mapcrs)
 
+    # ----------------------------------------------------
+    # Use the single-swath plotting function to plot each
+    # of the 3 data types
+    # ----------------------------------------------------
+    plotOMI_single_swath(ax0, OMI_base, title = dtype.title())
+
+    plt.suptitle(date_str)
+
+    fig1.tight_layout()
+
+    if(save):
+        outname = 'omi_single_swath_figure_' + date_str + '_' + \
+            dtype + '.png'
+        fig1.savefig(outname, dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
+
+# 2 panel plot showing control UVAI and ground classification
+# -----------------------------------------------------------
+def plotOMI_single_ground(date_str, only_sea_ice = False, minlat = 65., \
+        save = False):
+
+    # ----------------------------------------------------
+    # Read in data
+    # ----------------------------------------------------
+    OMI_base  = readOMI_swath_hdf(date_str, 'control', \
+        only_sea_ice = only_sea_ice, latmin = minlat)
+
+    # ----------------------------------------------------
+    # Set up the overall figure
+    # ----------------------------------------------------
+    plt.close('all')
+    fig1 = plt.figure(figsize = (11,5))
+    ax0 = fig1.add_subplot(1,2,1, projection = mapcrs)
+    ax1 = fig1.add_subplot(1,2,2, projection = mapcrs)
+
+    # ----------------------------------------------------
+    # Use the single-swath plotting function to plot each
+    # of the 3 data types
+    # ----------------------------------------------------
+    plotOMI_single_swath(ax0, OMI_base, title = 'Control')
+    plotOMI_single_swath(ax1, OMI_base, title = 'Screened', pvar = 'GPQF')
+
+
+    plt.suptitle(date_str)
+    plot_subplot_label(ax0, '(a)')
+    plot_subplot_label(ax1, '(b)')
+
+    fig1.tight_layout()
+
+    if(save):
+        outname = 'omi_single_swath_ground_' + date_str + '.png'
+        fig1.savefig(outname, dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
+# Compare the control AI with the two methods
+# -------------------------------------------
 def plotOMI_single_3panel(date_str, only_sea_ice = False, minlat = 65., \
         save = False):
 
@@ -3115,9 +3479,16 @@ def plotOMI_single_3panel(date_str, only_sea_ice = False, minlat = 65., \
     # Use the single-swath plotting function to plot each
     # of the 3 data types
     # ----------------------------------------------------
-    plotOMI_single_swath(ax0, OMI_base)
-    plotOMI_single_swath(ax1, OMI_JZ)
-    plotOMI_single_swath(ax2, OMI_shawn, pvar = 'UVAI_pert')
+    plotOMI_single_swath(ax0, OMI_base, title = 'Control')
+    plotOMI_single_swath(ax1, OMI_JZ, title = 'Screened')
+    plotOMI_single_swath(ax2, OMI_shawn, pvar = 'UVAI_pert',\
+        title = 'Perturbed')
+
+
+    plt.suptitle(date_str)
+    plot_subplot_label(ax0, '(a)')
+    plot_subplot_label(ax1, '(b)')
+    plot_subplot_label(ax2, '(c)')
 
     fig1.tight_layout()
 
@@ -3128,6 +3499,47 @@ def plotOMI_single_3panel(date_str, only_sea_ice = False, minlat = 65., \
     else:
         plt.show()
 
+def plotOMI_shawn_3panel(date_str, only_sea_ice = False, minlat = 65.,\
+        save = False):
+
+    # ----------------------------------------------------
+    # Read in the shawn data
+    # ----------------------------------------------------
+    OMI_shawn = readOMI_swath_shawn(date_str, latmin = minlat)
+
+    # ----------------------------------------------------
+    # Set up the overall figure
+    # ----------------------------------------------------
+    plt.close('all')
+    fig1 = plt.figure(figsize = (15,5))
+    ax0 = fig1.add_subplot(1,3,1, projection = mapcrs)
+    ax1 = fig1.add_subplot(1,3,2, projection = mapcrs)
+    ax2 = fig1.add_subplot(1,3,3, projection = mapcrs)
+
+    # ----------------------------------------------------
+    # Use the single-swath plotting function to plot each
+    # of the 3 data types
+    # ----------------------------------------------------
+    plotOMI_single_swath(ax0, OMI_shawn, pvar = 'UVAI_raw', \
+        label = 'UV Aerosol Index', title = 'Raw UVAI')
+    plotOMI_single_swath(ax1, OMI_shawn, pvar = 'UVAI_climo', \
+        label = 'UV Aerosol Index', title = 'UVAI Climatology')
+    plotOMI_single_swath(ax2, OMI_shawn, pvar = 'UVAI_pert', \
+        label = 'UVAI Perturbation', title = 'UVAI Perturbation')
+
+    plot_subplot_label(ax0, '(a)')
+    plot_subplot_label(ax1, '(b)')
+    plot_subplot_label(ax2, '(c)')
+
+    plt.suptitle(date_str)
+    fig1.tight_layout()
+
+    if(save):
+        outname = 'omi_single_swath_shawn_3panel_' + date_str + '.png'
+        fig1.savefig(outname, dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
 
 # Plot a single swath of OMI data with total climatology subtracted
 # mask_weakAI: removes AI values below 0.8 when plotting
@@ -3534,5 +3946,153 @@ def single_swath_anomaly_time(single_swath,climo_date,minlat = 60,row_max = 60):
     plt.show()
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#
+# Comparison with CERES
+#
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
+def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,minlat=65,\
+        trend_type = 'standard',save=False):
+
+    if('/home/bsorenson/Research/CERES' not in sys.path):
+        sys.path.append('/home/bsorenson/Reserach/CERES')
+    #importlib.reload(gridCERESLib) 
+    from gridCERESLib import calcCERES_grid_trend, plotCERES_spatial, \
+        plotCERES_MonthTrend
+
+    # Calculate trends for both the OMI and CERES data
+    # ------------------------------------------------
+    OMI_trend   = calcOMI_grid_trend(OMI_data, month, trend_type, \
+        minlat)
+    CERES_trend = calcCERES_grid_trend(CERES_data, month, trend_type, \
+        minlat)
+
+    # Convert the index to a string using datetime
+    if(month != None):
+        dt_obj = datetime.strptime(OMI_data['DATES'][month],"%Y%m")
+        title = 'OMI AI / CERES ' + CERES_data['param'] + '\n'+ \
+            dt_obj.strftime("%b") + " Trend Comparison"
+        outname = 'omi_ceres_trend_comp_'+dt_obj.strftime("%b")+'_'+\
+            OMI_data['VERSION']+'vCERES.png'
+    else:
+        title = 'OMI AI / CERES ' + CERES_data['param'] + ' Trend Comparison'
+        outname = 'omi_ceres_trend_comp_'+\
+            OMI_data1['VERSION']+'vCERES_min' + str(minlat) + '.png'
+
+    # Flip the CERES data to convert the longitudes from 0 - 360 to -180 - 180
+    # ------------------------------------------------------------------------
+    local_lon = np.copy(CERES_data['lon'])
+    local_lat = np.copy(CERES_data['lat'])
+    over_180  = np.where(CERES_data['lon'][0,:] >= 179.9999)
+    under_180 = np.where(CERES_data['lon'][0,:] < 179.9999)
+
+    for ii in range(local_lon.shape[0]):
+        local_lon[ii,:] = np.concatenate([local_lon[ii,:][over_180] - 360.,\
+            local_lon[ii,:][under_180]])
+        local_lat[ii,:] = np.concatenate([local_lat[ii,:][over_180],\
+            local_lat[ii,:][under_180]])
+        CERES_trend[ii,:] = np.concatenate([CERES_trend[ii,:][over_180],\
+            CERES_trend[ii,:][under_180]])
+   
+    print("Before removal, ",CERES_trend.shape)
+ 
+    # First, mask any OMI data that are outside the bounds of the CERES data
+    # Assume that the OMI data are larger than the CERES data
+    # ----------------------------------------------------------------------
+    OMI_trend[np.where(np.isnan(OMI_trend))] = -999.
+    where_matching = np.where((OMI_data['LAT'][:,0] >= \
+        (np.min(local_lat) - 0.5)) & (OMI_data['LAT'][:,0] <= \
+        (np.max(local_lat) - 0.5)))[0]
+    OMI_trend = OMI_trend[where_matching, :]
+
+    mask_trend1 = np.array(OMI_trend[  (OMI_trend != 0) & (CERES_trend != 0) \
+        & (OMI_trend != -999.) & (CERES_trend != -999.)])
+    mask_trend2 = np.array(CERES_trend[(OMI_trend != 0) & (CERES_trend != 0) \
+        & (OMI_trend != -999.) & (CERES_trend != -999.)])
+
+    print(mask_trend1.shape, mask_trend2.shape)
+
+    print("Pearson:  ",pearsonr(mask_trend1,mask_trend2))
+    print("Spearman: ",spearmanr(mask_trend1,mask_trend2))
+
+    xy = np.vstack([mask_trend1,mask_trend2])
+    z = stats.gaussian_kde(xy)(xy)
+
+    # Set up the figure. 
+    # 3 panels: OMI trend, CERES trends, scatter compare
+    # ---------------------------------------------------
+    plt.close('all')
+    fig1 = plt.figure(figsize = (14,5))
+    ax0 = fig1.add_subplot(1,3,1, projection = mapcrs)
+    ax1 = fig1.add_subplot(1,3,2, projection = mapcrs)
+    ax2 = fig1.add_subplot(1,3,3)
+
+    # Plot the OMI and CERES trends
+    # -----------------------------
+    #plotOMI_spatial(ax0, OMI_data['LAT'], OMI_data['LON'], OMI_trend, 'trend', \
+    #    ptitle = title, plabel = 'UV Aerosol Index Trend', \
+    #    vmin = None, vmax = None, minlat = minlat)
+    plotOMI_MonthTrend(OMI_data,month_idx=month,\
+        trend_type=trend_type,label = 'AI Trend (AI/Study Period)',\
+        minlat=65.,title = "OMI Trend", pax = ax0)
+    plotCERES_MonthTrend(CERES_data,month_idx=month,\
+        trend_type=trend_type,\
+        minlat=65.,pax = ax1)
+
+    ##plotCERES_spatial(ax1, CERES_data['lat'], CERES_data['lon'], CERES_trend, 'trend', \
+    ##    ptitle = title, plabel = 'CERES ' + CERES_data['param'] + ' Trend', \
+    ##    vmin = None, vmax = None, minlat = minlat)
+
+    
+
+    ax2.scatter(mask_trend1,mask_trend2,c=z,s=8)
+    plot_trend_line(ax2, mask_trend1, mask_trend2, color='tab:green', linestyle = '-', \
+        slope = 'theil-sen')
+    ##!#plt.plot(test_x,predictions,color='tab:green',linestyle='--',label='Huber Fit')
+    ##!## Plot an unrobust fit line using linear regression
+    ##!## -------------------------------------------------
+    ##!#plt.plot(np.unique(mask_trend1),np.poly1d(np.polyfit(mask_trend1,\
+    ##!#    mask_trend2,1))(np.unique(mask_trend1)),color='tab:orange',\
+    ##!#    linestyle='--',label='Polyfit Fit')
+
+    ##if((month == 0) | (month == 1)):
+    ##    plt.xlim(-0.5,0.3)
+    ##    plt.ylim(-0.5,0.3)
+    ##elif((month == 2)):
+    ##    plt.xlim(-0.6,0.5)
+    ##    plt.ylim(-0.6,0.5)
+    ##elif((month == 3)):
+    ##    plt.xlim(-0.5,0.5)
+    ##    plt.ylim(-0.5,0.5)
+    ##elif((month == 4)):
+    ##    plt.xlim(-0.5,0.7)
+    ##    plt.ylim(-0.5,0.7)
+    ##elif((month == 5)):
+    ##    plt.xlim(-0.5,0.5)
+    ##    plt.ylim(-0.5,0.5)
+    ##else:
+    ##    plt.xlim(-0.3,0.3)
+    ##    plt.ylim(-0.3,0.3)
+    ax2.legend()
+    ax2.set_xlabel(OMI_data['VERSION'])
+    ax2.set_ylabel('CERES')
+    ax2.set_title(title + '\nMinlat = ' + str(minlat))
+
+    plot_subplot_label(ax0, '(a)')
+    plot_subplot_label(ax1, '(b)')
+    plot_subplot_label(ax2, '(c)')
+
+    fig1.tight_layout()
+
+    if(save == True):
+        fig1.savefig(outname)
+        print("Saved image",outname)
+    else:
+        plt.show()
+    #return mask_trend1,mask_trend2
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#
+# Comparison with CERES
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 

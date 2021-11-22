@@ -38,6 +38,7 @@ from scipy import stats
 from netCDF4 import Dataset
 import cartopy
 import cartopy.crs as ccrs
+from cartopy.util import add_cyclic_point
 from os import system
 import glob
 from scipy.stats import pearsonr,spearmanr
@@ -53,6 +54,10 @@ theta = np.linspace(0, 2*np.pi, 100)
 center, radius = [0.5, 0.5], 0.5
 verts = np.vstack([np.sin(theta), np.cos(theta)]).T
 circle = mpath.Path(verts * radius + center)
+
+datacrs = ccrs.PlateCarree() 
+#mapcrs = ccrs.NorthPolarStereo()
+mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
 
 max_dict = {
     'SWF': 600.,
@@ -1294,6 +1299,98 @@ def plotCERES_AllPlots(CERES_dict,CERES_dict_summer,CERES_dict_winter,minlat=31.
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#
+# Calculation functions
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+
+def calcCERES_grid_trend(CERES_data, month_idx, trend_type, minlat):
+
+    if(month_idx == None):
+        month_idx = 0
+        index_jumper = 1
+    else:
+        month_adder = '_month'
+        if(CERES_data['season'] == 'sunlight'):
+            index_jumper = 6
+        else:   
+            index_jumper = 12
+
+    lat_ranges = np.arange(minlat,90,1.0)
+    lon_ranges = np.arange(-180,180,1.0)
+
+    # Make copy of CERES_data array
+    print(CERES_data['dates'][month_idx::index_jumper])
+    local_data   = np.copy(CERES_data['data'][month_idx::index_jumper,:,:])
+    #local_counts = np.copy(CERES_data['OB_COUNT'][month_idx::index_jumper,:,:])
+    #local_mask = np.ma.masked_where(local_counts == 0, local_data)
+    local_mask = np.ma.masked_where(((local_data == -999.) | (CERES_data['lat'] < minlat)), local_data)
+    ceres_trends = np.zeros(local_data.shape[1:])
+
+    # Loop over all the keys and print the regression slopes 
+    # Grab the averages for the key
+    for i in range(0,len(lat_ranges)):
+        for j in range(0,len(lon_ranges)):
+            # Check the current max and min
+            work_mask = local_mask[:,i,j][~local_mask[:,i,j].mask]
+            if(len(work_mask) > 1):
+                x_vals = np.arange(0,len(work_mask))
+                # Find the slope of the line of best fit for the time series of
+                # average data
+                if(trend_type=='standard'): 
+                    slope, intercept, r_value, p_value, std_err = \
+                        stats.linregress(x_vals,work_mask)
+                    ceres_trends[i,j] = slope * len(x_vals)
+                else:
+                    res = stats.theilslopes(work_mask, x_vals, 0.90)
+                    ceres_trends[i,j] = res[0]*len(x_vals)
+
+    ceres_trends = np.ma.masked_where(((CERES_data['lat'] < minlat) | \
+        (ceres_trends == -999.)), ceres_trends)
+
+    return ceres_trends
+
+# title is the plot title
+# ptype is 'climo', 'trend'
+def plotCERES_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
+        vmin = None, vmax = None, colorbar_label_size = 16, minlat = 65.):
+
+    if(vmin == None):
+        vmin = np.nanmin(pdata)
+    if(vmax == None):
+        vmax = np.nanmax(pdata)
+
+    if(ptype == 'trend'):
+        colormap = plt.cm.bwr
+    else:
+        colormap = plt.cm.jet
+
+    # Make copy of OMI_data array
+    local_data  = np.copy(pdata)
+    # Grid the data, fill in white space
+    cyclic_data,cyclic_lons = add_cyclic_point(local_data,plon[0,:])
+    plat,plon = np.meshgrid(plat[:,0],cyclic_lons)   
+  
+    # Mask any missing values
+    mask_AI = np.ma.masked_where(cyclic_data < -998.9, cyclic_data)
+    mask_AI = np.ma.masked_where(plat.T < minlat, mask_AI)
+
+    #pax.gridlines()
+    pax.coastlines(resolution='50m')
+    mesh = pax.pcolormesh(plon, plat,\
+            mask_AI.T,transform = datacrs,\
+            cmap = colormap,vmin=vmin,vmax=vmax)
+    pax.set_extent([-180,180,minlat,90],datacrs)
+    pax.set_boundary(circle, transform=pax.transAxes)
+    #cbar = plt.colorbar(mesh,ticks = np.arange(-200.,400.,5.),\
+    cbar = plt.colorbar(mesh,\
+        ax = pax, orientation='vertical',shrink = 0.8, extend = 'both')
+    cbar.set_label(plabel,fontsize=colorbar_label_size,weight='bold')
+    print("USING ",ptitle)
+    pax.set_title(ptitle)
+
+
 # Plot a single daily average
 def plotCERES_Daily(CERES_data,day_idx,minlat = 60,save=False):
 
@@ -1337,15 +1434,8 @@ def plotCERES_Daily(CERES_data,day_idx,minlat = 60,save=False):
         plt.show()
 
 # Plot a single monthly average
-def plotCERES_Month(CERES_data,month_idx,minlat = 60):
-
-    # Set up mapping variables 
-    datacrs = ccrs.PlateCarree() 
-    colormap = plt.cm.jet
-    if(minlat < 45):
-        mapcrs = ccrs.Miller()
-    else:
-        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
+def plotCERES_Month(CERES_data, month_idx, pax = None, minlat = 65, \
+        save = False):
 
     local_data = np.copy(CERES_data['data'][month_idx,:,:])
     mask_data = np.ma.masked_where((local_data < 0) | \
@@ -1354,23 +1444,31 @@ def plotCERES_Month(CERES_data,month_idx,minlat = 60):
     # Make figure title
     title = 'CERES ' + CERES_data['param'] + ' ' + CERES_data['dates'][month_idx]
 
-    # Make figure
-    fig1 = plt.figure(figsize = (8,8))
-    ax = plt.axes(projection = mapcrs)
-    ax.gridlines()
-    ax.coastlines(resolution='50m')
-    mesh = ax.pcolormesh(CERES_data['lon'], CERES_data['lat'],\
-            mask_data,transform = datacrs,\
-            #CERES_data['data'][month_idx,:,:],transform = datacrs,\
-            cmap = colormap)
-    ax.set_extent([-180,180,minlat,90],datacrs)
-    #ax.set_xlim(-3430748.535086173,3430748.438879491)
-    #ax.set_ylim(-3413488.8763307533,3443353.899053069)
-    cbar = plt.colorbar(mesh,ticks = np.arange(0.0,400.,25.),orientation='horizontal',pad=0,\
-        aspect=50,shrink = 0.905,label=CERES_data['parm_name'])
-    ax.set_title(title)
+    if(pax is None):
+        plt.close('all')
+        fig1 = plt.figure()
+        ax = fig1.add_subplot(1,1,1, projection = mapcrs)
+ 
+        plotCERES_spatial(ax, CERES_data['lat'], CERES_data['lon'], \
+            mask_data, 'climo', ptitle = title, plabel = 'W/m2', \
+            vmin = None, vmax = None, colorbar_label_size = 14, \
+            minlat = minlat)
 
-    plt.show()
+        fig1.tight_layout()
+
+        if(save == True):
+            outname = 'ceres_grid_'+CERES_data['satellite'].lower()+'_'+\
+                CERES_data['param']+'_'+CERES_data['dates'][month_idx]+'.png'
+            plt.savefig(outname,dpi=300)
+            print("Saved image",outname)
+        else:
+            plt.show()
+
+    else:
+        plotCERES_spatial(pax, CERES_data['lat'], CERES_data['lon'], \
+            mask_data, 'climo', ptitle = title, plabel = 'W/m2', \
+            vmin = None, vmax = None, colorbar_label_size = 14, \
+            minlat = minlat)
 
 # Plot a monthly climatology 
 def plotCERES_MonthClimo(CERES_data,month_idx,minlat = 60):
@@ -1413,7 +1511,9 @@ def plotCERES_MonthClimo(CERES_data,month_idx,minlat = 60):
 
 # Designed to work with the netCDF data
 def plotCERES_MonthTrend(CERES_data,month_idx=None,save=False,\
-        trend_type='standard',season='',minlat=65.,return_trend=False):
+        trend_type='standard',season='',minlat=65.,return_trend=False, \
+        pax = None):
+
     trend_label=''
     if(trend_type=='thiel-sen'):
         trend_label='_thielSen'
@@ -1438,60 +1538,27 @@ def plotCERES_MonthTrend(CERES_data,month_idx=None,save=False,\
     lat_ranges = np.arange(minlat,90,1.0)
     lon_ranges = np.arange(0,360,1.0)
 
+    # --------------------------------------------------------------
+    #
+    # Use calcCERES_grid_trend to calculate the trends in the AI data
+    #
+    # --------------------------------------------------------------
+    ceres_trends = calcCERES_grid_trend(CERES_data, month_idx, trend_type, \
+        minlat)
+
+    # --------------------------------------------------------------
+    #
+    # Plot the calculated trends on a figure
+    #
+    # --------------------------------------------------------------
+
     # Set up mapping variables 
-    datacrs = ccrs.PlateCarree() 
     colormap = plt.cm.bwr
-    if(minlat < 45):
-        mapcrs = ccrs.Miller()
-    else:
-        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
 
     # Pull the beginning and ending dates into datetime objects
     start_date = datetime.strptime(CERES_data['dates'][month_idx::index_jumper][0],'%Y%m')
     end_date   = datetime.strptime(CERES_data['dates'][month_idx::index_jumper][-1],'%Y%m')
-
-    # Make copy of CERES_data array
-    print(CERES_data['dates'][month_idx::index_jumper])
-    local_data   = np.copy(CERES_data['data'][month_idx::index_jumper,:,:])
-    #local_counts = np.copy(CERES_data['OB_COUNT'][month_idx::index_jumper,:,:])
-    #local_mask = np.ma.masked_where(local_counts == 0, local_data)
-    local_mask = np.ma.masked_where(((local_data == -999.) | (CERES_data['lat'] < minlat)), local_data)
-    ceres_trends = np.zeros(local_data.shape[1:])
-
-    print('CERES mask shape = ',local_mask.shape)
-
-    ##!#plt.close('all')
-    ##!#fig0 = plt.figure()
-    ##!## 79 x 152: 14, 332
-    ##!#latx = 8
-    ##!#lonx = 100
-    ##!### 75 x -150: 10, 30
-    ##!##latx = 10
-    ##!##lonx = 30
-    ##!#test_vals = local_mask[:,latx,lonx][~local_mask[:,latx,lonx].mask]
-    ##!##test_vals = local_mask[:,latx,lonx]
-    ##!#print(test_vals)
-    ##!#x_vals = np.arange(len(test_vals))
-    ##!#slope, intercept, r_value, p_value, std_err = \
-    ##!#    stats.linregress(x_vals,test_vals)
-    ##!#print(local_mask[:,latx,lonx])
-    ##!#print(slope,slope * len(x_vals))
-    ##!#plt.plot(x_vals,test_vals)
-    ##!#plt.plot(x_vals,slope * x_vals + intercept,color='red')
-    ##!#plt.title(str(int(lat_ranges[latx])) + 'x'+str(int(lon_ranges[lonx]))+\
-    ##!#            '\n'+start_date.strftime('%b') + ' ' + CERES_data['satellite']) 
-    ##!#if(save == True):
-    ##!#    month_adder = ''
-    ##!#    if(do_month == True):
-    ##!#        month_adder = '_' + start_date.strftime('%b') 
-    ##!#    outname = 'ceres_'+CERES_data['param'] + '_time_series' + month_adder + '_' + \
-    ##!#        str(int(lat_ranges[latx])) + 'x'+str(int(lon_ranges[lonx])) + \
-    ##!#        '.png'
-    ##!#    plt.savefig(outname)
-    ##!#    print("Saved image",outname)
-    ##!##return local_mask[:,latx,lonx]
     
-
     # Make figure title
     #date_month = datetime(year = 1,month = month_idx+1, day = 1).strftime('%B')
     month_string = ''
@@ -1502,84 +1569,34 @@ def plotCERES_MonthTrend(CERES_data,month_idx=None,save=False,\
         '\n'+start_date.strftime('%b. %Y') + ' - ' +\
         end_date.strftime('%b. %Y')
 
-    # Loop over all the keys and print the regression slopes 
-    # Grab the averages for the key
-    for i in range(0,len(lat_ranges)):
-        for j in range(0,len(lon_ranges)):
-            # Check the current max and min
-            work_mask = local_mask[:,i,j][~local_mask[:,i,j].mask]
-            if(len(work_mask) != 0):
-                x_vals = np.arange(0,len(work_mask))
-                # Find the slope of the line of best fit for the time series of
-                # average data
-                if(trend_type=='standard'): 
-                    slope, intercept, r_value, p_value, std_err = \
-                        stats.linregress(x_vals,work_mask)
-                    ceres_trends[i,j] = slope * len(x_vals)
-                else:
-                    #The slope
-                    S=0
-                    sm=0
-                    nx = len(local_mask[:,i,j])
-                    num_d=int(nx*(nx-1)/2)  # The number of elements in avgs
-                    Sn=np.zeros(num_d)
-                    for si in range(0,nx-1):
-                        for sj in range(si+1,nx):
-                            # Find the slope between the two points
-                            Sn[sm] = (local_mask[si,i,j]-local_mask[sj,i,j])/\
-                                     (si-sj) 
-                            sm=sm+1
-                        # Endfor
-                    # Endfor
-                    Snsorted=sorted(Sn)
-                    sm=int(num_d/2.)
-                    print(dictkey,len(Snsorted))
-                    if(len(Snsorted)==1):
-                        color=(0,0,0,0) 
-                    else:
-                        if(2*sm    == num_d):
-                            slope=0.5*(Snsorted[sm]+Snsorted[sm+1])
-                        if((2*sm)+1 == num_d): 
-                            slope=Snsorted[sm+1]
-                        ceres_trends[i,j] = slope*len(avgs)
-            else:
-                ceres_trends[i,j] = -999.
+    # Call plotCERES_spatial to add the data to the figure
 
-    print(np.min(ceres_trends),np.max(ceres_trends))
-   
-    ceres_trends = np.ma.masked_where(((CERES_data['lat'] < minlat) | \
-        (ceres_trends == -999.)), ceres_trends)
+    if(pax is None):
+        plt.close('all')
+        fig1 = plt.figure()
+        ax = fig1.add_subplot(1,1,1)
 
-    # Make figure
-    fig1 = plt.figure(figsize = (8,8))
-    ax = plt.axes(projection = mapcrs)
-    ax.gridlines()
-    ax.coastlines(resolution='50m')
-    mesh = ax.pcolormesh(CERES_data['lon'], CERES_data['lat'],\
-            ceres_trends,transform = datacrs,\
-            cmap = colormap,vmin=v_min,vmax=v_max)
-    ax.set_extent([-180,180,minlat,90],datacrs)
-    ax.set_boundary(circle, transform=ax.transAxes)
-    #ax.set_xlim(-3430748.535086173,3430748.438879491)
-    #ax.set_ylim(-3413488.8763307533,3443353.899053069)
-    cbar = plt.colorbar(mesh,ticks = np.arange(-200.,400.,5.),\
-        orientation='horizontal',pad=0,aspect=50,shrink = 0.845,\
-        label = CERES_data['parm_name'])
-    cbar.ax.tick_params(labelsize=14)
-    cbar.set_label('',fontsize=16,weight='bold')
-    ax.set_title(title)
+        plotCERES_spatial(ax, CERES_data['lat'], CERES_data['lon'], \
+            ceres_trends, ptitle = title, plabel = 'W/m2 per study period', \
+            vmin = v_min, vmax = v_max, colorbar_label_size = 16, \
+            minlat = 65.)
 
-    if(save == True):
-        month_adder = ''
-        if(do_month == True):
-            month_adder = '_' + start_date.strftime('%b') 
-        out_name = 'ceres_' + CERES_data['param'] + '_trend'+ month_adder + '_' + \
-            start_date.strftime('%Y%m') + '_' + end_date.strftime('%Y%m') + \
-            '_min' + str(int(minlat)) + '.png'
-        plt.savefig(out_name,dpi=300)
-        print("Saved image",out_name)
+        if(save == True):
+            month_adder = ''
+            if(do_month == True):
+                month_adder = '_' + start_date.strftime('%b') 
+            out_name = 'ceres_' + CERES_data['param'] + '_trend'+ month_adder + '_' + \
+                start_date.strftime('%Y%m') + '_' + end_date.strftime('%Y%m') + \
+                '_min' + str(int(minlat)) + '.png'
+            plt.savefig(out_name,dpi=300)
+            print("Saved image",out_name)
+        else:
+            plt.show()
     else:
-        plt.show()
+        plotCERES_spatial(pax, CERES_data['lat'], CERES_data['lon'], \
+            ceres_trends, 'trend', ptitle = title, plabel = 'W/m2 per study period', \
+            vmin = v_min, vmax = v_max, colorbar_label_size = 16, \
+            minlat = 65.)
 
     if(return_trend == True):
         return ceres_trends
@@ -1629,6 +1646,8 @@ def plotCERES_Daily_MonthAnomaly(CERES_data,CERES_daily_data,day_idx,minlat = 60
     else:
         plt.show()
 
+# Makes a scatter plot comparing the trends in OMI and CERES
+# ----------------------------------------------------------
 def plot_compare_OMI_CERES_trends(OMI_data,CERES_data,month,minlat=65,\
         save=False):
     from OMILib import plotOMI_MonthTrend
