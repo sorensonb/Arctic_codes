@@ -136,8 +136,8 @@ else:
     ax1.set_xlabel('Year')
 
 plt.subplots_adjust(left=0.09,right=0.88)
-plt.savefig('omi_'+version+'_drift.png',dpi=300)
-print("Saved image omi_"+version+"_drift.png")
+#plt.savefig('omi_'+version+'_drift.png',dpi=300)
+#print("Saved image omi_"+version+"_drift.png")
 plt.show()
 #fig2 = plt.figure()
 #plt.plot(xrange_00,count_00,label='00Z')

@@ -181,7 +181,7 @@ if second_file:
 daily_dt_dates = np.array(daily_dt_dates)
 daily_counts_65 = np.array(daily_counts_65)
 
-years = np.arange(int(start_year),int(end_year))
+years = np.arange(int(start_year),int(end_year) + 1)
 yearly_totals = np.zeros(len(years))
 
 # Create a 2d array to hold all the area data from each day
@@ -207,8 +207,15 @@ mean_total_std = np.nanstd(mask_values)
 #mean_std = np.nanmean(mask_day_stds)
 
 # Calculate the
-lower_range = mask_day_avgs - mean_total_std * 0.75
-upper_range = mask_day_avgs + mean_total_std * 0.75
+# This adds and subtracts the standard deviation for each day
+# ---------------------------------------------------------------------
+lower_range = mask_day_avgs - mask_day_stds * 0.75
+upper_range = mask_day_avgs + mask_day_stds * 0.75
+
+# This adds and subtracts the total standard deviation of all the areas
+# ---------------------------------------------------------------------
+#lower_range = mask_day_avgs - mean_total_std * 0.75
+#upper_range = mask_day_avgs + mean_total_std * 0.75
 
 # Use a 1-sigma check to mask any daily_counts_65 values that are
 # outside of the average

@@ -105,7 +105,8 @@ program omi_JZ_drift
   ! open row anomaly file
   ! ---------------
   open(io10, file = "/home/bsorenson/OMI/"&
-    //"row_anomaly_dates2_20050401_20191001.txt", iostat = istatus)
+    //"row_anomaly_dates_20050401_20201001.txt", iostat = istatus)
+    !!#!//"row_anomaly_dates2_20050401_20191001.txt", iostat = istatus)
   if(istatus /= 0) then
     write(*,*) "error opening row file."
   endif

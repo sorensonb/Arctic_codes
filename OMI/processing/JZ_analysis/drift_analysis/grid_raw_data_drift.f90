@@ -44,16 +44,18 @@ subroutine grid_raw_data_drift(avg_ai,i_count)
     !row_loop: do jj=1,21 
     ! For JZ211, use only rows 55 through 60
     ! --------------------------------------
-    row_loop: do jj=55,AI_dims(1) 
+    !row_loop: do jj=55,AI_dims(1)  
+    ! For JZ2: use all rows
+    row_loop: do jj=1,AI_dims(1) 
 
-      ! Account for bad rows here
-      ! Cycle loop if this index in bad rows
-      ! ------------------------------------
-      if(allocated(i_bad_list)) then
-        do kk=1,i_num_bad
-          if(jj == i_bad_list(kk)) cycle row_loop
-        enddo
-      endif
+      !!#!! Account for bad rows here
+      !!#!! Cycle loop if this index in bad rows
+      !!#!! ------------------------------------
+      !!#!if(allocated(i_bad_list)) then
+      !!#!  do kk=1,i_num_bad
+      !!#!    if(jj == i_bad_list(kk)) cycle row_loop
+      !!#!  enddo
+      !!#!endif
 
       ! 
       !!#!if(jj >= 55) then 
@@ -74,8 +76,10 @@ subroutine grid_raw_data_drift(avg_ai,i_count)
           ! -------------------------------------------------
           (AZM_data(jj,ii) > 100) .and. &
           (AI_data(jj,ii) > -2e5) .and. &
+          ! JZ211: include snow-free land
+          !( (i_sfc_flag >= 0 .and. i_sfc_flag <= 101) .or. &
           ! VJZ2: no snow-free land either
-          ( (i_sfc_flag >= 1 .and. i_sfc_flag <= 101) .or. &
+          ( (i_sfc_flag > 0 .and. i_sfc_flag <= 101) .or. &
             (i_sfc_flag == 104) )) then
 
         ! Insert the current AI value from the file into the running average

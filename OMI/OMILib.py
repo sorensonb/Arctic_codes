@@ -3278,7 +3278,8 @@ def plot_compare_OMI_CERES_grid(OMI_data, CERES_data, midx, minlat=65, \
 
 # NOTE: this is designed to be run with the brand new readOMI_swath_hdf
 def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
-        vmin = None, vmax = None, title = '', label = '', save=False):
+        vmin = None, vmax = None, title = '', label = '', \
+        circle_bound = True, save=False):
 
     variable = 'UVAerosolIndex'
 
@@ -3355,9 +3356,10 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
 
     # Center the figure over the Arctic
     pax.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
-    pax.set_boundary(circle, transform=pax.transAxes)
     pax.add_feature(cfeature.BORDERS)
     pax.add_feature(cfeature.STATES)
+    if(circle_bound):
+        pax.set_boundary(circle, transform=pax.transAxes)
     # Depending on the desired variable, set the appropriate colorbar ticks
     ##!#if(variable == 'NormRadiance'):
     ##!#    tickvals = np.arange(0.0,1.010,0.10)
@@ -3391,17 +3393,21 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
     # ----------------------------------------------------
     plt.close('all')
     fig1 = plt.figure(figsize = (6,6))
+    mapcrs = ccrs.Robinson()
     ax0 = fig1.add_subplot(1,1,1, projection = mapcrs)
 
     # ----------------------------------------------------
     # Use the single-swath plotting function to plot each
     # of the 3 data types
     # ----------------------------------------------------
-    plotOMI_single_swath(ax0, OMI_base, title = dtype.title())
+    plotOMI_single_swath(ax0, OMI_base, title = dtype.title(), \
+        circle_bound = False)
+
+    ax0.set_extent([-180., -140., -40., 0.], datacrs)
 
     plt.suptitle(date_str)
 
-    fig1.tight_layout()
+    #fig1.tight_layout()
 
     if(save):
         outname = 'omi_single_swath_figure_' + date_str + '_' + \
