@@ -3973,17 +3973,21 @@ def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,minlat=65,\
     CERES_trend = calcCERES_grid_trend(CERES_data, month, trend_type, \
         minlat)
 
+    print('before shapes', OMI_trend.shape, CERES_trend.shape)
+    #for x, y in zip(CERES_data['lat'][:, 10], CERES_trend[:, 10]):
+    #    print(x, y)
+
     # Convert the index to a string using datetime
     if(month != None):
         dt_obj = datetime.strptime(OMI_data['DATES'][month],"%Y%m")
         title = 'OMI AI / CERES ' + CERES_data['param'] + '\n'+ \
             dt_obj.strftime("%b") + " Trend Comparison"
         outname = 'omi_ceres_trend_comp_'+dt_obj.strftime("%b")+'_'+\
-            OMI_data['VERSION']+'vCERES.png'
+            OMI_data['VERSION']+'vCERES_min'+str(int(minlat))+'.png'
     else:
         title = 'OMI AI / CERES ' + CERES_data['param'] + ' Trend Comparison'
         outname = 'omi_ceres_trend_comp_'+\
-            OMI_data1['VERSION']+'vCERES_min' + str(minlat) + '.png'
+            OMI_data1['VERSION']+'vCERES_min' + str(int(minlat)) + '.png'
 
     # Flip the CERES data to convert the longitudes from 0 - 360 to -180 - 180
     # ------------------------------------------------------------------------
@@ -4016,7 +4020,7 @@ def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,minlat=65,\
     mask_trend2 = np.array(CERES_trend[(OMI_trend != 0) & (CERES_trend != 0) \
         & (OMI_trend != -999.) & (CERES_trend != -999.)])
 
-    print(mask_trend1.shape, mask_trend2.shape)
+    print('after shapes', mask_trend1.shape, mask_trend2.shape)
 
     print("Pearson:  ",pearsonr(mask_trend1,mask_trend2))
     print("Spearman: ",spearmanr(mask_trend1,mask_trend2))
@@ -4040,10 +4044,10 @@ def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,minlat=65,\
     #    vmin = None, vmax = None, minlat = minlat)
     plotOMI_MonthTrend(OMI_data,month_idx=month,\
         trend_type=trend_type,label = 'AI Trend (AI/Study Period)',\
-        minlat=65.,title = "OMI Trend", pax = ax0)
+        minlat=minlat,title = "OMI Trend", pax = ax0)
     plotCERES_MonthTrend(CERES_data,month_idx=month,\
         trend_type=trend_type,\
-        minlat=65.,pax = ax1)
+        minlat=minlat,pax = ax1)
 
     ##plotCERES_spatial(ax1, CERES_data['lat'], CERES_data['lon'], CERES_trend, 'trend', \
     ##    ptitle = title, plabel = 'CERES ' + CERES_data['param'] + ' Trend', \

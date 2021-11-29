@@ -71,7 +71,8 @@ program omi_shawn_climo
   ! ----------------------------------
   work_month = -1
 
-  data_path = "/Research/OMI/out_files-ltc3/new/"
+  data_path = "/Research/OMI/out_files-ltc4/"
+  !data_path = "/Research/OMI/out_files-ltc3/new/"
   !data_path = "/Research/OMI/out_files-monthly.20210518/"
 
   ! Set up lat/lon grids

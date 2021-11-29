@@ -1317,7 +1317,8 @@ def calcCERES_grid_trend(CERES_data, month_idx, trend_type, minlat):
         else:   
             index_jumper = 12
 
-    lat_ranges = np.arange(minlat,90,1.0)
+    lat_ranges = CERES_data['lat'][:,0]
+    #lat_ranges = np.arange(minlat,90,1.0)
     lon_ranges = np.arange(-180,180,1.0)
 
     # Make copy of CERES_data array
@@ -1325,7 +1326,8 @@ def calcCERES_grid_trend(CERES_data, month_idx, trend_type, minlat):
     local_data   = np.copy(CERES_data['data'][month_idx::index_jumper,:,:])
     #local_counts = np.copy(CERES_data['OB_COUNT'][month_idx::index_jumper,:,:])
     #local_mask = np.ma.masked_where(local_counts == 0, local_data)
-    local_mask = np.ma.masked_where(((local_data == -999.) | (CERES_data['lat'] < minlat)), local_data)
+    local_mask = np.ma.masked_where(((local_data == -999.) | \
+        (CERES_data['lat'] < minlat)), local_data)
     ceres_trends = np.zeros(local_data.shape[1:])
 
     # Loop over all the keys and print the regression slopes 
@@ -1348,7 +1350,6 @@ def calcCERES_grid_trend(CERES_data, month_idx, trend_type, minlat):
 
     ceres_trends = np.ma.masked_where(((CERES_data['lat'] < minlat) | \
         (ceres_trends == -999.)), ceres_trends)
-
     return ceres_trends
 
 # title is the plot title
@@ -1579,7 +1580,7 @@ def plotCERES_MonthTrend(CERES_data,month_idx=None,save=False,\
         plotCERES_spatial(ax, CERES_data['lat'], CERES_data['lon'], \
             ceres_trends, ptitle = title, plabel = 'W/m2 per study period', \
             vmin = v_min, vmax = v_max, colorbar_label_size = 16, \
-            minlat = 65.)
+            minlat = minlat)
 
         if(save == True):
             month_adder = ''
@@ -1596,7 +1597,7 @@ def plotCERES_MonthTrend(CERES_data,month_idx=None,save=False,\
         plotCERES_spatial(pax, CERES_data['lat'], CERES_data['lon'], \
             ceres_trends, 'trend', ptitle = title, plabel = 'W/m2 per study period', \
             vmin = v_min, vmax = v_max, colorbar_label_size = 16, \
-            minlat = 65.)
+            minlat = minlat)
 
     if(return_trend == True):
         return ceres_trends
