@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from datetime import datetime
 import pandas as pd
+from scipy.signal import argrelextrema, find_peaks
 
 if(len(sys.argv)<3):
     print("SYNTAX: python plot_OMI_fort_out.py out_file [optional second file] min_lat")
@@ -241,12 +242,34 @@ for ii, year in enumerate(years):
     print(len(daily_dt_dates[np.where( \
         (daily_dt_dates >= datetime(year,4,1)) & \
         (daily_dt_dates <= datetime(year,9,30)))]))
+
+    # Test the local maxima
+    # ---------------------
+    peaks, _ = find_peaks(daily_counts_65[np.where( \
+        (daily_dt_dates >= datetime(year,4,1)) & \
+        (daily_dt_dates <= datetime(year,9,30)))], height = 0)
+    print('peaks for ',year,' ',peaks)
+   
+    #print('local maxima = ',argrelextrema(daily_counts_65[np.where( \
+    #    (daily_dt_dates >= datetime(year,4,1)) & \
+    #    (daily_dt_dates <= datetime(year,9,30)))], np.greater))
+    ##high_values = np.ma.masked_where(daily_counts_65[np.where( \
+    ##    (daily_dt_dates >= datetime(year,4,1)) & \
+    ##    (daily_dt_dates <= datetime(year,9,30)))] < upper_range, daily_counts_65[np.where( \
+    ##    (daily_dt_dates >= datetime(year,4,1)) & \
+    ##    (daily_dt_dates <= datetime(year,9,30)))])
+    ##print(high_values)
+
     plt.plot(np.arange(len(daily_dt_dates[np.where( \
         (daily_dt_dates >= datetime(year,4,1)) & \
         (daily_dt_dates <= datetime(year,9,30)))])),\
         daily_counts_65[np.where( \
         (daily_dt_dates >= datetime(year,4,1)) & \
         (daily_dt_dates <= datetime(year,9,30)))],label=str(year))
+    #plt.plot(np.arange(len(daily_dt_dates[np.where( \
+    #    (daily_dt_dates >= datetime(year,4,1)) & \
+    #    (daily_dt_dates <= datetime(year,9,30)))]))[peaks], daily_counts_65[peaks], 'x')
+
 plt.plot(mask_day_avgs,label='avg',color='black')
 plt.plot(upper_range,label='+avg σ',linestyle='--',color='black')
 plt.plot(lower_range,label='-avg σ',linestyle='--',color='black')
@@ -259,7 +282,18 @@ plt.plot(years,yearly_totals)
 fig1, ax = plt.subplots()
 #if(dtype != 'vsj22'):
 #    ax.plot(dt_dates,count65,label='synoptic')
+
 ax.plot(daily_dt_dates,daily_counts_65,label='daily '+dtype)
+# Test peaks here
+# ---------------
+#upper_range = mask_day_avgs + mask_day_stds * 0.75
+#ax.plot(daily_dt_dates,high_values,label='daily '+dtype)
+#peaks, _ = find_peaks(high_values)
+peaks, _ = find_peaks(daily_counts_65, height = 2, distance = 4)
+#print('peaks for ',year,' ',peaks)
+#ax.plot(daily_dt_dates[peaks], high_values[peaks], 'x', color='black')
+ax.plot(daily_dt_dates[peaks], daily_counts_65[peaks], 'x', color='black')
+
 if second_file:
     ax2 = ax.twinx()
     ax2.plot(daily_dt_dates_2,daily_counts_65_2,label='daily '+dtype2,color='tab:orange')

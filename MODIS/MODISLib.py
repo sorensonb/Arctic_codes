@@ -730,6 +730,7 @@ def find_plume(dt_date_str):
     test_data = MODIS_ch1['data'] - MODIS_ch5['data']
     hash_data   = np.ma.masked_where(test_data <  \
         (np.nanmean(test_data) * screen_limit), MODIS_ch1['data'])
+    hash_data = np.ma.masked_where(MODIS_ch5['data'] < 0.05, hash_data)
     nohash_data = np.ma.masked_where(test_data >= \
         (np.nanmean(test_data) * screen_limit), MODIS_ch1['data'])
 
@@ -1307,7 +1308,7 @@ def read_MODIS_channel(date_str, channel, zoom = False):
         data[bad_locations] = np.nan
         data = np.ma.masked_invalid(data)
 
-        colors = 'plasma'
+        colors = 'Greys_r'
         label = 'IR Precipitable water vapor [cm]'
         ##!#try:
         ##!#    label = modis.select(channel_dict[str(channel)]['Name']\
@@ -1356,7 +1357,7 @@ def read_MODIS_channel(date_str, channel, zoom = False):
             data[bad_locations] = np.nan
             data = np.ma.masked_invalid(data)
 
-            colors = 'Greys'
+            colors = 'plasma'
             label = 'Blackbody Temperature [K]'
 
         # Reflectances
@@ -2419,7 +2420,7 @@ def plot_CERES_spatial(date_str, mask_LAT, mask_LON, mask_data, dtype, pax, \
     mesh3 = pax.scatter(mask_LON.compressed(), mask_LAT.compressed(),\
         #s =  170, marker = 's', c = mask_data.compressed(), cmap = 'jet', \
         #s =  170, marker = 's', c = mask_data.compressed(), cmap = 'plasma', \
-        s =  170, marker = 's', c = mask_data.compressed(), cmap = 'Greys_r', \
+        s =  170, marker = 's', c = mask_data.compressed(), cmap = 'plasma', \
         vmin = vmin, vmax = vmax, transform = datacrs)
     pax.add_feature(cfeature.BORDERS)
     pax.add_feature(cfeature.STATES)
@@ -3459,7 +3460,9 @@ def plot_OMI_spatial(date_str, LAT, LON, mask_UVAI, pax, zoom = False):
                         plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
                         datacrs)
     cbar3 = plt.colorbar(mesh3,ax=pax,orientation='vertical',\
-        pad=0.03,label='OMI UVAI')
+        pad=0.03)
+    cbar3.set_label('OMI UVAI', size = 14, weight = 'bold')
+    cbar3.ax.tick_params(labelsize = 12)
     pax.set_title('OMI UVAI',fontsize=10)
 
 
@@ -4103,9 +4106,10 @@ def plot_combined_figure1(zoom = True, show_smoke = True, composite = True, \
         # ------------------------------------
         hash_data1, nohash_data1 = find_plume(date_str) 
 
+        plt.rcParams.update({'hatch.color': 'r'})
         ax3.pcolor(MODIS_data_ch1['lon'],MODIS_data_ch1['lat'],\
-            hash_data1, hatch = '////', alpha=0., transform = datacrs,\
-            color = 'lime')
+            hash_data1, hatch = '\\\\', alpha=0., transform = datacrs,\
+            cmap = 'plasma')
     # Plot the ASOS locations on the map
     # ----------------------------------
     plot_ASOS_locs(ax1,date_str,color='lime', sites = ['O05','AAT'])
