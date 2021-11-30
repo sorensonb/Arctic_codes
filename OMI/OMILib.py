@@ -240,50 +240,50 @@ def onclick_climo(event):
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
 # Written for old old data
-##!#   
-##!#def readOMI(inputfile,start_date,end_date,key=None):
-##!#    global OMI_data
-##!#    OMI_data = {}
-##!#
-##!#    if(key is not None):
-##!#        OMI_data[key]={}
-##!#
-##!#    if(inputfile.strip().split('/')[-1].split('.')[-1]=='gz'):
-##!#        f = gzip.open(inputfile,'rb')
-##!#    else:
-##!#        f = open(inputfile,'r')
-##!#    #with open(inputfile,'r') as f:
-##!#    # Skip the header line
-##!#    for line in f:
-##!#        templine = line.strip().split()
-##!#        if(len(templine)>1):
-##!#            if(len(templine) == 5):
-##!#                loc_key = str(templine[1])+'x'+str(templine[2])
-##!#                avg_idx = 3
-##!#                cnt_idx = 4
-##!#            else:
-##!#                loc_key = templine[1] 
-##!#                avg_idx = 2
-##!#                cnt_idx = 3
-##!#            if((int(templine[0])>=start_date) & (int(templine[0])<=end_date)):
-##!#                if(key is not None):
-##!#                    if(loc_key==key):
-##!#                        OMI_data[key][templine[0]] = {}
-##!#                        OMI_data[key][templine[0]]['avg']=float(templine[avg_idx])
-##!#                        OMI_data[key][templine[0]]['#_obs']=int(templine[cnt_idx])
-##!#                else:
-##!#                    # If the current lat/lon pair are not found in the dictionary's
-##!#                    # keys, then make a new subdictionary for it.
-##!#                    if(loc_key not in OMI_data.keys()):
-##!#                        OMI_data[loc_key] = {}
-##!#                    # If the current lat/lon pair are already in the dictionary's
-##!#                    # keys, then add the new data to the subdictionary
-##!#                    OMI_data[loc_key][templine[0]]={}
-##!#                    OMI_data[loc_key][templine[0]]['avg']=float(templine[avg_idx])
-##!#                    OMI_data[loc_key][templine[0]]['#_obs']=int(templine[cnt_idx])
-##!#    f.close()    
-##!#
-##!#    return OMI_data
+   
+def readOMI(inputfile,start_date,end_date,key=None):
+    global OMI_data
+    OMI_data = {}
+
+    if(key is not None):
+        OMI_data[key]={}
+
+    if(inputfile.strip().split('/')[-1].split('.')[-1]=='gz'):
+        f = gzip.open(inputfile,'rb')
+    else:
+        f = open(inputfile,'r')
+    #with open(inputfile,'r') as f:
+    # Skip the header line
+    for line in f:
+        templine = line.strip().split()
+        if(len(templine)>1):
+            if(len(templine) == 5):
+                loc_key = str(templine[1])+'x'+str(templine[2])
+                avg_idx = 3
+                cnt_idx = 4
+            else:
+                loc_key = templine[1] 
+                avg_idx = 2
+                cnt_idx = 3
+            if((int(templine[0])>=start_date) & (int(templine[0])<=end_date)):
+                if(key is not None):
+                    if(loc_key==key):
+                        OMI_data[key][templine[0]] = {}
+                        OMI_data[key][templine[0]]['avg']=float(templine[avg_idx])
+                        OMI_data[key][templine[0]]['#_obs']=int(templine[cnt_idx])
+                else:
+                    # If the current lat/lon pair are not found in the dictionary's
+                    # keys, then make a new subdictionary for it.
+                    if(loc_key not in OMI_data.keys()):
+                        OMI_data[loc_key] = {}
+                    # If the current lat/lon pair are already in the dictionary's
+                    # keys, then add the new data to the subdictionary
+                    OMI_data[loc_key][templine[0]]={}
+                    OMI_data[loc_key][templine[0]]['avg']=float(templine[avg_idx])
+                    OMI_data[loc_key][templine[0]]['#_obs']=int(templine[cnt_idx])
+    f.close()    
+
+    return OMI_data
 
 # NOTE: This only works for plotting 1 file time at a time. No multiple swaths
 # dtype is either "control" or "JZ"
@@ -821,6 +821,10 @@ def calcOMI_grid_trend(OMI_data, month_idx, trend_type, minlat):
                 ai_trends[i,j] = res[0]*len(x_vals)
 
     ai_trends = np.ma.masked_where(OMI_data['LAT'] < minlat, ai_trends)
+
+    print('in trend calc')
+    for x, y in zip(OMI_data['LAT'][:,10], ai_trends[:,10]):
+        print(x,y)
 
     return ai_trends
 
@@ -2966,7 +2970,7 @@ def plot_time_diff(jz28,jz2,month):
 # Plots a scatter of AI trends from one datatype to those from another  
 # --------------------------------------------------------------------
 def plot_compare_trends(OMI_data1,OMI_data2,month, pax = None, \
-        trend_type = 'standard', minlat = 65., save=False):
+        trend_type = 'standard', minlat = 65., plot_trend = True, save=False):
 
     ##OMI_trend1 = plotOMI_MonthTrend(OMI_data1,month_idx=month,save=True,\
     ##            trend_type='standard',season='',minlat=65.,return_trend=True)
@@ -2993,10 +2997,10 @@ def plot_compare_trends(OMI_data1,OMI_data2,month, pax = None, \
     OMI_trend1[np.where(np.isnan(OMI_trend1) | np.isnan(OMI_trend2))] = -999.
     mask_trend1 = np.array(OMI_trend1[(OMI_trend1 != 0) & \
         (OMI_trend2 != 0) & (OMI_trend1 != -999.) & \
-        (OMI_trend2 != -999.)])
+        (OMI_trend2 != -999.) & (OMI_data1['LAT'] >= minlat)])
     mask_trend2 = np.array(OMI_trend2[(OMI_trend1 != 0) & \
         (OMI_trend2 != 0) & (OMI_trend1 != -999.) & \
-        (OMI_trend2 != -999.)])
+        (OMI_trend2 != -999.) & (OMI_data2['LAT'] >= minlat)])
     #mask_trend1 = np.ma.masked_where(OMI_trend1 == 0,OMI_trend1)
     #mask_trend2 = np.ma.masked_where(OMI_trend2 == 0,OMI_trend2)
 
@@ -3035,8 +3039,10 @@ def plot_compare_trends(OMI_data1,OMI_data2,month, pax = None, \
         pax = fig1.add_subplot(1,1,1)
     pax.scatter(mask_trend1,mask_trend2,c=z,s=8)
     #pax.plot(test_x,predictions,color='tab:green',linestyle='--',label='Huber Fit')
-    plot_trend_line(pax, mask_trend1, mask_trend2, color='tab:green', linestyle = '-', \
-        slope = 'theil-sen')
+
+    if(plot_trend):
+        plot_trend_line(pax, mask_trend1, mask_trend2, color='tab:green', linestyle = '-', \
+            slope = 'theil-sen')
     ### Plot an unrobust fit line using linear regression
     ### -------------------------------------------------
     ##pax.plot(np.unique(mask_trend1),np.poly1d(np.polyfit(mask_trend1,\
@@ -3092,7 +3098,7 @@ def plot_compare_trends(OMI_data1,OMI_data2,month, pax = None, \
 
 # Plot scatter comparisons of two trend types for each of the months
 def plotOMI_trend_scatter_comp(OMI_data1, OMI_data2, minlat = 65.,\
-        trend_type = 'standard', save = False):
+        trend_type = 'standard', plot_trend = False, save = False):
 
     # ----------------------------------------------------
     #  Create a figure to hold all 6 scatter plots
@@ -3112,17 +3118,23 @@ def plotOMI_trend_scatter_comp(OMI_data1, OMI_data2, minlat = 65.,\
     #
     # ----------------------------------------------------
     plot_compare_trends(OMI_data1,OMI_data2,0, pax = ax0, \
-        trend_type = trend_type, minlat = minlat, save=False)
+        trend_type = trend_type, minlat = minlat, plot_trend = plot_trend, \
+        save=False)
     plot_compare_trends(OMI_data1,OMI_data2,1, pax = ax1, \
-        trend_type = trend_type, minlat = minlat, save=False)
+        trend_type = trend_type, minlat = minlat, plot_trend = plot_trend, \
+        save=False)
     plot_compare_trends(OMI_data1,OMI_data2,2, pax = ax2, \
-        trend_type = trend_type, minlat = minlat, save=False)
+        trend_type = trend_type, minlat = minlat, plot_trend = plot_trend, \
+        save=False)
     plot_compare_trends(OMI_data1,OMI_data2,3, pax = ax3, \
-        trend_type = trend_type, minlat = minlat, save=False)
+        trend_type = trend_type, minlat = minlat, plot_trend = plot_trend, \
+        save=False)
     plot_compare_trends(OMI_data1,OMI_data2,4, pax = ax4, \
-        trend_type = trend_type, minlat = minlat, save=False)
+        trend_type = trend_type, minlat = minlat, plot_trend = plot_trend, \
+        save=False)
     plot_compare_trends(OMI_data1,OMI_data2,5, pax = ax5, \
-        trend_type = trend_type, minlat = minlat, save=False)
+        trend_type = trend_type, minlat = minlat, plot_trend = plot_trend, \
+        save=False)
 
     plot_subplot_label(ax0, '(a)')
     plot_subplot_label(ax1, '(b)')
@@ -3136,7 +3148,7 @@ def plotOMI_trend_scatter_comp(OMI_data1, OMI_data2, minlat = 65.,\
 
     if(save):
         outname = 'omi_combined_scatter_compare_' + OMI_data1['VERSION'] + \
-            'v' + OMI_data2['VERSION'] + '.png'
+            'v' + OMI_data2['VERSION'] + '_min' + str(int(minlat)) + '.png'
         fig1.savefig(outname, dpi=300)
         print("Saved image",outname)
     else:
