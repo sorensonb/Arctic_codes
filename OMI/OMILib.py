@@ -562,7 +562,8 @@ def readOMI_single_swath(plot_time,row_max,only_sea_ice = True,latmin=65,coccoli
     return OMI_single_dict
 
 def readOMI_NCDF(infile='/home/bsorenson/Research/OMI/omi_ai_V003_2005_2020.nc',\
-                 calc_month = True,minlat=50):
+                 start_date = 200504, end_date = 202009, calc_month = True, \
+                 minlat=50):
     # Read in data to netCDF object
     in_data = Dataset(infile,'r')
 
@@ -571,19 +572,34 @@ def readOMI_NCDF(infile='/home/bsorenson/Research/OMI/omi_ai_V003_2005_2020.nc',
    
     # Set up dictionary to hold data
     OMI_data = {}
-    
-    OMI_data['AI'] = in_data['AI'][:,:,:]
-    OMI_data['OB_COUNT'] = in_data['OB_COUNT'][:,:,:]
-    OMI_data['LAT'] = in_data['Latitude'][:,:]
-    OMI_data['LON'] = in_data['Longitude'][:,:]
-    OMI_data['MONTH'] = in_data['MONTH'][:]
-    OMI_data['VERSION'] = version
 
     # Set up date strings in the file
-    start_date = datetime(year = 2005, month = 1, day = 1)
-    OMI_data['DATES'] = \
-        [(start_date + relativedelta(months=mi)).strftime('%Y%m') for mi in \
-        OMI_data['MONTH']]
+    base_date = datetime(year = 2005, month = 1, day = 1)
+    str_dates = \
+        np.array([(base_date + relativedelta(months=mi)).strftime('%Y%m') for mi in \
+            in_data['MONTH']])
+
+    # Use the file dates to select just the data within the user-specified
+    # timeframe
+    # --------------------------------------------------------------------
+    int_str_dates = np.array([int(tdate) for tdate in str_dates])
+
+    time_indices = np.where((int_str_dates >= start_date) & \
+        (int_str_dates <= end_date))[0]
+
+    #check_int_dates
+    #check_int_dates = np.array([\
+    #    (start_date + relativedelta(months=mi)).strftime('%Y:%m')\
+    #     for mi in in_data['MONTH']])
+
+    
+    OMI_data['AI']       = in_data['AI'][time_indices,:,:]
+    OMI_data['OB_COUNT'] = in_data['OB_COUNT'][time_indices,:,:]
+    OMI_data['LAT']      = in_data['Latitude'][:,:]
+    OMI_data['LON']      = in_data['Longitude'][:,:]
+    OMI_data['MONTH']    = in_data['MONTH'][time_indices]
+    OMI_data['DATES']    = str_dates[time_indices]
+    OMI_data['VERSION']  = version
 
     if(calc_month == True):
         OMI_data = calcOMI_MonthClimo(OMI_data)

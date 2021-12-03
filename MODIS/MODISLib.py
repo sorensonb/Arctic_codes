@@ -332,6 +332,7 @@ plot_limits_dict = {
                 1:  [0.05, 0.5],
                 5:  [None, None],
                 31: [270., 330.],
+                32: [270., 330.],
                 'wv_ir': [0.2, 1.5],
             },
             #'modis_Lat': [39.5, 42.0],
@@ -459,6 +460,15 @@ plot_limits_dict = {
             'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.30.213.L2.SUBS2RET.v6.0.32.0.G21243151114.hdf'],
             'Lat': [38.0, 40.0],
             'Lon': [-121.0, -118.5]
+        }
+    },
+    "2021-09-01": {
+        '2105': {
+            'asos': 'asos_data_20210830.csv',
+            'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021244.2105.061.2021245152256.hdf',
+            #'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.30.213.L2.SUBS2RET.v6.0.32.0.G21243151114.hdf'],
+            'Lat': [38.0, 42.0],
+            'Lon': [-121.5, -118.0]
         }
     } 
 }
@@ -1456,7 +1466,6 @@ def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False):
     ax = plt.axes(projection = mapcrs)
 
     plot_MODIS_spatial(MODIS_data, ax, zoom)
-#def plot_MODIS_spatial(MODIS_data, pax, zoom):
 
     #mesh = ax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\
     #    MODIS_data['data'],cmap = MODIS_data['colors'], shading='auto', \
@@ -2361,17 +2370,22 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
     else: 
         plt.show()
 
-def plot_MODIS_spatial(MODIS_data, pax, zoom, ptitle = None):
+def plot_MODIS_spatial(MODIS_data, pax, zoom, vmin = None, vmax = None, \
+        ptitle = None):
 
-    if('data_lim' in plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']].keys()):
-        vmin = plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['data_lim'][MODIS_data['channel']][0]
-        vmax = plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['data_lim'][MODIS_data['channel']][1]
-    else:
-        if(MODIS_data['channel'] == 'wv_ir'):
-            vmax = 1.5
+    if(vmin is None):
+        if('data_lim' in plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']].keys()):
+            vmin = plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['data_lim'][MODIS_data['channel']][0]
         else:
-            vmax = np.nanmax(MODIS_data['data'])
-        vmin = np.nanmin(MODIS_data['data'])
+            vmin = np.nanmin(MODIS_data['data'])
+    if(vmax is None):
+        if('data_lim' in plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']].keys()):
+            vmax = plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['data_lim'][MODIS_data['channel']][1]
+        else:
+            if(MODIS_data['channel'] == 'wv_ir'):
+                vmax = 1.5
+            else:
+                vmax = np.nanmax(MODIS_data['data'])
 
     #mesh = ax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\
     #    MODIS_data['data'],cmap = MODIS_data['colors'], shading='auto', \
@@ -5519,4 +5533,62 @@ def colocate_comparison(date1, date2, channel = 31):
     ax2.set_ylabel('Colocated MODIS Channel ' + str(channel) + ' Brightness Temp [K] ',color='tab:orange') 
     plt.legend() 
     plt.show()
- 
+
+def split_window(date_str, zoom = True, save = False):
+    
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    # Read 0.64 μm data
+    # --------------- 
+    MODIS_data1 = read_MODIS_channel(date_str, 1, zoom = zoom)
+
+    # Read 11 μm data
+    # --------------- 
+    MODIS_data31 = read_MODIS_channel(date_str, 31, zoom = zoom)
+
+    # Read 12 μm data
+    # --------------- 
+    MODIS_data32 = read_MODIS_channel(date_str, 32, zoom = zoom)
+
+
+    MODIS_data_div = read_MODIS_channel(date_str, 32, zoom = zoom)
+    MODIS_data_sub = read_MODIS_channel(date_str, 32, zoom = zoom)
+
+    # Calculate split window stuff
+    # ----------------------------
+    MODIS_data_sub['data'] = MODIS_data31['data'][:,:] - MODIS_data32['data'][:,:]
+    MODIS_data_div['data'] = MODIS_data31['data'][:,:] / MODIS_data32['data'][:,:]
+
+    MODIS_data_sub['variable'] = '11 μm - 12 μm Split Window'
+    MODIS_data_div['variable'] = '11 μm / 12 μm Split Window'
+    MODIS_data_sub['colors'] = 'bwr'
+    
+    # Set up figure
+    # ------------- 
+    mapcrs = init_proj(date_str)
+    plt.close('all')
+    fig = plt.figure(figsize=(12,10))
+    ax1 = fig.add_subplot(2,3,2,projection = mapcrs) # true color    
+    ax2 = fig.add_subplot(2,3,3,projection = mapcrs) # Ch 31
+    ax3 = fig.add_subplot(2,3,4,projection = mapcrs) # Ch 1
+    ax4 = fig.add_subplot(2,3,5,projection = mapcrs) # Ch 5
+    ax0 = fig.add_subplot(2,3,1,projection = mapcrs) # Ch 5
+    
+    plot_MODIS_spatial(MODIS_data1, ax0, zoom = zoom, ptitle = '0.64 μm reflectance')
+    plot_MODIS_spatial(MODIS_data31, ax1, zoom = zoom, ptitle = '11 μm brightness temp')
+    plot_MODIS_spatial(MODIS_data32, ax2, zoom = zoom, ptitle = '12 μm brightness temp')
+    plot_MODIS_spatial(MODIS_data_sub,  ax3, zoom = zoom, vmin = -2, vmax = 2, ptitle = '')
+    plot_MODIS_spatial(MODIS_data_div,  ax4, zoom = zoom, vmin = 0.995, vmax = 1, ptitle = '')
+
+    if(save):
+        if(zoom):
+            zoom_add = '_zoom'
+        else:
+            zoom_add = ''
+        outname = 'modis_split_window_' + date_str + zoom_add + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+

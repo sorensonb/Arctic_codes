@@ -172,11 +172,11 @@ cmnd = "cp "+base_dir+"MISR/*.c "+dest_dir
 print(cmnd)
 os.system(cmnd)
 
-# Get codes from JPSS
-jpss_dir = "blake.sorenson@jpss.atmos.und.edu:/home/blake.sorenson/MISR/"
-cmnd = "scp "+jpss_dir+"*.c "+dest_dir
-print(cmnd)
-os.system(cmnd)
+## Get codes from JPSS
+#jpss_dir = "blake.sorenson@jpss.atmos.und.edu:/home/blake.sorenson/MISR/"
+#cmnd = "scp "+jpss_dir+"*.c "+dest_dir
+#print(cmnd)
+#os.system(cmnd)
 #cmnd = "scp "+jpss_dir+"*.py "+dest_dir
 #print(cmnd)
 #os.system(cmnd)
@@ -201,6 +201,19 @@ print(cmnd)
 os.system(cmnd)
 
 cmnd = "find /home/bsorenson/data/AIRS/ -type f -name \"*.py\" | xargs cp -t "+final_dir
+#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
+
+# ---------------------------------------------------------------------------- 
+# SBDART analysis
+# ---------------------------------------------------------------------------- 
+print("SBDART")
+work_dir = 'MODIS/obs_smoke_forcing/SBDART/'
+
+final_dir = dest_dir + 'SBDART/'
+cmnd = "find "+base_dir+ work_dir + \
+    " -type f -name \"*.py\" | xargs cp -t "+final_dir
 #cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
 print(cmnd)
 os.system(cmnd)
