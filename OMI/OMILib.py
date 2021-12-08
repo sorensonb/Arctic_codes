@@ -101,22 +101,47 @@ var_dict = {
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
 def plot_subplot_label(ax, label, xval = None, yval = None, transform = None, \
-        color = 'black', fontsize = 14):
+        color = 'black', backgroundcolor = None, fontsize = 14, \
+        location = 'upper_left'):
+
+    if(location == 'upper_left'):
+        y_lim = 0.90
+        x_lim = 0.05
+    elif(location == 'lower_left'):
+        y_lim = 0.05
+        x_lim = 0.05
+    elif(location == 'upper_right'):
+        y_lim = 0.90
+        x_lim = 0.90
+    elif(location == 'lower_right'):
+        y_lim = 0.05
+        x_lim = 0.90
 
     if(xval is None):
-        xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * 0.05
+        xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * x_lim
     if(yval is None):
-        yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.90
+        yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * y_lim
     print('Xval = ',xval, 'Yval = ',yval)
 
     if(transform is None):
-        ax.text(xval,yval,label, \
-            color=color, weight='bold', \
-            fontsize=fontsize)
+        if(backgroundcolor is None):
+            ax.text(xval,yval,label, \
+                color=color, weight='bold', \
+                fontsize=fontsize)
+        else:
+            ax.text(xval,yval,label, \
+                color=color, weight='bold', \
+                fontsize=fontsize, backgroundcolor = backgroundcolor)
     else:
-        ax.text(xval,yval,label, \
-            color=color, weight='bold', \
-            transform = transform, fontsize=fontsize)
+        if(backgroundcolor is None):
+            ax.text(xval,yval,label, \
+                color=color, weight='bold', \
+                transform = transform, fontsize=fontsize)
+        else:
+            ax.text(xval,yval,label, \
+                color=color, weight='bold', \
+                transform = transform, fontsize=fontsize, \
+                backgroundcolor = backgroundcolor)
 
 def plot_trend_line(pax, xdata, ydata, color='black', linestyle = '-', \
         slope = 'theil-sen'):
@@ -3307,7 +3332,7 @@ def plot_compare_OMI_CERES_grid(OMI_data, CERES_data, midx, minlat=65, \
 # NOTE: this is designed to be run with the brand new readOMI_swath_hdf
 def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
         vmin = None, vmax = None, title = '', label = '', \
-        circle_bound = True, save=False):
+        circle_bound = True, gridlines = True, save=False):
 
     variable = 'UVAerosolIndex'
 
@@ -3316,7 +3341,8 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
     if(vmax is None):
         vmax = var_dict[variable]['max']
 
-    pax.gridlines()
+    if(gridlines):
+        pax.gridlines()
     pax.coastlines(resolution = '50m')
     if(title == ''):
         title = 'OMI UVAI ' + OMI_hrly['dtype'] + ' ' + OMI_hrly['date']
@@ -3445,6 +3471,69 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
     else:
         plt.show()
 
+# Plot just a single swath on a 1-panel figure
+# --------------------------------------------
+def plotOMI_single_swath_multiple(date_str, dtype = 'control',  \
+        only_sea_ice = False, minlat = 65., save = False):
+
+    dates = ['200804221027','200804221345']
+    #dates = ['200804221027','200804221206']
+
+    # ----------------------------------------------------
+    # Set up the overall figure
+    # ----------------------------------------------------
+    plt.close('all')
+    fig1 = plt.figure(figsize = (10,10))
+    #mapcrs = ccrs.Robinson()
+    mapcrs2 = ccrs.NorthPolarStereo(central_longitude = -40)
+    ax0 = fig1.add_subplot(2,2,1, projection = mapcrs)
+    ax1 = fig1.add_subplot(2,2,2, projection = mapcrs)
+    ax2 = fig1.add_subplot(2,2,3, projection = mapcrs2)
+    ax3 = fig1.add_subplot(2,2,4, projection = mapcrs2)
+
+    # ----------------------------------------------------
+    # Read in data
+    # ----------------------------------------------------
+    if(dtype == 'shawn'):
+        OMI_base1 = readOMI_swath_shawn(dates[0], latmin = minlat - 5)
+        OMI_base2 = readOMI_swath_shawn(dates[1], latmin = minlat - 5)
+    else:
+        OMI_base1 = readOMI_swath_hdf(dates[0], dtype, \
+            only_sea_ice = only_sea_ice, latmin = minlat - 5)
+        OMI_base2 = readOMI_swath_hdf(dates[1], dtype, \
+            only_sea_ice = only_sea_ice, latmin = minlat - 5)
+
+    # ----------------------------------------------------
+    # Use the single-swath plotting function to plot each
+    # of the 3 data types
+    # ----------------------------------------------------
+    plotOMI_single_swath(ax0, OMI_base1, title = dates[0], \
+        circle_bound = True, gridlines = False)
+    plotOMI_single_swath(ax1, OMI_base2, title = dates[1], \
+        circle_bound = True, gridlines = False)
+    plotOMI_single_swath(ax2, OMI_base1, title = dates[0] + '\nZoomed', \
+        circle_bound = False, gridlines = False)
+    plotOMI_single_swath(ax3, OMI_base2, title = dates[1] + '\nZoomed', \
+        circle_bound = False, gridlines = False)
+
+    ax2.set_extent([-70., -10., 65., 87.], datacrs)
+    ax3.set_extent([-70., -10., 65., 87.], datacrs)
+
+    #plt.suptitle(date_str)
+    plot_subplot_label(ax0, '(a)')
+    plot_subplot_label(ax1, '(b)')
+    plot_subplot_label(ax2, '(c)', backgroundcolor = 'white')
+    plot_subplot_label(ax3, '(d)', backgroundcolor = 'white')
+
+    fig1.tight_layout()
+
+    if(save):
+        outname = 'omi_single_swath_figure_multiple_' + date_str + '_' + \
+            dtype + '.png'
+        fig1.savefig(outname, dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
 
 # 2 panel plot showing control UVAI and ground classification
 # -----------------------------------------------------------

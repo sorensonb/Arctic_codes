@@ -32,20 +32,6 @@ def radiance(wavelength,tmp):
             (wavelength*k_const*tmp)) - 1.))) * \
            1e-6
 
-
-if(len(sys.argv) != 2):
-    print("SYNTAX: ./auto_sbdart.py satellite")
-    print("      satellite: modis_ch31, goes17_ch08, goees17_ch10")
-    sys.exit()
-
-#sb_path = '/home/bsorenson/Research/MODIS/obs_smoke_forcing/SBDART/SBDART/'
-infile = sb_path + 'src/atms_orig.dat'
-
-satellite = sys.argv[1]
-calc_radiance = True 
-run = False
-#satellite = 'modis_ch31'
-
 def run_sbdart(satellite, calc_radiance, run = True):
     sb_path = '/home/bsorenson/Research/SBDART/'
     infile = sb_path + 'src/atms_orig.dat'
@@ -94,18 +80,19 @@ def run_sbdart(satellite, calc_radiance, run = True):
         #iout = 20
         #iout = 0
         
-        ##with open('INPUT','w') as fout:
-        ##    fout.write(" &INPUT\n" + \
-        ##        "   idatm=0\n" + \
-        ##        "   isat={0}\n".format(isat) + \
-        ##        #"   wlinf=8.00\n" + \
-        ##        #"   wlsup=12.00\n" + \
-        ##        "   wlinc=0.01\n" + \
-        ##        "   iout={0}\n".format(iout) + \
-        ##        "   uzen=0\n" + \
-        ##        #"   vzen=180\n" + \
-        ##        "   phi=0\n" + \
-        ##        "/")
+        #with open('INPUT','w') as fout:
+        #    fout.write(" &INPUT\n" + \
+        #        "   idatm=0\n" + \
+        #        "   isat={0}\n".format(isat) + \
+        #        #"   wlinf=8.00\n" + \
+        #        #"   wlsup=12.00\n" + \
+        #        "   wlinc=0.01\n" + \
+        #        "   iout={0}\n".format(iout) + \
+        #        "   nzen=9\n" + \
+        #        "   uzen=0,90\n" + \
+        #        #"   vzen=180\n" + \
+        #        "   phi=0\n" + \
+        #        "/")
         
         # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
         #
@@ -118,7 +105,7 @@ def run_sbdart(satellite, calc_radiance, run = True):
         data = pd.read_csv(infile,skiprows = 0, names = \
             ['z','p','t','wv','o2'], delim_whitespace = True)
         
-        multipliers = np.array([0.2, 1.0, 1.5, 2.0, 2.5])
+        multipliers = np.array([1.0, 2.0, 3.0, 3.5])
         #multipliers = np.arange(0.1,2.1,0.1)
         
         outfile_list = []
@@ -183,6 +170,7 @@ def run_sbdart(satellite, calc_radiance, run = True):
     print(outfile_list)
  
     data_dict = {}
+    data_dict['multipliers'] = multipliers
     for ofile in outfile_list:
         if(not calc_radiance):
             wv_pct = int(ofile.split('.')[0].split('_')[-1])
@@ -289,23 +277,18 @@ def run_sbdart(satellite, calc_radiance, run = True):
 
     return data_dict
 
-# Run SBDART for the different channels
-# -------------------------------------
-modis31 = run_sbdart('modis_ch31', calc_radiance, run = True)
-modis32 = run_sbdart('modis_ch32', calc_radiance, run = True)
-
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
 # Calculations
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-def plot_bright(modis31, modis32, vza_idx = 0, save = False):
+def plot_bright(modis_data1, modis_data2, vza_idx = 0, save = False):
 
     # Pull out the brightness temperatures for each water vapor amount
     # ----------------------------------------------------------------
-    m31_bghts = np.array([modis31[key]['bght_tmp'][vza_idx] for key in modis31.keys()])
-    m32_bghts = np.array([modis32[key]['bght_tmp'][vza_idx] for key in modis32.keys()])
+    m31_bghts = np.array([modis_data1[key]['bght_tmp'][vza_idx] for key in modis_data1.keys()])
+    m32_bghts = np.array([modis_data2[key]['bght_tmp'][vza_idx] for key in modis_data2.keys()])
     diffs = m31_bghts - m32_bghts
     wvs = modis31.keys()
     
@@ -328,51 +311,36 @@ def plot_bright(modis31, modis32, vza_idx = 0, save = False):
     else:
         plt.show()
 
-def plot_bright_vza(modis31, save = False):
-    plt.close('all')
-    fig1 = plt.figure(figsize = (8,4))
-    ax0 = fig1.add_subplot(1,1,1)
+def plot_bright_vza(modis_data1, pax = None, save = False):
+    in_pax = True
+    if(pax is None):
+        in_pax = False 
+        plt.close('all')
+        fig1 = plt.figure(figsize = (8,4))
+        pax = fig1.add_subplot(1,1,1)
   
-    wvs = [20, 100, 150, 200, 250]
+    #wvs = [20, 100, 150, 200, 250]
  
-    for wv in wvs:
+    for wv in modis_data1['multipliers']:
+        int_wv = int(wv*100.)
+        if(wv == 1.):
+            label = 'Control WV'
+        else:
+            label = str(int(int_wv - 100.))+'% higher WV'
         # Plot the correct wv amounts
-        ax0.plot(modis31[wv]['vza'],  modis31[wv]['bght_tmp'], label = str(wv)+'% WV')
+        pax.plot(modis_data1[int_wv]['vza'],  \
+            modis_data1[int_wv]['bght_tmp'], label = label)
 
-    ax0.set_xlabel('Viewing Zenith Angle [$^{o}$]')
-    ax0.set_ylabel('Brightness temperature [K]')
-    ax0.set_title('MODIS Channel 31 (11.0 μm)')
-    ax0.legend()
-    if(save):
-        outname = 'sbdart_'+satellite+'_bright_vza.png'
-        fig1.savefig(outname, dpi = 300)
-        print("Saved image",outname)
-    else:
-        plt.show() 
+    pax.set_xlabel('Viewing Zenith Angle [$^{o}$]', fontsize = 12, weight = 'bold')
+    pax.set_ylabel('Brightness temperature [K]',    fontsize = 12, weight = 'bold')
+    pax.set_title('SBDART-simulated MODIS Channel 31 (11.0 μm)')
+    pax.legend()
+    if(not in_pax):
+        if(save):
+            outname = 'sbdart_'+satellite+'_bright_vza.png'
+            fig1.savefig(outname, dpi = 300)
+            print("Saved image",outname)
+        else:
+            plt.show() 
 
 #plot_bright(modis31, modis32)
-
-sys.exit()
-
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-#
-# Output visualization
-#
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-
-# Plot stuff
-# ----------
-plt.close('all')
-fig = plt.figure()
-ax0 = fig.add_subplot(1,1,1)
-
-plot_val = 'up_rad_flux_toa'
-
-for key in sorted(data_dict.keys()):
-    xvals = pd.to_numeric(data_dict[key]['data'].index).values
-    yvals = pd.to_numeric(data_dict[key]['data'][plot_val]).values
-    ax0.plot(xvals,yvals,label = key) 
-
-ax0.legend()
-ax0.set_title(satellite)
-plt.show()

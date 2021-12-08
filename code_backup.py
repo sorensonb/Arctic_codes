@@ -209,7 +209,7 @@ os.system(cmnd)
 # SBDART analysis
 # ---------------------------------------------------------------------------- 
 print("SBDART")
-work_dir = 'MODIS/obs_smoke_forcing/SBDART/'
+work_dir = 'SBDART/'
 
 final_dir = dest_dir + 'SBDART/'
 cmnd = "find "+base_dir+ work_dir + \
