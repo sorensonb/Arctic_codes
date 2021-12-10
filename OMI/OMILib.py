@@ -50,6 +50,19 @@ import pandas as pd
 def get_ice_flags(value):
     return int(format(value,"016b")[-15:-8],2)
 
+def get_xtrack_flags(value, flag_idx = None):
+    #return int(format(XTRACK[1000,yyy],"08b")[-3:],2))
+    bit_vals = np.full(5,np.nan)
+    bit_vals[0] = int(format(value,"08b")[-3:],2)
+    bit_vals[1] = int(format(value,"08b")[-4],2)
+    bit_vals[2] = int(format(value,"08b")[-5],2)
+    bit_vals[3] = int(format(value,"08b")[-6],2)
+    bit_vals[4] = int(format(value,"08b")[-7],2)
+    if(flag_idx == None):
+        return bit_vals
+    else:
+        return bit_vals[flag_idx]
+
 # Compute a circle in axes coordinates, which we can use as a boundary
 # for the map. We can pan/zoom as much as we like - the boundary will be
 # permanently circular.
@@ -344,6 +357,7 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, latmin = 65):
     UVAI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex'][:,:]
     GPQF   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags'][:,:]
     GPQF_decode = np.array([[get_ice_flags(val) for val in GPQFrow] for GPQFrow in GPQF])
+    XTRK_decode = np.array([[get_xtrack_flags(val) for val in GPQFrow] for GPQFrow in GPQF])
     mask_UVAI = np.ma.masked_where((XTRACK != 0) | (UVAI < -2e5) | (LAT < latmin), UVAI)
     #UVAI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/' + path_dict[variable] + variable][:,:]
     ##!#if(len(UVAI.shape) == 3):
@@ -3471,12 +3485,17 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
     else:
         plt.show()
 
-# Plot just a single swath on a 1-panel figure
-# --------------------------------------------
+# Plot four panels: two different single swaths, as well as
+# data zoomed in over Greenland to show the high pixels
+# ---------------------------------------------------------
 def plotOMI_single_swath_multiple(date_str, dtype = 'control',  \
         only_sea_ice = False, minlat = 65., save = False):
 
-    dates = ['200804221027','200804221345']
+    dates = ['201206141245','201206141920']
+    date_str = dates[0]
+    #dates = ['200806141226','200806141902']
+    #dates = ['200807261124','200807261303']
+    #dates = ['200804221027','200804221345']
     #dates = ['200804221027','200804221206']
 
     # ----------------------------------------------------
@@ -3538,7 +3557,7 @@ def plotOMI_single_swath_multiple(date_str, dtype = 'control',  \
 # 2 panel plot showing control UVAI and ground classification
 # -----------------------------------------------------------
 def plotOMI_single_ground(date_str, only_sea_ice = False, minlat = 65., \
-        save = False):
+        zoom = False, multi_panel = False, save = False):
 
     # ----------------------------------------------------
     # Read in data
@@ -3546,21 +3565,39 @@ def plotOMI_single_ground(date_str, only_sea_ice = False, minlat = 65., \
     OMI_base  = readOMI_swath_hdf(date_str, 'control', \
         only_sea_ice = only_sea_ice, latmin = minlat)
 
+    circle_bound = True
+    zoom_add = ''
+    if(zoom):
+        zoom_add = '_zoom'
+        circle_bound = False
+        mapcrs = ccrs.NorthPolarStereo(central_longitude = -40)
+    mapcrs = ccrs.NorthPolarStereo()
     # ----------------------------------------------------
     # Set up the overall figure
     # ----------------------------------------------------
     plt.close('all')
-    fig1 = plt.figure(figsize = (11,5))
-    ax0 = fig1.add_subplot(1,2,1, projection = mapcrs)
-    ax1 = fig1.add_subplot(1,2,2, projection = mapcrs)
+    if(multi_panel):
+        fig1 = plt.figure(figsize = (10,10))
+        ax0 = fig1.add_subplot(2,2,1, projection = mapcrs)
+        ax1 = fig1.add_subplot(2,2,2, projection = mapcrs)
+    else:
+        fig1 = plt.figure(figsize = (11,5))
+        ax0 = fig1.add_subplot(1,2,1, projection = mapcrs)
+        ax1 = fig1.add_subplot(1,2,2, projection = mapcrs)
 
     # ----------------------------------------------------
     # Use the single-swath plotting function to plot each
     # of the 3 data types
     # ----------------------------------------------------
-    plotOMI_single_swath(ax0, OMI_base, title = 'Control')
-    plotOMI_single_swath(ax1, OMI_base, title = 'Screened', pvar = 'GPQF')
+    gridlines = False
+    plotOMI_single_swath(ax0, OMI_base, title = 'Control', \
+        circle_bound = circle_bound, gridlines = gridlines)
+    plotOMI_single_swath(ax1, OMI_base, title = 'Screened', pvar = 'GPQF', \
+        circle_bound = circle_bound, gridlines = gridlines)
 
+    if(zoom):
+        ax0.set_extent([-70., -10., 65., 87.], datacrs)
+        ax1.set_extent([-70., -10., 65., 87.], datacrs)
 
     plt.suptitle(date_str)
     plot_subplot_label(ax0, '(a)')
@@ -3569,7 +3606,7 @@ def plotOMI_single_ground(date_str, only_sea_ice = False, minlat = 65., \
     fig1.tight_layout()
 
     if(save):
-        outname = 'omi_single_swath_ground_' + date_str + '.png'
+        outname = 'omi_single_swath_ground_' + date_str + zoom_add + '.png'
         fig1.savefig(outname, dpi=300)
         print("Saved image",outname)
     else:
