@@ -19,6 +19,8 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import matplotlib.cm as cm
+import matplotlib.colors as mc
 from datetime import datetime
 import pandas as pd
 from scipy.signal import argrelextrema, find_peaks
@@ -234,45 +236,80 @@ for xx in range(len(daily_dt_dates)):
 
 daily_counts_65 = np.ma.masked_where(daily_counts_65 == -9,daily_counts_65)
 
-fig0 = plt.figure()
+fig0 = plt.figure(figsize = (10,4))
+ax0 = fig0.add_subplot(1,1,1)
+plot_c = cm.turbo((years-np.min(years))/(np.max(years)-np.min(years)))
+# Set up an array to hold the event counts
+# ----------------------------------------
+d_val = 3
+h_val = 2
+event_sizes = np.arange(h_val, 19, 2)
+events_yearly = np.zeros((years.shape[0], event_sizes.shape[0]))
+
 for ii, year in enumerate(years):
     yearly_totals[ii] = np.sum(daily_counts_65[np.where( \
         (daily_dt_dates >= datetime(year,4,1)) & \
         (daily_dt_dates <= datetime(year,9,30)))])
-    print(len(daily_dt_dates[np.where( \
-        (daily_dt_dates >= datetime(year,4,1)) & \
-        (daily_dt_dates <= datetime(year,9,30)))]))
+    #print(len(daily_dt_dates[np.where( \
+    #    (daily_dt_dates >= datetime(year,4,1)) & \
+    #    (daily_dt_dates <= datetime(year,9,30)))]))
 
     # Test the local maxima
     # ---------------------
-    peaks, _ = find_peaks(daily_counts_65[np.where( \
-        (daily_dt_dates >= datetime(year,4,1)) & \
-        (daily_dt_dates <= datetime(year,9,30)))], height = 0)
-    print('peaks for ',year,' ',peaks)
-   
-    #print('local maxima = ',argrelextrema(daily_counts_65[np.where( \
-    #    (daily_dt_dates >= datetime(year,4,1)) & \
-    #    (daily_dt_dates <= datetime(year,9,30)))], np.greater))
-    ##high_values = np.ma.masked_where(daily_counts_65[np.where( \
-    ##    (daily_dt_dates >= datetime(year,4,1)) & \
-    ##    (daily_dt_dates <= datetime(year,9,30)))] < upper_range, daily_counts_65[np.where( \
-    ##    (daily_dt_dates >= datetime(year,4,1)) & \
-    ##    (daily_dt_dates <= datetime(year,9,30)))])
-    ##print(high_values)
+    for jj in range(len(event_sizes) - 1):
+        # Find the peaks for this size
+        # ----------------------------
+        peaks, _ = find_peaks(daily_counts_65[np.where( \
+            (daily_dt_dates >= datetime(year,4,1)) & \
+            (daily_dt_dates <= datetime(year,9,30)))], \
+            height = [event_sizes[jj], event_sizes[jj+1]], distance = d_val)
+        events_yearly[ii,jj] = len(peaks)        
+ 
+    # Determine the counts of peaks greater than each height range
+    # ------------------------------------------------------------
 
-    plt.plot(np.arange(len(daily_dt_dates[np.where( \
+    #print('peaks for ',year,' ',peaks)
+    # Calculate the days since April 1
+    # --------------------------------
+    loop_dates = daily_dt_dates[np.where( \
         (daily_dt_dates >= datetime(year,4,1)) & \
-        (daily_dt_dates <= datetime(year,9,30)))])),\
+        (daily_dt_dates <= datetime(year,9,30)))]
+
+    plot_dates = datetime(year = 2000, month = 4, day = 1) + \
+        (loop_dates - datetime(year = year, month = 4, day = 1))
+
+    ax0.plot(plot_dates,\
         daily_counts_65[np.where( \
         (daily_dt_dates >= datetime(year,4,1)) & \
-        (daily_dt_dates <= datetime(year,9,30)))],label=str(year))
-    #plt.plot(np.arange(len(daily_dt_dates[np.where( \
-    #    (daily_dt_dates >= datetime(year,4,1)) & \
-    #    (daily_dt_dates <= datetime(year,9,30)))]))[peaks], daily_counts_65[peaks], 'x')
+        (daily_dt_dates <= datetime(year,9,30)))], c = plot_c[ii])
 
-plt.plot(mask_day_avgs,label='avg',color='black')
-plt.plot(upper_range,label='+avg σ',linestyle='--',color='black')
-plt.plot(lower_range,label='-avg σ',linestyle='--',color='black')
+ax0.xaxis.set_major_formatter(mdates.DateFormatter('%b'))
+norm = mc.Normalize(vmin=np.min(years), vmax=np.max(years))
+
+cmap = cm.turbo
+cbar = fig0.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap),
+             ax=ax0, orientation='vertical', label='Year')
+
+ax0.plot(plot_dates, mask_day_avgs,label='avg',color='black')
+ax0.plot(plot_dates, upper_range,label='+avg σ',linestyle='--',color='black')
+ax0.set_ylabel(axis_label,weight='bold',fontsize=12)
+ax0.set_title('AI ' + vtype + ': Threshold of '+str(ai_thresh)+\
+    '\nNorth of '+min_lat+'$^{o}$', fontsize = 14, weight = 'bold')
+ax0.tick_params(axis='both', labelsize = 12)
+ax0.grid()
+fig0.tight_layout()
+save = False
+if(save == True):
+    outname = "ai_" + vtype + "_indiv_yearly_" + dtype + ".png"
+    fig0.savefig(outname,dpi=300)
+    print("Saved image",outname) 
+###ax0.plot(plot_dates, lower_range,label='-avg σ',linestyle='--',color='black')
+
+#plt.plot(mask_day_avgs,label='avg',color='black')
+#plt.plot(upper_range,label='+avg σ',linestyle='--',color='black')
+#plt.plot(lower_range,label='-avg σ',linestyle='--',color='black')
+
+
 #daily_dt_dates[np.where( (daily_dt_dates >= datetime(2018,4,1)) & (daily_dt_dates <= datetime(2018,9,30)))
 plt.legend()
 
@@ -289,7 +326,7 @@ ax.plot(daily_dt_dates,daily_counts_65,label='daily '+dtype)
 #upper_range = mask_day_avgs + mask_day_stds * 0.75
 #ax.plot(daily_dt_dates,high_values,label='daily '+dtype)
 #peaks, _ = find_peaks(high_values)
-peaks, _ = find_peaks(daily_counts_65, height = 2, distance = 4)
+peaks, _ = find_peaks(daily_counts_65, height = h_val, distance = d_val)
 #print('peaks for ',year,' ',peaks)
 #ax.plot(daily_dt_dates[peaks], high_values[peaks], 'x', color='black')
 ax.plot(daily_dt_dates[peaks], daily_counts_65[peaks], 'x', color='black')
@@ -303,6 +340,25 @@ ax.set_ylabel(axis_label)
 ax.set_title('AI ' + vtype.title() + ' ' + dtype + ': Threshold of '+str(ai_thresh)+\
     '\nNorth of '+min_lat+'$^{o}$')
 ax.grid()
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#
+# Plot the yearly event size box graph
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+fig3 = plt.figure()
+ax3  = fig3.add_subplot(1,1,1)
+for ii in range(len(event_sizes)-1):
+    ax3.bar(years, events_yearly[:,ii], \
+        bottom = np.sum(events_yearly[:,0:ii],axis=1), \
+        label=str(event_sizes[ii]) + ' - ' + str(event_sizes[ii+1]))
+ax3.legend()
+ax3.set_ylabel('# of AI peaks in each size range')
+save = True 
+if(save):
+    outname = 'ai_bar_minhgt'+str(int(event_sizes[0])) + '_dist'+str(d_val)+'.png'
+    fig3.savefig(outname,dpi=300)
+    print("Saved image",outname)
 
 save = False
 if(save == True):

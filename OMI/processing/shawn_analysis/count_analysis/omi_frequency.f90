@@ -90,7 +90,8 @@ program omi_frequency
 
   !data_path = "/Research/OMI/out_files-monthly.20210518/"
   !data_path = "/Research/OMI/out_files-monthly_test/"
-  data_path = "/Research/OMI/out_files-ltc3/new/"
+  !data_path = "/Research/OMI/out_files-ltc3/new/"
+  data_path = "/Research/OMI/out_files-ltc4/"
 
   ! Set up lat/lon grids
   ! --------------------
@@ -144,7 +145,7 @@ program omi_frequency
   ! Set up count variables to count the number of grid boxes with
   ! high AI values
   ! -------------------------------------------------------------
-  ai_thresh = 0.6
+  ai_thresh = 1.0
 
   ! Initialize the work_day value to -1
   ! -----------------------------------
