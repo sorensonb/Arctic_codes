@@ -4157,16 +4157,19 @@ def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,minlat=65,\
             local_lat[ii,:][under_180]])
         CERES_trend[ii,:] = np.concatenate([CERES_trend[ii,:][over_180],\
             CERES_trend[ii,:][under_180]])
-   
-    print("Before removal, ",CERES_trend.shape)
+  
+    print("Before removal, ",OMI_trend.shape)
  
     # First, mask any OMI data that are outside the bounds of the CERES data
     # Assume that the OMI data are larger than the CERES data
     # ----------------------------------------------------------------------
     OMI_trend[np.where(np.isnan(OMI_trend))] = -999.
     where_matching = np.where((OMI_data['LAT'][:,0] >= \
-        (np.min(local_lat) - 0.5)) & (OMI_data['LAT'][:,0] <= \
-        (np.max(local_lat) - 0.5)))[0]
+        np.min(local_lat) - 0.5 ) & (OMI_data['LAT'][:,0] <= \
+        np.max(local_lat) - 0.5) )[0]
+    #where_matching = np.where((OMI_data['LAT'][:,0] >= \
+    #    (np.min(local_lat) - 0.5)) & (OMI_data['LAT'][:,0] <= \
+    #    (np.max(local_lat) - 0.5)))[0]
     OMI_trend = OMI_trend[where_matching, :]
 
     mask_trend1 = np.array(OMI_trend[  (OMI_trend != 0) & (CERES_trend != 0) \
@@ -4175,6 +4178,8 @@ def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,minlat=65,\
         & (OMI_trend != -999.) & (CERES_trend != -999.)])
 
     print('after shapes', mask_trend1.shape, mask_trend2.shape)
+    print("average OMI trend", np.nanmean(mask_trend1))
+    print("average CERES trend", np.nanmean(mask_trend2))
 
     print("Pearson:  ",pearsonr(mask_trend1,mask_trend2))
     print("Spearman: ",spearmanr(mask_trend1,mask_trend2))

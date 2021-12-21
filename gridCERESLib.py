@@ -148,8 +148,6 @@ def readgridCERES(start_date,end_date,param,satellite = 'Aqua',minlat=60.5,\
     elif(season=='sunlight'):
         sunlight=True
    
-    lat_ranges = np.arange(minlat,89.5,1.0)
-    lon_ranges = np.arange(0.5,360.5,1.0)
 
     # Grab all the files
     if(satellite == 'Terra'):
@@ -187,7 +185,15 @@ def readgridCERES(start_date,end_date,param,satellite = 'Aqua',minlat=60.5,\
                 final_list.append(f)
     time_dim = len(final_list)
 
+    data = Dataset(final_list[0],'r')
+    lat_ranges = data['lat'][:].data
+    lon_ranges = data['lon'][:].data
+    #lat_ranges = np.arange(60.5,89.5,1.0)
+    #lon_ranges = np.arange(0.5,360.5,1.0)
+
+
     lat_indices = np.where(lat_ranges>=minlat)[0]
+    print(lat_indices)
 
     # Grid the lat and data
     grid_lon, grid_lat = np.meshgrid(lon_ranges,lat_ranges[lat_indices])
@@ -196,7 +202,6 @@ def readgridCERES(start_date,end_date,param,satellite = 'Aqua',minlat=60.5,\
     CERES_data['data']   = np.zeros((time_dim,len(lat_indices),len(lon_ranges)))
     CERES_data['trends'] = np.zeros((len(lat_indices),len(lon_ranges)))
     CERES_data['dates'] = [] 
-    data = Dataset(final_list[0],'r')
     CERES_data['parm_name'] = data.variables[param].standard_name 
     CERES_data['parm_unit'] = data.variables[param].units 
     CERES_data['lat'] = grid_lat
@@ -1350,6 +1355,7 @@ def calcCERES_grid_trend(CERES_data, month_idx, trend_type, minlat):
 
     ceres_trends = np.ma.masked_where(((CERES_data['lat'] < minlat) | \
         (ceres_trends == -999.)), ceres_trends)
+
     return ceres_trends
 
 # title is the plot title
@@ -1575,10 +1581,10 @@ def plotCERES_MonthTrend(CERES_data,month_idx=None,save=False,\
     if(pax is None):
         plt.close('all')
         fig1 = plt.figure()
-        ax = fig1.add_subplot(1,1,1)
+        ax = fig1.add_subplot(1,1,1, projection = mapcrs)
 
         plotCERES_spatial(ax, CERES_data['lat'], CERES_data['lon'], \
-            ceres_trends, ptitle = title, plabel = 'W/m2 per study period', \
+            ceres_trends, 'trend', ptitle = title, plabel = 'W/m2 per study period', \
             vmin = v_min, vmax = v_max, colorbar_label_size = 16, \
             minlat = minlat)
 
