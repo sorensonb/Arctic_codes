@@ -156,28 +156,40 @@ def plot_subplot_label(ax, label, xval = None, yval = None, transform = None, \
                 transform = transform, fontsize=fontsize, \
                 backgroundcolor = backgroundcolor)
 
+def plot_theil_sen_trend(pax, xdata, ydata, color, linestyle):
+    res = stats.theilslopes(ydata, xdata, 0.90)
+    print("Theil-Sen: {0}x + {1}".format(res[0], res[1]))
+
+    # Then, plot the trend line on the figure
+    pax.plot(xdata, res[1] + res[0] * xdata, \
+        color='k', linewidth = 2.5, linestyle = linestyle)
+    # Then, plot the trend line on the figure
+    pax.plot(xdata, res[1] + res[0] * xdata, \
+        color=color, linestyle = linestyle)
+    
+def plot_lin_regress_trend(pax, xdata, ydata, color, linestyle):
+    # First, calculate the trend
+    zdata = np.polyfit(xdata, ydata, 1)
+
+    print("Lin Regress: {0}x + {1}".format(*zdata))
+
+    # Then, plot the trend line on the figure
+    pax.plot(np.unique(xdata), np.poly1d(zdata)(np.unique(xdata)), \
+        color='k', linewidth = 2.5, linestyle = linestyle)
+    pax.plot(np.unique(xdata), np.poly1d(zdata)(np.unique(xdata)), \
+        color=color, linestyle = linestyle)
+
 def plot_trend_line(pax, xdata, ydata, color='black', linestyle = '-', \
         slope = 'theil-sen'):
 
     if(slope == 'theil-sen'):
-        res = stats.theilslopes(ydata, xdata, 0.90)
-        print("Theil-Sen: {0}x + {1}".format(res[0], res[1]))
-
-        # Then, plot the trend line on the figure
-        pax.plot(xdata, res[1] + res[0] * xdata, \
-            color='k', linewidth = 2.5, linestyle = linestyle)
-        # Then, plot the trend line on the figure
-        pax.plot(xdata, res[1] + res[0] * xdata, \
-            color=color, linestyle = linestyle)
+        plot_theil_sen_trend(pax, xdata, ydata, color, linestyle)
+    elif(slope == 'both'):
+        plot_theil_sen_trend(pax, xdata, ydata, color, linestyle)
+        plot_lin_regress_trend(pax, xdata, ydata, color, linestyle)
     else:
-        # First, calculate the trend
-        zdata = np.polyfit(xdata, ydata, 1)
+        plot_lin_regress_trend(pax, xdata, ydata, color, linestyle)
 
-        print("{0}x + {1}".format(*zdata))
-
-        # Then, plot the trend line on the figure
-        pax.plot(np.unique(xdata), np.poly1d(zdata)(np.unique(xdata)), \
-            color=color, linestyle = linestyle)
 
 
 # Class MidpointNormalize is used to center the colorbar on zero
@@ -3571,7 +3583,8 @@ def plotOMI_single_ground(date_str, only_sea_ice = False, minlat = 65., \
         zoom_add = '_zoom'
         circle_bound = False
         mapcrs = ccrs.NorthPolarStereo(central_longitude = -40)
-    mapcrs = ccrs.NorthPolarStereo()
+        #mapcrs = ccrs.Robinson()
+    #mapcrs = ccrs.NorthPolarStereo()
     # ----------------------------------------------------
     # Set up the overall figure
     # ----------------------------------------------------
@@ -3600,8 +3613,8 @@ def plotOMI_single_ground(date_str, only_sea_ice = False, minlat = 65., \
         ax1.set_extent([-70., -10., 65., 87.], datacrs)
 
     plt.suptitle(date_str)
-    plot_subplot_label(ax0, '(a)')
-    plot_subplot_label(ax1, '(b)')
+    plot_subplot_label(ax0, '(a)', backgroundcolor = 'white')
+    plot_subplot_label(ax1, '(b)', backgroundcolor = 'white')
 
     fig1.tight_layout()
 
@@ -4216,7 +4229,7 @@ def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,minlat=65,\
 
     ax2.scatter(mask_trend1,mask_trend2,c=z,s=8)
     plot_trend_line(ax2, mask_trend1, mask_trend2, color='tab:green', linestyle = '-', \
-        slope = 'theil-sen')
+        slope = 'both')
     ##!#plt.plot(test_x,predictions,color='tab:green',linestyle='--',label='Huber Fit')
     ##!## Plot an unrobust fit line using linear regression
     ##!## -------------------------------------------------
