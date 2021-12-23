@@ -4124,8 +4124,9 @@ def single_swath_anomaly_time(single_swath,climo_date,minlat = 60,row_max = 60):
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
-def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,minlat=65,\
-        trend_type = 'standard',save=False):
+def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,ax0 = None, \
+        ax1 = None, ax2 = None, minlat=65,\
+        trend_type = 'standard', titles = True, save=False):
 
     if('/home/bsorenson/Research/CERES' not in sys.path):
         sys.path.append('/home/bsorenson/Reserach/CERES')
@@ -4155,7 +4156,13 @@ def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,minlat=65,\
         title = 'OMI AI / CERES ' + CERES_data['param'] + ' Trend Comparison'
         outname = 'omi_ceres_trend_comp_'+\
             OMI_data1['VERSION']+'vCERES_min' + str(int(minlat)) + '.png'
-
+ 
+    label = 'AI Trend (AI/Study Period)'
+    omi_title = 'OMI Trend'
+    if(not titles):
+        omi_title = ' ' 
+        title = ' '
+        label = ' ' 
     # Flip the CERES data to convert the longitudes from 0 - 360 to -180 - 180
     # ------------------------------------------------------------------------
     local_lon = np.copy(CERES_data['lon'])
@@ -4203,11 +4210,14 @@ def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,minlat=65,\
     # Set up the figure. 
     # 3 panels: OMI trend, CERES trends, scatter compare
     # ---------------------------------------------------
-    plt.close('all')
-    fig1 = plt.figure(figsize = (14,5))
-    ax0 = fig1.add_subplot(1,3,1, projection = mapcrs)
-    ax1 = fig1.add_subplot(1,3,2, projection = mapcrs)
-    ax2 = fig1.add_subplot(1,3,3)
+    local_figure = False
+    if((ax0 is None) & (ax1 is None) & (ax2 is None)):
+        local_figure = True
+        plt.close('all')
+        fig1 = plt.figure(figsize = (14,5))
+        ax0 = fig1.add_subplot(1,3,1, projection = mapcrs)
+        ax1 = fig1.add_subplot(1,3,2, projection = mapcrs)
+        ax2 = fig1.add_subplot(1,3,3)
 
     # Plot the OMI and CERES trends
     # -----------------------------
@@ -4215,8 +4225,8 @@ def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,minlat=65,\
     #    ptitle = title, plabel = 'UV Aerosol Index Trend', \
     #    vmin = None, vmax = None, minlat = minlat)
     plotOMI_MonthTrend(OMI_data,month_idx=month,\
-        trend_type=trend_type,label = 'AI Trend (AI/Study Period)',\
-        minlat=minlat,title = "OMI Trend", pax = ax0)
+        trend_type=trend_type,label = label,\
+        minlat=minlat,title = omi_title, pax = ax0)
     plotCERES_MonthTrend(CERES_data,month_idx=month,\
         trend_type=trend_type,\
         minlat=minlat,pax = ax1)
@@ -4264,13 +4274,13 @@ def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,minlat=65,\
     plot_subplot_label(ax1, '(b)')
     plot_subplot_label(ax2, '(c)')
 
-    fig1.tight_layout()
-
-    if(save == True):
-        fig1.savefig(outname)
-        print("Saved image",outname)
-    else:
-        plt.show()
+    if(local_figure):
+        fig1.tight_layout()
+        if(save == True):
+            fig1.savefig(outname)
+            print("Saved image",outname)
+        else:
+            plt.show()
     #return mask_trend1,mask_trend2
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
@@ -4278,3 +4288,52 @@ def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,minlat=65,\
 # Comparison with CERES
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+
+def plot_OMI_CERES_trend_compare_summer(minlat=65,\
+        ceres_type = 'sw', trend_type = 'standard', titles = False, \
+        save=False):
+
+    if('/home/bsorenson/Research/CERES' not in sys.path):
+        print("Appending CERES path")
+        sys.path.append('/home/bsorenson/Research/CERES')
+
+    #importlib.reload(gridCERESLib) 
+    from gridCERESLib import readgridCERES
+
+    # Set up total figure layout
+    # --------------------------
+    plt.close('all')
+    fig1 = plt.figure(figsize = (12,10))
+    ax1 = fig1.add_subplot(3,3,1, projection = mapcrs)
+    ax2 = fig1.add_subplot(3,3,4, projection = mapcrs)
+    ax3 = fig1.add_subplot(3,3,7, projection = mapcrs)
+    ax4 = fig1.add_subplot(3,3,2, projection = mapcrs)
+    ax5 = fig1.add_subplot(3,3,5, projection = mapcrs)
+    ax6 = fig1.add_subplot(3,3,8, projection = mapcrs)
+    ax7 = fig1.add_subplot(3,3,3)
+    ax8 = fig1.add_subplot(3,3,6)
+    ax9 = fig1.add_subplot(3,3,9)
+
+    # Read in the OMI and CERES data
+    # ------------------------------
+    OMI_data = readOMI_NCDF(infile = \
+        '/home/bsorenson/Research/OMI/omi_ai_VJZ211_2005_2020.nc',\
+        start_date = 200504, end_date = 202010, minlat = minlat)
+    CERES_data =  readgridCERES(200504,202010,'toa_'+ceres_type+\
+        '_all_mon', minlat = minlat + 0.5, season = 'sunlight')
+
+    # Process data for each month
+    # ---------------------------
+    plot_OMI_CERES_trend_compare(OMI_data, CERES_data,2,ax0 = ax1, \
+        ax1 = ax4, ax2 = ax7, minlat=minlat,\
+        trend_type = trend_type, titles = titles, save=False)
+    plot_OMI_CERES_trend_compare(OMI_data, CERES_data,3,ax0 = ax2, \
+        ax1 = ax5, ax2 = ax8, minlat=minlat,\
+        trend_type = trend_type, titles = titles, save=False)
+    plot_OMI_CERES_trend_compare(OMI_data, CERES_data,4,ax0 = ax3, \
+        ax1 = ax6, ax2 = ax9, minlat=minlat,\
+        trend_type = trend_type, titles = titles, save=False)
+    
+    fig1.tight_layout()
+    plt.show()
+
