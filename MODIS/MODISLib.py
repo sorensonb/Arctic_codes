@@ -5736,7 +5736,6 @@ def plot_MODIS_temporary_4panel(date_str, zoom = True, composite = True, \
     # Read 0.64 μm data
     # --------------- 
     MODIS_data_ch1  = read_MODIS_channel(date_str, 1, zoom = zoom)
-    MODIS_data_ch5  = read_MODIS_channel(date_str, 5, zoom = zoom)
     MODIS_data_ch31 = read_MODIS_channel(date_str, 31, zoom = zoom)
 
     # Determine where the smoke is located
@@ -5744,17 +5743,15 @@ def plot_MODIS_temporary_4panel(date_str, zoom = True, composite = True, \
     hash_data, nohash_data = find_plume(date_str) 
 
     tmp_data1  = np.copy(MODIS_data_ch1['data'])
-    tmp_data5  = np.copy(MODIS_data_ch5['data'])
     tmp_data31 = np.copy(MODIS_data_ch31['data'])
     tmp_lat0   = np.copy(MODIS_data_ch1['lat'])
     tmp_lon0   = np.copy(MODIS_data_ch1['lon'])
 
-    if(not (tmp_data1.shape == tmp_data5.shape == tmp_data31.shape == \
+    if(not (tmp_data1.shape == tmp_data31.shape == \
             hash_data.shape)):
         print("shape mismatch")
         shapes = []
         shapes.append(tmp_data1.shape)
-        shapes.append(tmp_data5.shape)
         shapes.append(tmp_data31.shape)
         shapes.append(hash_data.shape)
 
@@ -5762,7 +5759,6 @@ def plot_MODIS_temporary_4panel(date_str, zoom = True, composite = True, \
         print(min_shape)
 
         tmp_data1  = tmp_data1[:min_shape[0],:min_shape[1]]
-        tmp_data5  = tmp_data5[:min_shape[0],:min_shape[1]]
         tmp_data31 = tmp_data31[:min_shape[0],:min_shape[1]]
         tmp_lat0   = tmp_lat0[:min_shape[0],:min_shape[1]]
         tmp_lon0   = tmp_lon0[:min_shape[0],:min_shape[1]]
@@ -5770,20 +5766,13 @@ def plot_MODIS_temporary_4panel(date_str, zoom = True, composite = True, \
 
     max_ch = 350.
 
-    tmp_data1 = np.ma.masked_where( (abs(tmp_data5) > max_ch) | \
-        (abs(tmp_data1) > max_ch) | (abs(tmp_data31) > max_ch) \
+    tmp_data1 = np.ma.masked_where( (abs(tmp_data1) > max_ch) | (abs(tmp_data31) > max_ch) \
         , tmp_data1)
-    tmp_data5 = np.ma.masked_where( (abs(tmp_data5) > max_ch) | \
-        (abs(tmp_data1) > max_ch) | (abs(tmp_data31) > max_ch) \
-        , tmp_data5)
-    tmp_data31 = np.ma.masked_where( (abs(tmp_data5) > max_ch) | \
-        (abs(tmp_data1) > max_ch) | (abs(tmp_data31) > max_ch) \
+    tmp_data31 = np.ma.masked_where( (abs(tmp_data1) > max_ch) | (abs(tmp_data31) > max_ch) \
         , tmp_data31)
-    tmp_lat0 = np.ma.masked_where( (abs(tmp_data5) > max_ch) | \
-        (abs(tmp_data1) > max_ch) | (abs(tmp_data31) > max_ch) \
+    tmp_lat0 = np.ma.masked_where( (abs(tmp_data1) > max_ch) | (abs(tmp_data31) > max_ch) \
         , tmp_lat0)
-    tmp_lon0 = np.ma.masked_where( (abs(tmp_data5) > max_ch) | \
-        (abs(tmp_data1) > max_ch) | (abs(tmp_data31) > max_ch) \
+    tmp_lon0 = np.ma.masked_where( (abs(tmp_data1) > max_ch) | (abs(tmp_data31) > max_ch) \
         , tmp_lon0)
 
 
@@ -5791,12 +5780,12 @@ def plot_MODIS_temporary_4panel(date_str, zoom = True, composite = True, \
     # -------------
     mapcrs = init_proj(date_str)
     plt.close('all')
-    fig = plt.figure(figsize=(10,8))
+    fig = plt.figure(figsize=(9,9))
     #ax1 = fig.add_subplot(2,3,1,projection = mapcrs)   # true color    
     ax1 = fig.add_subplot(2,2,1,projection = crs1)   # true color    
     ax2 = fig.add_subplot(2,2,2,projection = mapcrs) # Ch 31
     ax3 = fig.add_subplot(2,2,3,projection = mapcrs) # Ch 1
-    ax4 = fig.add_subplot(2,2,4, projection = mapcrs) # Ch 5
+    ax4 = fig.add_subplot(2,2,4) # Scatter 
     #ax4 = fig.add_subplot(2,2,5) # Ch 5
     #ax5 = fig.add_subplot(2,2,6) # Ch 5
 
@@ -5819,22 +5808,19 @@ def plot_MODIS_temporary_4panel(date_str, zoom = True, composite = True, \
 
     # Plot channel 1, 5, 31, and WV data spatial data
     # -----------------------------------------------
-    plot_MODIS_spatial(MODIS_data_ch31, ax2, zoom = zoom, ptitle = '')
-    plot_MODIS_spatial(MODIS_data_ch1,  ax3, zoom = zoom, ptitle = '')
-    plot_MODIS_spatial(MODIS_data_ch5,  ax4, zoom = zoom, ptitle = '')
+    plot_MODIS_spatial(MODIS_data_ch1,  ax2, zoom = zoom, ptitle = '')
+    plot_MODIS_spatial(MODIS_data_ch31, ax3, zoom = zoom, ptitle = '')
 
     plot_figure_text(ax1, 'True Color', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = 15, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax2, 'MODIS 11 μm', xval = None, yval = None, transform = None, \
+    plot_figure_text(ax2, 'MODIS 0.64 μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = 15, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax3, 'MODIS 0.64 μm', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = 15, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax4, 'MODIS 1.24 μm', xval = None, yval = None, transform = None, \
+    plot_figure_text(ax3, 'MODIS 11 μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = 15, backgroundcolor = 'white', halign = 'right')
 
-    #plot_scatter(ax4, tmp_data31, tmp_data1, MODIS_data_ch31, MODIS_data_ch1, \
-    #    hash_data, xlabel = '11 μm brightness temperature', \
-    #    ylabel = '0.64 μm reflectance', plot_legend = True)
+    plot_scatter(ax4, tmp_data31, tmp_data1, MODIS_data_ch31, MODIS_data_ch1, \
+        hash_data, xlabel = '11 μm brightness temperature', \
+        ylabel = '0.64 μm reflectance', plot_legend = True)
     #plot_scatter(ax5, tmp_data31, tmp_data5, MODIS_data_ch31, MODIS_data_ch5, \
     #    hash_data, xlabel = '11 μm brightness temperature', \
     #    ylabel = '1.24 μm reflectance')
@@ -5845,18 +5831,25 @@ def plot_MODIS_temporary_4panel(date_str, zoom = True, composite = True, \
         hash_data1, nohash_data1 = find_plume(date_str) 
 
         plt.rcParams.update({'hatch.color': 'r'})
-        ax3.pcolor(MODIS_data_ch1['lon'],MODIS_data_ch1['lat'],\
+        ax2.pcolor(MODIS_data_ch1['lon'],MODIS_data_ch1['lat'],\
             hash_data1, hatch = '\\\\', alpha=0., transform = datacrs,\
             cmap = 'plasma')
-        ax4.pcolor(MODIS_data_ch1['lon'],MODIS_data_ch1['lat'],\
-            hash_data1, hatch = '\\\\', alpha=0., transform = datacrs,\
-            cmap = 'plasma')
+        #ax4.pcolor(MODIS_data_ch1['lon'],MODIS_data_ch1['lat'],\
+        #    hash_data1, hatch = '\\\\', alpha=0., transform = datacrs,\
+        #    cmap = 'plasma')
+
+    # Add subplot letter labels
+    # -------------------------
+    plot_subplot_label(ax1, '(a)', backgroundcolor = 'white')
+    plot_subplot_label(ax2, '(b)', backgroundcolor = 'white')
+    plot_subplot_label(ax3, '(c)', backgroundcolor = 'white')
+    plot_subplot_label(ax4, '(d)', backgroundcolor = 'white')
 
     plt.suptitle(dt_date_str.strftime('%d %B %Y'), fontsize = 18)
     fig.tight_layout()
 
     if(save):
-        outname = 'modis_spatial_4panel_' + date_str + '.png'
+        outname = 'modis_spatscat_4panel_' + date_str + '.png'
         fig.savefig(outname, dpi = 300)
         print("Saved image",outname)
     else:
@@ -5935,146 +5928,6 @@ def plot_MODIS_temporary(date_str, zoom = True, save = False):
     if(save):
         outname = 'modis_scatter_twopanel_' + date_str + '.png'
         fig1.savefig(outname, dpi = 300)
-        print("Saved image",outname)
-    else:
-        plt.show()
-
-def plot_MODIS_temporary_4panel(date_str, zoom = True, composite = True, \
-        show_smoke = True, save = False):
-
-    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
-
-    # Read the true color data
-    # ------------------------
-    var1, crs1, lat_lims1, lon_lims1 = read_true_color(date_str,\
-        composite=composite)
-
-
-    # Read 0.64 μm data
-    # --------------- 
-    MODIS_data_ch1  = read_MODIS_channel(date_str, 1, zoom = zoom)
-    MODIS_data_ch5  = read_MODIS_channel(date_str, 5, zoom = zoom)
-    MODIS_data_ch31 = read_MODIS_channel(date_str, 31, zoom = zoom)
-
-    # Determine where the smoke is located
-    # ------------------------------------
-    hash_data, nohash_data = find_plume(date_str) 
-
-    tmp_data1  = np.copy(MODIS_data_ch1['data'])
-    tmp_data5  = np.copy(MODIS_data_ch5['data'])
-    tmp_data31 = np.copy(MODIS_data_ch31['data'])
-    tmp_lat0   = np.copy(MODIS_data_ch1['lat'])
-    tmp_lon0   = np.copy(MODIS_data_ch1['lon'])
-
-    if(not (tmp_data1.shape == tmp_data5.shape == tmp_data31.shape == \
-            hash_data.shape)):
-        print("shape mismatch")
-        shapes = []
-        shapes.append(tmp_data1.shape)
-        shapes.append(tmp_data5.shape)
-        shapes.append(tmp_data31.shape)
-        shapes.append(hash_data.shape)
-
-        min_shape = min(shapes)
-        print(min_shape)
-
-        tmp_data1  = tmp_data1[:min_shape[0],:min_shape[1]]
-        tmp_data5  = tmp_data5[:min_shape[0],:min_shape[1]]
-        tmp_data31 = tmp_data31[:min_shape[0],:min_shape[1]]
-        tmp_lat0   = tmp_lat0[:min_shape[0],:min_shape[1]]
-        tmp_lon0   = tmp_lon0[:min_shape[0],:min_shape[1]]
-        hash_data  = hash_data[:min_shape[0],:min_shape[1]]
-
-    max_ch = 350.
-
-    tmp_data1 = np.ma.masked_where( (abs(tmp_data5) > max_ch) | \
-        (abs(tmp_data1) > max_ch) | (abs(tmp_data31) > max_ch) \
-        , tmp_data1)
-    tmp_data5 = np.ma.masked_where( (abs(tmp_data5) > max_ch) | \
-        (abs(tmp_data1) > max_ch) | (abs(tmp_data31) > max_ch) \
-        , tmp_data5)
-    tmp_data31 = np.ma.masked_where( (abs(tmp_data5) > max_ch) | \
-        (abs(tmp_data1) > max_ch) | (abs(tmp_data31) > max_ch) \
-        , tmp_data31)
-    tmp_lat0 = np.ma.masked_where( (abs(tmp_data5) > max_ch) | \
-        (abs(tmp_data1) > max_ch) | (abs(tmp_data31) > max_ch) \
-        , tmp_lat0)
-    tmp_lon0 = np.ma.masked_where( (abs(tmp_data5) > max_ch) | \
-        (abs(tmp_data1) > max_ch) | (abs(tmp_data31) > max_ch) \
-        , tmp_lon0)
-
-
-    # Set up figure
-    # -------------
-    mapcrs = init_proj(date_str)
-    plt.close('all')
-    fig = plt.figure(figsize=(10,8))
-    #ax1 = fig.add_subplot(2,3,1,projection = mapcrs)   # true color    
-    ax1 = fig.add_subplot(2,2,1,projection = crs1)   # true color    
-    ax2 = fig.add_subplot(2,2,2,projection = mapcrs) # Ch 31
-    ax3 = fig.add_subplot(2,2,3,projection = mapcrs) # Ch 1
-    ax4 = fig.add_subplot(2,2,4, projection = mapcrs) # Ch 5
-    #ax4 = fig.add_subplot(2,2,5) # Ch 5
-    #ax5 = fig.add_subplot(2,2,6) # Ch 5
-
-    # Plot the true-color data for the previous date
-    # ----------------------------------------------
-    ax1.imshow(var1.data, transform = crs1, extent=(var1.x[0], var1.x[-1], \
-        var1.y[-1], var1.y[0]), origin='upper')
-
-    # Zoom in the figure if desired
-    # -----------------------------
-    if(zoom):
-        ax1.set_extent([lon_lims1[0],lon_lims1[1],lat_lims1[0],\
-            lat_lims1[1]],crs = datacrs)
-
-    # ----------------------------------------------------------------------
-    #
-    # Plot the data in the figure
-    #
-    # ----------------------------------------------------------------------
-
-    # Plot channel 1, 5, 31, and WV data spatial data
-    # -----------------------------------------------
-    plot_MODIS_spatial(MODIS_data_ch31, ax2, zoom = zoom, ptitle = '')
-    plot_MODIS_spatial(MODIS_data_ch1,  ax3, zoom = zoom, ptitle = '')
-    plot_MODIS_spatial(MODIS_data_ch5,  ax4, zoom = zoom, ptitle = '')
-
-    plot_figure_text(ax1, 'True Color', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = 15, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax2, 'MODIS 11 μm', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = 15, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax3, 'MODIS 0.64 μm', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = 15, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax4, 'MODIS 1.24 μm', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = 15, backgroundcolor = 'white', halign = 'right')
-
-    #plot_scatter(ax4, tmp_data31, tmp_data1, MODIS_data_ch31, MODIS_data_ch1, \
-    #    hash_data, xlabel = '11 μm brightness temperature', \
-    #    ylabel = '0.64 μm reflectance', plot_legend = True)
-    #plot_scatter(ax5, tmp_data31, tmp_data5, MODIS_data_ch31, MODIS_data_ch5, \
-    #    hash_data, xlabel = '11 μm brightness temperature', \
-    #    ylabel = '1.24 μm reflectance')
-
-    if(show_smoke):
-        # Determine where the smoke is located
-        # ------------------------------------
-        hash_data1, nohash_data1 = find_plume(date_str) 
-
-        plt.rcParams.update({'hatch.color': 'r'})
-        ax3.pcolor(MODIS_data_ch1['lon'],MODIS_data_ch1['lat'],\
-            hash_data1, hatch = '\\\\', alpha=0., transform = datacrs,\
-            cmap = 'plasma')
-        ax4.pcolor(MODIS_data_ch1['lon'],MODIS_data_ch1['lat'],\
-            hash_data1, hatch = '\\\\', alpha=0., transform = datacrs,\
-            cmap = 'plasma')
-
-    plt.suptitle(dt_date_str.strftime('%d %B %Y'), fontsize = 18)
-    fig.tight_layout()
-
-    if(save):
-        outname = 'modis_spatial_4panel_' + date_str + '.png'
-        fig.savefig(outname, dpi = 300)
         print("Saved image",outname)
     else:
         plt.show()
