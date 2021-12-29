@@ -5780,14 +5780,24 @@ def plot_MODIS_temporary_4panel(date_str, zoom = True, composite = True, \
     # -------------
     mapcrs = init_proj(date_str)
     plt.close('all')
-    fig = plt.figure(figsize=(9,9))
-    #ax1 = fig.add_subplot(2,3,1,projection = mapcrs)   # true color    
-    ax1 = fig.add_subplot(2,2,1,projection = crs1)   # true color    
-    ax2 = fig.add_subplot(2,2,2,projection = mapcrs) # Ch 31
-    ax3 = fig.add_subplot(2,2,3,projection = mapcrs) # Ch 1
-    ax4 = fig.add_subplot(2,2,4) # Scatter 
-    #ax4 = fig.add_subplot(2,2,5) # Ch 5
-    #ax5 = fig.add_subplot(2,2,6) # Ch 5
+    ##!#fig = plt.figure(figsize=(9,9))
+    ##!##ax1 = fig.add_subplot(2,3,1,projection = mapcrs)   # true color    
+    ##!#ax1 = fig.add_subplot(2,2,1,projection = crs1)   # true color    
+    ##!#ax2 = fig.add_subplot(2,2,2,projection = mapcrs) # Ch 31
+    ##!#ax3 = fig.add_subplot(2,2,3,projection = mapcrs) # Ch 1
+    ##!#ax4 = fig.add_subplot(2,2,4) # Scatter 
+    ##!##ax4 = fig.add_subplot(2,2,5) # Ch 5
+    ##!##ax5 = fig.add_subplot(2,2,6) # Ch 5
+
+    # Set up the figure
+    # -----------------
+    fig = plt.figure(figsize=(9,15))
+    gs1 = fig.add_gridspec(nrows = 3, ncols = 2, wspace = 0.40, hspace = 0.30)
+    ax1 = fig.add_subplot(gs1[0,0], projection = crs1) # true color 7/22
+    ax2 = fig.add_subplot(gs1[0,1], projection = mapcrs) # vis 7/22
+    ax3 = fig.add_subplot(gs1[1,0], projection = mapcrs) # IR 7/22
+    ax4 = fig.add_subplot(gs1[1,1]) # IR / vis scatter
+    ax5 = fig.add_subplot(gs1[2,:])
 
     # Plot the true-color data for the previous date
     # ----------------------------------------------
@@ -5818,12 +5828,33 @@ def plot_MODIS_temporary_4panel(date_str, zoom = True, composite = True, \
     plot_figure_text(ax3, 'MODIS 11 μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = 15, backgroundcolor = 'white', halign = 'right')
 
+    # Plot the scatter between IR and vis
+    # -----------------------------------
     plot_scatter(ax4, tmp_data31, tmp_data1, MODIS_data_ch31, MODIS_data_ch1, \
         hash_data, xlabel = '11 μm brightness temperature', \
         ylabel = '0.64 μm reflectance', plot_legend = True)
     #plot_scatter(ax5, tmp_data31, tmp_data5, MODIS_data_ch31, MODIS_data_ch5, \
     #    hash_data, xlabel = '11 μm brightness temperature', \
     #    ylabel = '1.24 μm reflectance')
+
+    # ----------------------------------------------------------------------
+    #
+    # Panel 5: Meteogram
+    #
+    # ----------------------------------------------------------------------
+    plot_asos_diurnal(ax5, date_str, 'O05', 'AAT')
+
+    def plot_modis_line(dt_date, pax):
+        local_modis_time = dt_date - timedelta(hours = 7)
+        modis_diff = (local_modis_time - datetime(year=2021,month=7,\
+            day=22,hour=0,minute=0)).seconds
+        print(local_modis_time, modis_diff)
+        pax.axvline(modis_diff,color='black',linestyle = '--', lw=2,alpha=0.75,\
+            label='MODIS')
+
+    plot_modis_line(dt_date_str, ax5)
+    ax5.legend() 
+
 
     if(show_smoke):
         # Determine where the smoke is located
@@ -5838,18 +5869,23 @@ def plot_MODIS_temporary_4panel(date_str, zoom = True, composite = True, \
         #    hash_data1, hatch = '\\\\', alpha=0., transform = datacrs,\
         #    cmap = 'plasma')
 
+    # Add ASOS site locations
+    # -----------------------
+    plot_ASOS_locs(ax3,'asos_data_case_locs.csv', color = 'red')
+
     # Add subplot letter labels
     # -------------------------
     plot_subplot_label(ax1, '(a)', backgroundcolor = 'white')
     plot_subplot_label(ax2, '(b)', backgroundcolor = 'white')
     plot_subplot_label(ax3, '(c)', backgroundcolor = 'white')
     plot_subplot_label(ax4, '(d)', backgroundcolor = 'white')
+    plot_subplot_label(ax5, '(e)', xval = 1200, location = 'lower_left')
 
-    plt.suptitle(dt_date_str.strftime('%d %B %Y'), fontsize = 18)
-    fig.tight_layout()
+    #plt.suptitle(dt_date_str.strftime('%d %B %Y'), fontsize = 18)
+    #fig.tight_layout()
 
     if(save):
-        outname = 'modis_spatscat_4panel_' + date_str + '.png'
+        outname = 'modis_spatscat2_4panel_' + date_str + '.png'
         fig.savefig(outname, dpi = 300)
         print("Saved image",outname)
     else:
