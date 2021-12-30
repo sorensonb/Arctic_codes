@@ -1678,11 +1678,11 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
     plot_MODIS_spatial(MODIS_data2, ax1, ptitle = '', zoom = zoom)
     plot_MODIS_spatial(MODIS_data3, ax2, ptitle = '', zoom = zoom)
 
-    plot_figure_text(ax0, 'MODIS 11 μm', xval = None, yval = None, transform = None, \
+    plot_figure_text(ax2, 'MODIS 11 μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = 15, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax1, 'MODIS 0.64 μm', xval = None, yval = None, transform = None, \
+    plot_figure_text(ax0, 'MODIS 0.64 μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = 15, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax2, 'MODIS 1.24 μm', xval = None, yval = None, transform = None, \
+    plot_figure_text(ax1, 'MODIS 1.24 μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = 15, backgroundcolor = 'white', halign = 'right')
     ##!## Step 3: Plot the MODIS channel data in the first 2 panels
     ##!## ---------------------------------------------------------
@@ -1941,6 +1941,13 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
         if(compare_CERES): 
             plot_ASOS_locs(axcs,date_str,color='black')
             plot_ASOS_locs(axcl,date_str,color='black')
+
+    # Add subplot labels
+    # ------------------
+    plot_subplot_label(ax0, '(a)', backgroundcolor = 'white')
+    plot_subplot_label(ax1, '(b)', backgroundcolor = 'white')
+    plot_subplot_label(ax2, '(c)', backgroundcolor = 'white')
+
 
     cross_date = MODIS_data1['cross_date']
     file_time  = MODIS_data1['file_time']

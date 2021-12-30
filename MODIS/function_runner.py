@@ -7,8 +7,15 @@
 
 from MODISLib import *
 
-plot_MODIS_temporary_4panel('202107222110', \
-    zoom = True, composite = True, show_smoke = True, save = True)
+date_str = '202107222110'
+channel1 = 1
+channel2 = 5
+channel3 = 31
+compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=True,\
+        plot_ASOS_loc = False, show_smoke = True, compare_OMI = False, \
+        compare_CERES = False, return_MODIS = False)
+#plot_MODIS_temporary_4panel('202107222110', \
+#    zoom = True, composite = True, show_smoke = True, save = True)
 #plot_combined_figure1(save = True)
 #plot_MODIS_temporary('202107222110', zoom = True, save = True)
 #compare_MODIS_3panel('202107222110',31,1,5,zoom=True,save=True,\
