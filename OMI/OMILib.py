@@ -4146,16 +4146,17 @@ def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,ax0 = None, \
     #    print(x, y)
 
     # Convert the index to a string using datetime
+    ceres_param = CERES_data['param'].split('_')[1]
     if(month != None):
         dt_obj = datetime.strptime(OMI_data['DATES'][month],"%Y%m")
         title = 'OMI AI / CERES ' + CERES_data['param'] + '\n'+ \
             dt_obj.strftime("%b") + " Trend Comparison"
         outname = 'omi_ceres_trend_comp_'+dt_obj.strftime("%b")+'_'+\
-            OMI_data['VERSION']+'vCERES_min'+str(int(minlat))+'.png'
+            OMI_data['VERSION']+'vCERES_'+ceres_param+'_min'+str(int(minlat))+'.png'
     else:
         title = 'OMI AI / CERES ' + CERES_data['param'] + ' Trend Comparison'
         outname = 'omi_ceres_trend_comp_'+\
-            OMI_data1['VERSION']+'vCERES_min' + str(int(minlat)) + '.png'
+            OMI_data1['VERSION']+'vCERES_'+ceres_param+'_min' + str(int(minlat)) + '.png'
  
     label = 'AI Trend (AI/Study Period)'
     omi_title = 'OMI Trend'
@@ -4239,7 +4240,7 @@ def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,ax0 = None, \
 
     ax2.scatter(mask_trend1,mask_trend2,c=z,s=8)
     plot_trend_line(ax2, mask_trend1, mask_trend2, color='tab:green', linestyle = '-', \
-        slope = 'both')
+        slope = 'theil-sen')
     ##!#plt.plot(test_x,predictions,color='tab:green',linestyle='--',label='Huber Fit')
     ##!## Plot an unrobust fit line using linear regression
     ##!## -------------------------------------------------
@@ -4265,7 +4266,7 @@ def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,ax0 = None, \
     ##else:
     ##    plt.xlim(-0.3,0.3)
     ##    plt.ylim(-0.3,0.3)
-    ax2.legend()
+    #ax2.legend()
     ax2.set_xlabel(OMI_data['VERSION'])
     ax2.set_ylabel('CERES')
     ax2.set_title(title + '\nMinlat = ' + str(minlat))
