@@ -337,7 +337,10 @@ def readOMI(inputfile,start_date,end_date,key=None):
 
 # NOTE: This only works for plotting 1 file time at a time. No multiple swaths
 # dtype is either "control" or "JZ"
-def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, latmin = 65):
+#     skiprows - array-like containing row numbers (1-based) to not include
+#                in the data
+def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, latmin = 65, \
+        skiprows = None):
 
     # Extract date information to use when finding the data files
     year = plot_time[:4]
@@ -359,7 +362,6 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, latmin = 65):
     total_list = subprocess.check_output('ls '+base_path+'OMI-Aura_L2-OMAERUV_'+\
         year+'m'+date+'t'+time+'*.he5',shell=True).decode('utf-8').strip().split('\n')
 
-    # Depending on what the user wants, 
     print(total_list[0])
     data = h5py.File(total_list[0],'r')
 
@@ -370,7 +372,19 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, latmin = 65):
     GPQF   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags'][:,:]
     GPQF_decode = np.array([[get_ice_flags(val) for val in GPQFrow] for GPQFrow in GPQF])
     XTRK_decode = np.array([[get_xtrack_flags(val) for val in GPQFrow] for GPQFrow in GPQF])
+
+    # If the user wants certain lines to not be included, set the AI values
+    # to -9e5 to ensure they are removed
+    # ---------------------------------------------------------------------
+    if(skiprows is not None):
+        print('got here')
+        UVAI[:,skiprows] = -9e5  
+
+    # Mask the AI data where the values are either missing or the Xtrack flags
+    # are not zero
+    # ------------------------------------------------------------------------
     mask_UVAI = np.ma.masked_where((XTRACK != 0) | (UVAI < -2e5) | (LAT < latmin), UVAI)
+
     #UVAI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/' + path_dict[variable] + variable][:,:]
     ##!#if(len(UVAI.shape) == 3):
     ##!#    # If 3 dimensions, assume that the smallest dimension is the wavelength
@@ -2580,232 +2594,204 @@ def plotOMI_Compare_ClimoTrend(OMI_data1,OMI_data2,OMI_data3,month_idx,\
     plot_subplot_label(ax11, '(e)')
     plot_subplot_label(ax12, '(f)')
 
-    ##!#ax00.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
-    ##!#ax00.set_boundary(circle, transform=ax00.transAxes)
-    ##!##ax00.gridlines()
-    ##!#ax00.coastlines(resolution='50m')
-    ##!#mesh00 = ax00.pcolormesh(plon,plat,mask_AI.T,\
-    ##!#        transform=ccrs.PlateCarree(),vmin=-1.0,vmax=1.0,cmap=colormap)
-    ##!#ax00.set_title(new_label_dict[OMI_data1['VERSION']]+'\n',weight='bold',\
-    ##!#    fontsize=axis_title_size)
-    ##!#cbar00 = plt.colorbar(mesh00,ticks = np.arange(-2.0,4.1,0.5),orientation='vertical',\
-    ##!#    extend='both',shrink=0.8)
-    ##!#cbar00.set_label('UV Aerosol Index',weight='bold',fontsize=colorbar_label_size)
     fig.text(0.10, 0.70, 'Climatology', ha='center', va='center', \
         rotation='vertical',weight='bold',fontsize=row_label_size)
-    #cbar00 = plt.colorbar(mesh00,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
-    #    aspect=50,shrink = 0.845)
-    #cbar00.ax.tick_params(labelsize=14)
-    #cbar00.set_label('UV Aerosol Index',fontsize=16,weight='bold')
-
-    ##!## Plot DATA2 climos
-    ##!## -----------------
-    ##!## Make copy of OMI_data array
-    ##!#local_data  = np.copy(OMI_data2['MONTH_CLIMO'][month_idx,:,:])
-    ##!## Grid the data, fill in white space
-    ##!#cyclic_data,cyclic_lons = add_cyclic_point(local_data,OMI_data2['LON'][0,:])
-    ##!#plat,plon = np.meshgrid(OMI_data2['LAT'][:,0],cyclic_lons)   
-  
-    ##!## Mask any missing values
-    ##!#mask_AI = np.ma.masked_where(cyclic_data == -999.9, cyclic_data)
-    ##!#mask_AI = np.ma.masked_where(plat.T < minlat, mask_AI)
-
-    ##!#ax10 = plt.subplot(gs[0,1],projection=mapcrs)
-    ##!#ax10.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
-    ##!#ax10.set_boundary(circle, transform=ax10.transAxes)
-    ##!##ax10.gridlines()
-    ##!#ax10.coastlines(resolution='50m')
-    ##!#mesh10 = ax10.pcolormesh(plon,plat,mask_AI.T,\
-    ##!#        transform=ccrs.PlateCarree(),vmin=-1.0,vmax=1.0,cmap=colormap)
-    ##!#ax10.set_title(new_label_dict[OMI_data2['VERSION']]+'\n',weight='bold',\
-    ##!#        fontsize=axis_title_size)
-    ##!#cbar10 = plt.colorbar(mesh10,ticks = np.arange(-2.0,4.1,0.5),orientation='vertical',\
-    ##!#    extend='both',shrink=0.8)
-    ##!#cbar10.set_label('UV Aerosol Index',weight='bold',fontsize=colorbar_label_size)
-    ##!##cbar10 = plt.colorbar(mesh10,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
-    ##!##    aspect=50,shrink = 0.845)
-    ##!##cbar10.ax.tick_params(labelsize=14)
-    ##!##cbar10.set_label('UV Aerosol Index',fontsize=16,weight='bold')
-    ##!# 
-    ##!## Plot DATA3 climatology 
-    ##!## -----------------
-    ##!## Make copy of OMI_data array
-    ##!#local_data  = np.copy(OMI_data3['MONTH_CLIMO'][month_idx,:,:])
-    ##!## Grid the data, fill in white space
-    ##!#cyclic_data,cyclic_lons = add_cyclic_point(local_data,OMI_data3['LON'][0,:])
-    ##!#plat,plon = np.meshgrid(OMI_data3['LAT'][:,0],cyclic_lons)   
-  
-    ##!## Mask any missing values
-    ##!#mask_AI = np.ma.masked_where(cyclic_data == -999.9, cyclic_data)
-    ##!#mask_AI = np.ma.masked_where(plat.T < minlat, mask_AI)
-
-    ##!#ax20 = plt.subplot(gs[0,2],projection=mapcrs)
-    ##!#ax20.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
-    ##!#ax20.set_boundary(circle, transform=ax20.transAxes)
-    ##!##ax20.gridlines()
-    ##!#ax20.coastlines(resolution='50m')
-    ##!#mesh20 = ax20.pcolormesh(plon,plat,mask_AI.T,\
-    ##!#        transform=ccrs.PlateCarree(),vmin=-1.0,vmax=1.0,cmap=colormap)
-    ##!#ax20.set_title(new_label_dict[OMI_data3['VERSION']]+'\n',weight='bold',\
-    ##!#    fontsize=axis_title_size)
-    ##!#cbar20 = plt.colorbar(mesh20,ticks = np.arange(-2.0,4.1,0.5),orientation='vertical',\
-    ##!#    extend='both',shrink=0.8)
-    ##!##cbar20.ax.tick_params(labelsize=14)
-    ##!#cbar20.set_label('AI Perturbation',weight='bold',fontsize=colorbar_label_size)
-
-    ##!## Plot Trends
-    ##!## -----------
-    ##!#colormap = plt.cm.bwr
-
-    ##!## Plot DATA1 trends
-    ##!## Make copy of OMI_data array
-    ##!#local_data   = np.copy(OMI_data1['AI'][month_idx::index_jumper,:,:])
-    ##!#local_counts = np.copy(OMI_data1['OB_COUNT'][month_idx::index_jumper,:,:])
-    ##!## Grid the data, fill in white space
-    ##!#cyclic_data,cyclic_lons = add_cyclic_point(local_data,OMI_data1['LON'][0,:])
-    ##!#cyclic_counts,cyclic_lons = add_cyclic_point(local_counts,OMI_data1['LON'][0,:])
-    ##!#plat,plon = np.meshgrid(OMI_data1['LAT'][:,0],cyclic_lons)   
-  
-    ##!#local_mask = np.ma.masked_where(cyclic_counts == 0, cyclic_data)
-    ##!#local_mask = np.ma.masked_where(local_mask == -999.9, local_mask)
-    ##!#ai_trends = np.zeros(cyclic_data.shape[1:])
-    ##!## Loop over all the keys and print the regression slopes 
-    ##!## Grab the averages for the key
-    ##!#for i in range(0,len(lat_ranges)):
-    ##!#    for j in range(0,len(lon_ranges)):
-    ##!#        # Check the current max and min
-    ##!#        x_vals = np.arange(0,len(local_mask[:,i,j]))
-    ##!#        # Find the slope of the line of best fit for the time series of
-    ##!#        # average data
-    ##!#        if(trend_type=='standard'): 
-    ##!#            slope, intercept, r_value, p_value, std_err = \
-    ##!#                stats.linregress(x_vals,local_mask[:,i,j])
-    ##!#            ai_trends[i,j] = slope * len(x_vals)
-    ##!#        else:
-    ##!#            print("Ignoring MK trend for now")
-
-   
-    ##!#ai_trends = np.ma.masked_where(plat.T < minlat, ai_trends)
-
-    ##!#ax01 = plt.subplot(gs[1,0],projection=mapcrs)
-    ##!#ax01.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
-    ##!#ax01.set_boundary(circle, transform=ax01.transAxes)
     fig.text(0.10, 0.30, 'Trend', ha='center', va='center', \
         rotation='vertical',weight='bold',fontsize=row_label_size)
-    ##!##ax01.gridlines()
-    ##!#ax01.coastlines(resolution='50m')
-    ##!#mesh01 = ax01.pcolormesh(plon,plat,ai_trends.T,\
-    ##!#        transform=ccrs.PlateCarree(),vmin=-0.7,vmax=0.7,cmap=colormap)
-    ##!##ax01.set_title(OMI_data1['VERSION']+ '\n\n')
-    ##!#cbar01 = plt.colorbar(mesh01,ticks = np.arange(-1.0,1.1,0.2),orientation='vertical',\
-    ##!#    extend='both',shrink=0.8)
-    ##!#cbar01.set_label('AI Trend (AI/Study Period)',weight='bold',\
-    ##!#    fontsize=colorbar_label_size)
-    ##!##cbar01 = plt.colorbar(mesh01,ticks = np.arange(-2.0,4.1,0.2),orientation='horizontal',pad=0,\
-    ##!##    aspect=50,shrink = 0.845)
-    ##!##cbar01.ax.tick_params(labelsize=14)
-    ##!##cbar01.set_label('UV Aerosol Index',fontsize=16,weight='bold')
-    ##!# 
-    ##!## Plot DATA2 trends
-    ##!## -----------------
-    ##!## Make copy of OMI_data array
-    ##!#local_data   = np.copy(OMI_data2['AI'][month_idx::index_jumper,:,:])
-    ##!#local_counts = np.copy(OMI_data2['OB_COUNT'][month_idx::index_jumper,:,:])
-    ##!## Grid the data, fill in white space
-    ##!#cyclic_data,cyclic_lons = add_cyclic_point(local_data,OMI_data2['LON'][0,:])
-    ##!#cyclic_counts,cyclic_lons = add_cyclic_point(local_counts,OMI_data2['LON'][0,:])
-    ##!#plat,plon = np.meshgrid(OMI_data2['LAT'][:,0],cyclic_lons)   
-
-    ##!#local_mask = np.ma.masked_where(cyclic_counts == 0, cyclic_data)
-    ##!#local_mask = np.ma.masked_where(local_mask == -999.9, local_mask)
-    ##!#ai_trends = np.zeros(cyclic_data.shape[1:])
-    ##!## Loop over all the keys and print the regression slopes 
-    ##!## Grab the averages for the key
-    ##!#for i in range(0,len(np.arange(np.min(OMI_data2['LAT']),90))):
-    ##!#    for j in range(0,len(lon_ranges)):
-    ##!#        # Check the current max and min
-    ##!#        x_vals = np.arange(0,len(local_mask[:,i,j]))
-    ##!#        # Find the slope of the line of best fit for the time series of
-    ##!#        # average data
-    ##!#        if(trend_type=='standard'): 
-    ##!#            slope, intercept, r_value, p_value, std_err = \
-    ##!#                stats.linregress(x_vals,local_mask[:,i,j])
-    ##!#            ai_trends[i,j] = slope * len(x_vals)
-    ##!#        else:
-    ##!#            print("Ignoring MK trend for now")
-
-   
-    ##!#ai_trends = np.ma.masked_where(plat.T < minlat, ai_trends)
-
-    ##!#ax11 = plt.subplot(gs[1,1],projection=mapcrs)
-    ##!#ax11.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
-    ##!#ax11.set_boundary(circle, transform=ax11.transAxes)
-    ##!##ax11.gridlines()
-    ##!#ax11.coastlines(resolution='50m')
-    ##!#mesh11 = ax11.pcolormesh(plon,plat,ai_trends.T,\
-    ##!#        transform=ccrs.PlateCarree(),vmin=-0.7,vmax=0.7,cmap=colormap)
-    ##!##ax11.set_title(OMI_data2['VERSION']+ ' Trend')
-    ##!#cbar11 = plt.colorbar(mesh11,ticks = np.arange(-1.0,1.1,0.2),orientation='vertical',\
-    ##!#    extend='both',shrink=0.8)
-    ##!#cbar11.set_label('AI Trend (AI/Study Period)',weight='bold',\
-    ##!#    fontsize=colorbar_label_size)
-    ##!##$cbar11 = plt.colorbar(mesh11,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
-    ##!##$    aspect=50,shrink = 0.845)
-    ##!##$cbar11.ax.tick_params(labelsize=14)
-    ##!##$cbar11.set_label('UV Aerosol Index',fontsize=16,weight='bold')
-    ##!# 
-    ##!## - - - - - - - - - - - - - - - - -
-    ##!## Plot the DATA3 trends
-    ##!## - - - - - - - - - - - - - - - - - 
-
-    ##!## Make copy of OMI_data array
-    ##!#local_data   = np.copy(OMI_data3['AI'][month_idx::index_jumper,:,:])
-    ##!#local_counts = np.copy(OMI_data3['OB_COUNT'][month_idx::index_jumper,:,:])
-    ##!## Grid the data, fill in white space
-    ##!#cyclic_data,cyclic_lons = add_cyclic_point(local_data,OMI_data3['LON'][0,:])
-    ##!#cyclic_counts,cyclic_lons = add_cyclic_point(local_counts,OMI_data3['LON'][0,:])
-    ##!#plat,plon = np.meshgrid(OMI_data3['LAT'][:,0],cyclic_lons)   
-
-    ##!#local_mask = np.ma.masked_where(cyclic_counts == 0, cyclic_data)
-    ##!#local_mask = np.ma.masked_where(local_mask == -999.9, local_mask)
-    ##!#ai_trends = np.zeros(cyclic_data.shape[1:])
-    ##!## Loop over all the keys and print the regression slopes 
-    ##!## Grab the averages for the key
-    ##!#for i in range(0,len(np.arange(np.min(OMI_data3['LAT']),90))):
-    ##!#    for j in range(0,len(lon_ranges)):
-    ##!#        # Check the current max and min
-    ##!#        x_vals = np.arange(0,len(local_mask[:,i,j]))
-    ##!#        # Find the slope of the line of best fit for the time series of
-    ##!#        # average data
-    ##!#        if(trend_type=='standard'): 
-    ##!#            slope, intercept, r_value, p_value, std_err = \
-    ##!#                stats.linregress(x_vals,local_mask[:,i,j])
-    ##!#            ai_trends[i,j] = slope * len(x_vals)
-    ##!#        else:
-    ##!#            print("Ignoring MK trend for now")
-
-   
-    ##!#ai_trends = np.ma.masked_where(plat.T < minlat, ai_trends)
-    ##!#   
-    ##!#ax21 = plt.subplot(gs[1,2],projection=mapcrs)
-    ##!#ax21.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
-    ##!#ax21.set_boundary(circle, transform=ax21.transAxes)
-    ##!##ax21.gridlines()
-    ##!#ax21.coastlines(resolution='50m')
-    ##!#mesh21 = ax21.pcolormesh(plon,plat,ai_trends.T,\
-    ##!#        transform=ccrs.PlateCarree(),vmin=-0.7,vmax=0.7,cmap=colormap)
-    ##!##ax21.set_title(OMI_data3['VERSION']+ ' Trend')
-    ##!#cbar21 = plt.colorbar(mesh21,ticks = np.arange(-1.0,1.1,0.2),orientation='vertical',\
-    ##!#    extend='both',shrink=0.8)
-    ##!#cbar21.set_label('AI Pert. Trend (AI/Study Period)',weight='bold',\
-    ##!#    fontsize=colorbar_label_size)
-    #cbar20 = plt.colorbar(mesh20,ticks = np.arange(-2.0,4.1,0.5),orientation='horizontal',pad=0,\
-    #    aspect=50,shrink = 0.845)
-    #cbar20.ax.tick_params(labelsize=14)
 
     #fig.tight_layout()
 
     outname = 'omi_TEST_ai_comps_'+start_date.strftime("%b")+'_'+\
+        OMI_data1['VERSION']+'v'+OMI_data2['VERSION']+\
+        'v'+OMI_data3['VERSION']+'.png'
+    if(save == True):
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
+# Generate a 15-panel figure comparing the climatology and trend between 3
+# versions of the OMI data for all 3 summer months
+def plotOMI_Compare_ClimoTrend_summer(OMI_data1,OMI_data2,OMI_data3,\
+        trend_type = 'standard', minlat=65,save=False):
+
+    colormap = plt.cm.jet
+
+    lat_ranges = np.arange(minlat,90,1.0)
+    lon_ranges = np.arange(-180,180,1.0)
+
+    if(OMI_data1['VERSION'] == 'V003'):
+        index_jumper = 12
+    else:
+        index_jumper = 6 
+
+    # Get the labels figured out
+    new_label_dict = {
+        'VBS1': 'Control',
+        'VBS0': 'Control',
+        'VJZ29': 'Screening Method',
+        'VJZ211': 'Screening Method',
+        'VSJ2': 'Perturbation Method',
+        'VSJ4': 'Perturbation Method'
+    } 
+
+    colorbar_label_size = 13
+    axis_title_size = 14.5
+    row_label_size = 14.5
+
+    #fig = plt.figure()
+    plt.close('all')
+    fig = plt.figure(figsize=(22,12))
+    #plt.suptitle('OMI Comparisons: '+start_date.strftime("%B"),y=0.95,\
+    #    fontsize=18,fontweight=4,weight='bold')
+    gs = gridspec.GridSpec(nrows=3, ncols=5, hspace = 0.001, wspace = 0.15)
+
+    # - - - - - - - - - - - - - - - - - - - - -
+    # Plot the climatologies along the top row
+    # - - - - - - - - - - - - - - - - - - - - -
+       
+    # Plot DATA1 climos
+    # -----------------
+    ##!## Make copy of OMI_data array
+    local_data1_Jun  = np.copy(OMI_data1['MONTH_CLIMO'][2,:,:])
+    local_data1_Jul  = np.copy(OMI_data1['MONTH_CLIMO'][3,:,:])
+    local_data1_Aug  = np.copy(OMI_data1['MONTH_CLIMO'][4,:,:])
+    local_data2_Jun  = np.copy(OMI_data2['MONTH_CLIMO'][2,:,:])
+    local_data2_Jul  = np.copy(OMI_data2['MONTH_CLIMO'][3,:,:])
+    local_data2_Aug  = np.copy(OMI_data2['MONTH_CLIMO'][4,:,:])
+    local_data3_Jun  = np.copy(OMI_data3['MONTH_CLIMO'][2,:,:])
+    local_data3_Jul  = np.copy(OMI_data3['MONTH_CLIMO'][3,:,:])
+    local_data3_Aug  = np.copy(OMI_data3['MONTH_CLIMO'][4,:,:])
+
+    mask_AI1_Jun = np.ma.masked_where(local_data1_Jun == -999.9, local_data1_Jun)
+    mask_AI1_Jul = np.ma.masked_where(local_data1_Jul == -999.9, local_data1_Jul)
+    mask_AI1_Aug = np.ma.masked_where(local_data1_Aug == -999.9, local_data1_Aug)
+    mask_AI2_Jun = np.ma.masked_where(local_data2_Jun == -999.9, local_data2_Jun)
+    mask_AI2_Jul = np.ma.masked_where(local_data2_Jul == -999.9, local_data2_Jul)
+    mask_AI2_Aug = np.ma.masked_where(local_data2_Aug == -999.9, local_data2_Aug)
+    mask_AI3_Jun = np.ma.masked_where(local_data3_Jun == -999.9, local_data3_Jun)
+    mask_AI3_Jul = np.ma.masked_where(local_data3_Jul == -999.9, local_data3_Jul)
+    mask_AI3_Aug = np.ma.masked_where(local_data3_Aug == -999.9, local_data3_Aug)
+
+    ##!## Grid the data, fill in white space
+    ##!#cyclic_data,cyclic_lons = add_cyclic_point(local_data,OMI_data1['LON'][0,:])
+    ##!#plat,plon = np.meshgrid(OMI_data1['LAT'][:,0],cyclic_lons)   
+  
+    # Mask any missing values
+    #mask_AI = np.ma.masked_where(plat.T < minlat, mask_AI)
+    ax00 = plt.subplot(gs[0,0], projection=mapcrs)   # June climo original
+    ax01 = plt.subplot(gs[0,1], projection=mapcrs)   # June climo screened
+    ax02 = plt.subplot(gs[0,2], projection=mapcrs)   # June trend original
+    ax03 = plt.subplot(gs[0,3], projection=mapcrs)   # June trend screened
+    ax04 = plt.subplot(gs[0,4], projection=mapcrs)   # June trend perturbed
+    ax10 = plt.subplot(gs[1,0], projection=mapcrs)   # July climo original
+    ax11 = plt.subplot(gs[1,1], projection=mapcrs)   # July climo screened
+    ax12 = plt.subplot(gs[1,2], projection=mapcrs)   # July trend original
+    ax13 = plt.subplot(gs[1,3], projection=mapcrs)   # July trend screened
+    ax14 = plt.subplot(gs[1,4], projection=mapcrs)   # July trend perturbed
+    ax20 = plt.subplot(gs[2,0], projection=mapcrs)   # August climo original
+    ax21 = plt.subplot(gs[2,1], projection=mapcrs)   # August climo screened
+    ax22 = plt.subplot(gs[2,2], projection=mapcrs)   # August trend original
+    ax23 = plt.subplot(gs[2,3], projection=mapcrs)   # August trend screened
+    ax24 = plt.subplot(gs[2,4], projection=mapcrs)   # August trend perturbed
+
+    # Plot the figures in the first row: June
+    # ---------------------------------------
+    plotOMI_spatial(ax00, OMI_data1['LAT'], OMI_data1['LON'], mask_AI1_Jun, \
+        'climo', ptitle = new_label_dict[OMI_data1['VERSION']] + '\n', \
+        plabel = '', \
+        vmin = -1.0, vmax = 1.0, minlat = minlat)
+    plotOMI_spatial(ax01, OMI_data2['LAT'], OMI_data2['LON'], mask_AI2_Jun, \
+        'climo', ptitle = new_label_dict[OMI_data2['VERSION']] + '\n', \
+        plabel = 'UV Aerosol Index', \
+        vmin = -1.0, vmax = 1.0, minlat = minlat)
+    plotOMI_MonthTrend(OMI_data1,month_idx=2,\
+        trend_type=trend_type,label = ' ',\
+        minlat=65.,title = None, pax = ax02)
+    ax02.set_title(OMI_data2['VERSION']+ '\n\n')
+    plotOMI_MonthTrend(OMI_data2,month_idx=2,\
+        trend_type=trend_type,label = ' ',\
+        minlat=65.,title = None, pax = ax03)
+    ax03.set_title(OMI_data1['VERSION']+ '\n\n')
+    plotOMI_MonthTrend(OMI_data3,month_idx=2,\
+        trend_type=trend_type,label = 'AI Trend (AI/Study Period)',\
+        minlat=65.,title = None, pax = ax04)
+    ax04.set_title(OMI_data3['VERSION']+ '\n\n')
+
+    # Plot the figures in the second row: July
+    # ----------------------------------------
+    plotOMI_spatial(ax10, OMI_data1['LAT'], OMI_data1['LON'], mask_AI1_Jul, \
+        'climo', ptitle = new_label_dict[OMI_data1['VERSION']] + '\n', \
+        plabel = '', \
+        vmin = -1.0, vmax = 1.0, minlat = minlat)
+    plotOMI_spatial(ax11, OMI_data2['LAT'], OMI_data2['LON'], mask_AI2_Jul, \
+        'climo', ptitle = new_label_dict[OMI_data2['VERSION']] + '\n', \
+        plabel = 'UV Aerosol Index', \
+        vmin = -1.0, vmax = 1.0, minlat = minlat)
+    plotOMI_MonthTrend(OMI_data1,month_idx=3,\
+        trend_type=trend_type,label = ' ',\
+        minlat=65.,title = None, pax = ax12)
+    ax12.set_title(OMI_data1['VERSION']+ '\n\n')
+    plotOMI_MonthTrend(OMI_data2,month_idx=3,\
+        trend_type=trend_type,label = ' ',\
+        minlat=65.,title = None, pax = ax13)
+    ax13.set_title(OMI_data2['VERSION']+ '\n\n')
+    plotOMI_MonthTrend(OMI_data3,month_idx=3,\
+        trend_type=trend_type,label = 'AI Trend (AI/Study Period)',\
+        minlat=65.,title = None, pax = ax14)
+    ax14.set_title(OMI_data3['VERSION']+ '\n\n')
+
+    # Plot the figures in the third row: August
+    # -----------------------------------------
+    plotOMI_spatial(ax20, OMI_data1['LAT'], OMI_data1['LON'], mask_AI1_Aug, \
+        'climo', ptitle = new_label_dict[OMI_data1['VERSION']] + '\n', \
+        plabel = '', \
+        vmin = -1.0, vmax = 1.0, minlat = minlat)
+    plotOMI_spatial(ax21, OMI_data2['LAT'], OMI_data2['LON'], mask_AI2_Aug, \
+        'climo', ptitle = new_label_dict[OMI_data2['VERSION']] + '\n', \
+        plabel = 'UV Aerosol Index', \
+        vmin = -1.0, vmax = 1.0, minlat = minlat)
+    plotOMI_MonthTrend(OMI_data1,month_idx=4,\
+        trend_type=trend_type,label = ' ',\
+        minlat=65.,title = None, pax = ax22)
+    ax22.set_title(OMI_data2['VERSION']+ '\n\n')
+    plotOMI_MonthTrend(OMI_data2,month_idx=4,\
+        trend_type=trend_type,label = ' ',\
+        minlat=65.,title = None, pax = ax23)
+    ax23.set_title(OMI_data1['VERSION']+ '\n\n')
+    plotOMI_MonthTrend(OMI_data3,month_idx=4,\
+        trend_type=trend_type,label = 'AI Trend (AI/Study Period)',\
+        minlat=65.,title = None, pax = ax24)
+    ax24.set_title(OMI_data3['VERSION']+ '\n\n')
+
+    #plot_subplot_label(ax00, '(a)')
+    #plot_subplot_label(ax01, '(b)')
+    #plot_subplot_label(ax02, '(c)')
+    #plot_subplot_label(ax10, '(d)')
+    #plot_subplot_label(ax11, '(e)')
+    #plot_subplot_label(ax12, '(f)')
+
+    fig.text(0.10, 0.75, 'June', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size)
+    fig.text(0.10, 0.5, 'July', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size)
+    fig.text(0.10, 0.25, 'August', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size)
+
+    fig.text(0.15, 0.88, 'Original\nClimatology', ha='center', va='center', \
+        rotation='horizontal',weight='bold',fontsize=row_label_size)
+    fig.text(0.30, 0.88, 'Screened\nClimatology', ha='center', va='center', \
+        rotation='horizontal',weight='bold',fontsize=row_label_size)
+    fig.text(0.45, 0.88, 'Original\nTrend', ha='center', va='center', \
+        rotation='horizontal',weight='bold',fontsize=row_label_size)
+    fig.text(0.60, 0.88, 'Screened\nTrend', ha='center', va='center', \
+        rotation='horizontal',weight='bold',fontsize=row_label_size)
+    fig.text(0.75, 0.88, 'Perturbed\nTrend', ha='center', va='center', \
+        rotation='horizontal',weight='bold',fontsize=row_label_size)
+
+    #fig.tight_layout()
+
+    outname = 'omi_ai_comps_summer_'+\
         OMI_data1['VERSION']+'v'+OMI_data2['VERSION']+\
         'v'+OMI_data3['VERSION']+'.png'
     if(save == True):
@@ -3457,16 +3443,18 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
 # Plot just a single swath on a 1-panel figure
 # --------------------------------------------
 def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
-        only_sea_ice = False, minlat = 65., save = False):
+        only_sea_ice = False, minlat = 65., skiprows = None, save = False):
 
     # ----------------------------------------------------
     # Read in data
     # ----------------------------------------------------
     if(dtype == 'shawn'):
-        OMI_base  = readOMI_swath_shawn(date_str, latmin = minlat)
+        OMI_base  = readOMI_swath_shawn(date_str, latmin = minlat,\
+            skiprows = skiprows)
     else:
         OMI_base  = readOMI_swath_hdf(date_str, dtype, \
-            only_sea_ice = only_sea_ice, latmin = minlat)
+            only_sea_ice = only_sea_ice, latmin = minlat, \
+            skiprows = skiprows)
 
     # ----------------------------------------------------
     # Set up the overall figure
