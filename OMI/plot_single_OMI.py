@@ -38,6 +38,7 @@ import glob
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as color
+import matplotlib.path as mpath
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import subprocess
@@ -90,6 +91,14 @@ var_dict = {
     'RelativeZenithAngle':     {'min': None, 'max': None},\
     'GroundPixelQualityFlags': {'min': None, 'max': None},\
 }
+
+# Compute a circle in axes coordinates, which we can use as a boundary
+# for the map. We can pan/zoom as much as we like - the boundary will be
+# permanently circular.
+theta = np.linspace(0, 2*np.pi, 100)
+center, radius = [0.5, 0.5], 0.5
+verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+circle = mpath.Path(verts * radius + center)
 
 if(len(sys.argv)<4):
     print("SYNTAX: python plot_single_OMI.py date variable row_max")
@@ -154,7 +163,7 @@ total_list = subprocess.check_output('ls '+base_path+'OMI-Aura_L2-OMAERUV_'+\
     year+'m'+date+'t'+time+'*.he5',shell=True).decode('utf-8').strip().split('\n')
 
 # Set up values for gridding the AI data
-latmin = 30 
+latmin = 65 
 lat_gridder = latmin * 4.
 
 lat_ranges = np.arange(latmin,90.1,0.25)
@@ -194,6 +203,8 @@ if(len(total_list) > 1):
         # Loop over the values and rows 
         for i in range(PDATA.shape[0]):
             for j in range(0,row_max):
+                if(j == 52):
+                    continue
                 if((PDATA[i,j]>-2e5)):
                 #if((j != 52) & (PDATA[i,j]>-2e5)):
                 # Only plot if XTrack flag is met
@@ -269,8 +280,8 @@ fig1 = plt.figure(figsize=(8,8))
 if(latmin<45):
     ax = plt.axes(projection = ccrs.Miller())
 else:
-    ax = plt.axes(projection = ccrs.NorthPolarStereo(central_longitude = 0.))
-ax.gridlines()
+    ax = plt.axes(projection = ccrs.NorthPolarStereo(central_longitude = 300.))
+#ax.gridlines()
 ax.coastlines(resolution = '50m')
 
 
@@ -280,10 +291,11 @@ mesh = ax.pcolormesh(plot_lon, plot_lat,mask_UVAI,transform = datacrs,cmap = col
         shading='auto')
 
 # Center the figure over the Arctic
-#ax.set_extent([-180,180,latmin,90],ccrs.PlateCarree())
+ax.set_extent([-180,180,latmin,90],ccrs.PlateCarree())
+ax.set_boundary(circle, transform=ax.transAxes)
 #ax.set_extent([-121.5, -119.5, 39.5, 42.5], datacrs) # Values for 2021/08/05 plume case
 #ax.set_extent([-118.0, -114.0, 36.0, 39.0], datacrs) # Values for 2021/08/06 plume case
-ax.set_extent([-122.0, -119.5, 39.5, 42.0], datacrs) # Values for 2021/08/05 plume case
+#ax.set_extent([-122.0, -119.5, 39.5, 42.0], datacrs) # Values for 2021/08/05 plume case
 ax.add_feature(cfeature.BORDERS)
 ax.add_feature(cfeature.STATES)
 # Depending on the desired variable, set the appropriate colorbar ticks
@@ -298,12 +310,12 @@ elif(variable == 'SolarZenithAngle'):
 else:
     tickvals = np.arange(-2.0,4.1,0.5)
 
-cbar = plt.colorbar(mesh,ticks = tickvals,orientation='horizontal',pad=0,\
-    aspect=50,shrink = 0.850)
+cbar = plt.colorbar(mesh,\
+    ax = ax, orientation='vertical',shrink = 0.8, extend = 'both')
 cbar.ax.tick_params(labelsize=14)
 cbar.set_label(variable,fontsize=16,weight='bold')
 
-save = False
+save = True 
 if(save == True):
     out_name = 'omi_single_pass_'+name_dict[variable] + str_wave + '_'+\
         plot_time+'_rows_0to'+str(row_max)+'.png'

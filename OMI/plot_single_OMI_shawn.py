@@ -38,6 +38,7 @@ import glob
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as color
+import matplotlib.path as mpath
 import cartopy.crs as ccrs
 import subprocess
 import h5py
@@ -55,6 +56,14 @@ var_dict = {
     'RelativeZenithAngle':     {'min': None, 'max': None},\
     'GroundPixelQualityFlags': {'min': None, 'max': None},\
 }
+
+# Compute a circle in axes coordinates, which we can use as a boundary
+# for the map. We can pan/zoom as much as we like - the boundary will be
+# permanently circular.
+theta = np.linspace(0, 2*np.pi, 100)
+center, radius = [0.5, 0.5], 0.5
+verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+circle = mpath.Path(verts * radius + center)
 
 if(len(sys.argv)<2):
     print("SYNTAX: python plot_single_OMI_shawn.py date")
@@ -86,7 +95,7 @@ total_list = subprocess.check_output('ls '+base_path+year+date+time+\
     '*',shell=True).decode('utf-8').strip().split('\n')
 
 # Set up values for gridding the AI data
-latmin = 60 
+latmin = 65 
 lat_gridder = latmin * 4.
 
 lat_ranges = np.arange(latmin,90.1,0.25)
@@ -137,13 +146,13 @@ datacrs = ccrs.PlateCarree()
 colormap = plt.cm.jet
 
 # Set up the polar stereographic projection map
-fig1, axs = plt.subplots(2, 1, figsize=(8,8))
+fig1 = plt.figure(figsize=(8,8))
 if(latmin<45):
-    axs[0] = plt.axes(projection = ccrs.Miller())
+    ax0 = plt.axes(projection = ccrs.Miller())
 else:
-    axs[0] = plt.axes(projection = ccrs.NorthPolarStereo(central_longitude = 0.))
-axs[0].gridlines()
-axs[0].coastlines(resolution = '50m')
+    ax0 = plt.axes(projection = ccrs.NorthPolarStereo(central_longitude = 300.))
+ax0.gridlines()
+ax0.coastlines(resolution = '50m')
 
 
 # Use meshgrid to convert the 1-d lat/lon arrays into 2-d, which is needed
@@ -152,17 +161,18 @@ plot_lat, plot_lon = np.meshgrid(lat_ranges,lon_ranges)
 mask_UVAI = np.ma.masked_where(count == 0, UVAI)
 
 plt.title('OMI '+plot_time)
-mesh = axs[0].pcolormesh(plot_lon, plot_lat,mask_UVAI,transform = datacrs,cmap = colormap,\
-        vmin = -1.0, vmax = 3.0)
+mesh = ax0.pcolormesh(plot_lon, plot_lat,mask_UVAI,transform = datacrs,cmap = colormap,\
+        vmin = -1.0, vmax = 3.0, shading='auto')
 
 # Center the figure over the Arctic
-axs[0].set_extent([-180,180,latmin,90],ccrs.PlateCarree())
+ax0.set_extent([-180,180,latmin,90],ccrs.PlateCarree())
+ax0.set_boundary(circle, transform=ax0.transAxes)
 
 # Depending on the desired variable, set the appropriate colorbar ticks
 tickvals = np.arange(-1.0,4.1,0.5)
 
-cbar = plt.colorbar(mesh,ticks = tickvals,orientation='horizontal',pad=0,\
-    aspect=50,shrink = 0.850)
+cbar = plt.colorbar(mesh,\
+    ax = ax0, orientation='vertical',shrink = 0.8, extend = 'both')
 cbar.ax.tick_params(labelsize=14)
 cbar.set_label('UV Aerosol Index Perturbation',fontsize=16,weight='bold')
 

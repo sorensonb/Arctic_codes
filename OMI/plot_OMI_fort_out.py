@@ -247,7 +247,6 @@ for ii, year in enumerate(years):
     # Test the local maxima
     # ---------------------
     for jj in range(len(event_sizes) - 1):
-        print('size = ',event_sizes[jj])
         # Find the peaks for this size
         # ----------------------------
         peaks, _ = find_peaks(daily_counts_65[np.where( \
@@ -280,8 +279,8 @@ cmap = cm.turbo
 cbar = fig0.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap),
              ax=ax0, orientation='vertical', label='Year')
 
-ax0.plot(plot_dates, mask_day_avgs,label='avg',color='black')
-ax0.plot(plot_dates, upper_range,label='+avg σ',linestyle='--',color='black')
+#ax0.plot(plot_dates, mask_day_avgs,label='avg',color='black')
+#ax0.plot(plot_dates, upper_range,label='+avg σ',linestyle='--',color='black')
 ax0.set_ylabel(axis_label,weight='bold',fontsize=12)
 ax0.set_title('AI ' + vtype + ': Threshold of '+str(ai_thresh)+\
     '\nNorth of '+min_lat+'$^{o}$', fontsize = 14, weight = 'bold')

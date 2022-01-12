@@ -190,6 +190,26 @@ def plot_trend_line(pax, xdata, ydata, color='black', linestyle = '-', \
     else:
         plot_lin_regress_trend(pax, xdata, ydata, color, linestyle)
 
+# Plots latitude circles on a given axis
+# --------------------------------------
+def plot_lat_circles(pax, lat_circles):
+
+    if(len(lat_circles) > 5):
+        print("WARNING: more than 5 latitude circles selected")
+        print("    Only plotting the first 5")
+        lat_circles = lat_circles[:5]
+
+    colors = ['tab:blue','tab:red','tab:purple','tab:olive','tab:cyan']
+    lon = np.arange(-180, 181)
+    for ii, lat_val in enumerate(lat_circles):
+        lats = np.full(lon.shape, lat_val)
+
+        pax.plot(lon, lats, linewidth = 2.5, transform = datacrs, color = 'k')
+        pax.plot(lon, lats, transform = datacrs, color = colors[ii])
+        pax.text(-180, lat_val + 3, str(int(lat_val)) + ' $^{o}$N', \
+            horizontalalignment = 'center', weight = 'bold', \
+            color = colors[ii], transform = datacrs)
+
 
 
 # Class MidpointNormalize is used to center the colorbar on zero
@@ -337,7 +357,7 @@ def readOMI(inputfile,start_date,end_date,key=None):
 
 # NOTE: This only works for plotting 1 file time at a time. No multiple swaths
 # dtype is either "control" or "JZ"
-#     skiprows - array-like containing row numbers (1-based) to not include
+#     skiprows - array-like containing row indices (0-based) to not include
 #                in the data
 def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, latmin = 65, \
         skiprows = None):
@@ -2641,7 +2661,7 @@ def plotOMI_Compare_ClimoTrend_summer(OMI_data1,OMI_data2,OMI_data3,\
 
     #fig = plt.figure()
     plt.close('all')
-    fig = plt.figure(figsize=(22,12))
+    fig = plt.figure(figsize=(24,14))
     #plt.suptitle('OMI Comparisons: '+start_date.strftime("%B"),y=0.95,\
     #    fontsize=18,fontweight=4,weight='bold')
     gs = gridspec.GridSpec(nrows=3, ncols=5, hspace = 0.001, wspace = 0.15)
@@ -2698,71 +2718,71 @@ def plotOMI_Compare_ClimoTrend_summer(OMI_data1,OMI_data2,OMI_data3,\
     # Plot the figures in the first row: June
     # ---------------------------------------
     plotOMI_spatial(ax00, OMI_data1['LAT'], OMI_data1['LON'], mask_AI1_Jun, \
-        'climo', ptitle = new_label_dict[OMI_data1['VERSION']] + '\n', \
+        'climo', ptitle = ' ', \
         plabel = '', \
         vmin = -1.0, vmax = 1.0, minlat = minlat)
     plotOMI_spatial(ax01, OMI_data2['LAT'], OMI_data2['LON'], mask_AI2_Jun, \
-        'climo', ptitle = new_label_dict[OMI_data2['VERSION']] + '\n', \
+        'climo', ptitle = ' ', \
         plabel = 'UV Aerosol Index', \
         vmin = -1.0, vmax = 1.0, minlat = minlat)
     plotOMI_MonthTrend(OMI_data1,month_idx=2,\
         trend_type=trend_type,label = ' ',\
-        minlat=65.,title = None, pax = ax02)
-    ax02.set_title(OMI_data2['VERSION']+ '\n\n')
+        minlat=65.,title = ' ', pax = ax02)
+    #ax02.set_title(OMI_data2['VERSION']+ '\n\n')
     plotOMI_MonthTrend(OMI_data2,month_idx=2,\
         trend_type=trend_type,label = ' ',\
-        minlat=65.,title = None, pax = ax03)
-    ax03.set_title(OMI_data1['VERSION']+ '\n\n')
+        minlat=65.,title = ' ', pax = ax03)
+    #ax03.set_title(OMI_data1['VERSION']+ '\n\n')
     plotOMI_MonthTrend(OMI_data3,month_idx=2,\
         trend_type=trend_type,label = 'AI Trend (AI/Study Period)',\
-        minlat=65.,title = None, pax = ax04)
-    ax04.set_title(OMI_data3['VERSION']+ '\n\n')
+        minlat=65.,title = ' ', pax = ax04)
+    #ax04.set_title(OMI_data3['VERSION']+ '\n\n')
 
     # Plot the figures in the second row: July
     # ----------------------------------------
     plotOMI_spatial(ax10, OMI_data1['LAT'], OMI_data1['LON'], mask_AI1_Jul, \
-        'climo', ptitle = new_label_dict[OMI_data1['VERSION']] + '\n', \
+        'climo', ptitle = ' ', \
         plabel = '', \
         vmin = -1.0, vmax = 1.0, minlat = minlat)
     plotOMI_spatial(ax11, OMI_data2['LAT'], OMI_data2['LON'], mask_AI2_Jul, \
-        'climo', ptitle = new_label_dict[OMI_data2['VERSION']] + '\n', \
+        'climo', ptitle = ' ', \
         plabel = 'UV Aerosol Index', \
         vmin = -1.0, vmax = 1.0, minlat = minlat)
     plotOMI_MonthTrend(OMI_data1,month_idx=3,\
         trend_type=trend_type,label = ' ',\
-        minlat=65.,title = None, pax = ax12)
-    ax12.set_title(OMI_data1['VERSION']+ '\n\n')
+        minlat=65.,title = ' ', pax = ax12)
+    #ax12.set_title(OMI_data1['VERSION']+ '\n\n')
     plotOMI_MonthTrend(OMI_data2,month_idx=3,\
         trend_type=trend_type,label = ' ',\
-        minlat=65.,title = None, pax = ax13)
-    ax13.set_title(OMI_data2['VERSION']+ '\n\n')
+        minlat=65.,title = ' ', pax = ax13)
+    #ax13.set_title(OMI_data2['VERSION']+ '\n\n')
     plotOMI_MonthTrend(OMI_data3,month_idx=3,\
         trend_type=trend_type,label = 'AI Trend (AI/Study Period)',\
-        minlat=65.,title = None, pax = ax14)
-    ax14.set_title(OMI_data3['VERSION']+ '\n\n')
+        minlat=65.,title = ' ', pax = ax14)
+    #ax14.set_title(OMI_data3['VERSION']+ '\n\n')
 
     # Plot the figures in the third row: August
     # -----------------------------------------
     plotOMI_spatial(ax20, OMI_data1['LAT'], OMI_data1['LON'], mask_AI1_Aug, \
-        'climo', ptitle = new_label_dict[OMI_data1['VERSION']] + '\n', \
+        'climo', ptitle = ' ', \
         plabel = '', \
         vmin = -1.0, vmax = 1.0, minlat = minlat)
     plotOMI_spatial(ax21, OMI_data2['LAT'], OMI_data2['LON'], mask_AI2_Aug, \
-        'climo', ptitle = new_label_dict[OMI_data2['VERSION']] + '\n', \
+        'climo', ptitle = ' ', \
         plabel = 'UV Aerosol Index', \
         vmin = -1.0, vmax = 1.0, minlat = minlat)
     plotOMI_MonthTrend(OMI_data1,month_idx=4,\
         trend_type=trend_type,label = ' ',\
-        minlat=65.,title = None, pax = ax22)
-    ax22.set_title(OMI_data2['VERSION']+ '\n\n')
+        minlat=65.,title = ' ', pax = ax22)
+    #ax22.set_title(OMI_data2['VERSION']+ '\n\n')
     plotOMI_MonthTrend(OMI_data2,month_idx=4,\
         trend_type=trend_type,label = ' ',\
-        minlat=65.,title = None, pax = ax23)
-    ax23.set_title(OMI_data1['VERSION']+ '\n\n')
+        minlat=65.,title = ' ', pax = ax23)
+    #ax23.set_title(OMI_data1['VERSION']+ '\n\n')
     plotOMI_MonthTrend(OMI_data3,month_idx=4,\
         trend_type=trend_type,label = 'AI Trend (AI/Study Period)',\
-        minlat=65.,title = None, pax = ax24)
-    ax24.set_title(OMI_data3['VERSION']+ '\n\n')
+        minlat=65.,title = ' ', pax = ax24)
+    #ax24.set_title(OMI_data3['VERSION']+ '\n\n')
 
     #plot_subplot_label(ax00, '(a)')
     #plot_subplot_label(ax01, '(b)')
@@ -2778,15 +2798,15 @@ def plotOMI_Compare_ClimoTrend_summer(OMI_data1,OMI_data2,OMI_data3,\
     fig.text(0.10, 0.25, 'August', ha='center', va='center', \
         rotation='vertical',weight='bold',fontsize=row_label_size)
 
-    fig.text(0.15, 0.88, 'Original\nClimatology', ha='center', va='center', \
+    fig.text(0.18, 0.88, 'Original\nClimatology', ha='center', va='center', \
         rotation='horizontal',weight='bold',fontsize=row_label_size)
-    fig.text(0.30, 0.88, 'Screened\nClimatology', ha='center', va='center', \
+    fig.text(0.34, 0.88, 'Screened\nClimatology', ha='center', va='center', \
         rotation='horizontal',weight='bold',fontsize=row_label_size)
-    fig.text(0.45, 0.88, 'Original\nTrend', ha='center', va='center', \
+    fig.text(0.497, 0.88, 'Original\nTrend', ha='center', va='center', \
         rotation='horizontal',weight='bold',fontsize=row_label_size)
-    fig.text(0.60, 0.88, 'Screened\nTrend', ha='center', va='center', \
+    fig.text(0.655, 0.88, 'Screened\nTrend', ha='center', va='center', \
         rotation='horizontal',weight='bold',fontsize=row_label_size)
-    fig.text(0.75, 0.88, 'Perturbed\nTrend', ha='center', va='center', \
+    fig.text(0.815, 0.88, 'Perturbed\nTrend', ha='center', va='center', \
         rotation='horizontal',weight='bold',fontsize=row_label_size)
 
     #fig.tight_layout()
@@ -3441,9 +3461,11 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
     #cbar.ax.tick_params(labelsize=14)
 
 # Plot just a single swath on a 1-panel figure
+#     skiprows - 
 # --------------------------------------------
 def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
-        only_sea_ice = False, minlat = 65., skiprows = None, save = False):
+        only_sea_ice = False, minlat = 65., skiprows = None, \
+        lat_circles = None, save = False):
 
     # ----------------------------------------------------
     # Read in data
@@ -3461,7 +3483,7 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
     # ----------------------------------------------------
     plt.close('all')
     fig1 = plt.figure(figsize = (6,6))
-    mapcrs = ccrs.Robinson()
+    #mapcrs = ccrs.NorthPolarStereo()
     ax0 = fig1.add_subplot(1,1,1, projection = mapcrs)
 
     # ----------------------------------------------------
@@ -3469,17 +3491,33 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
     # of the 3 data types
     # ----------------------------------------------------
     plotOMI_single_swath(ax0, OMI_base, title = dtype.title(), \
-        circle_bound = False)
+    #plotOMI_single_swath(ax0, OMI_base, title = 'No row 53', \
+        circle_bound = True, gridlines = False)
 
-    ax0.set_extent([-180., -140., -40., 0.], datacrs)
+    #ax0.set_extent([-180., , -40., 0.], datacrs)
+    ax0.set_extent([-180,180,minlat,90], datacrs)
 
     plt.suptitle(date_str)
 
-    #fig1.tight_layout()
+    # ----------------------------------------------------
+    # If the user wants circles along latitude lines,    
+    # plot them here      
+    # ----------------------------------------------------
+    if(lat_circles is not None):
+        plot_lat_circles(ax0, lat_circles) 
+
+
+    fig1.tight_layout()
 
     if(save):
+        row_adder = ''
+        if(skiprows is not None):
+            row_adder = '_no'
+            for row in skiprows:
+                row_adder = row_adder + 'r' + str(row + 1)
+            
         outname = 'omi_single_swath_figure_' + date_str + '_' + \
-            dtype + '.png'
+            dtype + row_adder + '_latlines.png'
         fig1.savefig(outname, dpi=300)
         print("Saved image",outname)
     else:
@@ -3597,8 +3635,8 @@ def plotOMI_single_ground(date_str, only_sea_ice = False, minlat = 65., \
         circle_bound = circle_bound, gridlines = gridlines)
 
     if(zoom):
-        ax0.set_extent([-70., -10., 65., 87.], datacrs)
-        ax1.set_extent([-70., -10., 65., 87.], datacrs)
+        ax0.set_extent([-90., -20., 75., 87.], datacrs)
+        ax1.set_extent([-90., -20., 75., 87.], datacrs)
 
     plt.suptitle(date_str)
     plot_subplot_label(ax0, '(a)', backgroundcolor = 'white')
