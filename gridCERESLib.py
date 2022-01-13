@@ -1340,7 +1340,7 @@ def calcCERES_grid_trend(CERES_data, month_idx, trend_type, minlat):
     for i in range(0,len(lat_ranges)):
         for j in range(0,len(lon_ranges)):
             # Check the current max and min
-            work_mask = local_mask[:,i,j][~local_mask[:,i,j].mask]
+            work_mask = local_mask[:,i,j][~local_mask[:,i,j].mask][0]
             if(len(work_mask) > 1):
                 x_vals = np.arange(0,len(work_mask))
                 # Find the slope of the line of best fit for the time series of
@@ -1352,6 +1352,8 @@ def calcCERES_grid_trend(CERES_data, month_idx, trend_type, minlat):
                 else:
                     res = stats.theilslopes(work_mask, x_vals, 0.90)
                     ceres_trends[i,j] = res[0]*len(x_vals)
+            else:
+                print('no data')
 
     ceres_trends = np.ma.masked_where(((CERES_data['lat'] < minlat) | \
         (ceres_trends == -999.)), ceres_trends)

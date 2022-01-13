@@ -182,6 +182,16 @@ os.system(cmnd)
 #os.system(cmnd)
 
 # ---------------------------------------------------------------------------- 
+# GOES analysis
+# ---------------------------------------------------------------------------- 
+print("GOES")
+final_dir = dest_dir + 'GOES/'
+cmnd = "find "+base_dir+"GOES/ -type f -name \"*.py\" | xargs cp -t "+final_dir
+#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
+
+# ---------------------------------------------------------------------------- 
 # MODIS analysis
 # ---------------------------------------------------------------------------- 
 print("MODIS")

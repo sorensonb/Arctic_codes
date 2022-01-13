@@ -24,15 +24,15 @@ from OMILib import *
 ###plt.show()
 
 
-#minlat = 65.
+minlat = 65.
 #OMI_VBS0   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VBS0_2005_2020.nc', minlat = minlat)
 #OMI_VJZ211 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VJZ211_2005_2020.nc', minlat = minlat)
 #OMI_VSJ4   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VSJ4_2005_2020.nc', minlat = minlat)
 #plotOMI_Compare_ClimoTrend_summer(OMI_VBS0,OMI_VJZ211,OMI_VSJ4,\
-#        trend_type = 'standard', minlat=minlat,save=True)
+#        trend_type = 'standard', minlat=minlat,save=False)
 
-#plot_OMI_CERES_trend_compare_summer(minlat=72,\
-#        ceres_type = 'lw', trend_type = 'theil-sen', save=False)
+plot_OMI_CERES_trend_compare_summer(minlat=72,\
+        ceres_type = 'sw', trend_type = 'theil-sen', save=False)
 
 ##date_str = ['201908110033',\
 ##            '201908110212',\
@@ -64,7 +64,7 @@ from OMILib import *
 ##            '201908122103',\
 ##            '201908122242']
 ###
-date_str = '20170818'
+#date_str = '20170818'
 ###    
 ###plotOMI_single_ground(date_str, only_sea_ice = False, minlat = 65., \
 ###    zoom = True, multi_panel = False, save = True)
