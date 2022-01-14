@@ -32,6 +32,7 @@ from cartopy.util import add_cyclic_point
 #from mpl_toolkits.basemap import Basemap
 from matplotlib.patches import Polygon
 import matplotlib.path as mpath
+import matplotlib.patches as mpatches
 import matplotlib.colors as color
 from matplotlib.colors import rgb2hex,Normalize
 from matplotlib.cm import ScalarMappable
@@ -106,6 +107,67 @@ var_dict = {
     'RelativeZenithAngle':     {'min': None, 'max': None},\
     'GroundPixelQualityFlags': {'min': None, 'max': None},\
 }
+
+sea_dict = {
+    'esib': {
+        'lat': np.array([90., 50, 50, 90.]), 
+        'lon': np.array([176., 176., 145., 145.])
+    },
+    'laptev': {
+        'lat': np.array([90., 50, 50, 90.]),
+        'lon': np.array([145., 145., 100., 100.])
+    },
+    'barents': {
+        'lat': np.array([90., 50, 50, 90.]),
+        'lon': np.array([100., 100., 55., 55.])
+    },
+    'kara': {
+        'lat': np.array([90., 50, 50, 90.]),
+        'lon': np.array([55., 55., 12., 12.])
+    },\
+    'greenland': {
+        'lat': np.array([90., 50, 50, 90.]),
+        'lon': np.array([12., 12., -45., -45.])
+    },\
+    'baffin': {
+        'lat': np.array([90., 50, 50, 90.]),
+        'lon': np.array([-45., -45., -80., -80.])
+    },\
+    'canada': {
+        'lat': np.array([90., 50, 50, 90.]),
+        'lon': np.array([-80., -80., -125., -125.])
+    },\
+    'beaufort': {
+        'lat': np.array([90., 50, 50, 90.]),
+        'lon': np.array([-125., -125., -156., -156.])
+    },
+    'chukchi': {
+        'lat': np.array([90., 50, 50, 90.]), 
+        'lon': np.array([-184., -184., -156., -156.])
+    }
+}
+
+
+def init_sea_poly(in_sea, linewidth = 2):
+
+    poly_corners = np.zeros((len(sea_dict[in_sea]['lat']), 2), np.float64)
+    poly_corners[:,0] = sea_dict[in_sea]['lon']
+    poly_corners[:,1] = sea_dict[in_sea]['lat']
+    poly = mpatches.Polygon(poly_corners, closed = True, ec='k', \
+        fill = False, lw = linewidth, fc = None, transform = ccrs.PlateCarree())
+    return poly
+   
+def plot_arctic_regions(pax, linewidth = 2):
+    pax.add_patch(init_sea_poly('chukchi', linewidth = linewidth))
+    pax.add_patch(init_sea_poly('esib', linewidth = linewidth))
+    pax.add_patch(init_sea_poly('laptev', linewidth = linewidth))
+    pax.add_patch(init_sea_poly('barents', linewidth = linewidth))
+    pax.add_patch(init_sea_poly('kara', linewidth = linewidth))
+    pax.add_patch(init_sea_poly('greenland', linewidth = linewidth))
+    pax.add_patch(init_sea_poly('baffin', linewidth = linewidth))
+    pax.add_patch(init_sea_poly('canada', linewidth = linewidth))
+    pax.add_patch(init_sea_poly('beaufort', linewidth = linewidth))
+ 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
@@ -4152,7 +4214,8 @@ def single_swath_anomaly_time(single_swath,climo_date,minlat = 60,row_max = 60):
 
 def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,ax0 = None, \
         ax1 = None, ax2 = None, minlat=65,\
-        trend_type = 'standard', titles = True, save=False):
+        trend_type = 'standard', titles = True, region_avgs = True, \
+        save=False):
 
     if('/home/bsorenson/Research/CERES' not in sys.path):
         sys.path.append('/home/bsorenson/Reserach/CERES')
@@ -4224,6 +4287,47 @@ def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,ax0 = None, \
     mask_trend2 = np.array(CERES_trend[(OMI_trend != 0) & (CERES_trend != 0) \
         & (OMI_trend != -999.) & (CERES_trend != -999.)])
 
+
+    if(region_avgs):
+        # Grab the matching OMI lon
+        # -------------------------
+        matching_OMI_lon = OMI_data['LON'][where_matching]
+
+        # Mask the data while retaining the shape
+        # ---------------------------------------
+        mask_OMI_trend = np.ma.masked_where((OMI_trend == -999.) | \
+            (OMI_trend == 0) | (CERES_trend == 0) | (CERES_trend == -999.), \
+            OMI_trend)
+        mask_CERES_trend = np.ma.masked_where((OMI_trend == -999.) | \
+            (OMI_trend == 0) | (CERES_trend == 0) | (CERES_trend == -999.), \
+            CERES_trend)
+
+        # Calculate the averages
+        # ----------------------
+        for region in sea_dict.keys():
+            print(region)
+            if(region == 'chukchi'):
+                omi_region_avg = np.nanmean(mask_OMI_trend[np.where( \
+                    (matching_OMI_lon < sea_dict[region]['lon'][0]) | \
+                    (matching_OMI_lon >= sea_dict[region]['lon'][2]))])
+                ceres_region_avg = np.nanmean(mask_CERES_trend[np.where( \
+                    (local_lon < sea_dict[region]['lon'][0]) | \
+                    (local_lon >= sea_dict[region]['lon'][2]))])
+
+                print('omi avg   - ',omi_region_avg)
+                print('ceres avg - ',ceres_region_avg)
+                
+            if(region != 'chukchi'):
+                omi_region_avg = np.nanmean(mask_OMI_trend[np.where( \
+                    (matching_OMI_lon >= sea_dict[region]['lon'][2]) & \
+                    (matching_OMI_lon <= sea_dict[region]['lon'][0]))])
+                ceres_region_avg = np.nanmean(mask_CERES_trend[np.where( \
+                    (local_lon >= sea_dict[region]['lon'][2]) & \
+                    (local_lon <= sea_dict[region]['lon'][0]))])
+
+                print('omi avg   - ',omi_region_avg)
+                print('ceres avg - ',ceres_region_avg)
+
     print('after shapes', mask_trend1.shape, mask_trend2.shape)
     print("average OMI trend", np.nanmean(mask_trend1))
     print("average CERES trend", np.nanmean(mask_trend2))
@@ -4245,12 +4349,12 @@ def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,ax0 = None, \
         ax0 = fig1.add_subplot(1,3,1, projection = mapcrs)
         ax1 = fig1.add_subplot(1,3,2, projection = mapcrs)
         ax2 = fig1.add_subplot(1,3,3)
+        if(region_avgs):
+            plot_arctic_regions(ax0, linewidth = 2)
+            plot_arctic_regions(ax1, linewidth = 2)
 
     # Plot the OMI and CERES trends
     # -----------------------------
-    #plotOMI_spatial(ax0, OMI_data['LAT'], OMI_data['LON'], OMI_trend, 'trend', \
-    #    ptitle = title, plabel = 'UV Aerosol Index Trend', \
-    #    vmin = None, vmax = None, minlat = minlat)
     plotOMI_MonthTrend(OMI_data,month_idx=month,\
         trend_type=trend_type,label = label,\
         minlat=minlat,title = omi_title, pax = ax0)
@@ -4258,11 +4362,6 @@ def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,ax0 = None, \
         trend_type=trend_type,\
         minlat=minlat,pax = ax1)
 
-    ##plotCERES_spatial(ax1, CERES_data['lat'], CERES_data['lon'], CERES_trend, 'trend', \
-    ##    ptitle = title, plabel = 'CERES ' + CERES_data['param'] + ' Trend', \
-    ##    vmin = None, vmax = None, minlat = minlat)
-
-    
 
     ax2.scatter(mask_trend1,mask_trend2,c=z,s=8)
     plot_trend_line(ax2, mask_trend1, mask_trend2, color='tab:green', linestyle = '-', \
@@ -4316,9 +4415,9 @@ def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,ax0 = None, \
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
-def plot_OMI_CERES_trend_compare_summer(minlat=65,\
+def plot_OMI_CERES_trend_compare_summer(minlat=72,\
         ceres_type = 'sw', trend_type = 'standard', titles = False, \
-        save=False):
+        region_avgs = True, save=False):
 
     if('/home/bsorenson/Research/CERES' not in sys.path):
         print("Appending CERES path")
@@ -4340,6 +4439,14 @@ def plot_OMI_CERES_trend_compare_summer(minlat=65,\
     ax7 = fig1.add_subplot(3,3,3)
     ax8 = fig1.add_subplot(3,3,6)
     ax9 = fig1.add_subplot(3,3,9)
+
+    if(region_avgs):
+        plot_arctic_regions(ax1, linewidth = 2)
+        plot_arctic_regions(ax2, linewidth = 2)
+        plot_arctic_regions(ax3, linewidth = 2)
+        plot_arctic_regions(ax4, linewidth = 2)
+        plot_arctic_regions(ax5, linewidth = 2)
+        plot_arctic_regions(ax6, linewidth = 2)
 
     # Read in the OMI and CERES data
     # ------------------------------

@@ -7,11 +7,15 @@
 
 import OMILib
 from OMILib import *
+import sys
 
+sys.exit()
 # ----------------------------------------------------
 # Set up the overall figure
 # ----------------------------------------------------
-###minlat = 65.
+
+
+###minlat = 65
 ###plt.close('all')
 ###fig1 = plt.figure(figsize = (6,6))
 ###mapcrs = ccrs.NorthPolarStereo()
@@ -19,8 +23,11 @@ from OMILib import *
 ###ax0.coastlines(resolution = '50m')
 ###ax0.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
 ###ax0.set_boundary(circle, transform = ax0.transAxes)
-###plot_lat_circles(ax0, [70, 80])
-###fig1.savefig('arctic_lat_circles_7080.png',dpi=300)
+###plot_lat_circles(ax0, [80])
+###plot_arctic_regions(ax0)
+###ax0.gridlines()
+###fig1.tight_layout()
+####fig1.savefig('arctic_lat_circles_80.png',dpi=300)
 ###plt.show()
 
 
@@ -32,7 +39,7 @@ minlat = 65.
 #        trend_type = 'standard', minlat=minlat,save=False)
 
 plot_OMI_CERES_trend_compare_summer(minlat=72,\
-        ceres_type = 'sw', trend_type = 'theil-sen', save=False)
+        ceres_type = 'sw', trend_type = 'standard', save=False)
 
 ##date_str = ['201908110033',\
 ##            '201908110212',\

@@ -60,53 +60,76 @@ case_dict = {
     '202108062025': 'TPH',
 }
 
+# - 0.64  (band 2, Red)
+# - 2.25  (band 6, Cloud particle size)
+# - 3.90  (band 7, Shortwave Window)
+# - 6.18  (band 8, Upper-Level Water Vapor)
+# - 6.95  (band 9, Mid-Level Water Vapor)
+# - 7.34  (band 10, Lower-Level Water Vapor)
+# - 10.35 (band 13, Clean IR Longwave Window)
 channel_dict = {
     '1': {
+        'name': 'Blue',
         'wavelength': 0.47
     },\
     '2': {
+        'name': 'Red',
         'wavelength': 0.64
     },\
     '3': {
+        'name': 'Veggie',
         'wavelength': 0.86
     },\
     '4': {
+        'name': 'Cirrus',
         'wavelength': 1.38
     },\
     '5': {
+        'name': 'Snow/Ice',
         'wavelength': 1.61
     },\
     '6': {
+        'name': 'Cloud Particle Size',
         'wavelength': 2.25
     },\
     '7': {
+        'name': 'Shortwave Window',
         'wavelength': 3.90
     },\
     '8': {
+        'name': 'Upper-Level Water Vapor',
         'wavelength': 6.18
     },\
     '9': {
+        'name': 'Mid-Level Water Vapor',
         'wavelength': 6.95
     },\
     '10': {
+        'name': 'Lower-Level Water Vapor',
         'wavelength': 7.34
     },\
     '11': {
+        'name': 'Cloud-Top Phase',
         'wavelength': 8.50
     },\
     '12': {
+        'name': 'Ozone',
         'wavelength': 9.61
     },\
     '13': {
+        'name': 'Clean IR Longwave Window',
         'wavelength': 10.35
     },\
     '14': {
+        'name': 'IR Longwave Window',
         'wavelength': 11.20
     },\
     '15': {
+        'name': 'Dirty IR Longwave Window',
         'wavelength': 12.30
     },\
     '16': {
+        'name': 'CO2 Longwave Infrared',
         'wavelength': 13.30
     }
 }
@@ -1034,21 +1057,25 @@ def plot_GOES_satpy(date_str, channel, ax = None, zoom=True,save=False):
     # --------------
     """
 
-def plot_GOES_satpy_4panel(date_str, ch1, ch2, ch3, ch4, zoom = True, \
-        save = False):
+def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
+        zoom = True, save = False):
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
 
     plt.close('all')
-    fig1 = plt.figure(figsize = (10,8))
+    fig1 = plt.figure(figsize = (13,8))
     var0, crs0, lat_lims, lon_lims = read_GOES_satpy(date_str, ch1)
     var1, crs1, lat_lims, lon_lims = read_GOES_satpy(date_str, ch2)
     var2, crs2, lat_lims, lon_lims = read_GOES_satpy(date_str, ch3)
     var3, crs3, lat_lims, lon_lims = read_GOES_satpy(date_str, ch4)
+    var4, crs4, lat_lims, lon_lims = read_GOES_satpy(date_str, ch5)
+    var5, crs5, lat_lims, lon_lims = read_GOES_satpy(date_str, ch6)
 
-    ax0 = fig1.add_subplot(2,2,1, projection = crs0)
-    ax1 = fig1.add_subplot(2,2,2, projection = crs1)
-    ax2 = fig1.add_subplot(2,2,3, projection = crs2)
-    ax3 = fig1.add_subplot(2,2,4, projection = crs3)
+    ax0 = fig1.add_subplot(2,3,1, projection = crs0)
+    ax1 = fig1.add_subplot(2,3,2, projection = crs1)
+    ax2 = fig1.add_subplot(2,3,3, projection = crs2)
+    ax3 = fig1.add_subplot(2,3,4, projection = crs3)
+    ax4 = fig1.add_subplot(2,3,5, projection = crs4)
+    ax5 = fig1.add_subplot(2,3,6, projection = crs5)
 
     ax0.imshow(var0.data, transform = crs0, extent=(var0.x[0], var0.x[-1], \
         var0.y[-1], var0.y[0]), origin='upper', cmap = 'Greys_r')
@@ -1058,6 +1085,10 @@ def plot_GOES_satpy_4panel(date_str, ch1, ch2, ch3, ch4, zoom = True, \
         var2.y[-1], var2.y[0]), origin='upper', cmap = 'Greys_r')
     ax3.imshow(var3.data, transform = crs3, extent=(var3.x[0], var3.x[-1], \
         var3.y[-1], var3.y[0]), origin='upper', cmap = 'Greys_r')
+    ax4.imshow(var4.data, transform = crs4, extent=(var4.x[0], var4.x[-1], \
+        var4.y[-1], var4.y[0]), origin='upper', cmap = 'Greys_r')
+    ax5.imshow(var5.data, transform = crs5, extent=(var5.x[0], var5.x[-1], \
+        var5.y[-1], var5.y[0]), origin='upper', cmap = 'Greys_r')
 
     # Zoom in the figure if desired
     # -----------------------------
@@ -1070,6 +1101,10 @@ def plot_GOES_satpy_4panel(date_str, ch1, ch2, ch3, ch4, zoom = True, \
                        crs = ccrs.PlateCarree())
         ax3.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
                        crs = ccrs.PlateCarree())
+        ax4.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+                       crs = ccrs.PlateCarree())
+        ax5.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+                       crs = ccrs.PlateCarree())
         zoom_add = '_zoom'
     else:
         zoom_add = ''
@@ -1078,26 +1113,47 @@ def plot_GOES_satpy_4panel(date_str, ch1, ch2, ch3, ch4, zoom = True, \
     ax0.add_feature(cfeature.STATES)
     ax0.add_feature(cfeature.BORDERS)
     ax0.set_title('GOES-17 Band ' + str(ch1) + '\n' + \
+        channel_dict[str(ch1)]['name'] + '\n' + \
         dt_date_str.strftime('%Y-%m-%d %H:%M'))
+
     ax1.coastlines(resolution = '50m')
     ax1.add_feature(cfeature.STATES)
     ax1.add_feature(cfeature.BORDERS)
     ax1.set_title('GOES-17 Band ' + str(ch2) + '\n' + \
+        channel_dict[str(ch2)]['name'] + '\n' + \
         dt_date_str.strftime('%Y-%m-%d %H:%M'))
+
     ax2.coastlines(resolution = '50m')
     ax2.add_feature(cfeature.STATES)
     ax2.add_feature(cfeature.BORDERS)
     ax2.set_title('GOES-17 Band ' + str(ch3) + '\n' + \
+        channel_dict[str(ch3)]['name'] + '\n' + \
         dt_date_str.strftime('%Y-%m-%d %H:%M'))
+
     ax3.coastlines(resolution = '50m')
     ax3.add_feature(cfeature.STATES)
     ax3.add_feature(cfeature.BORDERS)
     ax3.set_title('GOES-17 Band ' + str(ch4) + '\n' + \
+        channel_dict[str(ch4)]['name'] + '\n' + \
+        dt_date_str.strftime('%Y-%m-%d %H:%M'))
+
+    ax4.coastlines(resolution = '50m')
+    ax4.add_feature(cfeature.STATES)
+    ax4.add_feature(cfeature.BORDERS)
+    ax4.set_title('GOES-17 Band ' + str(ch5) + '\n' + \
+        channel_dict[str(ch5)]['name'] + '\n' + \
+        dt_date_str.strftime('%Y-%m-%d %H:%M'))
+
+    ax5.coastlines(resolution = '50m')
+    ax5.add_feature(cfeature.STATES)
+    ax5.add_feature(cfeature.BORDERS)
+    ax5.set_title('GOES-17 Band ' + str(ch6) + '\n' + \
+        channel_dict[str(ch6)]['name'] + '\n' + \
         dt_date_str.strftime('%Y-%m-%d %H:%M'))
 
 
     if(save):
-        outname = 'goes17_'+date_str+'_4panel.png'
+        outname = 'goes17_'+date_str+'_6panel.png'
         fig1.savefig(outname, dpi = 300)
         print('Saved image', outname)
     else:
