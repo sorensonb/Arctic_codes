@@ -147,27 +147,53 @@ sea_dict = {
     }
 }
 
+sea_double_dict = {
+    'esib_laptev': {
+        'lat': np.array([90., 50, 50, 90.]), 
+        'lon': np.array([176., 176., 100., 100.])
+    },
+    'kara_barents': {
+        'lat': np.array([90., 50, 50, 90.]),
+        'lon': np.array([100., 100., 12., 12.])
+    },
+    'greenland_baffin': {
+        'lat': np.array([90., 50, 50, 90.]),
+        'lon': np.array([12., 12., -80., -80.])
+    },\
+    'canada_beaufort_chukchi': {
+        'lat': np.array([90., 50, 50, 90.]),
+        'lon': np.array([-80., -80., 176., 176.])
+    }
+}
 
-def init_sea_poly(in_sea, linewidth = 2):
 
-    poly_corners = np.zeros((len(sea_dict[in_sea]['lat']), 2), np.float64)
-    poly_corners[:,0] = sea_dict[in_sea]['lon']
-    poly_corners[:,1] = sea_dict[in_sea]['lat']
-    poly = mpatches.Polygon(poly_corners, closed = True, ec='k', \
+def init_sea_poly(in_sea, color = 'k', linewidth = 2):
+
+    ##!#poly_corners = np.zeros((len(sea_dict[in_sea]['lat']), 2), np.float64)
+    ##!#poly_corners[:,0] = sea_dict[in_sea]['lon']
+    ##!#poly_corners[:,1] = sea_dict[in_sea]['lat']
+    poly_corners = np.zeros((len(sea_double_dict[in_sea]['lat']), 2), np.float64)
+    poly_corners[:,0] = sea_double_dict[in_sea]['lon']
+    poly_corners[:,1] = sea_double_dict[in_sea]['lat']
+    poly = mpatches.Polygon(poly_corners, closed = True, ec=color, \
         fill = False, lw = linewidth, fc = None, transform = ccrs.PlateCarree())
     return poly
    
 def plot_arctic_regions(pax, linewidth = 2):
-    pax.add_patch(init_sea_poly('chukchi', linewidth = linewidth))
-    pax.add_patch(init_sea_poly('esib', linewidth = linewidth))
-    pax.add_patch(init_sea_poly('laptev', linewidth = linewidth))
-    pax.add_patch(init_sea_poly('barents', linewidth = linewidth))
-    pax.add_patch(init_sea_poly('kara', linewidth = linewidth))
-    pax.add_patch(init_sea_poly('greenland', linewidth = linewidth))
-    pax.add_patch(init_sea_poly('baffin', linewidth = linewidth))
-    pax.add_patch(init_sea_poly('canada', linewidth = linewidth))
-    pax.add_patch(init_sea_poly('beaufort', linewidth = linewidth))
+    ###pax.add_patch(init_sea_poly('chukchi', linewidth = linewidth))
+    ###pax.add_patch(init_sea_poly('esib', linewidth = linewidth))
+    ###pax.add_patch(init_sea_poly('laptev', linewidth = linewidth))
+    ###pax.add_patch(init_sea_poly('barents', linewidth = linewidth))
+    ###pax.add_patch(init_sea_poly('kara', linewidth = linewidth))
+    ###pax.add_patch(init_sea_poly('greenland', linewidth = linewidth))
+    ###pax.add_patch(init_sea_poly('baffin', linewidth = linewidth))
+    ###pax.add_patch(init_sea_poly('canada', linewidth = linewidth))
+    ###pax.add_patch(init_sea_poly('beaufort', linewidth = linewidth))
  
+    pax.add_patch(init_sea_poly('esib_laptev', linewidth = linewidth))
+    pax.add_patch(init_sea_poly('kara_barents', linewidth = linewidth))
+    pax.add_patch(init_sea_poly('greenland_baffin', linewidth = linewidth))
+    pax.add_patch(init_sea_poly('canada_beaufort_chukchi', linewidth = linewidth))
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
@@ -4328,6 +4354,30 @@ def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,ax0 = None, \
                 print('omi avg   - ',omi_region_avg)
                 print('ceres avg - ',ceres_region_avg)
 
+        for region in sea_double_dict.keys():
+            print(region)
+            if(region == 'canada_beaufort_chukchi'):
+                omi_region_avg = np.nanmean(mask_OMI_trend[np.where( \
+                    (matching_OMI_lon <  sea_double_dict[region]['lon'][0]) | \
+                    (matching_OMI_lon >= sea_double_dict[region]['lon'][2]))])
+                ceres_region_avg = np.nanmean(mask_CERES_trend[np.where( \
+                    (local_lon <  sea_double_dict[region]['lon'][0]) | \
+                    (local_lon >= sea_double_dict[region]['lon'][2]))])
+
+                print('omi avg   - ',omi_region_avg)
+                print('ceres avg - ',ceres_region_avg)
+                
+            else:
+                omi_region_avg = np.nanmean(mask_OMI_trend[np.where( \
+                    (matching_OMI_lon >= sea_double_dict[region]['lon'][2]) & \
+                    (matching_OMI_lon <= sea_double_dict[region]['lon'][0]))])
+                ceres_region_avg = np.nanmean(mask_CERES_trend[np.where( \
+                    (local_lon >= sea_double_dict[region]['lon'][2]) & \
+                    (local_lon <= sea_double_dict[region]['lon'][0]))])
+
+                print('omi avg   - ',omi_region_avg)
+                print('ceres avg - ',ceres_region_avg)
+
     print('after shapes', mask_trend1.shape, mask_trend2.shape)
     print("average OMI trend", np.nanmean(mask_trend1))
     print("average CERES trend", np.nanmean(mask_trend2))
@@ -4426,6 +4476,16 @@ def plot_OMI_CERES_trend_compare_summer(minlat=72,\
     #importlib.reload(gridCERESLib) 
     from gridCERESLib import readgridCERES
 
+    # Read in the OMI and CERES data
+    # ------------------------------
+    OMI_data = readOMI_NCDF(infile = \
+        '/home/bsorenson/Research/OMI/omi_ai_VJZ211_2005_2020.nc',\
+        start_date = 200504, end_date = 202010, minlat = minlat)
+    CERES_data =  readgridCERES(200504,202010,'toa_'+ceres_type+\
+        '_all_mon', minlat = minlat + 0.5, season = 'sunlight')
+
+    return OMI_data, CERES_data
+
     # Set up total figure layout
     # --------------------------
     plt.close('all')
@@ -4447,14 +4507,6 @@ def plot_OMI_CERES_trend_compare_summer(minlat=72,\
         plot_arctic_regions(ax4, linewidth = 2)
         plot_arctic_regions(ax5, linewidth = 2)
         plot_arctic_regions(ax6, linewidth = 2)
-
-    # Read in the OMI and CERES data
-    # ------------------------------
-    OMI_data = readOMI_NCDF(infile = \
-        '/home/bsorenson/Research/OMI/omi_ai_VJZ211_2005_2020.nc',\
-        start_date = 200504, end_date = 202010, minlat = minlat)
-    CERES_data =  readgridCERES(200504,202010,'toa_'+ceres_type+\
-        '_all_mon', minlat = minlat + 0.5, season = 'sunlight')
 
     # Process data for each month
     # ---------------------------

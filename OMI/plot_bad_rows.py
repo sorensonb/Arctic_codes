@@ -85,7 +85,7 @@ if(do_xtrack):
             str_dates_X.append(templine[0][:4])
             #int_dates[ii] = int(templine[0])
             #bad_dict[templine[0]] = np.zeros(int(templine[1]))
-            if(int(templine[1]) > 0):
+            if((int(templine[1]) > 0) & (int(templine[1]) < 60)):
                 for jj in templine[2:]:
                     total_array_X[ii,int(jj)] = 1
                 #bad_dict[templine[0]][ii] = int(templine[2+ii])
@@ -105,18 +105,21 @@ y_vals = np.arange(total_array.shape[1])
 mask_array = np.ma.masked_where(total_array == 0,total_array)
 
 fig1, ax = plt.subplots(figsize=(10,4))
-ax.pcolormesh(x_vals,y_vals,mask_array.T,shading='auto',cmap=bad_color)
+ax.pcolormesh(x_vals,y_vals + 0.5,mask_array.T,shading='auto',cmap=bad_color)
 if(do_xtrack):
-    ax.pcolormesh(x_vals_X,y_vals_X,mask_array_X.T,shading='auto',cmap=xtrack_color)
+    ax.pcolormesh(x_vals_X,y_vals_X + 0.5,mask_array_X.T,shading='auto',cmap=xtrack_color)
 ax.set_yticks(y_vals,minor=True)
-ax.set_xticks(x_vals[::183])
+ax.set_xticks(x_vals[::183] + 0.5)
 ax.set_xticklabels(str_dates[::183])
 ax.grid(which='minor',axis='y')
 ax.grid(which='major',axis='y',linewidth=1.0,color='black')
 ax.set_xlabel('Year')
 ax.set_ylabel('Row Number')
+ax.set_ylim(1, 60)
 
-outname = 'bad_rows_'+start_year + '_'+end_year+xtrack_add + '_2.png'
-plt.savefig(outname,dpi=300)
-print("Saved image",outname)
+save = True 
+if(save):
+    outname = 'bad_rows_'+start_year + '_'+end_year+xtrack_add + '_2.png'
+    plt.savefig(outname,dpi=300)
+    print("Saved image",outname)
 plt.show()

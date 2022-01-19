@@ -293,7 +293,7 @@ if(save == True):
     fig0.savefig(outname,dpi=300)
     print("Saved image",outname) 
 
-plt.legend()
+#plt.legend()
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
@@ -327,7 +327,7 @@ ax1.plot(daily_dt_dates[peaks], daily_counts_65[peaks], 'x', color='black')
 if second_file:
     ax2 = ax.twinx()
     ax2.plot(daily_dt_dates_2,daily_counts_65_2,label='daily '+dtype2,color='tab:orange')
-ax1.legend()
+#ax1.legend()
 ax1.set_ylabel(axis_label)
 ax1.set_title('AI ' + vtype.title() + ': Threshold of '+str(ai_thresh)+\
     '\nNorth of '+min_lat+'$^{o}$')

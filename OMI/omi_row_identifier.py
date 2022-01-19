@@ -208,11 +208,18 @@ with open(outname,'w') as fout:
                 # indices 1230 and 1500 with an Xtrack QC value that is not zero, meaning
                 # that it is not perfectly clean as defined by the flag. This is determined
                 # by taking the average of all the Xtrack QC values along indices 1230 to
-                # 1500 of each row, and if that averag eis not equal to 0, it has a non-zero
+                # 1500 of each row, and if that average is not equal to 0, it has a non-zero
                 # pixel inside it and is therefore contaminated.
                 #
                 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
                 day_avgs_X = np.nanmean(total_avgs_X1,axis=0)
+
+                # If all daily average Xtrack values are missing, then 
+                # don't try to count the xtrack rows
+                # ----------------------------------------------------
+                count_xtrack = True
+                if(np.count_nonzero(~np.isnan(day_avgs_X)) == 0):
+                    count_xtrack = False
             
                 # Deal with xtrack rows
                 # If a row has any XTRACK flags set, add to xtrack row list
@@ -222,10 +229,11 @@ with open(outname,'w') as fout:
                 for rowI in range(len(day_avgs)):
                     if((day_avgs[rowI] - avg_day_avg) > (day_std * 2)):
                         bad_rows.append(rowI+1)
-                    # If a row has any XTRACK flags set, add to xtrack row list
-                    if(day_avgs_X[rowI] != 0):
-                        xtrack_rows.append(rowI+1)
-                #        print("Bad row number ", rowI+1) 
+                    if(count_xtrack):
+                        # If a row has any XTRACK flags set, add to xtrack row list
+                        if(day_avgs_X[rowI] != 0):
+                            xtrack_rows.append(rowI+1)
+                    #        print("Bad row number ", rowI+1) 
                 
                 
                
