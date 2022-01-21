@@ -48,6 +48,9 @@ from sklearn.linear_model import HuberRegressor
 from sklearn.preprocessing import StandardScaler
 import pandas as pd
 
+sys.path.append('/home/bsorenson')
+from python_lib import circle, plot_subplot_label, plot_lat_circles
+
 def get_ice_flags(value):
     return int(format(value,"016b")[-15:-8],2)
 
@@ -64,13 +67,13 @@ def get_xtrack_flags(value, flag_idx = None):
     else:
         return bit_vals[flag_idx]
 
-# Compute a circle in axes coordinates, which we can use as a boundary
-# for the map. We can pan/zoom as much as we like - the boundary will be
-# permanently circular.
-theta = np.linspace(0, 2*np.pi, 100)
-center, radius = [0.5, 0.5], 0.5
-verts = np.vstack([np.sin(theta), np.cos(theta)]).T
-circle = mpath.Path(verts * radius + center)
+##!## Compute a circle in axes coordinates, which we can use as a boundary
+##!## for the map. We can pan/zoom as much as we like - the boundary will be
+##!## permanently circular.
+##!#theta = np.linspace(0, 2*np.pi, 100)
+##!#center, radius = [0.5, 0.5], 0.5
+##!#verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+##!#circle = mpath.Path(verts * radius + center)
 
 # Set up mapping variables 
 datacrs = ccrs.PlateCarree() 
@@ -98,7 +101,7 @@ var_dict = {
     'Reflectivity':            {'min': 0.0,  'max': 1.0},\
     'NormRadiance':            {'min': 0.0,  'max': 0.2},\
     'CloudFraction':           {'min': None, 'max': None},\
-    'UVAerosolIndex':          {'min': -2.0, 'max': 3.0 },\
+    'UVAerosolIndex':          {'min': -2.0, 'max': 5.0 },\
     'PixelQualityFlags':       {'min': None, 'max': None},\
     'MeasurementQualityFlags': {'min': None, 'max': None},\
     'FinalAlgorithmFlags':     {'min':    0, 'max':    8},\
@@ -278,25 +281,25 @@ def plot_trend_line(pax, xdata, ydata, color='black', linestyle = '-', \
     else:
         plot_lin_regress_trend(pax, xdata, ydata, color, linestyle)
 
-# Plots latitude circles on a given axis
-# --------------------------------------
-def plot_lat_circles(pax, lat_circles):
-
-    if(len(lat_circles) > 5):
-        print("WARNING: more than 5 latitude circles selected")
-        print("    Only plotting the first 5")
-        lat_circles = lat_circles[:5]
-
-    colors = ['tab:blue','tab:red','tab:purple','tab:olive','tab:cyan']
-    lon = np.arange(-180, 181)
-    for ii, lat_val in enumerate(lat_circles):
-        lats = np.full(lon.shape, lat_val)
-
-        pax.plot(lon, lats, linewidth = 2.5, transform = datacrs, color = 'k')
-        pax.plot(lon, lats, transform = datacrs, color = colors[ii])
-        pax.text(-180, lat_val + 3, str(int(lat_val)) + ' $^{o}$N', \
-            horizontalalignment = 'center', weight = 'bold', \
-            color = colors[ii], transform = datacrs)
+##!## Plots latitude circles on a given axis
+##!## --------------------------------------
+##!#def plot_lat_circles(pax, lat_circles):
+##!#
+##!#    if(len(lat_circles) > 5):
+##!#        print("WARNING: more than 5 latitude circles selected")
+##!#        print("    Only plotting the first 5")
+##!#        lat_circles = lat_circles[:5]
+##!#
+##!#    colors = ['tab:blue','tab:red','tab:purple','tab:olive','tab:cyan']
+##!#    lon = np.arange(-180, 181)
+##!#    for ii, lat_val in enumerate(lat_circles):
+##!#        lats = np.full(lon.shape, lat_val)
+##!#
+##!#        pax.plot(lon, lats, linewidth = 2.5, transform = datacrs, color = 'k')
+##!#        pax.plot(lon, lats, transform = datacrs, color = colors[ii])
+##!#        pax.text(-180, lat_val + 3, str(int(lat_val)) + ' $^{o}$N', \
+##!#            horizontalalignment = 'center', weight = 'bold', \
+##!#            color = colors[ii], transform = datacrs)
 
 
 
@@ -447,8 +450,8 @@ def readOMI(inputfile,start_date,end_date,key=None):
 # dtype is either "control" or "JZ"
 #     skiprows - array-like containing row indices (0-based) to not include
 #                in the data
-def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, latmin = 65, \
-        skiprows = None):
+def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
+        only_ice = False, no_ice = False, latmin = 65, skiprows = None):
 
     # Extract date information to use when finding the data files
     year = plot_time[:4]
@@ -492,6 +495,16 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, latmin = 65, \
     # are not zero
     # ------------------------------------------------------------------------
     mask_UVAI = np.ma.masked_where((XTRACK != 0) | (UVAI < -2e5) | (LAT < latmin), UVAI)
+
+    if(only_sea_ice):
+        mask_UVAI = np.ma.masked_where((GPQF_decode < 1) | \
+            (GPQF_decode > 100), mask_UVAI)
+    elif(only_ice):
+        mask_UVAI = np.ma.masked_where((GPQF_decode < 1) | \
+            (GPQF_decode > 101), mask_UVAI)
+    elif(no_ice):
+        mask_UVAI = np.ma.masked_where((GPQF_decode >= 1) & \
+            (GPQF_decode < 103), mask_UVAI)
 
     #UVAI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/' + path_dict[variable] + variable][:,:]
     ##!#if(len(UVAI.shape) == 3):
@@ -3510,6 +3523,8 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
             #fontsize=8,rotation=35)
         
     else:
+        if(OMI_hrly['dtype'] == 'shawn'):
+            pvar = 'UVAI_pert'
         mesh = pax.pcolormesh(OMI_hrly['LON'], OMI_hrly['LAT'], OMI_hrly[pvar],\
                 transform = datacrs, cmap = colormap,\
                 vmin = vmin, vmax = vmax,\
@@ -3522,7 +3537,7 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
                 label = 'UV Aerosol Index'
 
         #cbar.set_label(variable,fontsize=16,weight='bold')
-        tickvals = np.arange(-2.0,4.1,0.5)
+        tickvals = np.arange(-2.0,4.1,1.0)
         cbar = plt.colorbar(mesh,ax = pax, ticks = tickvals,\
             orientation='vertical', shrink = 0.8, extend = 'both')
         cbar.set_label(label,fontsize = 14, weight='bold')

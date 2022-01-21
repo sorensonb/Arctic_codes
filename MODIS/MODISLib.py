@@ -37,6 +37,10 @@ from satpy.scene import Scene
 from satpy.writers import get_enhanced_image
 from glob import glob
 
+sys.path.append('/home/bsorenson/')
+from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
+    nearest_gridpoint, aerosol_event_dict, init_proj
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 # Set up global variables
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
@@ -269,314 +273,108 @@ for key in channel_dict.keys():
     else:
         channel_dict[key]['Bandwidth_label'] = ''
 
-plot_limits_dict = {
-    "2021-07-13": {
-        '2110': {
-            'asos': 'asos_data_20210713.csv',
-            #'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021203.2110.061.2021204155922.hdf',
-            #'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021203.2110.061.2021204163638.hdf',
-            #'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072210-2021072221.nc',
-            #'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.22.212.L2.SUBS2RET.v6.0.32.0.G21204140844.hdf'],
-            'Lat': [39.5, 42.0],
-            'Lon': [-122.0, -119.5],
-            'modis_Lat': [39.0, 42.5],
-            'modis_Lon': [-123., -119.]
-        }
-    },
-    "2021-07-20": {
-        '2125': {
-            'asos': 'asos_data_20210720.csv',
-            'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021201.2125.061.2021202154814.hdf',
-            'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072010-2021072021.nc',
-            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.20.214.L2.SUBS2RET.v6.0.32.0.G21202153435.hdf'],
-            'Lat': [39.5, 42.0],
-            'Lon': [-122.0, -119.5],
-            'data_lim': {
-                1:  [0.05, 0.5],
-                31: [270., 330.],
-            },
-            'modis_Lat': [39.5, 42.0],
-            'modis_Lon': [-122.0, -119.5]
-        }
-    },
-    "2021-07-21": {
-        '2030': {
-            'asos': 'asos_data_20210722_4.csv',
-            'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021202.2030.061.2021203174050.hdf',
-            'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072109-2021072122.nc',
-            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.21.205.L2.SUBS2RET.v6.0.32.0.G21203185004.hdf'],
-            #'Lat': [39.5, 42.0],
-            #'Lon': [-122.0, -119.5],
-            'Lat': [39.5, 42.0],
-            'Lon': [-122.0, -119.5],
-            'data_lim': {
-                1:  [0.05, 0.5],
-                31: [270., 330.],
-            },
-            'modis_Lat': [39.5, 42.0],
-            'modis_Lon': [-122.0, -119.5]
-        }
-    },
-    "2021-07-22": {
-        '2110': {
-            'asos': 'asos_data_20210722_4.csv',
-            'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021203.2110.061.2021204155922.hdf',
-            'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021203.2110.061.2021204163638.hdf',
-            'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072210-2021072221.nc',
-            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.22.212.L2.SUBS2RET.v6.0.32.0.G21204140844.hdf'],
-            'Lat': [39.5, 42.0],
-            'Lon': [-122.0, -119.5],
-            #'Lat': [39.5, 42.0],
-            #'Lon': [-122.0, -119.5],
-            'data_lim': {
-                1:  [0.05, 0.5],
-                5:  [None, None],
-                31: [270., 330.],
-                32: [270., 330.],
-                'wv_ir': [0.2, 1.5],
-            },
-            #'modis_Lat': [39.5, 42.0],
-            #'modis_Lon': [-122.0, -119.5]
-            'modis_Lat': [39.5, 42.0],
-            'modis_Lon': [-122.0, -119.5]
-        }
-    },
-    "2021-07-23": {
-        '2155': {
-            'asos': 'asos_data_20210722_2.csv',
-            'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021204.2155.061.2021205153516.hdf',
-            #'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021203.2110.061.2021204163638.hdf',
-            #'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072210-2021072221.nc',
-            #'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.22.212.L2.SUBS2RET.v6.0.32.0.G21204140844.hdf'],
-            'Lat': [39.5, 42.0],
-            'Lon': [-122.0, -119.5],
-            #'Lat': [39.5, 42.0],
-            #'Lon': [-122.0, -119.5],
-            'data_lim': {
-                1:  [0.05, 0.5],
-                31: [270., 330.],
-            },
-            #'modis_Lat': [39.5, 42.0],
-            #'modis_Lon': [-122.0, -119.5]
-            'modis_Lat': [39.5, 42.0],
-            'modis_Lon': [-122.0, -119.5]
-        }
-    },
-    "2021-08-04": {
-        '2110': {
-            'asos': 'asos_data_20210806.csv',
-            #'asos': 'asos_nevada_20210806.csv',
-            #'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021218.2025.061.2021219151802.hdf',
-            #'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021218.2025.061.2021219152751.hdf',
-            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.04.206.L2.SUBS2RET.v6.0.32.0.G21217152448.hdf',\
-                     '/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.04.207.L2.SUBS2RET.v6.0.32.0.G21217152904.hdf'],\
-            #'omi': '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0806t1943-o90747_v003-2021m0808t031152.he5',
-            'Lat': [36.0, 39.0],
-            'Lon': [-118.0, -114.0],
-            'modis_Lat': [35.0, 40.0],
-            'modis_Lon': [-119., -113.]
-        }
-    },
-    "2021-08-05": {
-        '2120': {
-            'asos': 'asos_data_20210805.csv',
-            'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021217.2120.061.2021218164201.hdf',
-            'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021217.2120.061.2021218165546.hdf',
-            'ceres': '/home/bsorenson/data/CERES/FLASHFlux/Aqua/FLASH_SSF_Aqua_Version4A_Subset_2021080508-2021080521.nc',
-            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.05.214.L2.SUBS2RET.v6.0.32.0.G21218175548.hdf'],
-            'omi': '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0805t2038-o90733_v003-2021m0807t014855.he5',
-            'Lat': [36.5, 39.0],
-            'Lon': [-118.0, -114.0],
-            'modis_Lat': [36.0, 39.0],
-            'modis_Lon': [-118., -114.]
-        },
-        '2125': {
-            'asos': 'asos_california_20210805.csv',
-            'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021217.2125.061.2021218161010.hdf',
-            'ceres': '/home/bsorenson/data/CERES/FLASHFlux/Aqua/FLASH_SSF_Aqua_Version4A_Subset_2021080508-2021080521.nc',
-            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.05.214.L2.SUBS2RET.v6.0.32.0.G21218175548.hdf'],
-            'Lat': [39.5, 42.0],
-            'Lon': [-122.0, -119.0],
-            'modis_Lat': [39.5, 42.0],
-            'modis_Lon': [-122., -119.]
-        }
-    },
-    "2021-08-06": {
-        '2025': {
-            'asos': 'asos_data_20210806.csv',
-            #'asos': 'asos_nevada_20210806.csv',
-            'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021218.2025.061.2021219151802.hdf',
-            'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021218.2025.061.2021219152751.hdf',
-            'ceres': '/home/bsorenson/data/CERES/FLASHFlux/Aqua/FLASH_SSF_Aqua_Version4A_Subset_2021080609-2021080620.nc',
-            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.06.204.L2.SUBS2RET.v6.0.32.0.G21219130523.hdf',\
-                     '/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.06.205.L2.SUBS2RET.v6.0.32.0.G21219130455.hdf'],
-            'omi': '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0806t1943-o90747_v003-2021m0808t031152.he5',
-            'Lat': [36.0, 39.0],
-            'Lon': [-118.0, -114.0],
-            'modis_Lat': [36.0, 39.0],
-            'modis_Lon': [-118., -114.]
-        }
-    },
-    "2021-08-07": {
-        '2110': {
-            'asos': 'asos_data_20210806.csv',
-            #'asos': 'asos_nevada_20210806.csv',
-            'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021219.2110.061.2021220151612.hdf',
-            #'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021218.2025.061.2021219152751.hdf',
-            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.07.212.L2.SUBS2RET.v6.0.32.0.G21220123225.hdf'],\
-            #'omi': '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0806t1943-o90747_v003-2021m0808t031152.he5',
-            'Lat': [36.0, 39.0],
-            'Lon': [-118.0, -114.0],
-            'modis_Lat': [35.0, 40.0],
-            'modis_Lon': [-119., -113.]
-        }
-    },
-    "2021-08-08": {
-        '2110': {
-            'asos': 'asos_data_20210806.csv',
-            #'asos': 'asos_nevada_20210806.csv',
-            #'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021218.2025.061.2021219151802.hdf',
-            #'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021218.2025.061.2021219152751.hdf',
-            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.08.202.L2.SUBS2RET.v6.0.32.0.G21221124420.hdf',\
-                     '/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.08.203.L2.SUBS2RET.v6.0.32.0.G21221185932.hdf'],\
-            #'omi': '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0806t1943-o90747_v003-2021m0808t031152.he5',
-            'Lat': [36.0, 39.0],
-            'Lon': [-118.0, -114.0],
-            'modis_Lat': [35.0, 40.0],
-            'modis_Lon': [-119., -113.]
-        }
-    },
-    "2021-08-17": {
-        '2145': {
-            'asos': 'asos_data_20210817.csv',
-            'Lat': [38.0, 42.0],
-            'Lon': [-122.0, -117.0]
-        }
-    },
-    "2021-08-30": {
-        '2115': {
-            'asos': 'asos_data_20210830.csv',
-            'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021242.2115.061.2021243183953.hdf',
-            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.30.213.L2.SUBS2RET.v6.0.32.0.G21243151114.hdf'],
-            'Lat': [38.0, 40.0],
-            'Lon': [-121.0, -118.5]
-        }
-    },
-    "2021-09-01": {
-        '2105': {
-            'asos': 'asos_data_20210830.csv',
-            'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021244.2105.061.2021245152256.hdf',
-            #'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.30.213.L2.SUBS2RET.v6.0.32.0.G21243151114.hdf'],
-            'Lat': [38.0, 42.0],
-            'Lon': [-121.5, -118.0],
-            'modis_Lat': [38.0, 42.0],
-            'modis_Lon': [-121.5, -118.]
-        }
-    } 
-}
+##!#def init_proj(date_str):
+##!#    #mapcrs = Miller()
+##!#    if(date_str == None):
+##!#        mapcrs = ccrs.LambertConformal()
+##!#    else:
+##!#        dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+##!#
+##!#        mapcrs = ccrs.LambertConformal(central_longitude = \
+##!#            np.mean(aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
+##!#            central_latitude = \
+##!#            np.mean(aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
+##!#
+##!#    return mapcrs
 
-def init_proj(date_str):
-    #mapcrs = Miller()
-    if(date_str == None):
-        mapcrs = ccrs.LambertConformal()
-    else:
-        dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
-
-        mapcrs = ccrs.LambertConformal(central_longitude = \
-            np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
-            central_latitude = \
-            np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
-
-    return mapcrs
-
-def plot_trend_line(pax, xdata, ydata, color='black', linestyle = '-', \
-        slope = 'thiel-sen'):
-
-    if(slope == 'thiel-sen'):
-        res = stats.theilslopes(ydata, xdata, 0.95)
-        print("Theil-Sen: {0}x + {1}".format(res[0], res[1]))
-
-        # Then, plot the trend line on the figure
-        pax.plot(xdata, res[1] + res[0] * xdata, \
-            color='k', linewidth = 2.5, linestyle = linestyle)
-        # Then, plot the trend line on the figure
-        pax.plot(xdata, res[1] + res[0] * xdata, \
-            color=color, linestyle = linestyle)
-    else:
-        # First, calculate the trend
-        zdata = np.polyfit(xdata, ydata, 1)
-
-        print("{0}x + {1}".format(*zdata))
-
-        # Then, plot the trend line on the figure
-        pax.plot(np.unique(xdata), np.poly1d(zdata)(np.unique(xdata)), \
-            color=color, linestyle = linestyle)
-
-def plot_subplot_label(ax, label, xval = None, yval = None, transform = None, \
-        color = 'black', backgroundcolor = None, fontsize = 14, \
-        location = 'upper_left'):
-
-    if(location == 'upper_left'):
-        y_lim = 0.90
-        x_lim = 0.05
-    elif(location == 'lower_left'):
-        y_lim = 0.05
-        x_lim = 0.05
-    elif(location == 'upper_right'):
-        y_lim = 0.90
-        x_lim = 0.90
-    elif(location == 'lower_right'):
-        y_lim = 0.05
-        x_lim = 0.90
-
-    if(xval is None):
-        xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * x_lim
-    if(yval is None):
-        yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * y_lim
-    print('Xval = ',xval, 'Yval = ',yval)
-
-    if(transform is None):
-        if(backgroundcolor is None):
-            ax.text(xval,yval,label, \
-                color=color, weight='bold', \
-                fontsize=fontsize)
-        else:
-            ax.text(xval,yval,label, \
-                color=color, weight='bold', \
-                fontsize=fontsize, backgroundcolor = backgroundcolor)
-    else:
-        if(backgroundcolor is None):
-            ax.text(xval,yval,label, \
-                color=color, weight='bold', \
-                transform = transform, fontsize=fontsize)
-        else:
-            ax.text(xval,yval,label, \
-                color=color, weight='bold', \
-                transform = transform, fontsize=fontsize, \
-                backgroundcolor = backgroundcolor)
-
-def plot_figure_text(ax, text, xval = None, yval = None, transform = None, \
-        color = 'black', fontsize = 12, backgroundcolor = 'white',\
-        halign = 'left'):
-
-    if(xval is None):
-        print(len(text))
-        xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * 0.95
-    if(yval is None):
-        yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.05
-    print('Xval = ',xval, 'Yval = ',yval)
-
-    if(transform is None):
-        ax.text(xval,yval,text, \
-            color=color, weight='bold', \
-            fontsize=fontsize, backgroundcolor = backgroundcolor, \
-            horizontalalignment = halign)
-    else:
-        ax.text(xval,yval,text, \
-            color=color, weight='bold', \
-            transform = transform, fontsize=fontsize, \
-            backgroundcolor = backgroundcolor, \
-            horizontalalignment = halign)
+##!#def plot_trend_line(pax, xdata, ydata, color='black', linestyle = '-', \
+##!#        slope = 'thiel-sen'):
+##!#
+##!#    if(slope == 'thiel-sen'):
+##!#        res = stats.theilslopes(ydata, xdata, 0.95)
+##!#        print("Theil-Sen: {0}x + {1}".format(res[0], res[1]))
+##!#
+##!#        # Then, plot the trend line on the figure
+##!#        pax.plot(xdata, res[1] + res[0] * xdata, \
+##!#            color='k', linewidth = 2.5, linestyle = linestyle)
+##!#        # Then, plot the trend line on the figure
+##!#        pax.plot(xdata, res[1] + res[0] * xdata, \
+##!#            color=color, linestyle = linestyle)
+##!#    else:
+##!#        # First, calculate the trend
+##!#        zdata = np.polyfit(xdata, ydata, 1)
+##!#
+##!#        print("{0}x + {1}".format(*zdata))
+##!#
+##!#        # Then, plot the trend line on the figure
+##!#        pax.plot(np.unique(xdata), np.poly1d(zdata)(np.unique(xdata)), \
+##!#            color=color, linestyle = linestyle)
+##!#
+##!#def plot_subplot_label(ax, label, xval = None, yval = None, transform = None, \
+##!#        color = 'black', backgroundcolor = None, fontsize = 14, \
+##!#        location = 'upper_left'):
+##!#
+##!#    if(location == 'upper_left'):
+##!#        y_lim = 0.90
+##!#        x_lim = 0.05
+##!#    elif(location == 'lower_left'):
+##!#        y_lim = 0.05
+##!#        x_lim = 0.05
+##!#    elif(location == 'upper_right'):
+##!#        y_lim = 0.90
+##!#        x_lim = 0.90
+##!#    elif(location == 'lower_right'):
+##!#        y_lim = 0.05
+##!#        x_lim = 0.90
+##!#
+##!#    if(xval is None):
+##!#        xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * x_lim
+##!#    if(yval is None):
+##!#        yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * y_lim
+##!#    print('Xval = ',xval, 'Yval = ',yval)
+##!#
+##!#    if(transform is None):
+##!#        if(backgroundcolor is None):
+##!#            ax.text(xval,yval,label, \
+##!#                color=color, weight='bold', \
+##!#                fontsize=fontsize)
+##!#        else:
+##!#            ax.text(xval,yval,label, \
+##!#                color=color, weight='bold', \
+##!#                fontsize=fontsize, backgroundcolor = backgroundcolor)
+##!#    else:
+##!#        if(backgroundcolor is None):
+##!#            ax.text(xval,yval,label, \
+##!#                color=color, weight='bold', \
+##!#                transform = transform, fontsize=fontsize)
+##!#        else:
+##!#            ax.text(xval,yval,label, \
+##!#                color=color, weight='bold', \
+##!#                transform = transform, fontsize=fontsize, \
+##!#                backgroundcolor = backgroundcolor)
+##!#
+##!#def plot_figure_text(ax, text, xval = None, yval = None, transform = None, \
+##!#        color = 'black', fontsize = 12, backgroundcolor = 'white',\
+##!#        halign = 'left'):
+##!#
+##!#    if(xval is None):
+##!#        print(len(text))
+##!#        xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * 0.95
+##!#    if(yval is None):
+##!#        yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.05
+##!#    print('Xval = ',xval, 'Yval = ',yval)
+##!#
+##!#    if(transform is None):
+##!#        ax.text(xval,yval,text, \
+##!#            color=color, weight='bold', \
+##!#            fontsize=fontsize, backgroundcolor = backgroundcolor, \
+##!#            horizontalalignment = halign)
+##!#    else:
+##!#        ax.text(xval,yval,text, \
+##!#            color=color, weight='bold', \
+##!#            transform = transform, fontsize=fontsize, \
+##!#            backgroundcolor = backgroundcolor, \
+##!#            horizontalalignment = halign)
 
 def getCorners_1d(centers):
     one = centers[:-1]
@@ -618,25 +416,25 @@ def getCorners(centers):
     stepTwo[:,-2:] = two[:,-2:]
     return stepTwo
 
-# Find the gridpoint in the gridded lat/lon data that 
-# corresponds to the station at slat and slon
-# ---------------------------------------------------- 
-def nearest_gridpoint(slat, slon, grid_lat, grid_lon):
-    fun_c = np.maximum(np.abs(grid_lat - slat), \
-        np.abs(grid_lon - slon))
-    m_idx = np.where(fun_c == np.min(fun_c))
-    return m_idx
+##!## Find the gridpoint in the gridded lat/lon data that 
+##!## corresponds to the station at slat and slon
+##!## ---------------------------------------------------- 
+##!#def nearest_gridpoint(slat, slon, grid_lat, grid_lon):
+##!#    fun_c = np.maximum(np.abs(grid_lat - slat), \
+##!#        np.abs(grid_lon - slon))
+##!#    m_idx = np.where(fun_c == np.min(fun_c))
+##!#    return m_idx
  
 # Extract the MODIS information from a given channel at each ob point
 # -------------------------------------------------------------------
 def nearest_grid_values(MODIS_data):
     # Read in the correct ASOS file 
-    asos_file = plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['asos']
+    asos_file = aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['asos']
     df = pd.read_csv(asos_file)
     df['valid'] = pd.to_datetime(df['valid'])
     df = df.set_index('valid')
 
-    # Pull the event time from the plot_limits_dict
+    # Pull the event time from the aerosol_event_dict
     event_date = datetime.strptime(MODIS_data['cross_date'], "%Y-%m-%d")
     first_time = MODIS_data['file_time']
     event_dtime = event_date + timedelta(hours = int(first_time[:2]))
@@ -706,7 +504,7 @@ def plot_ASOS_locs(pax,date_str,crs = datacrs, color='red', \
         dt_date_str = datetime.strptime(date_str,'%Y%m%d%H%M')
         cross_date = dt_date_str.strftime('%Y-%m-%d')
         file_date  = dt_date_str.strftime('%H%M')
-        asos_file = plot_limits_dict[cross_date][file_date]['asos']
+        asos_file = aerosol_event_dict[cross_date][file_date]['asos']
 
     # Read in the correct ASOS file 
     df = pd.read_csv(asos_file)
@@ -1084,7 +882,7 @@ def read_true_color(date_str,composite = False):
     # Determine the correct MODIS file associated with the date
     # ---------------------------------------------------------
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
-    filename = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
+    filename = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
     print(filename)
     if(composite):
         day_filenames = glob(filename[:50]+'*')
@@ -1095,8 +893,8 @@ def read_true_color(date_str,composite = False):
 
     # Extract the modis true-color plot limits
     # ----------------------------------------
-    lat_lims = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis_Lat']
-    lon_lims = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis_Lon']
+    lat_lims = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis_Lat']
+    lon_lims = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis_Lon']
 
     # Use satpy (Scene) to open the file
     # ----------------------------------
@@ -1242,10 +1040,10 @@ def plot_true_color(filename,zoom=True):
     ax.add_feature(cfeature.STATES)
     ax.coastlines()
     if(zoom):
-        ax.set_extent([plot_limits_dict[cross_date][cross_time]['Lon'][0], \
-                       plot_limits_dict[cross_date][cross_time]['Lon'][1], \
-                       plot_limits_dict[cross_date][cross_time]['Lat'][0], \
-                       plot_limits_dict[cross_date][cross_time]['Lat'][1]], \
+        ax.set_extent([aerosol_event_dict[cross_date][cross_time]['Lon'][0], \
+                       aerosol_event_dict[cross_date][cross_time]['Lon'][1], \
+                       aerosol_event_dict[cross_date][cross_time]['Lat'][0], \
+                       aerosol_event_dict[cross_date][cross_time]['Lat'][1]], \
             ccrs.PlateCarree())
 
     plt.show()
@@ -1258,9 +1056,9 @@ def read_MODIS_channel(date_str, channel, zoom = False):
     # Extract the filename given the channel
     # --------------------------------------
     if(str(channel)[:2] == 'wv'):
-        filename = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['mdswv']
+        filename = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['mdswv']
     else:
-        filename = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
+        filename = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
     
     print("Reading MODIS channel",channel," from ",filename)
 
@@ -1419,18 +1217,18 @@ def read_MODIS_channel(date_str, channel, zoom = False):
     if(zoom):
         # Mask MODIS_data['data'] that are outside the desired range
         # --------------------------------------------
-        MODIS_data['data'][(((MODIS_data['lat'] < plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0]) | \
-                             (MODIS_data['lat'] > plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1])) | \
-                            ((MODIS_data['lon'] < plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][0]) | \
-                             (MODIS_data['lon'] > plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][1])))] = -999.
-        MODIS_data['lat'][ (((MODIS_data['lat'] < plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0]) | \
-                             (MODIS_data['lat'] > plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1])) | \
-                            ((MODIS_data['lon'] < plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][0]) | \
-                             (MODIS_data['lon'] > plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][1])))] = -999.
-        MODIS_data['lon'][ (((MODIS_data['lat'] < plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0]) | \
-                             (MODIS_data['lat'] > plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1])) | \
-                            ((MODIS_data['lon'] < plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][0]) | \
-                             (MODIS_data['lon'] > plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][1])))] = -999.
+        MODIS_data['data'][(((MODIS_data['lat'] < aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0]) | \
+                             (MODIS_data['lat'] > aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1])) | \
+                            ((MODIS_data['lon'] < aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][0]) | \
+                             (MODIS_data['lon'] > aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][1])))] = -999.
+        MODIS_data['lat'][ (((MODIS_data['lat'] < aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0]) | \
+                             (MODIS_data['lat'] > aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1])) | \
+                            ((MODIS_data['lon'] < aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][0]) | \
+                             (MODIS_data['lon'] > aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][1])))] = -999.
+        MODIS_data['lon'][ (((MODIS_data['lat'] < aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0]) | \
+                             (MODIS_data['lat'] > aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1])) | \
+                            ((MODIS_data['lon'] < aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][0]) | \
+                             (MODIS_data['lon'] > aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][1])))] = -999.
 
         MODIS_data['data'] = np.ma.masked_where(MODIS_data['data'] == -999., MODIS_data['data'])
         MODIS_data['lat'] = np.ma.masked_where(MODIS_data['lat'] == -999., MODIS_data['lat'])
@@ -1442,7 +1240,7 @@ def read_MODIS_channel(date_str, channel, zoom = False):
 def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
-    filename = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
+    filename = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
 
     if(channel == 'red'):
         channel = 1
@@ -1490,10 +1288,10 @@ def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False):
     ##!#ax.add_feature(cfeature.STATES)
     ##!#ax.coastlines()
     ##!#if(zoom):
-    ##!#    ax.set_extent([plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][0], \
-    ##!#                   plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][1], \
-    ##!#                   plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0], \
-    ##!#                   plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1]],\
+    ##!#    ax.set_extent([aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][0], \
+    ##!#                   aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][1], \
+    ##!#                   aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0], \
+    ##!#                   aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1]],\
     ##!#                   ccrs.PlateCarree())
     ##!#ax.set_title('Channel ' + str(channel) + '\n' + \
     ##!#    channel_dict[str(channel)]['Bandwidth_label']) 
@@ -1505,7 +1303,7 @@ def read_OMI_match_MODIS(date_str, min_AI = -2e5, corners = False):
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
     modis_date = dt_date_str.strftime('%Y-%m-%d')
 
-    data = h5py.File(plot_limits_dict[modis_date][date_str[8:]]['omi'],'r')
+    data = h5py.File(aerosol_event_dict[modis_date][date_str[8:]]['omi'],'r')
     LAT   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/'+\
         'Latitude'][:,:]
     LON   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/'+\
@@ -1522,10 +1320,10 @@ def read_OMI_match_MODIS(date_str, min_AI = -2e5, corners = False):
 
     mask_UVAI = np.ma.masked_where((XTRACK < -2e5) | (UVAI < min_AI), UVAI)
     mask_UVAI = np.ma.masked_where((\
-        ((LAT < plot_limits_dict[modis_date][date_str[8:]]['Lat'][0]) | \
-         (LAT > plot_limits_dict[modis_date][date_str[8:]]['Lat'][1])) | \
-        ((LON < plot_limits_dict[modis_date][date_str[8:]]['Lon'][0]) | \
-         (LON > plot_limits_dict[modis_date][date_str[8:]]['Lon'][1]))), \
+        ((LAT < aerosol_event_dict[modis_date][date_str[8:]]['Lat'][0]) | \
+         (LAT > aerosol_event_dict[modis_date][date_str[8:]]['Lat'][1])) | \
+        ((LON < aerosol_event_dict[modis_date][date_str[8:]]['Lon'][0]) | \
+         (LON > aerosol_event_dict[modis_date][date_str[8:]]['Lon'][1]))), \
         mask_UVAI)
 
     data.close()
@@ -1549,7 +1347,7 @@ def read_CERES_match_MODIS(date_str):
 
     modis_date = dt_date_str.strftime('%Y-%m-%d')
 
-    data = Dataset(plot_limits_dict[modis_date][date_str[8:]]['ceres'],'r')
+    data = Dataset(aerosol_event_dict[modis_date][date_str[8:]]['ceres'],'r')
     LAT   = 90. - data.variables['Colatitude_of_CERES_FOV_at_surface'][:]
     LON   = data.variables['Longitude_of_CERES_FOV_at_surface'][:]
     LON[LON>179.99] = -360.+LON[LON>179.99]
@@ -1561,34 +1359,34 @@ def read_CERES_match_MODIS(date_str):
     data.close()
 
     mask_LAT = LAT[ \
-        (LAT >= plot_limits_dict[modis_date][date_str[8:]]['Lat'][0]) & \
-        (LAT <= plot_limits_dict[modis_date][date_str[8:]]['Lat'][1]) & \
-        (LON >= plot_limits_dict[modis_date][date_str[8:]]['Lon'][0]) & \
-        (LON <= plot_limits_dict[modis_date][date_str[8:]]['Lon'][1]) & \
+        (LAT >= aerosol_event_dict[modis_date][date_str[8:]]['Lat'][0]) & \
+        (LAT <= aerosol_event_dict[modis_date][date_str[8:]]['Lat'][1]) & \
+        (LON >= aerosol_event_dict[modis_date][date_str[8:]]['Lon'][0]) & \
+        (LON <= aerosol_event_dict[modis_date][date_str[8:]]['Lon'][1]) & \
         (swflux > 0) & (lwflux > 0)]
     mask_LON = LON[ \
-        (LAT >= plot_limits_dict[modis_date][date_str[8:]]['Lat'][0]) & \
-        (LAT <= plot_limits_dict[modis_date][date_str[8:]]['Lat'][1]) & \
-        (LON >= plot_limits_dict[modis_date][date_str[8:]]['Lon'][0]) & \
-        (LON <= plot_limits_dict[modis_date][date_str[8:]]['Lon'][1]) & \
+        (LAT >= aerosol_event_dict[modis_date][date_str[8:]]['Lat'][0]) & \
+        (LAT <= aerosol_event_dict[modis_date][date_str[8:]]['Lat'][1]) & \
+        (LON >= aerosol_event_dict[modis_date][date_str[8:]]['Lon'][0]) & \
+        (LON <= aerosol_event_dict[modis_date][date_str[8:]]['Lon'][1]) & \
         (swflux > 0) & (lwflux > 0)]
     mask_swf = swflux[ \
-        (LAT >= plot_limits_dict[modis_date][date_str[8:]]['Lat'][0]) & \
-        (LAT <= plot_limits_dict[modis_date][date_str[8:]]['Lat'][1]) & \
-        (LON >= plot_limits_dict[modis_date][date_str[8:]]['Lon'][0]) & \
-        (LON <= plot_limits_dict[modis_date][date_str[8:]]['Lon'][1]) & \
+        (LAT >= aerosol_event_dict[modis_date][date_str[8:]]['Lat'][0]) & \
+        (LAT <= aerosol_event_dict[modis_date][date_str[8:]]['Lat'][1]) & \
+        (LON >= aerosol_event_dict[modis_date][date_str[8:]]['Lon'][0]) & \
+        (LON <= aerosol_event_dict[modis_date][date_str[8:]]['Lon'][1]) & \
         (swflux > 0) & (lwflux > 0)]
     mask_lwf = lwflux[ \
-        (LAT >= plot_limits_dict[modis_date][date_str[8:]]['Lat'][0]) & \
-        (LAT <= plot_limits_dict[modis_date][date_str[8:]]['Lat'][1]) & \
-        (LON >= plot_limits_dict[modis_date][date_str[8:]]['Lon'][0]) & \
-        (LON <= plot_limits_dict[modis_date][date_str[8:]]['Lon'][1]) & \
+        (LAT >= aerosol_event_dict[modis_date][date_str[8:]]['Lat'][0]) & \
+        (LAT <= aerosol_event_dict[modis_date][date_str[8:]]['Lat'][1]) & \
+        (LON >= aerosol_event_dict[modis_date][date_str[8:]]['Lon'][0]) & \
+        (LON <= aerosol_event_dict[modis_date][date_str[8:]]['Lon'][1]) & \
         (swflux > 0) & (lwflux > 0)]
     ##!#mask_time = local_time[ \
-    ##!#    (LAT >= plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0]) & \
-    ##!#    (LAT <= plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1]) & \
-    ##!#    (LON >= plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][0]) & \
-    ##!#    (LON <= plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][1]) & \
+    ##!#    (LAT >= aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0]) & \
+    ##!#    (LAT <= aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1]) & \
+    ##!#    (LON >= aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][0]) & \
+    ##!#    (LON <= aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][1]) & \
     ##!#    (swflux > 0) & (lwflux > 0)]
 
     return mask_LAT, mask_LON, mask_swf, mask_lwf
@@ -1599,7 +1397,7 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
         compare_CERES = False, return_MODIS = False):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
-    filename = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
+    filename = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
 
     if(channel1== 'red'):
         channel1= 1
@@ -1625,18 +1423,18 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
     cpy_2 = np.copy(MODIS_data2['data'])
     cpy_3 = np.copy(MODIS_data3['data'])
 
-    cpy_1 = np.ma.masked_where((((MODIS_data1['lat'] < plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][0]) | \
-                         (MODIS_data1['lat'] > plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][1])) | \
-                        ((MODIS_data1['lon'] < plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lon'][0]) | \
-                         (MODIS_data1['lon'] > plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lon'][1]))), cpy_1)
-    cpy_2 = np.ma.masked_where((((MODIS_data2['lat'] < plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][0]) | \
-                         (MODIS_data2['lat'] > plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][1])) | \
-                        ((MODIS_data2['lon'] < plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lon'][0]) | \
-                         (MODIS_data2['lon'] > plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lon'][1]))), cpy_2)
-    cpy_3 = np.ma.masked_where((((MODIS_data3['lat'] < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) | \
-                         (MODIS_data3['lat'] > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1])) | \
-                        ((MODIS_data3['lon'] < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) | \
-                         (MODIS_data3['lon'] > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]))), cpy_3)
+    cpy_1 = np.ma.masked_where((((MODIS_data1['lat'] < aerosol_event_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][0]) | \
+                         (MODIS_data1['lat'] > aerosol_event_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][1])) | \
+                        ((MODIS_data1['lon'] < aerosol_event_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lon'][0]) | \
+                         (MODIS_data1['lon'] > aerosol_event_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lon'][1]))), cpy_1)
+    cpy_2 = np.ma.masked_where((((MODIS_data2['lat'] < aerosol_event_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][0]) | \
+                         (MODIS_data2['lat'] > aerosol_event_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][1])) | \
+                        ((MODIS_data2['lon'] < aerosol_event_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lon'][0]) | \
+                         (MODIS_data2['lon'] > aerosol_event_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lon'][1]))), cpy_2)
+    cpy_3 = np.ma.masked_where((((MODIS_data3['lat'] < aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) | \
+                         (MODIS_data3['lat'] > aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1])) | \
+                        ((MODIS_data3['lon'] < aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) | \
+                         (MODIS_data3['lon'] > aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]))), cpy_3)
 
 
     # Step 2: Set up figure to have 3 panels
@@ -1698,10 +1496,10 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
     ##!#ax0.add_feature(cfeature.STATES)
     ##!#ax0.coastlines()
     ##!#if(zoom):
-    ##!#    ax0.set_extent([plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lon'][0], \
-    ##!#                    plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lon'][1], \
-    ##!#                    plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][0], \
-    ##!#                    plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][1]],\
+    ##!#    ax0.set_extent([aerosol_event_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lon'][0], \
+    ##!#                    aerosol_event_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lon'][1], \
+    ##!#                    aerosol_event_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][0], \
+    ##!#                    aerosol_event_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][1]],\
     ##!#                    datacrs)
     ##!##ax0.set_title('MODIS Ch. ' + str(channel1) + '\n' + \
     ##!##    str(channel_dict[str(channel1)]['Bandwidth'][0]) + ' μm - ' + \
@@ -1724,10 +1522,10 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
     ##!#ax1.add_feature(cfeature.STATES)
     ##!#ax1.coastlines()
     ##!#if(zoom):
-    ##!#    ax1.set_extent([plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lon'][0], \
-    ##!#                    plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lon'][1], \
-    ##!#                    plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][0], \
-    ##!#                    plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][1]],\
+    ##!#    ax1.set_extent([aerosol_event_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lon'][0], \
+    ##!#                    aerosol_event_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lon'][1], \
+    ##!#                    aerosol_event_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][0], \
+    ##!#                    aerosol_event_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][1]],\
     ##!#                    datacrs)
     ##!##ax1.set_title('MODIS Ch. ' + str(channel2) + '\n' + \
     ##!##    str(channel_dict[str(channel2)]['Bandwidth'][0]) + ' μm - ' + \
@@ -1747,10 +1545,10 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
     ##!#ax2.add_feature(cfeature.STATES)
     ##!#ax2.coastlines()
     ##!#if(zoom):
-    ##!#    ax2.set_extent([plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0], \
-    ##!#                    plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1], \
-    ##!#                    plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0], \
-    ##!#                    plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]],\
+    ##!#    ax2.set_extent([aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0], \
+    ##!#                    aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1], \
+    ##!#                    aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0], \
+    ##!#                    aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]],\
     ##!#                    datacrs)
     ##!##ax2.set_title('MODIS Ch. ' + str(channel3) + '\n' + \
     ##!##    str(channel_dict[str(channel3)]['Bandwidth'][0]) + ' μm - ' + \
@@ -1762,16 +1560,16 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
     if(compare_OMI):
         print("Reading OMI data")
         LAT, LON, mask_UVAI = read_OMI_match_MODIS(date_str)
-        ##!#data = h5py.File(plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['omi'],'r')
+        ##!#data = h5py.File(aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['omi'],'r')
         ##!#LAT   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude'][:,:]
         ##!#LON   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude'][:,:]
         ##!#UVAI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex'][:,:]
         ##!#XTRACK = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/XTrackQualityFlags'][:,:]
         ##!#mask_UVAI = np.ma.masked_where((XTRACK < -2e5) | (UVAI < -2e5), UVAI)
-        ##!#mask_UVAI = np.ma.masked_where((((LAT < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) | \
-        ##!#                     (LAT > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1])) | \
-        ##!#                    ((LON < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) | \
-        ##!#                     (LON > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]))), mask_UVAI)
+        ##!#mask_UVAI = np.ma.masked_where((((LAT < aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) | \
+        ##!#                     (LAT > aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1])) | \
+        ##!#                    ((LON < aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) | \
+        ##!#                     (LON > aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]))), mask_UVAI)
 
         plot_OMI_spatial(date_str, LAT, LON, mask_UVAI, axo, zoom = zoom)
 
@@ -1781,10 +1579,10 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
         ##!#axo.add_feature(cfeature.STATES)
         ##!#axo.coastlines()
         ##!#if(zoom):
-        ##!#    axo.set_extent([plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0], \
-        ##!#                    plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1], \
-        ##!#                    plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0], \
-        ##!#                    plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]],\
+        ##!#    axo.set_extent([aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0], \
+        ##!#                    aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1], \
+        ##!#                    aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0], \
+        ##!#                    aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]],\
         ##!#                    datacrs)
         ##!#cbar3 = plt.colorbar(mesh3,ax=axo,orientation='vertical',\
         ##!#    pad=0.03,label='OMI UVAI')
@@ -1801,7 +1599,7 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
 
         ##!#print(start_date, end_date)
 
-        ##!#data = Dataset(plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['ceres'],'r')
+        ##!#data = Dataset(aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['ceres'],'r')
         ##!#LAT   = 90. - data.variables['Colatitude_of_CERES_FOV_at_surface'][:]
         ##!#LON   = data.variables['Longitude_of_CERES_FOV_at_surface'][:]
         ##!#LON[LON>179.99] = -360.+LON[LON>179.99]
@@ -1811,34 +1609,34 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
         ##!#local_time = np.array([base_date + relativedelta(days = ttime) for ttime in time])
 
         ##!#mask_LAT = LAT[ \
-        ##!#    (LAT >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
-        ##!#    (LAT <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
-        ##!#    (LON >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
-        ##!#    (LON <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
+        ##!#    (LAT >= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
+        ##!#    (LAT <= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
+        ##!#    (LON >= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
+        ##!#    (LON <= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
         ##!#    (swflux > 0) & (lwflux > 0)]
         ##!#mask_LON = LON[ \
-        ##!#    (LAT >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
-        ##!#    (LAT <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
-        ##!#    (LON >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
-        ##!#    (LON <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
+        ##!#    (LAT >= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
+        ##!#    (LAT <= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
+        ##!#    (LON >= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
+        ##!#    (LON <= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
         ##!#    (swflux > 0) & (lwflux > 0)]
         ##!#mask_swf = swflux[ \
-        ##!#    (LAT >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
-        ##!#    (LAT <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
-        ##!#    (LON >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
-        ##!#    (LON <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
+        ##!#    (LAT >= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
+        ##!#    (LAT <= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
+        ##!#    (LON >= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
+        ##!#    (LON <= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
         ##!#    (swflux > 0) & (lwflux > 0)]
         ##!#mask_lwf = lwflux[ \
-        ##!#    (LAT >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
-        ##!#    (LAT <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
-        ##!#    (LON >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
-        ##!#    (LON <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
+        ##!#    (LAT >= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
+        ##!#    (LAT <= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
+        ##!#    (LON >= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
+        ##!#    (LON <= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
         ##!#    (swflux > 0) & (lwflux > 0)]
         ##!###!#mask_time = local_time[ \
-        ##!###!#    (LAT >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
-        ##!###!#    (LAT <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
-        ##!###!#    (LON >= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
-        ##!###!#    (LON <= plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
+        ##!###!#    (LAT >= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
+        ##!###!#    (LAT <= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
+        ##!###!#    (LON >= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
+        ##!###!#    (LON <= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
         ##!###!#    (swflux > 0) & (lwflux > 0)]
 
         # Removed masked data
@@ -1857,7 +1655,7 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
 
         ##!#print(np.nanmax(mask_LAT.compressed()), np.min(mask_LAT.compressed()))
         ##!#print(np.nanmax(LAT), np.nanmin(LAT))
-        ##!#print(plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'])
+        ##!#print(aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'])
  
         ##!##scat3 = axcs.scatter(mask_LON, mask_LAT,mask_swf, transform = datacrs)
         ##!#mesh3 = axcs.scatter(mask_LON.compressed(), mask_LAT.compressed(),\
@@ -1871,10 +1669,10 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
         ##!#axcs.add_feature(cfeature.STATES)
         ##!#axcs.coastlines()
         ##!#if(zoom):
-        ##!#    axcs.set_extent([plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0], \
-        ##!#                     plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1], \
-        ##!#                     plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0], \
-        ##!#                     plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]],\
+        ##!#    axcs.set_extent([aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0], \
+        ##!#                     aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1], \
+        ##!#                     aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0], \
+        ##!#                     aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]],\
         ##!#                     datacrs)
         ##!#cbar3 = plt.colorbar(mesh3,ax=axcs,orientation='vertical',\
         ##!#    pad=0.03,label='TOA SWF [W/m2]')
@@ -1894,10 +1692,10 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
         ##!#axcl.add_feature(cfeature.STATES)
         ##!#axcl.coastlines()
         ##!#if(zoom):
-        ##!#    axcl.set_extent([plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0], \
-        ##!#                    plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1], \
-        ##!#                    plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0], \
-        ##!#                    plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]],\
+        ##!#    axcl.set_extent([aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0], \
+        ##!#                    aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1], \
+        ##!#                    aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0], \
+        ##!#                    aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]],\
         ##!#                    datacrs)
         ##!#    cbar4 = plt.colorbar(mesh4,ax=axcl,orientation='vertical',\
         ##!#        pad=0.03,label='TOA LWF [W/m2]')
@@ -1975,7 +1773,7 @@ def compare_MODIS_channels(date_str,channel1,channel2,zoom=True,save=False,\
         plot_ASOS_loc = False,show_smoke = True):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
-    filename = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
+    filename = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
 
     if(channel1 == 'red'):
         channel1 = 1
@@ -2005,9 +1803,9 @@ def compare_MODIS_channels(date_str,channel1,channel2,zoom=True,save=False,\
     #mapcrs = ccrs.LambertConformal()
     mapcrs = init_proj(date_str)
     #mapcrs = ccrs.LambertConformal(central_longitude = \
-    #    np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
+    #    np.mean(aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
     #    central_latitude = \
-    #    np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
+    #    np.mean(aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
 
     plt.close('all')
     fig = plt.figure(figsize=(14.5,5))
@@ -2032,10 +1830,10 @@ def compare_MODIS_channels(date_str,channel1,channel2,zoom=True,save=False,\
     ax0.add_feature(cfeature.STATES)
     ax0.coastlines()
     if(zoom):
-        ax0.set_extent([plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lon'][0], \
-                        plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lon'][1], \
-                        plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][0], \
-                        plot_limits_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][1]],\
+        ax0.set_extent([aerosol_event_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lon'][0], \
+                        aerosol_event_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lon'][1], \
+                        aerosol_event_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][0], \
+                        aerosol_event_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][1]],\
                         datacrs)
     #ax0.set_title('MODIS Ch. ' + str(channel1) + '\n' + \
     #    str(channel_dict[str(channel1)]['Bandwidth'][0]) + ' μm - ' + \
@@ -2059,10 +1857,10 @@ def compare_MODIS_channels(date_str,channel1,channel2,zoom=True,save=False,\
     ax1.add_feature(cfeature.STATES)
     ax1.coastlines()
     if(zoom):
-        ax1.set_extent([plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lon'][0], \
-                        plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lon'][1], \
-                        plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][0], \
-                        plot_limits_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][1]],\
+        ax1.set_extent([aerosol_event_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lon'][0], \
+                        aerosol_event_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lon'][1], \
+                        aerosol_event_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][0], \
+                        aerosol_event_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][1]],\
                         datacrs)
     #ax1.set_title('MODIS Ch. ' + str(channel2) + '\n' + \
     #    str(channel_dict[str(channel2)]['Bandwidth'][0]) + ' μm - ' + \
@@ -2190,7 +1988,7 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
         avg_pixel = False):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
-    filename = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
+    filename = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
 
     if(channel1 == 'red'):
         channel1 = 1
@@ -2328,7 +2126,7 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
         ##!#colocate_OMI(date_str, tmp_data0, tmp_lat0, tmp_lon0, hash_data1,\
         ##!#             axo, avg_pixel = avg_pixel)
 
-        ##!#data = h5py.File(plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['omi'],'r')
+        ##!#data = h5py.File(aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['omi'],'r')
         ##!#LAT   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude'][:,:]
         ##!#LON   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude'][:,:]
         ##!#UVAI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex'][:,:]
@@ -2336,18 +2134,18 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
         ##!#mask_LAT = np.ma.masked_where( (XTRACK < -2e5) | (UVAI < 2.), LAT)
         ##!#mask_LON = np.ma.masked_where( (XTRACK < -2e5) | (UVAI < 2.), LON)
         ##!#mask_UVAI = np.ma.masked_where((XTRACK < -2e5) | (UVAI < 2.), UVAI)
-        ##!#mask_LAT  = np.ma.masked_where((((LAT < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) | \
-        ##!#                     (LAT > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1])) | \
-        ##!#                    ((LON < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) | \
-        ##!#                     (LON > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]))), mask_LAT)
-        ##!#mask_LON  = np.ma.masked_where((((LAT < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) | \
-        ##!#                     (LAT > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1])) | \
-        ##!#                    ((LON < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) | \
-        ##!#                     (LON > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]))), mask_LON)
-        ##!#mask_UVAI = np.ma.masked_where((((LAT < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) | \
-        ##!#                     (LAT > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1])) | \
-        ##!#                    ((LON < plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) | \
-        ##!#                     (LON > plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]))), mask_UVAI)
+        ##!#mask_LAT  = np.ma.masked_where((((LAT < aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) | \
+        ##!#                     (LAT > aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1])) | \
+        ##!#                    ((LON < aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) | \
+        ##!#                     (LON > aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]))), mask_LAT)
+        ##!#mask_LON  = np.ma.masked_where((((LAT < aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) | \
+        ##!#                     (LAT > aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1])) | \
+        ##!#                    ((LON < aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) | \
+        ##!#                     (LON > aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]))), mask_LON)
+        ##!#mask_UVAI = np.ma.masked_where((((LAT < aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) | \
+        ##!#                     (LAT > aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1])) | \
+        ##!#                    ((LON < aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) | \
+        ##!#                     (LON > aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]))), mask_UVAI)
 
 
         #hash_data1, nohash_data1 = find_plume(filename) 
@@ -2396,13 +2194,13 @@ def plot_MODIS_spatial(MODIS_data, pax, zoom, vmin = None, vmax = None, \
         ptitle = None):
 
     if(vmin is None):
-        if('data_lim' in plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']].keys()):
-            vmin = plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['data_lim'][MODIS_data['channel']][0]
+        if('data_lim' in aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']].keys()):
+            vmin = aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['data_lim'][MODIS_data['channel']][0]
         else:
             vmin = np.nanmin(MODIS_data['data'])
     if(vmax is None):
-        if('data_lim' in plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']].keys()):
-            vmax = plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['data_lim'][MODIS_data['channel']][1]
+        if('data_lim' in aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']].keys()):
+            vmax = aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['data_lim'][MODIS_data['channel']][1]
         else:
             if(MODIS_data['channel'] == 'wv_ir'):
                 vmax = 1.5
@@ -2429,10 +2227,10 @@ def plot_MODIS_spatial(MODIS_data, pax, zoom, vmin = None, vmax = None, \
     pax.add_feature(cfeature.STATES)
     pax.coastlines()
     if(zoom):
-        pax.set_extent([plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][0], \
-                        plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][1], \
-                        plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0], \
-                        plot_limits_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1]],\
+        pax.set_extent([aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][0], \
+                        aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][1], \
+                        aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0], \
+                        aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1]],\
                         datacrs)
     if(ptitle == None):
         pax.set_title('Channel ' + str(MODIS_data['channel']) + '\n' + \
@@ -2445,7 +2243,7 @@ def plot_MODIS_spatial(MODIS_data, pax, zoom, vmin = None, vmax = None, \
 def plot_CERES_spatial(date_str, mask_LAT, mask_LON, mask_data, dtype, pax, \
         vmin = None, vmax = None, markersize = 170, ptitle = None, zoom = False):
 
-    #print(plot_limits_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'])
+    #print(aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'])
 
     plabel = 'TOA Flux [Wm$^{-2}$]'
     #plabel = 'TOA ' + dtype + ' [W/m2]'
@@ -2462,10 +2260,10 @@ def plot_CERES_spatial(date_str, mask_LAT, mask_LON, mask_data, dtype, pax, \
     pax.add_feature(cfeature.STATES)
     pax.coastlines()
     if(zoom):
-        pax.set_extent([plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
-                        plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
-                        plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
-                        plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
+        pax.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
                         datacrs)
     cbar3 = plt.colorbar(mesh3,ax=pax,orientation='vertical',\
         pad=0.03)
@@ -2925,9 +2723,9 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
     #dt_date_str = datetime.strptime(date_str, "%Y%m%d%H%M")
     mapcrs = init_proj(date_str)
     #mapcrs = ccrs.LambertConformal(central_longitude = \
-    #    np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
+    #    np.mean(aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
     #    central_latitude = \
-    #np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
+    #np.mean(aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
 
     tax1 = fig.add_subplot(2,3,1,projection = mapcrs) # smoke SW
     tax2 = fig.add_subplot(2,3,2,projection = mapcrs) # smoke LW
@@ -3328,9 +3126,9 @@ def plot_scatter_OMI_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
     ##!#fig = plt.figure(figsize=(8,5))
     ##!#dt_date_str = datetime.strptime(date_str, "%Y%m%d%H%M")
     ##!#mapcrs = ccrs.LambertConformal(central_longitude = \
-    ##!#    np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
+    ##!#    np.mean(aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
     ##!#    central_latitude = \
-    ##!#np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
+    ##!#np.mean(aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
 
     ##!#tax1 = fig.add_subplot(2,3,1,projection = mapcrs) # smoke SW
     ##!#tax2 = fig.add_subplot(2,3,2,projection = mapcrs) # smoke LW
@@ -3490,10 +3288,10 @@ def plot_OMI_spatial(date_str, LAT, LON, mask_UVAI, pax, zoom = False):
     pax.add_feature(cfeature.STATES)
     pax.coastlines()
     if(zoom):
-        pax.set_extent([plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
-                        plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
-                        plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
-                        plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
+        pax.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
                         datacrs)
     cbar3 = plt.colorbar(mesh3,ax=pax,orientation='vertical',\
         pad=0.03)
@@ -3519,9 +3317,9 @@ def plot_combined_imagery(date_str,channel1 = 1, channel2 = 5, channel3 = 31,\
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
     mapcrs = init_proj(date_str)
     #mapcrs = ccrs.LambertConformal(central_longitude = \
-    #    np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
+    #    np.mean(aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
     #    central_latitude = \
-    #    np.mean(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
+    #    np.mean(aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
 
     # Read true color data for this date
     var, crs, lat_lims, lon_lims = read_true_color(date_str,composite=composite)
@@ -4266,17 +4064,17 @@ def plot_figure2(save=False, composite = True, calc_radiance = True, \
     # Add subplot labels
     # ------------------
     dt_date_str = dt_date_str22
-    xval = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+    xval = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lon'][0] + \
-        (plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        (aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lon'][1] - \
-        plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lon'][0])*0.05
-    yval = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+    yval = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lat'][0] + \
-        (plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        (aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lat'][1] - \
-        plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lat'][0])*0.90
 
     plot_subplot_label(ax1, '(a)', xval = xval, yval = yval, \
@@ -4503,17 +4301,17 @@ def plot_figureS1(save=False, composite = True):
     plot_ASOS_locs(ax3,date_str23,color='lime', sites = ['O05','AAT'])
 
     dt_date_str = dt_date_str22
-    xval = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+    xval = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lon'][0] + \
-        (plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        (aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lon'][1] - \
-        plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lon'][0])*0.05
-    yval = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+    yval = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lat'][0] + \
-        (plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        (aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lat'][1] - \
-        plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lat'][0])*0.90
     plot_subplot_label(ax0, '(a)',color = 'white', xval = xval, yval = yval, \
         transform = datacrs)
@@ -4894,7 +4692,7 @@ def plot_meteogram_compare(date_str, true_color = True, zoom=True, \
 
     # Open the ASOS data file
     # -----------------------
-    df = pd.read_csv(plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')][\
+    df = pd.read_csv(aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
         dt_date_str.strftime('%H%M')]['asos'])
 
     # Read ASOS data for the current date
@@ -5001,12 +4799,12 @@ def plot_meteogram_compare(date_str, true_color = True, zoom=True, \
         #ax3.plot(dtime_stn,drct_stn_nohz,label=station, color=colors[ii])
         #ax3.plot(dtime_stn,drct_stn_hz,'--', label=station, color=colors[ii])
     
-    # Convert the file time to a plot_limits_dict format
+    # Convert the file time to a aerosol_event_dict format
     #event_date = datetime.strptime(infile.split('/')[-1].split('_')[-1][:8], "%Y%m%d")
     #grabber_date = event_date.strftime('%Y-%m-%d')
-    #first_time = list(plot_limits_dict[grabber_date].keys())[0]
+    #first_time = list(aerosol_event_dict[grabber_date].keys())[0]
     
-    # Pull the event time from the plot_limits_dict
+    # Pull the event time from the aerosol_event_dict
     #event_dtime = event_date + timedelta(hours = int(first_time[:2]), \
     #    minutes = int(first_time[2:4]))
 
@@ -5055,17 +4853,17 @@ def plot_meteogram_compare(date_str, true_color = True, zoom=True, \
  
     # Add subplot letter labels
     # -------------------------
-    xval = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+    xval = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lon'][0] + \
-        (plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        (aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lon'][1] - \
-        plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lon'][0])*0.05
-    yval = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+    yval = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lat'][0] + \
-        (plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        (aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lat'][1] - \
-        plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lat'][0])*0.90
     plot_subplot_label(ax0, '(a)', xval = xval, yval = yval, \
         transform = datacrs)
@@ -5484,17 +5282,17 @@ def plot_total_asos_diurnal(save = False, composite = True):
     plot_ASOS_locs(ax3,'asos_data_case_locs.csv', color = 'red')
 
     dt_date_str = dt_date_str22
-    xval = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+    xval = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lon'][0] + \
-        (plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        (aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lon'][1] - \
-        plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lon'][0])*0.05
-    yval = plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+    yval = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lat'][0] + \
-        (plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        (aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lat'][1] - \
-        plot_limits_dict[dt_date_str.strftime('%Y-%m-%d')]\
+        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
         [dt_date_str.strftime('%H%M')]['Lat'][0])*0.90
     plot_subplot_label(ax0, '(a)',color = 'white', xval = xval, yval = yval, \
         transform = datacrs)
@@ -5538,8 +5336,8 @@ def colocate_comparison(date1, date2, channel = 31):
     # ---------------------------------
     dt_date_str1 = datetime.strptime(date1,"%Y%m%d%H%M")
     dt_date_str2 = datetime.strptime(date2,"%Y%m%d%H%M")
-    filename1 = plot_limits_dict[dt_date_str1.strftime('%Y-%m-%d')][dt_date_str1.strftime('%H%M')]['modis']
-    filename2 = plot_limits_dict[dt_date_str2.strftime('%Y-%m-%d')][dt_date_str2.strftime('%H%M')]['modis']
+    filename1 = aerosol_event_dict[dt_date_str1.strftime('%Y-%m-%d')][dt_date_str1.strftime('%H%M')]['modis']
+    filename2 = aerosol_event_dict[dt_date_str2.strftime('%Y-%m-%d')][dt_date_str2.strftime('%H%M')]['modis']
 
     MODIS_data1 = read_MODIS_channel(dt_date_str1.strftime('%Y%m%d%H%M'), channel, zoom = True)
     MODIS_data2 = read_MODIS_channel(dt_date_str2.strftime('%Y%m%d%H%M'), channel, zoom = True)

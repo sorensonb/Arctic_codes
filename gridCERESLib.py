@@ -49,20 +49,32 @@ from scipy.signal import argrelextrema, find_peaks
 # The commands module was discontinued for Python 3, so if the user
 # is using python 2, import commands instead
 
-# Compute a circle in axes coordinates, which we can use as a boundary
-# for the map. We can pan/zoom as much as we like - the boundary will be
-# permanently circular.
-theta = np.linspace(0, 2*np.pi, 100)
-center, radius = [0.5, 0.5], 0.5
-verts = np.vstack([np.sin(theta), np.cos(theta)]).T
-circle = mpath.Path(verts * radius + center)
+sys.path.append('/home/bsorenson')
+from python_lib import circle, plot_trend_line, nearest_gridpoint, \
+    aerosol_event_dict, init_proj
+
+##!## Compute a circle in axes coordinates, which we can use as a boundary
+##!## for the map. We can pan/zoom as much as we like - the boundary will be
+##!## permanently circular.
+##!#theta = np.linspace(0, 2*np.pi, 100)
+##!#center, radius = [0.5, 0.5], 0.5
+##!#verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+##!#circle = mpath.Path(verts * radius + center)
 
 datacrs = ccrs.PlateCarree() 
 #mapcrs = ccrs.NorthPolarStereo()
 mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
 
+var_dict = {
+    'SWF': 'CERES_SW_TOA_flux___upwards',
+    'LWF': 'CERES_LW_TOA_flux___upwards',
+    'clr': 'Clear_layer_overlap_percent_coverages',
+    'cld': 'Clear_layer_overlap_percent_coverages',
+    'alb': 'CERES_broadband_surface_albedo'
+}
+  
 max_dict = {
-    'SWF': 600.,
+    'SWF': 250.,
     'LWF': 280.,
     'clr': 100.,
     'cld': 100.,
@@ -70,37 +82,46 @@ max_dict = {
 }
 
 min_dict = {
-    'SWF': 0.,
+    'SWF': 100.,
     'LWF': 160.,
     'clr': 0.,
     'cld': 0.,
     'alb': 0.
 }
 
-def covariance(x,y):
-    avg_x = np.average(x)
-    avg_y = np.average(y)
-    N = len(x)
-    if(len(x)!=len(y)):
-        print("ERROR: Arrays are not the same size.\nArray x has len=",len(x),\
-              "\nArray y has len=",len(y))
-    else:
-        cov = (np.sum((x-avg_x)*(y-avg_y)))/(N-1)
-        return cov
-
-def correlation(x,y):
-    avg_x = np.average(x)
-    avg_y = np.average(y)
-    N = len(x)
-    if(len(x)!=len(y)):
-        print("ERROR: Arrays are not the same size.\nArray x has len=",len(x),\
-              "\nArray y has len=",len(y))
-    else:
-        cov = (np.sum((x-avg_x)*(y-avg_y)))/(N-1)
-        std_x = np.std(x)
-        std_y = np.std(y)
-        corr = cov/(std_x*std_y)
-        return(corr)
+##!## Find the gridpoint in the gridded lat/lon data that 
+##!## corresponds to the station at slat and slon
+##!## ---------------------------------------------------- 
+##!#def nearest_gridpoint(slat, slon, grid_lat, grid_lon):
+##!#    fun_c = np.maximum(np.abs(grid_lat - slat), \
+##!#        np.abs(grid_lon - slon))
+##!#    m_idx = np.where(fun_c == np.min(fun_c))
+##!#    return m_idx
+##!#
+##!#def covariance(x,y):
+##!#    avg_x = np.average(x)
+##!#    avg_y = np.average(y)
+##!#    N = len(x)
+##!#    if(len(x)!=len(y)):
+##!#        print("ERROR: Arrays are not the same size.\nArray x has len=",len(x),\
+##!#              "\nArray y has len=",len(y))
+##!#    else:
+##!#        cov = (np.sum((x-avg_x)*(y-avg_y)))/(N-1)
+##!#        return cov
+##!#
+##!#def correlation(x,y):
+##!#    avg_x = np.average(x)
+##!#    avg_y = np.average(y)
+##!#    N = len(x)
+##!#    if(len(x)!=len(y)):
+##!#        print("ERROR: Arrays are not the same size.\nArray x has len=",len(x),\
+##!#              "\nArray y has len=",len(y))
+##!#    else:
+##!#        cov = (np.sum((x-avg_x)*(y-avg_y)))/(N-1)
+##!#        std_x = np.std(x)
+##!#        std_y = np.std(y)
+##!#        corr = cov/(std_x*std_y)
+##!#        return(corr)
 
 def ice_trend_calc(years,months,ice,avg_ice,index,str_month):
     interpx = years[np.where(months==index)]
@@ -303,16 +324,7 @@ def readgridCERES_daily(start_date,end_date,param,satellite = 'Aqua',minlat=60.5
 
 # Data period is of format YYYYMMDDHH
 def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'):
-    CERES_data_hrly = {}
 
-    var_dict = {
-        'SWF': 'CERES_SW_TOA_flux___upwards',
-        'LWF': 'CERES_LW_TOA_flux___upwards',
-        'clr': 'Clear_layer_overlap_percent_coverages',
-        'cld': 'Clear_layer_overlap_percent_coverages',
-        'alb': 'CERES_broadband_surface_albedo'
-    }
-  
     lat_ranges = np.arange(minlat,90.0,0.25)
     lon_ranges = np.arange(-180.0,180.0,0.25)
 
@@ -341,8 +353,8 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
         print("INVALID PLOT TIME")
         sys.exit()
     
-    dt_data_begin = datetime.strptime(data_dt,str_fmt) 
-    #    relativedelta(hours = hour_subtracter)
+    dt_data_begin = datetime.strptime(data_dt,str_fmt)# \
+        #- relativedelta(hours = hour_subtracter)
     dt_data_end   = datetime.strptime(data_dt,str_fmt) + \
          relativedelta(hours = hour_adder)
 
@@ -372,8 +384,6 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     lat_gridder = minlat * 4.
 
 
-    swf_grid = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
-    count = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
     base_date = datetime(year=1970,month=1,day=1)
 
     # Assume that only one file will match up
@@ -411,6 +421,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
         for ttime in time])
    
     # Extract only the data in the time window 
+    # ----------------------------------------
     test_time = total_times[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
     test_flux = flux[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
     test_lat  = lat[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
@@ -419,23 +430,30 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     test_vza  = vza[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
     test_azm  = azm[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
 
-    print(test_time[0], test_time[-1])
+    ###plt.close('all') 
+    ###fig1 = plt.figure()
+    ###plt.plot(test_azm)
+    ###plt.plot(test_lat)
+    ###plt.plot(test_vza)
+    ###plt.show()
 
-    # Determine where the VZA peaks are located and separated by either
-    # 90 or 91
     # Determine where the LAT peaks are located and separated by 181
+    # --------------------------------------------------------------
     lat_neg_peaks, _ = find_peaks(-test_lat, distance = 120)
     lat_peak_diffs = lat_neg_peaks[1:] - lat_neg_peaks[:-1]
 
 
-    keep_lat_peaks = lat_neg_peaks[np.where((lat_peak_diffs == 181) | (lat_peak_diffs == 182))]
+    # Extract the data within the full cycles
+    # ---------------------------------------    
+    keep_lat_peaks = lat_neg_peaks[np.where((lat_peak_diffs == 181) | \
+        (lat_peak_diffs == 182))]
+    if(len(keep_lat_peaks) == 0):
+        print("ERROR: no data within the desired time window")
+        return
+
     begin_idx = keep_lat_peaks[0]
     end_idx   = keep_lat_peaks[-1]
 
-    print(begin_idx, end_idx)
-    print(lat_neg_peaks)
-
-    
     test_time = test_time[begin_idx: end_idx]
     test_flux = test_flux[begin_idx: end_idx]
     test_lat  =  test_lat[begin_idx: end_idx]
@@ -444,19 +462,19 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     test_vza  =  test_vza[begin_idx: end_idx]
     test_azm  =  test_azm[begin_idx: end_idx]
 
-    # Make grid arrays
+    # Make grid arrays for the data
+    # -----------------------------
     grid_flux = np.full((300, 181), np.nan)
     grid_lat  = np.full((300, 181), np.nan)
     grid_lon  = np.full((300, 181), np.nan)
     grid_sza  = np.full((300, 181), np.nan)
     grid_vza  = np.full((300, 181), np.nan)
     grid_azm  = np.full((300, 181), np.nan)
-    print(keep_lat_peaks)
+
     # Loop over the data and insert into the grids
     for ii in range(len(keep_lat_peaks) - 1):
         idx_diff = keep_lat_peaks[ii+1] - keep_lat_peaks[ii]
         if(idx_diff == 181):
-            print(keep_lat_peaks[ii], keep_lat_peaks[ii+1], keep_lat_peaks[ii+1] - keep_lat_peaks[ii])
             grid_flux[ii,:len(test_flux[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_flux[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
             grid_lat[ii,:len(test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
             grid_lon[ii,:len(test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
@@ -464,16 +482,13 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
             grid_vza[ii,:len(test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
             grid_azm[ii,:len(test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
         elif(idx_diff > 181):
-            print('got here at', ii)
-            print('AA', keep_lat_peaks[ii], keep_lat_peaks[ii+1], keep_lat_peaks[ii+1] - keep_lat_peaks[ii])
             grid_flux[ii,:len(test_flux[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_flux[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
             grid_lat[ii,: len(test_lat[keep_lat_peaks[ii]: keep_lat_peaks[ii] + 181])] = test_lat[keep_lat_peaks[ii]: keep_lat_peaks[ii] + 181]
             grid_lon[ii,: len(test_lon[keep_lat_peaks[ii]: keep_lat_peaks[ii] + 181])] = test_lon[keep_lat_peaks[ii]: keep_lat_peaks[ii] + 181]
             grid_sza[ii,: len(test_sza[keep_lat_peaks[ii]: keep_lat_peaks[ii] + 181])] = test_sza[keep_lat_peaks[ii]: keep_lat_peaks[ii] + 181]
             grid_vza[ii,: len(test_vza[keep_lat_peaks[ii]: keep_lat_peaks[ii] + 181])] = test_vza[keep_lat_peaks[ii]: keep_lat_peaks[ii] + 181]
             grid_azm[ii,: len(test_azm[keep_lat_peaks[ii]: keep_lat_peaks[ii] + 181])] = test_azm[keep_lat_peaks[ii]: keep_lat_peaks[ii] + 181]
-        else:
-            print('size at ',ii,' is ',idx_diff)
+
     # Remove any rows in the grid arrays with any nans
     # ------------------------------------------------
     checkers = np.array([np.count_nonzero(~np.isnan(grid_lon[ii,:])) for ii in range(grid_lon.shape[0])])
@@ -487,38 +502,40 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     grid_azm  = grid_azm[np.where(checkers == 181)[0],:]
 
     grid_flux = np.ma.masked_invalid(grid_flux)
-    grid_flux = np.ma.masked_where(grid_flux > 5000, grid_flux)
+    grid_flux = np.ma.masked_where((grid_flux > 5000) | (grid_flux == 0), grid_flux)
 
-    plt.close('all') 
-    fig1 = plt.figure()
-    plt.plot(test_azm)
-    plt.plot(test_lat)
-    plt.plot(test_vza)
-    plt.show()
+    # Put the data into a structure
+    # -----------------------------
+    CERES_grid_hrly = {}
+    CERES_grid_hrly['param']     = param
+    CERES_grid_hrly['parm_name'] = var_dict[param]
+    CERES_grid_hrly['date']      = data_dt
+    CERES_grid_hrly['satellite'] = satellite
+    CERES_grid_hrly['data']      = grid_flux
+    CERES_grid_hrly['lat']       = grid_lat
+    CERES_grid_hrly['lon']       = grid_lon  
+    CERES_grid_hrly['vza']       = grid_vza
+    CERES_grid_hrly['sza']       = grid_sza  
+    CERES_grid_hrly['azm']       = grid_azm
 
-    # Plot a map
-    fig2 = plt.figure()
-    mapcrs = ccrs.NorthPolarStereo()
-    ax0 = fig2.add_subplot(1,1,1, projection = mapcrs)
-    mesh = ax0.pcolormesh(grid_lon, grid_lat, np.ma.masked_invalid(grid_flux),transform = datacrs, shading = 'auto')
-    cbar = plt.colorbar(mesh,ax = ax0, orientation='vertical',\
-        shrink = 0.8)
-    ax0.coastlines(resolution = '50m')
-    ax0.set_extent([-180,180,65,90], datacrs)
-    plt.show()
+    return CERES_grid_hrly  
+
+
+    ##!## Plot a map
+    ##!#fig2 = plt.figure()
+    ##!#mapcrs = ccrs.NorthPolarStereo()
+    ##!#ax0 = fig2.add_subplot(1,1,1, projection = mapcrs)
+    ##!#mesh = ax0.pcolormesh(grid_lon, grid_lat, np.ma.masked_invalid(grid_flux),transform = datacrs, shading = 'auto')
+    ##!#cbar = plt.colorbar(mesh,ax = ax0, orientation='vertical',\
+    ##!#    shrink = 0.8)
+    ##!#ax0.coastlines(resolution = '50m')
+    ##!#ax0.set_extent([-180,180,65,90], datacrs)
+    ##!#plt.show()
 
 # Data period is of format YYYYMMDDHH
 def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'):
     CERES_data_hrly = {}
 
-    var_dict = {
-        'SWF': 'CERES_SW_TOA_flux___upwards',
-        'LWF': 'CERES_LW_TOA_flux___upwards',
-        'clr': 'Clear_layer_overlap_percent_coverages',
-        'cld': 'Clear_layer_overlap_percent_coverages',
-        'alb': 'CERES_broadband_surface_albedo'
-    }
-  
     lat_ranges = np.arange(minlat,90.0,0.25)
     lon_ranges = np.arange(-180.0,180.0,0.25)
 
@@ -1328,7 +1345,7 @@ def icePlots(infile,monthfix=False):
 
 def plotCERES_hrly(pax, CERES_data_hrly, minlat=65, \
         vmin = None, vmax = None, title = '', label = '', \
-        circle_bound = True, gridlines = True):
+        circle_bound = True, gridlines = True, grid_data = True):
 
     if(vmin is None):
         vmin = min_dict[CERES_data_hrly['param']]
@@ -1337,31 +1354,42 @@ def plotCERES_hrly(pax, CERES_data_hrly, minlat=65, \
 
     # Set up mapping variables 
     datacrs = ccrs.PlateCarree() 
-    colormap = plt.cm.jet
-    if(minlat < 45):
-        mapcrs = ccrs.Miller()
+    colormap = plt.cm.viridis
+    if(pax is None):
+        if(minlat < 45):
+            mapcrs = ccrs.Miller()
+        else:
+            mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
+
+    if(grid_data):
+        plot_lon  = CERES_data_hrly['lon']
+        plot_lat  = CERES_data_hrly['lat']
+        mask_flux = CERES_data_hrly['data']
     else:
-        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
-
-    local_data = np.copy(CERES_data_hrly['data'])
-
-    plot_lat, plot_lon = np.meshgrid(CERES_data_hrly['lat'],CERES_data_hrly['lon'])
-    mask_flux = np.ma.masked_where(CERES_data_hrly['counts'] == 0, local_data)
-  
+        plot_lat, plot_lon = np.meshgrid(CERES_data_hrly['lat'], \
+            CERES_data_hrly['lon'])
+        mask_flux = np.ma.masked_where(CERES_data_hrly['counts'] == 0, \
+            local_data)
+        local_data = np.copy(CERES_data_hrly['data'])
+ 
     if(gridlines): 
         pax.gridlines()
     if(title == ''):
         title =  'CERES ' + CERES_data_hrly['param'] + ' ' + CERES_data_hrly['date']
+    if(label == ''):
+        label = CERES_data_hrly['param'] + ' [W/m$^{2}$]'
     pax.set_title(title)
 
     #plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
     mesh = pax.pcolormesh(plot_lon, plot_lat,mask_flux,transform = datacrs,\
-        cmap = colormap, vmin = vmin, vmax = vmax, shading = 'gouraud')
+        cmap = colormap, vmin = vmin, vmax = vmax, shading = 'auto')
     cbar = plt.colorbar(mesh,ax = pax, orientation='vertical',\
-        shrink = 0.8)
+        shrink = 0.8, extend = 'both')
+    cbar.set_label(label,fontsize = 14, weight='bold')
+    cbar.ax.tick_params(labelsize=14)
 
     pax.coastlines(resolution = '50m')
-    pax.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
+    #pax.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
     pax.add_feature(cfeature.BORDERS)
     pax.add_feature(cfeature.STATES)
 
@@ -1370,17 +1398,26 @@ def plotCERES_hrly(pax, CERES_data_hrly, minlat=65, \
 
 # Plot just a single swath on a 1-panel figure
 #     skiprows - 
-# --------------------------------------------
+# NOTE: modified to work with readgridCERES_hrly_grid
+# ---------------------------------------------------
 def plotCERES_hrly_figure(date_str, param,  \
         only_sea_ice = False, minlat = 65., skiprows = None, \
-        lat_circles = None, save = False):
-
+        lat_circles = None, grid_data = True, save = False):
 
     # ----------------------------------------------------
     # Read in data
     # ----------------------------------------------------
-    CERES_data_hrly = readgridCERES_hrly(date_str, param, satellite = 'Aqua',\
-        minlat = minlat, season = 'all')
+    if(grid_data):
+        CERES_data_hrly = readgridCERES_hrly_grid(date_str, param, \
+            satellite = 'Aqua', minlat = minlat)
+
+        if(CERES_data_hrly is None):
+            print("ERROR: no data returned from readgridCERES_hrly_grid")
+            print("Quitting")
+            return
+    else:
+        CERES_data_hrly = readgridCERES_hrly(date_str, param, satellite = 'Aqua',\
+            minlat = minlat, season = 'all')
 
     # ----------------------------------------------------
     # Set up the overall figure
@@ -1396,7 +1433,7 @@ def plotCERES_hrly_figure(date_str, param,  \
     # ----------------------------------------------------
     plotCERES_hrly(ax0, CERES_data_hrly, minlat = minlat, \
         vmin = None, vmax = None, title = '', label = '', \
-        circle_bound = True, gridlines = True)
+        circle_bound = True, gridlines = True, grid_data = grid_data)
 
     plt.suptitle(date_str)
 
@@ -2031,20 +2068,20 @@ def plot_compare_OMI_CERES_trends(OMI_data,CERES_data,month,minlat=65,\
     #return mask_trend1,mask_trend2
 
 def plot_compare_OMI_CERES_hrly(OMI_date,CERES_date,minlat=65,max_AI = -200.,\
-        omi_dtype = 'jz', only_sea_ice = False, skiprows = None, save=False):
+        omi_dtype = 'control', only_sea_ice = False, skiprows = None, save=False):
 #def plot_compare_OMI_CERES_hrly(OMI_hrly,CERES_hrly,minlat=65,save=False):
 
     if('/home/bsorenson/Research/OMI' not in sys.path):
         sys.path.append('/home/bsorenson/Research/OMI')
     from OMILib import readOMI_swath_shawn, readOMI_swath_hdf, \
-        plot_OMI_single_swath
+        plotOMI_single_swath
 
     # ----------------------------------------------------
     # Set up the overall figure
     # ----------------------------------------------------
     plt.close('all')
     fig1 = plt.figure(figsize = (6,6))
-    #mapcrs = ccrs.NorthPolarStereo()
+    mapcrs = ccrs.NorthPolarStereo()
     ax0 = fig1.add_subplot(1,1,1, projection = mapcrs)
 
     # Set up mapping variables 
@@ -2059,10 +2096,12 @@ def plot_compare_OMI_CERES_hrly(OMI_date,CERES_date,minlat=65,max_AI = -200.,\
     # ----------------------------------
     #OMI_hrly = readOMI_single_swath(OMI_date,60,only_sea_ice = only_sea_ice)
     if(omi_dtype == 'shawn'):
-        OMI_base  = readOMI_swath_shawn(OMI_date, latmin = minlat,\
+        OMI_hrly  = readOMI_swath_shawn(OMI_date, latmin = minlat,\
             skiprows = skiprows)
     else:
-        OMI_base  = readOMI_swath_hdf(OMI_date, dtype, \
+        if(omi_dtype == 'jz'):
+            omi_dtype = 'JZ'
+        OMI_hrly  = readOMI_swath_hdf(OMI_date, omi_dtype, \
             only_sea_ice = only_sea_ice, latmin = minlat, \
             skiprows = skiprows)
 
@@ -2083,7 +2122,7 @@ def plot_compare_OMI_CERES_hrly(OMI_date,CERES_date,minlat=65,max_AI = -200.,\
     # -------------------------------------------------------
     # Use the single-swath plotting function to plot OMI data
     # -------------------------------------------------------
-    plotOMI_single_swath(ax0, OMI_base, title = dtype.title(), \
+    plotOMI_single_swath(ax0, OMI_hrly, title = omi_dtype.title(), \
         circle_bound = True, gridlines = False)
 
     ax0.set_extent([-180,180,minlat,90], datacrs)
@@ -2115,7 +2154,7 @@ def plot_compare_OMI_CERES_hrly(OMI_date,CERES_date,minlat=65,max_AI = -200.,\
     # ------------------------------------------------------------
 
     # Make gridded lat and lon arrays to use for coloring the plot
-    glat, glon = np.meshgrid(OMI_hrly['lat'],OMI_hrly['lon'])
+    glat, glon = np.meshgrid(OMI_hrly['LAT'],OMI_hrly['LON'])
     
     # Mask any empty boxes
     mask_AI = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
@@ -2210,3 +2249,258 @@ def plot_compare_OMI_CERES_hrly(OMI_date,CERES_date,minlat=65,max_AI = -200.,\
     else:
         plt.show()
     return mask_AI,mask_flux
+
+#def plot_compare_OMI_CERES_hrly_grid(OMI_date,CERES_date,minlat=65,max_AI = -200.,\
+def plot_compare_OMI_CERES_hrly_grid(date_str,minlat=65,max_AI = -200.,\
+        omi_dtype = 'control', only_sea_ice = False, only_ice = False, \
+        no_ice = False,  skiprows = None, save=False, composite = False, \
+        zoom = False, lat_circles = None):
+#def plot_compare_OMI_CERES_hrly(OMI_hrly,CERES_hrly,minlat=65,save=False):
+
+    if('/home/bsorenson/Research/OMI' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/OMI')
+    if('/home/bsorenson/Research/MODIS' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/MODIS/obs_smoke_forcing')
+    from OMILib import readOMI_swath_shawn, readOMI_swath_hdf, \
+        plotOMI_single_swath
+    from MODISLib import read_true_color
+
+    # ------------------------------------------------------------------------
+    #
+    # Extract the OMI and CERES dates from the event date
+    #
+    # ------------------------------------------------------------------------
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+    OMI_date = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+                   dt_date_str.strftime('%H%M')]['omi']
+    OMI_date = OMI_date.split('_')[-2][:4] + OMI_date.split('_')[-2][5:9] + \
+        OMI_date.split('_')[-2][10:14]
+    CERES_date = dt_date_str.strftime('%Y%m%d') + \
+        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+        dt_date_str.strftime('%H%M')]['ceres_time']
+
+    # ------------------------------------------------------------------------
+    #
+    # Set up mapping variables 
+    #
+    # ------------------------------------------------------------------------
+    datacrs = ccrs.PlateCarree() 
+    colormap = plt.cm.viridis
+    circle_bound = True
+    zoom_add = ''
+    if(zoom):
+        zoom_add = '_zoom'
+        circle_bound = False
+        mapcrs = ccrs.NorthPolarStereo(central_longitude = -40)
+    else:
+        mapcrs = ccrs.NorthPolarStereo()
+
+    # ------------------------------------------------------------------------
+    #
+    # Step 1: read in OMI, CERES, and MODIS data
+    #
+    # ------------------------------------------------------------------------
+    #OMI_hrly = readOMI_single_swath(OMI_date,60,only_sea_ice = only_sea_ice)
+    if(omi_dtype == 'shawn'):
+        print("Reading Shawn data")
+        OMI_base  = readOMI_swath_shawn(OMI_date, latmin = minlat)
+    else:
+        OMI_base  = readOMI_swath_hdf(OMI_date, omi_dtype, \
+            only_sea_ice = only_sea_ice, latmin = minlat, \
+            skiprows = skiprows)
+
+    CERES_hrly = readgridCERES_hrly_grid(CERES_date, 'SWF', minlat = minlat)
+
+    ##!## Read the true color data
+    ##!## ------------------------
+    ##!#var1, crs1, lat_lims1, lon_lims1 = read_true_color(date_str,\
+    ##!#    composite=composite)
+
+
+    # ------------------------------------------------------------------------
+    #
+    # Step 2: Set up figure to have 3 panels
+    #
+    # ------------------------------------------------------------------------
+    plt.close('all')
+    #fig, axs = plt.subplots(1,3,subplot_kw={'projection': mapcrs})
+    fig = plt.figure(figsize=(10,8))
+    mapcrs = init_proj(date_str)
+    ax0 = fig.add_subplot(2,2,1,projection = mapcrs)
+    ax1 = fig.add_subplot(2,2,2,projection = mapcrs)
+    #ax3 = fig.add_subplot(2,2,3,projection = crs1)
+    ax2 = fig.add_subplot(2,2,4)
+
+    ##!## Plot the true-color data for the previous date
+    ##!## ----------------------------------------------
+    ##!#ax3.imshow(var1.data, transform = crs1, extent=(var1.x[0], var1.x[-1], \
+    ##!#    var1.y[-1], var1.y[0]), origin='upper')
+
+    ##!## Zoom in the figure if desired
+    ##!## -----------------------------
+    ##!#if(zoom):
+    ##!#    ax3.set_extent([lon_lims1[0],lon_lims1[1],lat_lims1[0],\
+    ##!#        lat_lims1[1]],crs = datacrs)
+
+    # ------------------------------------------------------------------------
+    #
+    # Step 3: Plot OMI and CERES data in first two panels
+    #
+    # ------------------------------------------------------------------------
+    lat_lims = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+                dt_date_str.strftime('%H%M')]['Lat']
+    lon_lims = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+                dt_date_str.strftime('%H%M')]['Lon']
+    OMI_base['UVAI'] = np.ma.masked_where(~((OMI_base['LAT'] >= lat_lims[0]) & \
+                                            (OMI_base['LAT'] <  lat_lims[1]) & \
+                                            (OMI_base['LON'] >= lon_lims[0]) & \
+                                            (OMI_base['LON'] <  lon_lims[1])), OMI_base['UVAI'])
+    CERES_hrly['data'] = np.ma.masked_where(~((CERES_hrly['lat'] >= lat_lims[0]) & \
+                                              (CERES_hrly['lat'] <  lat_lims[1]) & \
+                                              (CERES_hrly['lon'] >= lon_lims[0]) & \
+                                              (CERES_hrly['lon'] <  lon_lims[1])), CERES_hrly['data'])
+
+    # Use the single-swath plotting function to plot OMI data
+    # -------------------------------------------------------
+    plotOMI_single_swath(ax0, OMI_base, title = 'OMI ' + omi_dtype + \
+        ' ' + OMI_date, circle_bound = circle_bound, gridlines = False)
+
+    # Use the single-swath plotting function to plot CERES data
+    # ---------------------------------------------------------
+    plotCERES_hrly(ax1, CERES_hrly, minlat = minlat, \
+        vmin = None, vmax = None, title = '', label = '', \
+        circle_bound = False, gridlines = False, grid_data = True)
+
+    if(zoom):
+        lat_lims = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+                    dt_date_str.strftime('%H%M')]['Lat']
+        lon_lims = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+                    dt_date_str.strftime('%H%M')]['Lon']
+
+        ax0.set_extent([lon_lims[0], lon_lims[1], lat_lims[0], lat_lims[1]], datacrs)
+        ax1.set_extent([lon_lims[0], lon_lims[1], lat_lims[0], lat_lims[1]], datacrs)
+    else: 
+        ax0.set_extent([-180,180,minlat,90], datacrs)
+        ax1.set_extent([-180,180,minlat,90], datacrs)
+
+    # If the user wants circles along latitude lines,    
+    # plot them here      
+    # ----------------------------------------------------
+    if(lat_circles is not None):
+        plot_lat_circles(ax0, lat_circles) 
+
+    # ------------------------------------------------------------------------
+    #
+    # Step 4: Colocate the OMI and CERES data
+    #
+    # ------------------------------------------------------------------------
+
+    # First, get rid of any data outside the study region
+    # ---------------------------------------------------
+    print('Before zoom - ', OMI_base['UVAI'].shape)
+    if(zoom):
+        zoom_omi_LAT  = OMI_base['LAT'][( (OMI_base['LAT'] >= lat_lims[0]) & \
+                                          (OMI_base['LAT'] <  lat_lims[1] ) & \
+                                          (OMI_base['LON'] >= lon_lims[0]) & \
+                                          (OMI_base['LON'] <  lon_lims[1] ))]
+        zoom_omi_LON  = OMI_base['LON'][( (OMI_base['LAT'] >= lat_lims[0]) & \
+                                          (OMI_base['LAT'] <  lat_lims[1] ) & \
+                                          (OMI_base['LON'] >= lon_lims[0]) & \
+                                          (OMI_base['LON'] <  lon_lims[1] ))]
+        zoom_omi_UVAI = OMI_base['UVAI'][((OMI_base['LAT'] >= lat_lims[0]) & \
+                                          (OMI_base['LAT'] <  lat_lims[1] ) & \
+                                          (OMI_base['LON'] >= lon_lims[0]) & \
+                                          (OMI_base['LON'] <  lon_lims[1] ))]
+        ##!#zoom_ceres_LAT  = CERES_hrly['lat'][( (CERES_hrly['lat'] >= lat_lims[0]) & \
+        ##!#                                      (CERES_hrly['lat'] <  lat_lims[1] ) & \
+        ##!#                                      (CERES_hrly['lon'] >= lon_lims[0]) & \
+        ##!#                                      (CERES_hrly['lon'] <  lon_lims[1] ))]
+        ##!#zoom_ceres_LON  = CERES_hrly['lon'][( (CERES_hrly['lat'] >= lat_lims[0]) & \
+        ##!#                                      (CERES_hrly['lat'] <  lat_lims[1] ) & \
+        ##!#                                      (CERES_hrly['lon'] >= lon_lims[0]) & \
+        ##!#                                      (CERES_hrly['lon'] <  lon_lims[1] ))]
+        ##!#zoom_ceres_UVAI = CERES_hrly['data'][((CERES_hrly['lat'] >= lat_lims[0]) & \
+        ##!#                                      (CERES_hrly['lat'] <  lat_lims[1] ) & \
+        ##!#                                      (CERES_hrly['lon'] >= lon_lims[0]) & \
+        ##!#                                      (CERES_hrly['lon'] <  lon_lims[1] ))]
+        ##!#zoom_ceres_UVAI = CERES_hrly['data'][((CERES_hrly['lat'] >= lat_lims[0]) & \
+        ##!#                                      (CERES_hrly['lat'] <  lat_lims[1] ) & \
+        ##!#                                      (CERES_hrly['lon'] >= lon_lims[0]) & \
+        ##!#                                      (CERES_hrly['lon'] <  lon_lims[1] ))]
+    else:
+        zoom_omi_LAT  = OMI_base['LAT']
+        zoom_omi_LON  = OMI_base['LON']
+        zoom_omi_UVAI = OMI_base['UVAI']
+        ##!#zoom_ceres_LAT  = CERES_hrly['lat']
+        ##!#zoom_ceres_LON  = CERES_hrly['lon']
+        ##!#zoom_ceres_UVAI = CERES_hrly['data']
+                                             
+
+    # First, get rid of any masked values in the OMI data
+    # ---------------------------------------------------
+    mask_LAT  = zoom_omi_LAT[ ~zoom_omi_UVAI.mask]
+    mask_LON  = zoom_omi_LON[ ~zoom_omi_UVAI.mask]
+    mask_UVAI = zoom_omi_UVAI[~zoom_omi_UVAI.mask]
+    mask_UVAI = np.ma.masked_where(mask_UVAI < 0, mask_UVAI)
+    ##!#mask_LAT  = OMI_base['LAT'][~OMI_base['UVAI'].mask]
+    ##!#mask_LON  = OMI_base['LON'][~OMI_base['UVAI'].mask]
+    ##!#mask_UVAI = OMI_base['UVAI'][~OMI_base['UVAI'].mask]
+    print('After zoom - ', mask_UVAI.shape)
+
+    ceres_match_lat  = np.full(mask_UVAI.shape,np.nan)
+    ceres_match_lon  = np.full(mask_UVAI.shape,np.nan)
+    ceres_match_flux = np.full(mask_UVAI.shape,np.nan)
+    ceres_match_vza  = np.full(mask_UVAI.shape,np.nan)
+
+    # Loop over the OMI data and find the closest CERES
+    # gridpoint
+    # -------------------------------------------------
+    for ii in range(ceres_match_flux.shape[0]):
+        # Find the gridpoint in the gridded lat/lon data that 
+        # corresponds to the station at slat and slon
+        # ---------------------------------------------------- 
+        o_idx = nearest_gridpoint(mask_LAT[ii], mask_LON[ii],\
+            CERES_hrly['lat'], CERES_hrly['lon'])
+
+        if(len(o_idx[0]) > 1):
+            o_idx = (np.array([o_idx[0][0]])), (np.array([o_idx[1][0]]))
+        ceres_match_flux[ii] = CERES_hrly['data'][o_idx]
+        ceres_match_lat[ii] = CERES_hrly['lat'][o_idx] 
+        ceres_match_lon[ii] = CERES_hrly['lon'][o_idx] 
+        ceres_match_vza[ii] = CERES_hrly['vza'][o_idx] 
+
+        if( ((ceres_match_lat[ii] - mask_LAT[ii])**2. + \
+            (ceres_match_lon[ii] - mask_LON[ii])**2.)**0.5 > 1.0):
+            #print(mask_LAT[ii], mask_LON[ii], CERES_hrly['lat'][o_idx], CERES_hrly['lon'][o_idx], ' mismatch')
+            ceres_match_flux[ii] = np.nan
+            ceres_match_lat[ii]  = np.nan
+            ceres_match_lon[ii]  = np.nan
+            ceres_match_vza[ii]  = np.nan
+        #else:    
+            #print(mask_LAT[ii], mask_LON[ii], CERES_hrly['lat'][o_idx], CERES_hrly['lon'][o_idx])
+
+
+    # ------------------------------------------------------------------------
+    #
+    # Step 5: Plot scatter OMI and CERES comparison in third panel
+    #
+    # ------------------------------------------------------------------------
+
+    # Mask any empty boxes
+    print('Before scatter', np.ma.masked_invalid(ceres_match_flux).compressed().shape)
+    scat = ax2.scatter(mask_UVAI,ceres_match_flux,s=8)
+    #scat = ax2.scatter(mask_AI,mask_flux,c=mask_sza,s=8)
+    #cbar = plt.colorbar(scat,ax=ax2,orientation='vertical',\
+    #    label='Viewing Zenith Angle',pad=0.02,aspect=50)
+    ax2.set_title(OMI_base['date'])
+    ax2.set_xlabel('OMI AI')
+    ax2.set_ylabel('CERES ' + CERES_hrly['param'])
+    fig.tight_layout()
+
+
+    if(save == True):
+        outname = 'omi_ceres_compare_'+OMI_date+'.png'
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()

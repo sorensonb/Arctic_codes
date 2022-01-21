@@ -1064,6 +1064,7 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
     plt.close('all')
     fig1 = plt.figure(figsize = (13,8))
     var0, crs0, lat_lims, lon_lims = read_GOES_satpy(date_str, ch1)
+
     var1, crs1, lat_lims, lon_lims = read_GOES_satpy(date_str, ch2)
     var2, crs2, lat_lims, lon_lims = read_GOES_satpy(date_str, ch3)
     var3, crs3, lat_lims, lon_lims = read_GOES_satpy(date_str, ch4)
@@ -1077,18 +1078,66 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
     ax4 = fig1.add_subplot(2,3,5, projection = crs4)
     ax5 = fig1.add_subplot(2,3,6, projection = crs5)
 
-    ax0.imshow(var0.data, transform = crs0, extent=(var0.x[0], var0.x[-1], \
-        var0.y[-1], var0.y[0]), origin='upper', cmap = 'Greys_r')
-    ax1.imshow(var1.data, transform = crs1, extent=(var1.x[0], var1.x[-1], \
-        var1.y[-1], var1.y[0]), origin='upper', cmap = 'Greys_r')
-    ax2.imshow(var2.data, transform = crs2, extent=(var2.x[0], var2.x[-1], \
-        var2.y[-1], var2.y[0]), origin='upper', cmap = 'Greys_r')
-    ax3.imshow(var3.data, transform = crs3, extent=(var3.x[0], var3.x[-1], \
-        var3.y[-1], var3.y[0]), origin='upper', cmap = 'Greys_r')
-    ax4.imshow(var4.data, transform = crs4, extent=(var4.x[0], var4.x[-1], \
-        var4.y[-1], var4.y[0]), origin='upper', cmap = 'Greys_r')
-    ax5.imshow(var5.data, transform = crs5, extent=(var5.x[0], var5.x[-1], \
-        var5.y[-1], var5.y[0]), origin='upper', cmap = 'Greys_r')
+    max0 = 1.0
+    max1 = 1.0
+    max2 = 1.0 
+    max3 = 1.0 
+    max4 = 1.0 
+    max5 = 1.0 
+    min0 = 0.0
+    min1 = 0.0
+    min2 = 0.5
+    min3 = None
+    min4 = None
+    min5 = None
+
+    v3lon, v3lat = var3.attrs['area'].get_lonlats()
+    v2data = np.squeeze(var2.values)
+    v3data = np.squeeze(var3.values)
+    v4data = np.squeeze(var4.values)
+    v5data = np.squeeze(var5.values)
+    v2data = np.ma.masked_where( ~((v3lat >= lat_lims[0] - 0.5) & (v3lat <= lat_lims[1] + 0.5) &\
+           (v3lon >= lon_lims[0] - 1.) & (v3lon <= lon_lims[1] + 1.)), v2data)
+    v3data = np.ma.masked_where( ~((v3lat >= lat_lims[0] - 0.5) & (v3lat <= lat_lims[1] + 0.5) &\
+           (v3lon >= lon_lims[0] - 1.) & (v3lon <= lon_lims[1] + 1.)), v3data)
+    v4data = np.ma.masked_where( ~((v3lat >= lat_lims[0] - 0.5) & (v3lat <= lat_lims[1] + 0.5) &\
+           (v3lon >= lon_lims[0] - 1.) & (v3lon <= lon_lims[1] + 1.)), v4data)
+    v5data = np.ma.masked_where( ~((v3lat >= lat_lims[0] - 0.5) & (v3lat <= lat_lims[1] + 0.5) &\
+           (v3lon >= lon_lims[0] - 1.) & (v3lon <= lon_lims[1] + 1.)), v5data)
+    #my_area = scn[channel].attrs['area'].compute_optimal_bb_area({\
+    #    'proj':'lcc', 'lon_0': lon_lims[0], 'lat_0': lat_lims[0], \
+    #    'lat_1': lat_lims[0], 'lat_2': lat_lims[0]})
+
+    mesh0 = ax0.imshow(var0.data, transform = crs0, extent=(var0.x[0], var0.x[-1], \
+        var0.y[-1], var0.y[0]), origin='upper', cmap = 'Greys_r', \
+        vmin = min0, vmax = max0)
+    mesh1 = ax1.imshow(var1.data, transform = crs1, extent=(var1.x[0], var1.x[-1], \
+        var1.y[-1], var1.y[0]), origin='upper', cmap = 'Greys_r', \
+        vmin = min1, vmax = max1)
+    mesh2 = ax2.imshow(v2data, transform = crs2, extent=(var2.x[0], var2.x[-1], \
+        var2.y[-1], var2.y[0]), origin='upper', cmap = 'Greys_r', \
+        vmin = min2, vmax = max2)
+    mesh3 = ax3.imshow(v3data, transform = crs3, extent=(var3.x[0], var3.x[-1], \
+        var3.y[-1], var3.y[0]), origin='upper', cmap = 'Greys_r', \
+        vmin = min3, vmax = max3)
+    mesh4 = ax4.imshow(v4data, transform = crs4, extent=(var4.x[0], var4.x[-1], \
+        var4.y[-1], var4.y[0]), origin='upper', cmap = 'Greys_r', \
+        vmin = min4, vmax = max4)
+    mesh5 = ax5.imshow(v5data, transform = crs5, extent=(var5.x[0], var5.x[-1], \
+        var5.y[-1], var5.y[0]), origin='upper', cmap = 'Greys_r', \
+        vmin = min5, vmax = max5)
+    cbar0 = plt.colorbar(mesh0,ax=ax0,orientation='vertical',\
+        pad=0.03, shrink = 0.67)
+    cbar1 = plt.colorbar(mesh1,ax=ax1,orientation='vertical',\
+        pad=0.03, shrink = 0.67)
+    cbar2 = plt.colorbar(mesh2,ax=ax2,orientation='vertical',\
+        pad=0.03, shrink = 0.67)
+    cbar3 = plt.colorbar(mesh3,ax=ax3,orientation='vertical',\
+        pad=0.03, shrink = 0.67)
+    cbar4 = plt.colorbar(mesh4,ax=ax4,orientation='vertical',\
+        pad=0.03, shrink = 0.67)
+    cbar5 = plt.colorbar(mesh5,ax=ax5,orientation='vertical',\
+        pad=0.03, shrink = 0.67)
 
     # Zoom in the figure if desired
     # -----------------------------
@@ -1151,6 +1200,7 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
         channel_dict[str(ch6)]['name'] + '\n' + \
         dt_date_str.strftime('%Y-%m-%d %H:%M'))
 
+    fig1.tight_layout()
 
     if(save):
         outname = 'goes17_'+date_str+'_6panel.png'
