@@ -23,12 +23,15 @@ center, radius = [0.5, 0.5], 0.5
 verts = np.vstack([np.sin(theta), np.cos(theta)]).T
 circle = mpath.Path(verts * radius + center)
 
+datacrs = ccrs.PlateCarree()
+
 # Find the gridpoint in the gridded lat/lon data that 
 # corresponds to the station at slat and slon
 # ---------------------------------------------------- 
 def nearest_gridpoint(slat, slon, grid_lat, grid_lon):
-    fun_c = np.maximum(np.abs(grid_lat - slat), \
-        np.abs(grid_lon - slon))
+    fun_c = ((slat - grid_lat)**2. + (slon - grid_lon)**2.)**0.5
+    #fun_c = np.maximum(np.abs(grid_lat - slat), \
+    #    np.abs(grid_lon - slon))
     m_idx = np.where(fun_c == np.min(fun_c))
     return m_idx
 
@@ -269,7 +272,7 @@ aerosol_event_dict = {
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2017231.1810.061.2018034125202.hdf',
             #'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021203.2110.061.2021204163638.hdf',
             'omi': '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2017m0819t1713-o69659_v003-2017m0820t234933.he5',
-            'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2017081900-2017081923.nc',
+            'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/minlat_55/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2017081900-2017081923.nc',
             'ceres_time': '18',
             #'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.22.212.L2.SUBS2RET.v6.0.32.0.G21204140844.hdf'],
             'Lat': [82.0, 88.0],
@@ -314,9 +317,9 @@ aerosol_event_dict = {
             'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc',
             'ceres_time': '04',
             #'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.22.212.L2.SUBS2RET.v6.0.32.0.G21204140844.hdf'],
-            'Lat': [72.0, 83.0],
+            'Lat': [74.0, 80.0],
             'Lon': [110.0, 161.0],
-            'modis_Lat': [72.0, 83.0],
+            'modis_Lat': [74.0, 80.0],
             'modis_Lon': [110.0, 161.0],
         }
     },

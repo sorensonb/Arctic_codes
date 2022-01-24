@@ -3512,7 +3512,7 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
 
         #cbar = plt.colorbar(mesh,ax = pax, orientation='horizontal',pad=0,\
         cbar = plt.colorbar(mesh,ax = pax, orientation='vertical',\
-            shrink = 0.8, ticks = np.arange(int(np.nanmin(mask_GPQF)), \
+            ticks = np.arange(int(np.nanmin(mask_GPQF)), \
             int(np.nanmax(mask_GPQF)) + 1))
             #shrink = 0.8, ticks = np.arange(np.nanmin(mask_GPQF), \
             #np.nanmax(mask_GPQF) + 1))
@@ -3539,7 +3539,7 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
         #cbar.set_label(variable,fontsize=16,weight='bold')
         tickvals = np.arange(-2.0,4.1,1.0)
         cbar = plt.colorbar(mesh,ax = pax, ticks = tickvals,\
-            orientation='vertical', shrink = 0.8, extend = 'both')
+            orientation='vertical', extend = 'both')
         cbar.set_label(label,fontsize = 14, weight='bold')
         cbar.ax.tick_params(labelsize=14)
 

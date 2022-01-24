@@ -189,5 +189,5 @@ date_str = '201708191810'
 #date_str = '201908110445'
 plot_compare_OMI_CERES_hrly_grid(date_str,  \
         only_sea_ice = True, minlat = 65., skiprows = [52], \
-        lat_circles = None, omi_dtype = 'JZ', zoom = True, save = False)
+        no_ice = False, lat_circles = None, omi_dtype = 'control', zoom = True, save = False)
 
