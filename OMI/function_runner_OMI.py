@@ -72,7 +72,7 @@ date_str = ['200509270134',\
 
 
 ###
-date_str = '200804270052'
+date_str = '200609250756'
 plotOMI_single_swath_figure(date_str, dtype = 'control',  \
         only_sea_ice = False, minlat = 65., skiprows = None, \
         lat_circles = None, save = False)
@@ -83,7 +83,7 @@ sys.exit()
 ###    zoom = True, multi_panel = False, save = True)
 
 plotOMI_single_swath_figure(date_str, dtype = 'control',  \
-        only_sea_ice = False, minlat = 65., skiprows = None, lat_circles = None, save = False)
+        only_sea_ice = False, minlat = 65., skiprows = [11,15, 16, 17, 18], lat_circles = None, save = False)
 
 #plot_combined_figure1(save = True)
 #plot_MODIS_temporary('202107222110', zoom = True, save = True)

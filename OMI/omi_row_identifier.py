@@ -71,12 +71,12 @@ end_date  = datetime(year=end_year,month=10,day=1)
 # Open additional bad row output file
 # -----------------------------------
 outname = "row_anomaly_dates_" + base_date.strftime("%Y%m%d") + '_' + \
-    end_date.strftime("%Y%m%d") + '.txt'
+    end_date.strftime("%Y%m%d") + '_3sigma.txt'
 
 # Open XTRACK row output file
 # ---------------------------
 outname_xtrack = "row_anomaly_xtrack_dates_" + base_date.strftime("%Y%m%d") + '_' + \
-    end_date.strftime("%Y%m%d") + '.txt'
+    end_date.strftime("%Y%m%d") + '_3sigma.txt'
 
 with open(outname,'w') as fout:
     with open(outname_xtrack, 'w') as fout2:
@@ -94,27 +94,27 @@ with open(outname,'w') as fout:
             bad_rows = []
             xtrack_rows = []
         
-            ##!## Copy the working year's OMI data from Raindrop to the local
-            ##!## computer.
-            ##!## NOTE: If this code is being run on Raindrop, this is not
-            ##!## necessary.
-            ##!## -----------------------------------------------------------
-            ##!#if(get_data == True):
-            ##!#    get_data = False
-            ##!#    last_time = (base_date - relativedelta(years = 1)).strftime("%Ym")
-            ##!#    print("getting data")
-            ##!#    for m_idx in range(base_date.month,10):
-            ##!#        # Remove this month's data from last year
-            ##!#        if(first_time == False):
-            ##!#            print('rm '+base_path+'OMI*OMAERUV_'+last_time+\
-            ##!#                str(m_idx).zfill(2)+'*')
-            ##!#            os.system('rm '+base_path+'OMI*OMAERUV_'+last_time+\
-            ##!#                str(m_idx).zfill(2)+'*')
-            ##!#        print('scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/H5_files/'+\
-            ##!#            'OMI*OMAERUV_'+data_time+str(m_idx).zfill(2)  + '* ' + base_path)
-            ##!#        os.system('scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/H5_files/'+\
-            ##!#            'OMI*OMAERUV_'+data_time+str(m_idx).zfill(2)  + '* ' + base_path)
-            ##!#    first_time = False
+            # Copy the working year's OMI data from Raindrop to the local
+            # computer.
+            # NOTE: If this code is being run on Raindrop, this is not
+            # necessary.
+            # -----------------------------------------------------------
+            if(get_data == True):
+                get_data = False
+                last_time = (base_date - relativedelta(years = 1)).strftime("%Ym")
+                print("getting data")
+                for m_idx in range(base_date.month,10):
+                    # Remove this month's data from last year
+                    if(first_time == False):
+                        print('rm '+base_path+'OMI*OMAERUV_'+last_time+\
+                            str(m_idx).zfill(2)+'*')
+                        os.system('rm '+base_path+'OMI*OMAERUV_'+last_time+\
+                            str(m_idx).zfill(2)+'*')
+                    print('scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/H5_files/'+\
+                        'OMI*OMAERUV_'+data_time+str(m_idx).zfill(2)  + '* ' + base_path)
+                    os.system('scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/H5_files/'+\
+                        'OMI*OMAERUV_'+data_time+str(m_idx).zfill(2)  + '* ' + base_path)
+                first_time = False
         
             print(base_date.strftime("%Y%m%d"))
             
@@ -227,7 +227,7 @@ with open(outname,'w') as fout:
                 bad_rows = []
                 xtrack_rows = []
                 for rowI in range(len(day_avgs)):
-                    if((day_avgs[rowI] - avg_day_avg) > (day_std * 2)):
+                    if((day_avgs[rowI] - avg_day_avg) > (day_std * 3)):
                         bad_rows.append(rowI+1)
                     if(count_xtrack):
                         # If a row has any XTRACK flags set, add to xtrack row list
@@ -264,16 +264,16 @@ with open(outname,'w') as fout:
                 get_data = True
                 base_date = datetime(year = base_date.year+1,month=4,day=1)
         
-        ##!## Delete the ending data
-        ##!## NOTE: IF this is being run on Raindrop, this MUST be removed
-        ##!##       ensure that the OMI data on Raindrop are not deleted.
-        ##!## ------------------------------------------------------------
-        ##!#last_time = (base_date - relativedelta(years = 1)).strftime("%Ym")
-        ##!#for m_idx in range(base_date.month,10):
-        ##!#    # Remove this month's data from last year
-        ##!#    if(first_time == False):
-        ##!#        print('rm '+base_path+'OMI*OMAERUV_'+last_time+\
-        ##!#              str(m_idx).zfill(2)+'*')
-        ##!#        os.system('rm '+base_path+'OMI*OMAERUV_'+last_time+\
-        ##!#              str(m_idx).zfill(2)+'*')
+        # Delete the ending data
+        # NOTE: IF this is being run on Raindrop, this MUST be removed
+        #       ensure that the OMI data on Raindrop are not deleted.
+        # ------------------------------------------------------------
+        last_time = (base_date - relativedelta(years = 1)).strftime("%Ym")
+        for m_idx in range(base_date.month,10):
+            # Remove this month's data from last year
+            if(first_time == False):
+                print('rm '+base_path+'OMI*OMAERUV_'+last_time+\
+                      str(m_idx).zfill(2)+'*')
+                os.system('rm '+base_path+'OMI*OMAERUV_'+last_time+\
+                      str(m_idx).zfill(2)+'*')
 

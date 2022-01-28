@@ -74,16 +74,18 @@ var_dict = {
 }
   
 max_dict = {
-    'SWF': 400.,
-    'LWF': 280.,
+    'SWF': 250.,
+    'LWF': 370.,
+    'TOTAL': 560.,
     'clr': 100.,
     'cld': 100.,
     'alb': 1.
 }
 
 min_dict = {
-    'SWF': 0.,
-    'LWF': 160.,
+    'SWF': 120.,
+    'LWF': 300.,
+    'TOTAL': 450.,
     'clr': 0.,
     'cld': 0.,
     'alb': 0.
@@ -332,7 +334,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     if(satellite == 'Terra'):
         base_path = '/home/bsorenson/data/CERES/SSF_Level2/Terra/'
     else:
-        base_path = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/'
+        base_path = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/modis_comp/'
     total_list = sorted(glob.glob(base_path+'CERES_SSF_*.nc'))
 
     # Convert the desired dt to a datetime object to use for finding the file
@@ -351,10 +353,10 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
         day_adder = 'daily_'
     else:
         print("INVALID PLOT TIME")
-        sys.exit()
+        return
     
-    dt_data_begin = datetime.strptime(data_dt,str_fmt)# \
-        #- relativedelta(hours = hour_subtracter)
+    dt_data_begin = datetime.strptime(data_dt,str_fmt) \
+        - relativedelta(hours = hour_subtracter)
     dt_data_end   = datetime.strptime(data_dt,str_fmt) + \
          relativedelta(hours = hour_adder)
 
@@ -397,24 +399,26 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     vza   = data.variables['CERES_viewing_zenith_at_surface'][:]
     azm   = data.variables['CERES_relative_azimuth_at_surface'][:]
     lon[lon>179.99] = -360.+lon[lon>179.99]
-    if(param == 'clr'):
-        # clear layer overlap indices:
-        #    0 - clear
-        #    1 - lower
-        #    2 - upper
-        #    3 - upper over lower
-        flux  = data.variables[var_dict[param]][:,0]
-    elif(param == 'cld'):
-        flux  = data.variables[var_dict[param]][:,1] + \
-                data.variables[var_dict[param]][:,2] 
-    else:
-        flux  = data.variables[var_dict[param]][:]
+    ##!#if(param == 'clr'):
+    ##!#    # clear layer overlap indices:
+    ##!#    #    0 - clear
+    ##!#    #    1 - lower
+    ##!#    #    2 - upper
+    ##!#    #    3 - upper over lower
+    ##!#    flux  = data.variables[var_dict[param]][:,0]
+    ##!#elif(param == 'cld'):
+    ##!#    flux  = data.variables[var_dict[param]][:,1] + \
+    ##!#            data.variables[var_dict[param]][:,2] 
+    ##!#else:
+    ##!#    flux  = data.variables[var_dict[param]][:]
+    lwf  = data.variables['CERES_LW_TOA_flux___upwards'][:]
+    swf  = data.variables['CERES_SW_TOA_flux___upwards'][:]
     time  = data.variables['time'][:]
    
     data.close()
  
     # Loop over the values and rows
-    print(flux.shape) 
+    print(swf.shape) 
 
     # Convert each pixel relative time to absolute
     total_times = np.array([base_date + relativedelta(days = ttime) \
@@ -423,19 +427,22 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     # Extract only the data in the time window 
     # ----------------------------------------
     test_time = total_times[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
-    test_flux = flux[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
+    test_swf  = swf[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
+    test_lwf  = lwf[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
     test_lat  = lat[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
     test_lon  = lon[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
     test_sza  = sza[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
     test_vza  = vza[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
     test_azm  = azm[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
 
-    ###plt.close('all') 
-    ###fig1 = plt.figure()
-    ###plt.plot(test_azm)
-    ###plt.plot(test_lat)
-    ###plt.plot(test_vza)
-    ###plt.show()
+    ##!#plt.close('all') 
+    ##!#fig1 = plt.figure()
+    ##!#plt.plot(test_time, test_azm, label = 'azm')
+    ##!#plt.plot(test_time, test_lat, label = 'lat')
+    ##!#plt.plot(test_time, test_vza, label = 'vza')   
+    ##!#plt.legend()
+    ##!#plt.show()
+
 
     # Determine where the LAT peaks are located and separated by 181
     # --------------------------------------------------------------
@@ -447,6 +454,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     # ---------------------------------------    
     keep_lat_peaks = lat_neg_peaks[np.where((lat_peak_diffs == 181) | \
         (lat_peak_diffs == 182))]
+    print(lat_peak_diffs)
     if(len(keep_lat_peaks) == 0):
         print("ERROR: no data within the desired time window")
         return
@@ -455,16 +463,18 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     end_idx   = keep_lat_peaks[-1]
 
     test_time = test_time[begin_idx: end_idx]
-    test_flux = test_flux[begin_idx: end_idx]
-    test_lat  =  test_lat[begin_idx: end_idx]
-    test_lon  =  test_lon[begin_idx: end_idx]
-    test_sza  =  test_sza[begin_idx: end_idx]
-    test_vza  =  test_vza[begin_idx: end_idx]
-    test_azm  =  test_azm[begin_idx: end_idx]
+    test_swf  = test_swf[begin_idx: end_idx]
+    test_lwf  = test_lwf[begin_idx: end_idx]
+    test_lat  = test_lat[begin_idx: end_idx]
+    test_lon  = test_lon[begin_idx: end_idx]
+    test_sza  = test_sza[begin_idx: end_idx]
+    test_vza  = test_vza[begin_idx: end_idx]
+    test_azm  = test_azm[begin_idx: end_idx]
 
     # Make grid arrays for the data
     # -----------------------------
-    grid_flux = np.full((300, 181), np.nan)
+    grid_swf  = np.full((300, 181), np.nan)
+    grid_lwf  = np.full((300, 181), np.nan)
     grid_lat  = np.full((300, 181), np.nan)
     grid_lon  = np.full((300, 181), np.nan)
     grid_sza  = np.full((300, 181), np.nan)
@@ -475,43 +485,49 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     for ii in range(len(keep_lat_peaks) - 1):
         idx_diff = keep_lat_peaks[ii+1] - keep_lat_peaks[ii]
         if(idx_diff == 181):
-            grid_flux[ii,:len(test_flux[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_flux[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
+            grid_swf[ii,:len(test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
+            grid_lwf[ii,:len(test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
             grid_lat[ii,:len(test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
             grid_lon[ii,:len(test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
             grid_sza[ii,:len(test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
             grid_vza[ii,:len(test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
             grid_azm[ii,:len(test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
         elif(idx_diff > 181):
-            grid_flux[ii,:len(test_flux[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_flux[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
-            grid_lat[ii,: len(test_lat[keep_lat_peaks[ii]: keep_lat_peaks[ii] + 181])] = test_lat[keep_lat_peaks[ii]: keep_lat_peaks[ii] + 181]
-            grid_lon[ii,: len(test_lon[keep_lat_peaks[ii]: keep_lat_peaks[ii] + 181])] = test_lon[keep_lat_peaks[ii]: keep_lat_peaks[ii] + 181]
-            grid_sza[ii,: len(test_sza[keep_lat_peaks[ii]: keep_lat_peaks[ii] + 181])] = test_sza[keep_lat_peaks[ii]: keep_lat_peaks[ii] + 181]
-            grid_vza[ii,: len(test_vza[keep_lat_peaks[ii]: keep_lat_peaks[ii] + 181])] = test_vza[keep_lat_peaks[ii]: keep_lat_peaks[ii] + 181]
-            grid_azm[ii,: len(test_azm[keep_lat_peaks[ii]: keep_lat_peaks[ii] + 181])] = test_azm[keep_lat_peaks[ii]: keep_lat_peaks[ii] + 181]
+            grid_swf[ii,:len(test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
+            grid_lwf[ii,:len(test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
+            grid_lat[ii,:len(test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
+            grid_lon[ii,:len(test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
+            grid_sza[ii,:len(test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
+            grid_vza[ii,:len(test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
+            grid_azm[ii,:len(test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
 
     # Remove any rows in the grid arrays with any nans
     # ------------------------------------------------
     checkers = np.array([np.count_nonzero(~np.isnan(grid_lon[ii,:])) for ii in range(grid_lon.shape[0])])
     print(checkers) 
 
-    grid_flux = grid_flux[np.where(checkers == 181)[0],:]
-    grid_lat  = grid_lat[np.where(checkers == 181)[0],:]
-    grid_lon  = grid_lon[np.where(checkers == 181)[0],:]
-    grid_sza  = grid_sza[np.where(checkers == 181)[0],:]
-    grid_vza  = grid_vza[np.where(checkers == 181)[0],:]
-    grid_azm  = grid_azm[np.where(checkers == 181)[0],:]
+    grid_swf = grid_swf[np.where(checkers == 181)[0],:]
+    grid_lwf = grid_lwf[np.where(checkers == 181)[0],:]
+    grid_lat = grid_lat[np.where(checkers == 181)[0],:]
+    grid_lon = grid_lon[np.where(checkers == 181)[0],:]
+    grid_sza = grid_sza[np.where(checkers == 181)[0],:]
+    grid_vza = grid_vza[np.where(checkers == 181)[0],:]
+    grid_azm = grid_azm[np.where(checkers == 181)[0],:]
 
-    grid_flux = np.ma.masked_invalid(grid_flux)
-    grid_flux = np.ma.masked_where((grid_flux > 5000) | (grid_flux == 0), grid_flux)
+    grid_swf  = np.ma.masked_invalid(grid_swf)
+    grid_lwf  = np.ma.masked_invalid(grid_lwf)
+    grid_swf  = np.ma.masked_where((grid_swf > 5000) | (grid_swf == 0), grid_swf)
+    grid_lwf  = np.ma.masked_where((grid_lwf > 5000) | (grid_lwf == 0), grid_lwf)
 
     # Put the data into a structure
     # -----------------------------
     CERES_grid_hrly = {}
     CERES_grid_hrly['param']     = param
-    CERES_grid_hrly['parm_name'] = var_dict[param]
+    #CERES_grid_hrly['parm_name'] = var_dict[param]
     CERES_grid_hrly['date']      = data_dt
     CERES_grid_hrly['satellite'] = satellite
-    CERES_grid_hrly['data']      = grid_flux
+    CERES_grid_hrly['swf']       = grid_swf
+    CERES_grid_hrly['lwf']       = grid_lwf
     CERES_grid_hrly['lat']       = grid_lat
     CERES_grid_hrly['lon']       = grid_lon  
     CERES_grid_hrly['vza']       = grid_vza
@@ -1343,48 +1359,52 @@ def icePlots(infile,monthfix=False):
 ##!#    print('Saved image ',outname)
 ##!#    #plt.show()
 
-def plotCERES_hrly(pax, CERES_data_hrly, minlat=65, \
+def plotCERES_hrly(pax, CERES_data_hrly, param, minlat=65, \
         vmin = None, vmax = None, title = '', label = '', \
-        circle_bound = True, gridlines = True, grid_data = True):
+        circle_bound = False, gridlines = True, grid_data = True, \
+        zoom = True):
 
     if(vmin is None):
-        vmin = min_dict[CERES_data_hrly['param']]
+        vmin = min_dict[param.upper()]
     if(vmax is None):
-        vmax = max_dict[CERES_data_hrly['param']]
+        vmax = max_dict[param.upper()]
 
     # Set up mapping variables 
     datacrs = ccrs.PlateCarree() 
-    colormap = plt.cm.viridis
-    if(pax is None):
-        if(minlat < 45):
-            mapcrs = ccrs.Miller()
-        else:
-            mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
+    colormap = plt.cm.plasma
+    ##!#if(pax is None):
+    ##!#    if(minlat < 45):
+    ##!#        mapcrs = ccrs.Miller()
+    ##!#    else:
+    ##!#        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
 
     if(grid_data):
         plot_lon  = CERES_data_hrly['lon']
         plot_lat  = CERES_data_hrly['lat']
-        mask_flux = CERES_data_hrly['data']
+        if(param == 'total'):
+            mask_flux = CERES_data_hrly['swf'] + CERES_data_hrly['lwf']
+        else:
+            mask_flux = CERES_data_hrly[param.lower()]
     else:
         plot_lat, plot_lon = np.meshgrid(CERES_data_hrly['lat'], \
             CERES_data_hrly['lon'])
         mask_flux = np.ma.masked_where(CERES_data_hrly['counts'] == 0, \
             local_data)
-        local_data = np.copy(CERES_data_hrly['data'])
+        local_data = np.copy(CERES_data_hrly[param])
  
     if(gridlines): 
         pax.gridlines()
     if(title == ''):
-        title =  'CERES ' + CERES_data_hrly['param'] + ' ' + CERES_data_hrly['date']
+        title =  'CERES ' + param + ' ' + CERES_data_hrly['date']
     if(label == ''):
-        label = CERES_data_hrly['param'] + ' [W/m$^{2}$]'
+        label = param.upper() + ' [W/m$^{2}$]'
     pax.set_title(title)
 
     #plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
     mesh = pax.pcolormesh(plot_lon, plot_lat,mask_flux,transform = datacrs,\
         cmap = colormap, vmin = vmin, vmax = vmax, shading = 'auto')
     cbar = plt.colorbar(mesh,ax = pax, orientation='vertical',\
-        extend = 'max')
+        extend = 'both')
     cbar.set_label(label,fontsize = 14, weight='bold')
     cbar.ax.tick_params(labelsize=14)
 
@@ -1402,13 +1422,16 @@ def plotCERES_hrly(pax, CERES_data_hrly, minlat=65, \
 # ---------------------------------------------------
 def plotCERES_hrly_figure(date_str, param,  \
         only_sea_ice = False, minlat = 65., skiprows = None, \
-        lat_circles = None, grid_data = True, save = False):
+        lat_circles = None, grid_data = True, zoom = False, \
+        save = False):
 
+    dt_date_str = datetime.strptime(date_str, "%Y%m%d%H%M")
+    
     # ----------------------------------------------------
     # Read in data
     # ----------------------------------------------------
     if(grid_data):
-        CERES_data_hrly = readgridCERES_hrly_grid(date_str, param, \
+        CERES_data_hrly = readgridCERES_hrly_grid(date_str[:10], param, \
             satellite = 'Aqua', minlat = minlat)
 
         if(CERES_data_hrly is None):
@@ -1416,7 +1439,7 @@ def plotCERES_hrly_figure(date_str, param,  \
             print("Quitting")
             return
     else:
-        CERES_data_hrly = readgridCERES_hrly(date_str, param, satellite = 'Aqua',\
+        CERES_data_hrly = readgridCERES_hrly(date_str[:10], param, satellite = 'Aqua',\
             minlat = minlat, season = 'all')
 
     # ----------------------------------------------------
@@ -1425,15 +1448,25 @@ def plotCERES_hrly_figure(date_str, param,  \
     plt.close('all')
     fig1 = plt.figure(figsize = (6,6))
     #mapcrs = ccrs.NorthPolarStereo()
+    mapcrs = init_proj(date_str)
+    #mapcrs = ccrs.LambertConformal(central_longitude = -100.)
     ax0 = fig1.add_subplot(1,1,1, projection = mapcrs)
 
     # ----------------------------------------------------
     # Use the single-swath plotting function to plot each
     # of the 3 data types
     # ----------------------------------------------------
-    plotCERES_hrly(ax0, CERES_data_hrly, minlat = minlat, \
+    plotCERES_hrly(ax0, CERES_data_hrly, param, minlat = minlat, \
         vmin = None, vmax = None, title = '', label = '', \
-        circle_bound = True, gridlines = True, grid_data = grid_data)
+        circle_bound = False, gridlines = False, grid_data = grid_data)
+
+    #pax.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
+    if(zoom):
+        ax0.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
+                        datacrs)
 
     plt.suptitle(date_str)
 

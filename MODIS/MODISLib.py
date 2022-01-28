@@ -497,7 +497,7 @@ def nearest_grid_values(MODIS_data):
 # ASOS file name in the 'date_str' argument
 # ---------------------------------------------------------------------
 def plot_ASOS_locs(pax,date_str,crs = datacrs, color='red', \
-        sites = None):
+        sites = None, no_text = False):
     if(len(date_str.split('.')) > 1):
         asos_file = date_str
     else:
@@ -515,6 +515,7 @@ def plot_ASOS_locs(pax,date_str,crs = datacrs, color='red', \
     station_names = set(df['station'].values)
     if(sites == None):
         sites = station_names
+
     for ii, station in enumerate(station_names):
         if(station in sites):
             lat_stn = df['lat'][df['station'] == station].values[0]
@@ -524,9 +525,10 @@ def plot_ASOS_locs(pax,date_str,crs = datacrs, color='red', \
                      color=color, linewidth=2, marker='o',
                      transform=crs,
                      )
-
-            pax.text(lon_stn + 0.1, lat_stn + 0.1, station, fontsize=10, \
-                weight='bold', transform=crs, color=color, backgroundcolor = 'white')
+            
+            if(not no_text):
+                pax.text(lon_stn + 0.1, lat_stn + 0.1, station, fontsize=10, \
+                    weight='bold', transform=crs, color=color, backgroundcolor = 'white')
 
 # Determine areas of an image that are in smoke, defined by:
 #    (ch1_refl - ch5_refl) < mean(ch1_refl - ch5_refl) * 0.25
@@ -3935,6 +3937,11 @@ def plot_combined_figure1(zoom = True, show_smoke = True, composite = True, \
     plot_CERES_spatial(date_str, mask_LAT, mask_LON, mask_lwf, 'LWF', ax9, \
         ptitle = '', zoom = zoom)
 
+    #plotCERES_hrly(ax8, CERES_data_hrly, minlat=65, \
+    #    vmin = None, vmax = None, title = '', label = '', \
+    #    circle_bound = True, gridlines = True, grid_data = True, \
+    #    zoom = True):
+
     if(show_smoke):
         # Determine where the smoke is located
         # ------------------------------------
@@ -4000,40 +4007,63 @@ def plot_figure2(save=False, composite = True, calc_radiance = True, \
     # ------------------------------------
     modis31 = run_sbdart(satellite, calc_radiance, run = True)
 
-    # Read true color data for the date
-    # ---------------------------------
+    ##!## Read true color data for the date
+    ##!## ---------------------------------
     date_str22 = '202107222110'
     dt_date_str22 = datetime.strptime(date_str22,"%Y%m%d%H%M")
-    var3, crs3, lat_lims3, lon_lims3 = read_true_color(date_str22,\
-        composite=composite)
+    ##!#var3, crs3, lat_lims3, lon_lims3 = read_true_color(date_str22,\
+    ##!#    composite=composite)
+
+    # Read the 0.64 and 11 micron data for the date
+    # ---------------------------------------------
+    MODIS_data_ch1  = read_MODIS_channel(date_str22, 1, zoom = True)
+    MODIS_data_ch31 = read_MODIS_channel(date_str22, 31, zoom = True)
 
     # Set up the figure
     # -----------------
-    fig = plt.figure(figsize=(8,12))
-    gs1 = fig.add_gridspec(nrows = 3, ncols = 1, wspace = 0.10, hspace = 0.40)
-    ax1 = fig.add_subplot(gs1[0], projection = crs3) # true color 7/22
-    ax2 = fig.add_subplot(gs1[1]) # meteo 7/22
-    ax3 = fig.add_subplot(gs1[2])
+    fig = plt.figure(figsize=(7,12))
+    mapcrs = init_proj(date_str22)
+    gs1 = fig.add_gridspec(nrows = 3, ncols = 2, wspace = 0.10, hspace = 0.40)
+    #ax1 = fig.add_subplot(gs1[0,0], projection = crs3) # true color 7/22
+    ax1 = fig.add_subplot(gs1[0,0], projection = mapcrs) # vis
+    ax4 = fig.add_subplot(gs1[0,1], projection = mapcrs) # IR
+    ax2 = fig.add_subplot(gs1[1,:]) # meteo 7/22
+    ax3 = fig.add_subplot(gs1[2,:])
     #ax1 = fig.add_subplot(1,2,1,projection = crs3) # true color 7/22
     #ax2 = fig.add_subplot(1,2,2) # meteo 7/22
 
     # ----------------------------------------------------------------------
     #
-    # Panel 1: Map
+    # Panel 1: Visible image
     #
     # ----------------------------------------------------------------------
 
-    # Plot the true-color data for the case date
-    # ------------------------------------------
-    ax1.imshow(var3.data, transform = crs3, extent=(var3.x[0], var3.x[-1], \
-        var3.y[-1], var3.y[0]), origin='upper')
+    # Plot channel 31 spatial data
+    # -----------------------------------------------
+    plot_MODIS_spatial(MODIS_data_ch1, ax1, zoom = True, ptitle = '')
 
-    ax1.set_extent([lon_lims3[0],lon_lims3[1],lat_lims3[0],\
-        lat_lims3[1]],crs = datacrs)
+    ##!## Plot the true-color data for the case date
+    ##!## ------------------------------------------
+    ##!#ax1.imshow(var3.data, transform = crs3, extent=(var3.x[0], var3.x[-1], \
+    ##!#    var3.y[-1], var3.y[0]), origin='upper')
+
+    ##!#ax1.set_extent([lon_lims3[0],lon_lims3[1],lat_lims3[0],\
+    ##!#    lat_lims3[1]],crs = datacrs)
 
     # Plot the ASOS locations on the map
     # ----------------------------------
     plot_ASOS_locs(ax1,date_str22,color='lime', sites = ['O05','AAT'])
+
+    # ----------------------------------------------------------------------
+    #
+    # Panel 4: 11 micron image
+    #
+    # ----------------------------------------------------------------------
+
+    # Plot channel 31 spatial data
+    # -----------------------------------------------
+    plot_MODIS_spatial(MODIS_data_ch31, ax4, zoom = True, ptitle = '')
+    plot_ASOS_locs(ax4,date_str22,color='lime', sites = ['O05','AAT'], no_text = True)
 
     # ----------------------------------------------------------------------
     #
@@ -4064,23 +4094,29 @@ def plot_figure2(save=False, composite = True, calc_radiance = True, \
     # Add subplot labels
     # ------------------
     dt_date_str = dt_date_str22
-    xval = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
-        [dt_date_str.strftime('%H%M')]['Lon'][0] + \
-        (aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
-        [dt_date_str.strftime('%H%M')]['Lon'][1] - \
-        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
-        [dt_date_str.strftime('%H%M')]['Lon'][0])*0.05
-    yval = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
-        [dt_date_str.strftime('%H%M')]['Lat'][0] + \
-        (aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
-        [dt_date_str.strftime('%H%M')]['Lat'][1] - \
-        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
-        [dt_date_str.strftime('%H%M')]['Lat'][0])*0.90
+    ##!#xval = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
+    ##!#    [dt_date_str.strftime('%H%M')]['Lon'][0] + \
+    ##!#    (aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
+    ##!#    [dt_date_str.strftime('%H%M')]['Lon'][1] - \
+    ##!#    aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
+    ##!#    [dt_date_str.strftime('%H%M')]['Lon'][0])*0.05
+    ##!#yval = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
+    ##!#    [dt_date_str.strftime('%H%M')]['Lat'][0] + \
+    ##!#    (aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
+    ##!#    [dt_date_str.strftime('%H%M')]['Lat'][1] - \
+    ##!#    aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
+    ##!#    [dt_date_str.strftime('%H%M')]['Lat'][0])*0.90
+    #plot_subplot_label(ax1, '(a)', xval = xval, yval = yval, \
+    #    transform = datacrs, backgroundcolor = 'white')
+    plot_subplot_label(ax1, '(a)', backgroundcolor = 'white', location = 'upper_left')
+    plot_subplot_label(ax4, '(b)', backgroundcolor = 'white', location = 'upper_left')
+    plot_subplot_label(ax2, '(c)', xval = 1200, yval = 5)
+    plot_subplot_label(ax3, '(d)', xval = 20, location = 'lower_left')
 
-    plot_subplot_label(ax1, '(a)', xval = xval, yval = yval, \
-        transform = datacrs, backgroundcolor = 'white')
-    plot_subplot_label(ax2, '(b)', xval = 1200, yval = 5)
-    plot_subplot_label(ax3, '(c)', xval = 17, location = 'lower_left')
+    plot_figure_text(ax1, 'MODIS 0.64 μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax4, 'MODIS 11 μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
 
     fig.tight_layout()
  
@@ -5695,6 +5731,7 @@ def plot_MODIS_temporary_4panel(date_str, zoom = True, composite = True, \
         print("Saved image",outname)
     else:
         plt.show()
+
 def plot_MODIS_temporary(date_str, zoom = True, save = False):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
@@ -5770,5 +5807,114 @@ def plot_MODIS_temporary(date_str, zoom = True, save = False):
         outname = 'modis_scatter_twopanel_' + date_str + '.png'
         fig1.savefig(outname, dpi = 300)
         print("Saved image",outname)
+    else:
+        plt.show()
+
+def plot_MODIS_CERES_3panel(zoom = True, show_smoke = True, composite = True, \
+        save=False):
+
+    if('/home/bsorenson/Research/CERES' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/CERES')
+    from gridCERESLib import readgridCERES_hrly_grid, plotCERES_hrly
+    
+    date_str = '202108062025'
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    # ----------------------------------------------------------------------
+    #
+    # Read the CERES data
+    #
+    # ----------------------------------------------------------------------
+    CERES_data_hrly = readgridCERES_hrly_grid(date_str[:10], 'SWF', \
+        satellite = 'Aqua', minlat = 20.)
+
+    if(CERES_data_hrly is None):
+        print("ERROR: no data returned from readgridCERES_hrly_grid")
+        print("Quitting")
+        return
+
+    ##!## Read in the CERES data
+    ##!## ----------------------
+    ##!#mask_LAT, mask_LON, mask_swf, mask_lwf = \
+    ##!#    read_CERES_match_MODIS(date_str)
+   
+    # ----------------------------------------------------------------------
+    #
+    #  Set up the 9-panel figure
+    #
+    # ----------------------------------------------------------------------
+ 
+    mapcrs = init_proj(date_str)
+    plt.close('all')
+    fig = plt.figure(figsize=(11,3.5))
+    ax1 = fig.add_subplot(1, 3, 1, projection = mapcrs) # SW   
+    ax2 = fig.add_subplot(1, 3, 2, projection = mapcrs) # LW
+    ax3 = fig.add_subplot(1, 3, 3, projection = mapcrs) # Total
+
+    # ----------------------------------------------------------------------
+    #
+    # Plot the data in the figure
+    #
+    # ----------------------------------------------------------------------
+    # Plot the CERES SWF and LWF data
+    # -------------------------------
+    ##!#plot_CERES_spatial(date_str, mask_LAT, mask_LON, mask_swf, 'SWF', ax1, \
+    ##!#    ptitle = '', zoom = zoom)
+    ##!#plot_CERES_spatial(date_str, mask_LAT, mask_LON, mask_lwf, 'LWF', ax2, \
+    ##!#    ptitle = '', zoom = zoom)
+    ##!#plot_CERES_spatial(date_str, mask_LAT, mask_LON, mask_lwf, 'total', ax3, \
+    ##!#    ptitle = '', zoom = zoom)
+
+    plotCERES_hrly(ax1, CERES_data_hrly, 'SWF', minlat = 20., \
+        vmin = 160, vmax = 325, title = ' ', label = '', \
+        circle_bound = False, gridlines = False, grid_data = True)
+    plotCERES_hrly(ax2, CERES_data_hrly, 'LWF', minlat = 20., \
+        vmin = 300, vmax = 370, title = ' ', label = '', \
+        circle_bound = False, gridlines = False, grid_data = True)
+    plotCERES_hrly(ax3, CERES_data_hrly, 'total', minlat = 20., \
+        vmin = 520, vmax = 625, title = ' ', label = '', \
+        circle_bound = False, gridlines = False, grid_data = True)
+    if(zoom):
+        ax1.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
+                        datacrs)
+        ax2.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
+                        datacrs)
+        ax3.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
+                        datacrs)
+
+    ##!## Plot the ASOS locations on the map
+    ##!## ----------------------------------
+    ##!#plot_ASOS_locs(ax1,date_str,color='lime', sites = ['O05','AAT'])
+
+    # Add subplot labels
+    # ------------------
+    plot_subplot_label(ax1, '(a)', backgroundcolor = 'white')
+    plot_subplot_label(ax2, '(b)', backgroundcolor = 'white')
+    plot_subplot_label(ax3, '(c)', backgroundcolor = 'white')
+
+    # Add plot text
+    # -------------
+    plot_figure_text(ax1, 'CERES SW', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax2, 'CERES LW', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax3, 'CERES SW+LW', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
+
+    fig.tight_layout()
+
+    if(save):
+        outname = 'modis_ceres_combined_' + date_str + '_3panel.png'
+        fig.savefig(outname, dpi=300)
+        print("Saved",outname)
     else:
         plt.show()
