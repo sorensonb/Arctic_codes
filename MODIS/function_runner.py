@@ -7,12 +7,14 @@
 
 from MODISLib import *
 
-date_str = '202108062025'
+date_str = '202109012105'
 channel1 = 1
 channel2 = 5
 channel3 = 31
-plot_MODIS_CERES_3panel(zoom = True, show_smoke = False, composite = True, \
-        save=False)
+plot_MODIS_detection(date_str, zoom = True, save = True)
+#plot_MODIS_CERES_3panel(zoom = True, show_smoke = False, composite = True, \
+#        save=False)
+
 #compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=True,\
 #        plot_ASOS_loc = False, show_smoke = True, compare_OMI = False, \
 #        compare_CERES = False, return_MODIS = False)

@@ -5918,3 +5918,85 @@ def plot_MODIS_CERES_3panel(zoom = True, show_smoke = True, composite = True, \
         print("Saved",outname)
     else:
         plt.show()
+
+def plot_MODIS_detection(date_str, zoom = True, save = False):
+
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    # Set up the figure
+    # -----------------
+    fig = plt.figure(figsize=(14,8))
+    mapcrs = init_proj(date_str)
+    #gs1 = fig.add_gridspec(nrows = 3, ncols = 2, wspace = 0.40, hspace = 0.30)
+    ax1 = fig.add_subplot(2,3,1, projection = mapcrs) # true color 7/22
+    ax2 = fig.add_subplot(2,3,2, projection = mapcrs) # vis 7/22
+    ax3 = fig.add_subplot(2,3,3, projection = mapcrs) # IR / vis scatter
+    ax4 = fig.add_subplot(2,3,4, projection = mapcrs) # IR / vis scatter
+    ax5 = fig.add_subplot(2,3,5, projection = mapcrs) # IR / vis scatter
+    ax6 = fig.add_subplot(2,3,6, projection = mapcrs) # IR / vis scatter
+
+    # Read 0.64 μm data
+    # --------------- 
+    MODIS_data_ch1  = read_MODIS_channel(date_str, 1, zoom = zoom)
+    MODIS_data_ch2  = read_MODIS_channel(date_str, 2, zoom = zoom)
+    MODIS_data_ch5  = read_MODIS_channel(date_str, 5, zoom = zoom)
+    MODIS_data_ch7  = read_MODIS_channel(date_str, 7, zoom = zoom)
+    MODIS_data_ch32 = read_MODIS_channel(date_str, 32, zoom = zoom)
+
+    plot_MODIS_spatial(MODIS_data_ch1,  ax1, zoom = zoom)
+    plot_MODIS_spatial(MODIS_data_ch2,  ax2, zoom = zoom)
+    plot_MODIS_spatial(MODIS_data_ch5,  ax3, zoom = zoom)
+    plot_MODIS_spatial(MODIS_data_ch7,  ax4, zoom = zoom)
+    plot_MODIS_spatial(MODIS_data_ch32, ax5, zoom = zoom)
+
+    # Play around with cloud and smoke detection
+    # ------------------------------------------
+    tmp_data = np.full(MODIS_data_ch1['data'].shape, np.nan)
+    in_cloud = (((MODIS_data_ch1['data'] + MODIS_data_ch2['data'] > 1.2) |\
+            (MODIS_data_ch32['data'] < 265.)) |\
+        ((MODIS_data_ch1['data'] + MODIS_data_ch2['data'] > 0.7) &\
+            (MODIS_data_ch32['data'] < 285.)))
+    tmp_data[in_cloud] = 2.
+    tmp_data[~in_cloud] = 0.
+    tmp_data[~in_cloud & (MODIS_data_ch1['data'] - \
+        MODIS_data_ch7['data'] > 0.05) & (MODIS_data_ch7['data'] > 0.05)] = 1
+    mask_tmp_data = np.ma.masked_invalid(tmp_data)
+
+    print('numbers = ',int(np.nanmax(mask_tmp_data)) - \
+        int(np.nanmin(mask_tmp_data))+2)
+    cmap = plt.get_cmap('plasma', int(np.nanmax(mask_tmp_data)) - \
+        int(np.nanmin(mask_tmp_data))+1)
+    cbar_labels = ['Clear','Smoke','Cloud']
+
+    #tmp_data = MODIS_data_ch1['data'] - MODIS_data_ch7['data'] 
+    mesh1 = ax6.pcolormesh(MODIS_data_ch1['lon'],MODIS_data_ch1['lat'],\
+        tmp_data,cmap = cmap, vmin = 0,\
+        vmax = 2,shading='auto', \
+        transform = datacrs) 
+        #tmp_data,cmap = 'plasma', shading='auto', transform = datacrs) 
+    #mesh1 = ax8.pcolormesh(MODIS_data_ch1['lon'],MODIS_data_ch1['lat'],\
+    #    tmp_data,cmap = 'bwr', vmin = -0.25, vmax = 0.25, shading='auto', transform = datacrs) 
+    #cbar1 = plt.colorbar(mesh1,ax=ax6,orientation='vertical',\
+    #    pad=0.03)
+    cbar = plt.colorbar(mesh1,ax = ax6, orientation='vertical',\
+        ticks = np.arange(len(cbar_labels)))
+    print(cbar_labels[int(np.nanmin(mask_tmp_data)):int(np.nanmax(mask_tmp_data))+1])
+    cbar.ax.set_yticklabels(cbar_labels,\
+        fontsize=10,weight = 'bold', rotation=0)
+
+    ax6.add_feature(cfeature.BORDERS)
+    ax6.add_feature(cfeature.STATES)
+    ax6.coastlines()
+    if(zoom):
+        ax6.set_extent([aerosol_event_dict[MODIS_data_ch1['cross_date']][MODIS_data_ch1['file_time']]['Lon'][0], \
+                        aerosol_event_dict[MODIS_data_ch1['cross_date']][MODIS_data_ch1['file_time']]['Lon'][1], \
+                        aerosol_event_dict[MODIS_data_ch1['cross_date']][MODIS_data_ch1['file_time']]['Lat'][0], \
+                        aerosol_event_dict[MODIS_data_ch1['cross_date']][MODIS_data_ch1['file_time']]['Lat'][1]],\
+                        datacrs)
+
+    if(save):
+        outname = 'modis_detection_' + date_str + '_6panel.png'
+        fig.savefig(outname, dpi=300)
+        print("Saved",outname)
+    else:
+        plt.show()

@@ -345,8 +345,15 @@ aerosol_event_dict = {
             'Lat': [39.5, 42.0],
             'Lon': [-122.0, -119.5],
             'data_lim': {
-                1:  [0.05, 0.5],
+                1:  [None, None],
+                2:  [None, None],
+                3:  [None, None],
+                4:  [None, None],
+                5:  [None, None],
+                7:  [None, None],
                 31: [270., 330.],
+                32: [270., 330.],
+                'wv_ir': [0.2, 1.5],
             },
             'modis_Lat': [39.5, 42.0],
             'modis_Lon': [-122.0, -119.5]
@@ -363,8 +370,15 @@ aerosol_event_dict = {
             'Lat': [39.5, 42.0],
             'Lon': [-122.0, -119.5],
             'data_lim': {
-                1:  [0.05, 0.5],
+                1:  [None, None],
+                2:  [None, None],
+                3:  [None, None],
+                4:  [None, None],
+                5:  [None, None],
+                7:  [None, None],
                 31: [270., 330.],
+                32: [270., 330.],
+                'wv_ir': [0.2, 1.5],
             },
             'modis_Lat': [39.5, 42.0],
             'modis_Lon': [-122.0, -119.5]
@@ -383,7 +397,11 @@ aerosol_event_dict = {
             #'Lon': [-122.0, -119.5],
             'data_lim': {
                 1:  [0.05, 0.5],
+                2:  [None, None],
+                3:  [None, None],
+                4:  [None, None],
                 5:  [None, None],
+                7:  [None, None],
                 31: [270., 330.],
                 32: [270., 330.],
                 'wv_ir': [0.2, 1.5],
@@ -407,7 +425,14 @@ aerosol_event_dict = {
             #'Lon': [-122.0, -119.5],
             'data_lim': {
                 1:  [0.05, 0.5],
+                2:  [None, None],
+                3:  [None, None],
+                4:  [None, None],
+                5:  [None, None],
+                7:  [None, None],
                 31: [270., 330.],
+                32: [270., 330.],
+                'wv_ir': [0.2, 1.5],
             },
             #'modis_Lat': [39.5, 42.0],
             #'modis_Lon': [-122.0, -119.5]
@@ -450,6 +475,17 @@ aerosol_event_dict = {
             'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.05.214.L2.SUBS2RET.v6.0.32.0.G21218175548.hdf'],
             'Lat': [39.5, 42.0],
             'Lon': [-122.0, -119.0],
+            'data_lim': {
+                1:  [None, None],
+                2:  [None, 1.0],
+                3:  [None, None],
+                4:  [None, None],
+                5:  [None, None],
+                7:  [None, 1.0],
+                31: [270., 330.],
+                32: [270., 330.],
+                'wv_ir': [0.2, 1.5],
+            },
             'modis_Lat': [39.5, 42.0],
             'modis_Lon': [-122., -119.]
         }
@@ -466,6 +502,17 @@ aerosol_event_dict = {
             'omi': '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0806t1943-o90747_v003-2021m0808t031152.he5',
             'Lat': [36.0, 39.0],
             'Lon': [-118.0, -114.0],
+            'data_lim': {
+                1:  [None, None],
+                2:  [None, None],
+                3:  [None, None],
+                4:  [None, None],
+                5:  [None, None],
+                7:  [None, None],
+                31: [270., 330.],
+                32: [270., 330.],
+                'wv_ir': [0.2, 1.5],
+            },
             'modis_Lat': [36.0, 39.0],
             'modis_Lon': [-118., -114.]
         }
@@ -512,7 +559,18 @@ aerosol_event_dict = {
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021242.2115.061.2021243183953.hdf',
             'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.30.213.L2.SUBS2RET.v6.0.32.0.G21243151114.hdf'],
             'Lat': [38.0, 40.0],
-            'Lon': [-121.0, -118.5]
+            'Lon': [-121.0, -118.5],
+            'data_lim': {
+                1:  [None, None],
+                2:  [None, None],
+                3:  [None, None],
+                4:  [None, None],
+                5:  [None, None],
+                7:  [None, None],
+                31: [270., 330.],
+                32: [270., 330.],
+                'wv_ir': [0.2, 1.5],
+            },
         }
     },
     "2021-09-01": {
@@ -522,6 +580,17 @@ aerosol_event_dict = {
             #'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.30.213.L2.SUBS2RET.v6.0.32.0.G21243151114.hdf'],
             'Lat': [38.0, 42.0],
             'Lon': [-121.5, -118.0],
+            'data_lim': {
+                1:  [None, None],
+                2:  [None, None],
+                3:  [None, None],
+                4:  [None, None],
+                5:  [None, None],
+                7:  [None, None],
+                31: [270., 330.],
+                32: [270., 330.],
+                'wv_ir': [0.2, 1.5],
+            },
             'modis_Lat': [38.0, 42.0],
             'modis_Lon': [-121.5, -118.]
         }

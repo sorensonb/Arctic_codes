@@ -287,7 +287,7 @@ ax0.set_title('AI ' + vtype + ': Threshold of '+str(ai_thresh)+\
 ax0.tick_params(axis='both', labelsize = 12)
 ax0.grid()
 fig0.tight_layout()
-save = True 
+save = False
 if(save == True):
     outname = "ai_" + vtype + "_indiv_yearly_" + dtype + "_thresh"+thresh+"_minlat"+min_lat+".png"
     fig0.savefig(outname,dpi=300)
