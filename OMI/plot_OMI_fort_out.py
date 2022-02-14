@@ -5,6 +5,8 @@
 
   PURPOSE:
 
+    NOTE: This is depreciated and has been moved to OMILib
+
   SYNTAX:
 
   EXAMPLE:
@@ -295,19 +297,19 @@ if(save == True):
 
 #plt.legend()
 
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-#
-# Plot the total yearly areas on a graph
-#
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-fig2 = plt.figure()
-ax4 = fig2.add_subplot(1,1,1)
-ax4.plot(years,yearly_totals)
-
-if(save == True):
-    outname = "ai_" + vtype + "_total_" + dtype + "_thresh"+thresh+"_minlat"+min_lat+".png"
-    fig2.savefig(outname,dpi=300)
-    print("Saved image",outname) 
+##!## = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+##!##
+##!## Plot the total yearly areas on a graph
+##!##
+##!## = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+##!#fig2 = plt.figure()
+##!#ax4 = fig2.add_subplot(1,1,1)
+##!#ax4.plot(years,yearly_totals)
+##!#
+##!#if(save == True):
+##!#    outname = "ai_" + vtype + "_total_" + dtype + "_thresh"+thresh+"_minlat"+min_lat+".png"
+##!#    fig2.savefig(outname,dpi=300)
+##!#    print("Saved image",outname) 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #

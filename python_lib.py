@@ -66,6 +66,39 @@ def correlation(x,y):
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+# identify_axes automatically ads plot labels on subplots generated using
+# plt.subplot_mosaic. For example, here is how the figure is to be set up
+#
+# >>> mosaic = \
+# ...   """
+# ...   AAB
+# ...   AAC
+# ...   """
+# ...
+# >>> fig = plt.figure()
+# >>> axs = fig.subplot_mosaic(mosaic)
+#
+# Then, to add labels to all the figures...
+# 
+# >>> identify_axes(ax)
+#
+def identify_axes(ax_dict, fontsize = 14, color = 'k', \
+        backgroundcolor = None):
+    if(backgroundcolor is None):
+        kw = dict(ha='left', va = 'top', fontsize = fontsize, color = color)
+    else:
+        kw = dict(ha='left', va = 'top', fontsize = fontsize, color = color, \
+            backgroundcolor = backgroundcolor)
+
+    # Check if ax_dict is actually a dict. If not, then try to
+    # extract the dictionary from the tuple
+    # --------------------------------------------------------
+    if(not isinstance(ax_dict, dict)):
+        ax_dict = ax_dict[1]
+    
+    for k, ax in ax_dict.items():
+        ax.text(0.08, 0.92, k, transform = ax.transAxes, **kw)
+    
 def init_proj(date_str):
     #mapcrs = Miller()
     if(date_str == None):

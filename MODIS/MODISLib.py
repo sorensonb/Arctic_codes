@@ -3273,7 +3273,7 @@ def plot_scatter_OMI_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
     ##!#    plt.legend(lines, labels, loc = 'right', bbox_to_anchor = (0, 0., 1.0, 1),\
     ##!#        bbox_transform = plt.gcf().transFigure, ncol=1)
 
-    pax.legend()
+    pax.legend(fontsize = 13)
     #pax.set_title('Smoke correlation: '+str(np.round(lrval_p, 3)))
     if(ptitle is None):
         ptitle = 'OMI/SWF: '+str(np.round(srval_p,3)) + '  OMI/LWF: ' + \
@@ -4110,7 +4110,7 @@ def plot_figure2(save=False, composite = True, calc_radiance = True, \
     #    transform = datacrs, backgroundcolor = 'white')
     plot_subplot_label(ax1, '(a)', backgroundcolor = 'white', location = 'upper_left')
     plot_subplot_label(ax4, '(b)', backgroundcolor = 'white', location = 'upper_left')
-    plot_subplot_label(ax2, '(c)', xval = 1200, yval = 5)
+    #plot_subplot_label(ax2, '(c)', xval = 1200, yval = 5)
     plot_subplot_label(ax3, '(d)', xval = 20, location = 'lower_left')
 
     plot_figure_text(ax1, 'MODIS 0.64 μm', xval = None, yval = None, transform = None, \
@@ -5996,6 +5996,66 @@ def plot_MODIS_detection(date_str, zoom = True, save = False):
 
     if(save):
         outname = 'modis_detection_' + date_str + '_6panel.png'
+        fig.savefig(outname, dpi=300)
+        print("Saved",outname)
+    else:
+        plt.show()
+
+def plot_scatter_OMI_CERES_figure(zoom = True, show_smoke = False, composite = True, \
+        plume_only = False, avg_pixel = True, save=False):
+
+    date_str = '202108062025'
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    # ----------------------------------------------------------------------
+    #
+    # Read the MODIS and CERES data
+    #
+    # ----------------------------------------------------------------------
+
+    # Call read_MODIS_channel to read the desired MODIS data from the file 
+    # and put it in a dictionary
+    # ---------------------------------------------------------------------
+    MODIS_data_ch31 = read_MODIS_channel(date_str, 31, zoom = zoom)
+
+    # Determine where the smoke is located MAYBE???
+    # ---------------------------------------------
+
+    # Read in the CERES data
+    # ----------------------
+    mask_LAT, mask_LON, mask_swf, mask_lwf = \
+        read_CERES_match_MODIS(date_str)
+  
+    # Read in the OMI data
+    # --------------------
+    LAT, LON, mask_UVAI = read_OMI_match_MODIS(date_str)
+ 
+ 
+    # ----------------------------------------------------------------------
+    #
+    #  Set up the figure
+    #
+    # ----------------------------------------------------------------------
+ 
+    mapcrs = init_proj(date_str)
+    plt.close('all')
+    fig = plt.figure(figsize=(6,6))
+    ax1 = fig.add_subplot(1,1,1) # Ch 31
+
+    # ----------------------------------------------------------------------
+    #
+    # Plot the data in the figure
+    #
+    # ----------------------------------------------------------------------
+    plot_scatter_OMI_CERES(date_str, MODIS_data_ch31, ax1, \
+        avg_pixel = avg_pixel, plume_only = plume_only, ptitle = '')
+
+    #fig.tight_layout()
+
+    MODIS_data_ch31.clear()
+
+    if(save):
+        outname = 'modis_scat_ceres_omi_' + date_str + '.png'
         fig.savefig(outname, dpi=300)
         print("Saved",outname)
     else:

@@ -7,11 +7,19 @@
 
 from MODISLib import *
 
-date_str = '202109012105'
+date_str = '202107202125'
+#date_str = '202109012105'
 channel1 = 1
 channel2 = 5
 channel3 = 31
-plot_MODIS_detection(date_str, zoom = True, save = True)
+
+plot_true_color_satpy(date_str, ax = None, zoom = True, save = False, composite = False)
+
+#plot_figure2(save=True, composite = True, calc_radiance = True, \
+#        satellite = 'modis_ch31')
+#plot_scatter_OMI_CERES_figure(zoom = True, show_smoke = False, composite = True, \
+#        plume_only = False, avg_pixel = True, save=True)
+#plot_MODIS_detection(date_str, zoom = True, save = True)
 #plot_MODIS_CERES_3panel(zoom = True, show_smoke = False, composite = True, \
 #        save=False)
 
