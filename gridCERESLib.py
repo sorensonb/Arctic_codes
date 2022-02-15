@@ -326,7 +326,7 @@ def readgridCERES_daily(start_date,end_date,param,satellite = 'Aqua',minlat=60.5
 
 # Data period is of format YYYYMMDDHH
 def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'):
-
+    print(data_dt)
     lat_ranges = np.arange(minlat,90.0,0.25)
     lon_ranges = np.arange(-180.0,180.0,0.25)
 
@@ -423,6 +423,14 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     # Convert each pixel relative time to absolute
     total_times = np.array([base_date + relativedelta(days = ttime) \
         for ttime in time])
+
+    plt.close('all') 
+    fig1 = plt.figure()
+    plt.plot(total_times, azm, label = 'azm')
+    plt.plot(total_times, lat, label = 'lat')
+    plt.plot(total_times, vza, label = 'vza')   
+    plt.legend()
+    plt.show()
    
     # Extract only the data in the time window 
     # ----------------------------------------
@@ -435,13 +443,13 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     test_vza  = vza[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
     test_azm  = azm[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
 
-    ##!#plt.close('all') 
-    ##!#fig1 = plt.figure()
-    ##!#plt.plot(test_time, test_azm, label = 'azm')
-    ##!#plt.plot(test_time, test_lat, label = 'lat')
-    ##!#plt.plot(test_time, test_vza, label = 'vza')   
-    ##!#plt.legend()
-    ##!#plt.show()
+    plt.close('all') 
+    fig1 = plt.figure()
+    plt.plot(test_time, test_azm, label = 'azm')
+    plt.plot(test_time, test_lat, label = 'lat')
+    plt.plot(test_time, test_vza, label = 'vza')   
+    plt.legend()
+    plt.show()
 
 
     # Determine where the LAT peaks are located and separated by 181
@@ -484,6 +492,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     # Loop over the data and insert into the grids
     for ii in range(len(keep_lat_peaks) - 1):
         idx_diff = keep_lat_peaks[ii+1] - keep_lat_peaks[ii]
+        print(idx_diff)
         if(idx_diff == 181):
             grid_swf[ii,:len(test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
             grid_lwf[ii,:len(test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]

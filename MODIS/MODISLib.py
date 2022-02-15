@@ -532,22 +532,49 @@ def plot_ASOS_locs(pax,date_str,crs = datacrs, color='red', \
 
 # Determine areas of an image that are in smoke, defined by:
 #    (ch1_refl - ch5_refl) < mean(ch1_refl - ch5_refl) * 0.25
+# NEW VERSION: 
+#
+#    cbar_labels = ['Clear','Smoke','Cloud']
+#
 def find_plume(dt_date_str):
     MODIS_ch1  = read_MODIS_channel(dt_date_str, 1,  zoom = True)
+    MODIS_ch2  = read_MODIS_channel(dt_date_str, 2,  zoom = True)
     MODIS_ch5  = read_MODIS_channel(dt_date_str, 5,  zoom = True)
-    MODIS_ch31 = read_MODIS_channel(dt_date_str, 31, zoom = True)
+    MODIS_ch7  = read_MODIS_channel(dt_date_str, 7,  zoom = True)
+    MODIS_ch32 = read_MODIS_channel(dt_date_str, 32, zoom = True)
 
-    screen_limit = 0.05
-    max_ch = 350.
-    test_data = MODIS_ch1['data'] - MODIS_ch5['data']
-    hash_data   = np.ma.masked_where(test_data <  \
-        (np.nanmean(test_data) * screen_limit), MODIS_ch1['data'])
-    hash_data = np.ma.masked_where(MODIS_ch5['data'] < 0.05, hash_data)
-    nohash_data = np.ma.masked_where(test_data >= \
-        (np.nanmean(test_data) * screen_limit), MODIS_ch1['data'])
+    tmp_data = np.full(MODIS_ch1['data'].shape, np.nan)
+    in_cloud = (((MODIS_ch1['data'] + MODIS_ch2['data'] > 1.2) |\
+                 (MODIS_ch32['data'] < 265.)) |\
+                ((MODIS_ch1['data'] + MODIS_ch2['data'] > 0.7) &\
+                 (MODIS_ch32['data'] < 285.)))
+    tmp_data[in_cloud] = 2.
+    tmp_data[~in_cloud] = 0.
+    tmp_data[~in_cloud & (MODIS_ch1['data'] - \
+        MODIS_ch7['data'] > 0.05) & (MODIS_ch7['data'] > 0.05)] = 1
+    mask_tmp_data = np.ma.masked_invalid(tmp_data)
 
-    hash_data = np.ma.masked_where(MODIS_ch31['data'] > max_ch, hash_data)
-    nohash_data = np.ma.masked_where(MODIS_ch31['data'] > max_ch, nohash_data)
+    # For the hash data (smoke), remove any pixels that do not have
+    # tmp data equal to 1
+    # -------------------------------------------------------------
+    hash_data   = np.ma.masked_where(mask_tmp_data != 1, mask_tmp_data)
+    nohash_data = np.ma.masked_where(mask_tmp_data == 1, mask_tmp_data)
+
+    ##!#MODIS_ch1  = read_MODIS_channel(dt_date_str, 1,  zoom = True)
+    ##!#MODIS_ch5  = read_MODIS_channel(dt_date_str, 5,  zoom = True)
+    ##!#MODIS_ch31 = read_MODIS_channel(dt_date_str, 31, zoom = True)
+
+    ##!#screen_limit = 0.05
+    ##!#max_ch = 350.
+    ##!#test_data = MODIS_ch1['data'] - MODIS_ch5['data']
+    ##!#hash_data   = np.ma.masked_where(test_data <  \
+    ##!#    (np.nanmean(test_data) * screen_limit), MODIS_ch1['data'])
+    ##!#hash_data = np.ma.masked_where(MODIS_ch5['data'] < 0.05, hash_data)
+    ##!#nohash_data = np.ma.masked_where(test_data >= \
+    ##!#    (np.nanmean(test_data) * screen_limit), MODIS_ch1['data'])
+
+    ##!#hash_data = np.ma.masked_where(MODIS_ch31['data'] > max_ch, hash_data)
+    ##!#nohash_data = np.ma.masked_where(MODIS_ch31['data'] > max_ch, nohash_data)
 
     return hash_data, nohash_data
 
@@ -3795,10 +3822,15 @@ def plot_scatter_select(composite = True, avg_pixel = True, \
     else:
         plt.show()
 
-def plot_combined_figure1(zoom = True, show_smoke = True, composite = True, \
+def plot_combined_figure1(date_str = '202107222110', zoom = True, show_smoke = True, composite = True, \
         save=False):
 
-    date_str = '202107222110'
+    if('/home/bsorenson/Research/CERES' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/CERES')
+    from gridCERESLib import readgridCERES_hrly_grid, plotCERES_hrly
+
+    #date_str = '202107202125'
+    #date_str = '202107222110'
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
 
     # ----------------------------------------------------------------------
@@ -3875,8 +3907,15 @@ def plot_combined_figure1(zoom = True, show_smoke = True, composite = True, \
 
     # Read in the CERES data
     # ----------------------
-    mask_LAT, mask_LON, mask_swf, mask_lwf = \
-        read_CERES_match_MODIS(date_str)
+    ##!#mask_LAT, mask_LON, mask_swf, mask_lwf = \
+    ##!#    read_CERES_match_MODIS(date_str)
+    CERES_data_hrly_swf = readgridCERES_hrly_grid(date_str[:10], 'SWF')
+
+    if(CERES_data_hrly_swf is None):
+        print("ERROR: no data returned from readgridCERES_hrly_grid")
+        print("Quitting")
+        return
+    
    
     # ----------------------------------------------------------------------
     #
@@ -3932,10 +3971,32 @@ def plot_combined_figure1(zoom = True, show_smoke = True, composite = True, \
 
     # Plot the CERES SWF and LWF data
     # -------------------------------
-    plot_CERES_spatial(date_str, mask_LAT, mask_LON, mask_swf, 'SWF', ax8, \
-        ptitle = '', zoom = zoom)
-    plot_CERES_spatial(date_str, mask_LAT, mask_LON, mask_lwf, 'LWF', ax9, \
-        ptitle = '', zoom = zoom)
+    ##!#plot_CERES_spatial(date_str, mask_LAT, mask_LON, mask_swf, 'SWF', ax8, \
+    ##!#    ptitle = '', zoom = zoom)
+    ##!#plot_CERES_spatial(date_str, mask_LAT, mask_LON, mask_lwf, 'LWF', ax9, \
+    ##!#    ptitle = '', zoom = zoom)
+    plotCERES_hrly(ax8, CERES_data_hrly_swf, 'swf', \
+        vmin = None, vmax = None, title = '', label = '', \
+        circle_bound = False, gridlines = False, grid_data = True, \
+        zoom = True)
+    if(zoom):
+        ax8.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
+                        datacrs)
+
+    plotCERES_hrly(ax9, CERES_data_hrly_swf, 'lwf', \
+        vmin = None, vmax = None, title = '', label = '', \
+        circle_bound = False, gridlines = False, grid_data = True, \
+        zoom = True)
+    if(zoom):
+        ax9.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
+                        datacrs)
+
 
     #plotCERES_hrly(ax8, CERES_data_hrly, minlat=65, \
     #    vmin = None, vmax = None, title = '', label = '', \
@@ -5962,6 +6023,8 @@ def plot_MODIS_detection(date_str, zoom = True, save = False):
         MODIS_data_ch7['data'] > 0.05) & (MODIS_data_ch7['data'] > 0.05)] = 1
     mask_tmp_data = np.ma.masked_invalid(tmp_data)
 
+    hash_data = np.ma.masked_where(mask_tmp_data != 1, mask_tmp_data)
+
     print('numbers = ',int(np.nanmax(mask_tmp_data)) - \
         int(np.nanmin(mask_tmp_data))+2)
     cmap = plt.get_cmap('plasma', int(np.nanmax(mask_tmp_data)) - \
@@ -5983,6 +6046,13 @@ def plot_MODIS_detection(date_str, zoom = True, save = False):
     print(cbar_labels[int(np.nanmin(mask_tmp_data)):int(np.nanmax(mask_tmp_data))+1])
     cbar.ax.set_yticklabels(cbar_labels,\
         fontsize=10,weight = 'bold', rotation=0)
+
+    plt.rcParams.update({'hatch.color': 'r'})
+    hatch_shape = '\\\\'
+    #hash0 = ax2.pcolor(MODIS_data_ch1['lon'],MODIS_data_ch1['lat'],\
+    #    hash_data[:MODIS_data_ch1['lat'].shape[0], :MODIS_data_ch1['lat'].shape[1]], hatch = hatch_shape, alpha=0., transform = datacrs)
+    ax1.pcolor(MODIS_data_ch1['lon'],MODIS_data_ch1['lat'],\
+        hash_data, hatch = hatch_shape, alpha=0.40, transform = datacrs)
 
     ax6.add_feature(cfeature.BORDERS)
     ax6.add_feature(cfeature.STATES)

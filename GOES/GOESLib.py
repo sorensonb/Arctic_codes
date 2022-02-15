@@ -1087,9 +1087,9 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
     min0 = 0.0
     min1 = 0.0
     min2 = 0.5
-    min3 = None
-    min4 = None
-    min5 = None
+    min3 = 0.6
+    min4 = 0.6
+    min5 = 0.6
 
     v3lon, v3lat = var3.attrs['area'].get_lonlats()
     v2data = np.squeeze(var2.values)

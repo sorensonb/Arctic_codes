@@ -373,7 +373,8 @@ aerosol_event_dict = {
         '2125': {
             'asos': 'asos_data_20210720.csv',
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021201.2125.061.2021202154814.hdf',
-            'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072010-2021072021.nc',
+            'mdswv': '/home/bsorenson/data/MODIS/Aqua/MYD05_L2.A2021201.2125.061.2021202225717.hdf',
+            'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/modis_comp/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072010-2021072021.nc',
             'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.20.214.L2.SUBS2RET.v6.0.32.0.G21202153435.hdf'],
             'Lat': [39.5, 42.0],
             'Lon': [-122.0, -119.5],
@@ -386,7 +387,7 @@ aerosol_event_dict = {
                 7:  [None, None],
                 31: [270., 330.],
                 32: [270., 330.],
-                'wv_ir': [0.2, 1.5],
+                'wv_ir': [0.2, 2.5],
             },
             'modis_Lat': [39.5, 42.0],
             'modis_Lon': [-122.0, -119.5]
