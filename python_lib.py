@@ -14,6 +14,9 @@ from datetime import datetime
 import cartopy.crs as ccrs
 import glob
 from PIL import Image
+import h5py
+import matplotlib.pyplot as plt
+import cartopy.feature as cfeature
 
 # Compute a circle in axes coordinates, which we can use as a boundary
 # for the map. We can pan/zoom as much as we like - the boundary will be
@@ -24,6 +27,7 @@ verts = np.vstack([np.sin(theta), np.cos(theta)]).T
 circle = mpath.Path(verts * radius + center)
 
 datacrs = ccrs.PlateCarree()
+#mapcrs = ccrs.LambertConformal(central_longitude = -110, central_latitude = 40)
 
 # Find the gridpoint in the gridded lat/lon data that 
 # corresponds to the station at slat and slon
@@ -82,6 +86,70 @@ def correlation(x,y):
 # 
 # >>> identify_axes(ax)
 #
+
+def plot_VIIRS_granule(filename, ax):
+    
+    # Read the filename to determine the file type
+    # --------------------------------------------
+    total_split = filename.split('/')
+    name_split = total_split[-1].split('.')
+    dataset_name = name_split[0]
+    if(dataset_name == 'VNP46A1'):
+        viirs_ds = h5py.File(filename, 'r')
+        lat_max = viirs_ds['HDFEOS/GRIDS/VNP_Grid_DNB/'].attrs['NorthBoundingCoord']
+        lat_min = viirs_ds['HDFEOS/GRIDS/VNP_Grid_DNB/'].attrs['SouthBoundingCoord']
+        lon_max = viirs_ds['HDFEOS/GRIDS/VNP_Grid_DNB/'].attrs['EastBoundingCoord']
+        lon_min = viirs_ds['HDFEOS/GRIDS/VNP_Grid_DNB/'].attrs['WestBoundingCoord']
+        dnb = viirs_ds['HDFEOS/GRIDS/VNP_Grid_DNB/Data Fields/DNB_At_Sensor_Radiance_500m']
+
+        lats = np.linspace(lat_max[0], lat_min[0], dnb.shape[1])
+        lons = np.linspace(lon_min[0], lon_max[0], dnb.shape[0])
+        x, y = np.meshgrid(lons, lats)
+
+    elif(dataset_name == 'VNP02DNB'):
+        # Determine if geolocation data is present in same path
+        # -----------------------------------------------------
+        geoloc_list = glob.glob('/'.join(total_split[:-1]) + '/VNP03DNB.' + \
+            '.'.join(name_split[1:4]) + '*') 
+        if(len(geoloc_list) == 0):
+            print("ERROR: no geolocation found for file",filename)
+            return
+        else:
+            viirs_ds   = h5py.File(filename, 'r')
+            viirs_ds_g = h5py.File(geoloc_list[0], 'r')
+
+            # Extract the DNB values
+            # ----------------------
+            dnb = np.log10(viirs_ds['observation_data/DNB_observations'][:])
+
+            # Extract the lat and lons
+            # ------------------------
+            x = viirs_ds_g['geolocation_data']['longitude'][:]
+            y = viirs_ds_g['geolocation_data']['latitude'][:]
+
+            viirs_ds.close()
+            viirs_ds_g.close() 
+
+    ax.pcolormesh(x,y, dnb, cmap = 'cividis', vmin = 0, vmax = 100, transform = ccrs.PlateCarree())
+    viirs_ds.close()
+
+def plot_VIIRS(filename):
+    plt.close('all')
+    fig = plt.figure(figsize = (6,6))
+    ax = fig.add_subplot(1,1,1, projection = mapcrs)
+    if(isinstance(filename, list)):
+
+        for ff in filename:
+            plot_VIIRS_granule(ff,ax)
+
+    elif(isinstance(filename, str)):
+        plot_VIIRS_granule(filename,ax)
+
+    ax.coastlines()
+    ax.add_feature(cfeature.BORDERS)
+    ax.add_feature(cfeature.STATES)
+    plt.show()
+
 def identify_axes(ax_dict, fontsize = 14, color = 'k', \
         backgroundcolor = None):
     if(backgroundcolor is None):
@@ -447,6 +515,8 @@ aerosol_event_dict = {
         }
     },
     "2021-07-23": {
+        'Lat': [39.5, 42.0],
+        'Lon': [-122.0, -119.5],
         '2155': {
             'asos': 'asos_data_20210722_2.csv',
             'modis': '/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2021204.2155.061.2021205153516.hdf',

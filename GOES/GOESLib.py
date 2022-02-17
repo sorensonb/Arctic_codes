@@ -1000,11 +1000,14 @@ def read_GOES_satpy(date_str, channel):
     return var, crs, lat_lims, lon_lims
 
 # channel must be an integer between 1 and 16
-def plot_GOES_satpy(date_str, channel, ax = None, zoom=True,save=False):
+def plot_GOES_satpy(date_str, channel, ax = None, var = None, crs = None, \
+        lat_lims = None, lon_lims = None, vmin = None, vmax = None, \
+        ptitle = None, zoom=True,save=False):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
 
-    var, crs, lat_lims, lon_lims = read_GOES_satpy(date_str, channel)
+    if(var is None): 
+        var, crs, lat_lims, lon_lims = read_GOES_satpy(date_str, channel)
 
     # Plot the GOES data
     # ------------------
@@ -1015,12 +1018,13 @@ def plot_GOES_satpy(date_str, channel, ax = None, zoom=True,save=False):
         ax = plt.axes(projection=crs)
 
     ax.imshow(var.data, transform = crs, extent=(var.x[0], var.x[-1], \
-        var.y[-1], var.y[0]), origin='upper', cmap = 'Greys_r')
+        var.y[-1], var.y[0]), vmin = vmin, vmax = vmax, origin='upper', \
+        cmap = 'Greys_r')
 
     # Zoom in the figure if desired
     # -----------------------------
     if(zoom):
-        ax.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+        ax.set_extent([lon_lims[0]+0.55,lon_lims[1]-0.6,lat_lims[0],lat_lims[1]],\
                        crs = ccrs.PlateCarree())
         zoom_add = '_zoom'
     else:
@@ -1029,7 +1033,10 @@ def plot_GOES_satpy(date_str, channel, ax = None, zoom=True,save=False):
     ax.coastlines(resolution = '50m')
     ax.add_feature(cfeature.STATES)
     ax.add_feature(cfeature.BORDERS)
-    ax.set_title('GOES-17\n'+dt_date_str.strftime('%Y-%m-%d %H:%M'))
+    if(ptitle is None):
+        ax.set_title('GOES-17\n'+dt_date_str.strftime('%Y-%m-%d %H:%M'))
+    else:
+        ax.set_title(ptitle)
 
     if(not in_ax): 
         print('here')

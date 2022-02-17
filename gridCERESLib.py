@@ -424,13 +424,13 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     total_times = np.array([base_date + relativedelta(days = ttime) \
         for ttime in time])
 
-    plt.close('all') 
-    fig1 = plt.figure()
-    plt.plot(total_times, azm, label = 'azm')
-    plt.plot(total_times, lat, label = 'lat')
-    plt.plot(total_times, vza, label = 'vza')   
-    plt.legend()
-    plt.show()
+    ##!#plt.close('all') 
+    ##!#fig1 = plt.figure()
+    ##!#plt.plot(total_times, azm, label = 'azm')
+    ##!#plt.plot(total_times, lat, label = 'lat')
+    ##!#plt.plot(total_times, vza, label = 'vza')   
+    ##!#plt.legend()
+    ##!#plt.show()
    
     # Extract only the data in the time window 
     # ----------------------------------------
@@ -443,26 +443,34 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     test_vza  = vza[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
     test_azm  = azm[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
 
-    plt.close('all') 
-    fig1 = plt.figure()
-    plt.plot(test_time, test_azm, label = 'azm')
-    plt.plot(test_time, test_lat, label = 'lat')
-    plt.plot(test_time, test_vza, label = 'vza')   
-    plt.legend()
-    plt.show()
-
-
     # Determine where the LAT peaks are located and separated by 181
     # --------------------------------------------------------------
-    lat_neg_peaks, _ = find_peaks(-test_lat, distance = 120)
+    lat_neg_peaks, _ = find_peaks(-test_vza, distance = 120)
     lat_peak_diffs = lat_neg_peaks[1:] - lat_neg_peaks[:-1]
+
+    ##!#print('lat_peak_diffs = ', lat_peak_diffs)
+    ##!#print('lat_neg_peak times = ', test_time[lat_neg_peaks])
+    ##!#print('lat_neg_peak lats  = ', test_lat[lat_neg_peaks])
+
+    ##!#plt.close('all') 
+    ##!#fig1 = plt.figure()
+    ##!#plt.plot(test_time, test_azm, label = 'azm')
+    ##!#plt.plot(test_time, test_lat, label = 'lat')
+    ##!#plt.plot(test_time, test_vza, label = 'vza')   
+    ##!#plt.plot(test_time[lat_neg_peaks], test_azm[lat_neg_peaks], 'x')
+    ##!#plt.legend()
+    ##!#plt.show()
+
 
 
     # Extract the data within the full cycles
     # ---------------------------------------    
-    keep_lat_peaks = lat_neg_peaks[np.where((lat_peak_diffs == 181) | \
-        (lat_peak_diffs == 182))]
-    print(lat_peak_diffs)
+    #keep_lat_peaks = lat_neg_peaks[np.where((lat_peak_diffs == 181) | \
+    #    (lat_peak_diffs == 182))]
+    keep_lat_peaks = lat_neg_peaks
+    ##!#print('AA', lat_peak_diffs)
+    ##!#print('keep_lat_peak times = ', test_time[keep_lat_peaks])
+    ##!#print('keep_lat_peak lats  = ', test_lat[keep_lat_peaks])
     if(len(keep_lat_peaks) == 0):
         print("ERROR: no data within the desired time window")
         return
@@ -492,8 +500,9 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     # Loop over the data and insert into the grids
     for ii in range(len(keep_lat_peaks) - 1):
         idx_diff = keep_lat_peaks[ii+1] - keep_lat_peaks[ii]
-        print(idx_diff)
+        #print(idx_diff, test_time[keep_lat_peaks[ii]])
         if(idx_diff == 181):
+    ##!#        print(idx_diff, test_time[keep_lat_peaks[ii]], np.nanmean(test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]), 'exact match')
             grid_swf[ii,:len(test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
             grid_lwf[ii,:len(test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
             grid_lat[ii,:len(test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
@@ -501,27 +510,62 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
             grid_sza[ii,:len(test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
             grid_vza[ii,:len(test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
             grid_azm[ii,:len(test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
-        elif(idx_diff > 181):
-            grid_swf[ii,:len(test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
-            grid_lwf[ii,:len(test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
-            grid_lat[ii,:len(test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
-            grid_lon[ii,:len(test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
-            grid_sza[ii,:len(test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
-            grid_vza[ii,:len(test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
-            grid_azm[ii,:len(test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
+        ##!#elif(idx_diff > 181):
+        ##!#    print(idx_diff, test_time[keep_lat_peaks[ii]], np.nanmean(test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]), 'over estimate')
+        ##!#    grid_swf[ii,:len(test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
+        ##!#    grid_lwf[ii,:len(test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
+        ##!#    grid_lat[ii,:len(test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
+        ##!#    grid_lon[ii,:len(test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
+        ##!#    grid_sza[ii,:len(test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
+        ##!#    grid_vza[ii,:len(test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
+        ##!#    grid_azm[ii,:len(test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181])] = test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 181]
+        elif(idx_diff < 181):
+        #else:
+            #print(idx_diff, test_time[keep_lat_peaks[ii]], 'too small')
+            # Find where the VZA in this row is closest to the VZA in the previous row
+            # ------------------------------------------------------------------------
+
+    ##!#        print(idx_diff, test_time[keep_lat_peaks[ii]], np.nanmean(test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]), 'nothing')
+            if(ii > 0):
+                if(np.count_nonzero(~np.isnan(grid_lon[ii-1,:])) > 0):
+                    avg_vza = np.nanmean(grid_vza[:,:], axis=0)
+                    fun_c = abs((test_vza[keep_lat_peaks[ii]]) - avg_vza[:30])
+                    #fun_c = abs((test_vza[keep_lat_peaks[ii]]) - grid_vza[ii-1,:30])
+                    m_idx = np.where(fun_c == np.min(fun_c))
+                    ##!#print('last line vza = ',grid_vza[ii-1,:9])
+                    ##!#print('avg line vza  = ',avg_vza[:9])
+                    ##!##print('avg line vza  = ',np.nanmean(grid_vza[:,:], axis=0)[:9])
+                    ##!#print('this line vza = ',test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 9])
+                    ##!#print('beginning lat this line = ', test_vza[keep_lat_peaks[ii]])
+                    ##!#print('closest   lat last line = ', avg_vza[:30][m_idx])
+                    ##!##print('closest   lat last line = ', grid_vza[ii-1,:9][m_idx])
+                    ##!#print('index of closst last lat =', m_idx)
+                    
+                    #fun_c = np.maximum(np.abs(grid_lat - slat), \
+                    #    np.abs(grid_lon - slon))
+                        
+                    grid_swf[ii,m_idx[0][0]:len(test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                    grid_lwf[ii,m_idx[0][0]:len(test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                    grid_lat[ii,m_idx[0][0]:len(test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                    grid_lon[ii,m_idx[0][0]:len(test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                    grid_sza[ii,m_idx[0][0]:len(test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                    grid_vza[ii,m_idx[0][0]:len(test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                    grid_azm[ii,m_idx[0][0]:len(test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
 
     # Remove any rows in the grid arrays with any nans
     # ------------------------------------------------
     checkers = np.array([np.count_nonzero(~np.isnan(grid_lon[ii,:])) for ii in range(grid_lon.shape[0])])
-    print(checkers) 
+    ##!#print(checkers) 
 
-    grid_swf = grid_swf[np.where(checkers == 181)[0],:]
-    grid_lwf = grid_lwf[np.where(checkers == 181)[0],:]
-    grid_lat = grid_lat[np.where(checkers == 181)[0],:]
-    grid_lon = grid_lon[np.where(checkers == 181)[0],:]
-    grid_sza = grid_sza[np.where(checkers == 181)[0],:]
-    grid_vza = grid_vza[np.where(checkers == 181)[0],:]
-    grid_azm = grid_azm[np.where(checkers == 181)[0],:]
+    ###grid_swf = grid_swf[np.where(checkers == 181)[0],:]
+    ###grid_lwf = grid_lwf[np.where(checkers == 181)[0],:]
+    ###grid_lat = grid_lat[np.where(checkers == 181)[0],:]
+    ###grid_lon = grid_lon[np.where(checkers == 181)[0],:]
+    ###grid_sza = grid_sza[np.where(checkers == 181)[0],:]
+    ###grid_vza = grid_vza[np.where(checkers == 181)[0],:]
+    ###grid_azm = grid_azm[np.where(checkers == 181)[0],:]
+    grid_lat[np.isnan(grid_lat)] = 60.0
+    grid_lon[np.isnan(grid_lon)] = 60.0
 
     grid_swf  = np.ma.masked_invalid(grid_swf)
     grid_lwf  = np.ma.masked_invalid(grid_lwf)
@@ -1369,9 +1413,9 @@ def icePlots(infile,monthfix=False):
 ##!#    #plt.show()
 
 def plotCERES_hrly(pax, CERES_data_hrly, param, minlat=65, \
-        vmin = None, vmax = None, title = '', label = '', \
-        circle_bound = False, gridlines = True, grid_data = True, \
-        zoom = True):
+        vmin = None, vmax = None, title = None, label = None, \
+        labelsize = 13, labelticksize = 11, circle_bound = False, \
+        gridlines = True, grid_data = True, zoom = True):
 
     if(vmin is None):
         vmin = min_dict[param.upper()]
@@ -1403,9 +1447,9 @@ def plotCERES_hrly(pax, CERES_data_hrly, param, minlat=65, \
  
     if(gridlines): 
         pax.gridlines()
-    if(title == ''):
+    if(title == None):
         title =  'CERES ' + param + ' ' + CERES_data_hrly['date']
-    if(label == ''):
+    if(label == None):
         label = param.upper() + ' [W/m$^{2}$]'
     pax.set_title(title)
 
@@ -1414,8 +1458,8 @@ def plotCERES_hrly(pax, CERES_data_hrly, param, minlat=65, \
         cmap = colormap, vmin = vmin, vmax = vmax, shading = 'auto')
     cbar = plt.colorbar(mesh,ax = pax, orientation='vertical',\
         extend = 'both')
-    cbar.set_label(label,fontsize = 14, weight='bold')
-    cbar.ax.tick_params(labelsize=14)
+    cbar.set_label(label,fontsize = labelsize, weight='bold')
+    cbar.ax.tick_params(labelsize=labelticksize)
 
     pax.coastlines(resolution = '50m')
     #pax.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
