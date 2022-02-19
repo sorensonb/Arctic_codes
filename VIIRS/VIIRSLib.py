@@ -36,7 +36,7 @@ from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
 
 mapcrs = ccrs.LambertConformal(central_longitude = -110, central_latitude = 40)
 
-def plot_VIIRS_granule_DNB(filename, ax):
+def plot_VIIRS_granule_DNB(filename, ax, band = 'M15'):
     
     # Read the filename to determine the file type
     # --------------------------------------------
@@ -44,6 +44,8 @@ def plot_VIIRS_granule_DNB(filename, ax):
     name_split = total_split[-1].split('.')
     dataset_name = name_split[0]
     if(dataset_name == 'VNP46A1'):
+        cmap = 'cividis'
+
         viirs_ds = h5py.File(filename, 'r')
         lat_max = viirs_ds['HDFEOS/GRIDS/VNP_Grid_DNB/'].attrs['NorthBoundingCoord']
         lat_min = viirs_ds['HDFEOS/GRIDS/VNP_Grid_DNB/'].attrs['SouthBoundingCoord']
@@ -62,11 +64,18 @@ def plot_VIIRS_granule_DNB(filename, ax):
         lons = np.linspace(lon_min[0], lon_max[0], dnb.shape[0])
         x, y = np.meshgrid(lons, lats)
 
-    elif(dataset_name == 'VNP02DNB'):
+    elif(dataset_name[:5] == 'VNP02'):
+
+        # Extract whether DNB or MOD
+        # --------------------------
+        data_type = dataset_name[5:]
+
         # Determine if geolocation data is present in same path
         # -----------------------------------------------------
-        geoloc_list = glob.glob('/'.join(total_split[:-1]) + '/VNP03DNB.' + \
-            '.'.join(name_split[1:4]) + '*') 
+        print("Searching for geolocation data for",'/'.join(total_split[:-1]) \
+            + '/VNP03' + data_type + '.' + '.'.join(name_split[1:4]))
+        geoloc_list = glob('/'.join(total_split[:-1]) + '/VNP03' + data_type + \
+            '.' + '.'.join(name_split[1:4]) + '*') 
         if(len(geoloc_list) == 0):
             print("ERROR: no geolocation found for file",filename)
             return
@@ -76,7 +85,26 @@ def plot_VIIRS_granule_DNB(filename, ax):
 
             # Extract the DNB values
             # ----------------------
-            dnb = np.log10(viirs_ds['observation_data/DNB_observations'][:])
+            if(data_type == 'DNB'):
+                cmap = 'Greys_r'
+                dnb = viirs_ds['observation_data/DNB_observations'][:]
+
+                dnb = np.ma.masked_where(dnb < 0, dnb)
+                dnb = dnb * 1e9
+                #dnb = np.log10(dnb)
+                #vmax = np.log10(38.2)
+                vmax = 10.0
+
+            else:
+                cmap = 'Greys_r'
+                dnb = viirs_ds['observation_data/' + band][:]
+                dnb_scale = viirs_ds['observation_data/' + band].attrs['scale_factor']
+                dnb_offset = viirs_ds['observation_data/' + band].attrs['add_offset']
+
+                dnb = np.ma.masked_where(dnb < 0, dnb)
+                dnb = (dnb - dnb_offset) * dnb_scale
+                print(np.min(dnb), np.max(dnb))
+                vmax = None
 
             # Extract the lat and lons
             # ------------------------
@@ -86,11 +114,11 @@ def plot_VIIRS_granule_DNB(filename, ax):
             viirs_ds.close()
             viirs_ds_g.close() 
 
-    ax.pcolormesh(x,y, dnb, cmap = 'cividis', vmin = 0, vmax = 8, \
+    ax.pcolormesh(x,y, dnb, cmap = cmap, vmin = None, vmax = vmax, \
         transform = ccrs.PlateCarree(), shading = 'auto')
     viirs_ds.close()
 
-def plot_VIIRS_DNB(filename, zoom = True):
+def plot_VIIRS_DNB(filename, band = 'M12', zoom = True):
 
     mapcrs = init_proj('202107232155')
     plt.close('all')
@@ -99,10 +127,10 @@ def plot_VIIRS_DNB(filename, zoom = True):
     if(isinstance(filename, list)):
 
         for ff in filename:
-            plot_VIIRS_granule_DNB(ff,ax)
+            plot_VIIRS_granule_DNB(ff,ax, band = band)
 
     elif(isinstance(filename, str)):
-        plot_VIIRS_granule_DNB(filename,ax)
+        plot_VIIRS_granule_DNB(filename,ax, band = band)
 
     if(zoom):
         ax.set_extent([-122.0,-119.5,39.5,42.0],\
