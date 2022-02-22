@@ -39,7 +39,8 @@ from glob import glob
 
 sys.path.append('/home/bsorenson/')
 from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
-    nearest_gridpoint, aerosol_event_dict, init_proj
+    nearest_gridpoint, aerosol_event_dict, init_proj, \
+    convert_radiance_to_temp
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 # Set up global variables
@@ -1177,19 +1178,27 @@ def read_MODIS_channel(date_str, channel, zoom = False):
 
             data = ((data - data_offset) * data_scale)
 
-            # Define constants for converting radiances to temperatures
-            lmbda = (1e-6) * (np.average(channel_dict[str(channel)]['Bandwidth'])) # in m
             if(debug):
                 print("Average wavelength = ",np.average(channel_dict[str(channel)]['Bandwidth']))
-            c_const = 3e8
-            h_const = 6.626e-34 # J*s
-            k_const = 1.381e-23 # J/K
 
-            data = (h_const * c_const) / \
-                (lmbda * k_const * np.log( ((2.0 * h_const * (c_const**2.0) ) / \
-                ((lmbda**4.) * (lmbda / 1e-6) * data ) ) + 1.0 ) )
-            #data = ((h_const * c_const)/(k_const * lmbda)) * (np.log((2.0 * h_const * (c_const ** 2.0) / \
-            #    ((lmbda**5.0) * data)) + 1) ** -1.)
+            data = convert_radiance_to_temp(\
+                (np.average(channel_dict[str(channel)]['Bandwidth'])), data)
+
+            ##!## BEGIN FUNCTION
+
+            ##!## Define constants for converting radiances to temperatures
+            ##!#lmbda = (1e-6) * (np.average(channel_dict[str(channel)]['Bandwidth'])) # in m
+            ##!#c_const = 3e8
+            ##!#h_const = 6.626e-34 # J*s
+            ##!#k_const = 1.381e-23 # J/K
+
+            ##!#data = (h_const * c_const) / \
+            ##!#    (lmbda * k_const * np.log( ((2.0 * h_const * (c_const**2.0) ) / \
+            ##!#    ((lmbda**4.) * (lmbda / 1e-6) * data ) ) + 1.0 ) )
+            ##!##data = ((h_const * c_const)/(k_const * lmbda)) * (np.log((2.0 * h_const * (c_const ** 2.0) / \
+            ##!##    ((lmbda**5.0) * data)) + 1) ** -1.)
+
+            ##!## END FUNCTION
 
             # Convert any missing data to nans
             # --------------------------------

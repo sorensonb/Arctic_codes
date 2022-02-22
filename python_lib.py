@@ -12,7 +12,7 @@ import matplotlib.path as mpath
 from scipy import stats
 from datetime import datetime
 import cartopy.crs as ccrs
-import glob
+from glob import glob
 from PIL import Image
 import h5py
 import matplotlib.pyplot as plt
@@ -37,6 +37,14 @@ def nearest_gridpoint(slat, slon, grid_lat, grid_lon):
     #fun_c = np.maximum(np.abs(grid_lat - slat), \
     #    np.abs(grid_lon - slon))
     m_idx = np.where(fun_c == np.min(fun_c))
+
+    # NOTE: If broken when running with code other than VIIRS data,
+    # comment this out
+    # -------------------------------------------------------------
+    if(len(m_idx[0]) > 1):
+        print("ERROR:", m_idx, m_idx[0][0])
+        m_idx = m_idx[0][0]
+    
     return m_idx
 
 def covariance(x,y):
@@ -63,6 +71,38 @@ def correlation(x,y):
         std_y = np.std(y)
         corr = cov/(std_x*std_y)
         return(corr)
+
+def convert_temp_to_radiance(lmbda, temp):
+
+    # Define constants for converting radiances to temperatures
+    lmbda = (1e-6) * lmbda # convert to meters
+    c_const = 3e8
+    h_const = 6.626e-34 # J*s
+    k_const = 1.381e-23 # J/K
+
+    data = (2. * h_const * c_const**2.) / \
+        (lmbda** 5. * (np.exp( (h_const * c_const ) / \
+        (lmbda * k_const * temp )) - 1.) * 1e6)
+
+    #data = (h_const * c_const) / \
+    #    (lmbda * k_const * np.log( ((2.0 * h_const * (c_const**2.0) ) / \
+    #    ((lmbda**4.) * (lmbda / 1e-6) * radiance ) ) + 1.0 ) )
+
+    return data
+
+def convert_radiance_to_temp(lmbda, radiance):
+
+    # Define constants for converting radiances to temperatures
+    lmbda = (1e-6) * lmbda
+    c_const = 3e8
+    h_const = 6.626e-34 # J*s
+    k_const = 1.381e-23 # J/K
+
+    data = (h_const * c_const) / \
+        (lmbda * k_const * np.log( ((2.0 * h_const * (c_const**2.0) ) / \
+        ((lmbda**4.) * (lmbda / 1e-6) * radiance ) ) + 1.0 ) )
+
+    return data
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
@@ -109,7 +149,7 @@ def plot_VIIRS_granule(filename, ax):
     elif(dataset_name == 'VNP02DNB'):
         # Determine if geolocation data is present in same path
         # -----------------------------------------------------
-        geoloc_list = glob.glob('/'.join(total_split[:-1]) + '/VNP03DNB.' + \
+        geoloc_list = glob('/'.join(total_split[:-1]) + '/VNP03DNB.' + \
             '.'.join(name_split[1:4]) + '*') 
         if(len(geoloc_list) == 0):
             print("ERROR: no geolocation found for file",filename)
@@ -325,7 +365,7 @@ def plot_lat_circles(pax, lat_circles):
             color = colors[ii], transform = datacrs)
 
 def make_gif(frame_folder, gif_name):
-    frames = [Image.open(image) for image in glob.glob(f"{frame_folder}/*.png")]
+    frames = [Image.open(image) for image in glob(f"{frame_folder}/*.png")]
     frame_one = frames[0]
     frame_one.save(gif_name, format = 'GIF', append_images = frames,\
         save_all = True, duration = 200, loop = 0)
