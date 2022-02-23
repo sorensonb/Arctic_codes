@@ -653,7 +653,7 @@ aerosol_event_dict = {
                 4:  [None, None],
                 5:  [None, None],
                 7:  [None, None],
-                31: [270., 330.],
+                31: [295., 330.],
                 32: [270., 330.],
                 'wv_ir': [0.2, 1.5],
             },

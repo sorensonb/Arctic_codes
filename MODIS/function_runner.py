@@ -7,17 +7,19 @@
 
 from MODISLib import *
 
-date_str = '202107202125'
+#date_str = '202107202125'
+date_str = '202107222110'
 #date_str = '202109012105'
 channel1 = 1
 channel2 = 5
 channel3 = 31
 
-plot_combined_figure1_v2(date_str = '202107202125', zoom = True, show_smoke = False, composite = True, \
-    save=False)
+plot_MODIS_GOES_SBDART(save=True, composite = True, calc_radiance = True)
+#plot_combined_figure1_v2(date_str = '202107202125', zoom = True, show_smoke = False, composite = True, \
+#    save=True)
 #plot_true_color_satpy(date_str, ax = None, zoom = True, save = False, composite = False)
 #plot_combined_figure1(date_str = date_str, zoom = True, show_smoke = True, composite = True, \
-#        save=False)
+#        save=True)
 
 #plot_figure2(save=True, composite = True, calc_radiance = True, \
 #        satellite = 'modis_ch31')

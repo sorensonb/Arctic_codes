@@ -275,6 +275,11 @@ def run_sbdart(satellite, calc_radiance, run = True):
                 inverse_planck(data_dict[wv_pct]['avg_rads'], \
                 data_dict[wv_pct]['avg_wavel'])
 
+    # Insert the satellite name into the dictionary
+    data_dict['run_name'] = satellite
+    data_dict['satellite'] = satellite.split('_')[0]
+    data_dict['channel'] = satellite.split('_')[1][2:]
+
     return data_dict
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -296,8 +301,8 @@ def plot_bright(modis_data1, modis_data2, vza_idx = 0, save = False):
     fig1 = plt.figure(figsize = (10,5))
     ax0 = fig1.add_subplot(1,2,1)
     ax1 = fig1.add_subplot(1,2,2)
-    ax0.plot(wvs, m31_bghts, label = 'MODIS Ch 31')
-    ax0.plot(wvs, m32_bghts, label = 'MODIS Ch 32')
+    ax0.plot(wvs, m31_bghts, label = modis_data1['satellite'].upper() + ' Ch ' + modis_data1['channel'])
+    ax0.plot(wvs, m32_bghts, label = modis_data2['satellite'].upper() + ' Ch ' + modis_data2['channel'])
     ax1.plot(wvs, diffs, label = 'MODIS Ch 32')
     ax0.set_xlabel('Percent of original WV in lowest 5 km')
     ax0.set_ylabel('Brightness temperature [K]')
@@ -323,6 +328,7 @@ def plot_bright_vza(modis_data1, pax = None, save = False):
  
     for wv in modis_data1['multipliers']:
         int_wv = int(wv*100.)
+        wavel = np.round(modis_data1[int_wv]['avg_wavel'],2)
         if(wv == 1.):
             label = 'Control WV'
         else:
@@ -333,11 +339,12 @@ def plot_bright_vza(modis_data1, pax = None, save = False):
 
     pax.set_xlabel('Viewing Zenith Angle [$^{o}$]', fontsize = 12, weight = 'bold')
     pax.set_ylabel('Brightness temperature [K]',    fontsize = 12, weight = 'bold')
-    pax.set_title('SBDART-simulated MODIS Channel 31 (11.0 μm)')
+    pax.set_title('SBDART-simulated ' + modis_data1['satellite'].upper() + \
+        ' Channel ' + modis_data1['channel'] + ' (' + str(wavel) + ' μm)')
     pax.legend()
     if(not in_pax):
         if(save):
-            outname = 'sbdart_'+satellite+'_bright_vza.png'
+            outname = 'sbdart_'+modis_data1['run_name']+'_bright_vza.png'
             fig1.savefig(outname, dpi = 300)
             print("Saved image",outname)
         else:

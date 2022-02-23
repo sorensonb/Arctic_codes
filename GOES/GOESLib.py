@@ -942,6 +942,34 @@ def grid_data_trends(goes_dict):
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+calib_dict = {
+    0.64: 'reflectance',
+    2.25: 'reflectance',
+    3.90: 'radiance',
+    6.18: 'brightness_temperature',
+    6.95: 'brightness_temperature',
+    7.34: 'brightness_temperature',
+    10.35: 'brightness_temperature'
+}   
+label_dict = {
+    0.64: '%',
+    2.25: '%',
+    3.90: 'mW m$^{-2}$ Sr$^{-1}$ (cm$^{-1}$)$^{-1}$',
+    #6.18: 'mW m$^{-2}$ Sr$^{-1}$ (cm$^{-1}$)$^{-1}$',
+    6.18: 'K',
+    6.95: 'K',
+    7.34: 'K',
+    10.35: 'K'
+}   
+cmap_dict = {
+    0.64:  'Greys_r',
+    2.25:  'Greys_r',
+    3.90:  'plasma',
+    6.18:  'plasma',
+    6.95:  'plasma',
+    7.34:  'plasma',
+    10.35: 'plasma'
+}   
 # Channel must be:
 # - 0.64  (band 2, Red)
 # - 2.25  (band 6, Cloud particle size)
@@ -950,7 +978,8 @@ def grid_data_trends(goes_dict):
 # - 6.95  (band 9, Mid-Level Water Vapor)
 # - 7.34  (band 10, Lower-Level Water Vapor)
 # - 10.35 (band 13, Clean IR Longwave Window)
-def read_GOES_satpy(date_str, channel):
+def read_GOES_satpy(date_str, channel, zoom = True):
+
 
     # Extract the channel wavelength using the input string
     # -----------------------------------------------------
@@ -966,7 +995,7 @@ def read_GOES_satpy(date_str, channel):
     files = find_files_and_readers(start_time = dt_date_str, \
         end_time = dt_date_str_end, base_dir = data_dir, reader = 'abi_l1b')
 
-    print(files)
+    #print(files)
 
     # Extract the goes true-color plot limits
     # ----------------------------------------
@@ -979,7 +1008,7 @@ def read_GOES_satpy(date_str, channel):
 
     # Load the desired channel data
     # -----------------------------
-    scn.load([channel])
+    scn.load([channel], calibration = [calib_dict[channel]])
 
     ## Set the map projection and center the data
     ## ------------------------------------------
@@ -988,26 +1017,41 @@ def read_GOES_satpy(date_str, channel):
     #    'lat_1': lat_lims[0], 'lat_2': lat_lims[0]})
     #new_scn = scn.resample(my_area)
 
-    # Enhance the image for plotting
-    # ------------------------------
-    var = get_enhanced_image(scn[channel]).data
-    var = var.transpose('y','x','bands')
+    ##!## Enhance the image for plotting
+    ##!## ------------------------------
+    ##!#var = get_enhanced_image(scn[channel]).data
+    ##!#var = var.transpose('y','x','bands')
+
+    # Zoom the image on the desired area
+    # ----------------------------------
+    if(zoom):
+        scn = scn.crop(ll_bbox = (lon_lims[0] + 0.65, lat_lims[0], \
+            lon_lims[1] - 0.65, lat_lims[1]))
+
+    var = scn[channel].data
 
     # Extract the map projection from the data for plotting
     # -----------------------------------------------------
     crs = scn[channel].attrs['area'].to_cartopy_crs()
 
-    return var, crs, lat_lims, lon_lims
+    # Extract the appropriate units
+    # -----------------------------
+    units = label_dict[channel]
+    #units = scn[channel].units
+    plabel = calib_dict[channel].title() + ' [' + units + ']'
+
+    return var, crs, lat_lims, lon_lims, plabel
+    #return var, crs, lat_lims, lon_lims
 
 # channel must be an integer between 1 and 16
 def plot_GOES_satpy(date_str, channel, ax = None, var = None, crs = None, \
         lat_lims = None, lon_lims = None, vmin = None, vmax = None, \
-        ptitle = None, zoom=True,save=False):
+        ptitle = None, plabel = None, labelsize = 10, colorbar = True, zoom=True,save=False):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
 
     if(var is None): 
-        var, crs, lat_lims, lon_lims = read_GOES_satpy(date_str, channel)
+        var, crs, lat_lims, lon_lims, plabel = read_GOES_satpy(date_str, channel)
 
     # Plot the GOES data
     # ------------------
@@ -1017,22 +1061,29 @@ def plot_GOES_satpy(date_str, channel, ax = None, var = None, crs = None, \
         plt.close('all')
         ax = plt.axes(projection=crs)
 
-    ax.imshow(var.data, transform = crs, extent=(var.x[0], var.x[-1], \
-        var.y[-1], var.y[0]), vmin = vmin, vmax = vmax, origin='upper', \
-        cmap = 'Greys_r')
+    ##!#ax.imshow(var.data, transform = crs, extent=(var.x[0], var.x[-1], \
+    ##!#    var.y[-1], var.y[0]), vmin = vmin, vmax = vmax, origin='upper', \
+    ##!#    cmap = 'Greys_r')
+    im1 = ax.imshow(var, transform = crs, vmin = vmin, vmax = vmax, \
+        origin='upper', cmap = cmap_dict[channel_dict[str(channel)]['wavelength']])
+    if(colorbar):
+        cbar = plt.colorbar(im1, ax = ax, pad = 0.03, extend = 'both')
+        cbar.set_label(plabel, size = labelsize, weight = 'bold')
 
     # Zoom in the figure if desired
     # -----------------------------
     if(zoom):
-        ax.set_extent([lon_lims[0]+0.55,lon_lims[1]-0.6,lat_lims[0],lat_lims[1]],\
-                       crs = ccrs.PlateCarree())
+    ##!#    ax.set_extent([lon_lims[0]+0.55,lon_lims[1]-0.6,lat_lims[0],lat_lims[1]],\
+    ##!#                   crs = ccrs.PlateCarree())
         zoom_add = '_zoom'
     else:
         zoom_add = ''
 
-    ax.coastlines(resolution = '50m')
-    ax.add_feature(cfeature.STATES)
-    ax.add_feature(cfeature.BORDERS)
+    # NOTE: commented out after removing the 'enhanced_image' code because
+    #       it doesn't work now .
+    ##!#ax.coastlines(resolution = '50m')
+    ##!#ax.add_feature(cfeature.STATES)
+    ##!#ax.add_feature(cfeature.BORDERS)
     if(ptitle is None):
         ax.set_title('GOES-17\n'+dt_date_str.strftime('%Y-%m-%d %H:%M'))
     else:
