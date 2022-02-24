@@ -2360,8 +2360,8 @@ def plot_scatter(lax,data1, data2, MODIS_data1, MODIS_data2, hash_data1,\
         channel_dict[str(MODIS_data2['channel'])]['Bandwidth_label'] + ']' + \
         MODIS_data2['variable'] 
 
-    lax.set_xlabel(xlabel, fontsize = 14)
-    lax.set_ylabel(ylabel, fontsize = 14)
+    lax.set_xlabel(xlabel, fontsize = 12)
+    lax.set_ylabel(ylabel, fontsize = 12)
 
     if(plot_legend):
         lax.legend()
@@ -6544,6 +6544,180 @@ def plot_combined_figure1_v2(date_str = '202107202125', zoom = True, show_smoke 
 
     if(save):
         outname = 'modis_total_combined_' + date_str + '_fig1_v2.png'
+        fig.savefig(outname, dpi=300)
+        print("Saved",outname)
+    else:
+        plt.show()
+
+def plot_combined_figure1_v3(date_str = '202107222110', zoom = True, show_smoke = True, composite = True, \
+        save=False):
+
+    #date_str = '202107202125'
+    #date_str = '202107222110'
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    # ----------------------------------------------------------------------
+    #
+    # Read the MODIS and CERES data
+    #
+    # ----------------------------------------------------------------------
+
+    # Call read_MODIS_channel to read the desired MODIS data from the file 
+    # and put it in a dictionary
+    # ---------------------------------------------------------------------
+    MODIS_data_ch1  = read_MODIS_channel(date_str, 1, zoom = zoom)
+    MODIS_data_ch7  = read_MODIS_channel(date_str, 7, zoom = zoom)
+    MODIS_data_ch31 = read_MODIS_channel(date_str, 31, zoom = zoom)
+
+    # Determine where the smoke is located
+    # ------------------------------------
+    hash_data, nohash_data = find_plume(dt_date_str.strftime('%Y%m%d%H%M')) 
+
+    tmp_data1  = np.copy(MODIS_data_ch1['data'])
+    tmp_data7  = np.copy(MODIS_data_ch7['data'])
+    tmp_data31 = np.copy(MODIS_data_ch31['data'])
+    tmp_lat0   = np.copy(MODIS_data_ch1['lat'])
+    tmp_lon0   = np.copy(MODIS_data_ch1['lon'])
+
+    if(not (tmp_data1.shape == tmp_data7.shape == tmp_data31.shape == \
+            hash_data.shape)):
+        print("shape mismatch")
+        shapes = []
+        shapes.append(tmp_data1.shape)
+        shapes.append(tmp_data7.shape)
+        shapes.append(tmp_data31.shape)
+        shapes.append(hash_data.shape)
+
+        min_shape = min(shapes)
+        print(min_shape)
+
+        tmp_data1  = tmp_data1[:min_shape[0],:min_shape[1]]
+        tmp_data7  = tmp_data7[:min_shape[0],:min_shape[1]]
+        tmp_data31 = tmp_data31[:min_shape[0],:min_shape[1]]
+        tmp_lat0   = tmp_lat0[:min_shape[0],:min_shape[1]]
+        tmp_lon0   = tmp_lon0[:min_shape[0],:min_shape[1]]
+        hash_data  = hash_data[:min_shape[0],:min_shape[1]]
+
+    max_ch = 350.
+
+    tmp_data1 = np.ma.masked_where( (abs(tmp_data7) > max_ch) | \
+        (abs(tmp_data1) > max_ch) | (abs(tmp_data31) > max_ch), tmp_data1)
+    tmp_data7 = np.ma.masked_where( (abs(tmp_data7) > max_ch) | \
+        (abs(tmp_data1) > max_ch) | (abs(tmp_data31) > max_ch), tmp_data7)
+    tmp_data31 = np.ma.masked_where( (abs(tmp_data7) > max_ch) | \
+        (abs(tmp_data1) > max_ch) | (abs(tmp_data31) > max_ch), tmp_data31)
+    tmp_lat0 = np.ma.masked_where( (abs(tmp_data7) > max_ch) | \
+        (abs(tmp_data1) > max_ch) | (abs(tmp_data31) > max_ch), tmp_lat0)
+    tmp_lon0 = np.ma.masked_where( (abs(tmp_data7) > max_ch) | \
+        (abs(tmp_data1) > max_ch) | (abs(tmp_data31) > max_ch), tmp_lon0)
+
+    # Read the true color data
+    # ------------------------
+    var1, crs1, lat_lims1, lon_lims1 = read_true_color(date_str,\
+        composite=composite)
+
+    # ----------------------------------------------------------------------
+    #
+    #  Set up the 6-panel figure
+    #
+    # ----------------------------------------------------------------------
+
+    mapcrs = init_proj(date_str)
+    plt.close('all')
+    fig = plt.figure(figsize=(11,7))
+    #gs = fig.add_gridspec(nrows = 2, ncols = 8)
+    ax1  = fig.add_subplot(2,3,1,  projection = crs1)   # true color    
+    ax2  = fig.add_subplot(2,3,2,  projection = mapcrs) # Ch 1
+    ax3  = fig.add_subplot(2,3,3,  projection = mapcrs) # Ch 7
+    ax4  = fig.add_subplot(2,3,4,  projection = mapcrs) # Ch 31
+    ax5  = fig.add_subplot(2,3,5)                       # IR vs VIS
+    ax6  = fig.add_subplot(2,3,6)                       # IR vs SWIR
+    ##!#ax1  = fig.add_subplot(gs[0:2,0:2],projection = crs1)   # true color    
+    ##!#ax2  = fig.add_subplot(gs[0,2:4],  projection = mapcrs) # Ch 1
+    ##!#ax3  = fig.add_subplot(gs[0,4:6],  projection = mapcrs) # Ch 7
+    ##!#ax4  = fig.add_subplot(gs[0,6:8],  projection = mapcrs) # Ch 31
+    ##!#ax5  = fig.add_subplot(gs[1,2:5])                       # IR vs VIS
+    ##!#ax6  = fig.add_subplot(gs[1,5:8])                       # IR vs SWIR
+
+
+
+    # Plot the true-color data for the previous date
+    # ----------------------------------------------
+    ax1.imshow(var1.data, transform = crs1, extent=(var1.x[0], var1.x[-1], \
+        var1.y[-1], var1.y[0]), origin='upper')
+
+    # Zoom in the figure if desired
+    # -----------------------------
+    if(zoom):
+        ax1.set_extent([lon_lims1[0],lon_lims1[1],lat_lims1[0],\
+            lat_lims1[1]],crs = datacrs)
+
+    # ----------------------------------------------------------------------
+    #
+    # Plot the data in the figure
+    #
+    # ----------------------------------------------------------------------
+
+    # Plot channel 1, 5, 31, and WV data spatial data
+    # -----------------------------------------------
+    plot_MODIS_spatial(MODIS_data_ch1,  ax2, zoom = zoom, ptitle = '', labelsize = 10, labelticksize = 9)
+    plot_MODIS_spatial(MODIS_data_ch7,  ax3, zoom = zoom, ptitle = '', labelsize = 10, labelticksize = 9)
+    plot_MODIS_spatial(MODIS_data_ch31, ax4, zoom = zoom, ptitle = '', labelsize = 10, labelticksize = 9)
+
+    if(show_smoke):
+        # Determine where the smoke is located
+        # ------------------------------------
+        hash_data1, nohash_data1 = find_plume(date_str) 
+
+        plt.rcParams.update({'hatch.color': 'r'})
+        ax2.pcolor(MODIS_data_ch1['lon'],MODIS_data_ch1['lat'],\
+            hash_data1, hatch = '\\\\', alpha=0., transform = datacrs,\
+            cmap = 'plasma')
+
+    # Plot the scatter data
+    # ---------------------
+    plot_scatter(ax5, tmp_data31, tmp_data1, MODIS_data_ch31, MODIS_data_ch1, \
+        hash_data, xlabel = '11 μm brightness temperature', \
+        ylabel = '0.64 μm reflectance', plot_legend = True)
+    plot_scatter(ax6, tmp_data31, tmp_data7, MODIS_data_ch31, MODIS_data_ch7, \
+        hash_data, xlabel = '11 μm brightness temperature', \
+        ylabel = '2.1 μm reflectance', plot_legend = True)
+
+    # Add subplot labels
+    # ------------------
+    font_size = 10
+    plot_subplot_label(ax1,  '(a)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax2,  '(b)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax3,  '(c)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax4,  '(d)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax5,  '(e)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax6,  '(f)', backgroundcolor = 'white', fontsize = font_size)
+
+    # Add plot text
+    # -------------
+    plot_figure_text(ax1, 'MODIS True Color', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax2, 'MODIS 0.64 μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax3, 'MODIS 2.2 μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax4, 'MODIS 11.0 μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    ##!#plot_figure_text(ax5, 'CERES SW', xval = None, yval = None, transform = None, \
+    ##!#    color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    ##!#plot_figure_text(ax6, 'CERES LW', xval = None, yval = None, transform = None, \
+    ##!#    color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+
+    #plt.suptitle(date_str)
+
+    fig.tight_layout()
+
+    MODIS_data_ch1.clear()
+    MODIS_data_ch7.clear()
+    MODIS_data_ch31.clear()
+
+    if(save):
+        outname = 'modis_total_combined_' + date_str + '_fig1_v3.png'
         fig.savefig(outname, dpi=300)
         print("Saved",outname)
     else:

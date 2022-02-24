@@ -14,7 +14,9 @@ channel1 = 1
 channel2 = 5
 channel3 = 31
 
-plot_MODIS_GOES_SBDART(save=True, composite = True, calc_radiance = True)
+plot_combined_figure1_v3(date_str = '202107222110', zoom = True, show_smoke = True, composite = True, \
+        save=True)
+#plot_MODIS_GOES_SBDART(save=True, composite = True, calc_radiance = True)
 #plot_combined_figure1_v2(date_str = '202107202125', zoom = True, show_smoke = False, composite = True, \
 #    save=True)
 #plot_true_color_satpy(date_str, ax = None, zoom = True, save = False, composite = False)

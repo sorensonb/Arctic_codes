@@ -66,6 +66,13 @@ def run_sbdart(satellite, calc_radiance, run = True):
             delim_whitespace = True)
         ff_data['wavenum'] = (1. / (ff_data['wavenum'] * 100.)) * 1e6
         ff_data = ff_data.reindex(index = ff_data.index[::-1])
+
+        # If the filter function is greater than 1000 elements long, rescale
+        # the pandas dataframe to have less than 1000 elements
+        # ------------------------------------------------------------------
+        if(len(ff_data) > 1000):
+            ff_data = ff_data[ff_data.index % int(np.ceil(len(ff_data) / 1000)) == 0]
+        
         ff_data.to_csv('filter.dat', \
                 index = False, sep = ' ', header = None)
         
