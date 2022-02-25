@@ -34,6 +34,7 @@ from matplotlib import cm
 from matplotlib.cm import ScalarMappable
 from matplotlib.colorbar import ColorbarBase
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy import stats
 from netCDF4 import Dataset
 import cartopy
@@ -1457,7 +1458,7 @@ def plotCERES_hrly(pax, CERES_data_hrly, param, minlat=65, \
     mesh = pax.pcolormesh(plot_lon, plot_lat,mask_flux,transform = datacrs,\
         cmap = colormap, vmin = vmin, vmax = vmax, shading = 'auto')
     cbar = plt.colorbar(mesh,ax = pax, orientation='vertical',\
-        extend = 'both')
+        extend = 'both', fraction = 0.046, pad = 0.04)
     cbar.set_label(label,fontsize = labelsize, weight='bold')
     cbar.ax.tick_params(labelsize=labelticksize)
 

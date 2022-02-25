@@ -29,7 +29,8 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as cm
 from matplotlib.dates import DateFormatter
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-from matplotlib.tri import Triangulation
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+#from matplotlib.tri import Triangulation
 import cartopy
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
@@ -537,45 +538,47 @@ def plot_ASOS_locs(pax,date_str,crs = datacrs, color='red', \
 #
 #    cbar_labels = ['Clear','Smoke','Cloud']
 #
-def find_plume(dt_date_str):
-    MODIS_ch1  = read_MODIS_channel(dt_date_str, 1,  zoom = True)
-    MODIS_ch2  = read_MODIS_channel(dt_date_str, 2,  zoom = True)
-    MODIS_ch5  = read_MODIS_channel(dt_date_str, 5,  zoom = True)
-    MODIS_ch7  = read_MODIS_channel(dt_date_str, 7,  zoom = True)
-    MODIS_ch32 = read_MODIS_channel(dt_date_str, 32, zoom = True)
+def find_plume(dt_date_str, new_method = False):
+    if(new_method):
+        MODIS_ch1  = read_MODIS_channel(dt_date_str, 1,  zoom = True)
+        MODIS_ch2  = read_MODIS_channel(dt_date_str, 2,  zoom = True)
+        MODIS_ch5  = read_MODIS_channel(dt_date_str, 5,  zoom = True)
+        MODIS_ch7  = read_MODIS_channel(dt_date_str, 7,  zoom = True)
+        MODIS_ch32 = read_MODIS_channel(dt_date_str, 32, zoom = True)
 
-    tmp_data = np.full(MODIS_ch1['data'].shape, np.nan)
-    in_cloud = (((MODIS_ch1['data'] + MODIS_ch2['data'] > 1.2) |\
-                 (MODIS_ch32['data'] < 265.)) |\
-                ((MODIS_ch1['data'] + MODIS_ch2['data'] > 0.7) &\
-                 (MODIS_ch32['data'] < 285.)))
-    tmp_data[in_cloud] = 2.
-    tmp_data[~in_cloud] = 0.
-    tmp_data[~in_cloud & (MODIS_ch1['data'] - \
-        MODIS_ch7['data'] > 0.05) & (MODIS_ch7['data'] > 0.05)] = 1
-    mask_tmp_data = np.ma.masked_invalid(tmp_data)
+        tmp_data = np.full(MODIS_ch1['data'].shape, np.nan)
+        in_cloud = (((MODIS_ch1['data'] + MODIS_ch2['data'] > 1.2) |\
+                     (MODIS_ch32['data'] < 265.)) |\
+                    ((MODIS_ch1['data'] + MODIS_ch2['data'] > 0.7) &\
+                     (MODIS_ch32['data'] < 285.)))
+        tmp_data[in_cloud] = 2.
+        tmp_data[~in_cloud] = 0.
+        tmp_data[~in_cloud & (MODIS_ch1['data'] - \
+            MODIS_ch7['data'] > 0.05) & (MODIS_ch7['data'] > 0.05)] = 1
+        mask_tmp_data = np.ma.masked_invalid(tmp_data)
 
-    # For the hash data (smoke), remove any pixels that do not have
-    # tmp data equal to 1
-    # -------------------------------------------------------------
-    hash_data   = np.ma.masked_where(mask_tmp_data != 1, mask_tmp_data)
-    nohash_data = np.ma.masked_where(mask_tmp_data == 1, mask_tmp_data)
+        # For the hash data (smoke), remove any pixels that do not have
+        # tmp data equal to 1
+        # -------------------------------------------------------------
+        hash_data   = np.ma.masked_where(mask_tmp_data != 1, mask_tmp_data)
+        nohash_data = np.ma.masked_where(mask_tmp_data == 1, mask_tmp_data)
 
-    ##!#MODIS_ch1  = read_MODIS_channel(dt_date_str, 1,  zoom = True)
-    ##!#MODIS_ch5  = read_MODIS_channel(dt_date_str, 5,  zoom = True)
-    ##!#MODIS_ch31 = read_MODIS_channel(dt_date_str, 31, zoom = True)
+    else:
+        MODIS_ch1  = read_MODIS_channel(dt_date_str, 1,  zoom = True)
+        MODIS_ch5  = read_MODIS_channel(dt_date_str, 5,  zoom = True)
+        MODIS_ch31 = read_MODIS_channel(dt_date_str, 31, zoom = True)
 
-    ##!#screen_limit = 0.05
-    ##!#max_ch = 350.
-    ##!#test_data = MODIS_ch1['data'] - MODIS_ch5['data']
-    ##!#hash_data   = np.ma.masked_where(test_data <  \
-    ##!#    (np.nanmean(test_data) * screen_limit), MODIS_ch1['data'])
-    ##!#hash_data = np.ma.masked_where(MODIS_ch5['data'] < 0.05, hash_data)
-    ##!#nohash_data = np.ma.masked_where(test_data >= \
-    ##!#    (np.nanmean(test_data) * screen_limit), MODIS_ch1['data'])
+        screen_limit = 0.20
+        max_ch = 350.
+        test_data = MODIS_ch1['data'] - MODIS_ch5['data']
+        hash_data   = np.ma.masked_where(test_data <  \
+            (np.nanmean(test_data) * screen_limit), MODIS_ch1['data'])
+        hash_data = np.ma.masked_where(MODIS_ch5['data'] < 0.05, hash_data)
+        nohash_data = np.ma.masked_where(test_data >= \
+            (np.nanmean(test_data) * screen_limit), MODIS_ch1['data'])
 
-    ##!#hash_data = np.ma.masked_where(MODIS_ch31['data'] > max_ch, hash_data)
-    ##!#nohash_data = np.ma.masked_where(MODIS_ch31['data'] > max_ch, nohash_data)
+        hash_data = np.ma.masked_where(MODIS_ch31['data'] > max_ch, hash_data)
+        nohash_data = np.ma.masked_where(MODIS_ch31['data'] > max_ch, nohash_data)
 
     return hash_data, nohash_data
 
@@ -2256,7 +2259,7 @@ def plot_MODIS_spatial(MODIS_data, pax, zoom, vmin = None, vmax = None, \
         vmax = vmax, transform = datacrs) 
 
     cbar1 = plt.colorbar(mesh1,ax=pax,orientation='vertical',\
-        pad=0.03)
+        pad=0.03, fraction = 0.046)
         #shrink = 0.870, pad=0.03,label=MODIS_data['variable'])
     cbar1.set_label(MODIS_data['variable'], size = labelsize, weight = 'bold')
     cbar1.ax.tick_params(labelsize = labelticksize)
@@ -2609,7 +2612,8 @@ def plot_scatter_OMI(date_str, MODIS_data, pax, avg_pixel = False, \
         
 
 def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
-        plume_only = True, plot_total_flux = True):
+        plume_only = True, plot_total_flux = True, labelsize = 13,\
+        labelticksize = 11):
 
     # Determine where the smoke is located
     # ------------------------------------
@@ -2756,21 +2760,21 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
             total_match_LON[ii] = mask_LON[ii]
 
 
-    #plt.close('all')
-    fig = plt.figure(figsize=(8,5))
-    #dt_date_str = datetime.strptime(date_str, "%Y%m%d%H%M")
-    mapcrs = init_proj(date_str)
-    #mapcrs = ccrs.LambertConformal(central_longitude = \
-    #    np.mean(aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
-    #    central_latitude = \
-    #np.mean(aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
+    ##!##plt.close('all')
+    ##!#fig = plt.figure(figsize=(8,5))
+    ##!##dt_date_str = datetime.strptime(date_str, "%Y%m%d%H%M")
+    ##!#mapcrs = init_proj(date_str)
+    ##!##mapcrs = ccrs.LambertConformal(central_longitude = \
+    ##!##    np.mean(aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
+    ##!##    central_latitude = \
+    ##!##np.mean(aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
 
-    tax1 = fig.add_subplot(2,3,1,projection = mapcrs) # smoke SW
-    tax2 = fig.add_subplot(2,3,2,projection = mapcrs) # smoke LW
-    tax3 = fig.add_subplot(2,3,3,projection = mapcrs) # smoke CH31
-    tax4 = fig.add_subplot(2,3,4,projection = mapcrs) # total SW
-    tax5 = fig.add_subplot(2,3,5,projection = mapcrs) # total LW
-    tax6 = fig.add_subplot(2,3,6,projection = mapcrs) # total CH31
+    ##!#tax1 = fig.add_subplot(2,3,1,projection = mapcrs) # smoke SW
+    ##!#tax2 = fig.add_subplot(2,3,2,projection = mapcrs) # smoke LW
+    ##!#tax3 = fig.add_subplot(2,3,3,projection = mapcrs) # smoke CH31
+    ##!#tax4 = fig.add_subplot(2,3,4,projection = mapcrs) # total SW
+    ##!#tax5 = fig.add_subplot(2,3,5,projection = mapcrs) # total LW
+    ##!#tax6 = fig.add_subplot(2,3,6,projection = mapcrs) # total CH31
 
     #print('old: ',hash_match_LWF.shape)
     total_match_LAT = np.ma.masked_invalid(total_match_LAT)
@@ -2814,24 +2818,24 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
     nohash_mask_swf  = np.ma.masked_invalid(mask_swf[~nohash_match_SWF.mask])
     nohash_mask_lwf  = np.ma.masked_invalid(mask_lwf[~nohash_match_LWF.mask])
 
-    # ----------------------------------------------------------------------- 
-    #
-    # Plot the CERES and gridded MODIS data on a temporary figure
-    # Currently not saved anywhere.
-    #
-    # ----------------------------------------------------------------------- 
-    plot_CERES_spatial(date_str, total_match_LAT, total_match_LON, \
-        total_mask_swf, 'SWF', tax1, zoom=True)
-    plot_CERES_spatial(date_str, total_match_LAT, total_match_LON, \
-        total_mask_lwf, 'LWF', tax2, zoom=True)
-    plot_CERES_spatial(date_str, total_match_LAT, total_match_LON, \
-        total_match_LWF, 'SWF', tax3, vmin = np.nanmin(MODIS_data['data']),\
-        vmax = np.nanmax(MODIS_data['data']), zoom=True)
-    plot_CERES_spatial(date_str, mask_LAT, mask_LON, \
-        mask_swf, 'SWF', tax4, zoom=True)
-    plot_CERES_spatial(date_str, mask_LAT, mask_LON, \
-        mask_lwf, 'LWF', tax5, zoom=True)
-    plot_MODIS_spatial(MODIS_data, tax6, zoom = True)
+    ##!## ----------------------------------------------------------------------- 
+    ##!##
+    ##!## Plot the CERES and gridded MODIS data on a temporary figure
+    ##!## Currently not saved anywhere.
+    ##!##
+    ##!## ----------------------------------------------------------------------- 
+    ##!#plot_CERES_spatial(date_str, total_match_LAT, total_match_LON, \
+    ##!#    total_mask_swf, 'SWF', tax1, zoom=True)
+    ##!#plot_CERES_spatial(date_str, total_match_LAT, total_match_LON, \
+    ##!#    total_mask_lwf, 'LWF', tax2, zoom=True)
+    ##!#plot_CERES_spatial(date_str, total_match_LAT, total_match_LON, \
+    ##!#    total_match_LWF, 'SWF', tax3, vmin = np.nanmin(MODIS_data['data']),\
+    ##!#    vmax = np.nanmax(MODIS_data['data']), zoom=True)
+    ##!#plot_CERES_spatial(date_str, mask_LAT, mask_LON, \
+    ##!#    mask_swf, 'SWF', tax4, zoom=True)
+    ##!#plot_CERES_spatial(date_str, mask_LAT, mask_LON, \
+    ##!#    mask_lwf, 'LWF', tax5, zoom=True)
+    ##!#plot_MODIS_spatial(MODIS_data, tax6, zoom = True)
  
     mask_total = mask_swf + mask_lwf
 
@@ -2894,15 +2898,15 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
         plot_trend_line(pax, nohash_match_SWF.compressed(), nohash_mask_TF, \
             color='tab:orange', linestyle = '--')
 
-    pax.set_title('SWF smoke: '+str(np.round(shrval_p,3)) + '  SWF clear: ' + \
-         str(np.round(snrval_p,3)) + \
-        '\nLWF smoke: '+str(np.round(lhrval_p,3)) + '  LWF clear: ' + \
-        str(np.round(lnrval_p,3))) 
-    pax.set_xlabel('Ch. ' + str(MODIS_data['channel']) +' [' + \
-        channel_dict[str(MODIS_data['channel'])]['Bandwidth_label'] + \
-        MODIS_data['variable'])
-    pax.set_ylabel('CERES TOA Flux [Wm$^{-2}$]', fontsize = 14)
-    pax.legend()
+    ##!#pax.set_title('SWF smoke: '+str(np.round(shrval_p,3)) + '  SWF clear: ' + \
+    ##!#     str(np.round(snrval_p,3)) + \
+    ##!#    '\nLWF smoke: '+str(np.round(lhrval_p,3)) + '  LWF clear: ' + \
+    ##!#    str(np.round(lnrval_p,3))) 
+    pax.set_xlabel('MODIS ' + str(np.round(np.average(channel_dict[\
+        str(MODIS_data['channel'])]['Bandwidth']),1)) + ' μm T$_{B}$', \
+        fontsize = labelsize, weight = 'bold')
+    pax.set_ylabel('CERES TOA Flux [Wm$^{-2}$]', fontsize = labelsize, weight = 'bold')
+    pax.legend(bbox_to_anchor = (1.05, 1.0), loc = 'upper left')
     #pax.set_title('Smoke correlation: '+str(np.round(lrval_p, 3)))
 
 
@@ -3000,7 +3004,8 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
     ##!## end compare_CERES
 
 def plot_scatter_OMI_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
-        plume_only = True, xlabel = None, ylabel = None, ptitle = None):
+        plume_only = True, xlabel = None, ylabel = None, ptitle = None,\
+        labelsize = 14, labelticksize = 14):
 
     # Determine where the smoke is located
     # ------------------------------------
@@ -3289,16 +3294,16 @@ def plot_scatter_OMI_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
     #pax2 = pax.twinx()
     pax.scatter(total_omi_match_SWF.compressed(),total_net, s = 18, \
         color='tab:olive',marker='o', label = 'Total')
-    print("Calculating OMI/Total Net trend")
+    print("Calculating OMI/Total trend")
     plot_trend_line(pax, total_omi_match_SWF.compressed(), total_net, \
         color='tab:olive')
 
     if(xlabel is None):
         xlabel = 'OMI AI'
     if(ylabel is None):
-        ylabel = 'CERES TOA Flux [W/m2]'
-    pax.set_xlabel(xlabel, fontsize = 14)
-    pax.set_ylabel(ylabel, fontsize = 14)
+        ylabel = 'TOA Flux [Wm$^{-2}$]'
+    pax.set_xlabel(xlabel, fontsize = labelsize, weight = 'bold')
+    pax.set_ylabel(ylabel, fontsize = labelsize, weight = 'bold')
 
     ##!#lines_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
     ##!#lines, labels = [sum(lol, []) for lol in zip(*lines_labels)]
@@ -3309,14 +3314,18 @@ def plot_scatter_OMI_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
     ##!#    plt.legend(lines, labels, loc = 'right', bbox_to_anchor = (0, 0., 1.0, 1),\
     ##!#        bbox_transform = plt.gcf().transFigure, ncol=1)
 
-    pax.legend(fontsize = 13)
+    if(labelsize is not None):
+        pax.legend(bbox_to_anchor = (1.05, 1.0), loc = 'upper left', fontsize = labelsize - 2)
+    else:
+        pax.legend(bbox_to_anchor = (1.05, 1.0), loc = 'upper left')
     #pax.set_title('Smoke correlation: '+str(np.round(lrval_p, 3)))
     if(ptitle is None):
         ptitle = 'OMI/SWF: '+str(np.round(srval_p,3)) + '  OMI/LWF: ' + \
         str(np.round(lrval_p,3)) + '\nOMI/Total:  ' + str(np.round(trval_p,3))
     pax.set_title(ptitle)
 
-def plot_OMI_spatial(date_str, LAT, LON, mask_UVAI, pax, zoom = False):
+def plot_OMI_spatial(date_str, LAT, LON, mask_UVAI, pax, labelsize = 13, \
+        labelticksize = 11, ptitle = '', zoom = False):
 
     dt_date_str = datetime.strptime(date_str, "%Y%m%d%H%M")
 
@@ -3332,10 +3341,10 @@ def plot_OMI_spatial(date_str, LAT, LON, mask_UVAI, pax, zoom = False):
                         aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
                         datacrs)
     cbar3 = plt.colorbar(mesh3,ax=pax,orientation='vertical',\
-        pad=0.03)
-    cbar3.set_label('OMI UVAI', size = 14, weight = 'bold')
-    cbar3.ax.tick_params(labelsize = 12)
-    pax.set_title('OMI UVAI',fontsize=10)
+        pad=0.03, fraction = 0.046)
+    cbar3.set_label('OMI UVAI', size = labelsize, weight = 'bold')
+    cbar3.ax.tick_params(labelsize = labelticksize)
+    pax.set_title(ptitle,fontsize=10)
 
 
 def plot_combined_imagery(date_str,channel1 = 1, channel2 = 5, channel3 = 31,\
@@ -3662,7 +3671,7 @@ def plot_combined_scatter(date_str,channel0 = 31, channel1 = 1, channel2 = 5,\
     #
     # ----------------------------------------------------------------------
     plot_scatter_CERES(date_str, MODIS_data0, ax3, avg_pixel = avg_pixel,\
-        plume_only = plume_only)
+        plume_only = plume_only, plot_total_flux = False)
 
     # Add labels to all the subplots
     # ------------------------------
@@ -3827,6 +3836,347 @@ def plot_scatter_select(composite = True, avg_pixel = True, \
         outname = 'modis_combined_scatter_select' + plume_add + \
             pixel_add + '.png'
         fig.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
+def plot_spatial_scatter(date_str, zoom=True,save=False,composite=True,\
+        avg_pixel=False,plume_only=False):
+
+    if('/home/bsorenson/Research/CERES' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/CERES')
+    from gridCERESLib import readgridCERES_hrly_grid, plotCERES_hrly
+    
+    plt.close('all')
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    # ----------------------------------------------------------------------
+    #
+    # Read the MODIS data
+    #
+    # ----------------------------------------------------------------------
+
+    # Call read_MODIS_channel to read the desired MODIS data from the file 
+    # and put it in a dictionary
+    # ---------------------------------------------------------------------
+    MODIS_data0 = read_MODIS_channel(dt_date_str.strftime("%Y%m%d%H%M"), \
+        31, zoom = zoom)
+    
+    # ----------------------------------------------------------------------
+    #
+    # Read the CERES data
+    #
+    # ----------------------------------------------------------------------
+    CERES_data_hrly_swf = readgridCERES_hrly_grid(date_str[:10], 'SWF')
+
+    ##!#mask_LAT, mask_LON, mask_swf, mask_lwf = \
+    ##!#    read_CERES_match_MODIS(date_str)
+
+    # ------------------------------------------------------------------------
+    #
+    # For 20210722:
+    #
+    # ------------------------------------------------------------------------
+    mapcrs = init_proj(date_str)
+    if(date_str == '202108062025'):
+        fig = plt.figure(figsize=(11,9))
+    else:
+        fig = plt.figure(figsize=(9,9))
+    ax0 = fig.add_subplot(2,2,1, projection = mapcrs) # CERES SW
+    ax1 = fig.add_subplot(2,2,2, projection = mapcrs) # CERES LW
+    ax2 = fig.add_subplot(2,2,3, projection = mapcrs) # MODIS ch 31
+    ax3 = fig.add_subplot(2,2,4)                      # 31 vs SW/LW/Total
+
+    ##!## Determine where the smoke is located
+    ##!## ------------------------------------
+    ##!#hash_data, nohash_data = find_plume(dt_date_str.strftime('%Y%m%d%H%M')) 
+
+    ##!#tmp_data0 = np.copy(MODIS_data0['data'])
+    ##!#tmp_lat0  = np.copy(MODIS_data0['lat'])
+    ##!#tmp_lon0  = np.copy(MODIS_data0['lon'])
+
+    ##!#if(not (tmp_data0.shape ==  hash_data.shape)):
+    ##!#    print("shape mismatch")
+    ##!#    shapes = []
+    ##!#    shapes.append(tmp_data0.shape)
+    ##!#    shapes.append(hash_data.shape)
+
+    ##!#    min_shape = min(shapes)
+    ##!#    print(min_shape)
+
+    ##!#    tmp_data0  = tmp_data0[:min_shape[0],:min_shape[1]]
+    ##!#    hash_data  = hash_data[:min_shape[0],:min_shape[1]]
+
+    ##!#max_ch = 350.
+
+    ##!#tmp_data0 = np.ma.masked_where( (abs(tmp_data0) > max_ch), tmp_data0)
+    ##!#tmp_lat0  = np.ma.masked_where( (abs(tmp_data0) > max_ch), tmp_lat0)
+    ##!#tmp_lon0  = np.ma.masked_where( (abs(tmp_data0) > max_ch), tmp_lon0)
+
+    # ----------------------------------------------------------------------
+    #
+    # Plot the MODIS data
+    #
+    # ----------------------------------------------------------------------
+    plot_MODIS_spatial(MODIS_data0, ax2, zoom = zoom, ptitle = '')
+
+    # ----------------------------------------------------------------------
+    #
+    # Plot the CERES data
+    #
+    # ----------------------------------------------------------------------
+    vmax = None
+    vmin = None
+    if(date_str == '202107222110'):
+        sw_vmax = 250
+        sw_vmin = 130
+        lw_vmax = 370
+        lw_vmin = 300
+    elif(date_str == '202108062025'):
+        sw_vmax = 330
+        sw_vmin = 190
+        lw_vmax = 370
+        lw_vmin = 300
+    
+    plotCERES_hrly(ax0, CERES_data_hrly_swf, 'swf', \
+        vmin = sw_vmin, vmax = sw_vmax, title = '', label = 'TOA Flux [W/m$^{2}$]', \
+        circle_bound = False, gridlines = False, grid_data = True, \
+        zoom = True)
+    plotCERES_hrly(ax1, CERES_data_hrly_swf, 'lwf', \
+        vmin = lw_vmin, vmax = lw_vmax, title = '', label = 'TOA Flux [W/m$^{2}$]', \
+        circle_bound = False, gridlines = False, grid_data = True, \
+        zoom = True)
+    if(zoom):
+        ax0.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
+                        datacrs)
+        ax1.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
+                        datacrs)
+
+    plot_scatter_CERES(date_str, MODIS_data0, ax3, avg_pixel = avg_pixel,\
+        plume_only = plume_only,  plot_total_flux = False)
+
+    # Add labels to all the subplots
+    # ------------------------------
+    plot_subplot_label(ax0, '(a)', backgroundcolor = 'white')
+    plot_subplot_label(ax1, '(b)', backgroundcolor = 'white')
+    plot_subplot_label(ax2, '(c)', backgroundcolor = 'white')
+    plot_subplot_label(ax3, '(d)')
+
+    font_size = 13
+    plot_figure_text(ax0, 'CERES SW', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax1, 'CERES LW', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax2, 'MODIS 11.0 μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+
+    fig.tight_layout()
+
+    ##!#plot_CERES_spatial(date_str,mask_LAT, mask_LON, mask_swf, 'SWF', ax6, zoom = zoom)
+    ##!#plot_CERES_spatial(date_str,mask_LAT, mask_LON, mask_lwf, 'LWF', ax7, zoom = zoom)
+    if(save):
+        plume_add = '_onlyplume'
+        pixel_add = ''
+        if(plume_only == False):
+            plume_add = '_onlyplume'
+        if(avg_pixel):
+            pixel_add = '_avgpixel' 
+        outname = 'modis_spatial_scatter_' + date_str + plume_add + \
+            pixel_add + '.png'
+        fig.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
+def plot_spatial_scatter_wAI(date_str, zoom=True,save=False,composite=True,\
+        avg_pixel=False,plume_only=False):
+
+    if('/home/bsorenson/Research/CERES' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/CERES')
+    from gridCERESLib import readgridCERES_hrly_grid, plotCERES_hrly
+    
+    plt.close('all')
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    # ----------------------------------------------------------------------
+    #
+    # Read the MODIS data
+    #
+    # ----------------------------------------------------------------------
+    # Read the true color data
+    # ------------------------
+    var1, crs1, lat_lims1, lon_lims1 = read_true_color(date_str,\
+        composite=composite)
+
+    # Call read_MODIS_channel to read the desired MODIS data from the file 
+    # and put it in a dictionary
+    # ---------------------------------------------------------------------
+    MODIS_data0 = read_MODIS_channel(dt_date_str.strftime("%Y%m%d%H%M"), \
+        31, zoom = zoom)
+    
+    # ----------------------------------------------------------------------
+    #
+    # Read the CERES data
+    #
+    # ----------------------------------------------------------------------
+    CERES_data_hrly_swf = readgridCERES_hrly_grid(date_str[:10], 'SWF')
+
+    # ---------------------------------------------------------------------
+    #
+    # Read the OMI data
+    #
+    # ---------------------------------------------------------------------
+    LAT, LON, mask_UVAI = read_OMI_match_MODIS(date_str)
+ 
+
+    # ------------------------------------------------------------------------
+    #
+    # For 20210722:
+    #
+    # ------------------------------------------------------------------------
+    plt.close('all')
+    mapcrs = init_proj(date_str)
+    if(date_str == '202108062025'):
+        fig  = plt.figure(figsize=(9.5,4.5))
+        fig2 = plt.figure(figsize=(5.5,7))
+    else:
+        fig = plt.figure(figsize=(9,9))
+    ax1  = fig.add_subplot(2,3,1,projection = crs1)   # true color    
+    ax2  = fig.add_subplot(2,3,2,projection = mapcrs) # MODIS Ch 31
+    ax3  = fig.add_subplot(2,3,3,projection = mapcrs) # CERES SWF
+    ax4  = fig.add_subplot(2,3,4,projection = mapcrs) # CERES LWF
+    ax5  = fig.add_subplot(2,3,5,projection = mapcrs) # OMI AI
+    
+    ax6  = fig2.add_subplot(2,1,1)                     # IR vs CERES
+    ax7  = fig2.add_subplot(2,1,2)                     # AI vs CERES
+    ##!#gs = fig.add_gridspec(nrows = 8, ncols = 16)
+    ##!#ax1  = fig.add_subplot(gs[0:4  ,0:4],projection = crs1)   # true color    
+    ##!#ax2  = fig.add_subplot(gs[0:4  ,4:8],projection = mapcrs) # MODIS Ch 31
+    ##!#ax3  = fig.add_subplot(gs[0:4  ,8:12],projection = mapcrs) # CERES SWF
+    ##!#ax4  = fig.add_subplot(gs[0:4  ,12:16],projection = mapcrs) # CERES LWF
+    ##!#ax5  = fig.add_subplot(gs[4:8  ,1:5],projection = mapcrs) # OMI AI
+    ##!#ax6  = fig.add_subplot(gs[4:8  ,5:10])                     # IR vs CERES
+    ##!#ax7  = fig.add_subplot(gs[4:8  ,10:15])                     # AI vs CERES
+
+    # ----------------------------------------------------------------------
+    #
+    # Plot the MODIS data
+    #
+    # ----------------------------------------------------------------------
+    # Plot the true-color data for the previous date
+    # ----------------------------------------------
+    ax1.imshow(var1.data, transform = crs1, extent=(var1.x[0], var1.x[-1], \
+        var1.y[-1], var1.y[0]), origin='upper')
+
+    # Zoom in the figure if desired
+    # -----------------------------
+    if(zoom):
+        ax1.set_extent([lon_lims1[0],lon_lims1[1],lat_lims1[0],\
+            lat_lims1[1]],crs = datacrs)
+
+    # Plot the MODIS IR data
+    # ----------------------
+    plot_MODIS_spatial(MODIS_data0, ax2, zoom = zoom, ptitle = '', \
+        labelsize = None, labelticksize = None)
+
+    # ----------------------------------------------------------------------
+    #
+    # Plot the CERES data
+    #
+    # ----------------------------------------------------------------------
+    vmax = None
+    vmin = None
+    if(date_str == '202107222110'):
+        sw_vmax = 250
+        sw_vmin = 130
+        lw_vmax = 370
+        lw_vmin = 300
+    elif(date_str == '202108062025'):
+        sw_vmax = 330
+        sw_vmin = 190
+        lw_vmax = 370
+        lw_vmin = 300
+    
+    plotCERES_hrly(ax3, CERES_data_hrly_swf, 'swf', \
+        vmin = sw_vmin, vmax = sw_vmax, title = '', label = 'TOA Flux [Wm$^{-2}$]', \
+        circle_bound = False, gridlines = False, grid_data = True, \
+        labelsize = None, labelticksize = None, zoom = True)
+    plotCERES_hrly(ax4, CERES_data_hrly_swf, 'lwf', \
+        vmin = lw_vmin, vmax = lw_vmax, title = '', label = 'TOA Flux [Wm$^{-2}$]', \
+        circle_bound = False, gridlines = False, grid_data = True, \
+        labelsize = None, labelticksize = None, zoom = True)
+    if(zoom):
+        ax3.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
+                        datacrs)
+        ax4.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
+                        datacrs)
+
+    plot_scatter_CERES(date_str, MODIS_data0, ax6, avg_pixel = avg_pixel,\
+        plume_only = plume_only,  plot_total_flux = False, labelsize = None)
+
+    # ----------------------------------------------------------------------
+    #
+    # Plot the OMI data
+    #
+    # ----------------------------------------------------------------------
+    plot_OMI_spatial(date_str, LAT, LON, mask_UVAI, ax5, labelsize = None, \
+        labelticksize = None, zoom = zoom)
+
+    plot_scatter_OMI_CERES(date_str, MODIS_data0, ax7, \
+        avg_pixel = avg_pixel, plume_only = plume_only, ptitle = '', labelsize = None)
+
+    # Add labels to all the subplots
+    # ------------------------------
+    plot_subplot_label(ax1, '(a)', fontsize = 11, backgroundcolor = 'white')
+    plot_subplot_label(ax2, '(b)', fontsize = 11, backgroundcolor = 'white')
+    plot_subplot_label(ax3, '(c)', fontsize = 11, backgroundcolor = 'white')
+    plot_subplot_label(ax4, '(d)', fontsize = 11, backgroundcolor = 'white')
+    plot_subplot_label(ax5, '(e)', fontsize = 11, backgroundcolor = 'white')
+    plot_subplot_label(ax6, '(a)', fontsize = 12, )
+    plot_subplot_label(ax7, '(b)', fontsize = 12, )
+
+    font_size = 11
+    plot_figure_text(ax1, 'MODIS True Color', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax2, 'MODIS 11.0 μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax3, 'CERES SW', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax4, 'CERES LW', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax5, 'OMI AI', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+
+    fig.tight_layout()
+    fig2.tight_layout()
+
+    if(save):
+        plume_add = '_onlyplume'
+        pixel_add = ''
+        if(plume_only == False):
+            plume_add = '_onlyplume'
+        if(avg_pixel):
+            pixel_add = '_avgpixel' 
+        outname = 'modis_spatial_wAI_' + date_str + plume_add + \
+            pixel_add + '.png'
+        fig.savefig(outname,dpi=300)
+        print("Saved image",outname)
+
+        outname = 'modis_scatter_wAI_' + date_str + plume_add + \
+            pixel_add + '.png'
+        fig2.savefig(outname,dpi=300)
         print("Saved image",outname)
     else:
         plt.show()
