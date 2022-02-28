@@ -2377,7 +2377,8 @@ def plot_scatter(lax,data1, data2, MODIS_data1, MODIS_data2, hash_data1,\
  
 #def plot_scatter_OMI(date_str, tmp_data0, tmp_lat0, tmp_lon0, channel, \
 def plot_scatter_OMI(date_str, MODIS_data, pax, avg_pixel = False, \
-        xlabel = None, ylabel = None, ptitle = None):
+        xlabel = None, ylabel = None, ptitle = None, labelsize = 13,\
+        labelticksize = 11):
 
     # Determine where the smoke is located
     # ------------------------------------
@@ -2530,11 +2531,11 @@ def plot_scatter_OMI(date_str, MODIS_data, pax, avg_pixel = False, \
             xlabel = 'Averaged Ch. ' + str(MODIS_data['channel']) +' [' + \
             channel_dict[str(MODIS_data['channel'])]['Bandwidth_label'] + \
             MODIS_data['variable']
-        pax.set_xlabel(xlabel, fontsize = 14)
+        pax.set_xlabel(xlabel, fontsize = labelsize, weight = 'bold')
         if(ptitle is None):
             ptitle = 'Smoke correlation: '+str(np.round(hrval_p, 3))
         pax.set_title(ptitle)
-        pax.set_ylabel('OMI UVAI', fontsize = 14)
+        pax.set_ylabel('OMI UVAI', fontsize = labelsize, weight = 'bold')
 
     else:
         LAT, LON, mask_UVAI, crnr_LAT, crnr_LON = \
@@ -2604,11 +2605,11 @@ def plot_scatter_OMI(date_str, MODIS_data, pax, avg_pixel = False, \
             xlabel = 'Ch. ' + str(MODIS_data['channel']) +' [' + \
             channel_dict[str(MODIS_data['channel'])]['Bandwidth_label'] + \
             MODIS_data['variable']
-        pax.set_xlabel(xlabel, fontsize = 14)
+        pax.set_xlabel(xlabel, fontsize = labelsize, weight = 'bold')
         if(ptitle is None):
             ptitle = 'Smoke correlation: '+str(np.round(hrval_p, 3))
         pax.set_title(ptitle)
-        pax.set_ylabel('OMI UVAI', fontsize = 14)
+        pax.set_ylabel('OMI UVAI', fontsize = labelsize, weight = 'bold')
         
 
 def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
@@ -4053,8 +4054,9 @@ def plot_spatial_scatter_wAI(date_str, zoom=True,save=False,composite=True,\
     ax4  = fig.add_subplot(2,3,4,projection = mapcrs) # CERES LWF
     ax5  = fig.add_subplot(2,3,5,projection = mapcrs) # OMI AI
     
-    ax6  = fig2.add_subplot(2,1,1)                     # IR vs CERES
-    ax7  = fig2.add_subplot(2,1,2)                     # AI vs CERES
+    ax6  = fig2.add_subplot(2,1,1)                     # IR vs AI 
+    ax7  = fig2.add_subplot(2,1,2)                     # IR vs CERES
+    #ax8  = fig2.add_subplot(3,1,3)                     # AI vs CERES
     ##!#gs = fig.add_gridspec(nrows = 8, ncols = 16)
     ##!#ax1  = fig.add_subplot(gs[0:4  ,0:4],projection = crs1)   # true color    
     ##!#ax2  = fig.add_subplot(gs[0:4  ,4:8],projection = mapcrs) # MODIS Ch 31
@@ -4123,8 +4125,8 @@ def plot_spatial_scatter_wAI(date_str, zoom=True,save=False,composite=True,\
                         aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
                         datacrs)
 
-    plot_scatter_CERES(date_str, MODIS_data0, ax6, avg_pixel = avg_pixel,\
-        plume_only = plume_only,  plot_total_flux = False, labelsize = None)
+    ##!#plot_scatter_CERES(date_str, MODIS_data0, ax6, avg_pixel = avg_pixel,\
+    ##!#    plume_only = plume_only,  plot_total_flux = False, labelsize = None)
 
     # ----------------------------------------------------------------------
     #
@@ -4133,6 +4135,10 @@ def plot_spatial_scatter_wAI(date_str, zoom=True,save=False,composite=True,\
     # ----------------------------------------------------------------------
     plot_OMI_spatial(date_str, LAT, LON, mask_UVAI, ax5, labelsize = None, \
         labelticksize = None, zoom = zoom)
+
+    plot_scatter_OMI(date_str, MODIS_data0, ax6, avg_pixel = avg_pixel, \
+        xlabel = 'MODIS 11.0 μm T$_{B}$', \
+        ylabel = 'OMI UVAI', ptitle = '', labelsize = None)
 
     plot_scatter_OMI_CERES(date_str, MODIS_data0, ax7, \
         avg_pixel = avg_pixel, plume_only = plume_only, ptitle = '', labelsize = None)
@@ -4144,8 +4150,9 @@ def plot_spatial_scatter_wAI(date_str, zoom=True,save=False,composite=True,\
     plot_subplot_label(ax3, '(c)', fontsize = 11, backgroundcolor = 'white')
     plot_subplot_label(ax4, '(d)', fontsize = 11, backgroundcolor = 'white')
     plot_subplot_label(ax5, '(e)', fontsize = 11, backgroundcolor = 'white')
-    plot_subplot_label(ax6, '(a)', fontsize = 12, )
+    plot_subplot_label(ax6, '(a)', fontsize = 12, location = 'lower_left')
     plot_subplot_label(ax7, '(b)', fontsize = 12, )
+    #plot_subplot_label(ax8, '(c)', fontsize = 12, )
 
     font_size = 11
     plot_figure_text(ax1, 'MODIS True Color', xval = None, yval = None, transform = None, \
@@ -4175,7 +4182,7 @@ def plot_spatial_scatter_wAI(date_str, zoom=True,save=False,composite=True,\
         print("Saved image",outname)
 
         outname = 'modis_scatter_wAI_' + date_str + plume_add + \
-            pixel_add + '.png'
+            pixel_add + '_v2.png'
         fig2.savefig(outname,dpi=300)
         print("Saved image",outname)
     else:
@@ -6638,10 +6645,10 @@ def plot_combined_figure1_v2(date_str = '202107202125', zoom = True, show_smoke 
 
     # Read the GOES data
     # ------------------------
-    var2, crs0, lat_lims2, lon_lims2, plabel = read_GOES_satpy(date_str, 8)
-    var3, crs0, lat_lims0, lon_lims0, plabel = read_GOES_satpy(date_str, 9)
-    var4, crs0, lat_lims0, lon_lims0, plabel = read_GOES_satpy(date_str, 10)
-    var0, crs0, lat_lims0, lon_lims0, plabel = read_GOES_satpy(date_str, 13)
+    var2, crs0, lons, lats, lat_lims2, lon_lims2, plabel = read_GOES_satpy(date_str, 8)
+    var3, crs0, lons, lats, lat_lims0, lon_lims0, plabel = read_GOES_satpy(date_str, 9)
+    var4, crs0, lons, lats, lat_lims0, lon_lims0, plabel = read_GOES_satpy(date_str, 10)
+    var0, crs0, lons, lats, lat_lims0, lon_lims0, plabel = read_GOES_satpy(date_str, 13)
 
     # Read in the CERES data
     # ----------------------
@@ -6694,10 +6701,10 @@ def plot_combined_figure1_v2(date_str = '202107202125', zoom = True, show_smoke 
     ##!#ax7 = fig.add_subplot(3,3,7,projection = mapcrs) # WV
     ##!#ax8 = fig.add_subplot(3,3,8,projection = mapcrs) # LW
     ##!#ax9 = fig.add_subplot(3,3,9,projection = mapcrs) # SW
-    var2, crs0, lat_lims2, lon_lims2, plabel2 = read_GOES_satpy(date_str, 8)
-    var3, crs0, lat_lims0, lon_lims0, plabel3 = read_GOES_satpy(date_str, 9)
-    var4, crs0, lat_lims0, lon_lims0, plabel4 = read_GOES_satpy(date_str, 10)
-    var0, crs0, lat_lims0, lon_lims0, plabel0 = read_GOES_satpy(date_str, 13)
+    var2, crs0, lons, lats, lat_lims2, lon_lims2, plabel2 = read_GOES_satpy(date_str, 8)
+    var3, crs0, lons, lats, lat_lims0, lon_lims0, plabel3 = read_GOES_satpy(date_str, 9)
+    var4, crs0, lons, lats, lat_lims0, lon_lims0, plabel4 = read_GOES_satpy(date_str, 10)
+    var0, crs0, lons, lats, lat_lims0, lon_lims0, plabel0 = read_GOES_satpy(date_str, 13)
 
     # Plot the true-color data for the previous date
     # ----------------------------------------------

@@ -1028,6 +1028,10 @@ def read_GOES_satpy(date_str, channel, zoom = True):
         scn = scn.crop(ll_bbox = (lon_lims[0] + 0.65, lat_lims[0], \
             lon_lims[1] - 0.65, lat_lims[1]))
 
+
+    # Extract the lats, lons, and data
+    # -----------------------------------------------------
+    lons, lats = scn[channel].attrs['area'].get_lonlats()
     var = scn[channel].data
 
     # Extract the map projection from the data for plotting
@@ -1040,18 +1044,19 @@ def read_GOES_satpy(date_str, channel, zoom = True):
     #units = scn[channel].units
     plabel = calib_dict[channel].title() + ' [' + units + ']'
 
-    return var, crs, lat_lims, lon_lims, plabel
+    return var, crs, lons, lats, lat_lims, lon_lims, plabel
     #return var, crs, lat_lims, lon_lims
 
 # channel must be an integer between 1 and 16
 def plot_GOES_satpy(date_str, channel, ax = None, var = None, crs = None, \
-        lat_lims = None, lon_lims = None, vmin = None, vmax = None, \
-        ptitle = None, plabel = None, labelsize = 10, colorbar = True, zoom=True,save=False):
+        lons = None, lats = None, lat_lims = None, lon_lims = None, \
+        vmin = None, vmax = None, ptitle = None, plabel = None, \
+        labelsize = 10, colorbar = True, zoom=True,save=False):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
 
     if(var is None): 
-        var, crs, lat_lims, lon_lims, plabel = read_GOES_satpy(date_str, channel)
+        var, crs, lons, lats, lat_lims, lon_lims, plabel = read_GOES_satpy(date_str, channel)
 
     # Plot the GOES data
     # ------------------
@@ -1064,10 +1069,13 @@ def plot_GOES_satpy(date_str, channel, ax = None, var = None, crs = None, \
     ##!#ax.imshow(var.data, transform = crs, extent=(var.x[0], var.x[-1], \
     ##!#    var.y[-1], var.y[0]), vmin = vmin, vmax = vmax, origin='upper', \
     ##!#    cmap = 'Greys_r')
-    im1 = ax.imshow(var, transform = crs, vmin = vmin, vmax = vmax, \
-        origin='upper', cmap = cmap_dict[channel_dict[str(channel)]['wavelength']])
+    #im1 = ax.imshow(var, transform = crs, vmin = vmin, vmax = vmax, \
+    im1 = ax.pcolormesh(lons, lats, var, transform = datacrs, vmin = vmin, vmax = vmax, \
+        cmap = cmap_dict[channel_dict[str(channel)]['wavelength']])
+    ax.add_feature(cfeature.STATES)
     if(colorbar):
-        cbar = plt.colorbar(im1, ax = ax, pad = 0.03, extend = 'both')
+        cbar = plt.colorbar(im1, ax = ax, pad = 0.03, fraction = 0.052, \
+            extend = 'both')
         cbar.set_label(plabel, size = labelsize, weight = 'bold')
 
     # Zoom in the figure if desired
@@ -1120,14 +1128,13 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
 
     plt.close('all')
-    fig1 = plt.figure(figsize = (13,8))
-    var0, crs0, lat_lims, lon_lims = read_GOES_satpy(date_str, ch1)
-
-    var1, crs1, lat_lims, lon_lims = read_GOES_satpy(date_str, ch2)
-    var2, crs2, lat_lims, lon_lims = read_GOES_satpy(date_str, ch3)
-    var3, crs3, lat_lims, lon_lims = read_GOES_satpy(date_str, ch4)
-    var4, crs4, lat_lims, lon_lims = read_GOES_satpy(date_str, ch5)
-    var5, crs5, lat_lims, lon_lims = read_GOES_satpy(date_str, ch6)
+    fig1 = plt.figure(figsize = (10,6))
+    var0, crs0, lons, lats, lat_lims, lon_lims, plabel0 = read_GOES_satpy(date_str, ch1)
+    var1, crs1, lons, lats, lat_lims, lon_lims, plabel1 = read_GOES_satpy(date_str, ch2)
+    var2, crs2, lons, lats, lat_lims, lon_lims, plabel2 = read_GOES_satpy(date_str, ch3)
+    var3, crs3, lons, lats, lat_lims, lon_lims, plabel3 = read_GOES_satpy(date_str, ch4)
+    var4, crs4, lons, lats, lat_lims, lon_lims, plabel4 = read_GOES_satpy(date_str, ch5)
+    var5, crs5, lons, lats, lat_lims, lon_lims, plabel5 = read_GOES_satpy(date_str, ch6)
 
     ax0 = fig1.add_subplot(2,3,1, projection = crs0)
     ax1 = fig1.add_subplot(2,3,2, projection = crs1)
@@ -1136,127 +1143,194 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
     ax4 = fig1.add_subplot(2,3,5, projection = crs4)
     ax5 = fig1.add_subplot(2,3,6, projection = crs5)
 
-    max0 = 1.0
-    max1 = 1.0
-    max2 = 1.0 
-    max3 = 1.0 
-    max4 = 1.0 
-    max5 = 1.0 
-    min0 = 0.0
-    min1 = 0.0
-    min2 = 0.5
-    min3 = 0.6
-    min4 = 0.6
-    min5 = 0.6
+    ##!#ax1.set_title('GOES-17 Band ' + str(ch2) + '\n' + \
+    ##!#    channel_dict[str(ch2)]['name'] + '\n' + \
+    labelsize = 11
+    font_size = 10
+    plot_GOES_satpy(date_str, ch1, ax = ax0, var = var0, crs = crs0, \
+        lons = lons, lats = lats, lat_lims = lat_lims, lon_lims = lon_lims, vmin = None, vmax = None, \
+        ptitle = '', plabel = plabel0, colorbar = True, labelsize = labelsize + 1, \
+        zoom=True,save=False)
+    plot_GOES_satpy(date_str, ch2, ax = ax1, var = var1, crs = crs0, \
+        lons = lons, lats = lats, lat_lims = lat_lims, lon_lims = lon_lims, vmin = None, vmax = 100., \
+        ptitle = '', plabel = plabel1, colorbar = True, labelsize = labelsize + 1, \
+        zoom=True,save=False)
+    plot_GOES_satpy(date_str, ch3, ax = ax2, var = var2, crs = crs0, \
+        lons = lons, lats = lats, lat_lims = lat_lims, lon_lims = lon_lims, vmin = None, vmax = None, \
+        ptitle = '', plabel = plabel2, colorbar = True, labelsize = labelsize + 1, \
+        zoom=True,save=False)
+    plot_GOES_satpy(date_str, ch4, ax = ax3, var = var3, crs = crs0, \
+        lons = lons, lats = lats, lat_lims = lat_lims, lon_lims = lon_lims, vmin = None, vmax = None, \
+        ptitle = '', plabel = plabel3, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
+    plot_GOES_satpy(date_str, ch5, ax = ax4, var = var4, crs = crs0, \
+        lons = lons, lats = lats, lat_lims = lat_lims, lon_lims = lon_lims, vmin = None, vmax = None, \
+        ptitle = '', plabel = plabel4, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
+    plot_GOES_satpy(date_str, ch6, ax = ax5, var = var5, crs = crs0, \
+        lons = lons, lats = lats, lat_lims = lat_lims, lon_lims = lon_lims, vmin = None, vmax = None, \
+        ptitle = '', plabel = plabel5, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
 
-    v3lon, v3lat = var3.attrs['area'].get_lonlats()
-    v2data = np.squeeze(var2.values)
-    v3data = np.squeeze(var3.values)
-    v4data = np.squeeze(var4.values)
-    v5data = np.squeeze(var5.values)
-    v2data = np.ma.masked_where( ~((v3lat >= lat_lims[0] - 0.5) & (v3lat <= lat_lims[1] + 0.5) &\
-           (v3lon >= lon_lims[0] - 1.) & (v3lon <= lon_lims[1] + 1.)), v2data)
-    v3data = np.ma.masked_where( ~((v3lat >= lat_lims[0] - 0.5) & (v3lat <= lat_lims[1] + 0.5) &\
-           (v3lon >= lon_lims[0] - 1.) & (v3lon <= lon_lims[1] + 1.)), v3data)
-    v4data = np.ma.masked_where( ~((v3lat >= lat_lims[0] - 0.5) & (v3lat <= lat_lims[1] + 0.5) &\
-           (v3lon >= lon_lims[0] - 1.) & (v3lon <= lon_lims[1] + 1.)), v4data)
-    v5data = np.ma.masked_where( ~((v3lat >= lat_lims[0] - 0.5) & (v3lat <= lat_lims[1] + 0.5) &\
-           (v3lon >= lon_lims[0] - 1.) & (v3lon <= lon_lims[1] + 1.)), v5data)
-    #my_area = scn[channel].attrs['area'].compute_optimal_bb_area({\
-    #    'proj':'lcc', 'lon_0': lon_lims[0], 'lat_0': lat_lims[0], \
-    #    'lat_1': lat_lims[0], 'lat_2': lat_lims[0]})
+    plot_figure_text(ax0, 'GOES-17 ' + \
+        str(channel_dict[str(ch1)]['wavelength']) + ' μm', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+    plot_figure_text(ax1, 'GOES-17 ' + \
+        str(channel_dict[str(ch2)]['wavelength']) + ' μm', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+    plot_figure_text(ax2, 'GOES-17 ' + \
+        str(channel_dict[str(ch3)]['wavelength']) + ' μm', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+    plot_figure_text(ax3, 'GOES-17 ' + \
+        str(channel_dict[str(ch4)]['wavelength']) + ' μm', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+    plot_figure_text(ax4, 'GOES-17 ' + \
+        str(channel_dict[str(ch5)]['wavelength']) + ' μm', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+    plot_figure_text(ax5, 'GOES-17 ' + \
+        str(channel_dict[str(ch6)]['wavelength']) + ' μm', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
 
-    mesh0 = ax0.imshow(var0.data, transform = crs0, extent=(var0.x[0], var0.x[-1], \
-        var0.y[-1], var0.y[0]), origin='upper', cmap = 'Greys_r', \
-        vmin = min0, vmax = max0)
-    mesh1 = ax1.imshow(var1.data, transform = crs1, extent=(var1.x[0], var1.x[-1], \
-        var1.y[-1], var1.y[0]), origin='upper', cmap = 'Greys_r', \
-        vmin = min1, vmax = max1)
-    mesh2 = ax2.imshow(v2data, transform = crs2, extent=(var2.x[0], var2.x[-1], \
-        var2.y[-1], var2.y[0]), origin='upper', cmap = 'Greys_r', \
-        vmin = min2, vmax = max2)
-    mesh3 = ax3.imshow(v3data, transform = crs3, extent=(var3.x[0], var3.x[-1], \
-        var3.y[-1], var3.y[0]), origin='upper', cmap = 'Greys_r', \
-        vmin = min3, vmax = max3)
-    mesh4 = ax4.imshow(v4data, transform = crs4, extent=(var4.x[0], var4.x[-1], \
-        var4.y[-1], var4.y[0]), origin='upper', cmap = 'Greys_r', \
-        vmin = min4, vmax = max4)
-    mesh5 = ax5.imshow(v5data, transform = crs5, extent=(var5.x[0], var5.x[-1], \
-        var5.y[-1], var5.y[0]), origin='upper', cmap = 'Greys_r', \
-        vmin = min5, vmax = max5)
-    cbar0 = plt.colorbar(mesh0,ax=ax0,orientation='vertical',\
-        pad=0.03, shrink = 0.67)
-    cbar1 = plt.colorbar(mesh1,ax=ax1,orientation='vertical',\
-        pad=0.03, shrink = 0.67)
-    cbar2 = plt.colorbar(mesh2,ax=ax2,orientation='vertical',\
-        pad=0.03, shrink = 0.67)
-    cbar3 = plt.colorbar(mesh3,ax=ax3,orientation='vertical',\
-        pad=0.03, shrink = 0.67)
-    cbar4 = plt.colorbar(mesh4,ax=ax4,orientation='vertical',\
-        pad=0.03, shrink = 0.67)
-    cbar5 = plt.colorbar(mesh5,ax=ax5,orientation='vertical',\
-        pad=0.03, shrink = 0.67)
+    ##!#max0 = 1.0
+    ##!#max1 = 1.0
+    ##!#max2 = 1.0 
+    ##!#max3 = 1.0 
+    ##!#max4 = 1.0 
+    ##!#max5 = 1.0 
+    ##!#min0 = 0.0
+    ##!#min1 = 0.0
+    ##!#min2 = 0.5
+    ##!#min3 = 0.6
+    ##!#min4 = 0.6
+    ##!#min5 = 0.6
+
+    ##!#v3lon, v3lat = var3.attrs['area'].get_lonlats()
+    ##!#v2data = np.squeeze(var2.values)
+    ##!#v3data = np.squeeze(var3.values)
+    ##!#v4data = np.squeeze(var4.values)
+    ##!#v5data = np.squeeze(var5.values)
+    ##!#v2data = np.ma.masked_where( ~((v3lat >= lat_lims[0] - 0.5) & (v3lat <= lat_lims[1] + 0.5) &\
+    ##!#       (v3lon >= lon_lims[0] - 1.) & (v3lon <= lon_lims[1] + 1.)), v2data)
+    ##!#v3data = np.ma.masked_where( ~((v3lat >= lat_lims[0] - 0.5) & (v3lat <= lat_lims[1] + 0.5) &\
+    ##!#       (v3lon >= lon_lims[0] - 1.) & (v3lon <= lon_lims[1] + 1.)), v3data)
+    ##!#v4data = np.ma.masked_where( ~((v3lat >= lat_lims[0] - 0.5) & (v3lat <= lat_lims[1] + 0.5) &\
+    ##!#       (v3lon >= lon_lims[0] - 1.) & (v3lon <= lon_lims[1] + 1.)), v4data)
+    ##!#v5data = np.ma.masked_where( ~((v3lat >= lat_lims[0] - 0.5) & (v3lat <= lat_lims[1] + 0.5) &\
+    ##!#       (v3lon >= lon_lims[0] - 1.) & (v3lon <= lon_lims[1] + 1.)), v5data)
+    ##!##my_area = scn[channel].attrs['area'].compute_optimal_bb_area({\
+    ##!##    'proj':'lcc', 'lon_0': lon_lims[0], 'lat_0': lat_lims[0], \
+    ##!##    'lat_1': lat_lims[0], 'lat_2': lat_lims[0]})
+
+    ##!#mesh0 = ax0.imshow(var0.data, transform = crs0, extent=(var0.x[0], var0.x[-1], \
+    ##!#    var0.y[-1], var0.y[0]), origin='upper', cmap = 'Greys_r', \
+    ##!#    vmin = min0, vmax = max0)
+    ##!#mesh1 = ax1.imshow(var1.data, transform = crs1, extent=(var1.x[0], var1.x[-1], \
+    ##!#    var1.y[-1], var1.y[0]), origin='upper', cmap = 'Greys_r', \
+    ##!#    vmin = min1, vmax = max1)
+    ##!#mesh2 = ax2.imshow(v2data, transform = crs2, extent=(var2.x[0], var2.x[-1], \
+    ##!#    var2.y[-1], var2.y[0]), origin='upper', cmap = 'Greys_r', \
+    ##!#    vmin = min2, vmax = max2)
+    ##!#mesh3 = ax3.imshow(v3data, transform = crs3, extent=(var3.x[0], var3.x[-1], \
+    ##!#    var3.y[-1], var3.y[0]), origin='upper', cmap = 'Greys_r', \
+    ##!#    vmin = min3, vmax = max3)
+    ##!#mesh4 = ax4.imshow(v4data, transform = crs4, extent=(var4.x[0], var4.x[-1], \
+    ##!#    var4.y[-1], var4.y[0]), origin='upper', cmap = 'Greys_r', \
+    ##!#    vmin = min4, vmax = max4)
+    ##!#mesh5 = ax5.imshow(v5data, transform = crs5, extent=(var5.x[0], var5.x[-1], \
+    ##!#    var5.y[-1], var5.y[0]), origin='upper', cmap = 'Greys_r', \
+    ##!#    vmin = min5, vmax = max5)
+    ##!#cbar0 = plt.colorbar(mesh0,ax=ax0,orientation='vertical',\
+    ##!#    pad=0.03, shrink = 0.67)
+    ##!#cbar1 = plt.colorbar(mesh1,ax=ax1,orientation='vertical',\
+    ##!#    pad=0.03, shrink = 0.67)
+    ##!#cbar2 = plt.colorbar(mesh2,ax=ax2,orientation='vertical',\
+    ##!#    pad=0.03, shrink = 0.67)
+    ##!#cbar3 = plt.colorbar(mesh3,ax=ax3,orientation='vertical',\
+    ##!#    pad=0.03, shrink = 0.67)
+    ##!#cbar4 = plt.colorbar(mesh4,ax=ax4,orientation='vertical',\
+    ##!#    pad=0.03, shrink = 0.67)
+    ##!#cbar5 = plt.colorbar(mesh5,ax=ax5,orientation='vertical',\
+    ##!#    pad=0.03, shrink = 0.67)
+
+    plot_subplot_label(ax0,  '(a)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax1,  '(b)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax2,  '(c)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax3,  '(d)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax4,  '(e)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax5,  '(f)', backgroundcolor = 'white', fontsize = font_size)
 
     # Zoom in the figure if desired
     # -----------------------------
     if(zoom):
-        ax0.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
-                       crs = ccrs.PlateCarree())
-        ax1.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
-                       crs = ccrs.PlateCarree())
-        ax2.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
-                       crs = ccrs.PlateCarree())
-        ax3.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
-                       crs = ccrs.PlateCarree())
-        ax4.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
-                       crs = ccrs.PlateCarree())
-        ax5.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
-                       crs = ccrs.PlateCarree())
+    ##!#    ax0.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+    ##!#                   crs = ccrs.PlateCarree())
+    ##!#    ax1.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+    ##!#                   crs = ccrs.PlateCarree())
+    ##!#    ax2.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+    ##!#                   crs = ccrs.PlateCarree())
+    ##!#    ax3.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+    ##!#                   crs = ccrs.PlateCarree())
+    ##!#    ax4.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+    ##!#                   crs = ccrs.PlateCarree())
+    ##!#    ax5.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+    ##!#                   crs = ccrs.PlateCarree())
         zoom_add = '_zoom'
     else:
         zoom_add = ''
 
-    ax0.coastlines(resolution = '50m')
-    ax0.add_feature(cfeature.STATES)
-    ax0.add_feature(cfeature.BORDERS)
-    ax0.set_title('GOES-17 Band ' + str(ch1) + '\n' + \
-        channel_dict[str(ch1)]['name'] + '\n' + \
-        dt_date_str.strftime('%Y-%m-%d %H:%M'))
+    ##!#ax0.coastlines(resolution = '50m')
+    ##!#ax0.add_feature(cfeature.STATES)
+    ##!#ax0.add_feature(cfeature.BORDERS)
+    ##!#ax0.set_title('GOES-17 Band ' + str(ch1) + '\n' + \
+    ##!#    channel_dict[str(ch1)]['name'] + '\n' + \
+    ##!#    dt_date_str.strftime('%Y-%m-%d %H:%M'))
 
-    ax1.coastlines(resolution = '50m')
-    ax1.add_feature(cfeature.STATES)
-    ax1.add_feature(cfeature.BORDERS)
-    ax1.set_title('GOES-17 Band ' + str(ch2) + '\n' + \
-        channel_dict[str(ch2)]['name'] + '\n' + \
-        dt_date_str.strftime('%Y-%m-%d %H:%M'))
+    ##!#ax1.coastlines(resolution = '50m')
+    ##!#ax1.add_feature(cfeature.STATES)
+    ##!#ax1.add_feature(cfeature.BORDERS)
+    ##!#ax1.set_title('GOES-17 Band ' + str(ch2) + '\n' + \
+    ##!#    channel_dict[str(ch2)]['name'] + '\n' + \
+    ##!#    dt_date_str.strftime('%Y-%m-%d %H:%M'))
 
-    ax2.coastlines(resolution = '50m')
-    ax2.add_feature(cfeature.STATES)
-    ax2.add_feature(cfeature.BORDERS)
-    ax2.set_title('GOES-17 Band ' + str(ch3) + '\n' + \
-        channel_dict[str(ch3)]['name'] + '\n' + \
-        dt_date_str.strftime('%Y-%m-%d %H:%M'))
+    ##!#ax2.coastlines(resolution = '50m')
+    ##!#ax2.add_feature(cfeature.STATES)
+    ##!#ax2.add_feature(cfeature.BORDERS)
+    ##!#ax2.set_title('GOES-17 Band ' + str(ch3) + '\n' + \
+    ##!#    channel_dict[str(ch3)]['name'] + '\n' + \
+    ##!#    dt_date_str.strftime('%Y-%m-%d %H:%M'))
 
-    ax3.coastlines(resolution = '50m')
-    ax3.add_feature(cfeature.STATES)
-    ax3.add_feature(cfeature.BORDERS)
-    ax3.set_title('GOES-17 Band ' + str(ch4) + '\n' + \
-        channel_dict[str(ch4)]['name'] + '\n' + \
-        dt_date_str.strftime('%Y-%m-%d %H:%M'))
+    ##!#ax3.coastlines(resolution = '50m')
+    ##!#ax3.add_feature(cfeature.STATES)
+    ##!#ax3.add_feature(cfeature.BORDERS)
+    ##!#ax3.set_title('GOES-17 Band ' + str(ch4) + '\n' + \
+    ##!#    channel_dict[str(ch4)]['name'] + '\n' + \
+    ##!#    dt_date_str.strftime('%Y-%m-%d %H:%M'))
 
-    ax4.coastlines(resolution = '50m')
-    ax4.add_feature(cfeature.STATES)
-    ax4.add_feature(cfeature.BORDERS)
-    ax4.set_title('GOES-17 Band ' + str(ch5) + '\n' + \
-        channel_dict[str(ch5)]['name'] + '\n' + \
-        dt_date_str.strftime('%Y-%m-%d %H:%M'))
+    ##!#ax4.coastlines(resolution = '50m')
+    ##!#ax4.add_feature(cfeature.STATES)
+    ##!#ax4.add_feature(cfeature.BORDERS)
+    ##!#ax4.set_title('GOES-17 Band ' + str(ch5) + '\n' + \
+    ##!#    channel_dict[str(ch5)]['name'] + '\n' + \
+    ##!#    dt_date_str.strftime('%Y-%m-%d %H:%M'))
 
-    ax5.coastlines(resolution = '50m')
-    ax5.add_feature(cfeature.STATES)
-    ax5.add_feature(cfeature.BORDERS)
-    ax5.set_title('GOES-17 Band ' + str(ch6) + '\n' + \
-        channel_dict[str(ch6)]['name'] + '\n' + \
-        dt_date_str.strftime('%Y-%m-%d %H:%M'))
+    ##!#ax5.coastlines(resolution = '50m')
+    ##!#ax5.add_feature(cfeature.STATES)
+    ##!#ax5.add_feature(cfeature.BORDERS)
+    ##!#ax5.set_title('GOES-17 Band ' + str(ch6) + '\n' + \
+    ##!#    channel_dict[str(ch6)]['name'] + '\n' + \
+    ##!#    dt_date_str.strftime('%Y-%m-%d %H:%M'))
 
     fig1.tight_layout()
 

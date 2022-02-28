@@ -7,7 +7,8 @@
 
 from GOESLib import *
 
-date_str = ['202107202126'] 
+date_str = ['202107210000'] 
+#date_str = ['202107202126'] 
 ##date_str = ['202107201200',\
 ##            '202107201500',\
 ##            '202107201800',\
@@ -26,4 +27,4 @@ channel = 2
 #plot_GOES_satpy(date_str, channel, ax = None, zoom=True,save=False)
 for dstr in date_str:
 #dstr = date_str[2]
-    plot_GOES_satpy_6panel(dstr, 2, 6, 13, 8, 9, 10, zoom = True, save = True)
+    plot_GOES_satpy_6panel(dstr, 2, 6, 13, 8, 9, 10, zoom = True, save = False)
