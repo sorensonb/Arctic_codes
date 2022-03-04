@@ -29,6 +29,9 @@ import sys
 ####fig1.savefig('arctic_lat_circles_80.png',dpi=300)
 ###plt.show()
 
+plot_combined_fort_out('20170818', min_lat = 70., vtype = 'areas', save = True)
+
+sys.exit()
 
 minlat = 65.
 #OMI_VBS0   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VBS0_2005_2020.nc', minlat = minlat)

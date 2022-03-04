@@ -596,6 +596,91 @@ def readOMI_swath_shawn(plot_time, latmin = 65.):
 
     return OMI_swath
 
+# NOTE: this is the old way of reading Shawn data. Grids everything
+# into the 0.25 x 0.25 degree grid
+def readOMI_swath_shawn_old(plot_time, latmin = 65., resolution = 0.25):
+
+    # This is the path that points to the HDF5 OMI files. This must be changed
+    # if running on a new system.
+    base_path = '/home/bsorenson/data/OMI/shawn_files/'
+    
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    #
+    # Select the needed data files
+    #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    
+    # Extract date information to use when finding the data files
+    year = plot_time[:4]
+    date = plot_time[4:8]
+    if(len(plot_time)==12):
+        time = plot_time[8:12]
+    else:
+        time = ''
+    
+    total_list = subprocess.check_output('ls '+base_path+year+date+time+\
+        '*',shell=True).decode('utf-8').strip().split('\n')
+    
+    # Set up values for gridding the AI data
+    latmin = 65 
+    lat_gridder = latmin * (1. / resolution)
+    max_idx = int(360 / resolution)
+    multiplier = int(1 / resolution)
+    adder = int(180 / resolution)
+    
+    lat_ranges = np.arange(latmin,90.1, resolution)
+    lon_ranges = np.arange(-180,180.1, resolution)
+    
+    # Set up blank grid arrays to hold the counts and the data
+    UVAI = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    count = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    #
+    # Grid the data
+    #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    for fileI in range(len(total_list)):
+        # read in data directly from HDF5 files
+        print(total_list[fileI])
+        with open(total_list[fileI]) as infile:
+            for line in infile:
+                templine = line.strip().split()
+                lat     = float(templine[0])
+                lon     = float(templine[1])
+                cleanAI = float(templine[4])
+                if((cleanAI>-2e5)):
+                    #if((j != 52) & (PDATA[i,j]>-2e5)):
+                    # Only plot if XTrack flag is met
+                    if(lat > latmin):
+    
+                        index1 = int(np.floor(lat*multiplier - lat_gridder))
+                        index2 = int(np.floor(lon*multiplier + adder))
+                          
+                        if(index1 < 0): index1 = 0
+                        if(index1 > len(lat_ranges)-1): index1 = len(lat_ranges) - 1
+                        if(index2 < 0): index2 = 0                                                                                            
+                        if(index2 > (max_idx - 1)): index2 = max_idx - 1
+                        #if(index2 > 1439): index2 = 1439
+    
+                        UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + cleanAI)/(count[index2,index1]+1)
+                        count[index2, index1] = count[index2,index1] + 1
+    
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+    plot_lat, plot_lon = np.meshgrid(lat_ranges,lon_ranges)
+    mask_UVAI = np.ma.masked_where(count == 0, UVAI)
+
+    OMI_data = {}
+    OMI_data['date']      = plot_time
+    OMI_data['dtype']     = 'shawn'
+    OMI_data['LAT']       = plot_lat 
+    OMI_data['LON']       = plot_lon
+    OMI_data['UVAI_grid'] = mask_UVAI
+    OMI_data['counts']    = count
+
+    return OMI_data
+
 def readOMI_single_swath(plot_time,row_max,only_sea_ice = True,latmin=65,coccolith = False):
     n_p = 1440
     nl = 720
@@ -3060,6 +3145,51 @@ def plotOMI_hrly(OMI_data_hrly, minlat = 60, pax = None, save=False):
             plabel = 'UV Aerosol Index', \
             vmin = -2.0, vmax = 4.0, minlat = minlat)
 
+def plot_OMI_shawn_old(OMI_shawn, ax = None, minlat = 65, labelsize = 12,\
+        labelticksize = 11):
+
+    mapcrs = ccrs.NorthPolarStereo()
+    datacrs = ccrs.PlateCarree()
+    colormap = plt.cm.jet
+    
+    # Set up the polar stereographic projection map
+    in_ax = True
+    if(ax is None):
+        in_ax = False
+        fig1 = plt.figure(figsize=(8,8))
+        if(minlat<45):
+            ax = plt.axes(projection = ccrs.Miller())
+        else:
+            ax = plt.axes(projection = ccrs.NorthPolarStereo(central_longitude = 300.))
+    ax.gridlines()
+    ax.coastlines(resolution = '50m')
+    
+    
+    # Use meshgrid to convert the 1-d lat/lon arrays into 2-d, which is needed
+    # for pcolormesh.
+    plot_lat = OMI_shawn['LAT']
+    plot_lon = OMI_shawn['LON']
+    mask_UVAI = OMI_shawn['UVAI_grid']
+    #plot_lat, plot_lon = np.meshgrid(OMI_shawn['LAT'], OMI_shawn['LON'])
+    #mask_UVAI = np.ma.masked_where(OMI_shawn['counts'] == 0, OMI_shawn['UVAI_grid'])
+    
+    ax.set_title('OMI '+OMI_shawn['date'])
+    mesh = ax.pcolormesh(plot_lon, plot_lat,mask_UVAI,transform = datacrs,cmap = colormap,\
+            vmin = -1.0, vmax = 3.0, shading='auto')
+    
+    # Center the figure over the Arctic
+    ax.set_extent([-180,180,minlat,90],datacrs)
+    ax.set_boundary(circle, transform=ax.transAxes)
+    
+    # Depending on the desired variable, set the appropriate colorbar ticks
+    tickvals = np.arange(-1.0,4.1,0.5)
+    
+    cbar = plt.colorbar(mesh,\
+        ax = ax, orientation='vertical', extend = 'both')
+    cbar.ax.tick_params(labelsize=labelticksize)
+    cbar.set_label('UV Aerosol Index Perturbation',fontsize=labelsize,weight='bold')
+
+
 def plot_OMI_v_MODIS(MODIS_data,OMI_single_swath,save=False):
 
     # Pull out data from dictionaries
@@ -4556,10 +4686,10 @@ def plot_OMI_CERES_trend_compare_summer(minlat=72,\
 
 def read_OMI_fort_out(file_name, min_lat, vtype = 'areas'):
     
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
     #
     #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
     
     # Extract date information from the file name
     name_split = file_name.strip().split('/')[-1].split('_')
@@ -4706,7 +4836,7 @@ def read_OMI_fort_out(file_name, min_lat, vtype = 'areas'):
     return omi_fort_dict   
  
 
-def plot_OMI_fort_out_func(infile, min_lat = 70., vtype = 'areas', save = False):
+def plot_OMI_fort_out_func(infile, ax = None, min_lat = 70., vtype = 'areas', save = False):
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
     #
@@ -4720,9 +4850,12 @@ def plot_OMI_fort_out_func(infile, min_lat = 70., vtype = 'areas', save = False)
     # Plot the individual omi_fort_dict['years'] of area time series
     #
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-    
-    fig0 = plt.figure(figsize = (10,4))
-    ax0 = fig0.add_subplot(1,1,1)
+  
+    in_ax = True 
+    if(ax is None): 
+        in_ax = False
+        fig0 = plt.figure(figsize = (10,4))
+        ax = fig0.add_subplot(1,1,1)
     plot_c = cm.turbo((omi_fort_dict['years']-np.min(omi_fort_dict['years']))/\
         (np.max(omi_fort_dict['years'])-np.min(omi_fort_dict['years'])))
     
@@ -4769,32 +4902,34 @@ def plot_OMI_fort_out_func(infile, min_lat = 70., vtype = 'areas', save = False)
         plot_dates = datetime(year = 2000, month = 4, day = 1) + \
             (loop_dates - datetime(year = year, month = 4, day = 1))
     
-        ax0.plot(plot_dates,\
+        ax.plot(plot_dates,\
             omi_fort_dict['daily_data'][np.where( \
             (omi_fort_dict['daily_dt_dates'] >= datetime(year,4,1)) & \
             (omi_fort_dict['daily_dt_dates'] <= datetime(year,9,30)))], c = plot_c[ii])
     
-    ax0.xaxis.set_major_formatter(mdates.DateFormatter('%b'))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%b'))
     norm = mc.Normalize(vmin=np.min(omi_fort_dict['years']), vmax=np.max(omi_fort_dict['years']))
     
     cmap = cm.turbo
-    cbar = fig0.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap),
-                 ax=ax0, orientation='vertical', label='Year')
+    cbar = plt.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap),
+                 ax=ax, orientation='vertical', label='Year')
     
-    #ax0.plot(plot_dates, mask_day_avgs,label='avg',color='black')
-    #ax0.plot(plot_dates, upper_range,label='+avg σ',linestyle='--',color='black')
-    ax0.set_ylabel(omi_fort_dict['axis_label'],weight='bold',fontsize=12)
-    ax0.set_title('AI ' + vtype + ': Threshold of '+str(omi_fort_dict['ai_thresh'])+\
+    #ax.plot(plot_dates, mask_day_avgs,label='avg',color='black')
+    #ax.plot(plot_dates, upper_range,label='+avg σ',linestyle='--',color='black')
+    ax.set_ylabel(omi_fort_dict['axis_label'],weight='bold',fontsize=12)
+    ax.set_title('AI ' + vtype + ': Threshold of '+str(omi_fort_dict['ai_thresh'])+\
         '\nNorth of '+str(int(min_lat))+'$^{o}$', fontsize = 14, weight = 'bold')
-    ax0.tick_params(axis='both', labelsize = 12)
-    ax0.grid()
-    fig0.tight_layout()
-    if(save == True):
-        outname = "ai_" + vtype + "_indiv_yearly_" + dtype + "_thresh"+thresh+"_minlat"+min_lat+".png"
-        fig0.savefig(outname,dpi=300)
-        print("Saved image",outname) 
-    else:
-        plt.show() 
+    ax.tick_params(axis='both', labelsize = 12)
+    ax.grid()
+    
+    if(not in_ax):
+        fig0.tight_layout()
+        if(save == True):
+            outname = "ai_" + vtype + "_indiv_yearly_" + dtype + "_thresh"+thresh+"_minlat"+min_lat+".png"
+            fig0.savefig(outname,dpi=300)
+            print("Saved image",outname) 
+        else:
+            plt.show() 
     #plt.legend()
     
     ##!## = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
@@ -4910,6 +5045,76 @@ def plot_OMI_fort_out_peaks(infile, min_lat = 70., vtype = 'areas', save = False
     #plt.show()
 
 
+def plot_combined_fort_out(plot_time, min_lat = 70., vtype = 'areas', save = False):
 
+    if(len(plot_time) == 8):
+        fmt_str = '%Y%m%d'
+    elif(len(plot_time) == 10):
+        fmt_str = '%Y%m%d%H'
+    else:
+        print("ERROR: invalid date/time format")
+        return
 
+    dt_date_str = datetime.strptime(plot_time, fmt_str)
+
+    if(plot_time == '20190811'):
+        fort_minlat = 70.
+    elif(plot_time == '20170818'):
+        fort_minlat = 80.
+
+    # Set up the figure
+    # -----------------
+    fig = plt.figure(figsize = (8,7))
+    ##!#mosaic = \
+    ##!#    """
+    ##!#    AA
+    ##!#    BC
+    ##!#    """
+    ##!#axs = fig.subplot_mosaic(mosaic)
+
+    #gs = fig.add_gridspec(nrows = 2, ncols = 2)
+    gs = gridspec.GridSpec(nrows=2, ncols=2)
+    mapcrs = ccrs.NorthPolarStereo(central_longitude = 320.)
+    ax0 = plt.subplot(gs[0,:])
+    ax1 = plt.subplot(gs[1,0])
+    ax2 = plt.subplot(gs[1,1],projection=mapcrs)
+
+    # Read the Shawn data the old way
+    # ------------------------------
+    OMI_shawn = readOMI_swath_shawn_old(plot_time, latmin = 65., resolution = 0.25)
+
+    print("OMI_shawn lat shape", OMI_shawn['LAT'].shape)
+
+    plot_OMI_shawn_old(OMI_shawn, ax = ax2, minlat = 65., labelsize = 11, \
+        labelticksize = 10)
+
+    # Read in the matching Worldview image
+    # ------------------------------------
+    base_path = '/home/bsorenson/Research/OMI/'
+    img_name = dt_date_str.strftime(base_path + 'snapshot-%Y-%m-%dT00_00_00Z.jpg') 
+    print("Looking for ",img_name)
+
+    pic = plt.imread(img_name)
+    ax1.imshow(pic)
+    ax1.axis('off')
+ 
+    # Read (and plot?) the yearly area time series
+    # --------------------------------------------
+    infile = '/home/bsorenson/Research/OMI/shawn_analysis/count_analysis/' + \
+        'omi_vsj4_areas_2005_2020_100.txt'
+    plot_OMI_fort_out_func(infile, ax = ax0, min_lat = fort_minlat, vtype = 'areas', \
+        save = False)
+
+    # Add subplot labels
+    # ------------------
+    plot_subplot_label(ax0, '(a)', backgroundcolor = 'white')
+    plot_subplot_label(ax1, '(b)', backgroundcolor = 'white')
+    plot_subplot_label(ax2, '(c)')
+
+    if(save):
+        outname = 'omi_fort_out_combined_' + plot_time + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
 

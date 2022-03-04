@@ -1070,8 +1070,10 @@ def plot_GOES_satpy(date_str, channel, ax = None, var = None, crs = None, \
     ##!#    var.y[-1], var.y[0]), vmin = vmin, vmax = vmax, origin='upper', \
     ##!#    cmap = 'Greys_r')
     #im1 = ax.imshow(var, transform = crs, vmin = vmin, vmax = vmax, \
-    im1 = ax.pcolormesh(lons, lats, var, transform = datacrs, vmin = vmin, vmax = vmax, \
-        cmap = cmap_dict[channel_dict[str(channel)]['wavelength']])
+    im1 = ax.pcolormesh(lons, lats, var, transform = datacrs, \
+        vmin = vmin, vmax = vmax, \
+        cmap = cmap_dict[channel_dict[str(channel)]['wavelength']], \
+        shading = 'auto')
     ax.add_feature(cfeature.STATES)
     if(colorbar):
         cbar = plt.colorbar(im1, ax = ax, pad = 0.03, fraction = 0.052, \
@@ -1129,12 +1131,12 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
 
     plt.close('all')
     fig1 = plt.figure(figsize = (10,6))
-    var0, crs0, lons, lats, lat_lims, lon_lims, plabel0 = read_GOES_satpy(date_str, ch1)
-    var1, crs1, lons, lats, lat_lims, lon_lims, plabel1 = read_GOES_satpy(date_str, ch2)
-    var2, crs2, lons, lats, lat_lims, lon_lims, plabel2 = read_GOES_satpy(date_str, ch3)
-    var3, crs3, lons, lats, lat_lims, lon_lims, plabel3 = read_GOES_satpy(date_str, ch4)
-    var4, crs4, lons, lats, lat_lims, lon_lims, plabel4 = read_GOES_satpy(date_str, ch5)
-    var5, crs5, lons, lats, lat_lims, lon_lims, plabel5 = read_GOES_satpy(date_str, ch6)
+    var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel0 = read_GOES_satpy(date_str, ch1)
+    var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel1 = read_GOES_satpy(date_str, ch2)
+    var2, crs2, lons2, lats2, lat_lims, lon_lims, plabel2 = read_GOES_satpy(date_str, ch3)
+    var3, crs3, lons3, lats3, lat_lims, lon_lims, plabel3 = read_GOES_satpy(date_str, ch4)
+    var4, crs4, lons4, lats4, lat_lims, lon_lims, plabel4 = read_GOES_satpy(date_str, ch5)
+    var5, crs5, lons5, lats5, lat_lims, lon_lims, plabel5 = read_GOES_satpy(date_str, ch6)
 
     ax0 = fig1.add_subplot(2,3,1, projection = crs0)
     ax1 = fig1.add_subplot(2,3,2, projection = crs1)
@@ -1148,29 +1150,29 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
     labelsize = 11
     font_size = 10
     plot_GOES_satpy(date_str, ch1, ax = ax0, var = var0, crs = crs0, \
-        lons = lons, lats = lats, lat_lims = lat_lims, lon_lims = lon_lims, vmin = None, vmax = None, \
-        ptitle = '', plabel = plabel0, colorbar = True, labelsize = labelsize + 1, \
-        zoom=True,save=False)
+        lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
+        vmin = None, vmax = None, ptitle = '', plabel = plabel0, \
+        colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
     plot_GOES_satpy(date_str, ch2, ax = ax1, var = var1, crs = crs0, \
-        lons = lons, lats = lats, lat_lims = lat_lims, lon_lims = lon_lims, vmin = None, vmax = 100., \
-        ptitle = '', plabel = plabel1, colorbar = True, labelsize = labelsize + 1, \
-        zoom=True,save=False)
+        lons = lons1, lats = lats1, lat_lims = lat_lims, lon_lims = lon_lims, \
+        vmin = None, vmax = 100., ptitle = '', plabel = plabel1, \
+        colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
     plot_GOES_satpy(date_str, ch3, ax = ax2, var = var2, crs = crs0, \
-        lons = lons, lats = lats, lat_lims = lat_lims, lon_lims = lon_lims, vmin = None, vmax = None, \
-        ptitle = '', plabel = plabel2, colorbar = True, labelsize = labelsize + 1, \
-        zoom=True,save=False)
+        lons = lons2, lats = lats2, lat_lims = lat_lims, lon_lims = lon_lims, \
+        vmin = None, vmax = None, ptitle = '', plabel = plabel2, \
+        colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
     plot_GOES_satpy(date_str, ch4, ax = ax3, var = var3, crs = crs0, \
-        lons = lons, lats = lats, lat_lims = lat_lims, lon_lims = lon_lims, vmin = None, vmax = None, \
-        ptitle = '', plabel = plabel3, colorbar = True, labelsize = labelsize, \
-        zoom=True,save=False)
+        lons = lons3, lats = lats3, lat_lims = lat_lims, lon_lims = lon_lims, \
+        vmin = None, vmax = None, ptitle = '', plabel = plabel3, \
+        colorbar = True, labelsize = labelsize, zoom=True,save=False)
     plot_GOES_satpy(date_str, ch5, ax = ax4, var = var4, crs = crs0, \
-        lons = lons, lats = lats, lat_lims = lat_lims, lon_lims = lon_lims, vmin = None, vmax = None, \
-        ptitle = '', plabel = plabel4, colorbar = True, labelsize = labelsize, \
-        zoom=True,save=False)
+        lons = lons4, lats = lats4, lat_lims = lat_lims, lon_lims = lon_lims, \
+        vmin = None, vmax = None, ptitle = '', plabel = plabel4, \
+        colorbar = True, labelsize = labelsize, zoom=True,save=False)
     plot_GOES_satpy(date_str, ch6, ax = ax5, var = var5, crs = crs0, \
-        lons = lons, lats = lats, lat_lims = lat_lims, lon_lims = lon_lims, vmin = None, vmax = None, \
-        ptitle = '', plabel = plabel5, colorbar = True, labelsize = labelsize, \
-        zoom=True,save=False)
+        lons = lons5, lats = lats5, lat_lims = lat_lims, lon_lims = lon_lims, \
+        vmin = None, vmax = None, ptitle = '', plabel = plabel5, \
+        colorbar = True, labelsize = labelsize, zoom=True,save=False)
 
     plot_figure_text(ax0, 'GOES-17 ' + \
         str(channel_dict[str(ch1)]['wavelength']) + ' μm', \
@@ -1203,73 +1205,44 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
 
-    ##!#max0 = 1.0
-    ##!#max1 = 1.0
-    ##!#max2 = 1.0 
-    ##!#max3 = 1.0 
-    ##!#max4 = 1.0 
-    ##!#max5 = 1.0 
-    ##!#min0 = 0.0
-    ##!#min1 = 0.0
-    ##!#min2 = 0.5
-    ##!#min3 = 0.6
-    ##!#min4 = 0.6
-    ##!#min5 = 0.6
-
-    ##!#v3lon, v3lat = var3.attrs['area'].get_lonlats()
-    ##!#v2data = np.squeeze(var2.values)
-    ##!#v3data = np.squeeze(var3.values)
-    ##!#v4data = np.squeeze(var4.values)
-    ##!#v5data = np.squeeze(var5.values)
-    ##!#v2data = np.ma.masked_where( ~((v3lat >= lat_lims[0] - 0.5) & (v3lat <= lat_lims[1] + 0.5) &\
-    ##!#       (v3lon >= lon_lims[0] - 1.) & (v3lon <= lon_lims[1] + 1.)), v2data)
-    ##!#v3data = np.ma.masked_where( ~((v3lat >= lat_lims[0] - 0.5) & (v3lat <= lat_lims[1] + 0.5) &\
-    ##!#       (v3lon >= lon_lims[0] - 1.) & (v3lon <= lon_lims[1] + 1.)), v3data)
-    ##!#v4data = np.ma.masked_where( ~((v3lat >= lat_lims[0] - 0.5) & (v3lat <= lat_lims[1] + 0.5) &\
-    ##!#       (v3lon >= lon_lims[0] - 1.) & (v3lon <= lon_lims[1] + 1.)), v4data)
-    ##!#v5data = np.ma.masked_where( ~((v3lat >= lat_lims[0] - 0.5) & (v3lat <= lat_lims[1] + 0.5) &\
-    ##!#       (v3lon >= lon_lims[0] - 1.) & (v3lon <= lon_lims[1] + 1.)), v5data)
-    ##!##my_area = scn[channel].attrs['area'].compute_optimal_bb_area({\
-    ##!##    'proj':'lcc', 'lon_0': lon_lims[0], 'lat_0': lat_lims[0], \
-    ##!##    'lat_1': lat_lims[0], 'lat_2': lat_lims[0]})
-
-    ##!#mesh0 = ax0.imshow(var0.data, transform = crs0, extent=(var0.x[0], var0.x[-1], \
-    ##!#    var0.y[-1], var0.y[0]), origin='upper', cmap = 'Greys_r', \
-    ##!#    vmin = min0, vmax = max0)
-    ##!#mesh1 = ax1.imshow(var1.data, transform = crs1, extent=(var1.x[0], var1.x[-1], \
-    ##!#    var1.y[-1], var1.y[0]), origin='upper', cmap = 'Greys_r', \
-    ##!#    vmin = min1, vmax = max1)
-    ##!#mesh2 = ax2.imshow(v2data, transform = crs2, extent=(var2.x[0], var2.x[-1], \
-    ##!#    var2.y[-1], var2.y[0]), origin='upper', cmap = 'Greys_r', \
-    ##!#    vmin = min2, vmax = max2)
-    ##!#mesh3 = ax3.imshow(v3data, transform = crs3, extent=(var3.x[0], var3.x[-1], \
-    ##!#    var3.y[-1], var3.y[0]), origin='upper', cmap = 'Greys_r', \
-    ##!#    vmin = min3, vmax = max3)
-    ##!#mesh4 = ax4.imshow(v4data, transform = crs4, extent=(var4.x[0], var4.x[-1], \
-    ##!#    var4.y[-1], var4.y[0]), origin='upper', cmap = 'Greys_r', \
-    ##!#    vmin = min4, vmax = max4)
-    ##!#mesh5 = ax5.imshow(v5data, transform = crs5, extent=(var5.x[0], var5.x[-1], \
-    ##!#    var5.y[-1], var5.y[0]), origin='upper', cmap = 'Greys_r', \
-    ##!#    vmin = min5, vmax = max5)
-    ##!#cbar0 = plt.colorbar(mesh0,ax=ax0,orientation='vertical',\
-    ##!#    pad=0.03, shrink = 0.67)
-    ##!#cbar1 = plt.colorbar(mesh1,ax=ax1,orientation='vertical',\
-    ##!#    pad=0.03, shrink = 0.67)
-    ##!#cbar2 = plt.colorbar(mesh2,ax=ax2,orientation='vertical',\
-    ##!#    pad=0.03, shrink = 0.67)
-    ##!#cbar3 = plt.colorbar(mesh3,ax=ax3,orientation='vertical',\
-    ##!#    pad=0.03, shrink = 0.67)
-    ##!#cbar4 = plt.colorbar(mesh4,ax=ax4,orientation='vertical',\
-    ##!#    pad=0.03, shrink = 0.67)
-    ##!#cbar5 = plt.colorbar(mesh5,ax=ax5,orientation='vertical',\
-    ##!#    pad=0.03, shrink = 0.67)
-
     plot_subplot_label(ax0,  '(a)', backgroundcolor = 'white', fontsize = font_size)
     plot_subplot_label(ax1,  '(b)', backgroundcolor = 'white', fontsize = font_size)
     plot_subplot_label(ax2,  '(c)', backgroundcolor = 'white', fontsize = font_size)
     plot_subplot_label(ax3,  '(d)', backgroundcolor = 'white', fontsize = font_size)
     plot_subplot_label(ax4,  '(e)', backgroundcolor = 'white', fontsize = font_size)
     plot_subplot_label(ax5,  '(f)', backgroundcolor = 'white', fontsize = font_size)
+
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+    #
+    # Extract the WV values in each position
+    #
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+   
+    # "Cold" values
+    # -------------
+    lon_stn = -120.3877
+    lat_stn = 41.2456
+    c_idx = nearest_gridpoint(lat_stn, lon_stn,\
+        lats3, lons3)
+    # "Warm" values
+    # -------------
+    w_lon_stn = -120.9810
+    w_lat_stn = 40.50900
+    w_idx = nearest_gridpoint(w_lat_stn, w_lon_stn,\
+        lats3, lons3)
+
+    print("Upper WV")
+    print("     Cold - ", np.array(var3)[c_idx])
+    print("     Warm - ", np.array(var3)[w_idx])
+    print("Mid   WV")
+    print("     Cold - ", np.array(var4)[c_idx])
+    print("     Warm - ", np.array(var4)[w_idx])
+    print("Lower WV")
+    print("     Cold - ", np.array(var5)[c_idx])
+    print("     Warm - ", np.array(var5)[w_idx])
+
+    lon_stn = -120.7605
+    lat_stn = 41.2098
 
     # Zoom in the figure if desired
     # -----------------------------
@@ -1289,48 +1262,6 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
         zoom_add = '_zoom'
     else:
         zoom_add = ''
-
-    ##!#ax0.coastlines(resolution = '50m')
-    ##!#ax0.add_feature(cfeature.STATES)
-    ##!#ax0.add_feature(cfeature.BORDERS)
-    ##!#ax0.set_title('GOES-17 Band ' + str(ch1) + '\n' + \
-    ##!#    channel_dict[str(ch1)]['name'] + '\n' + \
-    ##!#    dt_date_str.strftime('%Y-%m-%d %H:%M'))
-
-    ##!#ax1.coastlines(resolution = '50m')
-    ##!#ax1.add_feature(cfeature.STATES)
-    ##!#ax1.add_feature(cfeature.BORDERS)
-    ##!#ax1.set_title('GOES-17 Band ' + str(ch2) + '\n' + \
-    ##!#    channel_dict[str(ch2)]['name'] + '\n' + \
-    ##!#    dt_date_str.strftime('%Y-%m-%d %H:%M'))
-
-    ##!#ax2.coastlines(resolution = '50m')
-    ##!#ax2.add_feature(cfeature.STATES)
-    ##!#ax2.add_feature(cfeature.BORDERS)
-    ##!#ax2.set_title('GOES-17 Band ' + str(ch3) + '\n' + \
-    ##!#    channel_dict[str(ch3)]['name'] + '\n' + \
-    ##!#    dt_date_str.strftime('%Y-%m-%d %H:%M'))
-
-    ##!#ax3.coastlines(resolution = '50m')
-    ##!#ax3.add_feature(cfeature.STATES)
-    ##!#ax3.add_feature(cfeature.BORDERS)
-    ##!#ax3.set_title('GOES-17 Band ' + str(ch4) + '\n' + \
-    ##!#    channel_dict[str(ch4)]['name'] + '\n' + \
-    ##!#    dt_date_str.strftime('%Y-%m-%d %H:%M'))
-
-    ##!#ax4.coastlines(resolution = '50m')
-    ##!#ax4.add_feature(cfeature.STATES)
-    ##!#ax4.add_feature(cfeature.BORDERS)
-    ##!#ax4.set_title('GOES-17 Band ' + str(ch5) + '\n' + \
-    ##!#    channel_dict[str(ch5)]['name'] + '\n' + \
-    ##!#    dt_date_str.strftime('%Y-%m-%d %H:%M'))
-
-    ##!#ax5.coastlines(resolution = '50m')
-    ##!#ax5.add_feature(cfeature.STATES)
-    ##!#ax5.add_feature(cfeature.BORDERS)
-    ##!#ax5.set_title('GOES-17 Band ' + str(ch6) + '\n' + \
-    ##!#    channel_dict[str(ch6)]['name'] + '\n' + \
-    ##!#    dt_date_str.strftime('%Y-%m-%d %H:%M'))
 
     fig1.tight_layout()
 
