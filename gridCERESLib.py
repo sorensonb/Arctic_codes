@@ -335,7 +335,8 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     if(satellite == 'Terra'):
         base_path = '/home/bsorenson/data/CERES/SSF_Level2/Terra/'
     else:
-        base_path = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/modis_comp/'
+        base_path = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/'
+        #base_path = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/modis_comp/'
     total_list = sorted(glob.glob(base_path+'CERES_SSF_*.nc'))
 
     # Convert the desired dt to a datetime object to use for finding the file
@@ -378,6 +379,9 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
             print("Found matching file",tfile)
             good_list.append(tfile)
             #work_file = tfile
+    if(len(good_list) == 0):
+        print("ERROR: could not find matching files. Returning")
+        return -1
 
     #total_list = [base_path+'CERES_SSF_Aqua-XTRK_Edition4A_Subset_2008042200-2008042223.nc']
     #total_list = subprocess.check_output('ls '+base_path+'CERES_SSF_Aqua-XTRK_Edition4A_Subset_'+year+date+'*.nc',\
@@ -2339,9 +2343,9 @@ def plot_compare_OMI_CERES_hrly(OMI_date,CERES_date,minlat=65,max_AI = -200.,\
 
 #def plot_compare_OMI_CERES_hrly_grid(OMI_date,CERES_date,minlat=65,max_AI = -200.,\
 def plot_compare_OMI_CERES_hrly_grid(date_str,minlat=65,max_AI = -200.,\
-        omi_dtype = 'control', only_sea_ice = False, only_ice = False, \
-        no_ice = False,  skiprows = None, save=False, composite = False, \
-        zoom = False, lat_circles = None):
+        omi_dtype = 'control', ceres_dtype = 'swf', only_sea_ice = False, \
+        only_ice = False, no_ice = False,  skiprows = None, save=False, \
+        composite = False, zoom = False, lat_circles = None):
 #def plot_compare_OMI_CERES_hrly(OMI_hrly,CERES_hrly,minlat=65,save=False):
 
     if('/home/bsorenson/Research/OMI' not in sys.path):
@@ -2398,6 +2402,11 @@ def plot_compare_OMI_CERES_hrly_grid(date_str,minlat=65,max_AI = -200.,\
             skiprows = skiprows)
 
     CERES_hrly = readgridCERES_hrly_grid(CERES_date, 'SWF', minlat = 55.)
+    print(CERES_hrly.keys())
+    if(CERES_hrly == -1):
+        print("ERROR: invalid value returned from readgridCERES_hrly_grid")
+        print("returning")
+        return
 
     ##!## Read the true color data
     ##!## ------------------------
@@ -2445,10 +2454,10 @@ def plot_compare_OMI_CERES_hrly_grid(date_str,minlat=65,max_AI = -200.,\
                                                 (OMI_base['LON'] >= lon_lims[0]) & \
                                                 (OMI_base['LON'] <  lon_lims[1])), OMI_base['UVAI'])
         #OMI_base['UVAI'] = np.ma.masked_where(OMI_base['UVAI'] > 1, OMI_base['UVAI'])
-        CERES_hrly['data'] = np.ma.masked_where(~((CERES_hrly['lat'] >= lat_lims[0]) & \
+        CERES_hrly[ceres_dtype] = np.ma.masked_where(~((CERES_hrly['lat'] >= lat_lims[0]) & \
                                                   (CERES_hrly['lat'] <  lat_lims[1]) & \
                                                   (CERES_hrly['lon'] >= lon_lims[0]) & \
-                                                  (CERES_hrly['lon'] <  lon_lims[1])), CERES_hrly['data'])
+                                                  (CERES_hrly['lon'] <  lon_lims[1])), CERES_hrly[ceres_dtype])
 
     # Extract OMI and CERES values at a desired point
     # -----------------------------------------------
@@ -2458,7 +2467,7 @@ def plot_compare_OMI_CERES_hrly_grid(date_str,minlat=65,max_AI = -200.,\
         CERES_hrly['lat'], CERES_hrly['lon'])
     if(len(c_idx[0]) > 1):
         c_idx = (np.array([c_idx[0][0]])), (np.array([c_idx[1][0]]))
-    tflux = CERES_hrly['data'][c_idx]
+    tflux = CERES_hrly[ceres_dtype][c_idx]
     tfluxlat = CERES_hrly['lat'][c_idx]
     tfluxlon = CERES_hrly['lon'][c_idx]
 
@@ -2508,7 +2517,7 @@ def plot_compare_OMI_CERES_hrly_grid(date_str,minlat=65,max_AI = -200.,\
 
     # Use the single-swath plotting function to plot CERES data
     # ---------------------------------------------------------
-    plotCERES_hrly(ax1, CERES_hrly, minlat = minlat, \
+    plotCERES_hrly(ax1, CERES_hrly, 'swf', minlat = minlat, \
         vmin = None, vmax = None, title = '', label = '', \
         circle_bound = circle_bound, gridlines = False, grid_data = True)
 
@@ -2607,7 +2616,7 @@ def plot_compare_OMI_CERES_hrly_grid(date_str,minlat=65,max_AI = -200.,\
 
         if(len(o_idx[0]) > 1):
             o_idx = (np.array([o_idx[0][0]])), (np.array([o_idx[1][0]]))
-        ceres_match_flux[ii] = CERES_hrly['data'][o_idx]
+        ceres_match_flux[ii] = CERES_hrly[ceres_dtype][o_idx]
         ceres_match_lat[ii] = CERES_hrly['lat'][o_idx] 
         ceres_match_lon[ii] = CERES_hrly['lon'][o_idx] 
         ceres_match_vza[ii] = CERES_hrly['vza'][o_idx] 
