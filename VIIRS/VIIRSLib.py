@@ -390,7 +390,7 @@ def plot_VIIRS_figure(filename, band = 'M12', ax = None, show_smoke = False, \
         ax.set_extent([-122.0,-119.5,39.5,42.0],\
                        ccrs.PlateCarree())
        
-    ax.set_title(ptitle)
+    ax.set_title(ptitle, weight = 'bold')
  
     ax.coastlines()
     ax.add_feature(cfeature.BORDERS)
@@ -528,33 +528,36 @@ def plot_VIIRS_sixpanel(save = False):
 
     # Read the VIIRS data for each time
     # ---------------------------------
-    filename_n0722_dnb = glob('/home/bsorenson/data/VIIRS/DNB/VNP02DNB.A2021203.1000*.nc')
-    filename_n0722_dat = glob('/home/bsorenson/data/VIIRS/DNB/VNP02MOD.A2021203.1000*.nc')
+    #filename_n0722_dnb = glob('/home/bsorenson/data/VIIRS/DNB/VNP02DNB.A2021203.1000*.nc')
+    #filename_n0722_dat = glob('/home/bsorenson/data/VIIRS/DNB/VNP02MOD.A2021203.1000*.nc')
+    #filename_n0722_dnb = glob('/home/bsorenson/data/VIIRS/DNB/VNP02DNB.A2021203.1000*.nc')
+    #filename_n0722_dat = glob('/home/bsorenson/data/VIIRS/DNB/VNP02MOD.A2021203.1000*.nc')
     filename_d0722_dat = glob('/home/bsorenson/data/VIIRS/DNB/VNP02MOD.A2021203.2124*.nc')
     filename_n0723_dnb = glob('/home/bsorenson/data/VIIRS/DNB/VNP02DNB.A2021204.0942*.nc')
     filename_n0723_dat = glob('/home/bsorenson/data/VIIRS/DNB/VNP02MOD.A2021204.0942*.nc')
+    filename_d0723_dat = glob('/home/bsorenson/data/VIIRS/DNB/VNP02MOD.A2021204.2100*.nc')
 
-    namesplit = filename_n0722_dat[0].split('/')[-1].split('.')
-    date1 = datetime.strptime('.'.join(namesplit[1:3])[1:], '%Y%j.%H%M')
     namesplit = filename_d0722_dat[0].split('/')[-1].split('.')
+    date1 = datetime.strptime('.'.join(namesplit[1:3])[1:], '%Y%j.%H%M')
+    namesplit = filename_n0723_dat[0].split('/')[-1].split('.')
     date2 = datetime.strptime('.'.join(namesplit[1:3])[1:], '%Y%j.%H%M')
-    namesplit = filename_n0723_dnb[0].split('/')[-1].split('.')
+    namesplit = filename_d0723_dat[0].split('/')[-1].split('.')
     date3 = datetime.strptime('.'.join(namesplit[1:3])[1:], '%Y%j.%H%M')
 
     print(date1.strftime('%Y-%m-%d %H:%M'))
     print(date2.strftime('%Y-%m-%d %H:%M'))
     print(date3.strftime('%Y-%m-%d %H:%M'))
 
-    plot_VIIRS_figure(filename_n0722_dnb, band = 'DNB', ax = ax1, vmax = 6,\
+    plot_VIIRS_figure(filename_d0722_dat, band = 'M05', ax = ax1, \
         ptitle = date1.strftime('%Y-%m-%d %H:%M'), zoom = True)
-    plot_VIIRS_figure(filename_d0722_dat, band = 'M05', ax = ax2, \
+    plot_VIIRS_figure(filename_n0723_dnb, band = 'DNB', ax = ax2, \
         ptitle = date2.strftime('%Y-%m-%d %H:%M'), zoom = True)
-    plot_VIIRS_figure(filename_n0723_dnb, band = 'DNB', ax = ax3, \
+    plot_VIIRS_figure(filename_d0723_dat, band = 'M05', ax = ax3,\
         ptitle = date3.strftime('%Y-%m-%d %H:%M'), zoom = True)
 
-    plot_VIIRS_figure(filename_n0722_dat, band = 'M15', ax = ax4, zoom = True)
-    plot_VIIRS_figure(filename_d0722_dat, band = 'M15', ax = ax5, zoom = True)
-    plot_VIIRS_figure(filename_n0723_dat, band = 'M15', ax = ax6, zoom = True)
+    plot_VIIRS_figure(filename_d0722_dat, band = 'M15', ax = ax4, zoom = True)
+    plot_VIIRS_figure(filename_n0723_dat, band = 'M15', ax = ax5, zoom = True)
+    plot_VIIRS_figure(filename_d0723_dat, band = 'M15', ax = ax6, zoom = True)
 
     plot_subplot_label(ax1, '(a)', backgroundcolor = 'white')
     plot_subplot_label(ax2, '(b)', backgroundcolor = 'white')
@@ -563,11 +566,11 @@ def plot_VIIRS_sixpanel(save = False):
     plot_subplot_label(ax5, '(e)', backgroundcolor = 'white')
     plot_subplot_label(ax6, '(f)', backgroundcolor = 'white')
 
-    plot_figure_text(ax1, 'VIIRS DNB', xval = None, yval = None, transform = None, \
+    plot_figure_text(ax1, 'VIIRS 0.64 μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax2, 'VIIRS 0.64 μm', xval = None, yval = None, transform = None, \
+    plot_figure_text(ax2, 'VIIRS DNB', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax3, 'VIIRS DNB', xval = None, yval = None, transform = None, \
+    plot_figure_text(ax3, 'VIIRS 0.64 μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
     plot_figure_text(ax4, 'VIIRS 10.76 μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
@@ -579,7 +582,7 @@ def plot_VIIRS_sixpanel(save = False):
     fig.tight_layout()
 
     if(save):
-        outname = 'viirs_sixpanel_' + date_str + '.png'
+        outname = 'viirs_sixpanel_' + date_str + '_v2.png'
         plt.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else: 

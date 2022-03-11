@@ -15,16 +15,17 @@ channel1 = 1
 channel2 = 5
 channel3 = 31
 
+#plot_MODIS_VIIRS_SBDART(save=True, composite = True, calc_radiance = True)
 #plot_spatial_scatter_wAI(date_str, zoom=True,save=True,composite=True,\
 #    avg_pixel=True,plume_only=False)
 #plot_combined_scatter(date_str,channel0 = 31, channel1 = 1, channel2 = 5,\
 #        zoom=True,save=False,composite=True,avg_pixel=True,plume_only=False)
-plot_spatial_scatter(date_str, zoom = True, save = True, composite = True,\
-    avg_pixel = True, plume_only = False)
+#plot_spatial_scatter(date_str, zoom = True, save = True, composite = True,\
+#    avg_pixel = True, plume_only = False)
 
 
-#plot_combined_figure1_v3(date_str = '202107222110', zoom = True, show_smoke = True, composite = True, \
-#        save=True)
+plot_combined_figure1_v3(date_str = '202107222110', zoom = True, show_smoke = True, composite = True, \
+        save=False)
 #plot_MODIS_GOES_SBDART(save=True, composite = True, calc_radiance = True)
 #plot_combined_figure1_v2(date_str = '202107202125', zoom = True, show_smoke = False, composite = True, \
 #    save=True)

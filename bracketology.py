@@ -104,7 +104,7 @@ def main(round64_teams,round64_odds,round32_odds,sweet16_odds,elite8_odds,\
     print(str(win_seed) + ' ' +winner[0]+ ' wins the national championship')
 
     stop_point = False
-    if(cind_name in final4_teams):
+    if(cind_name in elite8_teams):
         stop_point = True
 
     return(win_seed, stop_point)
