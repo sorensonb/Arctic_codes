@@ -11,10 +11,14 @@ import os
 import glob
 import matplotlib.pyplot as plt
 import sys
+import metpy.calc as mpcalc
+from metpy.units import units
+import scipy
 
 h_const = 6.626e-34 #J*s
 k_const = 1.3806e-23 #J/K
 c_const = 3e8 # m/s
+sb_path = '/home/bsorenson/Research/SBDART/'
 
 # wavel in microns
 # radiance in (W/(m2*μm*Sr))
@@ -32,11 +36,95 @@ def radiance(wavelength,tmp):
             (wavelength*k_const*tmp)) - 1.))) * \
            1e-6
 
-def run_sbdart(satellite, calc_radiance, run = True):
-    sb_path = '/home/bsorenson/Research/SBDART/'
-    infile = sb_path + 'src/atms_orig.dat'
+# Reads the SBDART model profile. If infile is '', the default
+# profile will be used. If not, a model profile from 
+# /home/bsorenson/Research/SBDART/model/ and reformats into the 
+# right format.
+def read_atmos_profile(infile = ''):
+    atms_file = sb_path + 'src/atms_orig.dat'
+    temp_data = pd.read_csv(atms_file,skiprows = 0, names = \
+        ['z','p','t','wv','o2'], delim_whitespace = True)
+    temp_data = temp_data[1:]
 
-  
+    if(infile == ''):
+        data = temp_data
+        ##!#infile = sb_path + 'src/atms_orig.dat'
+        ##!#data = pd.read_csv(infile,skiprows = 0, names = \
+        ##!#    ['z','p','t','wv','o2'], delim_whitespace = True)
+    else:
+        # Read the file lines with readlines
+        # ----------------------------------
+        print('Reading atmosphere from ', infile)
+        with open(infile,'r') as fin:
+            flines = fin.readlines()
+        np_lines = np.array(flines)
+
+        # Find where each of the data columns starts
+        # ------------------------------------------
+        starters = np.array([tline.startswith('Hmsl') for tline in flines])
+        s_idx    = np.where(starters == True)[0] + 2
+
+        # To account for the extra surface line at the beginning
+        # of the profile, add one to this line
+        s_idx[0] += 1
+
+        # Find where each of the data columns ends
+        # ----------------------------------------
+        enders = np.array([tline.startswith(' ==') for tline in flines])
+        e_idx  = np.where(enders == True)[0][2:] - 1
+        e_idx = np.append(e_idx[:], len(flines))
+
+        # Extract all the variables         
+        # -------------------------
+        hgt_z = np.array([float(tline.strip().split()[0])\
+            for tline in np_lines[s_idx[0]:e_idx[0]]])      
+        tmp_c = np.array([float(tline.strip().split()[1])\
+            for tline in np_lines[s_idx[0]:e_idx[0]]])      
+        rhum  = np.array([float(tline.strip().split()[1])\
+            for tline in np_lines[s_idx[1]:e_idx[1]]])      
+        wdir  = np.array([float(tline.strip().split()[1])\
+            for tline in np_lines[s_idx[2]:e_idx[2]]])      
+        wspd  = np.array([float(tline.strip().split()[1])\
+            for tline in np_lines[s_idx[3]:e_idx[3]]])      
+
+        # Convert the heights to pressure using the standard
+        # atmosphere
+        # --------------------------------------------------
+        p_std = np.array(mpcalc.height_to_pressure_std(hgt_z * \
+            units('m')))
+
+        # Interpolate the ozone values from the default profile
+        # to match the new pressures here
+        # -----------------------------------------------------
+        def_o2 = pd.to_numeric(temp_data['o2']).values
+        def_p  = pd.to_numeric(temp_data['p']).values
+
+        o2_interp1d = scipy.interpolate.interp1d(def_p, def_o2,\
+            kind = 'linear')
+        new_o2 = o2_interp1d(p_std) 
+
+        # Calculate absolute humidity from the other variables
+        # ----------------------------------------------------
+        mixing_ratio = mpcalc.mixing_ratio_from_relative_humidity(\
+            p_std * units('mbar'), tmp_c * units('degC'), \
+            rhum / 100.)
+        vap_press = mpcalc.vapor_pressure(p_std * units('mbar'),\
+            mixing_ratio)
+        abs_hum = (np.array(vap_press.to('Pa')) / \
+            (461.5 * (tmp_c + 273.15))) * 1e3
+
+        # Insert the wanted variables into a pandas dataframe
+        # ---------------------------------------------------
+        data = pd.DataFrame()
+        data['z'] = hgt_z / 1e3
+        data['p'] = p_std
+        data['t'] = tmp_c + 273.15
+        data['wv'] = abs_hum
+        data['o2'] = new_o2
+
+    return data 
+
+def run_sbdart(satellite, calc_radiance, run = True, atms_file = ''):
     if(calc_radiance):
         file_adder = '_rad.dat'
     else:
@@ -109,8 +197,11 @@ def run_sbdart(satellite, calc_radiance, run = True):
         
         # Read the atmos file
         # -------------------
-        data = pd.read_csv(infile,skiprows = 0, names = \
-            ['z','p','t','wv','o2'], delim_whitespace = True)
+        # NOTE: If reading in a model profile for the atmosphere, 
+        #       read it in here.
+        data = read_atmos_profile(infile = atms_file)
+        ##!#data = pd.read_csv(infile,skiprows = 0, names = \
+        ##!#    ['z','p','t','wv','o2'], delim_whitespace = True)
         
         multipliers = np.array([1.0, 2.0, 3.0, 3.5])
         #multipliers = np.arange(0.1,2.1,0.1)

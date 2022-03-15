@@ -128,30 +128,30 @@ championship_odds = np.array([0.157,0.036,0.029,0.007,0.001,0.007,0.007,0.007,0.
 temp_odds = random.random()*10.
 #play_in1_16 = 1
 if(temp_odds>5):
-    winner_1 = 'NC State'
+    winner_1 = 'Notre Dame'
 else:
-    winner_1 = 'North Dakota State'
+    winner_1 = 'Rutgers'
 print(winner_1+' wins the first play-in game')
 #play_in2_11 = 10
 temp_odds = random.random()*10.
 if(temp_odds>5):
-    winner_2 = 'Belmont'
+    winner_2 = 'Wyoming'
 else:
-    winner_2 = 'Temple'
+    winner_2 = 'Indiana'
 print(winner_2+' wins the second play-in game')
 #play_in3_16 = 18
 temp_odds = random.random()*10.
 if(temp_odds>5):
-    winner_3 = 'Fairleigh Dickinson'
+    winner_3 = 'Wright St.'
 else:
-    winner_3 = 'Prarie View A&M'
+    winner_3 = 'Bryant'
 print(winner_3+' wins the third play-in game')
 #play_in4_11 = 26
 temp_odds = random.random()*10.
 if(temp_odds>5):
-    winner_4 = 'Arizona State'
+    winner_4 = 'Texas Southern'
 else:
-    winner_4 = 'Saint John\'s'
+    winner_4 = 'Texas A&M - CC'
 print(winner_4+' wins the fourth play-in game\n\n')
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -160,73 +160,73 @@ print(winner_4+' wins the fourth play-in game\n\n')
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 seeds = dict()
-seeds['Duke'] = 1
-seeds[winner_1] = 16
-seeds['VCU'] = 8
-seeds['UCF'] = 9
-seeds['Miss. State'] = 5
-seeds['Liberty'] = 12
-seeds['Virginia Tech'] = 4
-seeds['Saint Louis'] = 13
-seeds['Maryland'] = 6
-seeds[winner_2] = 11
-seeds['LSU'] = 3
-seeds['Yale'] = 14
-seeds['Louisville'] = 7
-seeds['Minnesota'] = 10
-seeds['Michigan State'] = 2
-seeds['Bradley'] = 15
-
 seeds['Gonzaga'] = 1
-seeds[winner_3] = 16 # NC Central / Texas Southern
-seeds['Syracuse'] = 8
-seeds['Baylor'] = 9
-seeds['Marquette'] = 5
-seeds['Murray State'] = 12
-seeds['Florida State'] = 4
+seeds['Georgia St.'] = 16
+seeds['Boise St.'] = 8
+seeds['Memphis'] = 9
+seeds['UConn'] = 5
+seeds['New Mexico St.'] = 12
+seeds['Arkansas'] = 4
 seeds['Vermont'] = 13
-seeds['Buffalo'] = 6
-seeds[winner_4] = 11
+seeds['Alabama'] = 6
+seeds[winner_1] = 11
 seeds['Texas Tech'] = 3
-seeds['N. Kentucky'] = 14
-seeds['Nevada'] = 7
-seeds['Florida'] = 10
-seeds['Michigan'] = 2
-seeds['Montana'] = 15
+seeds['Montana St.'] = 14
+seeds['Michigan St.'] = 7
+seeds['Minnesota'] = 10
+seeds['Duke'] = 2
+seeds['CS Fullerton'] = 15
 
-seeds['Virginia'] = 1
-seeds['Gardner-Webb'] = 16
-seeds['Ole Miss'] = 8
-seeds['Oklahoma'] = 9
-seeds['Wisconsin'] = 5
-seeds['Oregon'] = 12
-seeds['Kansas State'] = 4
-seeds['UC Irvine'] = 13
-seeds['Villanova'] = 6
-seeds['Saint Mary\'s'] = 11
+seeds['Baylor'] = 1
+seeds['Norfolk St.'] = 16 # NC Central / Texas Southern
+seeds['North Carolina'] = 8
+seeds['Marquette'] = 9
+seeds['Saint Mary\'s'] = 5
+seeds[winner_2] = 12
+seeds['UCLA'] = 4
+seeds['Akron'] = 13
+seeds['Texas'] = 6
+seeds['Virginia Tech'] = 11
 seeds['Purdue'] = 3
-seeds['Old Dominion'] = 14
-seeds['Cincinnati'] = 7
-seeds['Iowa'] = 10
-seeds['Tennessee'] = 2
-seeds['Colgate'] = 15
-
-seeds['North Carolina'] = 1
-seeds['Iona'] = 16
-seeds['Utah State'] = 8
-seeds['Washington'] = 9
-seeds['Auburn'] = 5
-seeds['New Mexico State'] = 12
-seeds['Kansas'] = 4
-seeds['Northeastern'] = 13
-seeds['Iowa State'] = 6
-seeds['Ohio State'] = 11
-seeds['Houston'] = 3
-seeds['Georgia State'] = 14
-seeds['Wofford'] = 7
-seeds['Seton Hall'] = 10
+seeds['Yale'] = 14
+seeds['Murray St.'] = 7
+seeds['San Francisco'] = 10
 seeds['Kentucky'] = 2
-seeds['Abilene Christian'] = 15
+seeds['Saint Peter\'s'] = 15
+
+seeds['Arizona'] = 1
+seeds[winner_3] = 16
+seeds['Seton Hall'] = 8
+seeds['TCU'] = 9
+seeds['Houston'] = 5
+seeds['UAB'] = 12
+seeds['Illinois'] = 4
+seeds['Chattanooga'] = 13
+seeds['Colorado St.'] = 6
+seeds['Michigan'] = 11
+seeds['Tennessee'] = 3
+seeds['Longwood'] = 14
+seeds['Ohio St.'] = 7
+seeds['Loyola Chicago'] = 10
+seeds['VIllanova'] = 2
+seeds['Delaware'] = 15
+
+seeds['Kansas'] = 1
+seeds[winner_4] = 16
+seeds['San Diego State'] = 8
+seeds['Creighton'] = 9
+seeds['Iowa'] = 5
+seeds['Richmond'] = 12
+seeds['Providence'] = 4
+seeds['South Dakota State'] = 13
+seeds['LSU'] = 6
+seeds['Iowa State'] = 11
+seeds['Wisconsin'] = 3
+seeds['Colgate'] = 14
+seeds['USC'] = 7
+seeds['Miami (FL)'] = 10
+seeds['Auburn'] = 2
+seeds['Jacksonville St.'] = 15
 
 round64_teams = list(seeds.keys())
 

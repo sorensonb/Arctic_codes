@@ -4562,10 +4562,10 @@ def plot_MODIS_GOES_SBDART(save=False, composite = True, calc_radiance = True):
 
     # Run SBDART for the different channel
     # ------------------------------------
-    modis31     = run_sbdart('modis_ch31', calc_radiance, run = True)
-    goes17_ch08 = run_sbdart('goes17_ch08', calc_radiance, run = True)
-    goes17_ch09 = run_sbdart('goes17_ch09', calc_radiance, run = True)
-    goes17_ch10 = run_sbdart('goes17_ch10', calc_radiance, run = True)
+    modis31     = run_sbdart('modis_ch31',  calc_radiance, run = True, atms_file = '/home/bsorenson/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt')
+    goes17_ch08 = run_sbdart('goes17_ch08', calc_radiance, run = True, atms_file = '/home/bsorenson/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt')
+    goes17_ch09 = run_sbdart('goes17_ch09', calc_radiance, run = True, atms_file = '/home/bsorenson/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt')
+    goes17_ch10 = run_sbdart('goes17_ch10', calc_radiance, run = True, atms_file = '/home/bsorenson/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt')
 
     # Set up the figure
     # -----------------
@@ -6967,7 +6967,7 @@ def plot_combined_figure1_v3(date_str = '202107222110', zoom = True, show_smoke 
     # ---------------------------------------------------------------------
     MODIS_data_ch1  = read_MODIS_channel(date_str, 1, zoom = zoom)
     MODIS_data_ch7  = read_MODIS_channel(date_str, 7, zoom = zoom)
-    MODIS_data_ch31 = read_MODIS_channel(date_str, 'wv_ir', zoom = zoom)
+    MODIS_data_ch31 = read_MODIS_channel(date_str, 31, zoom = zoom)
 
     # Determine where the smoke is located
     # ------------------------------------
@@ -7016,11 +7016,11 @@ def plot_combined_figure1_v3(date_str = '202107222110', zoom = True, show_smoke 
     var1, crs1, lat_lims1, lon_lims1 = read_true_color(date_str,\
         composite=composite)
 
-    ##!## Read the GOES data
-    ##!## ------------------------
-    ##!#var2, crs0, lons, lats, lat_lims2, lon_lims2, plabel = read_GOES_satpy(date_str, 8)
-    ##!#var3, crs0, lons, lats, lat_lims0, lon_lims0, plabel = read_GOES_satpy(date_str, 9)
-    ##!#var4, crs0, lons, lats, lat_lims0, lon_lims0, plabel = read_GOES_satpy(date_str, 10)
+    # Read the GOES data
+    # ------------------------
+    var2, crs0, lons, lats, lat_lims2, lon_lims2, plabel2 = read_GOES_satpy(date_str, 8)
+    var3, crs0, lons, lats, lat_lims0, lon_lims0, plabel3 = read_GOES_satpy(date_str, 9)
+    var4, crs0, lons, lats, lat_lims0, lon_lims0, plabel4 = read_GOES_satpy(date_str, 10)
 
     # ----------------------------------------------------------------------
     #
@@ -7030,17 +7030,17 @@ def plot_combined_figure1_v3(date_str = '202107222110', zoom = True, show_smoke 
 
     mapcrs = init_proj(date_str)
     plt.close('all')
-    fig = plt.figure(figsize=(11,7))
+    fig = plt.figure(figsize=(9,9))
     #gs = fig.add_gridspec(nrows = 2, ncols = 8)
-    ax1  = fig.add_subplot(2,3,1,  projection = crs1)   # true color    
-    ax2  = fig.add_subplot(2,3,2,  projection = mapcrs) # Ch 1
-    ax3  = fig.add_subplot(2,3,3,  projection = mapcrs) # Ch 7
-    ax4  = fig.add_subplot(2,3,4,  projection = mapcrs) # Ch 31
-    ax5  = fig.add_subplot(2,3,5)                       # IR vs VIS
-    ax6  = fig.add_subplot(2,3,6)                       # IR vs SWIR
-    ##!#ax7  = fig.add_subplot(3,3,7,  projection = crs0) # Ch 1
-    ##!#ax8  = fig.add_subplot(3,3,8,  projection = crs0) # Ch 7
-    ##!#ax9  = fig.add_subplot(3,3,9,  projection = crs0) # Ch 31
+    ax1  = fig.add_subplot(3,3,1,  projection = crs1)   # true color    
+    ax2  = fig.add_subplot(3,3,2,  projection = mapcrs) # Ch 1
+    ax3  = fig.add_subplot(3,3,3,  projection = mapcrs) # Ch 7
+    ax4  = fig.add_subplot(3,3,4,  projection = mapcrs) # Ch 31
+    ax5  = fig.add_subplot(3,3,5)                       # IR vs VIS
+    ax6  = fig.add_subplot(3,3,6)                       # IR vs SWIR
+    ax7  = fig.add_subplot(3,3,7,  projection = crs0) # Ch 1
+    ax8  = fig.add_subplot(3,3,8,  projection = crs0) # Ch 7
+    ax9  = fig.add_subplot(3,3,9,  projection = crs0) # Ch 31
     ##!#ax1  = fig.add_subplot(gs[0:2,0:2],projection = crs1)   # true color    
     ##!#ax2  = fig.add_subplot(gs[0,2:4],  projection = mapcrs) # Ch 1
     ##!#ax3  = fig.add_subplot(gs[0,4:6],  projection = mapcrs) # Ch 7
@@ -7083,29 +7083,33 @@ def plot_combined_figure1_v3(date_str = '202107222110', zoom = True, show_smoke 
             hash_data1, hatch = '\\\\', alpha=0., transform = datacrs,\
             cmap = 'plasma')
 
-    ##!## Plot the scatter data
-    ##!## ---------------------
-    ##!#plot_scatter(ax5, tmp_data31, tmp_data1, MODIS_data_ch31, MODIS_data_ch1, \
-    ##!#    hash_data, xlabel = '11 μm brightness temperature', \
-    ##!#    ylabel = '0.64 μm reflectance', plot_legend = True)
-    ##!#plot_scatter(ax6, tmp_data31, tmp_data7, MODIS_data_ch31, MODIS_data_ch7, \
-    ##!#    hash_data, xlabel = '11 μm brightness temperature', \
-    ##!#    ylabel = '2.1 μm reflectance', plot_legend = True)
+    # Plot the scatter data
+    # ---------------------
+    plot_scatter(ax5, tmp_data31, tmp_data1, MODIS_data_ch31, MODIS_data_ch1, \
+        hash_data, xlabel = '11 μm brightness temperature', \
+        ylabel = '0.64 μm reflectance', plot_legend = True)
+    plot_scatter(ax6, tmp_data31, tmp_data7, MODIS_data_ch31, MODIS_data_ch7, \
+        hash_data, xlabel = '11 μm brightness temperature', \
+        ylabel = '2.1 μm reflectance', plot_legend = True)
 
-    ##!## Plot channel 1, 5, 31, and WV data spatial data
-    ##!## -----------------------------------------------
-    ##!#plot_GOES_satpy(date_str, 8, ax = ax9, var = var2, crs = crs0, \
-    ##!#    lat_lims = lat_lims2, lon_lims = lon_lims2, vmin = None, vmax = None, \
-    ##!#    ptitle = '', plabel = plabel2, colorbar = True, labelsize = labelsize, \
-    ##!#    zoom=True,save=False)
-    ##!#plot_GOES_satpy(date_str, 9, ax = ax10, var = var3, crs = crs0, \
-    ##!#    lat_lims = lat_lims2, lon_lims = lon_lims2, vmin = None, vmax = None, \
-    ##!#    ptitle = '', plabel = plabel3, colorbar = True, labelsize = labelsize, \
-    ##!#    zoom=True,save=False)
-    ##!#plot_GOES_satpy(date_str, 10, ax = ax11, var = var4, crs = crs0, \
-    ##!#    lat_lims = lat_lims2, lon_lims = lon_lims2, vmin = None, vmax = None, \
-    ##!#    ptitle = '', plabel = plabel4, colorbar = True, labelsize = labelsize, \
-    ##!#    zoom=True,save=False)
+    labelsize = 10
+    # Plot channel 1, 5, 31, and WV data spatial data
+    # -----------------------------------------------
+    plot_GOES_satpy(date_str, 8, ax = ax7, var = var2, crs = crs0, \
+        lons = lons, lats = lats, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+        vmin = None, vmax = None, \
+        ptitle = '', plabel = plabel2, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
+    plot_GOES_satpy(date_str, 9, ax = ax8, var = var3, crs = crs0, \
+        lons = lons, lats = lats, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+        vmin = None, vmax = None, \
+        ptitle = '', plabel = plabel3, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
+    plot_GOES_satpy(date_str, 10, ax = ax9, var = var4, crs = crs0, \
+        lons = lons, lats = lats, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+        vmin = None, vmax = None, \
+        ptitle = '', plabel = plabel4, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
 
     # Add subplot labels
     # ------------------
