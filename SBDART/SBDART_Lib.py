@@ -41,13 +41,31 @@ def radiance(wavelength,tmp):
 # /home/bsorenson/Research/SBDART/model/ and reformats into the 
 # right format.
 def read_atmos_profile(infile = ''):
-    atms_file = sb_path + 'src/atms_orig.dat'
+    atms_file = sb_path + 'src/atms_mdlat_sum.dat'
+    #atms_file = sb_path + 'src/atms_orig.dat'
     temp_data = pd.read_csv(atms_file,skiprows = 0, names = \
         ['z','p','t','wv','o2'], delim_whitespace = True)
     temp_data = temp_data[1:]
 
     if(infile == ''):
+        print('Reading atmosphere from ', atms_file)
         data = temp_data
+
+        # Convert wv density from g/m3 to kg/m3
+        # -------------------------------------
+        wv_dense_kgm3 = data['wv'] * 1e-3       
+ 
+        # Calculate vapor pressure from wv density
+        # ----------------------------------------
+        vap_press = wv_dense_kgm3 * 461.5 * data['t']
+
+        # Calculate mixing ratio from vapor pressure and prssure, convert 
+        # to g/kg
+        # ---------------------------------------------------------------
+        mix_rat = 0.622 * (vap_press / (data['p'] * 100. - vap_press)) * 1e3
+
+        data['mix_rat'] = mix_rat
+
         ##!#infile = sb_path + 'src/atms_orig.dat'
         ##!#data = pd.read_csv(infile,skiprows = 0, names = \
         ##!#    ['z','p','t','wv','o2'], delim_whitespace = True)
@@ -120,6 +138,7 @@ def read_atmos_profile(infile = ''):
         data['p'] = p_std
         data['t'] = tmp_c + 273.15
         data['wv'] = abs_hum
+        data['mix_rat'] = np.array(mixing_ratio.to('g/kg'))
         data['o2'] = new_o2
 
     return data 
@@ -203,21 +222,36 @@ def run_sbdart(satellite, calc_radiance, run = True, atms_file = ''):
         ##!#data = pd.read_csv(infile,skiprows = 0, names = \
         ##!#    ['z','p','t','wv','o2'], delim_whitespace = True)
         
-        multipliers = np.array([1.0, 2.0, 3.0, 3.5])
+        # Added water vapor mixing ratio, must be converted to 
+        # water vapor density.
+        # ----------------------------------------------------
+        adders  = np.array([0.0, 2.0, 4.0, 8.0])
+        #multipliers = np.array([1.0, 2.0, 3.0, 3.5])
         #multipliers = np.arange(0.1,2.1,0.1)
         
         outfile_list = []
         
-        for mtp in multipliers:
-            print("processing for wv multiplier = ",np.round(mtp,2))
+        for adr in adders:
+            print("processing for wv adders = ",np.round(adr,2))
+            #print("processing for wv multiplier = ",np.round(mtp,2))
         
             # Make copies for editing
             # -----------------------
             new_data = data.copy(deep = True)
             
-            # Multiply lower moisture values by multiplier
-            # --------------------------------------------
-            new_data['wv'][new_data['z'] <= 5] *= mtp
+            # Convert the added water vapor mixing ratio to added
+            # absolute humidity
+            # ----------------------------------------------------
+            vap_press = mpcalc.vapor_pressure(\
+                np.array(data['p']) * units('mbar'), adr * units('g/kg'))
+            new_hum = (vap_press.to('Pa') / (461.5 * (data['t']))) * 1e3
+
+            # Add the extra absolute humidity to the original values
+            # ------------------------------------------------------
+            new_data['wv'][new_data['z'] <= 5] += new_hum
+            #new_data['wv'][new_data['z'] <= 5] *= mtp
+            ##!#for zz, xx, yy in zip(data['z'], data['wv'], new_data['wv']):
+            ##!#    print(zz,xx,yy)
            
             header_line = [str(len(new_data['wv'])),' ',' ',' ',' ']
          
@@ -226,11 +260,12 @@ def run_sbdart(satellite, calc_radiance, run = True, atms_file = ''):
             outname = 'atms.dat'
             #outname = 'atms_' + str(int(mtp*100)) + '.dat'
             new_data.to_csv(outname, \
-                index = False, sep = ' ', header = header_line)
+                index = False, sep = ' ', header = header_line, \
+                columns = ['z','p','t','wv','o2'])
         
             # Run SBDART with the new atmosphere profile
             # ------------------------------------------
-            outfile = 'sbout_' + str(int(mtp*100)) + '_' + satellite + file_adder
+            outfile = 'sbout_' + str(int(adr)) + '_' + satellite + file_adder
             cmnd = sb_path + 'bin/sbdart > ' + outfile
             print(cmnd)
             os.system(cmnd)
@@ -268,7 +303,8 @@ def run_sbdart(satellite, calc_radiance, run = True, atms_file = ''):
     print(outfile_list)
  
     data_dict = {}
-    data_dict['multipliers'] = multipliers
+    data_dict['adders'] = adders
+    #data_dict['multipliers'] = multipliers
     for ofile in outfile_list:
         if(not calc_radiance):
             wv_pct = int(ofile.split('.')[0].split('_')[-1])
@@ -424,13 +460,17 @@ def plot_bright_vza(modis_data1, pax = None, save = False):
   
     #wvs = [20, 100, 150, 200, 250]
  
-    for wv in modis_data1['multipliers']:
-        int_wv = int(wv*100.)
+    for wv in modis_data1['adders']:
+    #for wv in modis_data1['multipliers']:
+        int_wv = int(wv)
+        #int_wv = int(wv*100.)
         wavel = np.round(modis_data1[int_wv]['avg_wavel'],2)
-        if(wv == 1.):
-            label = 'Control WV'
+        if(wv == 0.):
+        #if(wv == 1.):
+            label = 'w$_{0}$'
         else:
-            label = str(int(int_wv - 100.))+'% higher WV'
+            label = 'w$_{0}$ + ' + str(int(int_wv))+' g/kg'
+            #label = str(int(int_wv - 100.))+'% higher WV'
         # Plot the correct wv amounts
         pax.plot(modis_data1[int_wv]['vza'],  \
             modis_data1[int_wv]['bght_tmp'], label = label)
@@ -439,7 +479,7 @@ def plot_bright_vza(modis_data1, pax = None, save = False):
     pax.set_ylabel('Brightness temperature [K]',    fontsize = 12, weight = 'bold')
     pax.set_title('SBDART-simulated ' + modis_data1['satellite'].upper() + \
         ' Channel ' + modis_data1['channel'] + ' (' + str(wavel) + ' μm)')
-    pax.legend()
+    pax.legend(fontsize = 9, loc = 'lower left')
     if(not in_pax):
         if(save):
             outname = 'sbdart_'+modis_data1['run_name']+'_bright_vza.png'

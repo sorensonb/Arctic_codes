@@ -2258,8 +2258,10 @@ def plot_MODIS_spatial(MODIS_data, pax, zoom, vmin = None, vmax = None, \
         vmin = vmin, \
         vmax = vmax, transform = datacrs) 
 
-    cbar1 = plt.colorbar(mesh1,ax=pax,orientation='vertical',\
-        pad=0.03, fraction = 0.046)
+    #cbar1 = plt.colorbar(mesh1,ax=pax,orientation='vertical',\
+    #    pad=0.03, fraction = 0.046)
+    cbar1 = plt.colorbar(mesh1, ax = pax, pad = 0.03, fraction = 0.052, \
+        extend = 'both')
         #shrink = 0.870, pad=0.03,label=MODIS_data['variable'])
     cbar1.set_label(MODIS_data['variable'], size = labelsize, weight = 'bold')
     cbar1.ax.tick_params(labelsize = labelticksize)
@@ -4558,39 +4560,65 @@ def plot_MODIS_GOES_SBDART(save=False, composite = True, calc_radiance = True):
 
     if('/home/bsorenson/Research/SBDART' not in sys.path):
         sys.path.append('/home/bsorenson/Research/SBDART')
-    from SBDART_Lib import run_sbdart, plot_bright_vza
+    from SBDART_Lib import run_sbdart, plot_bright_vza, read_atmos_profile
 
     # Run SBDART for the different channel
     # ------------------------------------
-    modis31     = run_sbdart('modis_ch31',  calc_radiance, run = True, atms_file = '/home/bsorenson/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt')
     goes17_ch08 = run_sbdart('goes17_ch08', calc_radiance, run = True, atms_file = '/home/bsorenson/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt')
     goes17_ch09 = run_sbdart('goes17_ch09', calc_radiance, run = True, atms_file = '/home/bsorenson/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt')
     goes17_ch10 = run_sbdart('goes17_ch10', calc_radiance, run = True, atms_file = '/home/bsorenson/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt')
+    modis31     = run_sbdart('modis_ch31',  calc_radiance, run = True, atms_file = '/home/bsorenson/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt')
 
     # Set up the figure
     # -----------------
     fig = plt.figure(figsize=(10,7))
-    ax1 = fig.add_subplot(2,2,1)
-    ax2 = fig.add_subplot(2,2,2)
-    ax3 = fig.add_subplot(2,2,3)
-    ax4 = fig.add_subplot(2,2,4)
-
+    axs = fig.subplots(nrows = 2, ncols = 2)
+    #ax1 = fig.add_subplot(2,2,1)
+    #ax2 = fig.add_subplot(2,2,2)
+    #ax3 = fig.add_subplot(2,2,3)
+    #ax4 = fig.add_subplot(2,2,4)
+    
+##!#    fig2 = plt.figure()
+##!#    ax5  = fig2.add_subplot(1,1,1)
+##!#
+##!#    atms_data = read_atmos_profile(infile = '/home/bsorenson/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt')
+##!#    atms_data_new = atms_data.copy(deep = True)
+##!#    ax5.plot(atms_data['wv'], atms_data['z'], label = 'original')
+##!#    # Add 2
+##!#    atms_data_new['wv'][atms_data['z'] <= 5.] = atms_data['wv'][atms_data['z'] <= 5.] + 2.
+##!#    ax5.plot(atms_data_new['wv'], atms_data['z'], label = '+ 2 g/m3')
+##!#    # Add 4
+##!#    atms_data_new['wv'][atms_data['z'] <= 5.] = atms_data['wv'][atms_data['z'] <= 5.] + 4.
+##!#    ax5.plot(atms_data_new['wv'], atms_data['z'], label = '+ 4 g/m3')
+##!#    # Add 8
+##!#    atms_data_new['wv'][atms_data['z'] <= 5.] = atms_data['wv'][atms_data['z'] <= 5.] + 8.
+##!#    ax5.plot(atms_data_new['wv'], atms_data['z'], label = '+ 8 g/m3')
+    
+    
     # ----------------------------------------------------------------------
     #
     # Run the GOES-17 and MODIS simulations
     #
     # ----------------------------------------------------------------------
-    plot_bright_vza(modis31, pax = ax1)
-    plot_bright_vza(goes17_ch08, pax = ax2)
-    plot_bright_vza(goes17_ch09, pax = ax3)
-    plot_bright_vza(goes17_ch10, pax = ax4)
-   
+    plot_bright_vza(goes17_ch08, pax = axs[0,0])
+    plot_bright_vza(goes17_ch09, pax = axs[0,1])
+    plot_bright_vza(goes17_ch10, pax = axs[1,0])
+    plot_bright_vza(modis31, pax = axs[1,1])
+  
+    #ax3.legend(loc = 'upper center', bbox_to_anchor = (0.8, -0.05), \
+    #    ncol = 4)
+ 
     # Add subplot labels
     # ------------------
-    plot_subplot_label(ax1, '(a)', location = 'upper_right')
-    plot_subplot_label(ax2, '(b)', location = 'upper_right')
-    plot_subplot_label(ax3, '(c)', location = 'upper_right')
-    plot_subplot_label(ax4, '(d)', location = 'upper_right')
+    plot_subplot_label(axs[0,0], '(a)', location = 'upper_right')
+    plot_subplot_label(axs[0,1], '(b)', location = 'upper_right')
+    plot_subplot_label(axs[1,0], '(c)', location = 'upper_right')
+    plot_subplot_label(axs[1,1], '(d)', location = 'upper_right')
+
+    ## Add a legend
+    ## ------------
+    #axLine, axLabel = axs[0,0].get_legend_handles_labels()
+    #fig.legend(axLine, axLabel, loc = 'upper center', bbox_to_anchor = (0.5, 0.05), ncol = 4)
 
     fig.tight_layout()
  
@@ -7146,6 +7174,175 @@ def plot_combined_figure1_v3(date_str = '202107222110', zoom = True, show_smoke 
 
     if(save):
         outname = 'modis_total_combined_' + date_str + '_fig1_v3.png'
+        fig.savefig(outname, dpi=300)
+        print("Saved",outname)
+    else:
+        plt.show()
+
+def plot_combined_figure1_v4(date_str = '202107222110', zoom = True, show_smoke = False, composite = True, \
+        save=False):
+
+    #date_str = '202107202125'
+    date_str = '202107222110'
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+    date_str2 = '202107210000'
+    dt_date_str2 = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    if('/home/bsorenson/Research/GOES' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/GOES')
+    from GOESLib import read_GOES_satpy, plot_GOES_satpy
+
+    # ----------------------------------------------------------------------
+    #
+    # Read the MODIS and CERES data
+    #
+    # ----------------------------------------------------------------------
+
+    # Call read_MODIS_channel to read the desired MODIS data from the file 
+    # and put it in a dictionary
+    # ---------------------------------------------------------------------
+    MODIS_data_ch7  = read_MODIS_channel(date_str, 7, zoom = zoom)
+    MODIS_data_ch31 = read_MODIS_channel(date_str, 31, zoom = zoom)
+
+    # Read the true color data
+    # ------------------------
+    var1, crs1, lat_lims1, lon_lims1 = read_true_color(date_str,\
+        composite=composite)
+
+    # Read the GOES data
+    # ------------------------
+    var2, crs0, lons, lats, lat_lims2, lon_lims2, plabel2   = read_GOES_satpy(date_str2, 2)
+    var3, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel3 = read_GOES_satpy(date_str2, 6)
+    var4, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel4 = read_GOES_satpy(date_str2, 13)
+    var5, crs0, lons2, lats2, lat_lims0, lon_lims2, plabel5 = read_GOES_satpy(date_str2, 8)
+    var6, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel6 = read_GOES_satpy(date_str2, 9)
+    var7, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel7 = read_GOES_satpy(date_str2, 10)
+
+    # ----------------------------------------------------------------------
+    #
+    #  Set up the 6-panel figure
+    #
+    # ----------------------------------------------------------------------
+
+    mapcrs = init_proj(date_str)
+    plt.close('all')
+    fig = plt.figure(figsize=(10,9))
+    #gs = fig.add_gridspec(nrows = 2, ncols = 8)
+    ax1  = fig.add_subplot(3,3,1,  projection = crs1)   # true color    
+    ax2  = fig.add_subplot(3,3,2,  projection = mapcrs) # Ch 7
+    ax3  = fig.add_subplot(3,3,3,  projection = mapcrs) # Ch 31
+    ax4  = fig.add_subplot(3,3,4,  projection = crs0)   # GOES vis 
+    ax5  = fig.add_subplot(3,3,5,  projection = crs0)   # GOES SWIR
+    ax6  = fig.add_subplot(3,3,6,  projection = crs0)   # GOES TIR 
+    ax7  = fig.add_subplot(3,3,7,  projection = crs0)   # GOES upper WV
+    ax8  = fig.add_subplot(3,3,8,  projection = crs0)   # GOES midle WV
+    ax9  = fig.add_subplot(3,3,9,  projection = crs0)   # GOES lower WV
+
+
+    # Plot the true-color data for the previous date
+    # ----------------------------------------------
+    ax1.imshow(var1.data, transform = crs1, extent=(var1.x[0], var1.x[-1], \
+        var1.y[-1], var1.y[0]), origin='upper')
+
+    # Zoom in the figure if desired
+    # -----------------------------
+    if(zoom):
+        ax1.set_extent([lon_lims1[0],lon_lims1[1],lat_lims1[0],\
+            lat_lims1[1]],crs = datacrs)
+
+    # ----------------------------------------------------------------------
+    #
+    # Plot the data in the figure
+    #
+    # ----------------------------------------------------------------------
+
+    # Plot channel 1, 5, 31, and WV data spatial data
+    # -----------------------------------------------
+    plot_MODIS_spatial(MODIS_data_ch7,  ax2, zoom = zoom, ptitle = '', labelsize = 10, labelticksize = 9)
+    plot_MODIS_spatial(MODIS_data_ch31, ax3, zoom = zoom, ptitle = '', labelsize = 10, labelticksize = 9)
+
+    labelsize = 10
+    # Plot channel 1, 5, 31, and WV data spatial data
+    # -----------------------------------------------
+    plot_GOES_satpy(date_str, 2, ax = ax4, var = var2, crs = crs0, \
+        lons = lons, lats = lats, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+        vmin = None, vmax = 60, \
+        ptitle = '', plabel = plabel2, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
+    plot_GOES_satpy(date_str, 6, ax = ax5, var = var3, crs = crs0, \
+        lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+        vmin = None, vmax = 40, \
+        ptitle = '', plabel = plabel3, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
+    plot_GOES_satpy(date_str, 13, ax = ax6, var = var4, crs = crs0, \
+        lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+        vmin = None, vmax = None, \
+        ptitle = '', plabel = plabel4, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
+    plot_GOES_satpy(date_str, 8, ax = ax7, var = var5, crs = crs0, \
+        lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+        vmin = None, vmax = None, \
+        ptitle = '', plabel = plabel5, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
+    plot_GOES_satpy(date_str, 9, ax = ax8, var = var6, crs = crs0, \
+        lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+        vmin = None, vmax = None, \
+        ptitle = '', plabel = plabel6, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
+    plot_GOES_satpy(date_str, 10, ax = ax9, var = var7, crs = crs0, \
+        lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+        vmin = None, vmax = None, \
+        ptitle = '', plabel = plabel7, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
+
+    # Add subplot labels
+    # ------------------
+    font_size = 10
+    plot_subplot_label(ax1, '(a)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax2, '(b)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax3, '(c)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax4, '(d)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax5, '(e)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax6, '(f)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax7, '(g)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax8, '(h)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax9, '(i)', backgroundcolor = 'white', fontsize = font_size)
+
+    # Add plot text
+    # -------------
+    plot_figure_text(ax1, 'MODIS True Color', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax2, 'MODIS 2.2 μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax3, 'MODIS 11.0 μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax4, 'GOES-17 0.64 μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax5, 'GOES-17 2.25 μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax6, 'GOES-17 10.35 μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax7, 'GOES-17 6.18 μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax8, 'GOES-17 6.95 μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax9, 'GOES-17 7.34 μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+
+    fig.text(0.03, 0.83, '---- 21:10 UTC 22 July 2021 ----', ha='center', va='center', \
+        rotation='vertical', weight = 'bold', fontsize = labelsize + 2)
+    fig.text(0.03, 0.335, '------------------------- 00:00 UTC 21 July 2021 -------------------------', ha='center', va='center', \
+        rotation='vertical', weight = 'bold', fontsize = labelsize + 2)
+
+    #plt.suptitle(date_str)
+
+    fig.tight_layout()
+
+    MODIS_data_ch7.clear()
+    MODIS_data_ch31.clear()
+
+    if(save):
+        outname = 'modis_total_combined_' + date_str + '_fig1_v4.png'
         fig.savefig(outname, dpi=300)
         print("Saved",outname)
     else:

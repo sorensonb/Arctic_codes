@@ -29,9 +29,8 @@ import sys
 ####fig1.savefig('arctic_lat_circles_80.png',dpi=300)
 ###plt.show()
 
-plot_combined_fort_out('20170818', min_lat = 70., vtype = 'areas', save = True)
+#plot_combined_fort_out('20170818', min_lat = 70., vtype = 'areas', save = False)
 
-sys.exit()
 
 minlat = 65.
 #OMI_VBS0   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VBS0_2005_2020.nc', minlat = minlat)
@@ -43,7 +42,10 @@ minlat = 65.
 #OMI_data, CERES_data = plot_OMI_CERES_trend_compare_summer(minlat=72,\
 #        ceres_type = 'sw', trend_type = 'standard', save=False)
 infile = '/home/bsorenson/Research/OMI/shawn_analysis/count_analysis/omi_vsj4_areas_2005_2020_100.txt'
-#plot_OMI_fort_out_peaks(infile, min_lat = 70., vtype = 'areas', save = False)
+plot_OMI_fort_out_two_lats(infile, minlat = 70., vtype = 'areas', save = False)
+#plot_OMI_fort_out_peaks(infile, minlat = 70., vtype = 'areas', save = False)
+sys.exit()
+
 plot_OMI_fort_out_func(infile,\
      min_lat = 70., vtype = 'areas', save = False)
 

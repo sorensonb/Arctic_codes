@@ -306,8 +306,8 @@ def readVIIRS_granule(filename, band = 'M15', zoom = True):
     return VIIRS_data
 
 def plot_VIIRS_granule(VIIRS_data, ax = None, labelsize = 12, \
-        labelticksize = 10, zoom = True, show_smoke = False, vmax = None, \
-        save = False):
+        labelticksize = 10, zoom = True, show_smoke = False, vmin = None, \
+        vmax = None, save = False):
 
     in_ax = True
     if(ax is None):
@@ -324,7 +324,7 @@ def plot_VIIRS_granule(VIIRS_data, ax = None, labelsize = 12, \
 
 
     mesh = ax.pcolormesh(VIIRS_data['lon'], VIIRS_data['lat'], pdata, \
-        cmap = VIIRS_data['cmap'], vmin = None, vmax = vmax, \
+        cmap = VIIRS_data['cmap'], vmin = vmin, vmax = vmax, \
         transform = ccrs.PlateCarree(), shading = 'auto')
     cbar = plt.colorbar(mesh, ax = ax, orientation='vertical',\
         pad=0.03, extend = 'both')
@@ -350,7 +350,7 @@ def plot_VIIRS_granule(VIIRS_data, ax = None, labelsize = 12, \
         plt.show()
 
 def plot_VIIRS_figure(filename, band = 'M12', ax = None, show_smoke = False, \
-        vmax = None, ptitle = '', zoom = True):
+        vmin = None, vmax = None, ptitle = '', zoom = True):
 
     in_ax = True
     if(ax is None):
@@ -372,7 +372,7 @@ def plot_VIIRS_figure(filename, band = 'M12', ax = None, show_smoke = False, \
             # Plot the data for this granule
             # ------------------------------
             plot_VIIRS_granule(VIIRS_data, ax = ax, zoom = zoom, \
-                vmax = vmax, show_smoke = show_smoke)
+                vmin = vmin, vmax = vmax, show_smoke = show_smoke)
 
     elif(isinstance(filename, str)):
         #plot_VIIRS_granule_DNB(filename,ax, band = band)
@@ -384,7 +384,7 @@ def plot_VIIRS_figure(filename, band = 'M12', ax = None, show_smoke = False, \
         # Plot the data for this granule
         # ------------------------------
         plot_VIIRS_granule(VIIRS_data, ax = ax, zoom = zoom, \
-                vmax = vmax, show_smoke = show_smoke)
+                vmin = vmin, vmax = vmax, show_smoke = show_smoke)
 
     if(zoom):
         ax.set_extent([-122.0,-119.5,39.5,42.0],\
@@ -555,9 +555,9 @@ def plot_VIIRS_sixpanel(save = False):
     plot_VIIRS_figure(filename_d0723_dat, band = 'M05', ax = ax3,\
         ptitle = date3.strftime('%Y-%m-%d %H:%M'), zoom = True)
 
-    plot_VIIRS_figure(filename_d0722_dat, band = 'M15', ax = ax4, zoom = True)
-    plot_VIIRS_figure(filename_n0723_dat, band = 'M15', ax = ax5, zoom = True)
-    plot_VIIRS_figure(filename_d0723_dat, band = 'M15', ax = ax6, zoom = True)
+    plot_VIIRS_figure(filename_d0722_dat, band = 'M15', ax = ax4, zoom = True, vmin = 260, vmax = 330)
+    plot_VIIRS_figure(filename_n0723_dat, band = 'M15', ax = ax5, zoom = True, vmin = 260, vmax = 330)
+    plot_VIIRS_figure(filename_d0723_dat, band = 'M15', ax = ax6, zoom = True, vmin = 260, vmax = 330)
 
     plot_subplot_label(ax1, '(a)', backgroundcolor = 'white')
     plot_subplot_label(ax2, '(b)', backgroundcolor = 'white')
@@ -566,11 +566,11 @@ def plot_VIIRS_sixpanel(save = False):
     plot_subplot_label(ax5, '(e)', backgroundcolor = 'white')
     plot_subplot_label(ax6, '(f)', backgroundcolor = 'white')
 
-    plot_figure_text(ax1, 'VIIRS 0.64 μm', xval = None, yval = None, transform = None, \
+    plot_figure_text(ax1, 'VIIRS 0.67 μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
     plot_figure_text(ax2, 'VIIRS DNB', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax3, 'VIIRS 0.64 μm', xval = None, yval = None, transform = None, \
+    plot_figure_text(ax3, 'VIIRS 0.67 μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
     plot_figure_text(ax4, 'VIIRS 10.76 μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')

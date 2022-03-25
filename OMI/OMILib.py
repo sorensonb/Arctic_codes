@@ -4947,61 +4947,47 @@ def plot_OMI_fort_out_func(infile, ax = None, min_lat = 70., vtype = 'areas', sa
     ##!#    print("Saved image",outname) 
 
 
-
-
-
-
-
-def plot_OMI_fort_out_peaks(infile, min_lat = 70., vtype = 'areas', save = False):
-    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-    #
-    # Read the data from the file
-    #
-    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-    omi_fort_dict = read_OMI_fort_out(infile, min_lat, vtype = vtype)
-    
+# Plot the time series of OMI peaks with 'x's at peaks for the OMI fort out
+# dictionary returned from read_OMI_fort_out
+# ----------------------------------------------------------------------------
+def plot_OMI_fort_out_time_series(omi_fort_dict, pax, minlat = 70., d_val = 4):
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
     #
     # Plot the total time series of daily areas with peaks
     #
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-    fig1 = plt.figure(figsize = (13,5)) 
-    ax1 = fig1.add_subplot(1,2,1)
-    ax3 = fig1.add_subplot(1,2,2)
-    ax1.plot(omi_fort_dict['daily_dt_dates'],omi_fort_dict['daily_data'],label='daily '+omi_fort_dict['dtype'])
+    pax.plot(omi_fort_dict['daily_dt_dates'],omi_fort_dict['daily_data'],label='daily '+omi_fort_dict['dtype'])
     
     # Test peaks here
     # ---------------
     d_val = 4
+    peaks, _ = find_peaks(omi_fort_dict['daily_data'], height = omi_fort_dict['h_val'], distance = d_val)
+    pax.plot(omi_fort_dict['daily_dt_dates'][peaks], omi_fort_dict['daily_data'][peaks], 'x', color='black')
+    
+    #ax1.legend()
+    pax.set_ylabel(omi_fort_dict['axis_label'])
+    pax.set_title('Latitude > '+str(int(minlat))+'$^{o}$')
+    #pax.set_title('AI ' + omi_fort_dict['vtype'].title() + ': Threshold of '+str(omi_fort_dict['ai_thresh'])+\
+    #    '\nNorth of '+str(int(minlat))+'$^{o}$')
+    pax.grid()
+
+
+# Plot the bar chart of yearly peaks in each height range for the OMI fort out
+# dictionary returned from read_OMI_fort_out
+# ----------------------------------------------------------------------------
+def plot_OMI_fort_out_peak_bar(omi_fort_dict, pax, minlat = 70., d_val = 4):
+
     if(omi_fort_dict['interval'] == 0.2):
         max_val = np.round(np.max(omi_fort_dict['daily_data']), 1)+omi_fort_dict['interval']
     else:
-        if(int(min_lat) == 75):
+        if(int(minlat) == 75):
             max_val = int(np.max(omi_fort_dict['daily_data']))+2*omi_fort_dict['interval']
         else:
             max_val = int(np.max(omi_fort_dict['daily_data']))+omi_fort_dict['interval']
-    peaks, _ = find_peaks(omi_fort_dict['daily_data'], height = omi_fort_dict['h_val'], distance = d_val)
-    ax1.plot(omi_fort_dict['daily_dt_dates'][peaks], omi_fort_dict['daily_data'][peaks], 'x', color='black')
-    
-    #ax1.legend()
-    ax1.set_ylabel(omi_fort_dict['axis_label'])
-    ax1.set_title('AI ' + omi_fort_dict['vtype'].title() + ': Threshold of '+str(omi_fort_dict['ai_thresh'])+\
-        '\nNorth of '+str(int(min_lat))+'$^{o}$')
-    ax1.grid()
-    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-    #
-    # Plot the yearly event size box graph
-    #
-    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-    #fig3 = plt.figure()
-    #ax3  = fig3.add_subplot(1,1,1)
     event_sizes = np.arange(omi_fort_dict['h_val'], max_val , omi_fort_dict['interval'])
     events_yearly = np.zeros((omi_fort_dict['years'].shape[0], event_sizes.shape[0]))
     
     for ii, year in enumerate(omi_fort_dict['years']):
-        ##!#yearly_totals[ii] = np.sum(omi_fort_dict['daily_data'][np.where( \
-        ##!#    (omi_fort_dict['daily_dt_dates'] >= datetime(year,4,1)) & \
-        ##!#    (omi_fort_dict['daily_dt_dates'] <= datetime(year,9,30)))])
     
         # Test the local maxima
         # ---------------------
@@ -5015,19 +5001,52 @@ def plot_OMI_fort_out_peaks(infile, min_lat = 70., vtype = 'areas', save = False
             events_yearly[ii,jj] = len(peaks)        
 
     for ii in range(len(event_sizes)-1):
-        ax3.bar(omi_fort_dict['years'], events_yearly[:,ii], \
+        if(event_sizes[ii] < 1):
+            multiplier = 10
+            exponent = 4
+        else:
+            multiplier = 1
+            exponent = 5
+
+        label_str = str(int(np.round(event_sizes[ii] * multiplier,1))) + ' - ' + \
+            str(int(np.round(event_sizes[ii+1] * multiplier,1))) + ' * 10$^{' + \
+            str(exponent) + '}$ km$^{2}$'
+        pax.bar(omi_fort_dict['years'], events_yearly[:,ii], \
             bottom = np.sum(events_yearly[:,0:ii],axis=1), \
-            label=str(np.round(event_sizes[ii],1)) + ' - ' + str(np.round(event_sizes[ii+1],1)) + ' * 10$^{5}$ km$^{2}$')
-    ax3.legend()
-    ax3.set_ylabel('# of AI peaks in each size range')
-    ax3.set_title('AI ' + omi_fort_dict['vtype'].title() + ' : Threshold of '+str(omi_fort_dict['ai_thresh'])+\
-        '\nNorth of '+str(int(min_lat))+'$^{o}$')
-    #save = False
-    #if(save):
-    #    outname = 'ai_bar_minhgt'+str(int(event_sizes[0])) + '_dist'+str(d_val)+'_thresh'+thresh+"_minlat"+min_lat+'.png'
-    #    fig3.savefig(outname,dpi=300)
-    #    print("Saved image",outname)
+            label = label_str)
+    pax.legend()
+    pax.set_ylabel('# of AI peaks in each size range')
+    pax.set_title('Latitude > '+str(int(minlat))+'$^{o}$')
+    #pax.set_title('AI ' + omi_fort_dict['vtype'].title() + ' : Threshold of '+str(omi_fort_dict['ai_thresh'])+\
+    #    '\nNorth of '+str(int(minlat))+'$^{o}$')
     
+
+# Plot a combination of both the total time series and the bar chart
+# ------------------------------------------------------------------
+def plot_OMI_fort_out_peaks(infile, minlat = 70., vtype = 'areas', save = False):
+
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+    #
+    # Read the data from the file
+    #
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+    omi_fort_dict = read_OMI_fort_out(infile, minlat, vtype = vtype)
+    
+    fig1 = plt.figure(figsize = (13,5)) 
+    ax1 = fig1.add_subplot(1,2,1)
+    ax2 = fig1.add_subplot(1,2,2)
+
+    # Plot the time series with the peaks as 'x's
+    # -------------------------------------------
+    plot_OMI_fort_out_time_series(omi_fort_dict, ax1, minlat = minlat)
+
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+    #
+    # Plot the yearly event size box graph
+    #
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+    plot_OMI_fort_out_peak_bar(omi_fort_dict, ax2, minlat = minlat)
+
     if(save):
         outname = 'ai_daily_areas_peaks_thresh'+thresh+"_minlat"+min_lat+'.png'
         fig1.savefig(outname, dpi = 300)
@@ -5036,15 +5055,55 @@ def plot_OMI_fort_out_peaks(infile, min_lat = 70., vtype = 'areas', save = False
     else:    
         plt.show()
     
-    #fig2 = plt.figure()
-    #plt.plot(xrange_00,count_00,label='00Z')
-    #plt.plot(xrange_06,count_06,label='06Z')
-    #plt.plot(xrange_12,count_12,label='12Z')
-    #plt.plot(xrange_18,count_18,label='18Z')
-    #plt.legend()
-    #plt.show()
+# Plot a combination of both the total time series and the bar chart
+# ------------------------------------------------------------------
+def plot_OMI_fort_out_two_lats(infile, minlat = 70., vtype = 'areas', save = False):
 
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+    #
+    # Read the data from the file
+    #
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+    omi_fort_dict_70 = read_OMI_fort_out(infile, 70., vtype = vtype)
+    omi_fort_dict_80 = read_OMI_fort_out(infile, 80., vtype = vtype)
+    
+    fig1 = plt.figure(figsize = (11,10)) 
+    ax1 = fig1.add_subplot(2,2,1)
+    ax2 = fig1.add_subplot(2,2,2)
+    ax3 = fig1.add_subplot(2,2,3)
+    ax4 = fig1.add_subplot(2,2,4)
 
+    # Plot the time series with the peaks as 'x's
+    # -------------------------------------------
+    plot_OMI_fort_out_time_series(omi_fort_dict_70, ax1, minlat = 70.) 
+    plot_OMI_fort_out_peak_bar(omi_fort_dict_70, ax2, minlat = 70.)
+
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+    #
+    # Plot the yearly event size box graph
+    #
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+    plot_OMI_fort_out_time_series(omi_fort_dict_80, ax3, minlat = 80.)
+    plot_OMI_fort_out_peak_bar(omi_fort_dict_80, ax4, minlat = 80.)
+
+    # Add subplot labels
+    # ------------------
+    plot_subplot_label(ax1, '(a)', backgroundcolor = 'white')
+    plot_subplot_label(ax2, '(b)', backgroundcolor = 'white')
+    plot_subplot_label(ax3, '(c)', backgroundcolor = 'white')
+    plot_subplot_label(ax4, '(d)', backgroundcolor = 'white')
+
+    if(save):
+        outname = 'ai_fort_out_thresh'+thresh+'_minlat7080.png'
+        fig1.savefig(outname, dpi = 300)
+        print("Saved image",outname)
+    
+    else:    
+        plt.show()
+
+# Plot a three-panel figure. Panel 1 is the yearly time series of the OMI AI 
+# areas. Panel 2 is the WorldView image. Panel 3 is the single-day average
+# ----------------------------------------------------------------------------
 def plot_combined_fort_out(plot_time, min_lat = 70., vtype = 'areas', save = False):
 
     if(len(plot_time) == 8):

@@ -345,7 +345,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     if(len(data_dt) == 10):
         str_fmt = "%Y%m%d%H"
         hour_adder = 1
-        hour_subtracter = 1
+        hour_subtracter = 0
     elif(len(data_dt) == 8):
         print("Daily average")
         day = True
@@ -359,8 +359,8 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     
     dt_data_begin = datetime.strptime(data_dt,str_fmt) \
         - relativedelta(hours = hour_subtracter)
-    dt_data_end   = datetime.strptime(data_dt,str_fmt) + \
-         relativedelta(hours = hour_adder)
+    dt_data_end   = datetime.strptime(data_dt,str_fmt) \
+        + relativedelta(hours = hour_adder)
 
     print(dt_data_begin,dt_data_end)
 
@@ -548,14 +548,14 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
                     
                     #fun_c = np.maximum(np.abs(grid_lat - slat), \
                     #    np.abs(grid_lon - slon))
-                        
-                    grid_swf[ii,m_idx[0][0]:len(test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
-                    grid_lwf[ii,m_idx[0][0]:len(test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
-                    grid_lat[ii,m_idx[0][0]:len(test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
-                    grid_lon[ii,m_idx[0][0]:len(test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
-                    grid_sza[ii,m_idx[0][0]:len(test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
-                    grid_vza[ii,m_idx[0][0]:len(test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
-                    grid_azm[ii,m_idx[0][0]:len(test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                    if(len(test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]) > 0):
+                        grid_swf[ii,m_idx[0][0]:len(test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                        grid_lwf[ii,m_idx[0][0]:len(test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                        grid_lat[ii,m_idx[0][0]:len(test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                        grid_lon[ii,m_idx[0][0]:len(test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                        grid_sza[ii,m_idx[0][0]:len(test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                        grid_vza[ii,m_idx[0][0]:len(test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                        grid_azm[ii,m_idx[0][0]:len(test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
 
     # Remove any rows in the grid arrays with any nans
     # ------------------------------------------------
@@ -2158,188 +2158,188 @@ def plot_compare_OMI_CERES_trends(OMI_data,CERES_data,month,minlat=65,\
         plt.show()
     #return mask_trend1,mask_trend2
 
-def plot_compare_OMI_CERES_hrly(OMI_date,CERES_date,minlat=65,max_AI = -200.,\
-        omi_dtype = 'control', only_sea_ice = False, skiprows = None, save=False):
-#def plot_compare_OMI_CERES_hrly(OMI_hrly,CERES_hrly,minlat=65,save=False):
-
-    if('/home/bsorenson/Research/OMI' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/OMI')
-    from OMILib import readOMI_swath_shawn, readOMI_swath_hdf, \
-        plotOMI_single_swath
-
-    # ----------------------------------------------------
-    # Set up the overall figure
-    # ----------------------------------------------------
-    plt.close('all')
-    fig1 = plt.figure(figsize = (6,6))
-    mapcrs = ccrs.NorthPolarStereo()
-    ax0 = fig1.add_subplot(1,1,1, projection = mapcrs)
-
-    # Set up mapping variables 
-    datacrs = ccrs.PlateCarree() 
-    colormap = plt.cm.jet
-    if(minlat < 45):
-        mapcrs = ccrs.Miller()
-    else:
-        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
-
-    # Step 1: read in OMI and CERES data
-    # ----------------------------------
-    #OMI_hrly = readOMI_single_swath(OMI_date,60,only_sea_ice = only_sea_ice)
-    if(omi_dtype == 'shawn'):
-        OMI_hrly  = readOMI_swath_shawn(OMI_date, latmin = minlat,\
-            skiprows = skiprows)
-    else:
-        if(omi_dtype == 'jz'):
-            omi_dtype = 'JZ'
-        OMI_hrly  = readOMI_swath_hdf(OMI_date, omi_dtype, \
-            only_sea_ice = only_sea_ice, latmin = minlat, \
-            skiprows = skiprows)
-
-    CERES_hrly = readgridCERES_hrly(CERES_date,'SWF')
-
-    # Step 2: Set up figure to have 3 panels
-    # --------------------------------------
-    plt.close('all')
-    #fig, axs = plt.subplots(1,3,subplot_kw={'projection': mapcrs})
-    fig = plt.figure(figsize=(17,5))
-    ax0 = fig.add_subplot(1,3,2,projection = mapcrs)
-    ax1 = fig.add_subplot(1,3,3,projection = mapcrs)
-    ax2 = fig.add_subplot(1,3,1)
-
-    # Step 3: Plot OMI and CERES data in first two panels
-    # ---------------------------------------------------
-
-    # -------------------------------------------------------
-    # Use the single-swath plotting function to plot OMI data
-    # -------------------------------------------------------
-    plotOMI_single_swath(ax0, OMI_hrly, title = omi_dtype.title(), \
-        circle_bound = True, gridlines = False)
-
-    ax0.set_extent([-180,180,minlat,90], datacrs)
-
-
-    local_data = np.copy(CERES_hrly['data'])
-
-    # -------------------------------------------------------
-    # Use the single-swath plotting function to plot OMI data
-    # -------------------------------------------------------
-    plot_lat, plot_lon = np.meshgrid(CERES_hrly['lat'],CERES_hrly['lon'])
-    mask_flux = np.ma.masked_where(((CERES_hrly['counts'] == 0) | \
-        (CERES_hrly['lat'] < minlat)), local_data)
-
-    ax1.gridlines(ylocs = np.arange(minlat,90,5))
-    ax1.coastlines(resolution = '50m')
-    ax1.set_title('CERES ' + CERES_hrly['param'] + ' ' + CERES_hrly['date'])
-    #plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
-    mesh1 = ax1.pcolormesh(plot_lon, plot_lat,mask_flux,transform = datacrs,cmap = colormap,\
-            vmin = min_dict[CERES_hrly['param']], \
-            vmax = max_dict[CERES_hrly['param']])
-    ax1.set_extent([-180,180,minlat,90],datacrs)
-    ax1.set_boundary(circle, transform=ax1.transAxes)
-            #vmin = var_dict[variable]['min'], vmax = var_dict[variable]['max'])
-    cbar = plt.colorbar(mesh1,ax=ax1,orientation='vertical',pad=0.02,\
-        aspect=50,shrink = 1.000,label=CERES_hrly['param'] + ' [W/m2]')
-    
-    # Step 4: Plot scatter OMI and CERES comparison in third panel
-    # ------------------------------------------------------------
-
-    # Make gridded lat and lon arrays to use for coloring the plot
-    glat, glon = np.meshgrid(OMI_hrly['LAT'],OMI_hrly['LON'])
-    
-    # Mask any empty boxes
-    mask_AI = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
-        (CERES_hrly['counts'] == 0) | (OMI_hrly['AI'] < max_AI)),OMI_hrly['AI'])
-    mask_flux = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
-        (CERES_hrly['counts'] == 0) | (OMI_hrly['AI'] < max_AI)),CERES_hrly['data'])
-    mask_sza  = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
-        (CERES_hrly['counts'] == 0) | (OMI_hrly['AI'] < max_AI)),OMI_hrly['SZA'])
-    #mask_lat  = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
-    #    (CERES_hrly['counts'] == 0) | (OMI_hrly['AI'] < max_AI)),glat)
-    ##!## Convert the index to a string using datetime
-    ##!#if(month != None):
-    ##!#    dt_obj = datetime.strptime(OMI_data['DATES'][month],"%Y%m")
-    ##!#    title = 'OMI AI / CERES ' + CERES_data['param'] + '\n'+ \
-    ##!#        dt_obj.strftime("%b") + " Trend Comparison"
-    ##!#    outname = 'omi_ceres_trend_comp_'+dt_obj.strftime("%b")+'_'+\
-    ##!#        OMI_data['VERSION']+'vCERES.png'
-    ##!#else:
-    ##!#    title = 'OMI AI / CERES ' + CERES_data['param'] + ' Trend Comparison'
-    ##!#    outname = 'omi_ceres_trend_comp_'+\
-    ##!#        OMI_data1['VERSION']+'vCERES.png'
-
-
-    #print("Pearson:  ",pearsonr(mask_AI,mask_flux))
-    #print("Spearman: ",spearmanr(mask_AI,mask_flux))
-
-    ##!#xy = np.vstack([mask_AI,mask_flux])
-    ##!#z = stats.gaussian_kde(xy)(xy)
-
-    ##!## Plot a somewhat-robust best fit line using Huber Regression
-    ##!## -----------------------------------------------------------
-    ##!#x_scaler,y_scaler = StandardScaler(), StandardScaler()
-    ##!#x_train = x_scaler.fit_transform(mask_AI[...,None])
-    ##!#y_train = y_scaler.fit_transform(mask_flux[...,None])
-
-    ##!#model = HuberRegressor(epsilon=1)
-    ##!#model.fit(x_train,y_train)
-    ##!#
-    ##!#test_x = np.array([np.min(mask_AI),np.max(mask_AI)])
-    ##!#predictions = y_scaler.inverse_transform(\
-    ##!#    model.predict(x_scaler.transform(test_x[...,None])))
-
-    ##!## One to one line stuff
-    ##!#xs = np.arange(np.min(mask_AI),np.max(mask_AI),0.1)
-
-    #plt.close('all')
-    #fig1 = plt.figure()
-    #scat = ax2.scatter(mask_AI,mask_flux,c=mask_lat,s=8)
-    scat = ax2.scatter(mask_AI,mask_flux,c=mask_sza,s=8)
-    cbar = plt.colorbar(scat,ax=ax2,orientation='vertical',\
-        label='Solar Zenith Angle',pad=0.02,aspect=50)
-    ax2.set_title(OMI_hrly['date'])
-    #plt.title(OMI_hrly['date'])
-    #plt.scatter(mask_AI,mask_flux,c=z,s=8)
-    #plt.plot(test_x,predictions,color='tab:green',linestyle='--',label='Huber Fit')
-    #plt.plot(test_x,predictions,color='tab:green',linestyle='--',label='Huber Fit')
-    # Plot an unrobust fit line using linear regression
-    # -------------------------------------------------
-    #plt.plot(np.unique(mask_AI),np.poly1d(np.polyfit(mask_AI,\
-    #    mask_flux,1))(np.unique(mask_AI)),color='tab:orange',\
-    #    linestyle='--',label='Polyfit Fit')
-    # Plot a one-to-one line
-    #plt.plot(xs,xs,label='1-1',color='tab:red')
-    ##if((month == 0) | (month == 1)):
-    ##    plt.xlim(-0.5,0.3)
-    ##    plt.ylim(-0.5,0.3)
-    ##elif((month == 2)):
-    ##    plt.xlim(-0.6,0.5)
-    ##    plt.ylim(-0.6,0.5)
-    ##elif((month == 3)):
-    ##    plt.xlim(-0.5,0.5)
-    ##    plt.ylim(-0.5,0.5)
-    ##elif((month == 4)):
-    ##    plt.xlim(-0.5,0.7)
-    ##    plt.ylim(-0.5,0.7)
-    ##elif((month == 5)):
-    ##    plt.xlim(-0.5,0.5)
-    ##    plt.ylim(-0.5,0.5)
-    ##else:
-    ##    plt.xlim(-0.3,0.3)
-    ##    plt.ylim(-0.3,0.3)
-    #axs[2].legend()
-    ax2.set_xlabel('OMI AI')
-    ax2.set_ylabel('CERES ' + CERES_hrly['param'])
-    #plt.subplots_adjust(wspace=0.1, hspace=0.10)
-    plt.tight_layout()
-    #plt.title(title)
-    outname = 'omi_ceres_compare_'+OMI_date+'.png'
-    if(save == True):
-        plt.savefig(outname,dpi=300)
-        print("Saved image",outname)
-    else:
-        plt.show()
-    return mask_AI,mask_flux
+##!#def plot_compare_OMI_CERES_hrly(OMI_date,CERES_date,minlat=65,max_AI = -200.,\
+##!#        omi_dtype = 'control', only_sea_ice = False, skiprows = None, save=False):
+##!##def plot_compare_OMI_CERES_hrly(OMI_hrly,CERES_hrly,minlat=65,save=False):
+##!#
+##!#    if('/home/bsorenson/Research/OMI' not in sys.path):
+##!#        sys.path.append('/home/bsorenson/Research/OMI')
+##!#    from OMILib import readOMI_swath_shawn, readOMI_swath_hdf, \
+##!#        plotOMI_single_swath
+##!#
+##!#    # ----------------------------------------------------
+##!#    # Set up the overall figure
+##!#    # ----------------------------------------------------
+##!#    plt.close('all')
+##!#    fig1 = plt.figure(figsize = (6,6))
+##!#    mapcrs = ccrs.NorthPolarStereo()
+##!#    ax0 = fig1.add_subplot(1,1,1, projection = mapcrs)
+##!#
+##!#    # Set up mapping variables 
+##!#    datacrs = ccrs.PlateCarree() 
+##!#    colormap = plt.cm.jet
+##!#    if(minlat < 45):
+##!#        mapcrs = ccrs.Miller()
+##!#    else:
+##!#        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
+##!#
+##!#    # Step 1: read in OMI and CERES data
+##!#    # ----------------------------------
+##!#    #OMI_hrly = readOMI_single_swath(OMI_date,60,only_sea_ice = only_sea_ice)
+##!#    if(omi_dtype == 'shawn'):
+##!#        OMI_hrly  = readOMI_swath_shawn(OMI_date, latmin = minlat,\
+##!#            skiprows = skiprows)
+##!#    else:
+##!#        if(omi_dtype == 'jz'):
+##!#            omi_dtype = 'JZ'
+##!#        OMI_hrly  = readOMI_swath_hdf(OMI_date, omi_dtype, \
+##!#            only_sea_ice = only_sea_ice, latmin = minlat, \
+##!#            skiprows = skiprows)
+##!#
+##!#    CERES_hrly = readgridCERES_hrly(CERES_date,'SWF')
+##!#
+##!#    # Step 2: Set up figure to have 3 panels
+##!#    # --------------------------------------
+##!#    plt.close('all')
+##!#    #fig, axs = plt.subplots(1,3,subplot_kw={'projection': mapcrs})
+##!#    fig = plt.figure(figsize=(17,5))
+##!#    ax0 = fig.add_subplot(1,3,2,projection = mapcrs)
+##!#    ax1 = fig.add_subplot(1,3,3,projection = mapcrs)
+##!#    ax2 = fig.add_subplot(1,3,1)
+##!#
+##!#    # Step 3: Plot OMI and CERES data in first two panels
+##!#    # ---------------------------------------------------
+##!#
+##!#    # -------------------------------------------------------
+##!#    # Use the single-swath plotting function to plot OMI data
+##!#    # -------------------------------------------------------
+##!#    plotOMI_single_swath(ax0, OMI_hrly, title = omi_dtype.title(), \
+##!#        circle_bound = True, gridlines = False)
+##!#
+##!#    ax0.set_extent([-180,180,minlat,90], datacrs)
+##!#
+##!#
+##!#    local_data = np.copy(CERES_hrly['data'])
+##!#
+##!#    # -------------------------------------------------------
+##!#    # Use the single-swath plotting function to plot OMI data
+##!#    # -------------------------------------------------------
+##!#    plot_lat, plot_lon = np.meshgrid(CERES_hrly['lat'],CERES_hrly['lon'])
+##!#    mask_flux = np.ma.masked_where(((CERES_hrly['counts'] == 0) | \
+##!#        (CERES_hrly['lat'] < minlat)), local_data)
+##!#
+##!#    ax1.gridlines(ylocs = np.arange(minlat,90,5))
+##!#    ax1.coastlines(resolution = '50m')
+##!#    ax1.set_title('CERES ' + CERES_hrly['param'] + ' ' + CERES_hrly['date'])
+##!#    #plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
+##!#    mesh1 = ax1.pcolormesh(plot_lon, plot_lat,mask_flux,transform = datacrs,cmap = colormap,\
+##!#            vmin = min_dict[CERES_hrly['param']], \
+##!#            vmax = max_dict[CERES_hrly['param']])
+##!#    ax1.set_extent([-180,180,minlat,90],datacrs)
+##!#    ax1.set_boundary(circle, transform=ax1.transAxes)
+##!#            #vmin = var_dict[variable]['min'], vmax = var_dict[variable]['max'])
+##!#    cbar = plt.colorbar(mesh1,ax=ax1,orientation='vertical',pad=0.02,\
+##!#        aspect=50,shrink = 1.000,label=CERES_hrly['param'] + ' [W/m2]')
+##!#    
+##!#    # Step 4: Plot scatter OMI and CERES comparison in third panel
+##!#    # ------------------------------------------------------------
+##!#
+##!#    # Make gridded lat and lon arrays to use for coloring the plot
+##!#    glat, glon = np.meshgrid(OMI_hrly['LAT'],OMI_hrly['LON'])
+##!#    
+##!#    # Mask any empty boxes
+##!#    mask_AI = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
+##!#        (CERES_hrly['counts'] == 0) | (OMI_hrly['AI'] < max_AI)),OMI_hrly['AI'])
+##!#    mask_flux = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
+##!#        (CERES_hrly['counts'] == 0) | (OMI_hrly['AI'] < max_AI)),CERES_hrly['data'])
+##!#    mask_sza  = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
+##!#        (CERES_hrly['counts'] == 0) | (OMI_hrly['AI'] < max_AI)),OMI_hrly['SZA'])
+##!#    #mask_lat  = np.ma.masked_where(((OMI_hrly['AI_count'] == 0) | \
+##!#    #    (CERES_hrly['counts'] == 0) | (OMI_hrly['AI'] < max_AI)),glat)
+##!#    ##!## Convert the index to a string using datetime
+##!#    ##!#if(month != None):
+##!#    ##!#    dt_obj = datetime.strptime(OMI_data['DATES'][month],"%Y%m")
+##!#    ##!#    title = 'OMI AI / CERES ' + CERES_data['param'] + '\n'+ \
+##!#    ##!#        dt_obj.strftime("%b") + " Trend Comparison"
+##!#    ##!#    outname = 'omi_ceres_trend_comp_'+dt_obj.strftime("%b")+'_'+\
+##!#    ##!#        OMI_data['VERSION']+'vCERES.png'
+##!#    ##!#else:
+##!#    ##!#    title = 'OMI AI / CERES ' + CERES_data['param'] + ' Trend Comparison'
+##!#    ##!#    outname = 'omi_ceres_trend_comp_'+\
+##!#    ##!#        OMI_data1['VERSION']+'vCERES.png'
+##!#
+##!#
+##!#    #print("Pearson:  ",pearsonr(mask_AI,mask_flux))
+##!#    #print("Spearman: ",spearmanr(mask_AI,mask_flux))
+##!#
+##!#    ##!#xy = np.vstack([mask_AI,mask_flux])
+##!#    ##!#z = stats.gaussian_kde(xy)(xy)
+##!#
+##!#    ##!## Plot a somewhat-robust best fit line using Huber Regression
+##!#    ##!## -----------------------------------------------------------
+##!#    ##!#x_scaler,y_scaler = StandardScaler(), StandardScaler()
+##!#    ##!#x_train = x_scaler.fit_transform(mask_AI[...,None])
+##!#    ##!#y_train = y_scaler.fit_transform(mask_flux[...,None])
+##!#
+##!#    ##!#model = HuberRegressor(epsilon=1)
+##!#    ##!#model.fit(x_train,y_train)
+##!#    ##!#
+##!#    ##!#test_x = np.array([np.min(mask_AI),np.max(mask_AI)])
+##!#    ##!#predictions = y_scaler.inverse_transform(\
+##!#    ##!#    model.predict(x_scaler.transform(test_x[...,None])))
+##!#
+##!#    ##!## One to one line stuff
+##!#    ##!#xs = np.arange(np.min(mask_AI),np.max(mask_AI),0.1)
+##!#
+##!#    #plt.close('all')
+##!#    #fig1 = plt.figure()
+##!#    #scat = ax2.scatter(mask_AI,mask_flux,c=mask_lat,s=8)
+##!#    scat = ax2.scatter(mask_AI,mask_flux,c=mask_sza,s=8)
+##!#    cbar = plt.colorbar(scat,ax=ax2,orientation='vertical',\
+##!#        label='Solar Zenith Angle',pad=0.02,aspect=50)
+##!#    ax2.set_title(OMI_hrly['date'])
+##!#    #plt.title(OMI_hrly['date'])
+##!#    #plt.scatter(mask_AI,mask_flux,c=z,s=8)
+##!#    #plt.plot(test_x,predictions,color='tab:green',linestyle='--',label='Huber Fit')
+##!#    #plt.plot(test_x,predictions,color='tab:green',linestyle='--',label='Huber Fit')
+##!#    # Plot an unrobust fit line using linear regression
+##!#    # -------------------------------------------------
+##!#    #plt.plot(np.unique(mask_AI),np.poly1d(np.polyfit(mask_AI,\
+##!#    #    mask_flux,1))(np.unique(mask_AI)),color='tab:orange',\
+##!#    #    linestyle='--',label='Polyfit Fit')
+##!#    # Plot a one-to-one line
+##!#    #plt.plot(xs,xs,label='1-1',color='tab:red')
+##!#    ##if((month == 0) | (month == 1)):
+##!#    ##    plt.xlim(-0.5,0.3)
+##!#    ##    plt.ylim(-0.5,0.3)
+##!#    ##elif((month == 2)):
+##!#    ##    plt.xlim(-0.6,0.5)
+##!#    ##    plt.ylim(-0.6,0.5)
+##!#    ##elif((month == 3)):
+##!#    ##    plt.xlim(-0.5,0.5)
+##!#    ##    plt.ylim(-0.5,0.5)
+##!#    ##elif((month == 4)):
+##!#    ##    plt.xlim(-0.5,0.7)
+##!#    ##    plt.ylim(-0.5,0.7)
+##!#    ##elif((month == 5)):
+##!#    ##    plt.xlim(-0.5,0.5)
+##!#    ##    plt.ylim(-0.5,0.5)
+##!#    ##else:
+##!#    ##    plt.xlim(-0.3,0.3)
+##!#    ##    plt.ylim(-0.3,0.3)
+##!#    #axs[2].legend()
+##!#    ax2.set_xlabel('OMI AI')
+##!#    ax2.set_ylabel('CERES ' + CERES_hrly['param'])
+##!#    #plt.subplots_adjust(wspace=0.1, hspace=0.10)
+##!#    plt.tight_layout()
+##!#    #plt.title(title)
+##!#    outname = 'omi_ceres_compare_'+OMI_date+'.png'
+##!#    if(save == True):
+##!#        plt.savefig(outname,dpi=300)
+##!#        print("Saved image",outname)
+##!#    else:
+##!#        plt.show()
+##!#    return mask_AI,mask_flux
 
 #def plot_compare_OMI_CERES_hrly_grid(OMI_date,CERES_date,minlat=65,max_AI = -200.,\
 def plot_compare_OMI_CERES_hrly_grid(date_str,minlat=65,max_AI = -200.,\
@@ -2461,8 +2461,10 @@ def plot_compare_OMI_CERES_hrly_grid(date_str,minlat=65,max_AI = -200.,\
 
     # Extract OMI and CERES values at a desired point
     # -----------------------------------------------
-    tlat = 85.1155
-    tlon = -68.2791
+    tlat = 78.4375
+    tlon = 138.9517
+    #tlat = 85.1155
+    #tlon = -68.2791
     c_idx = nearest_gridpoint(tlat, tlon,\
         CERES_hrly['lat'], CERES_hrly['lon'])
     if(len(c_idx[0]) > 1):

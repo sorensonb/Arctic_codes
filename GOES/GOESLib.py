@@ -1078,7 +1078,7 @@ def plot_GOES_satpy(date_str, channel, ax = None, var = None, crs = None, \
     if(colorbar):
         cbar = plt.colorbar(im1, ax = ax, pad = 0.03, fraction = 0.052, \
             extend = 'both')
-        cbar.set_label(plabel, size = labelsize, weight = 'bold')
+        cbar.set_label(plabel.replace('_',' '), size = labelsize, weight = 'bold')
 
     # Zoom in the figure if desired
     # -----------------------------
@@ -1151,15 +1151,15 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
     font_size = 10
     plot_GOES_satpy(date_str, ch1, ax = ax0, var = var0, crs = crs0, \
         lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
-        vmin = None, vmax = None, ptitle = '', plabel = plabel0, \
+        vmin = None, vmax = 100, ptitle = '', plabel = plabel0, \
         colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
     plot_GOES_satpy(date_str, ch2, ax = ax1, var = var1, crs = crs0, \
         lons = lons1, lats = lats1, lat_lims = lat_lims, lon_lims = lon_lims, \
-        vmin = None, vmax = 100., ptitle = '', plabel = plabel1, \
+        vmin = None, vmax = 30., ptitle = '', plabel = plabel1, \
         colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
     plot_GOES_satpy(date_str, ch3, ax = ax2, var = var2, crs = crs0, \
         lons = lons2, lats = lats2, lat_lims = lat_lims, lon_lims = lon_lims, \
-        vmin = None, vmax = None, ptitle = '', plabel = plabel2, \
+        vmin = 270, vmax = 330, ptitle = '', plabel = plabel2, \
         colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
     plot_GOES_satpy(date_str, ch4, ax = ax3, var = var3, crs = crs0, \
         lons = lons3, lats = lats3, lat_lims = lat_lims, lon_lims = lon_lims, \
@@ -1218,6 +1218,12 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
     #
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
    
+    # "Coldest" values
+    # -------------
+    c_lon_stn = -120.6530
+    c_lat_stn = 40.7595
+    cd_idx = nearest_gridpoint(c_lat_stn, c_lon_stn,\
+        lats3, lons3)
     # "Cold" values
     # -------------
     lon_stn = -120.3877
@@ -1227,10 +1233,43 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
     # "Warm" values
     # -------------
     w_lon_stn = -120.9810
-    w_lat_stn = 40.50900
+    w_lat_stn = 41.20980
+
+    #w_lat_stn = 40.50900
     w_idx = nearest_gridpoint(w_lat_stn, w_lon_stn,\
         lats3, lons3)
 
+    ##!#ax2.plot(c_lon_stn, c_lat_stn,
+    ##!#         color='tab:green', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
+    ##!#ax2.plot(lon_stn, lat_stn,
+    ##!#         color='tab:blue', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
+    ##!#ax2.plot(w_lon_stn, w_lat_stn,
+    ##!#         color='tab:purple', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
+    ##!#ax3.plot(lon_stn, lat_stn,
+    ##!#         color='tab:blue', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
+    ##!#ax3.plot(w_lon_stn, w_lat_stn,
+    ##!#         color='tab:purple', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
+    ##!#ax4.plot(lon_stn, lat_stn,
+    ##!#         color='tab:blue', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
+    ##!#ax4.plot(w_lon_stn, w_lat_stn,
+    ##!#         color='tab:purple', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
+    ##!#ax5.plot(lon_stn, lat_stn,
+    ##!#         color='tab:blue', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
+    ##!#ax5.plot(w_lon_stn, w_lat_stn,
+    ##!#         color='tab:purple', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
+
+    print("TIR")
+    print("     Cold - ", np.array(var2)[cd_idx])
+    print("     Warm - ", np.array(var2)[w_idx])
     print("Upper WV")
     print("     Cold - ", np.array(var3)[c_idx])
     print("     Warm - ", np.array(var3)[w_idx])
