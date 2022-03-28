@@ -208,48 +208,48 @@ def plot_arctic_regions(pax, linewidth = 2):
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
-def plot_subplot_label(ax, label, xval = None, yval = None, transform = None, \
-        color = 'black', backgroundcolor = None, fontsize = 14, \
-        location = 'upper_left'):
-
-    if(location == 'upper_left'):
-        y_lim = 0.90
-        x_lim = 0.05
-    elif(location == 'lower_left'):
-        y_lim = 0.05
-        x_lim = 0.05
-    elif(location == 'upper_right'):
-        y_lim = 0.90
-        x_lim = 0.90
-    elif(location == 'lower_right'):
-        y_lim = 0.05
-        x_lim = 0.90
-
-    if(xval is None):
-        xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * x_lim
-    if(yval is None):
-        yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * y_lim
-    print('Xval = ',xval, 'Yval = ',yval)
-
-    if(transform is None):
-        if(backgroundcolor is None):
-            ax.text(xval,yval,label, \
-                color=color, weight='bold', \
-                fontsize=fontsize)
-        else:
-            ax.text(xval,yval,label, \
-                color=color, weight='bold', \
-                fontsize=fontsize, backgroundcolor = backgroundcolor)
-    else:
-        if(backgroundcolor is None):
-            ax.text(xval,yval,label, \
-                color=color, weight='bold', \
-                transform = transform, fontsize=fontsize)
-        else:
-            ax.text(xval,yval,label, \
-                color=color, weight='bold', \
-                transform = transform, fontsize=fontsize, \
-                backgroundcolor = backgroundcolor)
+##!#def plot_subplot_label(ax, label, xval = None, yval = None, transform = None, \
+##!#        color = 'black', backgroundcolor = None, fontsize = 14, \
+##!#        location = 'upper_left'):
+##!#
+##!#    if(location == 'upper_left'):
+##!#        y_lim = 0.90
+##!#        x_lim = 0.05
+##!#    elif(location == 'lower_left'):
+##!#        y_lim = 0.05
+##!#        x_lim = 0.05
+##!#    elif(location == 'upper_right'):
+##!#        y_lim = 0.90
+##!#        x_lim = 0.90
+##!#    elif(location == 'lower_right'):
+##!#        y_lim = 0.05
+##!#        x_lim = 0.90
+##!#
+##!#    if(xval is None):
+##!#        xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * x_lim
+##!#    if(yval is None):
+##!#        yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * y_lim
+##!#    print('Xval = ',xval, 'Yval = ',yval)
+##!#
+##!#    if(transform is None):
+##!#        if(backgroundcolor is None):
+##!#            ax.text(xval,yval,label, \
+##!#                color=color, weight='bold', \
+##!#                fontsize=fontsize)
+##!#        else:
+##!#            ax.text(xval,yval,label, \
+##!#                color=color, weight='bold', \
+##!#                fontsize=fontsize, backgroundcolor = backgroundcolor)
+##!#    else:
+##!#        if(backgroundcolor is None):
+##!#            ax.text(xval,yval,label, \
+##!#                color=color, weight='bold', \
+##!#                transform = transform, fontsize=fontsize)
+##!#        else:
+##!#            ax.text(xval,yval,label, \
+##!#                color=color, weight='bold', \
+##!#                transform = transform, fontsize=fontsize, \
+##!#                backgroundcolor = backgroundcolor)
 
 def plot_theil_sen_trend(pax, xdata, ydata, color, linestyle):
     res = stats.theilslopes(ydata, xdata, 0.90)
@@ -4951,22 +4951,38 @@ def plot_OMI_fort_out_func(infile, ax = None, min_lat = 70., vtype = 'areas', sa
 # dictionary returned from read_OMI_fort_out
 # ----------------------------------------------------------------------------
 def plot_OMI_fort_out_time_series(omi_fort_dict, pax, minlat = 70., d_val = 4):
+   
+    if(np.max(omi_fort_dict['daily_data']) < 1.):
+        multiplier = 10
+        exponent = 4
+    else:
+        multiplier = 1
+        exponent = 5
+
+    label_str = 'Area of high AI [10$^{' + \
+        str(exponent) + '}$ km$^{2}$]'
+
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
     #
     # Plot the total time series of daily areas with peaks
     #
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-    pax.plot(omi_fort_dict['daily_dt_dates'],omi_fort_dict['daily_data'],label='daily '+omi_fort_dict['dtype'])
-    
+    pax.plot(omi_fort_dict['daily_dt_dates'], \
+        omi_fort_dict['daily_data'] * multiplier, \
+        label='daily '+omi_fort_dict['dtype'])
+ 
     # Test peaks here
     # ---------------
     d_val = 4
-    peaks, _ = find_peaks(omi_fort_dict['daily_data'], height = omi_fort_dict['h_val'], distance = d_val)
-    pax.plot(omi_fort_dict['daily_dt_dates'][peaks], omi_fort_dict['daily_data'][peaks], 'x', color='black')
+    peaks, _ = find_peaks(omi_fort_dict['daily_data'] * multiplier, \
+        height = omi_fort_dict['h_val'] * multiplier, distance = d_val)
+    pax.plot(omi_fort_dict['daily_dt_dates'][peaks], \
+        omi_fort_dict['daily_data'][peaks] * multiplier, 'x', color='black')
     
     #ax1.legend()
-    pax.set_ylabel(omi_fort_dict['axis_label'])
-    pax.set_title('Latitude > '+str(int(minlat))+'$^{o}$')
+    #pax.set_ylabel(omi_fort_dict['axis_label'])
+    pax.set_ylabel(label_str, weight = 'bold')
+    #pax.set_title('Latitude > '+str(int(minlat))+'$^{o}$')
     #pax.set_title('AI ' + omi_fort_dict['vtype'].title() + ': Threshold of '+str(omi_fort_dict['ai_thresh'])+\
     #    '\nNorth of '+str(int(minlat))+'$^{o}$')
     pax.grid()
@@ -5014,9 +5030,9 @@ def plot_OMI_fort_out_peak_bar(omi_fort_dict, pax, minlat = 70., d_val = 4):
         pax.bar(omi_fort_dict['years'], events_yearly[:,ii], \
             bottom = np.sum(events_yearly[:,0:ii],axis=1), \
             label = label_str)
-    pax.legend()
-    pax.set_ylabel('# of AI peaks in each size range')
-    pax.set_title('Latitude > '+str(int(minlat))+'$^{o}$')
+    pax.legend(fontsize = 10)
+    pax.set_ylabel('# of AI peaks in each size range', weight = 'bold')
+    #pax.set_title('Latitude > '+str(int(minlat))+'$^{o}$')
     #pax.set_title('AI ' + omi_fort_dict['vtype'].title() + ' : Threshold of '+str(omi_fort_dict['ai_thresh'])+\
     #    '\nNorth of '+str(int(minlat))+'$^{o}$')
     
@@ -5088,12 +5104,19 @@ def plot_OMI_fort_out_two_lats(infile, minlat = 70., vtype = 'areas', save = Fal
 
     # Add subplot labels
     # ------------------
-    plot_subplot_label(ax1, '(a)', backgroundcolor = 'white')
-    plot_subplot_label(ax2, '(b)', backgroundcolor = 'white')
-    plot_subplot_label(ax3, '(c)', backgroundcolor = 'white')
-    plot_subplot_label(ax4, '(d)', backgroundcolor = 'white')
+    plot_subplot_label(ax1, '(a)', location = 'upper_left')
+    plot_subplot_label(ax2, '(b)', location = 'upper_left')
+    plot_subplot_label(ax3, '(c)', location = 'upper_left')
+    plot_subplot_label(ax4, '(d)', location = 'upper_left')
+
+    row_label_size = 14
+    fig1.text(0.05, 0.705, '---------- Latitude > 70$^{o}$ N ----------', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size)
+    fig1.text(0.05, 0.285, '---------- Latitude > 80$^{o}$ N ----------', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size)
 
     if(save):
+        thresh = str(int(omi_fort_dict_70['ai_thresh'])*100)
         outname = 'ai_fort_out_thresh'+thresh+'_minlat7080.png'
         fig1.savefig(outname, dpi = 300)
         print("Saved image",outname)

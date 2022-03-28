@@ -31,4 +31,4 @@ channel = 2
 
 for dstr in date_str:
 #dstr = date_str[2]
-    plot_GOES_satpy_6panel(dstr, 2, 6, 13, 8, 9, 10, zoom = True, save = True)
+    plot_GOES_satpy_6panel(dstr, 2, 6, 13, 7, 9, 10, zoom = True, save = True)

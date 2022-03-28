@@ -1151,7 +1151,7 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
     font_size = 10
     plot_GOES_satpy(date_str, ch1, ax = ax0, var = var0, crs = crs0, \
         lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
-        vmin = None, vmax = 100, ptitle = '', plabel = plabel0, \
+        vmin = None, vmax = None, ptitle = '', plabel = plabel0, \
         colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
     plot_GOES_satpy(date_str, ch2, ax = ax1, var = var1, crs = crs0, \
         lons = lons1, lats = lats1, lat_lims = lat_lims, lon_lims = lon_lims, \
