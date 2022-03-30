@@ -3674,7 +3674,8 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
         #cbar.set_label(variable,fontsize=16,weight='bold')
         tickvals = np.arange(-2.0,4.1,1.0)
         cbar = plt.colorbar(mesh,ax = pax, ticks = tickvals,\
-            orientation='vertical', extend = 'both')
+            orientation='vertical', extend = 'both', fraction = 0.046,\
+            pad = 0.04)
         cbar.set_label(label,fontsize = 14, weight='bold')
         cbar.ax.tick_params(labelsize=14)
 

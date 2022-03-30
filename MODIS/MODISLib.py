@@ -917,12 +917,16 @@ def read_true_color(date_str,composite = False):
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
     filename = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
     print(filename)
-    if(composite):
-        day_filenames = glob(filename[:50]+'*')
-        cmpst_add = '_composite'
-    else:
-        day_filenames = glob(filename)
+    if(type(filename) is list):
+        day_filenames = filename
         cmpst_add = ''
+    else:
+        if(composite):
+            day_filenames = glob(filename[:50]+'*')
+            cmpst_add = '_composite'
+        else:
+            day_filenames = glob(filename)
+            cmpst_add = ''
 
     # Extract the modis true-color plot limits
     # ----------------------------------------

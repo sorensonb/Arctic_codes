@@ -187,9 +187,14 @@ date_idx = 39 # very very good, JZ
 OMI_date   = '201708191713'
 CERES_date = '2017081918'
 #date_str = '201708190000'
-#date_str = '201708191810'
-date_str = '201908110445'
-plot_compare_OMI_CERES_hrly_grid(date_str,  \
-        only_sea_ice = False, minlat = 65., skiprows = [52], \
-        no_ice = False, lat_circles = None, omi_dtype = 'control', zoom = True, save = False)
+date_str = '201708191810'
+#date_str = '201908110445'
+#plot_compare_OMI_CERES_hrly_grid(date_str,  \
+#        only_sea_ice = False, minlat = 65., skiprows = [52], \
+#        no_ice = False, lat_circles = None, omi_dtype = 'control', zoom = True, save = False)
+plot_compare_OMI_CERES_hrly_grid_2case('201908110445','201708191810', minlat=65,max_AI = -200.,\
+        omi_dtype = 'control', ceres_dtype = 'swf', only_sea_ice = False, \
+        only_ice = False, no_ice = False,  skiprows = [52], save=True, \
+        composite = False, zoom = True, lat_circles = None, \
+        show_scatter = False)
 

@@ -52,7 +52,8 @@ from scipy.signal import argrelextrema, find_peaks
 
 sys.path.append('/home/bsorenson')
 from python_lib import circle, plot_trend_line, nearest_gridpoint, \
-    aerosol_event_dict, init_proj, plot_lat_circles
+    aerosol_event_dict, init_proj, plot_lat_circles, plot_figure_text, \
+    plot_subplot_label
 
 ##!## Compute a circle in axes coordinates, which we can use as a boundary
 ##!## for the map. We can pan/zoom as much as we like - the boundary will be
@@ -2345,7 +2346,8 @@ def plot_compare_OMI_CERES_trends(OMI_data,CERES_data,month,minlat=65,\
 def plot_compare_OMI_CERES_hrly_grid(date_str,minlat=65,max_AI = -200.,\
         omi_dtype = 'control', ceres_dtype = 'swf', only_sea_ice = False, \
         only_ice = False, no_ice = False,  skiprows = None, save=False, \
-        composite = False, zoom = False, lat_circles = None):
+        composite = False, zoom = False, lat_circles = None, \
+        show_scatter = False):
 #def plot_compare_OMI_CERES_hrly(OMI_hrly,CERES_hrly,minlat=65,save=False):
 
     if('/home/bsorenson/Research/OMI' not in sys.path):
@@ -2421,12 +2423,20 @@ def plot_compare_OMI_CERES_hrly_grid(date_str,minlat=65,max_AI = -200.,\
     # ------------------------------------------------------------------------
     plt.close('all')
     #fig, axs = plt.subplots(1,3,subplot_kw={'projection': mapcrs})
-    fig = plt.figure(figsize=(10,8))
-    mapcrs = init_proj(date_str)
-    ax0 = fig.add_subplot(2,2,1,projection = mapcrs)
-    ax1 = fig.add_subplot(2,2,2,projection = mapcrs)
-    #ax3 = fig.add_subplot(2,2,3,projection = crs1)
-    ax2 = fig.add_subplot(2,2,4)
+    #mapcrs = init_proj(date_str)
+    if(show_scatter):
+        fig = plt.figure(figsize=(9,6))
+        ax0 = fig.add_subplot(2,2,2,projection = mapcrs)
+        ax1 = fig.add_subplot(2,2,3,projection = mapcrs)
+        ax3 = fig.add_subplot(2,2,1)
+        #ax3 = fig.add_subplot(2,2,4,projection = crs1)
+        ax2 = fig.add_subplot(2,2,4)
+    else:
+        fig = plt.figure(figsize=(14,3))
+        ax0 = fig.add_subplot(1,3,2,projection = mapcrs)
+        ax1 = fig.add_subplot(1,3,3,projection = mapcrs)
+        ax3 = fig.add_subplot(1,3,1)
+        #ax3 = fig.add_subplot(2,2,4,projection = crs1)
 
     ##!## Plot the true-color data for the previous date
     ##!## ----------------------------------------------
@@ -2439,6 +2449,16 @@ def plot_compare_OMI_CERES_hrly_grid(date_str,minlat=65,max_AI = -200.,\
     ##!#    ax3.set_extent([lon_lims1[0],lon_lims1[1],lat_lims1[0],\
     ##!#        lat_lims1[1]],crs = datacrs)
 
+    # Read in the matching Worldview image
+    # ------------------------------------
+    base_path = '/home/bsorenson/Research/OMI/'
+    img_name = dt_date_str.strftime(base_path + 'snapshot-%Y-%m-%dT00_00_00Z_zoomed2.jpg') 
+    print("Looking for ",img_name)
+
+    pic = plt.imread(img_name)
+    ax3.imshow(pic)
+    ax3.axis('off')
+
     # ------------------------------------------------------------------------
     #
     # Step 3: Plot OMI and CERES data in first two panels
@@ -2448,79 +2468,81 @@ def plot_compare_OMI_CERES_hrly_grid(date_str,minlat=65,max_AI = -200.,\
                 dt_date_str.strftime('%H%M')]['Lat']
     lon_lims = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
                 dt_date_str.strftime('%H%M')]['Lon']
-    if(zoom):
-        OMI_base['UVAI'] = np.ma.masked_where(~((OMI_base['LAT'] >= lat_lims[0]) & \
-                                                (OMI_base['LAT'] <  lat_lims[1]) & \
-                                                (OMI_base['LON'] >= lon_lims[0]) & \
-                                                (OMI_base['LON'] <  lon_lims[1])), OMI_base['UVAI'])
-        #OMI_base['UVAI'] = np.ma.masked_where(OMI_base['UVAI'] > 1, OMI_base['UVAI'])
-        CERES_hrly[ceres_dtype] = np.ma.masked_where(~((CERES_hrly['lat'] >= lat_lims[0]) & \
-                                                  (CERES_hrly['lat'] <  lat_lims[1]) & \
-                                                  (CERES_hrly['lon'] >= lon_lims[0]) & \
-                                                  (CERES_hrly['lon'] <  lon_lims[1])), CERES_hrly[ceres_dtype])
+    ##!#if(zoom):
+    ##!#    OMI_base['UVAI'] = np.ma.masked_where(~((OMI_base['LAT'] >= lat_lims[0]) & \
+    ##!#                                            (OMI_base['LAT'] <  lat_lims[1]) & \
+    ##!#                                            (OMI_base['LON'] >= lon_lims[0]) & \
+    ##!#                                            (OMI_base['LON'] <  lon_lims[1])), OMI_base['UVAI'])
+    ##!#    #OMI_base['UVAI'] = np.ma.masked_where(OMI_base['UVAI'] > 1, OMI_base['UVAI'])
+    ##!#    CERES_hrly[ceres_dtype] = np.ma.masked_where(~((CERES_hrly['lat'] >= lat_lims[0]) & \
+    ##!#                                              (CERES_hrly['lat'] <  lat_lims[1]) & \
+    ##!#                                              (CERES_hrly['lon'] >= lon_lims[0]) & \
+    ##!#                                              (CERES_hrly['lon'] <  lon_lims[1])), CERES_hrly[ceres_dtype])
 
-    # Extract OMI and CERES values at a desired point
-    # -----------------------------------------------
-    tlat = 78.4375
-    tlon = 138.9517
-    #tlat = 85.1155
-    #tlon = -68.2791
-    c_idx = nearest_gridpoint(tlat, tlon,\
-        CERES_hrly['lat'], CERES_hrly['lon'])
-    if(len(c_idx[0]) > 1):
-        c_idx = (np.array([c_idx[0][0]])), (np.array([c_idx[1][0]]))
-    tflux = CERES_hrly[ceres_dtype][c_idx]
-    tfluxlat = CERES_hrly['lat'][c_idx]
-    tfluxlon = CERES_hrly['lon'][c_idx]
+    ##!## Extract OMI and CERES values at a desired point
+    ##!## -----------------------------------------------
+    ##!#tlat = 78.4375
+    ##!#tlon = 138.9517
+    ##!##tlat = 85.1155
+    ##!##tlon = -68.2791
+    ##!#c_idx = nearest_gridpoint(tlat, tlon,\
+    ##!#    CERES_hrly['lat'], CERES_hrly['lon'])
+    ##!#if(len(c_idx[0]) > 1):
+    ##!#    c_idx = (np.array([c_idx[0][0]])), (np.array([c_idx[1][0]]))
+    ##!#tflux = CERES_hrly[ceres_dtype][c_idx]
+    ##!#tfluxlat = CERES_hrly['lat'][c_idx]
+    ##!#tfluxlon = CERES_hrly['lon'][c_idx]
 
-    o_idx = nearest_gridpoint(tlat, tlon,\
-        OMI_base['LAT'], OMI_base['LON'])
-    if(len(o_idx[0]) > 1):
-        print('o_idx = ',o_idx)
-        o_idx = (np.array([o_idx[0][0]])), (np.array([o_idx[1][0]]))
-    tai    = OMI_base['UVAI'][o_idx]
-    tailat = OMI_base['LAT'][o_idx]
-    tailon = OMI_base['LON'][o_idx]
+    ##!#o_idx = nearest_gridpoint(tlat, tlon,\
+    ##!#    OMI_base['LAT'], OMI_base['LON'])
+    ##!#if(len(o_idx[0]) > 1):
+    ##!#    print('o_idx = ',o_idx)
+    ##!#    o_idx = (np.array([o_idx[0][0]])), (np.array([o_idx[1][0]]))
+    ##!#tai    = OMI_base['UVAI'][o_idx]
+    ##!#tailat = OMI_base['LAT'][o_idx]
+    ##!#tailon = OMI_base['LON'][o_idx]
 
-    ax0.plot(tailon, tailat,
-             color='k', linewidth=2, marker='o',
-             transform=datacrs)
-    ax0.plot(tfluxlon, tfluxlat,
-             color='r', linewidth=2, marker='o',
-             transform=datacrs)
-    ax0.plot(tlon, tlat,
-             color='w', linewidth=2, marker='o',
-             transform=datacrs)
-    ax1.plot(tailon, tailat,
-             color='k', linewidth=2, marker='o',
-             transform=datacrs)
-    ax1.plot(tfluxlon, tfluxlat,
-             color='r', linewidth=2, marker='o',
-             transform=datacrs)
-    ax1.plot(tlon, tlat,
-             color='w', linewidth=2, marker='o',
-             transform=datacrs)
+    ##!#ax0.plot(tailon, tailat,
+    ##!#         color='k', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
+    ##!#ax0.plot(tfluxlon, tfluxlat,
+    ##!#         color='r', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
+    ##!#ax0.plot(tlon, tlat,
+    ##!#         color='w', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
+    ##!#ax1.plot(tailon, tailat,
+    ##!#         color='k', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
+    ##!#ax1.plot(tfluxlon, tfluxlat,
+    ##!#         color='r', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
+    ##!#ax1.plot(tlon, tlat,
+    ##!#         color='w', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
 
-    print("Selected OMI and CERES at ", tlat, ' ', tlon,':')
-    print(' OMI   - ',tai)
-    print('     lat - ', tailat)
-    print('     lon - ', tailon)
-    print(' CERES - ',tflux)
-    print('     lat - ', tfluxlat)
-    print('     lon - ', tfluxlon)
+    ##!#print("Selected OMI and CERES at ", tlat, ' ', tlon,':')
+    ##!#print(' OMI   - ',tai)
+    ##!#print('     lat - ', tailat)
+    ##!#print('     lon - ', tailon)
+    ##!#print(' CERES - ',tflux)
+    ##!#print('     lat - ', tfluxlat)
+    ##!#print('     lon - ', tfluxlon)
 
     # Find averages of the data within the ergion
 
 
     # Use the single-swath plotting function to plot OMI data
     # -------------------------------------------------------
-    plotOMI_single_swath(ax0, OMI_base, title = 'OMI ' + omi_dtype + \
-        ' ' + OMI_date, circle_bound = circle_bound, gridlines = False)
+    plotOMI_single_swath(ax0, OMI_base, title = None, \
+        circle_bound = circle_bound, gridlines = False)
+    #plotOMI_single_swath(ax0, OMI_base, title = 'OMI ' + omi_dtype + \
+    #    ' ' + OMI_date, circle_bound = circle_bound, gridlines = False)
 
     # Use the single-swath plotting function to plot CERES data
     # ---------------------------------------------------------
     plotCERES_hrly(ax1, CERES_hrly, 'swf', minlat = minlat, \
-        vmin = None, vmax = None, title = '', label = '', \
+        vmin = 90, vmax = 250, title = '', label = 'TOA Flux [Wm$^{-2}$]', \
         circle_bound = circle_bound, gridlines = False, grid_data = True)
 
     if(zoom):
@@ -2548,116 +2570,360 @@ def plot_compare_OMI_CERES_hrly_grid(date_str,minlat=65,max_AI = -200.,\
     #
     # ------------------------------------------------------------------------
 
-    # First, get rid of any data outside the study region
-    # ---------------------------------------------------
-    print('Before zoom - ', OMI_base['UVAI'].shape)
-    if(zoom):
-        zoom_omi_LAT  = OMI_base['LAT'][( (OMI_base['LAT'] >= lat_lims[0]) & \
-                                          (OMI_base['LAT'] <  lat_lims[1] ) & \
-                                          (OMI_base['LON'] >= lon_lims[0]) & \
-                                          (OMI_base['LON'] <  lon_lims[1] ))]
-        zoom_omi_LON  = OMI_base['LON'][( (OMI_base['LAT'] >= lat_lims[0]) & \
-                                          (OMI_base['LAT'] <  lat_lims[1] ) & \
-                                          (OMI_base['LON'] >= lon_lims[0]) & \
-                                          (OMI_base['LON'] <  lon_lims[1] ))]
-        zoom_omi_UVAI = OMI_base['UVAI'][((OMI_base['LAT'] >= lat_lims[0]) & \
-                                          (OMI_base['LAT'] <  lat_lims[1] ) & \
-                                          (OMI_base['LON'] >= lon_lims[0]) & \
-                                          (OMI_base['LON'] <  lon_lims[1] ))]
-        ##!#zoom_ceres_LAT  = CERES_hrly['lat'][( (CERES_hrly['lat'] >= lat_lims[0]) & \
-        ##!#                                      (CERES_hrly['lat'] <  lat_lims[1] ) & \
-        ##!#                                      (CERES_hrly['lon'] >= lon_lims[0]) & \
-        ##!#                                      (CERES_hrly['lon'] <  lon_lims[1] ))]
-        ##!#zoom_ceres_LON  = CERES_hrly['lon'][( (CERES_hrly['lat'] >= lat_lims[0]) & \
-        ##!#                                      (CERES_hrly['lat'] <  lat_lims[1] ) & \
-        ##!#                                      (CERES_hrly['lon'] >= lon_lims[0]) & \
-        ##!#                                      (CERES_hrly['lon'] <  lon_lims[1] ))]
-        ##!#zoom_ceres_UVAI = CERES_hrly['data'][((CERES_hrly['lat'] >= lat_lims[0]) & \
-        ##!#                                      (CERES_hrly['lat'] <  lat_lims[1] ) & \
-        ##!#                                      (CERES_hrly['lon'] >= lon_lims[0]) & \
-        ##!#                                      (CERES_hrly['lon'] <  lon_lims[1] ))]
-        ##!#zoom_ceres_UVAI = CERES_hrly['data'][((CERES_hrly['lat'] >= lat_lims[0]) & \
-        ##!#                                      (CERES_hrly['lat'] <  lat_lims[1] ) & \
-        ##!#                                      (CERES_hrly['lon'] >= lon_lims[0]) & \
-        ##!#                                      (CERES_hrly['lon'] <  lon_lims[1] ))]
-    else:
-        zoom_omi_LAT  = OMI_base['LAT']
-        zoom_omi_LON  = OMI_base['LON']
-        zoom_omi_UVAI = OMI_base['UVAI']
-        ##!#zoom_ceres_LAT  = CERES_hrly['lat']
-        ##!#zoom_ceres_LON  = CERES_hrly['lon']
-        ##!#zoom_ceres_UVAI = CERES_hrly['data']
-                                             
+    labelsize = 13
+    scat_add = ''
+    if(show_scatter):
+        # First, get rid of any data outside the study region
+        # ---------------------------------------------------
+        print('Before zoom - ', OMI_base['UVAI'].shape)
+        if(zoom):
+            zoom_omi_LAT  = OMI_base['LAT'][( (OMI_base['LAT'] >= lat_lims[0]) & \
+                                              (OMI_base['LAT'] <  lat_lims[1] ) & \
+                                              (OMI_base['LON'] >= lon_lims[0]) & \
+                                              (OMI_base['LON'] <  lon_lims[1] ))]
+            zoom_omi_LON  = OMI_base['LON'][( (OMI_base['LAT'] >= lat_lims[0]) & \
+                                              (OMI_base['LAT'] <  lat_lims[1] ) & \
+                                              (OMI_base['LON'] >= lon_lims[0]) & \
+                                              (OMI_base['LON'] <  lon_lims[1] ))]
+            zoom_omi_UVAI = OMI_base['UVAI'][((OMI_base['LAT'] >= lat_lims[0]) & \
+                                              (OMI_base['LAT'] <  lat_lims[1] ) & \
+                                              (OMI_base['LON'] >= lon_lims[0]) & \
+                                              (OMI_base['LON'] <  lon_lims[1] ))]
+            ##!#zoom_ceres_LAT  = CERES_hrly['lat'][( (CERES_hrly['lat'] >= lat_lims[0]) & \
+            ##!#                                      (CERES_hrly['lat'] <  lat_lims[1] ) & \
+            ##!#                                      (CERES_hrly['lon'] >= lon_lims[0]) & \
+            ##!#                                      (CERES_hrly['lon'] <  lon_lims[1] ))]
+            ##!#zoom_ceres_LON  = CERES_hrly['lon'][( (CERES_hrly['lat'] >= lat_lims[0]) & \
+            ##!#                                      (CERES_hrly['lat'] <  lat_lims[1] ) & \
+            ##!#                                      (CERES_hrly['lon'] >= lon_lims[0]) & \
+            ##!#                                      (CERES_hrly['lon'] <  lon_lims[1] ))]
+            ##!#zoom_ceres_UVAI = CERES_hrly['data'][((CERES_hrly['lat'] >= lat_lims[0]) & \
+            ##!#                                      (CERES_hrly['lat'] <  lat_lims[1] ) & \
+            ##!#                                      (CERES_hrly['lon'] >= lon_lims[0]) & \
+            ##!#                                      (CERES_hrly['lon'] <  lon_lims[1] ))]
+            ##!#zoom_ceres_UVAI = CERES_hrly['data'][((CERES_hrly['lat'] >= lat_lims[0]) & \
+            ##!#                                      (CERES_hrly['lat'] <  lat_lims[1] ) & \
+            ##!#                                      (CERES_hrly['lon'] >= lon_lims[0]) & \
+            ##!#                                      (CERES_hrly['lon'] <  lon_lims[1] ))]
+        else:
+            zoom_omi_LAT  = OMI_base['LAT']
+            zoom_omi_LON  = OMI_base['LON']
+            zoom_omi_UVAI = OMI_base['UVAI']
+            ##!#zoom_ceres_LAT  = CERES_hrly['lat']
+            ##!#zoom_ceres_LON  = CERES_hrly['lon']
+            ##!#zoom_ceres_UVAI = CERES_hrly['data']
+                                                 
 
-    # First, get rid of any masked values in the OMI data
-    # ---------------------------------------------------
-    mask_LAT  = zoom_omi_LAT[ ~zoom_omi_UVAI.mask]
-    mask_LON  = zoom_omi_LON[ ~zoom_omi_UVAI.mask]
-    mask_UVAI = zoom_omi_UVAI[~zoom_omi_UVAI.mask]
-    mask_UVAI = np.ma.masked_where(mask_UVAI < -2, mask_UVAI)
-    ##!#mask_LAT  = OMI_base['LAT'][~OMI_base['UVAI'].mask]
+        # First, get rid of any masked values in the OMI data
+        # ---------------------------------------------------
+        mask_LAT  = zoom_omi_LAT[ ~zoom_omi_UVAI.mask]
+        mask_LON  = zoom_omi_LON[ ~zoom_omi_UVAI.mask]
+        mask_UVAI = zoom_omi_UVAI[~zoom_omi_UVAI.mask]
+        mask_UVAI = np.ma.masked_where(mask_UVAI < -2, mask_UVAI)
+        ##!#mask_LAT  = OMI_base['LAT'][~OMI_base['UVAI'].mask]
 
-    ##!#mask_LON  = OMI_base['LON'][~OMI_base['UVAI'].mask]
-    ##!#mask_UVAI = OMI_base['UVAI'][~OMI_base['UVAI'].mask]
-    print('After zoom - ', mask_UVAI.shape)
+        ##!#mask_LON  = OMI_base['LON'][~OMI_base['UVAI'].mask]
+        ##!#mask_UVAI = OMI_base['UVAI'][~OMI_base['UVAI'].mask]
+        print('After zoom - ', mask_UVAI.shape)
 
-    ceres_match_lat  = np.full(mask_UVAI.shape,np.nan)
-    ceres_match_lon  = np.full(mask_UVAI.shape,np.nan)
-    ceres_match_flux = np.full(mask_UVAI.shape,np.nan)
-    ceres_match_vza  = np.full(mask_UVAI.shape,np.nan)
+        ceres_match_lat  = np.full(mask_UVAI.shape,np.nan)
+        ceres_match_lon  = np.full(mask_UVAI.shape,np.nan)
+        ceres_match_flux = np.full(mask_UVAI.shape,np.nan)
+        ceres_match_vza  = np.full(mask_UVAI.shape,np.nan)
 
-    # Loop over the OMI data and find the closest CERES
-    # gridpoint
-    # -------------------------------------------------
-    for ii in range(ceres_match_flux.shape[0]):
-        # Find the gridpoint in the gridded lat/lon data that 
-        # corresponds to the station at slat and slon
-        # ---------------------------------------------------- 
-        o_idx = nearest_gridpoint(mask_LAT[ii], mask_LON[ii],\
-            CERES_hrly['lat'], CERES_hrly['lon'])
+        # Loop over the OMI data and find the closest CERES
+        # gridpoint
+        # -------------------------------------------------
+        for ii in range(ceres_match_flux.shape[0]):
+            # Find the gridpoint in the gridded lat/lon data that 
+            # corresponds to the station at slat and slon
+            # ---------------------------------------------------- 
+            o_idx = nearest_gridpoint(mask_LAT[ii], mask_LON[ii],\
+                CERES_hrly['lat'], CERES_hrly['lon'])
 
-        if(len(o_idx[0]) > 1):
-            o_idx = (np.array([o_idx[0][0]])), (np.array([o_idx[1][0]]))
-        ceres_match_flux[ii] = CERES_hrly[ceres_dtype][o_idx]
-        ceres_match_lat[ii] = CERES_hrly['lat'][o_idx] 
-        ceres_match_lon[ii] = CERES_hrly['lon'][o_idx] 
-        ceres_match_vza[ii] = CERES_hrly['vza'][o_idx] 
-        dist = ((ceres_match_lat[ii] - mask_LAT[ii])**2. + \
-            (ceres_match_lon[ii] - mask_LON[ii])**2.)**0.5
-        if( dist > 1.00):
-        #    print(mask_LAT[ii], mask_LON[ii], mask_UVAI[ii], CERES_hrly['data'][o_idx], dist, ' mismatch')
-            ceres_match_flux[ii] = np.nan
-            ceres_match_lat[ii]  = np.nan
-            ceres_match_lon[ii]  = np.nan
-            ceres_match_vza[ii]  = np.nan
-        #else:    
-        #    print(mask_LAT[ii], mask_LON[ii], mask_UVAI[ii], CERES_hrly['data'][o_idx], dist)
-            #print(mask_LAT[ii], mask_LON[ii], CERES_hrly['lat'][o_idx], CERES_hrly['lon'][o_idx])
+            if(len(o_idx[0]) > 1):
+                o_idx = (np.array([o_idx[0][0]])), (np.array([o_idx[1][0]]))
+            ceres_match_flux[ii] = CERES_hrly[ceres_dtype][o_idx]
+            ceres_match_lat[ii] = CERES_hrly['lat'][o_idx] 
+            ceres_match_lon[ii] = CERES_hrly['lon'][o_idx] 
+            ceres_match_vza[ii] = CERES_hrly['vza'][o_idx] 
+            dist = ((ceres_match_lat[ii] - mask_LAT[ii])**2. + \
+                (ceres_match_lon[ii] - mask_LON[ii])**2.)**0.5
+            if( dist > 1.00):
+            #    print(mask_LAT[ii], mask_LON[ii], mask_UVAI[ii], CERES_hrly['data'][o_idx], dist, ' mismatch')
+                ceres_match_flux[ii] = np.nan
+                ceres_match_lat[ii]  = np.nan
+                ceres_match_lon[ii]  = np.nan
+                ceres_match_vza[ii]  = np.nan
+            #else:    
+            #    print(mask_LAT[ii], mask_LON[ii], mask_UVAI[ii], CERES_hrly['data'][o_idx], dist)
+                #print(mask_LAT[ii], mask_LON[ii], CERES_hrly['lat'][o_idx], CERES_hrly['lon'][o_idx])
 
 
-    # ------------------------------------------------------------------------
-    #
-    # Step 5: Plot scatter OMI and CERES comparison in third panel
-    #
-    # ------------------------------------------------------------------------
+        # ------------------------------------------------------------------------
+        #
+        # Step 5: Plot scatter OMI and CERES comparison in third panel
+        #
+        # ------------------------------------------------------------------------
 
-    # Mask any empty boxes
-    print('Before scatter', np.ma.masked_invalid(ceres_match_flux).compressed().shape)
-    scat = ax2.scatter(mask_UVAI,ceres_match_flux,s=8)
-    #scat = ax2.scatter(mask_AI,mask_flux,c=mask_sza,s=8)
-    #cbar = plt.colorbar(scat,ax=ax2,orientation='vertical',\
-    #    label='Viewing Zenith Angle',pad=0.02,aspect=50)
-    ax2.set_title(OMI_base['date'])
-    ax2.set_xlabel('OMI AI')
-    ax2.set_ylabel('CERES ' + CERES_hrly['param'])
+        scat_add = '_scatter'
+        # Mask any empty boxes
+        print('Before scatter', np.ma.masked_invalid(ceres_match_flux).compressed().shape)
+        scat = ax2.scatter(mask_UVAI,ceres_match_flux,s=8)
+        #scat = ax2.scatter(mask_AI,mask_flux,c=mask_sza,s=8)
+        #cbar = plt.colorbar(scat,ax=ax2,orientation='vertical',\
+        #    label='Viewing Zenith Angle',pad=0.02,aspect=50)
+        #ax2.set_title(OMI_base['date'])
+        ax2.set_xlabel('OMI AI', weight = 'bold')
+        ax2.set_ylabel('CERES ' + CERES_hrly['param'], weight = 'bold')
+        plot_subplot_label(ax2, '(d)', fontsize = labelsize, backgroundcolor = 'white')
+
     fig.tight_layout()
 
+    plot_figure_text(ax3, 'MODIS True Color', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = labelsize, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax0, 'OMI AI', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = labelsize, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax1, 'CERES SWF', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = labelsize, backgroundcolor = 'white', halign = 'right')
+
+    # Add subplot labels
+    # ------------------
+    plot_subplot_label(ax3, '(a)', fontsize = labelsize, backgroundcolor = 'white')
+    plot_subplot_label(ax0, '(b)', fontsize = labelsize, backgroundcolor = 'white')
+    plot_subplot_label(ax1, '(c)', fontsize = labelsize, backgroundcolor = 'white')
 
     if(save == True):
-        outname = 'omi_ceres_compare_'+OMI_date+'_TEST.png'
+        outname = 'omi_ceres_compare_'+OMI_date+scat_add+'.png'
         plt.savefig(outname,dpi=300)
         print("Saved image",outname)
     else:
         plt.show()
 
-    return OMI_base, CERES_hrly
+    #return OMI_base, CERES_hrly
+
+def plot_compare_OMI_CERES_hrly_grid_2case(date_str1,date_str2, minlat=65,max_AI = -200.,\
+        omi_dtype = 'control', ceres_dtype = 'swf', only_sea_ice = False, \
+        only_ice = False, no_ice = False,  skiprows = None, save=False, \
+        composite = False, zoom = False, lat_circles = None, \
+        show_scatter = False):
+#def plot_compare_OMI_CERES_hrly(OMI_hrly,CERES_hrly,minlat=65,save=False):
+
+    if('/home/bsorenson/Research/OMI' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/OMI')
+    if('/home/bsorenson/Research/MODIS' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/MODIS/obs_smoke_forcing')
+    from OMILib import readOMI_swath_shawn, readOMI_swath_hdf, \
+        plotOMI_single_swath
+    from MODISLib import read_true_color
+
+    # ------------------------------------------------------------------------
+    #
+    # Extract the OMI and CERES dates from the event date
+    #
+    # ------------------------------------------------------------------------
+    dt_date_str1 = datetime.strptime(date_str1,"%Y%m%d%H%M")
+    dt_date_str2 = datetime.strptime(date_str2,"%Y%m%d%H%M")
+    OMI_date1 = aerosol_event_dict[dt_date_str1.strftime('%Y-%m-%d')][\
+                   dt_date_str1.strftime('%H%M')]['omi']
+    OMI_date2 = aerosol_event_dict[dt_date_str2.strftime('%Y-%m-%d')][\
+                   dt_date_str2.strftime('%H%M')]['omi']
+    OMI_date1 = OMI_date1.split('_')[-2][:4] + OMI_date1.split('_')[-2][5:9] + \
+        OMI_date1.split('_')[-2][10:14]
+    OMI_date2 = OMI_date2.split('_')[-2][:4] + OMI_date2.split('_')[-2][5:9] + \
+        OMI_date2.split('_')[-2][10:14]
+    CERES_date1 = dt_date_str1.strftime('%Y%m%d') + \
+        aerosol_event_dict[dt_date_str1.strftime('%Y-%m-%d')][\
+        dt_date_str1.strftime('%H%M')]['ceres_time']
+    CERES_date2 = dt_date_str2.strftime('%Y%m%d') + \
+        aerosol_event_dict[dt_date_str2.strftime('%Y-%m-%d')][\
+        dt_date_str2.strftime('%H%M')]['ceres_time']
+
+    # ------------------------------------------------------------------------
+    #
+    # Set up mapping variables 
+    #
+    # ------------------------------------------------------------------------
+    datacrs = ccrs.PlateCarree() 
+    colormap = plt.cm.viridis
+    circle_bound = True
+    zoom_add = ''
+    if(zoom):
+        zoom_add = '_zoom'
+        circle_bound = False
+        mapcrs = ccrs.NorthPolarStereo(central_longitude = -40)
+    else:
+        mapcrs = ccrs.NorthPolarStereo()
+
+    # ------------------------------------------------------------------------
+    #
+    # Step 1: read in OMI, CERES, and MODIS data
+    #
+    # ------------------------------------------------------------------------
+    #OMI_hrly = readOMI_single_swath(OMI_date,60,only_sea_ice = only_sea_ice)
+    if(omi_dtype == 'shawn'):
+        print("Reading Shawn data")
+        OMI_base1  = readOMI_swath_shawn(OMI_date1, latmin = minlat)
+        OMI_base2  = readOMI_swath_shawn(OMI_date2, latmin = minlat)
+    else:
+        OMI_base1  = readOMI_swath_hdf(OMI_date1, omi_dtype, \
+            only_sea_ice = only_sea_ice, only_ice = only_ice, \
+            no_ice = no_ice, latmin = minlat, \
+            skiprows = skiprows)
+        OMI_base2  = readOMI_swath_hdf(OMI_date2, omi_dtype, \
+            only_sea_ice = only_sea_ice, only_ice = only_ice, \
+            no_ice = no_ice, latmin = minlat, \
+            skiprows = skiprows)
+
+    CERES_hrly1 = readgridCERES_hrly_grid(CERES_date1, 'SWF', minlat = 55.)
+    if(CERES_hrly1 == -1):
+        print("ERROR: invalid value returned from readgridCERES_hrly_grid")
+        print("returning")
+        return
+    CERES_hrly2 = readgridCERES_hrly_grid(CERES_date2, 'SWF', minlat = 55.)
+    if(CERES_hrly2 == -1):
+        print("ERROR: invalid value returned from readgridCERES_hrly_grid")
+        print("returning")
+        return
+
+    # ------------------------------------------------------------------------
+    #
+    # Step 2: Set up figure to have 6 panels
+    #
+    # ------------------------------------------------------------------------
+    plt.close('all')
+    #fig, axs = plt.subplots(1,3,subplot_kw={'projection': mapcrs})
+    mapcrs1 = init_proj(date_str1)
+    mapcrs2 = ccrs.NorthPolarStereo(central_longitude = -40)
+    fig = plt.figure(figsize=(14,6))
+    ax0 = fig.add_subplot(2,3,1)
+    ax1 = fig.add_subplot(2,3,2,projection = mapcrs1)
+    ax2 = fig.add_subplot(2,3,3,projection = mapcrs1)
+    ax3 = fig.add_subplot(2,3,4)
+    ax4 = fig.add_subplot(2,3,5,projection = mapcrs2)
+    ax5 = fig.add_subplot(2,3,6,projection = mapcrs2)
+    #ax3 = fig.add_subplot(2,2,4,projection = crs1)
+
+    # Read in the matching Worldview image
+    # ------------------------------------
+    base_path = '/home/bsorenson/Research/OMI/'
+    img_name1 = dt_date_str1.strftime(base_path + 'snapshot-%Y-%m-%dT00_00_00Z_zoomed2.jpg') 
+    print("Looking for ",img_name1)
+
+    pic = plt.imread(img_name1)
+    ax0.imshow(pic)
+    ax0.axis('off')
+
+    base_path = '/home/bsorenson/Research/OMI/'
+    img_name2 = dt_date_str2.strftime(base_path + 'snapshot-%Y-%m-%dT00_00_00Z_zoomed2.jpg') 
+    print("Looking for ",img_name2)
+
+    pic = plt.imread(img_name2)
+    ax3.imshow(pic)
+    ax3.axis('off')
+
+    # ------------------------------------------------------------------------
+    #
+    # Step 3: Plot OMI and CERES data in first two panels
+    #
+    # ------------------------------------------------------------------------
+    lat_lims1 = aerosol_event_dict[dt_date_str1.strftime('%Y-%m-%d')][\
+                dt_date_str1.strftime('%H%M')]['Lat']
+    lon_lims1 = aerosol_event_dict[dt_date_str1.strftime('%Y-%m-%d')][\
+                dt_date_str1.strftime('%H%M')]['Lon']
+    lat_lims2 = aerosol_event_dict[dt_date_str2.strftime('%Y-%m-%d')][\
+                dt_date_str2.strftime('%H%M')]['Lat']
+    lon_lims2 = aerosol_event_dict[dt_date_str2.strftime('%Y-%m-%d')][\
+                dt_date_str2.strftime('%H%M')]['Lon']
+    ##!#if(zoom):
+    ##!#    OMI_base['UVAI'] = np.ma.masked_where(~((OMI_base['LAT'] >= lat_lims[0]) & \
+    ##!#                                            (OMI_base['LAT'] <  lat_lims[1]) & \
+    ##!#                                            (OMI_base['LON'] >= lon_lims[0]) & \
+    ##!#                                            (OMI_base['LON'] <  lon_lims[1])), OMI_base['UVAI'])
+    ##!#    #OMI_base['UVAI'] = np.ma.masked_where(OMI_base['UVAI'] > 1, OMI_base['UVAI'])
+    ##!#    CERES_hrly[ceres_dtype] = np.ma.masked_where(~((CERES_hrly['lat'] >= lat_lims[0]) & \
+    ##!#                                              (CERES_hrly['lat'] <  lat_lims[1]) & \
+    ##!#                                              (CERES_hrly['lon'] >= lon_lims[0]) & \
+    ##!#                                              (CERES_hrly['lon'] <  lon_lims[1])), CERES_hrly[ceres_dtype])
+
+    # Use the single-swath plotting function to plot OMI data
+    # -------------------------------------------------------
+    plotOMI_single_swath(ax1, OMI_base1, title = None, \
+        circle_bound = circle_bound, gridlines = False)
+    plotOMI_single_swath(ax4, OMI_base2, title = None, \
+        circle_bound = circle_bound, gridlines = False)
+
+    # Use the single-swath plotting function to plot CERES data
+    # ---------------------------------------------------------
+    plotCERES_hrly(ax2, CERES_hrly1, 'swf', minlat = minlat, \
+        vmin = 90, vmax = 250, title = '', label = 'TOA Flux [Wm$^{-2}$]', \
+        circle_bound = circle_bound, gridlines = False, grid_data = True)
+    plotCERES_hrly(ax5, CERES_hrly2, 'swf', minlat = minlat, \
+        vmin = 90, vmax = 270, title = '', label = 'TOA Flux [Wm$^{-2}$]', \
+        circle_bound = circle_bound, gridlines = False, grid_data = True)
+
+    if(zoom):
+        lat_lims1 = aerosol_event_dict[dt_date_str1.strftime('%Y-%m-%d')][\
+                    dt_date_str1.strftime('%H%M')]['Lat']
+        lon_lims1 = aerosol_event_dict[dt_date_str1.strftime('%Y-%m-%d')][\
+                    dt_date_str1.strftime('%H%M')]['Lon']
+        lat_lims2 = aerosol_event_dict[dt_date_str2.strftime('%Y-%m-%d')][\
+                    dt_date_str2.strftime('%H%M')]['Lat']
+        lon_lims2 = aerosol_event_dict[dt_date_str2.strftime('%Y-%m-%d')][\
+                    dt_date_str2.strftime('%H%M')]['Lon']
+
+        ax1.set_extent([lon_lims1[0], lon_lims1[1], lat_lims1[0], lat_lims1[1]], datacrs)
+        ax2.set_extent([lon_lims1[0], lon_lims1[1], lat_lims1[0], lat_lims1[1]], datacrs)
+        ax4.set_extent([lon_lims2[0], lon_lims2[1], lat_lims2[0], lat_lims2[1]], datacrs)
+        ax5.set_extent([lon_lims2[0], lon_lims2[1], lat_lims2[0], lat_lims2[1]], datacrs)
+    else: 
+        ax1.set_extent([-180,180,minlat,90], datacrs)
+        ax2.set_extent([-180,180,minlat,90], datacrs)
+        ax4.set_extent([-180,180,minlat,90], datacrs)
+        ax5.set_extent([-180,180,minlat,90], datacrs)
+
+    # If the user wants circles along latitude lines,    
+    # plot them here      
+    # ----------------------------------------------------
+    if(lat_circles is not None):
+        plot_lat_circles(ax0, lat_circles) 
+        plot_lat_circles(ax1, lat_circles) 
+
+    fig.tight_layout()
+
+    labelsize = 13
+    plot_figure_text(ax0, 'MODIS True Color', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = labelsize, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax1, 'OMI AI', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = labelsize, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax2, 'CERES SWF', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = labelsize, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax3, 'MODIS True Color', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = labelsize, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax4, 'OMI AI', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = labelsize, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax5, 'CERES SWF', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = labelsize, backgroundcolor = 'white', halign = 'right')
+
+    # Add subplot labels
+    # ------------------
+    plot_subplot_label(ax0, '(a)', fontsize = labelsize, backgroundcolor = 'white')
+    plot_subplot_label(ax1, '(b)', fontsize = labelsize, backgroundcolor = 'white')
+    plot_subplot_label(ax2, '(c)', fontsize = labelsize, backgroundcolor = 'white')
+    plot_subplot_label(ax3, '(d)', fontsize = labelsize, backgroundcolor = 'white')
+    plot_subplot_label(ax4, '(e)', fontsize = labelsize, backgroundcolor = 'white')
+    plot_subplot_label(ax5, '(f)', fontsize = labelsize, backgroundcolor = 'white')
+
+    fig.text(0.015, 0.75, '--- 04:45 UTC 11 Aug 2019 ---', ha='center', va='center', \
+        rotation='vertical', weight = 'bold', fontsize = 12)
+    fig.text(0.015, 0.26, '--- 18:10 UTC 19 Aug 2017 ---', ha='center', va='center', \
+        rotation='vertical', weight = 'bold', fontsize = 12)
+
+    if(save == True):
+        outname = 'omi_ceres_compare_'+OMI_date1+'_'+OMI_date2+'_6panel.png'
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
+    #return OMI_base, CERES_hrly
