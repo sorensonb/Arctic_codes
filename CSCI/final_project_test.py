@@ -69,13 +69,25 @@ from final_project_lib import *
 print('reading training images')
 data = Dataset('/home/bsorenson/CSCI/CSCI_543/final_project/train_dataset_2006.nc','r')
 
-## Scale the AI data
-## -----------------
-data2 = contrast_stretch(data['AI'][:,:,:])
-data2 = (data2 - 127.5) / 127.5
-
 # Account for suspicious missing data?
 # ------------------------------------
+masks = np.array([(True in np.array(data['AI'][ii,:,30].mask)) for ii in \
+    range(np.array(data['AI']).shape[0])])
+
+# Insert the non-masked data into a new structure
+# -----------------------------------------------
+data2 = {}
+data2['LAT']   = data['LAT']
+data2['LON']   = data['LON']
+data2['AI']    = data['AI'][np.where(masks == False)]
+data2['TIME']  = data['TIME'][np.where(masks == False)]
+data.close()
+
+# Scale the AI data
+# -----------------
+data2['AI'] = contrast_stretch(data2['AI'][:,:,:])
+data2['AI'] = (data2['AI'] - 127.5) / 127.5
+
 
 ##!#(train_images, train_labels), (_, _) = tf.keras.datasets.mnist.load_data()
 ##!#
@@ -125,13 +137,20 @@ num_examples_to_generate = 16
 # to visualize progress in the animated GIF)
 seed = tf.random.normal([num_examples_to_generate, noise_dim])
 
+# gen loss:   0.6722332  0.6902362  0.7085918  0.72699225  0.7463567
+# disc loss:  1.4099675  1.3935852  1.3771241  1.3602355   1.3438101 
+
 # Notice the use of `tf.function`
 # This annotation causes the function to be "compiled".
 @tf.function
-def train_step(images):
+def train_step(images, epoch_gen_loss, epoch_disc_loss):
     noise = tf.random.normal([BATCH_SIZE, noise_dim])
 
     with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
+        
+        #gen_loss_out  = tf.TensorArray(dtype = tf.float32, size = 1, dynamic_size = False)
+        #disc_loss_out = tf.TensorArray(dtype = tf.float32, size = 1, dynamic_size = False)
+
         generated_images = generator(noise, training=True)
 
         real_output = discriminator(images, training=True)
@@ -140,7 +159,11 @@ def train_step(images):
         gen_loss = generator_loss(fake_output)
         disc_loss = discriminator_loss(real_output, fake_output)
 
-    print(gen_loss, disc_loss)
+        epoch_gen_loss.update_state(gen_loss)
+        epoch_disc_loss.update_state(disc_loss)
+
+        #gen_loss_out.write(0, gen_loss)
+        #disc_loss_out.write(0, disc_loss)
 
     gradients_of_generator = gen_tape.gradient(gen_loss, generator.trainable_variables)
     gradients_of_discriminator = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
@@ -148,16 +171,32 @@ def train_step(images):
     generator_optimizer.apply_gradients(zip(gradients_of_generator, generator.trainable_variables))
     discriminator_optimizer.apply_gradients(zip(gradients_of_discriminator, discriminator.trainable_variables))
 
+    #return gen_loss_out, disc_loss_out
+
 def train(dataset, epochs):
+    loop_idx = np.arange(0,data2['AI'].shape[0], BATCH_SIZE)
+
+    gen_losses = np.zeros((epochs, len(loop_idx) - 1))
+    disc_losses = np.zeros((epochs, len(loop_idx) - 1))
+
     for epoch in range(epochs):
         start = time.time()
+
+        epoch_gen_loss  = tf.keras.metrics.Mean()
+        epoch_disc_loss = tf.keras.metrics.Mean()
     
-        loop_idx = np.arange(0,data2.shape[0], BATCH_SIZE)
+
         #loop_idx = np.arange(0,data['AI'].shape[0], BATCH_SIZE)
         for ii in range(len(loop_idx) - 1):
             print(loop_idx[ii], loop_idx[ii+1])
-            train_step(np.array(data2[loop_idx[ii]:loop_idx[ii+1],:,:])[...,np.newaxis])
-            #train_step(np.array(data['AI'][loop_idx[ii]:loop_idx[ii+1],:,:])[...,np.newaxis])
+            #gen_loss_out, disc_loss_out = train_step(np.array(data2['AI'][loop_idx[ii]:loop_idx[ii+1],:,:])[...,np.newaxis], ii)
+            train_step(np.array(data2['AI'][loop_idx[ii]:loop_idx[ii+1],:,:])[...,np.newaxis], \
+                epoch_gen_loss, epoch_disc_loss)
+            print(float(epoch_gen_loss.result()), float(epoch_disc_loss.result()))
+
+            gen_losses[epoch, ii]  = float(epoch_gen_loss.result())
+            disc_losses[epoch, ii] = float(epoch_disc_loss.result())
+
         ##!#for image_batch in dataset:
         ##!#  train_step(image_batch)
         #train_step(np.array(data['AI'][0:50,:,:])[...,np.newaxis])
@@ -183,9 +222,10 @@ def train(dataset, epochs):
     ##!#                         seed)
 
     print('done training')
+    return gen_losses, disc_losses
 
-#sys.exit()
 
-data.close()
-train(data2, EPOCHS)
+gen_losses, disc_losses = train(data2, 2)
+sys.exit()
+#gen_losses, disc_losses = train(data2, EPOCHS)
 

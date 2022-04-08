@@ -46,8 +46,7 @@ name_split = file_name.strip().split('/')[-1].split('_')
 start_year = name_split[-2]
 end_year   = name_split[-1].split('.')[0]
 
-bad_dict = {}
-max_num = 0
+#bad_dict = {}
 
 str_dates = []
 

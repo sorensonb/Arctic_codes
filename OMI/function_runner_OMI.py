@@ -41,10 +41,25 @@ minlat = 65.
 
 #OMI_data, CERES_data = plot_OMI_CERES_trend_compare_summer(minlat=72,\
 #        ceres_type = 'sw', trend_type = 'standard', save=False)
-infile = '/home/bsorenson/Research/OMI/shawn_analysis/count_analysis/omi_vsj4_areas_2005_2020_100.txt'
-plot_OMI_fort_out_two_lats(infile, minlat = 70., vtype = 'areas', save = False)
+##!#infile = '/home/bsorenson/Research/OMI/shawn_analysis/count_analysis/omi_vsj4_areas_2005_2020_100.txt'
+##!#plot_OMI_fort_out_two_lats(infile, minlat = 70., vtype = 'areas', save = False)
 #plot_OMI_fort_out_peaks(infile, minlat = 70., vtype = 'areas', save = False)
+
+plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
+        minlat = 65., save = True)
+
+##bad_row_file = 'row_anomaly_dates_20050401_20201001.txt'
+##xtrack_file = 'row_anomaly_xtrack_dates_20050401_20201001.txt'
+##plot_bad_row_table(bad_row_file, xtrack_file = xtrack_file, ax = None, \
+##        save = False)
+
 sys.exit()
+
+#date_str = '200804222159'
+#plotOMI_single_multipanel(date_str, only_sea_ice = False, minlat = 65., \
+#        quad_panel = True, save = True)
+#plotOMI_single_swath_multiple('22222222', dtype = 'control',  \
+#    only_sea_ice = False, minlat = 65., save = True)
 
 plot_OMI_fort_out_func(infile,\
      min_lat = 70., vtype = 'areas', save = False)

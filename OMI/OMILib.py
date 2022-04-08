@@ -105,7 +105,7 @@ var_dict = {
     'Reflectivity':            {'min': 0.0,  'max': 1.0},\
     'NormRadiance':            {'min': 0.0,  'max': 0.2},\
     'CloudFraction':           {'min': None, 'max': None},\
-    'UVAerosolIndex':          {'min': -2.0, 'max': 5.0 },\
+    'UVAerosolIndex':          {'min': -2.0, 'max': 3.0 },\
     'PixelQualityFlags':       {'min': None, 'max': None},\
     'MeasurementQualityFlags': {'min': None, 'max': None},\
     'FinalAlgorithmFlags':     {'min':    0, 'max':    8},\
@@ -3599,7 +3599,7 @@ def plot_compare_OMI_CERES_grid(OMI_data, CERES_data, midx, minlat=65, \
 # NOTE: this is designed to be run with the brand new readOMI_swath_hdf
 def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
         vmin = None, vmax = None, title = '', label = '', \
-        circle_bound = True, gridlines = True, save=False):
+        circle_bound = True, gridlines = True, colorbar = True, save=False):
 
     variable = 'UVAerosolIndex'
 
@@ -3644,21 +3644,22 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
                 vmax = np.nanmax(mask_GPQF) + 0.5,\
                 shading='auto')
 
-        #cbar = plt.colorbar(mesh,ax = pax, orientation='horizontal',pad=0,\
-        cbar = plt.colorbar(mesh,ax = pax, orientation='vertical',\
-            ticks = np.arange(int(np.nanmin(mask_GPQF)), \
-            int(np.nanmax(mask_GPQF)) + 1))
-            #shrink = 0.8, ticks = np.arange(np.nanmin(mask_GPQF), \
-            #np.nanmax(mask_GPQF) + 1))
-        #cbar.ax.set_xticks(np.arange(int(np.nanmin(mask_GPQF)),int(np.nanmax(mask_GPQF)) + 1))
-        print(cbar_labels[int(np.nanmin(mask_GPQF)):int(np.nanmax(mask_GPQF))+1])
-        cbar.ax.set_yticklabels(cbar_labels[int(np.nanmin(mask_GPQF)):\
-            int(np.nanmax(mask_GPQF))+1],fontsize=10,weight = 'bold', \
-            rotation=0)
-            #fontsize=8,rotation=35)
+        if(colorbar):
+                #cbar = plt.colorbar(mesh,ax = pax, orientation='horizontal',pad=0,\
+                cbar = plt.colorbar(mesh,ax = pax, orientation='vertical',\
+                    ticks = np.arange(int(np.nanmin(mask_GPQF)), \
+                    int(np.nanmax(mask_GPQF)) + 1), pad = 0.04, fraction = 0.040)
+                    #shrink = 0.8, ticks = np.arange(np.nanmin(mask_GPQF), \
+                    #np.nanmax(mask_GPQF) + 1))
+                #cbar.ax.set_xticks(np.arange(int(np.nanmin(mask_GPQF)),int(np.nanmax(mask_GPQF)) + 1))
+                print(cbar_labels[int(np.nanmin(mask_GPQF)):int(np.nanmax(mask_GPQF))+1])
+                cbar.ax.set_yticklabels(cbar_labels[int(np.nanmin(mask_GPQF)):\
+                    int(np.nanmax(mask_GPQF))+1],fontsize=10,weight = 'bold', \
+                    rotation=0)
+                    #fontsize=8,rotation=35)
         
     else:
-        if(OMI_hrly['dtype'] == 'shawn'):
+        if((OMI_hrly['dtype'] == 'shawn') & (pvar == 'UVAI')):
             pvar = 'UVAI_pert'
         mesh = pax.pcolormesh(OMI_hrly['LON'], OMI_hrly['LAT'], OMI_hrly[pvar],\
                 transform = datacrs, cmap = colormap,\
@@ -3671,13 +3672,14 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
             else:
                 label = 'UV Aerosol Index'
 
-        #cbar.set_label(variable,fontsize=16,weight='bold')
-        tickvals = np.arange(-2.0,4.1,1.0)
-        cbar = plt.colorbar(mesh,ax = pax, ticks = tickvals,\
-            orientation='vertical', extend = 'both', fraction = 0.046,\
-            pad = 0.04)
-        cbar.set_label(label,fontsize = 14, weight='bold')
-        cbar.ax.tick_params(labelsize=14)
+        if(colorbar):
+            #cbar.set_label(variable,fontsize=16,weight='bold')
+            tickvals = np.arange(-2.0,4.1,1.0)
+            cbar = plt.colorbar(mesh,ax = pax, ticks = tickvals,\
+                orientation='vertical', extend = 'both', fraction = 0.046,\
+                pad = 0.04)
+            cbar.set_label(label,fontsize = 14, weight='bold')
+            cbar.ax.tick_params(labelsize=14)
 
     # Center the figure over the Arctic
     pax.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
@@ -3768,7 +3770,7 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
 def plotOMI_single_swath_multiple(date_str, dtype = 'control',  \
         only_sea_ice = False, minlat = 65., save = False):
 
-    dates = ['201206141245','201206141920']
+    dates = ['201206141245','201206141920','200804221027']
     date_str = dates[0]
     #dates = ['200806141226','200806141902']
     #dates = ['200807261124','200807261303']
@@ -3779,13 +3781,13 @@ def plotOMI_single_swath_multiple(date_str, dtype = 'control',  \
     # Set up the overall figure
     # ----------------------------------------------------
     plt.close('all')
-    fig1 = plt.figure(figsize = (10,10))
+    fig1 = plt.figure(figsize = (12,7))
     #mapcrs = ccrs.Robinson()
     mapcrs2 = ccrs.NorthPolarStereo(central_longitude = -40)
-    ax0 = fig1.add_subplot(2,2,1, projection = mapcrs)
-    ax1 = fig1.add_subplot(2,2,2, projection = mapcrs)
-    ax2 = fig1.add_subplot(2,2,3, projection = mapcrs2)
-    ax3 = fig1.add_subplot(2,2,4, projection = mapcrs2)
+    ax0 = fig1.add_subplot(2,2,3, projection = mapcrs)
+    ax1 = fig1.add_subplot(2,2,4, projection = mapcrs)
+    ax2 = fig1.add_subplot(2,2,1, projection = mapcrs2)
+    ax3 = fig1.add_subplot(2,2,2, projection = mapcrs2)
 
     # ----------------------------------------------------
     # Read in data
@@ -3793,10 +3795,13 @@ def plotOMI_single_swath_multiple(date_str, dtype = 'control',  \
     if(dtype == 'shawn'):
         OMI_base1 = readOMI_swath_shawn(dates[0], latmin = minlat - 5)
         OMI_base2 = readOMI_swath_shawn(dates[1], latmin = minlat - 5)
+        OMI_base3 = readOMI_swath_shawn(dates[2], latmin = minlat - 5)
     else:
         OMI_base1 = readOMI_swath_hdf(dates[0], dtype, \
             only_sea_ice = only_sea_ice, latmin = minlat - 5)
         OMI_base2 = readOMI_swath_hdf(dates[1], dtype, \
+            only_sea_ice = only_sea_ice, latmin = minlat - 5)
+        OMI_base3 = readOMI_swath_hdf(dates[2], dtype, \
             only_sea_ice = only_sea_ice, latmin = minlat - 5)
 
     # ----------------------------------------------------
@@ -3804,28 +3809,49 @@ def plotOMI_single_swath_multiple(date_str, dtype = 'control',  \
     # of the 3 data types
     # ----------------------------------------------------
     plotOMI_single_swath(ax0, OMI_base1, title = dates[0], \
-        circle_bound = True, gridlines = False)
+        circle_bound = True, gridlines = False, vmax = 3.0)
     plotOMI_single_swath(ax1, OMI_base2, title = dates[1], \
-        circle_bound = True, gridlines = False)
-    plotOMI_single_swath(ax2, OMI_base1, title = dates[0] + '\nZoomed', \
-        circle_bound = False, gridlines = False)
-    plotOMI_single_swath(ax3, OMI_base2, title = dates[1] + '\nZoomed', \
-        circle_bound = False, gridlines = False)
+        circle_bound = True, gridlines = False, vmax = 3.0)
+    plotOMI_single_swath(ax2, OMI_base3, title = dates[2], \
+        circle_bound = False, gridlines = False, vmax = 3.0)
+    plotOMI_single_swath(ax3, OMI_base3, title = dates[2], \
+        pvar = 'GPQF', circle_bound = False, gridlines = False)
 
     ax2.set_extent([-70., -10., 65., 87.], datacrs)
     ax3.set_extent([-70., -10., 65., 87.], datacrs)
+    #ax2.set_extent([-80., -28., 75., 87.], datacrs)
+    #ax3.set_extent([-80., -28., 75., 87.], datacrs)
+
+    ##!## ----------------------------------------------------
+    ##!## Draw boxes for the comparison ranges
+    ##!## ----------------------------------------------------
+    ##!#lat_corners = np.array([61, 73, 73, 61]) 
+    ##!#lon_corners = np.array([-140, -140, -160, -160]) 
+    ##!#poly_corners = np.zeros((len(lat_corners), 2), np.float64)
+    ##!#poly_corners[:,0] = lon_corners
+    ##!#poly_corners[:,1] = lat_corners
+    ##!#poly = mpatches.Polygon(poly_corners, closed = True, ec = 'r', \
+    ##!#    fill = False, lw = 5, fc = None, transform = datacrs)
+    ##!#ax0.add_patch(poly)
+    ##!#ax1.add_patch(poly)
+    ##!###!#ax0.add_patch(mpatches.Rectangle(xy = [-120, 67], width = 40, \
+    ##!###!#    height = 12, alpha = 0.9, transform = datacrs, facecolor = 'none',\
+    ##!###!#    edgecolor = 'red', linewidth = 5))
+    ##!###!#ax1.add_patch(mpatches.Rectangle(xy = [-120, 67], width = 40, \
+    ##!###!#    height = 12, alpha = 0.9, transform = datacrs, facecolor = 'none',\
+    ##!###!#    edgecolor = 'red', linewidth = 5))
+
 
     #plt.suptitle(date_str)
-    plot_subplot_label(ax0, '(a)')
-    plot_subplot_label(ax1, '(b)')
-    plot_subplot_label(ax2, '(c)', backgroundcolor = 'white')
-    plot_subplot_label(ax3, '(d)', backgroundcolor = 'white')
+    plot_subplot_label(ax0, '(c)')
+    plot_subplot_label(ax1, '(d)')
+    plot_subplot_label(ax2, '(a)', backgroundcolor = 'white')
+    plot_subplot_label(ax3, '(b)', backgroundcolor = 'white')
 
     fig1.tight_layout()
 
     if(save):
-        outname = 'omi_single_swath_figure_multiple_' + date_str + '_' + \
-            dtype + '.png'
+        outname = 'omi_single_swath_figure_multiple_v2.png'
         fig1.savefig(outname, dpi=300)
         print("Saved image",outname)
     else:
@@ -3892,8 +3918,8 @@ def plotOMI_single_ground(date_str, only_sea_ice = False, minlat = 65., \
 
 # Compare the control AI with the two methods
 # -------------------------------------------
-def plotOMI_single_3panel(date_str, only_sea_ice = False, minlat = 65., \
-        save = False):
+def plotOMI_single_multipanel(date_str, only_sea_ice = False, minlat = 65., \
+        quad_panel = False, save = False):
 
     # ----------------------------------------------------
     # Read in each of the 3 data types
@@ -3908,30 +3934,47 @@ def plotOMI_single_3panel(date_str, only_sea_ice = False, minlat = 65., \
     # Set up the overall figure
     # ----------------------------------------------------
     plt.close('all')
-    fig1 = plt.figure(figsize = (15,5))
-    ax0 = fig1.add_subplot(1,3,1, projection = mapcrs)
-    ax1 = fig1.add_subplot(1,3,2, projection = mapcrs)
-    ax2 = fig1.add_subplot(1,3,3, projection = mapcrs)
+    if(quad_panel):
+        fig1 = plt.figure(figsize = (9.5,8))
+        ax0 = fig1.add_subplot(2,2,1, projection = mapcrs)
+        ax1 = fig1.add_subplot(2,2,2, projection = mapcrs)
+        ax2 = fig1.add_subplot(2,2,4, projection = mapcrs)
+        ax3 = fig1.add_subplot(2,2,3, projection = mapcrs)
+    else:
+        fig1 = plt.figure(figsize = (15,5))
+        ax0 = fig1.add_subplot(1,3,1, projection = mapcrs)
+        ax1 = fig1.add_subplot(1,3,2, projection = mapcrs)
+        ax2 = fig1.add_subplot(1,3,3, projection = mapcrs)
 
     # ----------------------------------------------------
     # Use the single-swath plotting function to plot each
     # of the 3 data types
     # ----------------------------------------------------
-    plotOMI_single_swath(ax0, OMI_base, title = 'Control')
+    plotOMI_single_swath(ax0, OMI_base, title = 'Original')
     plotOMI_single_swath(ax1, OMI_JZ, title = 'Screened')
     plotOMI_single_swath(ax2, OMI_shawn, pvar = 'UVAI_pert',\
         title = 'Perturbed')
-
+    if(quad_panel):
+        plotOMI_single_swath(ax3, OMI_shawn, pvar = 'UVAI_climo',\
+            title = 'Climatology', label = 'UVAI Climatology')
 
     plt.suptitle(date_str)
     plot_subplot_label(ax0, '(a)')
     plot_subplot_label(ax1, '(b)')
-    plot_subplot_label(ax2, '(c)')
+    if(quad_panel):
+        plot_subplot_label(ax2, '(d)')
+        plot_subplot_label(ax3, '(c)')
+    else:
+        plot_subplot_label(ax2, '(c)')
 
     fig1.tight_layout()
 
     if(save):
-        outname = 'omi_single_swath_compare_3panel_' + date_str + '.png'
+        if(quad_panel):
+            adder = '4panel'
+        else:
+            adder = '3panel'
+        outname = 'omi_single_swath_compare_'+adder+'_' + date_str + '.png'
         fig1.savefig(outname, dpi=300)
         print("Saved image",outname)
     else:
@@ -5200,4 +5243,184 @@ def plot_combined_fort_out(plot_time, min_lat = 70., vtype = 'areas', save = Fal
         print("Saved image", outname)
     else:
         plt.show()
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#
+# OMI bad row anomaly table stuff
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+
+def plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
+        minlat = 65., save = False):
+   
+    date_str  = '201204102151'
+    date_str2 = '201807260244'
+ 
+    # Set up the figure
+    # -----------------
+    fig = plt.figure(figsize = (9,8))
+    #fig = plt.figure(figsize = (16,4))
+    ##!#ax1 = fig.add_subplot(1,2,1, projection = mapcrs)
+    ##!#ax2 = fig.add_subplot(1,2,2)
+    gs = fig.add_gridspec(nrows = 2, ncols = 2)
+    ax1  = fig.add_subplot(gs[0,0], projection = mapcrs)   # true color    
+    ax2  = fig.add_subplot(gs[0,1], projection = mapcrs)   # true color    
+    ax3  = fig.add_subplot(gs[1,:]) # MODIS Ch 31
+
+    # Read the single-swath OMI data
+    # ------------------------------
+    if(dtype == 'shawn'):
+        OMI_base  = readOMI_swath_shawn(date_str, latmin = minlat,\
+            skiprows = skiprows)
+        OMI_base2  = readOMI_swath_shawn(date_str2, latmin = minlat,\
+            skiprows = skiprows)
+    else:
+        OMI_base  = readOMI_swath_hdf(date_str, dtype, \
+            only_sea_ice = False, latmin = minlat, \
+            skiprows = None)
+        OMI_base2  = readOMI_swath_hdf(date_str2, dtype, \
+            only_sea_ice = False, latmin = minlat, \
+            skiprows = None)
+    
+    # Plot the single-swath OMI data
+    # ------------------------------
+    plotOMI_single_swath(ax1, OMI_base, title = dtype.title(), \
+        circle_bound = True, gridlines = False, colorbar = False)
+    plotOMI_single_swath(ax2, OMI_base2, title = dtype.title(), \
+        circle_bound = True, gridlines = False)
+
+    ax1.set_extent([-180,180,minlat,90], datacrs)
+    ax1.set_title(date_str)
+    ax2.set_extent([-180,180,minlat,90], datacrs)
+    ax2.set_title(date_str2)
+
+    # Plot the row anomaly stuff
+    # -------------------------- 
+    bad_row_file = 'row_anomaly_dates_20050401_20201001.txt'
+    xtrack_file = 'row_anomaly_xtrack_dates_20050401_20201001.txt'
+    plot_bad_row_table(bad_row_file, xtrack_file = xtrack_file, ax = ax3)
+
+    plot_subplot_label(ax1, '(a)')
+    plot_subplot_label(ax2, '(b)')
+    plot_subplot_label(ax3, '(c)', backgroundcolor = 'white')
+    
+    fig.tight_layout()
+
+    if(save):
+        outname = 'combined_bad_row_'+date_str+'_stacked.png'
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
+def plot_bad_row_table(bad_row_file, xtrack_file = None, ax = None, \
+        save = False):
+
+    do_xtrack = False
+    bad_color = 'jet'
+    xtrack_add = ''
+    
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    #
+    #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    
+    # Extract date information from the file name
+    name_split = bad_row_file.strip().split('/')[-1].split('_')
+    start_year = name_split[-2]
+    end_year   = name_split[-1].split('.')[0]
+    
+    #bad_dict = {}
+    
+    str_dates = []
+    
+    # Read bad row file
+    # -----------------
+    with open(bad_row_file,'r') as f_in:
+        flines = f_in.readlines()
+        total_array = np.zeros((len(flines),61))
+        #int_dates = np.zeros(len(flines))
+        for ii, line in enumerate(flines):
+        #for line in f_in:
+            templine = line.strip().split()
+            #int_dates[ii] = int(templine[0])
+            str_dates.append(templine[0][:4])
+            #int_dates[ii] = int(templine[0])
+            #bad_dict[templine[0]] = np.zeros(int(templine[1]))
+            if(int(templine[1]) > 0):
+                for jj in templine[2:]:
+                    total_array[ii,int(jj)] = 1
+                #bad_dict[templine[0]][ii] = int(templine[2+ii])
+   
+    do_xtrack = False 
+    if(xtrack_file is not None):
+        bad_color = 'bwr_r'
+        do_xtrack = True
+        str_dates_X = []
+        
+        # Read xtrack row file
+        # -----------------
+        with open(xtrack_file,'r') as f_in:
+            flines = f_in.readlines()
+            total_array_X = np.zeros((len(flines),61))
+            #int_dates = np.zeros(len(flines))
+            for ii, line in enumerate(flines):
+            #for line in f_in:
+                templine = line.strip().split()
+                #int_dates[ii] = int(templine[0])
+                str_dates_X.append(templine[0][:4])
+                #int_dates[ii] = int(templine[0])
+                #bad_dict[templine[0]] = np.zeros(int(templine[1]))
+                if((int(templine[1]) > 0) & (int(templine[1]) < 60)):
+                    for jj in templine[2:]:
+                        total_array_X[ii,int(jj)] = 1
+                    #bad_dict[templine[0]][ii] = int(templine[2+ii])
+        
+        x_vals_X = np.arange(total_array_X.shape[0])
+        y_vals_X = np.arange(total_array_X.shape[1])
+        mask_array_X = np.ma.masked_where(total_array_X == 0,total_array_X)
+    
+    
+    #index = 0
+    #for key in bad_dict:
+    #    total_array[index,:(len(bad_dict[key]))] = bad_dict[key]
+    #    index += 1
+    
+    x_vals = np.arange(total_array.shape[0])
+    y_vals = np.arange(total_array.shape[1])
+    mask_array = np.ma.masked_where(total_array == 0,total_array)
+
+    in_ax = True
+    if(ax is None):
+        in_ax = False
+        fig1, ax = plt.subplots(figsize=(10,4))
+   
+    ax.pcolormesh(x_vals,y_vals + 0.5,mask_array.T,shading='auto',cmap=bad_color)
+    if(do_xtrack):
+        xtrack_color = 'jet'
+        ax.pcolormesh(x_vals_X,y_vals_X + 0.5,mask_array_X.T,shading='auto',cmap=xtrack_color)
+    ax.set_yticks(y_vals,minor=True)
+    ax.set_xticks(x_vals[::183] + 0.5)
+    ax.set_xticklabels(str_dates[::183])
+    ax.grid(which='minor',axis='y')
+    ax.grid(which='major',axis='y',linewidth=1.0,color='black')
+    ax.set_xlabel('Year')
+    ax.set_ylabel('Row Number')
+    ax.set_ylim(1, 60)
+
+    # Add legend
+    # ----------
+    handles, labels = ax.get_legend_handles_labels()
+    f_patch  = mpatches.Patch(color = 'darkblue', label = 'Flagged')
+    uf_patch = mpatches.Patch(color = 'red', label = 'Unflagged')
+    handles.extend([f_patch, uf_patch])
+    ax.legend(handles = handles, loc = 'lower right', framealpha = 1)
+   
+    if(in_ax is False): 
+        if(save):
+            outname = 'bad_rows_'+start_year + '_'+end_year+xtrack_add + '_2.png'
+            plt.savefig(outname,dpi=300)
+            print("Saved image",outname)
+        plt.show()
+
 

@@ -62,7 +62,7 @@ def contrast_stretch(data):
 # contrast_stretch performs contrast stretching on any data passed to the
 # function.
 def contrast_unstretch(data):
-    y1 = -3.
+    y1 = -11. # or -3.?
     y2 = 12.
     x1 = 0.
     x2 = 255.
