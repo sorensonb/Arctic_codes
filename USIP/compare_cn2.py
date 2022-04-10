@@ -149,7 +149,7 @@ def smooth(first, temp=None, alt=None, u=None, v=None):
          (v is not None)):
         press = first
     else:
-        print "Invalid function call. See comments"
+        print("Invalid function call. See comments")
         return
 
     # Declare arrays to hold smoothed data
@@ -237,7 +237,7 @@ def cn2_calc_thermo(tempdiff, first, temp=None):
     elif((temp is not None)):
         press = first
     else:
-        print "Invalid function call. See comments"
+        print("Invalid function call. See comments")
         return
     length=len(press)
     cn2 = np.array([]) 
@@ -323,10 +323,10 @@ def cn2_calc(first, temp=None, alt=None, u=None, v=None, method="model"):
         v = first['VWIND']
         
         # If the u/v winds are in kts, convert them to meters per second
-        if(str(first['UNITS']['UWIND']) is 'kts'):
+        if(str(first['UNITS']['UWIND']) == 'kts'):
             u = kts2ms(u)
             first['UNITS']['UWIND']='m/s'
-        if((first['UNITS']['VWIND']) is 'kts'):
+        if((first['UNITS']['VWIND']) == 'kts'):
             v = kts2ms(v)
             first['UNITS']['VWIND']='m/s'
     # If not, the next four must be arrays
@@ -334,7 +334,7 @@ def cn2_calc(first, temp=None, alt=None, u=None, v=None, method="model"):
          (v is not None)):
         press = first
     else:
-        print "Invalid function call. See comments"
+        print("Invalid function call. See comments")
 
     # Find the tropopause pressure using trop_calc
     trop_pres = trop_calc(press, temp, alt)
@@ -484,12 +484,12 @@ def plot_cn2(*args):
         filename = args[0]['NAME']+'_CN2.png'
         args = np.delete(args,args.index('save'))
     # If arguments have been passed, plot the data from the arguments
-    if(len(args) is not 0):
+    if(len(args) != 0):
         count=0
         colors=['black','red','cyan','green','olive','blue','purple','yellow']
         for arg in args:
             plotalt = arg['ALT']
-            if str(arg['UNITS']['ALT']) is 'm':
+            if str(arg['UNITS']['ALT']) == 'm':
                 plotalt = plotalt/1000.
             try:
                 plt.plot(np.log10(arg['CN2']),plotalt,color=colors[count%8],label=arg['LABEL']) 
@@ -503,7 +503,7 @@ def plot_cn2(*args):
         plt.legend(loc='upper right', fontsize=12)
         if save_file is True:
             plt.savefig(filename,dpi=300)
-            print "Saved image: "+filename
+            print("Saved image: "+filename)
         plt.show()
 
 #def compare_cn2(radio_file,model_file,thermo_file):
@@ -847,13 +847,13 @@ def compare_cn2(radio_file,model_file,thermo_file,mlat=None,mlon=None):
     ###         label=radio['LABEL'])
     final_prcntdif = np.delete(percent_diff, \
              np.where(np.isnan(percent_diff)))
-    print radio['TITLE']+" vs. "+model['TITLE']+"\t  Log Diff Avg: "+\
+    print(radio['TITLE']+" vs. "+model['TITLE']+"\t  Log Diff Avg: "+\
           str(round(rmlog_diff_avg, 5)) + "\t  STD: "+str(round(rmlog_diff_std, 5))+\
-          "\tAVR PRCNT DIFF: " + str(round(np.average(final_prcntdif), 5))
-    print "Troposphere:  avg_diff = ",round(trop_cn2_avg,5),\
-        "  std_dev = ",round(trop_cn2_std,5)
-    print "Stratosphere: avg_diff = ",round(strat_cn2_avg,5),\
-        "  std_dev = ",round(strat_cn2_std,5)
+          "\tAVR PRCNT DIFF: " + str(round(np.average(final_prcntdif), 5)))
+    print("Troposphere:  avg_diff = ",round(trop_cn2_avg,5),\
+        "  std_dev = ",round(trop_cn2_std,5))
+    print("Stratosphere: avg_diff = ",round(strat_cn2_avg,5),\
+        "  std_dev = ",round(strat_cn2_std,5))
  
     
     PLOT=False
@@ -1035,7 +1035,7 @@ def compare_cn2(radio_file,model_file,thermo_file,mlat=None,mlon=None):
         #closeindex_radio = np.where((radio['UTCTime']>=86322.0) & (radio['UTCTime']<=86606.0))[0] # tethered test
         closeindex_radio = np.where((radio['UTCTime']>=combined_start_time) & (radio['UTCTime']<=combined_stop_time))[0]
         for key in radio.keys():
-            if((key is not 'UNITS') & (type(radio[key]) is not str)):
+            if((key != 'UNITS') & (type(radio[key]) is not str)):
                 radio[key] = radio[key][closeindex_radio]
         
         tempdiff = np.array([])
@@ -1286,15 +1286,15 @@ def compare_cn2(radio_file,model_file,thermo_file,mlat=None,mlon=None):
 
         final_prcntdif = np.delete(percent_diff, \
                          np.where(np.isnan(percent_diff)))
-        print radio['TITLE']+" vs. Thermosonde"+"\t  Log Diff Avg: "+\
+        print(radio['TITLE']+" vs. Thermosonde"+"\t  Log Diff Avg: "+\
               str(round(rtlog_diff_avg, 5)) + "\t  STD: "+str(round(rtlog_diff_std, 5))+\
-              "\tAVR PRCNT DIFF: " + str(round(np.average(final_prcntdif), 5))
-        print "Troposphere:  avg_diff = ",round(trop_cn2_avg,5),\
-            "  std_dev = ",round(trop_cn2_std,5)
-        print "Stratosphere: avg_diff = ",round(strat_cn2_avg,5),\
-            "  std_dev = ",round(strat_cn2_std,5)
-        print "Num_obs troposphere=",num_trop_cn2
-        print "Num_obs stratosphere=",num_strat_cn2
+              "\tAVR PRCNT DIFF: " + str(round(np.average(final_prcntdif), 5)))
+        print("Troposphere:  avg_diff = ",round(trop_cn2_avg,5),\
+            "  std_dev = ",round(trop_cn2_std,5))
+        print("Stratosphere: avg_diff = ",round(strat_cn2_avg,5),\
+            "  std_dev = ",round(strat_cn2_std,5))
+        print("Num_obs troposphere=",num_trop_cn2)
+        print("Num_obs stratosphere=",num_strat_cn)
 
         # Plot the thermosonde Cn2 and radiosonde Cn2 on a graph
         plot_cn2(thermo_scn2,sradio,'save')
@@ -1413,7 +1413,7 @@ if __name__ == "__main__":
     model=None
     thermo=None
     if(len(sys.argv)<3):
-        print "SYNTAX: ./compare_calc.py radiosonde_profile model_profile [thermosonde_tempdiff_file]"
+        print("SYNTAX: ./compare_calc.py radiosonde_profile model_profile [thermosonde_tempdiff_file]")
         sys.exit(0)
     if(len(sys.argv)==4):
         radio=sys.argv[1]

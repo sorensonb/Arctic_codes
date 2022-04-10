@@ -523,9 +523,9 @@ def readsounding(inputfile, clat=None, clon=None, allGraw=False, keepMissing=Fal
         spdIndex = 7 
         dirIndex = 6
     else:
-        print "ERROR: " + inputfile + " is not compatible with readsounding.py"
-        print "\tSee readsounding.py header text for compatible sounding types"
-        print "\tExiting"
+        print("ERROR: " + inputfile + " is not compatible with readsounding.py")
+        print("\tSee readsounding.py header text for compatible sounding types")
+        print("\tExiting")
         sys.exit(1)
  
     # Set the six standard key names

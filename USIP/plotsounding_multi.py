@@ -47,7 +47,6 @@
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 from metpy.plots import SkewT 
 from metpy.units import units
 from readsounding import readsounding

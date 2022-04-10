@@ -22,10 +22,11 @@ from compare_cn2 import *
 from adpaa import ADPAA
 
 if(len(sys.argv)<3):
-    print "SYNTAX: ./thermo_test.py GRAW_file thermo_file"
+    print("SYNTAX: ./thermo_test.py GRAW_file thermo_file")
     sys.exit()
 
-pre2019 = False
+save = False
+pre2019 = True
 
 radio = readsounding(sys.argv[1],allGraw=True,keepMissing=True)
 thermo = ADPAA()
@@ -138,8 +139,8 @@ if(pre2019 == True):
     # Before 2019/05/03
     ascent_rtime = radio['UTCTime'][1490:radio_last_index]
     ascent_ralt = radio['ALT'][1490:radio_last_index]
-    ascent_ttime = plotTime[4626:thermo_last_index]
-    ascent_talt = thermo.data['Alt'][4626:thermo_last_index]
+    ascent_ttime = plotTime[thermo_start_index:thermo_last_index]
+    ascent_talt = thermo.data['Alt'][thermo_start_index:thermo_last_index]
 else:
     # After 2019/05/03
     ascent_rtime = radio['UTCTime'][0:radio_last_index]
@@ -179,8 +180,8 @@ if(pre2019 == True):
     ad_talt  = np.concatenate([ascent_talt,descent_talt])
 
     # Before 2019/05/03
-    thermo.data['Time'][4626:10232] = ad_ttime
-    thermo.data['Alt'][4626:10232] = ad_talt
+    thermo.data['Time'][thermo_start_index:thermo_final_last_index] = ad_ttime
+    thermo.data['Alt'][thermo_start_index:thermo_final_last_index] = ad_talt
 else:
     # After 2019/05/03
     thermo.data['Time'][thermo_start_index:thermo_last_index] = ascent_ttime
@@ -235,7 +236,7 @@ closetime_radio = np.array([])
 #closeindex_radio = np.where((radio['UTCTime']>=86322.0) & (radio['UTCTime']<=86606.0))[0] # tethered test
 closeindex_radio = np.where((radio['UTCTime']>=combined_start_time) & (radio['UTCTime']<=combined_stop_time))[0]
 for key in radio.keys():
-    if((key is not 'UNITS') & (type(radio[key]) is not str)):
+    if((key != 'UNITS') & (type(radio[key]) is not str)):
         radio[key] = radio[key][closeindex_radio]
 
 tempdiff = np.array([])
@@ -347,9 +348,10 @@ if(pre2019 == True):
     plt.ylim(0,35)
 else:
     plt.ylim(0,8)
-filename = radio['NAME']+'_tempdiff_vs_alt_newRange.png'
-plt.savefig(filename,dpi=300)
-print "Saved image",filename
+if(save):
+    filename = radio['NAME']+'_tempdiff_vs_alt_newRange.png'
+    plt.savefig(filename,dpi=300)
+    print("Saved image",filename)
 
 calc_abs = False
 
@@ -372,11 +374,13 @@ if(pre2019 == True):
 else:
     plt.title('Free-Flight Launch 2019/05/04 03:00 UTC',fontsize=12)
 plt.legend()
-filename = radio['NAME']+'_tempdiff_radio_vs_thermo.png'
-if(calc_abs == True):
-    filename = radio['NAME']+'_tempdiff_radio_vs_thermo_abs.png'
-plt.savefig(filename,dpi=300)
-print "Saved image",filename
+if(save):
+    filename = radio['NAME']+'_tempdiff_radio_vs_thermo.png'
+    if(calc_abs == True):
+        filename = radio['NAME']+'_tempdiff_radio_vs_thermo_abs.png'
+    plt.savefig(filename,dpi=300)
+    print("Saved image",filename)
+plt.show()
 sys.exit()
 
 # Plot a scatter plot of thermosonde temp diffs to radiosonde temp diffs

@@ -13,11 +13,11 @@
   
 """
 def syntax():
-    print "SYNTAX: ./plot_cn2_single.py <soundings> [raw] [old / model] [save]"
-    print "         raw       - do no smoothing"
-    print "         old/model - use the data directly above and below"
-    print "                     each level to calculate Cn2"
-    print "         save      - saves the image"
+    print("SYNTAX: ./plot_cn2_single.py <soundings> [raw] [old / model] [save]")
+    print("         raw       - do no smoothing")
+    print("         old/model - use the data directly above and below")
+    print("                     each level to calculate Cn2")
+    print("         save      - saves the image")
 
 # Import functions
 import numpy
@@ -86,6 +86,6 @@ plt.legend(loc='upper right', fontsize=10)
 plt.ylim(0,12)
 if save is True:
     plt.savefig(savename,dpi=300)
-    print "Saved image: "+savename
+    print("Saved image: "+savename)
 else:
     plt.show()

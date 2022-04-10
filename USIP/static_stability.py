@@ -17,9 +17,9 @@ import matplotlib.pyplot as plt
 from readsounding import *
 from compare_cn2 import *
 
-#if(len(sys.argv)!=2):
-#    print "SYNTAX: ./static_stability.py Graw_RTS_table"
-#    sys.exit()
+if(len(sys.argv)!=2):
+    print("SYNTAX: ./static_stability.py Graw_RTS_table")
+    sys.exit()
 
 graw = readsounding(sys.argv[1])
 
