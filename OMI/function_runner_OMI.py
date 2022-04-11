@@ -33,11 +33,15 @@ import sys
 
 
 minlat = 65.
-#OMI_VBS0   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VBS0_2005_2020.nc', minlat = minlat)
-#OMI_VJZ211 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VJZ211_2005_2020.nc', minlat = minlat)
-#OMI_VSJ4   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VSJ4_2005_2020.nc', minlat = minlat)
+OMI_VBS0   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VBS0_2005_2020.nc', minlat = minlat)
+OMI_VJZ211 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VJZ211_2005_2020.nc', minlat = minlat)
+OMI_VSJ4   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VSJ4_2005_2020.nc', minlat = minlat)
 #plotOMI_Compare_ClimoTrend_summer(OMI_VBS0,OMI_VJZ211,OMI_VSJ4,\
 #        trend_type = 'standard', minlat=minlat,save=False)
+plotOMI_Compare_ClimoTrend_all(OMI_VBS0,OMI_VJZ211, OMI_VSJ4,\
+        trend_type = 'standard', minlat=minlat,save = True)
+
+sys.exit()
 
 #OMI_data, CERES_data = plot_OMI_CERES_trend_compare_summer(minlat=72,\
 #        ceres_type = 'sw', trend_type = 'standard', save=False)
@@ -45,8 +49,13 @@ minlat = 65.
 ##!#plot_OMI_fort_out_two_lats(infile, minlat = 70., vtype = 'areas', save = False)
 #plot_OMI_fort_out_peaks(infile, minlat = 70., vtype = 'areas', save = False)
 
-plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
-        minlat = 65., save = True)
+plotOMI_single_swath_multiple(dtype = 'control',  \
+        only_sea_ice = False, minlat = 65., save = True)
+
+
+
+##!#plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
+##!#        minlat = 65., save = True)
 
 ##bad_row_file = 'row_anomaly_dates_20050401_20201001.txt'
 ##xtrack_file = 'row_anomaly_xtrack_dates_20050401_20201001.txt'

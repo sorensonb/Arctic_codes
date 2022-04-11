@@ -13,7 +13,7 @@ import warnings
 import datetime as dt
 from adpaa import ADPAA
 from readsounding import *
-from compare_cn2 import cn2_calc, cn2_calc_thermo, smooth
+from compare_cn2 import cn2_calc, cn2_calc_thermo, smooth, plot_cn2
 
 colors=['black','red','cyan','green','olive','blue','purple','yellow']
 
@@ -353,16 +353,20 @@ def plot_tempdiffs(thermo_scn2, ax = None, save = False):
         ax.set_xlim(0,0.18)
     else:
         ax.set_xlim(0,0.70)
-    if(pre2019 == True):
-        ax.set_title('Free-Flight Launch 2018/05/05 05:00 UTC',fontsize=12)
-    else:
-        ax.set_title('Free-Flight Launch 2019/05/04 03:00 UTC',fontsize=12)
-    ax.set_xlabel('$\Delta$T [K]')
-    ax.set_ylabel('Altitude [km]')
-    if(pre2019 == True):
-        ax.set_ylim(0,35)
-    else:
-        ax.set_ylim(0,8)
+    ##!#if(pre2019):
+    ##!#    ax.set_title('Free-Flight Launch 2018/05/05 05:00 UTC',fontsize=9)
+    ##!#else:
+    ##!#    ax.set_title('Free-Flight Launch 2019/05/04 03:00 UTC',fontsize=9)
+    ax.set_title('Thermosonde Temperature Differences', fontsize = 8)
+    ax.set_xlabel('$\Delta$T [K]', fontsize = 9)
+    ax.set_ylabel('Altitude [km]', fontsize = 9)
+    ax.tick_params(axis = 'both', labelsize=8)
+    ax.set_ylim(0,np.max(thermo_scn2['matchalt_thermo'][thermo_scn2['masked_indices']]/1000.) + 2)
+    ##!#if(pre2019 == True):
+    ##!#    ax.set_ylim(0,thermo_scn2['matchalt_thermo'][thermo_scn2['masked_indices']]/1000. + 2)
+    ##!#    #ax.set_ylim(0,30)
+    ##!#else:
+    ##!#    ax.set_ylim(0,8)
     if(not in_ax):
         if(save):
             filename = radio['NAME']+'_tempdiff_vs_alt_newRange.png'
@@ -423,9 +427,11 @@ def plot_cn2_figure(in_data, ax = None, raw = False, old = False, \
     # To view cn2 data, axis must be logarithmic
     #plt.xscale('log')
     ax.set_xlim(-20, -13)
-    ax.set_title('$C_{n}^{2}$ Profile Comparison')
-    ax.set_ylabel('Altitude [km]')
-    ax.set_xlabel("log$_{10}$ [$C_{n}^{2}$ [m$^{-2/3}$]]")
+    #ax.set_title('$C_{n}^{2}$ Profile Comparison')
+    ax.set_title('Estimated $C_{n}^{2}$', fontsize = 10)
+    ax.set_ylabel('Altitude [km]', fontsize = 9)
+    ax.set_xlabel("log$_{10}$ [$C_{n}^{2}$ [m$^{-2/3}$]]", fontsize = 9)
+    ax.tick_params(axis = 'both', labelsize=7)
 
     max_alt = -99.
 
@@ -446,14 +452,15 @@ def plot_cn2_figure(in_data, ax = None, raw = False, old = False, \
         # Plot cn2 with height
         #olabel=a['TITLE'].split(" ")[0]+" "+a['TITLE'].split(" ")[1]+" "+\
         #       a['TITLE'].split(" ")[-1]
-        olabel=data['LABEL']
+        olabel=data['LABEL'].split()[0]
         savename = data['NAME']+'_CN2.png'
         ax.plot(np.log10(data['CN2']),(data['ALT']/1000.),color=colors[ii],label=olabel)
 
         if(np.max(data['ALT']) / 1000. > max_alt):
             max_alt = np.max(data['ALT']) / 1000.
 
-    ax.legend(loc='upper right', fontsize=10)
+    #ax.legend(loc='upper right', fontsize=10)
+    ax.legend(loc='upper right', prop={'size': 8}, framealpha = 1)
     ax.set_ylim(0,max_alt + 2)
     if(not in_ax):
         if save is True:

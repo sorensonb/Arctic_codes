@@ -88,6 +88,7 @@ import warnings
 import datetime as dt
 from adpaa import ADPAA
 from readsounding import *
+from cn2_lib import *
 
 # trop_calc finds the tropopause for a sounding and returns the tropopause
 # pressure
@@ -881,252 +882,310 @@ def compare_cn2(radio_file,model_file,thermo_file,mlat=None,mlon=None):
         # Reset the radio dictionary 
         radio = readsounding(radio_file,allGraw=True,keepMissing=True)
 
-        ###############################################################################
-        #
-        # TRANSPLANTED FROM thermo_test.py (and then from comparison_checker.py)
-        #
-        # Stretch the thermosonde times to match the radiosonde's times. 
-        #
-        ###############################################################################
-        
-        # Delete radiosonde data where the altitudes are missing (only at the end of the file)
-        radio['Time'] = np.delete(radio['Time'],np.where(radio['ALT']==999999.9999))
-        radio['UTCTime'] = np.delete(radio['UTCTime'],np.where(radio['ALT']==999999.9999))
-        radio['TEMP'] = np.delete(radio['TEMP'],np.where(radio['ALT']==999999.9999))
-        radio['PRESS'] = np.delete(radio['PRESS'],np.where(radio['ALT']==999999.9999))
-        radio['UWIND'] = np.delete(radio['UWIND'],np.where(radio['ALT']==999999.9999))
-        radio['VWIND'] = np.delete(radio['VWIND'],np.where(radio['ALT']==999999.9999))
-        radio['SPD'] = np.delete(radio['SPD'],np.where(radio['ALT']==999999.9999))
-        radio['DIR'] = np.delete(radio['DIR'],np.where(radio['ALT']==999999.9999))
-        radio['ALT'] = np.delete(radio['ALT'],np.where(radio['ALT']==999999.9999))
-        
+        thermo_scn2 = read_temp_diffs(radio_file, thermo_file)
+        ##!################################################################################
+        ##!##
+        ##!## TRANSPLANTED FROM thermo_test.py (and then from comparison_checker.py)
+        ##!##
+        ##!## Stretch the thermosonde times to match the radiosonde's times. 
+        ##!##
+        ##!################################################################################
+        ##!#
+        ##!## Delete radiosonde data where the altitudes are missing (only at the end of the file)
+        ##!#radio['Time'] = np.delete(radio['Time'],np.where(radio['ALT']==999999.9999))
+        ##!#radio['UTCTime'] = np.delete(radio['UTCTime'],np.where(radio['ALT']==999999.9999))
+        ##!#radio['TEMP'] = np.delete(radio['TEMP'],np.where(radio['ALT']==999999.9999))
+        ##!#radio['PRESS'] = np.delete(radio['PRESS'],np.where(radio['ALT']==999999.9999))
+        ##!#radio['UWIND'] = np.delete(radio['UWIND'],np.where(radio['ALT']==999999.9999))
+        ##!#radio['VWIND'] = np.delete(radio['VWIND'],np.where(radio['ALT']==999999.9999))
+        ##!#radio['SPD'] = np.delete(radio['SPD'],np.where(radio['ALT']==999999.9999))
+        ##!#radio['DIR'] = np.delete(radio['DIR'],np.where(radio['ALT']==999999.9999))
+        ##!#radio['ALT'] = np.delete(radio['ALT'],np.where(radio['ALT']==999999.9999))
+        ##!#
        
-        #----------------------------------------------------------------------
-        #
-        # NOTE: These starting and stopping times will vary depending on the
-        #       launch, so change for each launch.
-        #
-        #       The values used here are for the first full launch on 
-        #       May 4th and 5th, 2018.
-        #---------------------------------------------------------------------- 
-        # Thermo data (Values for the 2019/05/04 launch)
-        start_time = 13152.0
-        stop_time = 14220.0 
-        # Radio data
-        radio_ascent_start = 13334.7
-        radio_ascent_stop  = 14410.7
-        radio_last_contact = 14410.7
-        #radio_last_index = 7734 # last contact
-        radio_last_index = 1076 # burst
-        #thermo_last_index = 10226 # last contact 
-        thermo_start_index= 2622
-        thermo_last_index = 3690
-        thermo_final_last_index = 3918  # last index in the file
-        #radio_last_contact = 26383.0
+        ##!##----------------------------------------------------------------------
+        ##!##
+        ##!## NOTE: These starting and stopping times will vary depending on the
+        ##!##       launch, so change for each launch.
+        ##!##
+        ##!##       The values used here are for the first full launch on 
+        ##!##       May 4th and 5th, 2018.
+        ##!##---------------------------------------------------------------------- 
+        ##!###!## Thermo data (Values for the 2019/05/04 launch)
+        ##!###!#start_time = 13152.0
+        ##!###!#stop_time = 14220.0 
+        ##!###!## Radio data
+        ##!###!#radio_ascent_start = 13334.7
+        ##!###!#radio_ascent_stop  = 14410.7
+        ##!###!#radio_last_contact = 14410.7
+        ##!###!##radio_last_index = 7734 # last contact
+        ##!###!#radio_last_index = 1076 # burst
+        ##!###!##thermo_last_index = 10226 # last contact 
+        ##!###!#thermo_start_index= 2622
+        ##!###!#thermo_last_index = 3690
+        ##!###!#thermo_final_last_index = 3918  # last index in the file
+        ##!###!##radio_last_contact = 26383.0
 
-        # Values for the 2018/05/05 launch
-        #### Thermo data 
-        ###start_time = 23331.0
-        ###stop_time = 27380.0 
-        #### Radio data
-        ###radio_ascent_start = 20154.5
-        ###radio_ascent_stop  = 24628.5
-        ###radio_last_contact = 26398.5
-        ####radio_last_index = 7734 # last contact
-        ###radio_last_index = 5964 # burst
-        ####thermo_last_index = 10226 # last contact 
-        ###thermo_last_index = 8675
-        ###thermo_final_last_index = 10232  # last index in the file
-        ####radio_last_contact = 26383.0
+        ##!###!## Values for the 2018/05/05 launch
+        ##!###!##### Thermo data 
+        ##!###!####start_time = 23331.0
+        ##!###!####stop_time = 27380.0 
+        ##!###!##### Radio data
+        ##!###!####radio_ascent_start = 20154.5
+        ##!###!####radio_ascent_stop  = 24628.5
+        ##!###!####radio_last_contact = 26398.5
+        ##!###!#####radio_last_index = 7734 # last contact
+        ##!###!####radio_last_index = 5964 # burst
+        ##!###!#####thermo_last_index = 10226 # last contact 
+        ##!###!####thermo_last_index = 8675
+        ##!###!####thermo_final_last_index = 10232  # last index in the file
+        ##!###!#####radio_last_contact = 26383.0
+
+        ##!#if(radio_file.strip().split('/')[-1][:2] == '19'):
+        ##!#    pre2019 = False
+        ##!#else:
+        ##!#    pre2019 = True
+        ##!#if(pre2019 == True):
+        ##!#    # Thermo data
+        ##!#    start_time = 23331.0
+        ##!#    stop_time = 27380.0 
+        ##!#    # Radio data
+        ##!#    radio_ascent_start = 20154.5
+        ##!#    radio_ascent_stop  = 24628.5
+        ##!#    radio_last_contact = 26398.5
+        ##!#     
+        ##!#    radio_last_index = 5964 # burst
+        ##!#
+        ##!#    thermo_start_index = 4626
+        ##!#    thermo_last_index = 8675
+        ##!#    thermo_final_last_index = 10232  # last index in the file
+        ##!#else:
+        ##!#    # Thermo data
+        ##!#    start_time = 13152.0
+        ##!#    stop_time = 14220.0 
+        ##!#    # After 2019/05/03
+        ##!#    radio_ascent_start = 13334.7
+        ##!#    radio_ascent_stop  = 14410.7
+        ##!#    radio_last_contact = 14410.7
+        ##!#
+        ##!#    # After 2019/05/03
+        ##!#    radio_last_index = 1076 # burst
+        ##!#
+        ##!#    thermo_start_index= 2622
+        ##!#    thermo_last_index = 3690
+        ##!#    thermo_final_last_index = 3918  # last index in the file
 
 
-        radio_start_time  = radio_ascent_start 
-        radio_last_time  = radio_last_contact 
-        #radio_diff = (radio_last_time-radio_start_time)/(7054.0-1490.0)
-        radio_diff = (radio_last_time-radio_start_time)/(np.where(radio['UTCTime']==radio_last_time)[0][0]-np.where(radio['UTCTime']==radio_start_time)[0][0])
-        
-        thermo_diff = 1.0/radio_diff
-        
-        diff = start_time-radio_start_time # first launch 2018 05 05 
-        #plotTime = radio['UTCTime']+diff
-        
-        # Match the launch times between the thermosonde and radiosonde
-        plotTime = thermo.data['Time']-diff
-        thermo.data['Time'] = thermo.data['Time']-diff
-        
-        ascent_rtime = radio['UTCTime'][0:radio_last_index]
-        ascent_ralt = radio['ALT'][0:radio_last_index]
-        ascent_ttime = plotTime[thermo_start_index:thermo_last_index]
-        ascent_talt = thermo.data['Alt'][thermo_start_index:thermo_last_index]
-        # First full launch
-        #ascent_rtime = radio['UTCTime'][1490:radio_last_index]
-        #ascent_ralt = radio['ALT'][1490:radio_last_index]
-        #ascent_ttime = plotTime[4626:thermo_last_index]
-        #ascent_talt = thermo.data['Alt'][4626:thermo_last_index]
-        
-        ###descent_rtime = radio['UTCTime'][radio_last_index:len(radio['UTCTime'])]
-        ###descent_ralt = radio['ALT'][radio_last_index:len(radio['UTCTime'])]
-        ###descent_ttime = plotTime[thermo_last_index:thermo_final_last_index]
-        
-        # Find the ratio of the number of radiosonde ascent times to the number of
-        # thermosonde ascent times
-        ascent_diff_ratio = float(len(ascent_rtime))/float(len(ascent_ttime))
-        # Use that ratio to create new thermosonde ascent times that match with the
-        # radiosonde's ascent times. Now, the radiosonde and thermosonde ascent times
-        # have launches at the same time and bursts at the same time, although the 
-        # burst altitudes differ by a few dozen meters.
-        ascent_ttime = np.arange(ascent_ttime[0],ascent_rtime[-1]+1,ascent_diff_ratio)
-        
-        #### Repeat the process for the descent
-        ###descent_rtime = radio['UTCTime'][radio_last_index:len(radio['UTCTime'])]
-        ###descent_ralt = radio['ALT'][radio_last_index:len(radio['UTCTime'])]
-        ####descent_ttime = plotTime[thermo_last_index:len(thermo.data['Time'])]
-        ###descent_talt = thermo.data['Alt'][thermo_last_index:thermo_final_last_index]
-        ###
-        ###descent_diff_ratio = float(len(descent_rtime))/float(len(descent_ttime)-1.0)
-        ###descent_ttime = np.arange(ascent_ttime[-1]+1,descent_rtime[-1]+1,descent_diff_ratio)
-        
-        rplot = np.arange(0,len(ascent_rtime))
-        tplot = np.arange(0,len(ascent_ttime))
-        
-        #### Combine the new thermosonde times into a single array
-        ###ad_ttime = np.concatenate([ascent_ttime,descent_ttime])
-        ###ad_talt  = np.concatenate([ascent_talt,descent_talt])
-        
-        thermo.data['Time'][thermo_start_index:thermo_last_index] = ascent_ttime
-        thermo.data['Alt'][thermo_start_index:thermo_last_index] = ascent_talt
-        #thermo.data['Time'][4626:10232] = ad_ttime
-        #thermo.data['Alt'][4626:10232] = ad_talt
-        thermo.mask_MVC()
-        
-        ###############################################################################
-        #
-        # END OF comparison_checker.py TRANSPLANT
-        #
-        ###############################################################################
-        
-        # Account for the fact that the 
-        ###time_offset = thermo.data['Time'][-1]-radio['UTCTime'][-1]
-        #thermo_start_time = 86332.0
-        #thermo_stop_time = 86606.0   # these three are for the tethered test
-        #radio_start_time  = 83093.0
-        thermo_start_time = 23331.0
-        thermo_stop_time = 27380.0   # these three are for the tethered test
-        radio_start_time  = 20154.0
-        
-        combined_start_time = 13334.7
-        combined_stop_time = 14410.7
-        # First launch values
-        ##combined_start_time = 20154.5
-        ##combined_stop_time = 24629.5
-        
-        # This part is made obselete by the comparison_checker.py transplant
-        ####time_offset = thermo_start_time-radio_start_time-23.0 # tethered test
-        ###time_offset = thermo_start_time-radio_start_time
-        ####radio['UTCTime']+=time_offset
-        ###thermo.data['Time']-=time_offset
-        
-        # Grab the "matching" times to plot a time series of the data later
-        closetime_thermo = np.array([])
-        matchalt_thermo = np.array([])
-        closetime_radio = np.array([])
-        
-        # Get rid of data that is outside the ascent time
-        #closeindex_radio = np.where((radio['UTCTime']>=86322.0) & (radio['UTCTime']<=86606.0))[0] # tethered test
-        closeindex_radio = np.where((radio['UTCTime']>=combined_start_time) & (radio['UTCTime']<=combined_stop_time))[0]
-        for key in radio.keys():
-            if((key != 'UNITS') & (type(radio[key]) is not str)):
-                radio[key] = radio[key][closeindex_radio]
-        
-        tempdiff = np.array([])
-        for time in radio['UTCTime']:
-            closetime=thermo.data['Time'][:].flat[np.abs(thermo.data['Time'][:]-time).argmin()]
-            closetime_thermo = np.append(closetime_thermo[:],closetime)
-            close_index = np.where(thermo.data['Time']==closetime)[0]
-            matchalt_thermo = np.append(matchalt_thermo[:],thermo.data['Alt'][close_index])
-        #    print radio['ALT'][np.where(radio['UTCTime']==time)],thermo.data['Alt'][close_index]
-        #    print thermo.data['TempDiff'][np.where(thermo.data['Time']==closetime)]
-            tempdiff = np.append(tempdiff[:],thermo.data['TempDiff'][np.where(thermo.data['Time']==closetime)])
-        
-        
-        
-        thermo_cn2 = dict(radio)
-        thermo_cn2 = cn2_calc_thermo(tempdiff,thermo_cn2)
-        # Adding the method='thermo' flag causes the radiosonde Cn2 to be several
-        # of magnitude higher than without
+        ##!#radio_start_time  = radio_ascent_start 
+        ##!#radio_last_time  = radio_last_contact 
+        ##!##radio_diff = (radio_last_time-radio_start_time)/(7054.0-1490.0)
+        ##!#radio_diff = (radio_last_time-radio_start_time)/(np.where(radio['UTCTime']==radio_last_time)[0][0]-np.where(radio['UTCTime']==radio_start_time)[0][0])
+        ##!#
+        ##!#thermo_diff = 1.0/radio_diff
+        ##!#
+        ##!#diff = start_time-radio_start_time # first launch 2018 05 05 
+        ##!##plotTime = radio['UTCTime']+diff
+        ##!#
+        ##!## Match the launch times between the thermosonde and radiosonde
+        ##!#plotTime = thermo.data['Time']-diff
+        ##!#thermo.data['Time'] = thermo.data['Time']-diff
+        ##!#
+        ##!#ascent_rtime = radio['UTCTime'][0:radio_last_index]
+        ##!#ascent_ralt = radio['ALT'][0:radio_last_index]
+        ##!#ascent_ttime = plotTime[thermo_start_index:thermo_last_index]
+        ##!#ascent_talt = thermo.data['Alt'][thermo_start_index:thermo_last_index]
+        ##!## First full launch
+        ##!##ascent_rtime = radio['UTCTime'][1490:radio_last_index]
+        ##!##ascent_ralt = radio['ALT'][1490:radio_last_index]
+        ##!##ascent_ttime = plotTime[4626:thermo_last_index]
+        ##!##ascent_talt = thermo.data['Alt'][4626:thermo_last_index]
+        ##!#
+        ##!####descent_rtime = radio['UTCTime'][radio_last_index:len(radio['UTCTime'])]
+        ##!####descent_ralt = radio['ALT'][radio_last_index:len(radio['UTCTime'])]
+        ##!####descent_ttime = plotTime[thermo_last_index:thermo_final_last_index]
+        ##!#
+        ##!## Find the ratio of the number of radiosonde ascent times to the number of
+        ##!## thermosonde ascent times
+        ##!#ascent_diff_ratio = float(len(ascent_rtime))/float(len(ascent_ttime))
+        ##!## Use that ratio to create new thermosonde ascent times that match with the
+        ##!## radiosonde's ascent times. Now, the radiosonde and thermosonde ascent times
+        ##!## have launches at the same time and bursts at the same time, although the 
+        ##!## burst altitudes differ by a few dozen meters.
+        ##!#ascent_ttime = np.arange(ascent_ttime[0],ascent_rtime[-1]+1,ascent_diff_ratio)
+        ##!#
+        ##!###!#descent_rtime = radio['UTCTime'][radio_last_index:len(radio['UTCTime'])]
+        ##!###!#descent_ralt = radio['ALT'][radio_last_index:len(radio['UTCTime'])]
+        ##!#descent_ttime = plotTime[thermo_last_index:thermo_final_last_index]
+        ##!## Repeat the process for the descent
+        ##!#descent_rtime = radio['UTCTime'][radio_last_index:len(radio['UTCTime'])]
+        ##!#descent_ralt = radio['ALT'][radio_last_index:len(radio['UTCTime'])]
+        ##!##descent_ttime = plotTime[thermo_last_index:len(thermo.data['Time'])]
+        ##!#descent_talt = thermo.data['Alt'][thermo_last_index:thermo_final_last_index]
+        ##!#
+        ##!#descent_diff_ratio = float(len(descent_rtime))/float(len(descent_ttime)-1.0)
+        ##!#descent_ttime = np.arange(ascent_ttime[-1]+1,descent_rtime[-1]+1,descent_diff_ratio)
+        ##!#
+        ##!#rplot = np.arange(0,len(ascent_rtime))
+        ##!#tplot = np.arange(0,len(ascent_ttime))
+
+        ##!#if(pre2019 == True):
+        ##!#    # Repeat the process for the descent
+        ##!#    descent_rtime = radio['UTCTime'][radio_last_index:len(radio['UTCTime'])]
+        ##!#    descent_ralt = radio['ALT'][radio_last_index:len(radio['UTCTime'])]
+        ##!#    #descent_ttime = plotTime[thermo_last_index:len(thermo.data['Time'])]
+        ##!#    descent_talt = thermo.data['Alt'][thermo_last_index:thermo_final_last_index]
+        ##!#    
+        ##!#    descent_diff_ratio = float(len(descent_rtime))/float(len(descent_ttime)-1.0)
+        ##!#    descent_ttime = np.arange(ascent_ttime[-1]+1,descent_rtime[-1]+1,descent_diff_ratio)
+        ##!#    # Combine the new thermosonde times into a single array
+        ##!#    ad_ttime = np.concatenate([ascent_ttime,descent_ttime])
+        ##!#    ad_talt  = np.concatenate([ascent_talt,descent_talt])
+        ##!#
+        ##!#    # Before 2019/05/03
+        ##!#    thermo.data['Time'][thermo_start_index:thermo_final_last_index] = ad_ttime
+        ##!#    thermo.data['Alt'][thermo_start_index:thermo_final_last_index] = ad_talt
+        ##!#else:
+        ##!#    # After 2019/05/03
+        ##!#    thermo.data['Time'][thermo_start_index:thermo_last_index] = ascent_ttime
+        ##!#    thermo.data['Alt'][thermo_start_index:thermo_last_index] = ascent_talt
+        ##!#
+        ##!##### Combine the new thermosonde times into a single array
+        ##!####ad_ttime = np.concatenate([ascent_ttime,descent_ttime])
+        ##!####ad_talt  = np.concatenate([ascent_talt,descent_talt])
+        ##!#
+        ##!###!#thermo.data['Time'][thermo_start_index:thermo_last_index] = ascent_ttime
+        ##!###!#thermo.data['Alt'][thermo_start_index:thermo_last_index] = ascent_talt
+        ##!##thermo.data['Time'][4626:10232] = ad_ttime
+        ##!##thermo.data['Alt'][4626:10232] = ad_talt
+        ##!#thermo.mask_MVC()
+        ##!#
+        ##!################################################################################
+        ##!##
+        ##!## END OF comparison_checker.py TRANSPLANT
+        ##!##
+        ##!################################################################################
+        ##!#
+        ##!## Account for the fact that the 
+        ##!####time_offset = thermo.data['Time'][-1]-radio['UTCTime'][-1]
+        ##!##thermo_start_time = 86332.0
+        ##!##thermo_stop_time = 86606.0   # these three are for the tethered test
+        ##!##radio_start_time  = 83093.0
+        ##!#thermo_start_time = 23331.0
+        ##!#thermo_stop_time = 27380.0   # these three are for the tethered test
+        ##!#radio_start_time  = 20154.0
+        ##!#
+        ##!#combined_start_time = 13334.7
+        ##!#combined_stop_time = 14410.7
+        ##!## First launch values
+        ##!###combined_start_time = 20154.5
+        ##!###combined_stop_time = 24629.5
+        ##!#
+        ##!## This part is made obselete by the comparison_checker.py transplant
+        ##!#####time_offset = thermo_start_time-radio_start_time-23.0 # tethered test
+        ##!####time_offset = thermo_start_time-radio_start_time
+        ##!#####radio['UTCTime']+=time_offset
+        ##!####thermo.data['Time']-=time_offset
+        ##!#
+        ##!## Grab the "matching" times to plot a time series of the data later
+        ##!#closetime_thermo = np.array([])
+        ##!#matchalt_thermo = np.array([])
+        ##!#closetime_radio = np.array([])
+        ##!#
+        ##!## Get rid of data that is outside the ascent time
+        ##!##closeindex_radio = np.where((radio['UTCTime']>=86322.0) & (radio['UTCTime']<=86606.0))[0] # tethered test
+        ##!#closeindex_radio = np.where((radio['UTCTime']>=combined_start_time) & (radio['UTCTime']<=combined_stop_time))[0]
+        ##!#for key in radio.keys():
+        ##!#    if((key != 'UNITS') & (type(radio[key]) is not str)):
+        ##!#        radio[key] = radio[key][closeindex_radio]
+        ##!#
+        ##!#tempdiff = np.array([])
+        ##!#for time in radio['UTCTime']:
+        ##!#    closetime=thermo.data['Time'][:].flat[np.abs(thermo.data['Time'][:]-time).argmin()]
+        ##!#    closetime_thermo = np.append(closetime_thermo[:],closetime)
+        ##!#    close_index = np.where(thermo.data['Time']==closetime)[0]
+        ##!#    matchalt_thermo = np.append(matchalt_thermo[:],thermo.data['Alt'][close_index])
+        ##!##    print radio['ALT'][np.where(radio['UTCTime']==time)],thermo.data['Alt'][close_index]
+        ##!##    print thermo.data['TempDiff'][np.where(thermo.data['Time']==closetime)]
+        ##!#    tempdiff = np.append(tempdiff[:],thermo.data['TempDiff'][np.where(thermo.data['Time']==closetime)])
+        ##!#
+        ##!#
+        ##!#
+        ##!#thermo_cn2 = dict(radio)
+        ##!#thermo_cn2 = cn2_calc_thermo(tempdiff,thermo_cn2)
+        ##!## Adding the method='thermo' flag causes the radiosonde Cn2 to be several
+        ##!## of magnitude higher than without
         sradio = dict(radio)
         sradio = smooth(sradio)
         sradio = cn2_calc(sradio,method='thermo')
         radio = cn2_calc(radio)
-        
-        # Ignore the missing thermosonde_data
-        masked_tempdiff = ma.masked_values(tempdiff,1e6)
-        masked_indices = np.where(masked_tempdiff!=ma.masked)
-        for key in thermo_cn2:
-            if type(thermo_cn2[key]) is np.ndarray:
-                thermo_cn2[key] = thermo_cn2[key][masked_indices]
-        
-        # SMOOTHER
-        # Put an 11-point smoother on the thermosonde data
-        # Declare arrays to hold smoothed data
-        avg_t = np.array([])
-        avg_u = np.array([])
-        avg_v = np.array([])
-        mid_alt = np.array([])
-        mid_press = np.array([])
-        avg_cn2t = np.array([])
-        temp_cn2t = np.zeros(11)
-        j=0
-        # Set the totals equal to the first elements of the t, u, and v. When
-        # the for loop started at 0, an extra 0 was showing up at the beginning
-        # of the averaged data arrays. Starting the loop at 1 removes the 0, 
-        # but requires the first elements of the data arrays to be added
-        # to the total before the start.
-        
-        # Convert thermo_cn2['CN2T'] to logarithmic for smoothing
-        thermo_scn2 = dict(thermo_cn2)
-        thermo_scn2['LABEL'] = 'Smoothed Thermosonde'
-        thermo_scn2['CN2T'] = np.log10(thermo_scn2['CN2T'])
-        total_t=thermo_scn2['TEMP'][0]
-        total_cn2t=thermo_scn2['CN2T'][0]
-        total_u=thermo_scn2['UWIND'][0]
-        total_v=thermo_scn2['VWIND'][0]
-        # Loop through the t, u, and v data
-        for i in range(1, len(thermo_cn2['CN2T'])):
-            # If 11 elements have been summed, average the current total and 
-            # append the averages to arrays. 
-            if(i%11==0):
-                avg_t = np.append(avg_t[:],total_t/11)
-                avg_u = np.append(avg_u[:],total_u/11)
-                avg_v = np.append(avg_v[:],total_v/11)
-                mid_alt = np.append(mid_alt[:],thermo_cn2['ALT'][i-6])
-                mid_press = np.append(mid_press[:],thermo_cn2['PRESS'][i-6])
-                #avg_cn2t = np.append(avg_cn2t[:],total_cn2t/11)
-                avg_cn2t = np.append(avg_cn2t[:],np.average(temp_cn2t))
-                j=0
-                total_t=0
-                total_u=0
-                total_v=0
-            # Add the current data to the totals
-            total_t+=thermo_scn2['TEMP'][i]
-            #total_cn2t+=thermo_cn2['CN2T'][i]
-            temp_cn2t[j] = thermo_scn2['CN2T'][i]
-            j+=1
-            total_u+=thermo_scn2['UWIND'][i]
-            total_v+=thermo_scn2['VWIND'][i]
-        
-        # REMOVE to prevent resetting the data with the smoothed data
-        thermo_scn2['CN2T']=avg_cn2t
-        thermo_scn2['ALT']=mid_alt
-        thermo_scn2['PRESS'] = mid_press
-        thermo_scn2['TEMP'] = avg_t
-        thermo_scn2['UWIND`'] = avg_u
-        thermo_scn2['VWIND`'] = avg_v
-        
-        # Convert thermo_cn2['CN2T'] back to linear
-        thermo_scn2['CN2T'] = 10.**(thermo_scn2['CN2T'])
+        ##!#
+        ##!## Ignore the missing thermosonde_data
+        ##!#masked_tempdiff = ma.masked_values(tempdiff,1e6)
+        ##!#masked_indices = np.where(masked_tempdiff!=ma.masked)
+        ##!#for key in thermo_cn2:
+        ##!#    if type(thermo_cn2[key]) is np.ndarray:
+        ##!#        thermo_cn2[key] = thermo_cn2[key][masked_indices]
+        ##!#
+        ##!## SMOOTHER
+        ##!## Put an 11-point smoother on the thermosonde data
+        ##!## Declare arrays to hold smoothed data
+        ##!#avg_t = np.array([])
+        ##!#avg_u = np.array([])
+        ##!#avg_v = np.array([])
+        ##!#mid_alt = np.array([])
+        ##!#mid_press = np.array([])
+        ##!#avg_cn2t = np.array([])
+        ##!#temp_cn2t = np.zeros(11)
+        ##!#j=0
+        ##!## Set the totals equal to the first elements of the t, u, and v. When
+        ##!## the for loop started at 0, an extra 0 was showing up at the beginning
+        ##!## of the averaged data arrays. Starting the loop at 1 removes the 0, 
+        ##!## but requires the first elements of the data arrays to be added
+        ##!## to the total before the start.
+        ##!#
+        ##!## Convert thermo_cn2['CN2T'] to logarithmic for smoothing
+        ##!#thermo_scn2 = dict(thermo_cn2)
+        ##!#thermo_scn2['LABEL'] = 'Smoothed Thermosonde'
+        ##!#thermo_scn2['CN2T'] = np.log10(thermo_scn2['CN2T'])
+        ##!#total_t=thermo_scn2['TEMP'][0]
+        ##!#total_cn2t=thermo_scn2['CN2T'][0]
+        ##!#total_u=thermo_scn2['UWIND'][0]
+        ##!#total_v=thermo_scn2['VWIND'][0]
+        ##!## Loop through the t, u, and v data
+        ##!#for i in range(1, len(thermo_cn2['CN2T'])):
+        ##!#    # If 11 elements have been summed, average the current total and 
+        ##!#    # append the averages to arrays. 
+        ##!#    if(i%11==0):
+        ##!#        avg_t = np.append(avg_t[:],total_t/11)
+        ##!#        avg_u = np.append(avg_u[:],total_u/11)
+        ##!#        avg_v = np.append(avg_v[:],total_v/11)
+        ##!#        mid_alt = np.append(mid_alt[:],thermo_cn2['ALT'][i-6])
+        ##!#        mid_press = np.append(mid_press[:],thermo_cn2['PRESS'][i-6])
+        ##!#        #avg_cn2t = np.append(avg_cn2t[:],total_cn2t/11)
+        ##!#        avg_cn2t = np.append(avg_cn2t[:],np.average(temp_cn2t))
+        ##!#        j=0
+        ##!#        total_t=0
+        ##!#        total_u=0
+        ##!#        total_v=0
+        ##!#    # Add the current data to the totals
+        ##!#    total_t+=thermo_scn2['TEMP'][i]
+        ##!#    #total_cn2t+=thermo_cn2['CN2T'][i]
+        ##!#    temp_cn2t[j] = thermo_scn2['CN2T'][i]
+        ##!#    j+=1
+        ##!#    total_u+=thermo_scn2['UWIND'][i]
+        ##!#    total_v+=thermo_scn2['VWIND'][i]
+        ##!#
+        ##!## REMOVE to prevent resetting the data with the smoothed data
+        ##!#thermo_scn2['CN2T']=avg_cn2t
+        ##!#thermo_scn2['ALT']=mid_alt
+        ##!#thermo_scn2['PRESS'] = mid_press
+        ##!#thermo_scn2['TEMP'] = avg_t
+        ##!#thermo_scn2['UWIND`'] = avg_u
+        ##!#thermo_scn2['VWIND`'] = avg_v
+        ##!#
+        ##!## Convert thermo_cn2['CN2T'] back to linear
+        ##!#thermo_scn2['CN2T'] = 10.**(thermo_scn2['CN2T'])
        
-        """
         #######################################################################
         #
         # Normal comparison section for radiosonde vs thermosonde
@@ -1218,8 +1277,8 @@ def compare_cn2(radio_file,model_file,thermo_file,mlat=None,mlon=None):
         thermo_scn2['CN2T']   = np.delete(thermo_scn2['CN2T'], np.argwhere(thermo_scn2['ALT']<3000))
         thermo_scn2['ALT']   = np.delete(thermo_scn2['ALT'], np.argwhere(thermo_scn2['ALT']<3000))
       
-        """
- 
+
+        """ 
         #----------------------------------------------------------------------
         #
         # The comparison methods taken for the radiosonde-model section
@@ -1244,7 +1303,9 @@ def compare_cn2(radio_file,model_file,thermo_file,mlat=None,mlon=None):
         sradioAlt = sradio['ALT'][close_indices] 
         sradio['CN2'] = sradioCn2
         sradio['ALT'] = sradioAlt
-    
+   
+        """
+ 
         ########################################################################
         #
         # Statistical calculations taken from Frehlich et al, 2010
@@ -1297,8 +1358,8 @@ def compare_cn2(radio_file,model_file,thermo_file,mlat=None,mlon=None):
         print("Num_obs stratosphere=",num_strat_cn)
 
         # Plot the thermosonde Cn2 and radiosonde Cn2 on a graph
-        plot_cn2(thermo_scn2,sradio,'save')
-        #plot_cn2(thermo_cn2,thermo_scn2)
+        plot_cn2(thermo_scn2,sradio)
+        #plot_cn2(thermo_scn2,thermo_scn2)
 
         #plot_cn2()
         #plt.plot(np.log10(radio['CN2']),radio['ALT']/1000.)
