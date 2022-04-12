@@ -525,15 +525,18 @@ def compare_cn2(radio_file,model_file,thermo_file,mlat=None,mlon=None):
     #if(len(sys.argv)<3):
     #    print "SYNTAX: ./compare_calc.py <radiosonde profile> <model profile>"
     #    sys.exit(1)
-    if(len(sys.argv)==5):
-        mlat = sys.argv[-2]
-        mlon = sys.argv[-1]
+    #if(len(sys.argv)==5):
+    #    mlat = sys.argv[-2]
+    #    mlon = sys.argv[-1]
     # Read in radiosonde, model, and thermosonde data
-    sounding_1 = readsounding(sys.argv[1]) # radio_file
+    sounding_1 = readsounding(radio_file) # radio_file
+    #sounding_1 = readsounding(sys.argv[1]) # radio_file
     if((mlat is None) and (mlon is None)):
-        sounding_2 = readsounding(sys.argv[2]) # model_file
+        sounding_2 = readsounding(model_file) # model_file
+        #sounding_2 = readsounding(sys.argv[2]) # model_file
     else:
-        sounding_2 = readsounding(sys.argv[2],float(mlat),float(mlon))# model_file
+        sounding_2 = readsounding(model_file, float(mlat),float(mlon))# model_file
+        #sounding_2 = readsounding(sys.argv[2],float(mlat),float(mlon))# model_file
 
     # Declare Arrays
     out_cn2r     = np.array([])
@@ -881,7 +884,8 @@ def compare_cn2(radio_file,model_file,thermo_file,mlat=None,mlon=None):
    
         # Reset the radio dictionary 
         radio = readsounding(radio_file,allGraw=True,keepMissing=True)
-
+    
+        from cn2_lib import read_temp_diffs
         thermo_scn2 = read_temp_diffs(radio_file, thermo_file)
         ##!################################################################################
         ##!##
@@ -1186,6 +1190,7 @@ def compare_cn2(radio_file,model_file,thermo_file,mlat=None,mlon=None):
         ##!## Convert thermo_cn2['CN2T'] back to linear
         ##!#thermo_scn2['CN2T'] = 10.**(thermo_scn2['CN2T'])
        
+        """
         #######################################################################
         #
         # Normal comparison section for radiosonde vs thermosonde
@@ -1304,58 +1309,57 @@ def compare_cn2(radio_file,model_file,thermo_file,mlat=None,mlon=None):
         sradio['CN2'] = sradioCn2
         sradio['ALT'] = sradioAlt
    
-        """
  
-        ########################################################################
-        #
-        # Statistical calculations taken from Frehlich et al, 2010
-        #
-        ########################################################################
-        
-        # Compute log10 cn2 arrays
-        # Use the new arrays to calculate an average difference and standard
-        # devation
-        thermo_log = np.log10(thermo_scn2['CN2T'])
-        radio_log = np.log10(sradio['CN2'])
-        #radio_log = np.log10(radio['CN2'])
-        rtlog_diff = thermo_log-radio_log
-        rtlog_diff_avg = abs(np.average(rtlog_diff))
-        rtlog_diff_std = np.std(rtlog_diff)
+        ##!#########################################################################
+        ##!##
+        ##!## Statistical calculations taken from Frehlich et al, 2010
+        ##!##
+        ##!#########################################################################
+        ##!#
+        ##!## Compute log10 cn2 arrays
+        ##!## Use the new arrays to calculate an average difference and standard
+        ##!## devation
+        ##!#thermo_log = np.log10(thermo_scn2['CN2T'])
+        ##!#radio_log = np.log10(sradio['CN2'])
+        ##!##radio_log = np.log10(radio['CN2'])
+        ##!#rtlog_diff = thermo_log-radio_log
+        ##!#rtlog_diff_avg = abs(np.average(rtlog_diff))
+        ##!#rtlog_diff_std = np.std(rtlog_diff)
 
-        # Calculate the average values of the differences for the troposphere 
-        # and stratosphere
-        trop_cn2 = rtlog_diff[np.where(thermo_scn2['PRESS']>=trop_pres)]
-        num_trop_cn2 = len(trop_cn2)
-        trop_cn2_avg = abs(np.average(trop_cn2))
-        trop_cn2_std = np.std(trop_cn2) 
-        strat_cn2 = rtlog_diff[np.where(thermo_scn2['PRESS']<trop_pres)]
-        num_strat_cn2 = len(strat_cn2)
-        strat_cn2_avg = abs(np.average(strat_cn2))
-        strat_cn2_std = np.std(strat_cn2) 
+        ##!## Calculate the average values of the differences for the troposphere 
+        ##!## and stratosphere
+        ##!#trop_cn2 = rtlog_diff[np.where(thermo_scn2['PRESS']>=trop_pres)]
+        ##!#num_trop_cn2 = len(trop_cn2)
+        ##!#trop_cn2_avg = abs(np.average(trop_cn2))
+        ##!#trop_cn2_std = np.std(trop_cn2) 
+        ##!#strat_cn2 = rtlog_diff[np.where(thermo_scn2['PRESS']<trop_pres)]
+        ##!#num_strat_cn2 = len(strat_cn2)
+        ##!#strat_cn2_avg = abs(np.average(strat_cn2))
+        ##!#strat_cn2_std = np.std(strat_cn2) 
        
-        diff = np.array([]) 
-        percent_diff = np.array([]) 
-        # Calculate percent difference between the two profiles
-        for i in range(0, len(thermo_scn2['CN2T'])):
-            t_dif=abs(thermo_scn2['CN2T'][i]-sradio['CN2'][i])
-            #t_dif=abs(thermo_scn2['CN2T'][i]-radio['CN2'][i])
-            prcnt=(t_dif/max(abs(thermo_scn2['CN2T'][i]), abs(sradio['CN2'][i])))*100.
-            #prcnt=(t_dif/max(abs(thermo_scn2['CN2T'][i]), abs(radio['CN2'][i])))*100.
-        
-            diff = np.append(diff[:], t_dif)
-            percent_diff = np.append(percent_diff[:], prcnt)
+        ##!#diff = np.array([]) 
+        ##!#percent_diff = np.array([]) 
+        ##!## Calculate percent difference between the two profiles
+        ##!#for i in range(0, len(thermo_scn2['CN2T'])):
+        ##!#    t_dif=abs(thermo_scn2['CN2T'][i]-sradio['CN2'][i])
+        ##!#    #t_dif=abs(thermo_scn2['CN2T'][i]-radio['CN2'][i])
+        ##!#    prcnt=(t_dif/max(abs(thermo_scn2['CN2T'][i]), abs(sradio['CN2'][i])))*100.
+        ##!#    #prcnt=(t_dif/max(abs(thermo_scn2['CN2T'][i]), abs(radio['CN2'][i])))*100.
+        ##!#
+        ##!#    diff = np.append(diff[:], t_dif)
+        ##!#    percent_diff = np.append(percent_diff[:], prcnt)
 
-        final_prcntdif = np.delete(percent_diff, \
-                         np.where(np.isnan(percent_diff)))
-        print(radio['TITLE']+" vs. Thermosonde"+"\t  Log Diff Avg: "+\
-              str(round(rtlog_diff_avg, 5)) + "\t  STD: "+str(round(rtlog_diff_std, 5))+\
-              "\tAVR PRCNT DIFF: " + str(round(np.average(final_prcntdif), 5)))
-        print("Troposphere:  avg_diff = ",round(trop_cn2_avg,5),\
-            "  std_dev = ",round(trop_cn2_std,5))
-        print("Stratosphere: avg_diff = ",round(strat_cn2_avg,5),\
-            "  std_dev = ",round(strat_cn2_std,5))
-        print("Num_obs troposphere=",num_trop_cn2)
-        print("Num_obs stratosphere=",num_strat_cn)
+        ##!#final_prcntdif = np.delete(percent_diff, \
+        ##!#                 np.where(np.isnan(percent_diff)))
+        ##!#print(radio['TITLE']+" vs. Thermosonde"+"\t  Log Diff Avg: "+\
+        ##!#      str(round(rtlog_diff_avg, 5)) + "\t  STD: "+str(round(rtlog_diff_std, 5))+\
+        ##!#      "\tAVR PRCNT DIFF: " + str(round(np.average(final_prcntdif), 5)))
+        ##!#print("Troposphere:  avg_diff = ",round(trop_cn2_avg,5),\
+        ##!#    "  std_dev = ",round(trop_cn2_std,5))
+        ##!#print("Stratosphere: avg_diff = ",round(strat_cn2_avg,5),\
+        ##!#    "  std_dev = ",round(strat_cn2_std,5))
+        ##!#print("Num_obs troposphere=",num_trop_cn2)
+        ##!#print("Num_obs stratosphere=",num_strat_cn)
 
         # Plot the thermosonde Cn2 and radiosonde Cn2 on a graph
         plot_cn2(thermo_scn2,sradio)

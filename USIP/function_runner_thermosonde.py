@@ -17,8 +17,13 @@ from compare_cn2 import *
 in_data = ['2018050505/2018050505/180505_051104_CKN_GRAW.txt',\
     '2018050505/2018050505/HRRR_2018050505_ANALYSIS_CKN_ARL']
 
+model_file = '2018050505/2018050505/HRRR_2018050505_ANALYSIS_CKN_ARL'
 thermo_file = '2018050505/2018050505/original_data/18_05_05_05_11_03.GRAW.tempdiff.1Hz'
 radio_file =  '2018050505/2018050505/180505_051104_CKN_GRAW.txt'
+
+compare_cn2(radio_file,model_file,thermo_file,mlat=None,mlon=None)
+
+sys.exit()
 
 fig = plt.figure(figsize = (8,9))
 gs = fig.add_gridspec(2,2, hspace = 0.3)
