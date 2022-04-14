@@ -2200,7 +2200,7 @@ def plotOMI_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
     pax.coastlines(resolution='50m')
     mesh = pax.pcolormesh(plon, plat,\
             mask_AI.T,transform = datacrs,\
-            cmap = colormap,vmin=vmin,vmax=vmax)
+            cmap = colormap,vmin=vmin,vmax=vmax, shading = 'auto')
     pax.set_extent([-180,180,minlat,90],datacrs)
     pax.set_boundary(circle, transform=pax.transAxes)
     #ax.set_xlim(-3430748.535086173,3430748.438879491)
@@ -3049,10 +3049,10 @@ def plotOMI_Compare_ClimoTrend_all(OMI_data1,OMI_data2,OMI_data3,\
 
     #fig = plt.figure()
     plt.close('all')
-    fig = plt.figure(figsize=(11,11))
+    fig = plt.figure(figsize=(11,13))
     #plt.suptitle('OMI Comparisons: '+start_date.strftime("%B"),y=0.95,\
     #    fontsize=18,fontweight=4,weight='bold')
-    gs = gridspec.GridSpec(nrows=5, ncols=5, hspace = 0.001, wspace = 0.15)
+    gs = gridspec.GridSpec(nrows=6, ncols=5, hspace = 0.001, wspace = 0.15)
 
     # - - - - - - - - - - - - - - - - - - - - -
     # Plot the climatologies along the top row
@@ -3066,32 +3066,38 @@ def plotOMI_Compare_ClimoTrend_all(OMI_data1,OMI_data2,OMI_data3,\
     local_data1_Jun  = np.copy(OMI_data1['MONTH_CLIMO'][2,:,:])
     local_data1_Jul  = np.copy(OMI_data1['MONTH_CLIMO'][3,:,:])
     local_data1_Aug  = np.copy(OMI_data1['MONTH_CLIMO'][4,:,:])
+    local_data1_Sep  = np.copy(OMI_data1['MONTH_CLIMO'][5,:,:])
     local_data2_Apr  = np.copy(OMI_data2['MONTH_CLIMO'][0,:,:])
     local_data2_May  = np.copy(OMI_data2['MONTH_CLIMO'][1,:,:])
     local_data2_Jun  = np.copy(OMI_data2['MONTH_CLIMO'][2,:,:])
     local_data2_Jul  = np.copy(OMI_data2['MONTH_CLIMO'][3,:,:])
     local_data2_Aug  = np.copy(OMI_data2['MONTH_CLIMO'][4,:,:])
+    local_data2_Sep  = np.copy(OMI_data2['MONTH_CLIMO'][5,:,:])
     local_data3_Apr  = np.copy(OMI_data3['MONTH_CLIMO'][0,:,:])
     local_data3_May  = np.copy(OMI_data3['MONTH_CLIMO'][1,:,:])
     local_data3_Jun  = np.copy(OMI_data3['MONTH_CLIMO'][2,:,:])
     local_data3_Jul  = np.copy(OMI_data3['MONTH_CLIMO'][3,:,:])
     local_data3_Aug  = np.copy(OMI_data3['MONTH_CLIMO'][4,:,:])
+    local_data3_Sep  = np.copy(OMI_data3['MONTH_CLIMO'][5,:,:])
 
     mask_AI1_Apr = np.ma.masked_where(local_data1_Apr == -999.9, local_data1_Apr)
     mask_AI1_May = np.ma.masked_where(local_data1_May == -999.9, local_data1_May)
     mask_AI1_Jun = np.ma.masked_where(local_data1_Jun == -999.9, local_data1_Jun)
     mask_AI1_Jul = np.ma.masked_where(local_data1_Jul == -999.9, local_data1_Jul)
     mask_AI1_Aug = np.ma.masked_where(local_data1_Aug == -999.9, local_data1_Aug)
+    mask_AI1_Sep = np.ma.masked_where(local_data1_Sep == -999.9, local_data1_Sep)
     mask_AI2_Apr = np.ma.masked_where(local_data2_Apr == -999.9, local_data2_Apr)
     mask_AI2_May = np.ma.masked_where(local_data2_May == -999.9, local_data2_May)
     mask_AI2_Jun = np.ma.masked_where(local_data2_Jun == -999.9, local_data2_Jun)
     mask_AI2_Jul = np.ma.masked_where(local_data2_Jul == -999.9, local_data2_Jul)
     mask_AI2_Aug = np.ma.masked_where(local_data2_Aug == -999.9, local_data2_Aug)
+    mask_AI2_Sep = np.ma.masked_where(local_data2_Sep == -999.9, local_data2_Sep)
     mask_AI3_Apr = np.ma.masked_where(local_data3_Apr == -999.9, local_data3_Apr)
     mask_AI3_May = np.ma.masked_where(local_data3_May == -999.9, local_data3_May)
     mask_AI3_Jun = np.ma.masked_where(local_data3_Jun == -999.9, local_data3_Jun)
     mask_AI3_Jul = np.ma.masked_where(local_data3_Jul == -999.9, local_data3_Jul)
     mask_AI3_Aug = np.ma.masked_where(local_data3_Aug == -999.9, local_data3_Aug)
+    mask_AI3_Sep = np.ma.masked_where(local_data3_Sep == -999.9, local_data3_Sep)
 
     ##!## Grid the data, fill in white space
     ##!#cyclic_data,cyclic_lons = add_cyclic_point(local_data,OMI_data1['LON'][0,:])
@@ -3124,6 +3130,11 @@ def plotOMI_Compare_ClimoTrend_all(OMI_data1,OMI_data2,OMI_data3,\
     ax42 = plt.subplot(gs[4,2], projection=mapcrs)   # August trend original
     ax43 = plt.subplot(gs[4,3], projection=mapcrs)   # August trend screened
     ax44 = plt.subplot(gs[4,4], projection=mapcrs)   # August trend perturbed
+    ax50 = plt.subplot(gs[5,0], projection=mapcrs)   # August climo original
+    ax51 = plt.subplot(gs[5,1], projection=mapcrs)   # August climo screened
+    ax52 = plt.subplot(gs[5,2], projection=mapcrs)   # August trend original
+    ax53 = plt.subplot(gs[5,3], projection=mapcrs)   # August trend screened
+    ax54 = plt.subplot(gs[5,4], projection=mapcrs)   # August trend perturbed
 
     # Plot the figures in the first row: April
     # ---------------------------------------
@@ -3254,6 +3265,34 @@ def plotOMI_Compare_ClimoTrend_all(OMI_data1,OMI_data2,OMI_data3,\
         colorbar_label_size = colorbar_label_size)
     #ax24.set_title(OMI_data3['VERSION']+ '\n\n')
 
+    # Plot the figures in the third row: August
+    # -----------------------------------------
+    plotOMI_spatial(ax50, OMI_data1['LAT'], OMI_data1['LON'], mask_AI1_Sep, \
+        'climo', ptitle = ' ', \
+        plabel = '', colorbar = False, \
+        vmin = -1.0, vmax = 1.0, minlat = minlat, \
+        colorbar_label_size = colorbar_label_size)
+    plotOMI_spatial(ax51, OMI_data2['LAT'], OMI_data2['LON'], mask_AI2_Sep, \
+        'climo', ptitle = ' ', colorbar = False, \
+        plabel = 'UV Aerosol Index', \
+        vmin = -1.0, vmax = 1.0, minlat = minlat, \
+        colorbar_label_size = colorbar_label_size)
+    plotOMI_MonthTrend(OMI_data1,month_idx=5,\
+        trend_type=trend_type,label = ' ',colorbar = False, \
+        minlat=65.,title = ' ', pax = ax52, \
+        colorbar_label_size = colorbar_label_size)
+    #ax22.set_title(OMI_data2['VERSION']+ '\n\n')
+    plotOMI_MonthTrend(OMI_data2,month_idx=5,\
+        trend_type=trend_type,label = ' ',colorbar = False, \
+        minlat=65.,title = ' ', pax = ax53, \
+        colorbar_label_size = colorbar_label_size)
+    #ax23.set_title(OMI_data1['VERSION']+ '\n\n')
+    plotOMI_MonthTrend(OMI_data3,month_idx=5,\
+        trend_type=trend_type,label = 'AI Trend (AI/Study Period)',\
+        minlat=65.,title = ' ', pax = ax54, colorbar = False, \
+        colorbar_label_size = colorbar_label_size)
+    #ax24.set_title(OMI_data3['VERSION']+ '\n\n')
+
     #plot_subplot_label(ax00, '(a)')
     #plot_subplot_label(ax01, '(b)')
     #plot_subplot_label(ax02, '(c)')
@@ -3261,20 +3300,22 @@ def plotOMI_Compare_ClimoTrend_all(OMI_data1,OMI_data2,OMI_data3,\
     #plot_subplot_label(ax11, '(e)')
     #plot_subplot_label(ax12, '(f)')
 
-    fig.text(0.10, 0.80, 'April', ha='center', va='center', \
+    fig.text(0.10, 0.82, 'April', ha='center', va='center', \
         rotation='vertical',weight='bold',fontsize=row_label_size + 1)
-    fig.text(0.10, 0.65, 'May', ha='center', va='center', \
+    fig.text(0.10, 0.692, 'May', ha='center', va='center', \
         rotation='vertical',weight='bold',fontsize=row_label_size + 1)
-    fig.text(0.10, 0.50, 'June', ha='center', va='center', \
+    fig.text(0.10, 0.565, 'June', ha='center', va='center', \
         rotation='vertical',weight='bold',fontsize=row_label_size + 1)
-    fig.text(0.10, 0.35, 'July', ha='center', va='center', \
+    fig.text(0.10, 0.435, 'July', ha='center', va='center', \
         rotation='vertical',weight='bold',fontsize=row_label_size + 1)
-    fig.text(0.10, 0.19, 'August', ha='center', va='center', \
+    fig.text(0.10, 0.305, 'August', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.18, 'September', ha='center', va='center', \
         rotation='vertical',weight='bold',fontsize=row_label_size + 1)
 
-    fig.text(0.19, 0.89, 'Original\nClimatology', ha='center', va='center', \
+    fig.text(0.195, 0.89, 'Original\nClimatology', ha='center', va='center', \
         rotation='horizontal',weight='bold',fontsize=row_label_size)
-    fig.text(0.35, 0.89, 'Screened\nClimatology', ha='center', va='center', \
+    fig.text(0.355, 0.89, 'Screened\nClimatology', ha='center', va='center', \
         rotation='horizontal',weight='bold',fontsize=row_label_size)
     fig.text(0.51, 0.89, 'Original\nTrend', ha='center', va='center', \
         rotation='horizontal',weight='bold',fontsize=row_label_size)
@@ -3298,7 +3339,7 @@ def plotOMI_Compare_ClimoTrend_all(OMI_data1,OMI_data2,OMI_data3,\
 
     #fig.tight_layout()
 
-    outname = 'omi_ai_comps_all_'+\
+    outname = 'omi_ai_comps_all6_'+\
         OMI_data1['VERSION']+'v'+OMI_data2['VERSION']+\
         'v'+OMI_data3['VERSION']+'.png'
     if(save == True):
@@ -5679,16 +5720,21 @@ def plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
     date_str  = '201204102151'
     date_str2 = '201807260244'
  
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+    dt_date_str2 = datetime.strptime(date_str2, '%Y%m%d%H%M')
+
     # Set up the figure
     # -----------------
-    fig = plt.figure(figsize = (9,8))
+    fig = plt.figure(figsize = (9,11))
     #fig = plt.figure(figsize = (16,4))
     ##!#ax1 = fig.add_subplot(1,2,1, projection = mapcrs)
     ##!#ax2 = fig.add_subplot(1,2,2)
-    gs = fig.add_gridspec(nrows = 2, ncols = 2)
+    gs = fig.add_gridspec(nrows = 3, ncols = 2)
     ax1  = fig.add_subplot(gs[0,0], projection = mapcrs)   # true color    
     ax2  = fig.add_subplot(gs[0,1], projection = mapcrs)   # true color    
-    ax3  = fig.add_subplot(gs[1,:]) # MODIS Ch 31
+    ax4  = fig.add_subplot(gs[1,0]) # MODIS Ch 31
+    ax5  = fig.add_subplot(gs[1,1]) # MODIS Ch 31
+    ax3  = fig.add_subplot(gs[2,:]) # MODIS Ch 31
 
     # Read the single-swath OMI data
     # ------------------------------
@@ -5713,11 +5759,28 @@ def plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
         circle_bound = True, gridlines = False)
 
     ax1.set_extent([-180,180,minlat,90], datacrs)
-    ax1.set_title(date_str)
+    ax1.set_title(dt_date_str.strftime('%H:%M UTC %d %b %Y'))
     ax2.set_extent([-180,180,minlat,90], datacrs)
-    ax2.set_title(date_str2)
+    ax2.set_title(dt_date_str2.strftime('%H:%M UTC %d %b %Y'))
 
-    # Plot the row anomaly stuff
+    # Plot the row averages
+    # ---------------------
+    ax4.bar(np.arange(OMI_base['UVAI'].shape[1]), np.average(OMI_base['UVAI'][1230:1500,:], axis = 0))
+    #ax4.bar(np.arange(OMI_base['UVAI'].shape[1]), np.average(OMI_base['UVAI'][1230:1500,:], axis = 0))
+    ax4.axhline(0.0, color = 'black')
+    ax4.set_xlim(0, 60)
+    ax4.set_xlabel('Row Number')
+    ax4.set_ylabel('Average AI over Arctic')
+    ax4.set_title(dt_date_str.strftime('%H:%M UTC %d %b %Y'))
+
+    ax5.bar(np.arange(OMI_base2['UVAI'].shape[1]), np.average(OMI_base2['UVAI'][1230:1500,:], axis = 0))
+    ax5.axhline(0.0, color = 'black')
+    ax5.set_xlim(0, 60)
+    ax5.set_xlabel('Row Number')
+    ax5.set_ylabel('Average AI over Arctic')
+    ax5.set_title(dt_date_str2.strftime('%H:%M UTC %d %b %Y'))
+
+    # Plot the row anomaly table
     # -------------------------- 
     bad_row_file = 'row_anomaly_dates_20050401_20201001.txt'
     xtrack_file = 'row_anomaly_xtrack_dates_20050401_20201001.txt'
@@ -5725,12 +5788,14 @@ def plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
 
     plot_subplot_label(ax1, '(a)')
     plot_subplot_label(ax2, '(b)')
-    plot_subplot_label(ax3, '(c)', backgroundcolor = 'white')
+    plot_subplot_label(ax4, '(c)')
+    plot_subplot_label(ax5, '(d)')
+    plot_subplot_label(ax3, '(e)', backgroundcolor = 'white')
     
     fig.tight_layout()
 
     if(save):
-        outname = 'combined_bad_row_'+date_str+'_stacked.png'
+        outname = 'combined_bad_row_'+date_str+'_stacked_v2.png'
         plt.savefig(outname,dpi=300)
         print("Saved image",outname)
     else:

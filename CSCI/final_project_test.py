@@ -225,7 +225,8 @@ def train(dataset, epochs):
     return gen_losses, disc_losses
 
 
-gen_losses, disc_losses = train(data2, 2)
+gen_losses, disc_losses = train(data2, 12)
+plot_losses(gen_losses, disc_losses)
 sys.exit()
 #gen_losses, disc_losses = train(data2, EPOCHS)
 

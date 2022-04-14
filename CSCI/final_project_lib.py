@@ -513,5 +513,22 @@ def generate_and_save_images(model, epoch, test_input):
   plt.savefig('image_at_epoch_{:04d}.png'.format(epoch))
   plt.show()
 
+def plot_losses(gen_losses, disc_losses):
 
+    plt.close('all')
+    fig = plt.figure(figsize = (9,6))
+    ax1 = fig.add_subplot(1,2,1)
+    ax2 = fig.add_subplot(1,2,2)
 
+    for ii in range(gen_losses.shape[0]):
+        ax1.plot(gen_losses[ii],        c=cm.viridis(ii/gen_losses.shape[0]))
+        ax1.plot(disc_losses[ii], '--', c=cm.viridis(ii/gen_losses.shape[0]), label = 'epoch '+str(ii))
+
+    ax1.legend()
+
+    ax2.plot(gen_losses[:, -1], label = 'Gen')
+    ax2.plot(disc_losses[:, -1], label = 'Disc')
+    ax2.legend()
+    
+
+    plt.show()

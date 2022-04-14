@@ -31,6 +31,10 @@ import sys
 
 #plot_combined_fort_out('20170818', min_lat = 70., vtype = 'areas', save = False)
 
+plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
+        minlat = 65., save = True)
+
+sys.exit()
 
 minlat = 65.
 OMI_VBS0   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VBS0_2005_2020.nc', minlat = minlat)
@@ -54,8 +58,6 @@ plotOMI_single_swath_multiple(dtype = 'control',  \
 
 
 
-##!#plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
-##!#        minlat = 65., save = True)
 
 ##bad_row_file = 'row_anomaly_dates_20050401_20201001.txt'
 ##xtrack_file = 'row_anomaly_xtrack_dates_20050401_20201001.txt'

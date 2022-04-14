@@ -15,7 +15,22 @@ from adpaa import ADPAA
 from readsounding import *
 from compare_cn2 import cn2_calc, cn2_calc_thermo, smooth, plot_cn2
 
-colors=['black','red','cyan','green','olive','blue','purple','yellow']
+colors=['tab:blue','tab:red','black','green','olive','blue','purple','yellow']
+
+file_dict = {
+    '2018050505': {
+        'model_file':       '2018050505/2018050505/HRRR_2018050505_ANALYSIS_CKN_ARL',
+        'thermo_file':      '2018050505/2018050505/original_data/18_05_05_05_11_03.GRAW.tempdiff.1Hz',
+        'radio_file':       '2018050505/2018050505/180505_051104_CKN_GRAW.txt',
+        'radio_file_orig':  '2018050505/2018050505/original_data/180505_051104_CKN_GRAW.txt'
+    },
+    '2019050403': {
+        'model_file':       '2019050403/2019050403/HRRR_2019050403_ANALYSIS_MVL_ARL',
+        'thermo_file':      '2019050403/2019050403/19_05_04_02_54_49.GRAW.tempdiff.1Hz',
+        'radio_file':       '2019050403/2019050403/190504_030000_MVL_GRAW.txt',
+        'radio_file_orig':  '2019050403/2019050403/190504_030000_MVL_GRAW.txt'
+    }
+}
 
 # infile must be the 1Hz file
 def read_temp_diffs(radio_file, thermo_file, save = False):
@@ -408,8 +423,13 @@ def plot_vert_tempdiffs(radio, thermo_scn2, save = False):
     else:
         plt.show()
 
-def plot_cn2_figure(in_data, ax = None, raw = False, old = False, \
-        save = False):
+#def plot_cn2_figure(in_data, ax = None, raw = False, old = False, \
+def plot_cn2_figure(date_str, ax = None, raw = False, old = False, \
+        no_3km = True, save = False):
+
+    in_data = [file_dict[date_str]['radio_file'], \
+        file_dict[date_str]['model_file'], file_dict[date_str]['thermo_file']]
+
     if(isinstance(in_data, str)):
         in_data = [in_data]
  
@@ -437,27 +457,50 @@ def plot_cn2_figure(in_data, ax = None, raw = False, old = False, \
 
     for ii, ifile in enumerate(in_data):
 
-        # Use readsounding to read the current sounding file into a dictionary
-        data = readsounding(ifile)
-        # Convert wind speeds from knots to meters/second
-        #a['UWIND'] = kts2ms(a['UWIND'])
-        #a['VWIND'] = kts2ms(a['VWIND'])
-        # Apply an 11-point smoother to the T, u, and v data in the sounding
-        # if it is over 900 elements long 
-        if((len(data['TEMP'])>900) & (raw==False)):
-            data = smooth(data) 
-            data = cn2_calc(data,method=method)
-        else:
-            data = cn2_calc(data,method=method)
-        # Plot cn2 with height
-        #olabel=a['TITLE'].split(" ")[0]+" "+a['TITLE'].split(" ")[1]+" "+\
-        #       a['TITLE'].split(" ")[-1]
-        olabel=data['LABEL'].split()[0]
-        savename = data['NAME']+'_CN2.png'
-        ax.plot(np.log10(data['CN2']),(data['ALT']/1000.),color=colors[ii],label=olabel)
+        if(ifile.strip().split('.')[-1] == '1Hz'):
+            # Read the thermosonde data
+            thermo_scn2 = read_temp_diffs(file_dict[date_str]['radio_file_orig'], ifile)
 
-        if(np.max(data['ALT']) / 1000. > max_alt):
-            max_alt = np.max(data['ALT']) / 1000.
+            if(no_3km):
+                thermo_scn2['CN2T'] = np.ma.masked_where(thermo_scn2['ALT'] / 1000. < 3., thermo_scn2['CN2T'])
+                thermo_scn2['ALT']  = np.ma.masked_where(thermo_scn2['ALT'] / 1000. < 3., thermo_scn2['ALT'])
+
+            ax.plot(np.log10(thermo_scn2['CN2T']),thermo_scn2['ALT']/1000., \
+                color = colors[ii], label='Thermosonde') 
+
+        else:
+            # Use readsounding to read the current sounding file into a dictionary
+            data = readsounding(ifile)
+
+
+            # Convert wind speeds from knots to meters/second
+            #a['UWIND'] = kts2ms(a['UWIND'])
+            #a['VWIND'] = kts2ms(a['VWIND'])
+            # Apply an 11-point smoother to the T, u, and v data in the sounding
+            # if it is over 900 elements long 
+            if((len(data['TEMP'])>900) & (raw==False)):
+                data = smooth(data) 
+                data = cn2_calc(data,method=method)
+            else:
+                data = cn2_calc(data,method=method)
+
+            if(no_3km):
+                data['CN2']  = np.ma.masked_where(data['ALT']/1000. < 3., data['CN2'])
+                data['ALT']  = np.ma.masked_where(data['ALT']/1000. < 3., data['ALT'])
+
+            # Plot cn2 with height
+            #olabel=a['TITLE'].split(" ")[0]+" "+a['TITLE'].split(" ")[1]+" "+\
+            #       a['TITLE'].split(" ")[-1]
+            olabel=data['LABEL'].split()[0]
+            if(olabel == 'GRAW'):
+                olabel = 'RAOB'
+            savename = data['NAME']+'_CN2.png'
+            ax.plot(np.log10(data['CN2']),(data['ALT']/1000.),color=colors[ii],label=olabel)
+
+            if(np.max(data['ALT']) / 1000. > max_alt):
+                max_alt = np.max(data['ALT']) / 1000.
+
+    ax.axhline(3.0, color = 'black', linestyle = ':')
 
     #ax.legend(loc='upper right', fontsize=10)
     ax.legend(loc='upper right', prop={'size': 8}, framealpha = 1)

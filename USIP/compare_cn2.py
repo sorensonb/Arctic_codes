@@ -1190,7 +1190,6 @@ def compare_cn2(radio_file,model_file,thermo_file,mlat=None,mlon=None):
         ##!## Convert thermo_cn2['CN2T'] back to linear
         ##!#thermo_scn2['CN2T'] = 10.**(thermo_scn2['CN2T'])
        
-        """
         #######################################################################
         #
         # Normal comparison section for radiosonde vs thermosonde
@@ -1308,6 +1307,7 @@ def compare_cn2(radio_file,model_file,thermo_file,mlat=None,mlon=None):
         sradioAlt = sradio['ALT'][close_indices] 
         sradio['CN2'] = sradioCn2
         sradio['ALT'] = sradioAlt
+        """
    
  
         ##!#########################################################################

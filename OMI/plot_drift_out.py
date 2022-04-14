@@ -37,7 +37,8 @@ if(len(sys.argv) == 3):
 
 # Extract date information from the file name
 name_split = file_name.strip().split('/')[-1].split('_')
-version = name_split[-1].split('.')[0]
+version = name_split[2]
+#version = name_split[-1].split('.')[0]
 if(version == 'jz2'):
     title_string = 'Only good rows'
 elif(version == 'jz27'):
@@ -112,9 +113,13 @@ ln12 = ax12.plot(dt_dates,counts,color='tab:orange',label='counts')
 lns1 = ln11 + ln12
 labs1 = [l.get_label() for l in lns1]
 ax1.set_ylabel('Average AI',color='tab:blue')
+ax1.tick_params(axis = 'y', colors = 'tab:blue')
+ax12.tick_params(axis = 'y', colors = 'tab:orange')
 ax12.set_ylabel('Ob counts',color='tab:orange')
+print('title string = ',title_string)
 ax1.set_title(title_string)
 ax1.grid()
+
 if(len(sys.argv) == 3):
     ax1.tick_params(axis='x',bottom=False,labelbottom=False)
     ln21 = ax2.plot(dt_dates2,avg_ai2,label='AI')
@@ -132,12 +137,12 @@ if(len(sys.argv) == 3):
     ax2.grid()
     ax2.set_xlabel('Year')
 else:
-    ax1.legend(lns1,labs1)
+    ax1.legend(lns1,labs1, loc = 'lower right')
     ax1.set_xlabel('Year')
 
 plt.subplots_adjust(left=0.09,right=0.88)
-#plt.savefig('omi_'+version+'_drift.png',dpi=300)
-#print("Saved image omi_"+version+"_drift.png")
+plt.savefig('omi_'+version+'_v2_drift.png',dpi=300)
+print("Saved image omi_"+version+"_v2_drift.png")
 plt.show()
 #fig2 = plt.figure()
 #plt.plot(xrange_00,count_00,label='00Z')
