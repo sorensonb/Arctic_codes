@@ -27,7 +27,9 @@ date_str = ['202107201200',\
             '202107220300'] 
 channel = 2
 #plot_GOES_satpy(date_str, channel, ax = None, zoom=True,save=False)
-#plot_GOES_satpy_6panel(date_str[0], 2, 6, 13, 8, 9, 10, zoom = True, save = False)
+plot_GOES_satpy_6panel(date_str[4], 2, 6, 13, 8, 9, 10, zoom = True, save = False)
+
+sys.exit()
 
 for dstr in date_str:
 #dstr = date_str[2]

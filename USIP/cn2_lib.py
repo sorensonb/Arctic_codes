@@ -15,6 +15,10 @@ from adpaa import ADPAA
 from readsounding import *
 from compare_cn2 import cn2_calc, cn2_calc_thermo, smooth, plot_cn2
 
+sys.path.append('/home/bsorenson')
+from sounding_lib import *
+from python_lib import *
+
 colors=['tab:blue','tab:red','black','green','olive','blue','purple','yellow']
 
 file_dict = {
@@ -22,13 +26,17 @@ file_dict = {
         'model_file':       '2018050505/2018050505/HRRR_2018050505_ANALYSIS_CKN_ARL',
         'thermo_file':      '2018050505/2018050505/original_data/18_05_05_05_11_03.GRAW.tempdiff.1Hz',
         'radio_file':       '2018050505/2018050505/180505_051104_CKN_GRAW.txt',
-        'radio_file_orig':  '2018050505/2018050505/original_data/180505_051104_CKN_GRAW.txt'
+        'radio_file_orig':  '2018050505/2018050505/original_data/180505_051104_CKN_GRAW.txt',
+        'bis_files': ['2018050505/2018050505/180505_000000_BIS_UWYO.txt',\
+            '2018050505/2018050505/180505_120000_BIS_UWYO.txt']
     },
     '2019050403': {
         'model_file':       '2019050403/2019050403/HRRR_2019050403_ANALYSIS_MVL_ARL',
         'thermo_file':      '2019050403/2019050403/19_05_04_02_54_49.GRAW.tempdiff.1Hz',
         'radio_file':       '2019050403/2019050403/190504_030000_MVL_GRAW.txt',
-        'radio_file_orig':  '2019050403/2019050403/190504_030000_MVL_GRAW.txt'
+        'radio_file_orig':  '2019050403/2019050403/190504_030000_MVL_GRAW.txt',
+        'bis_files': ['2019050403/2019050403/190504_000000_BIS_UWYO.txt',\
+            '2019050403/2019050403/190504_120000_BIS_UWYO.txt']
     }
 }
 
@@ -342,7 +350,7 @@ def read_temp_diffs(radio_file, thermo_file, save = False):
     return thermo_scn2
 
 def plot_tempdiffs(thermo_scn2, ax = None, save = False): 
-    print(thermo_scn2['NAME'])
+    #print(thermo_scn2['NAME'])
     if(thermo_scn2['NAME'][:2] == '19'):
         pre2019 = False
     else:
@@ -376,7 +384,8 @@ def plot_tempdiffs(thermo_scn2, ax = None, save = False):
     ax.set_xlabel('$\Delta$T [K]', fontsize = 9)
     ax.set_ylabel('Altitude [km]', fontsize = 9)
     ax.tick_params(axis = 'both', labelsize=8)
-    ax.set_ylim(0,np.max(thermo_scn2['matchalt_thermo'][thermo_scn2['masked_indices']]/1000.) + 2)
+    ylims = ax.get_ylim()
+    ax.set_ylim(0,ylims[1])
     ##!#if(pre2019 == True):
     ##!#    ax.set_ylim(0,thermo_scn2['matchalt_thermo'][thermo_scn2['masked_indices']]/1000. + 2)
     ##!#    #ax.set_ylim(0,30)
@@ -425,7 +434,7 @@ def plot_vert_tempdiffs(radio, thermo_scn2, save = False):
 
 #def plot_cn2_figure(in_data, ax = None, raw = False, old = False, \
 def plot_cn2_figure(date_str, ax = None, raw = False, old = False, \
-        no_3km = True, save = False):
+        no_3km = True, ymax = None, save = False):
 
     in_data = [file_dict[date_str]['radio_file'], \
         file_dict[date_str]['model_file'], file_dict[date_str]['thermo_file']]
@@ -442,11 +451,11 @@ def plot_cn2_figure(date_str, ax = None, raw = False, old = False, \
         in_ax = False
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
-    ax.set_ylim(0, 8)
+    ax.set_ylim(0, ymax)
     leg_loc='upper right'
     # To view cn2 data, axis must be logarithmic
     #plt.xscale('log')
-    ax.set_xlim(-20, -13)
+    #ax.set_xlim(-20, -13)
     #ax.set_title('$C_{n}^{2}$ Profile Comparison')
     ax.set_title('Estimated $C_{n}^{2}$', fontsize = 10)
     ax.set_ylabel('Altitude [km]', fontsize = 9)
@@ -492,8 +501,6 @@ def plot_cn2_figure(date_str, ax = None, raw = False, old = False, \
             #olabel=a['TITLE'].split(" ")[0]+" "+a['TITLE'].split(" ")[1]+" "+\
             #       a['TITLE'].split(" ")[-1]
             olabel=data['LABEL'].split()[0]
-            if(olabel == 'GRAW'):
-                olabel = 'RAOB'
             savename = data['NAME']+'_CN2.png'
             ax.plot(np.log10(data['CN2']),(data['ALT']/1000.),color=colors[ii],label=olabel)
 
@@ -504,7 +511,7 @@ def plot_cn2_figure(date_str, ax = None, raw = False, old = False, \
 
     #ax.legend(loc='upper right', fontsize=10)
     ax.legend(loc='upper right', prop={'size': 8}, framealpha = 1)
-    ax.set_ylim(0,max_alt + 2)
+    #ax.set_ylim(0,max_alt + 2)
     if(not in_ax):
         if save is True:
             plt.savefig(savename,dpi=300)
@@ -561,3 +568,42 @@ def plot_cn2_figure(date_str, ax = None, raw = False, old = False, \
 ##!#    plt.plot(cn2t,alt,color='red')
 ##!#    plt.show()
 ##!#    #plt.savefig("17_11_17_23_02_35_CKN_corrected_compared.png",dpi=300)
+
+def plot_combined_figure(date_str, save = False):
+    
+    in_data = [file_dict[date_str]['radio_file'], \
+        file_dict[date_str]['model_file']]
+    
+    fig = plt.figure(figsize = (9,9))
+    #fig = plt.figure(figsize = (14,4))
+    gs = fig.add_gridspec(2,2)
+    #gs = fig.add_gridspec(1,3, hspace = 0.3)
+    #ax0  = fig.add_subplot(gs[0,0])   # true color    
+    ax1  = fig.add_subplot(gs[1,0])   # true color    
+    ax2  = fig.add_subplot(gs[1,1])   # true color 
+    plot_sounding_figure(in_data, fig = fig, skew = gs[0,0], \
+        save = False)
+    plot_sounding_figure(file_dict[date_str]['bis_files'], fig = fig, skew = gs[0,1], \
+        save = False)
+    
+    thermo_scn2 = read_temp_diffs(file_dict[date_str]['radio_file_orig'], file_dict[date_str]['thermo_file'])
+    plot_tempdiffs(thermo_scn2, ax = ax1, save = False)
+    
+    ax1_lims = ax1.get_ylim()
+    #plot_cn2_figure(in_data, ax = ax2, raw = False, old = False, \
+    plot_cn2_figure(date_str, ax = ax2, raw = False, old = False, \
+            save = False, no_3km = False, ymax = ax1_lims[1])
+    #print(thermo_scn2['CN2T'].shape, thermo_scn2['ALT'].shape)
+    #ax2.plot(np.log10(thermo_scn2['CN2T']),thermo_scn2['ALT']/1000. ,label='Thermosonde') 
+    
+    #ax2.plot(np.log10(thermo_scn2['CN2']),(data['ALT']/1000.),color=colors[ii],label=olabel)
+    #gs[0,1].set_title('  b)', loc = 'left', weight = 'bold')
+    ax1.set_title('  b)', loc = 'left', weight = 'bold')
+    ax2.set_title('  c)', loc = 'left', weight = 'bold')
+    if(save):
+        outname = 'combined_cn2_'+date_str+'.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+

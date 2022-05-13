@@ -31,6 +31,12 @@ import sys
 
 #plot_combined_fort_out('20170818', min_lat = 70., vtype = 'areas', save = False)
 
+# NOTE: for plotting the bias between OMI rows, use this line with the
+#       CSCI netCDF data
+#plt.plot(np.nanmean(np.nanmean(netdata['AI'], axis = 0), axis = 0))
+
+plot_row_bias(save = True)
+sys.exit()
 plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
         minlat = 65., save = True)
 
@@ -91,21 +97,6 @@ date_str = ['200509270134',\
             '200509271941',\
             '200509272120',\
             '200509272259']
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ###
 date_str = '200609250756'

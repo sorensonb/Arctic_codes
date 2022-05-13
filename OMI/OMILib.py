@@ -20,6 +20,7 @@
     
 """
 
+import matplotlib as mpl
 import numpy as np
 import sys
 from datetime import datetime, timedelta
@@ -33,7 +34,6 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.util import add_cyclic_point
 #from mpl_toolkits.basemap import Basemap
-import matplotlib as mpl
 from matplotlib.patches import Polygon
 import matplotlib.path as mpath
 import matplotlib.patches as mpatches
@@ -52,6 +52,7 @@ from sklearn.linear_model import HuberRegressor
 from sklearn.preprocessing import StandardScaler
 import pandas as pd
 from scipy.signal import argrelextrema, find_peaks
+
 
 sys.path.append('/home/bsorenson')
 from python_lib import circle, plot_subplot_label, plot_lat_circles
@@ -486,6 +487,7 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
     XTRACK = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/XTrackQualityFlags'][:,:]
     UVAI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex'][:,:]
     GPQF   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags'][:,:]
+    AZM    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/RelativeAzimuthAngle'][:,:]
     GPQF_decode = np.array([[get_ice_flags(val) for val in GPQFrow] for GPQFrow in GPQF])
     XTRK_decode = np.array([[get_xtrack_flags(val) for val in GPQFrow] for GPQFrow in GPQF])
 
@@ -524,19 +526,18 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
     ##!#    else:
     ##!#        UVAI = UVAI[channel_idx,:,:]
 
-    OMI_swath['LAT'] = LAT
-    OMI_swath['LON'] = LON
+    OMI_swath['LAT']    = LAT
+    OMI_swath['LON']    = LON
+    OMI_swath['AZM']    = AZM
+    OMI_swath['GPQF']   = GPQF_decode
     OMI_swath['XTRACK'] = XTRACK
-    OMI_swath['GPQF'] = GPQF_decode
 
     if(dtype == 'JZ'):
-        AZM    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/RelativeAzimuthAngle'][:,:]
 
         mask_UVAI[~((((GPQF_decode >= 0) & (GPQF_decode <= 101)) | (GPQF_decode == 104)) & \
                       (AZM > 100))] = np.nan
         mask_UVAI = np.ma.masked_invalid(mask_UVAI)
 
-        OMI_swath['AZM'] = AZM
     OMI_swath['UVAI'] = mask_UVAI
 
     data.close()
@@ -4790,6 +4791,105 @@ def plotOMI_shawn_3panel(date_str, only_sea_ice = False, minlat = 65.,\
 ##!#    
 ##!#    plt.show()
 
+def plot_row_bias(minlat = 65., save = False):
+
+    # Open the 2006 CSCI training dataset
+    # -----------------------------------
+    net_data = Dataset('/home/bsorenson/CSCI/CSCI_543/final_project/train_dataset_2006.nc','r')
+   
+    # Read in OMI data from the two single swaths
+    # ------------------------------------------- 
+    dates = ['200604221050','200604221408']
+    #dates = ['200804221027','200804221206']
+    dt_dates = [datetime.strptime(ddate,'%Y%m%d%H%M') for ddate in dates]
+    dtype = 'control'
+    OMI_base1 = readOMI_swath_hdf(dates[0], dtype, \
+        only_sea_ice = False, latmin = minlat - 5)
+    OMI_base2 = readOMI_swath_hdf(dates[1], dtype, \
+        only_sea_ice = False, latmin = minlat - 5)
+
+    ##!## Open a sample OMI swath
+    ##!## -----------------------
+    ##!#data = h5py.File('/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2006m0629t0036-o10394_v003-2017m0720t195132.he5','r')
+
+    # Calculate the average of the OMI AI data along the rows
+    # for the climatology. The first "axis = 0" averages along
+    # all the different swath images, so that the final dimension
+    # is 60 x 60, with 60 lines and 60 rows. The second average
+    # averages along the lines, so that the final average is 
+    # 1 x 60, with one average for each row
+    # -----------------------------------------------------------
+    avg_AI_climo = np.nanmean(np.nanmean(net_data['AI'], axis = 0), axis = 0)
+    #std_AI_climo = np.nanstd(np.nanstd(net_data['AI'], axis = 0), axis = 0)
+
+    # Calculate the average azimuth angle value for each row 
+    # over the approximate Arctic (1300:1600). Assume the viewing
+    # geometry is about the same for all OMI swaths
+    # -----------------------------------------------------------
+    ##!#AZM = data[\
+    ##!#    'HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/RelativeAzimuthAngle'][:,:]
+    ##!#AI  = data[\
+    ##!#    'HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex'][:,:]
+
+    mask_AZM = np.ma.masked_where(OMI_base1['AZM'] < -9e4, OMI_base1['AZM'])
+    #AZM = np.ma.masked_where(AI < -9e4, AZM)
+    #AI  = np.ma.masked_where(AI < -9e4, AI)
+
+    ##!#avg_AZM = np.nanmean(AZM[1300:1600,:],\
+    ##!#    axis = 0)   
+    avg_AZM = np.nanmean(mask_AZM[1300:1600,:],\
+        axis = 0)   
+    #avg_AI  = np.nanmean(AI[1300:1600,:],\
+    #    axis = 0)   
+
+    net_data.close()
+    ##!#data.close()
+
+    # Generate figure
+    # ---------------
+    mapcrs2 = ccrs.NorthPolarStereo()
+    fig = plt.figure(figsize = (8,7.6))
+    gs  = fig.add_gridspec(nrows = 2, ncols = 2, hspace = 0.3)
+    ax0 = plt.subplot(gs[0,:])
+    ax1 = plt.subplot(gs[1,0], projection = mapcrs2)
+    ax2 = plt.subplot(gs[1,1], projection = mapcrs2)
+
+    ax0.plot(np.arange(1,len(avg_AI_climo)+1), avg_AI_climo, label = 'AI')
+    #ax.plot(avg_AI_climo + std_AI_climo, label = 'AI', color = 'tab:blue', linestyle = '--')
+    #ax.plot(std_AI_climo, label = 'AI', color = 'tab:blue', linestyle = '-.')
+    #ax.plot(avg_AI,       label = 'AI', color = 'tab:blue', linestyle = '--')
+    ax02 = ax0.twinx()
+    ax02.plot(np.arange(1, len(avg_AI_climo) + 1), avg_AZM, color = 'tab:orange', label = 'AZM')
+    ax0.set_ylabel('OMI AI')
+    ax02.set_ylabel('Relative Azimuth Angle [$^{o}$]')
+    ax0.set_xlabel('Row number')
+    
+    ax0.tick_params(axis='y', colors='tab:blue')
+    ax02.tick_params(axis='y', colors='tab:orange')
+
+    ax0.yaxis.label.set_color('tab:blue')
+    ax02.yaxis.label.set_color('tab:orange')
+    ax0.grid()
+
+    # Plot single-swath data
+    # ----------------------
+    plotOMI_single_swath(ax1, OMI_base1, title = dt_dates[0].strftime('%H:%M UTC %m/%d/%Y'), \
+        circle_bound = True, gridlines = False, vmax = 3.0, colorbar = False)
+    #plotOMI_single_swath(ax1, OMI_base2, title = dates[1], \
+    plotOMI_single_swath(ax2, OMI_base2, title = dt_dates[1].strftime('%H:%M UTC %m/%d/%Y'), \
+        circle_bound = True, gridlines = False, vmax = 3.0)
+
+    plot_subplot_label(ax0, '(a)')
+    plot_subplot_label(ax1, '(b)')
+    plot_subplot_label(ax2, '(c)')
+
+    if(save):
+        outname = 'omi_row_bias_v2.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved iamge", outname)
+    else:
+        plt.show()
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
 # Comparison with CERES
@@ -5078,7 +5178,7 @@ def plot_OMI_CERES_trend_compare_summer(minlat=72,\
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
-# OMI out plotting stuff 
+# OMI fort out plotting stuff 
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
@@ -5718,7 +5818,8 @@ def plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
         minlat = 65., save = False):
    
     date_str  = '201204102151'
-    date_str2 = '201807260244'
+    date_str2 = '201204102330'
+    #date_str2 = '201807260244'
  
     dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
     dt_date_str2 = datetime.strptime(date_str2, '%Y%m%d%H%M')
@@ -5733,7 +5834,7 @@ def plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
     ax1  = fig.add_subplot(gs[0,0], projection = mapcrs)   # true color    
     ax2  = fig.add_subplot(gs[0,1], projection = mapcrs)   # true color    
     ax4  = fig.add_subplot(gs[1,0]) # MODIS Ch 31
-    ax5  = fig.add_subplot(gs[1,1]) # MODIS Ch 31
+    ax5  = fig.add_subplot(gs[1,1], projection = mapcrs) # MODIS Ch 31
     ax3  = fig.add_subplot(gs[2,:]) # MODIS Ch 31
 
     # Read the single-swath OMI data
@@ -5743,6 +5844,8 @@ def plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
             skiprows = skiprows)
         OMI_base2  = readOMI_swath_shawn(date_str2, latmin = minlat,\
             skiprows = skiprows)
+        OMI_base2_skip  = readOMI_swath_shawn(date_str2, latmin = minlat,\
+            skiprows = [42, 43])
     else:
         OMI_base  = readOMI_swath_hdf(date_str, dtype, \
             only_sea_ice = False, latmin = minlat, \
@@ -5750,6 +5853,9 @@ def plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
         OMI_base2  = readOMI_swath_hdf(date_str2, dtype, \
             only_sea_ice = False, latmin = minlat, \
             skiprows = None)
+        OMI_base2_skip  = readOMI_swath_hdf(date_str2, dtype, \
+            only_sea_ice = False, latmin = minlat, \
+            skiprows = [42,43])
     
     # Plot the single-swath OMI data
     # ------------------------------
@@ -5757,28 +5863,32 @@ def plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
         circle_bound = True, gridlines = False, colorbar = False)
     plotOMI_single_swath(ax2, OMI_base2, title = dtype.title(), \
         circle_bound = True, gridlines = False)
+    plotOMI_single_swath(ax5, OMI_base2_skip, title = dtype.title(), \
+        circle_bound = True, gridlines = False)
 
     ax1.set_extent([-180,180,minlat,90], datacrs)
     ax1.set_title(dt_date_str.strftime('%H:%M UTC %d %b %Y'))
     ax2.set_extent([-180,180,minlat,90], datacrs)
     ax2.set_title(dt_date_str2.strftime('%H:%M UTC %d %b %Y'))
+    ax5.set_extent([-180,180,minlat,90], datacrs)
+    ax5.set_title(dt_date_str2.strftime('%H:%M UTC %d %b %Y'))
 
     # Plot the row averages
     # ---------------------
-    ax4.bar(np.arange(OMI_base['UVAI'].shape[1]), np.average(OMI_base['UVAI'][1230:1500,:], axis = 0))
+    ax4.bar(np.arange(OMI_base2['UVAI'].shape[1]), np.average(OMI_base2['UVAI'][1230:1500,:], axis = 0))
     #ax4.bar(np.arange(OMI_base['UVAI'].shape[1]), np.average(OMI_base['UVAI'][1230:1500,:], axis = 0))
     ax4.axhline(0.0, color = 'black')
     ax4.set_xlim(0, 60)
     ax4.set_xlabel('Row Number')
     ax4.set_ylabel('Average AI over Arctic')
-    ax4.set_title(dt_date_str.strftime('%H:%M UTC %d %b %Y'))
+    ax4.set_title(dt_date_str2.strftime('%H:%M UTC %d %b %Y'))
 
-    ax5.bar(np.arange(OMI_base2['UVAI'].shape[1]), np.average(OMI_base2['UVAI'][1230:1500,:], axis = 0))
-    ax5.axhline(0.0, color = 'black')
-    ax5.set_xlim(0, 60)
-    ax5.set_xlabel('Row Number')
-    ax5.set_ylabel('Average AI over Arctic')
-    ax5.set_title(dt_date_str2.strftime('%H:%M UTC %d %b %Y'))
+    ##!#ax5.bar(np.arange(OMI_base2['UVAI'].shape[1]), np.average(OMI_base2['UVAI'][1230:1500,:], axis = 0))
+    ##!#ax5.axhline(0.0, color = 'black')
+    ##!#ax5.set_xlim(0, 60)
+    ##!#ax5.set_xlabel('Row Number')
+    ##!#ax5.set_ylabel('Average AI over Arctic')
+    ##!#ax5.set_title(dt_date_str2.strftime('%H:%M UTC %d %b %Y'))
 
     # Plot the row anomaly table
     # -------------------------- 
@@ -5795,7 +5905,7 @@ def plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
     fig.tight_layout()
 
     if(save):
-        outname = 'combined_bad_row_'+date_str+'_stacked_v2.png'
+        outname = 'combined_bad_row_'+date_str+'_stacked_v3.png'
         plt.savefig(outname,dpi=300)
         print("Saved image",outname)
     else:

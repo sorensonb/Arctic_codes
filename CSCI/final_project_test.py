@@ -33,8 +33,8 @@ from netCDF4 import Dataset
 
 from final_project_lib import *
 
-#build_training_dataset('2006')
-#sys.exit()
+build_training_dataset('2007')
+sys.exit()
 ##!#
 ##!#date_str = ['200607060042',\
 ##!#            '200607060221',\
@@ -67,7 +67,7 @@ from final_project_lib import *
 ##!#sys.exit()
 
 print('reading training images')
-data = Dataset('/home/bsorenson/CSCI/CSCI_543/final_project/train_dataset_2006.nc','r')
+data = Dataset('/home/bsorenson/CSCI/CSCI_543/final_project/train_dataset_2007.nc','r')
 
 # Account for suspicious missing data?
 # ------------------------------------
@@ -77,8 +77,8 @@ masks = np.array([(True in np.array(data['AI'][ii,:,30].mask)) for ii in \
 # Insert the non-masked data into a new structure
 # -----------------------------------------------
 data2 = {}
-data2['LAT']   = data['LAT']
-data2['LON']   = data['LON']
+data2['LAT']   = data['LAT'][:,:]
+data2['LON']   = data['LON'][:,:]
 data2['AI']    = data['AI'][np.where(masks == False)]
 data2['TIME']  = data['TIME'][np.where(masks == False)]
 data.close()
@@ -188,9 +188,10 @@ def train(dataset, epochs):
 
         #loop_idx = np.arange(0,data['AI'].shape[0], BATCH_SIZE)
         for ii in range(len(loop_idx) - 1):
-            print(loop_idx[ii], loop_idx[ii+1])
+            local_arr = tf.convert_to_tensor(np.array(data2['AI'][loop_idx[ii]:loop_idx[ii+1],:,:])[...,np.newaxis])
+            print(loop_idx[ii], loop_idx[ii+1], local_arr.shape)
             #gen_loss_out, disc_loss_out = train_step(np.array(data2['AI'][loop_idx[ii]:loop_idx[ii+1],:,:])[...,np.newaxis], ii)
-            train_step(np.array(data2['AI'][loop_idx[ii]:loop_idx[ii+1],:,:])[...,np.newaxis], \
+            train_step(local_arr, \
                 epoch_gen_loss, epoch_disc_loss)
             print(float(epoch_gen_loss.result()), float(epoch_disc_loss.result()))
 
@@ -225,8 +226,9 @@ def train(dataset, epochs):
     return gen_losses, disc_losses
 
 
-gen_losses, disc_losses = train(data2, 12)
-plot_losses(gen_losses, disc_losses)
+EPOCHS = 5
+gen_losses, disc_losses = train(data2, EPOCHS)
+plot_losses(gen_losses, disc_losses, EPOCHS, save = True)
 sys.exit()
 #gen_losses, disc_losses = train(data2, EPOCHS)
 
