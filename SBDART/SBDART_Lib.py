@@ -43,13 +43,13 @@ def radiance(wavelength,tmp):
 def read_atmos_profile(infile = ''):
     atms_file = sb_path + 'src/atms_mdlat_sum.dat'
     #atms_file = sb_path + 'src/atms_orig.dat'
-    temp_data = pd.read_csv(atms_file,skiprows = 0, names = \
+    temp_data = pd.read_csv(atms_file, names = \
         ['z','p','t','wv','o2'], delim_whitespace = True)
-    temp_data = temp_data[1:]
+    #temp_data = temp_data[1:]
 
     if((infile == '') | (infile.strip().split('/')[-1][:4] == 'atms')):
-        atms_file = infile
-        print('Reading atmosphere from ', atms_file)
+        infile = atms_file
+        print('HERE: Reading atmosphere from ', atms_file)
         data = temp_data
 
         # Convert wv density from g/m3 to kg/m3
@@ -66,6 +66,12 @@ def read_atmos_profile(infile = ''):
         mix_rat = 0.622 * (vap_press / (data['p'] * 100. - vap_press)) * 1e3
 
         data['mix_rat'] = mix_rat
+
+        # Calculate relative humidity and add to structure
+        # ------------------------------------------------
+        data['rhum'] = mpcalc.relative_humidity_from_mixing_ratio(\
+            np.array(data['p']) * units('mbar'), np.array(data['t']) * units('K'), \
+            np.array(mix_rat) / 1e3) * 100.
 
         ##!#infile = sb_path + 'src/atms_orig.dat'
         ##!#data = pd.read_csv(infile,skiprows = 0, names = \
@@ -141,6 +147,7 @@ def read_atmos_profile(infile = ''):
         data['wv'] = abs_hum
         data['mix_rat'] = np.array(mixing_ratio.to('g/kg'))
         data['o2'] = new_o2
+        data['rhum'] = rhum
 
     return data 
 
@@ -224,7 +231,8 @@ def prep_atmos_file(data, \
         zmin = None, zmax = None, \
         set_tmp = None, add_tmp = None, \
         set_wv_mix = None, add_wv_mix = None, \
-        out_path = './'):
+        set_rh = None, \
+        out_path = './', saver = None):
     #print("processing for wv multiplier = ",np.round(mtp,2))
 
     # Make copies for editing
@@ -245,12 +253,41 @@ def prep_atmos_file(data, \
             (new_data['z'] <= zmax)] += add_tmp
  
     if(set_wv_mix is not None):  
+        new_data['mix_rat'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)] = set_wv_mix
+
+        # Recalculate relative humidity in these layers
+        # ---------------------------------------------
+        new_rh = mpcalc.relative_humidity_from_mixing_ratio(\
+            np.array(new_data['p'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)]) * units('mbar'), \
+            np.array(new_data['t'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)]) * units('K'), \
+            np.array(new_data['mix_rat'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)]) / 1e3) * 100.
+        new_data['rhum'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)] = new_rh
+
+        # See if any regions of this profile exceed 80% relative humidity
+        num_exceed = len(np.where(new_data['rhum'] > 80.)[0])
+        if(num_exceed > 0):
+            # If any are over 4 g/kg, set the maximum to 4 and continue
+            new_data['rhum'][new_data['rhum'] > 80.] = 80.
+
+            # Recalculate mixing ratios using the 80% max RH
+            new_data['mix_rat'][new_data['rhum'] > 80.] = \
+                mpcalc.mixing_ratio_from_relative_humidity(\
+                np.array(new_data['p'][new_data['rhum'] > 80.]) * units('mbar'), \
+                np.array(new_data['t'][new_data['rhum'] > 80.]) * units('K'), \
+                np.array(new_data['rhum'][new_data['rhum'] > 80.]) * units('%')).to('g/kg')
+
         # Convert the added water vapor mixing ratio to added
         # absolute humidity
         # ----------------------------------------------------
         vap_press = mpcalc.vapor_pressure(\
-            np.array(data['p']) * units('mbar'), set_wv_mix * units('g/kg'))
-        new_hum = (vap_press.to('Pa') / (461.5 * (data['t']))) * 1e3
+            np.array(new_data['p']) * units('mbar'), \
+            np.array(new_data['mix_rat']) * units('g/kg'))
+        new_hum = (vap_press.to('Pa') / (461.5 * (new_data['t']))) * 1e3
 
         # Set the extra absolute humidity
         # -------------------------------
@@ -258,24 +295,98 @@ def prep_atmos_file(data, \
             (new_data['z'] <= zmax)] = new_hum
 
     elif(add_wv_mix is not None):  
+        new_data['mix_rat'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)] += add_wv_mix
+
+        # Recalculate relative humidity in these layers
+        # ---------------------------------------------
+        new_rh = mpcalc.relative_humidity_from_mixing_ratio(\
+            np.array(new_data['p'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)]) * units('mbar'), \
+            np.array(new_data['t'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)]) * units('K'), \
+            np.array(new_data['mix_rat'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)]) / 1e3) * 100.
+        new_data['rhum'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)] = new_rh
+
+        # See if any regions of this profile exceed 80% relative humidity
+        num_exceed = len(np.where(new_data['rhum'] > 80.)[0])
+        if(num_exceed > 0):
+            # If any are over 4 g/kg, set the maximum to 4 and continue
+            new_data['rhum'][new_data['rhum'] > 80.] = 80.
+
+            # Recalculate mixing ratios using the 80% max RH
+            new_data['mix_rat'][new_data['rhum'] > 80.] = \
+                mpcalc.mixing_ratio_from_relative_humidity(\
+                np.array(new_data['p'][new_data['rhum'] > 80.]) * units('mbar'), \
+                np.array(new_data['t'][new_data['rhum'] > 80.]) * units('K'), \
+                np.array(new_data['rhum'][new_data['rhum'] > 80.]) * units('%')).to('g/kg')
+
         # Convert the added water vapor mixing ratio to added
         # absolute humidity
+        # Calculate the new water vapor mixing ratio to new 
+        # absolute humidity.
         # ----------------------------------------------------
         vap_press = mpcalc.vapor_pressure(\
-            np.array(data['p']) * units('mbar'), add_wv_mix * \
-            units('g/kg'))
+            np.array(new_data['p']) * units('mbar'), \
+            np.array(new_data['mix_rat']) * units('g/kg'))
         new_hum = (vap_press.to('Pa') / (461.5 * (data['t']))) * 1e3
 
         # Add the extra absolute humidity to the original values
+        # Put the new absolute humidity values in the profile 
+        # in the correct locations.
         # ------------------------------------------------------
         new_data['wv'][(new_data['z'] >= zmin) & \
-            (new_data['z'] <= zmax)] += new_hum
+            (new_data['z'] <= zmax)] = new_hum
+            #(new_data['z'] <= zmax)] += new_hum
+
+    if(set_rh is not None):  
+        # Calculate mixing ratio from relative humidity
+        # ---------------------------------------------
+        mixing_ratio = mpcalc.mixing_ratio_from_relative_humidity(\
+            np.array(new_data['p']) * units('mbar'), \
+            np.array(new_data['t']) * units('K'), \
+            set_rh * units('%')).to('g/kg') 
+
+        # See if any regions of this profile exceed the 4 g/kg maximum
+        exceed = np.where(mixing_ratio > 4.0)[0]
+        if(len(exceed) > 0):
+            # If any are over 4 g/kg, set the maximum to 4 and continue
+            mixing_ratio[exceed] = 4.0
+
+        new_data['mix_rat'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)] = np.array(mixing_ratio.to('g/kg'))
+
+        # Convert the water vapor mixing ratio to added
+        # absolute humidity
+        # ----------------------------------------------------
+        vap_press = mpcalc.vapor_pressure(\
+            np.array(new_data['p']) * units('mbar'), mixing_ratio.to('dimensionless'))
+        new_hum = (vap_press.to('Pa') / (461.5 * (new_data['t']))) * 1e3
+
+        # Set the extra absolute humidity
+        # -------------------------------
+        new_data['wv'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)] = new_hum
+
+        # Recalculate relative humidity in these layers
+        # ---------------------------------------------
+        new_rh = mpcalc.relative_humidity_from_mixing_ratio(\
+            np.array(new_data['p'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)]) * units('mbar'), \
+            np.array(new_data['t'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)]) * units('K'), \
+            np.array(new_data['mix_rat'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)]) / 1e3) * 100.
+        new_data['rhum'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)] = new_rh
     #new_data['wv'][new_data['z'] <= 5] *= mtp
     ##!#for zz, xx, yy in zip(data['z'], data['wv'], new_data['wv']):
     ##!#    print(zz,xx,yy)
    
     header_line = [str(len(new_data['wv'])),' ',' ',' ',' ']
- 
+
     # Save to outfile
     # ---------------
     outname = out_path + 'atms.dat'
@@ -284,8 +395,14 @@ def prep_atmos_file(data, \
         index = False, sep = ' ', header = header_line, \
         columns = ['z','p','t','wv','o2'])
     print('Saved file', outname)
+    
+    return new_data
 
-def run_sbdart(satellite, calc_radiance, run = True, vza = None, atms_file = ''):
+def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
+        nzen = None, atms_file = '', z_mins = None, z_maxs = None, \
+        set_tmp = None, add_tmp = None, \
+        set_wv_mix = None, add_wv_mix = None, \
+        set_rh = None):
     if(calc_radiance):
         file_adder = '_rad.dat'
     else:
@@ -295,10 +412,14 @@ def run_sbdart(satellite, calc_radiance, run = True, vza = None, atms_file = '')
         # Determine viewing angle values
         # ------------------------------
         if(satellite.strip().split('_')[0] == 'modis'):
+            nzen = None
             uzen = 3.15
         elif(satellite.strip().split('_')[0] == 'goes17'):
+            nzen = None
             uzen = 49.61378
         else:
+            print("INVALID SATELLITE OPTION")
+            nzen = 9
             uzen = [0, 60]
     else:
         uzen = vza
@@ -316,8 +437,8 @@ def run_sbdart(satellite, calc_radiance, run = True, vza = None, atms_file = '')
 
         # Prep the INPUT namelist file
         # ----------------------------
-        #prep_sbdart_input(nzen = 9, uzen = [0,60])
-        prep_sbdart_input(uzen = uzen)
+        prep_sbdart_input(nzen = nzen, uzen = uzen)
+        #prep_sbdart_input(uzen = uzen)
         
         # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
         #
@@ -336,148 +457,255 @@ def run_sbdart(satellite, calc_radiance, run = True, vza = None, atms_file = '')
         # Added water vapor mixing ratio, must be converted to 
         # water vapor density.
         # ----------------------------------------------------
-        adders  = np.array([0.0, 2.0, 4.0])
-        z_mins = np.arange(0.,6.)
-        z_maxs = np.arange(5.,11.)
+        ##!#adders  = np.array([0.0, 2.0, 4.0])
+        ##!#z_mins = np.arange(0.,6.)
+        ##!#z_maxs = np.arange(5.,11.)
         #z_mins = np.arange(0.,6.)
         #z_maxs = np.arange(2.,8.)
-        set_wvs = np.full(z_mins.shape, 4.)
+        ##!#set_wvs = np.full(z_mins.shape, 4.)
         #multipliers = np.array([1.0, 2.0, 3.0, 3.5])
         #multipliers = np.arange(0.1,2.1,0.1)
-        
+       
+ 
         outfile_list = []
       
         data_dict = {}
         data_dict['output'] = {}
         data_dict['info'] = {}
- 
-        for ii in range(len(z_mins)): 
-        #for adr in adders:
-            # Prep the atmosphere file 
-            # ------------------------
-            prep_atmos_file(data, zmin = z_mins[ii], \
-                zmax = z_maxs[ii], add_wv_mix = set_wvs[ii])
-                #set_wv_mix = adr)
-            run_adder = 'zmin'+str(int(z_mins[ii])) + '_' + \
-                        'zmax'+str(int(z_maxs[ii])) + '_' + \
-                        'setwv'+str(int(set_wvs[ii]))
-            print(run_adder) 
-            #prep_atmos_file(data, zmin = 0., zmax = 5., \
-            #    add_wv_mix = adr)
- 
-            # Run SBDART with the new atmosphere profile
-            # ------------------------------------------
-            outfile = 'sbout_' + satellite + '_' + run_adder + '_'+\
-                file_adder
-            cmnd = sb_path + 'bin/sbdart > ' + outfile
-            print(cmnd)
-            os.system(cmnd)
+        data_dict['orig_atmos'] = data
+        if(set_wv_mix is not None): 
+            data_dict['info']['met_var_name'] = 'set_wv_mix'
+            data_dict['info']['met_var_vals'] = set_wv_mix
+        elif(add_wv_mix is not None):
+            data_dict['info']['met_var_name'] = 'add_wv_mix'
+            data_dict['info']['met_var_vals'] = add_wv_mix
+        elif(set_tmp is not None):
+            data_dict['info']['met_var_name'] = 'set_tmp'
+            data_dict['info']['met_var_vals'] = set_tmp
+        elif(add_tmp is not None):
+            data_dict['info']['met_var_name'] = 'add_tmp'
+            data_dict['info']['met_var_vals'] = add_tmp
+        elif(set_rh  is not None):
+            data_dict['info']['met_var_name'] = 'set_rh'
+            data_dict['info']['met_var_vals'] = set_rh
+
+        # POSSIBLE ADDED COMPLEXITY?
+        # Add second dimension to z variables for ease of looping
+        # -------------------------------------------------------
+        if((len(z_mins.shape) == 1) & (len(z_maxs.shape) == 1)):
+            # Expand both dimensions
+            z_mins = np.expand_dims(z_mins, axis = 0)
+            z_maxs = np.expand_dims(z_maxs, axis = 0)
+        elif((len(z_maxs.shape) == 1) & (len(z_mins.shape) != 1)):
+            # Handle case when the user wants runs with different lower
+            # plume heights. 
+            # Expand z_maxs
+            z_maxs = np.expand_dims(z_maxs, axis = 0)
+        elif((len(z_maxs.shape) != 1) & (len(z_mins.shape) == 1)):
+            # Handle case when the user wants runs with different higher
+            # plume heights. 
+            # Expand z_maxs
+            z_mins = np.expand_dims(z_mins, axis = 0)
+
+        data_dict['info']['z_mins'] = z_mins
+        data_dict['info']['z_maxs'] = z_maxs
         
-            # Modify the output file
-            # ----------------------
-            if(not calc_radiance):
-                with open(outfile,'r') as fin:
-                    indata = fin.readlines()
-                with open(outfile,'w') as fout:
-                    fout.writelines(indata[3:])
+        if(len(data_dict['info']['met_var_vals'].shape) == 1):
+            # User only wants one set of runs. Expand the dimensions
+            data_dict['info']['met_var_vals'] = \
+                np.expand_dims(data_dict['info']['met_var_vals'], axis = 0)
+        else:
+            # User wants multiple runs      
+            print(' multiple runs with met variables')
+            new_zmins = np.full(data_dict['info']['met_var_vals'].shape, np.nan)
+            new_zmaxs = np.full(data_dict['info']['met_var_vals'].shape, np.nan)
+            for ii in range(data_dict['info']['met_var_vals'].shape[0]):
+               new_zmins[ii,:] = z_mins[0, :]
+               new_zmaxs[ii,:] = z_maxs[0, :]
+            z_mins = new_zmins
+            z_maxs = new_zmaxs
+
+ 
+        print("SHAPES", z_mins.shape, z_maxs.shape, data_dict['info']['met_var_vals'].shape)
+ 
+        ##!## Look at size of met variable and determine the shapes
+        ##!## of the arrays
+        ##!## -----------------------------------------------------
+        ##!#if(z_mins.shape != data_dict['info']['met_var_vals'].shape):
+        ##!#    # Shape mismatch. User wants two sets of runs with two
+        ##!#    # met variables
+        ##!#    new_vals = np.full((len(data_dict['info']['met_var_vals']), len(z_mins)), np.nan)
+        ##!#    for ii in range(len(data_dict['info']['met_var_vals'])):
+        ##!#        new_vals[ii,:] = data_dict['info']['met_var_vals'][ii]
+        ##!#    data_dict['info']['met_var_vals'] = new_vals
+        ##!#else:
+        ##!#    # Shapes are the same. One set of runs
+        ##!#    print("same shapes")
+
+        for kk in range(z_mins.shape[0]):
+            r1_key = str(int(kk+1))
+            data_dict['output'][r1_key] = {}
+            for ii in range(z_mins.shape[1]): 
+            #for adr in adders:
+                tmp_saver = 'nothing'
+                # Prep the atmosphere file 
+                # NOTE: for now, only allow one meteorological variable to change
+                # ---------------------------------------------------------------
+                if(set_wv_mix is not None):
+                    new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
+                        zmax = z_maxs[kk,ii], set_wv_mix = data_dict['info']['met_var_vals'][kk,ii])
+                        #set_wv_mix = adr)
+                    run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
+                                'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
+                                'setwv'+str(int(data_dict['info']['met_var_vals'][kk,ii]))
+                elif(add_wv_mix is not None):
+                    new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
+                        zmax = z_maxs[kk,ii], add_wv_mix = data_dict['info']['met_var_vals'][kk,ii])
+                        #set_wv_mix = adr)
+                    run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
+                                'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
+                                'addwv'+str(int(data_dict['info']['met_var_vals'][kk,ii]))
+                elif(set_tmp is not None):
+                    new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
+                        zmax = z_maxs[kk,ii], set_tmp = data_dict['info']['met_var_vals'][kk,ii])
+                        #set_wv_mix = adr)
+                    run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
+                                'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
+                                'settmp'+str(int(data_dict['info']['met_var_vals'][kk,ii]))
+                elif(add_tmp is not None):
+                    new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
+                        zmax = z_maxs[kk,ii], add_tmp = data_dict['info']['met_var_vals'][kk,ii])
+                        #set_wv_mix = adr)
+                    run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
+                                'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
+                                'addtmp'+str(int(data_dict['info']['met_var_vals'][kk,ii]))
+                elif(set_rh is not None):
+                    new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
+                        zmax = z_maxs[kk,ii], set_rh = data_dict['info']['met_var_vals'][kk,ii])
+                        #set_wv_mix = adr)
+                    run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
+                                'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
+                                'setrh'+str(int(data_dict['info']['met_var_vals'][kk,ii]))
+                print(run_adder) 
+                #prep_atmos_file(data, zmin = 0., zmax = 5., \
+                #    add_wv_mix = adr)
+ 
+                # Run SBDART with the new atmosphere profile
+                # ------------------------------------------
+                outfile = 'sbout_' + satellite + '_' + run_adder + '_'+\
+                    file_adder
+                cmnd = sb_path + 'bin/sbdart > ' + outfile
+                print(cmnd)
+                os.system(cmnd)
+            
+                # Modify the output file
+                # ----------------------
+                if(not calc_radiance):
+                    with open(outfile,'r') as fin:
+                        indata = fin.readlines()
+                    with open(outfile,'w') as fout:
+                        fout.writelines(indata[3:])
        
-            # Read the output file contents into the structure
-            # ------------------------------------------------
-            #wv_pct = int(ofile.split('/')[-1].split('_')[1])
-            d_key = run_adder
-            data_dict['output'][d_key] = {}
-            data_dict['output'][d_key]['data'] = {}
-            with open(outfile,'r') as fin: 
-                flines = fin.readlines()
+                # Read the output file contents into the structure
+                # ------------------------------------------------
+                #wv_pct = int(ofile.split('/')[-1].split('_')[1])
+                d_key = run_adder
+                r2_key = str(int(ii+1))
+                data_dict['output'][r1_key][r2_key] = {}
+                data_dict['output'][r1_key][r2_key]['data'] = {}
+                data_dict['output'][r1_key][r2_key]['mod_str'] = d_key
+                data_dict['output'][r1_key][r2_key]['atmos'] = new_data
+                with open(outfile,'r') as fin: 
+                    flines = fin.readlines()
 
-                # Extract the number of reports
-                # -----------------------------
-                num_rep = int(flines[2].strip().split()[0])
+                    # Extract the number of reports
+                    # -----------------------------
+                    num_rep = int(flines[2].strip().split()[0])
 
-                # Pull out the number of VZAs in the file
-                # ---------------------------------------
-                num_vzen = int(flines[4].strip().split()[1])
+                    # Pull out the number of VZAs in the file
+                    # ---------------------------------------
+                    num_vzen = int(flines[4].strip().split()[1])
 
-                # Extract the VZAs
-                # ----------------
-                vza = np.array([float(tval) for tval in flines[6].strip().split()])
-           
-                # Extract the wavelength and filter values
-                # ----------------------------------------
-                datalines = flines[3:][::4+num_vzen]
-                wavel  = np.array([float(dstr.strip().split()[0]) for dstr in datalines])
-                fvals  = np.array([float(dstr.strip().split()[1]) for dstr in datalines])
-                topdwn = np.array([float(dstr.strip().split()[2]) for dstr in datalines])
-                topup  = np.array([float(dstr.strip().split()[3]) for dstr in datalines])
-                topdir = np.array([float(dstr.strip().split()[4]) for dstr in datalines])
-                botdwn = np.array([float(dstr.strip().split()[5]) for dstr in datalines])
-                botup  = np.array([float(dstr.strip().split()[6]) for dstr in datalines])
-                botdir = np.array([float(dstr.strip().split()[7]) for dstr in datalines])
+                    # Extract the VZAs
+                    # ----------------
+                    vza = np.array([float(tval) for tval in flines[6].strip().split()])
+               
+                    # Extract the wavelength and filter values
+                    # ----------------------------------------
+                    datalines = flines[3:][::4+num_vzen]
+                    wavel  = np.array([float(dstr.strip().split()[0]) for dstr in datalines])
+                    fvals  = np.array([float(dstr.strip().split()[1]) for dstr in datalines])
+                    topdwn = np.array([float(dstr.strip().split()[2]) for dstr in datalines])
+                    topup  = np.array([float(dstr.strip().split()[3]) for dstr in datalines])
+                    topdir = np.array([float(dstr.strip().split()[4]) for dstr in datalines])
+                    botdwn = np.array([float(dstr.strip().split()[5]) for dstr in datalines])
+                    botup  = np.array([float(dstr.strip().split()[6]) for dstr in datalines])
+                    botdir = np.array([float(dstr.strip().split()[7]) for dstr in datalines])
 
-                # Declare an array to hold all of the radiances
-                # ---------------------------------------------
-                total_radiances = np.full((num_rep, num_vzen), np.nan)
+                    # Declare an array to hold all of the radiances
+                    # ---------------------------------------------
+                    total_radiances = np.full((num_rep, num_vzen), np.nan)
 
-                #vzen_lines = flines[6:][:
+                    #vzen_lines = flines[6:][:
  
-                # Extract the radiances
-                # --------------------- 
-                for ii in range(num_vzen):
-                    total_radiances[:,ii] = np.array([float(tstr.strip()) for tstr in flines[(7+ii):][::4+num_vzen]])
-                #radlines = flines[7:][::5]
-                #radiances = np.array([float(tstr.strip()) for tstr in radlines])
+                    # Extract the radiances
+                    # --------------------- 
+                    for ii in range(num_vzen):
+                        total_radiances[:,ii] = np.array([float(tstr.strip()) for tstr in flines[(7+ii):][::4+num_vzen]])
+                    #radlines = flines[7:][::5]
+                    #radiances = np.array([float(tstr.strip()) for tstr in radlines])
     
     
-                # Insert all the data into the dictionary
-                # ---------------------------------------
-                data_dict['output'][d_key]['vza'] = vza
-                data_dict['output'][d_key]['data']['wavelength'] = wavel
-                data_dict['output'][d_key]['data']['filter']     = fvals
-                data_dict['output'][d_key]['data']['radiance']   = total_radiances
-                data_dict['output'][d_key]['data']['down_sol_flux_toa'] = topdwn
-                data_dict['output'][d_key]['data']['up_rad_flux_toa']   = topup
-                data_dict['output'][d_key]['data']['dir_sol_flux_toa']  = topdwn
-                data_dict['output'][d_key]['data']['down_rad_flux_sfc'] = botdwn
-                data_dict['output'][d_key]['data']['up_rad_flux_sfc']   = botup 
-                data_dict['output'][d_key]['data']['dir_sol_flux_sfc']  = botdir
+                    # Insert all the data into the dictionary
+                    # ---------------------------------------
+                    data_dict['output'][r1_key][r2_key]['vza'] = vza
+                    data_dict['output'][r1_key][r2_key]['data']['wavelength'] = wavel
+                    data_dict['output'][r1_key][r2_key]['data']['filter']     = fvals
+                    data_dict['output'][r1_key][r2_key]['data']['radiance']   = total_radiances
+                    data_dict['output'][r1_key][r2_key]['data']['down_sol_flux_toa'] = topdwn
+                    data_dict['output'][r1_key][r2_key]['data']['up_rad_flux_toa']   = topup
+                    data_dict['output'][r1_key][r2_key]['data']['dir_sol_flux_toa']  = topdwn
+                    data_dict['output'][r1_key][r2_key]['data']['down_rad_flux_sfc'] = botdwn
+                    data_dict['output'][r1_key][r2_key]['data']['up_rad_flux_sfc']   = botup 
+                    data_dict['output'][r1_key][r2_key]['data']['dir_sol_flux_sfc']  = botdir
     
-            # Calculated weighted average wavelength
-            # --------------------------------------
-            data_dict['output'][d_key]['avg_wavel'] = \
-                np.sum(data_dict['output'][d_key]['data']['wavelength'] * \
-                data_dict['output'][d_key]['data']['filter']) / \
-                np.sum(data_dict['output'][d_key]['data']['filter'])
+                # Calculated weighted average wavelength
+                # --------------------------------------
+                data_dict['output'][r1_key][r2_key]['avg_wavel'] = \
+                    np.sum(data_dict['output'][r1_key][r2_key]['data']['wavelength'] * \
+                    data_dict['output'][r1_key][r2_key]['data']['filter']) / \
+                    np.sum(data_dict['output'][r1_key][r2_key]['data']['filter'])
     
-            # Calculated weighted average radiance  
-            # ------------------------------------
-            data_dict['output'][d_key]['avg_rads'] = \
-                np.array([np.sum(data_dict['output'][d_key]['data']['radiance'][:,jj] * \
-                data_dict['output'][d_key]['data']['filter']) / \
-                np.sum(data_dict['output'][d_key]['data']['filter']) \
-                for jj in range(len(data_dict['output'][d_key]['vza']))])
+                # Calculated weighted average radiance  
+                # ------------------------------------
+                data_dict['output'][r1_key][r2_key]['avg_rads'] = \
+                    np.array([np.sum(data_dict['output'][r1_key][r2_key]['data']['radiance'][:,jj] * \
+                    data_dict['output'][r1_key][r2_key]['data']['filter']) / \
+                    np.sum(data_dict['output'][r1_key][r2_key]['data']['filter']) \
+                    for jj in range(len(data_dict['output'][r1_key][r2_key]['vza']))])
 
-            #data_dict[d_key]['avg_rad'] = \
-            #    np.sum(data_dict[d_key]['data']['radiance'] * data_dict[d_key]['data']['filter']) / \
-            #    np.sum(data_dict[d_key]['data']['filter'])
+                #data_dict[d_key]['avg_rad'] = \
+                #    np.sum(data_dict[d_key]['data']['radiance'] * data_dict[d_key]['data']['filter']) / \
+                #    np.sum(data_dict[d_key]['data']['filter'])
 
-            # Calculate temperatures for all wavelengths
-            # ------------------------------------------
-            data_dict['output'][d_key]['data']['bght_tmp_all'] = \
-                np.array([inverse_planck(data_dict['output'][d_key]['data']['radiance'][:,jj], \
-                data_dict['output'][d_key]['data']['wavelength']) \
-                for jj in range(len(data_dict['output'][d_key]['vza']))]).transpose()
+                # Calculate temperatures for all wavelengths
+                # ------------------------------------------
+                data_dict['output'][r1_key][r2_key]['data']['bght_tmp_all'] = \
+                    np.array([inverse_planck(data_dict['output'][r1_key][r2_key]['data']['radiance'][:,jj], \
+                    data_dict['output'][r1_key][r2_key]['data']['wavelength']) \
+                    for jj in range(len(data_dict['output'][r1_key][r2_key]['vza']))]).transpose()
 
-            #data_dict[d_key]['data']['bght_tmp_all'] = \
-            #    inverse_planck(data_dict[d_key]['data']['radiance'], \
-            #    data_dict[d_key]['data']['wavelength'])
+                #data_dict[r1_key][r2_key]['data']['bght_tmp_all'] = \
+                #    inverse_planck(data_dict[r1_key][r2_key]['data']['radiance'], \
+                #    data_dict[r1_key][r2_key]['data']['wavelength'])
 
-            # Calculate temperature for filter averaged values
-            # ------------------------------------------------
-            data_dict['output'][d_key]['bght_tmp'] = \
-                inverse_planck(data_dict['output'][d_key]['avg_rads'], \
-                data_dict['output'][d_key]['avg_wavel'])
+                # Calculate temperature for filter averaged values
+                # ------------------------------------------------
+                data_dict['output'][r1_key][r2_key]['bght_tmp'] = \
+                    inverse_planck(data_dict['output'][r1_key][r2_key]['avg_rads'], \
+                    data_dict['output'][r1_key][r2_key]['avg_wavel'])
  
-            outfile_list.append(outfile)
+                outfile_list.append(outfile)
 
         # Insert the satellite name into the dictionary
         data_dict['info']['run_name'] = satellite
@@ -654,7 +882,15 @@ def plot_bright(modis_data1, modis_data2, vza_idx = 0, save = False):
     else:
         plt.show()
 
-def plot_bright_vza(modis_data1, pax = None, save = False):
+add_label_dict = {
+    'set_wv_mix': 'w = {0} g/kg', \
+    'add_wv_mix': 'w = w$_{{o}}$ + {0} g/kg',\
+    'set_tmp':    'T = {0} K',\
+    'add_tmp':    'T = T$_{{o}}$ + {0}  K',
+    'set_rh':     'RH = {0}%',\
+}
+
+def plot_bright_vza(sbout, pax = None, save = False):
     in_pax = True
     if(pax is None):
         in_pax = False 
@@ -662,42 +898,197 @@ def plot_bright_vza(modis_data1, pax = None, save = False):
         fig1 = plt.figure(figsize = (8,4))
         pax = fig1.add_subplot(1,1,1)
   
-    #wvs = [20, 100, 150, 200, 250]
 
-    # Determine the plot type by the keys in the structure
-    # ----------------------------------------------------
-    key1 = list(modis_data1['output'].keys())[0]
-    key2 = list(modis_data1['output'].keys())[1]
+    ii = 0 
+    for r1_key in sbout['output'].keys():
+        for r2_key in sbout['output'][r1_key].keys():
+            #for wv in sbout['adders']:
+            #for wv in sbout['multipliers']:
+            #int_wv = int(wv*100.)
+            wavel = np.round(sbout['output'][r1_key][r2_key]['avg_wavel'],2)
 
-    
- 
-    for dkey in modis_data1['output'].keys():
-    #for wv in modis_data1['adders']:
-    #for wv in modis_data1['multipliers']:
-        int_wv = int(wv)
-        #int_wv = int(wv*100.)
-        wavel = np.round(modis_data1[int_wv]['avg_wavel'],2)
-        if(wv == 0.):
-        #if(wv == 1.):
-            label = 'w$_{0}$'
-        else:
-            label = 'w$_{0}$ + ' + str(int(int_wv))+' g/kg'
-            #label = str(int(int_wv - 100.))+'% higher WV'
-        # Plot the correct wv amounts
-        pax.plot(modis_data1[int_wv]['vza'],  \
-            modis_data1[int_wv]['bght_tmp'], label = label)
+            # Plot the correct wv amounts
+            pax.plot(sbout['output'][r1_key][r2_key]['vza'],  \
+                sbout['output'][r1_key][r2_key]['bght_tmp'], label = \
+                    add_label_dict[sbout['info']['met_var_name']].format(sbout['info']['met_var_vals'][ii,0])) 
+        ii += 1
 
     pax.set_xlabel('Viewing Zenith Angle [$^{o}$]', fontsize = 12, weight = 'bold')
     pax.set_ylabel('Brightness temperature [K]',    fontsize = 12, weight = 'bold')
-    pax.set_title('SBDART-simulated ' + modis_data1['satellite'].upper() + \
-        ' Channel ' + modis_data1['channel'] + ' (' + str(wavel) + ' μm)')
+    pax.set_title('SBDART-simulated ' + sbout['info']['satellite'].upper() + \
+        ' Channel ' + sbout['info']['channel'] + ' (' + str(wavel) + ' μm)')
     pax.legend(fontsize = 9, loc = 'lower left')
     if(not in_pax):
         if(save):
-            outname = 'sbdart_'+modis_data1['run_name']+'_bright_vza.png'
+            outname = 'sbdart_'+sbout['run_name']+'_bright_vza.png'
             fig1.savefig(outname, dpi = 300)
             print("Saved image",outname)
         else:
             plt.show() 
 
-#plot_bright(modis31, modis32)
+
+def plot_bright_plume_height(sbout, pax = None, save = False):
+    # Set up axis
+    # -----------
+    in_ax = True 
+    if(pax is None):
+        in_ax = False
+        plt.close('all')   
+        fig = plt.figure()
+        pax = fig.add_subplot(1,1,1)
+
+    if((sbout['info']['z_mins'].shape != sbout['info']['z_mins'].squeeze().shape) & \
+       (sbout['info']['z_maxs'].shape != sbout['info']['z_maxs'].squeeze().shape)):
+        local_z_mins = sbout['info']['z_mins'].squeeze()
+        local_z_maxs = sbout['info']['z_maxs'].squeeze()
+        # Check if user wants multiple meteorological values
+        if(sbout['info']['met_var_vals'].shape != sbout['info']['met_var_vals'].squeeze().shape):
+            # Only 1 critical dimension to each of the arrays. No dual runs here
+            print("Single run")
+        else:
+            # Multiple critical dimension on met variable. Multiple runs
+            print("Multiple met runs")
+    else: 
+        if(sbout['info']['z_mins'].shape != sbout['info']['z_mins'].squeeze().shape):
+            print("Multiple lower plume heights")
+        else:
+            print("Multiple upper plume heights")
+
+    # Extract the single brightness temperature for each run
+    # ------------------------------------------------------
+    bght_tmps = np.array([[sbout['output'][r1_key][r2_key]['bght_tmp'] for r2_key \
+        in sbout['output'][r1_key].keys()] for r1_key in sbout['output'].keys()])
+
+    # Look at the mod string in the sbout structure and figure out what's
+    # edited. If the first two plume min heights are the same and the
+    # first two plume max heights are different, then it's a plume 
+    # thickness run. If both the first two plume min heights and max
+    # heights are different, then it's a plume height run.
+    # -------------------------------------------------------------------
+    # If these two are the same, check the two max heights
+    ptype = 'met'
+    if(local_z_mins[0] == local_z_mins[1]):
+        # If these two are the same, ...
+        if(local_z_maxs[0] == local_z_maxs[1]):
+            # None of the heights are changed, so must be other changes
+            print("No height changes. Met param change")
+        else:
+            # The max heights vary, so it's a plume thickness run
+            print("plume thickness run: top varying") 
+            ptype = 'thicktop'
+    else:
+        # If these two are the same, ...
+        if(local_z_maxs[0] == local_z_maxs[1]):
+            # The max heights vary, so it's a plume thickness run
+            print("plume thickness run: bottom varying") 
+            ptype = 'thickbottom'
+        else:
+            # It's a plume height change
+            print("Plume height run")
+            ptype = 'height'
+        
+    print('local_z_mins = ', local_z_mins)
+    print('local_z_maxs = ', local_z_maxs)
+
+    if(ptype != 'met'):
+        if(ptype == 'height'):
+            # Calculate each plume height
+            x_vals = (local_z_maxs + local_z_mins) / 2.
+            pax.set_xlabel('Plume height [km]')
+        else:
+            # Calculate each plume thickness
+            x_vals = local_z_maxs - local_z_mins
+            pax.set_xlabel('Plume thickness [km]')
+       
+        for ii in range(bght_tmps.shape[0]): 
+            pax.plot(x_vals, bght_tmps[ii].squeeze(), label = \
+                add_label_dict[sbout['info']['met_var_name']].format(int(sbout['info']['met_var_vals'][ii,0]))) 
+        pax.legend(fontsize = 8)
+        pax.set_ylabel('Brightness temperature [K]')
+
+    if(not in_ax):
+        if(save):
+            print("SAVE NAME NEEDED")
+        else:
+            plt.show()
+
+title_dict = {
+    'modis_ch31':  'Aqua MODIS Band 31 (11.0 μm)', \
+    'goes17_ch08': 'GOES 17 Band 8 (6.2 μm)', \
+    'goes17_ch09': 'GOES 17 Band 9 (6.94 μm)', \
+    'goes17_ch10': 'GOES 17 Band 10 (7.34 μm)', \
+}
+
+def plot_SBDART_dual_height_thickness(data1, data2, save = False):
+
+    plt.close('all')
+    fig = plt.figure(figsize = (8, 4))
+    ax1 = fig.add_subplot(1,2,1)
+    ax2 = fig.add_subplot(1,2,2)
+    
+    plot_bright_plume_height(data1, pax = ax1)
+    plot_bright_plume_height(data2, pax = ax2)
+    plt.suptitle(title_dict[data1['info']['run_name']])
+    fig.tight_layout()
+   
+    if(save):
+        outname = 'sbdart_dual_height_thickness_' + \
+            data1['info']['run_name'] + '_' + \
+            data1['info']['met_var_name'] + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+def plot_SBDART_atmos(sbout, r1_key = '1', ptype = 'met', save = False):
+    # Set up axis
+    # -----------
+    plt.close('all')   
+    fig = plt.figure(figsize = (6, 8))
+    r_num = len(sbout['output'].keys())
+    axs = fig.subplots(nrows = r_num, ncols = 3)
+
+    for ii, r1_key in enumerate(sbout['output'].keys()):
+        print(r1_key) 
+        # Plot absolute humidity in first column
+        axs[ii,0].plot(sbout['orig_atmos']['wv'], sbout['orig_atmos']['z'], \
+            label = 'control') 
+        axs[ii,1].plot(sbout['orig_atmos']['mix_rat'], sbout['orig_atmos']['z'], \
+            label = 'control') 
+        axs[ii,2].plot(sbout['orig_atmos']['rhum'], sbout['orig_atmos']['z'], \
+            label = 'control') 
+        for jj, r2_key in enumerate(sbout['output'][r1_key].keys()):
+            axs[ii,0].plot(sbout['output'][r1_key][r2_key]['atmos']['wv'], \
+                sbout['output'][r1_key][r2_key]['atmos']['z'], label = \
+                add_label_dict[sbout['info']['met_var_name']].format(\
+                sbout['info']['met_var_vals'][ii,0])) 
+            axs[ii,1].plot(sbout['output'][r1_key][r2_key]['atmos']['mix_rat'], \
+                sbout['output'][r1_key][r2_key]['atmos']['z'], label = \
+                add_label_dict[sbout['info']['met_var_name']].format(\
+                sbout['info']['met_var_vals'][ii,0])) 
+            axs[ii,2].plot(sbout['output'][r1_key][r2_key]['atmos']['rhum'], \
+                sbout['output'][r1_key][r2_key]['atmos']['z'], label = \
+                add_label_dict[sbout['info']['met_var_name']].format(\
+                sbout['info']['met_var_vals'][ii,0])) 
+        # Plot mixing ratio in second column
+        ##!#axs[ii,0].legend()
+        ##!#axs[ii,1].legend()
+        axs[ii,0].set_ylim(-2, 15)
+        axs[ii,1].set_ylim(-2, 15)
+        axs[ii,2].set_ylim(-2, 15)
+        axs[ii,0].set_ylabel('Height')
+        axs[ii,1].set_ylabel('Height')
+        axs[ii,2].set_ylabel('Height')
+        axs[ii,0].set_xlabel('Absolute Humidity')
+        axs[ii,1].set_xlabel('Mixing Ratio')
+        axs[ii,2].set_xlabel('Relative Humidity')
+
+    fig.tight_layout()
+
+    if(save):
+        outname = 'sbdart_atmos_profiles_' + sbout['info']['met_var_name'] + '_' + ptype + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
