@@ -245,12 +245,36 @@ def prep_atmos_file(data, \
         new_data['t'][(new_data['z'] >= zmin) & \
             (new_data['z'] <= zmax)] = set_tmp
 
+        # Recalculate relative humidity in these layers
+        # ---------------------------------------------
+        new_rh = mpcalc.relative_humidity_from_mixing_ratio(\
+            np.array(new_data['p'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)]) * units('mbar'), \
+            np.array(new_data['t'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)]) * units('K'), \
+            np.array(new_data['mix_rat'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)]) / 1e3) * 100.
+        new_data['rhum'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)] = new_rh
+
     elif(add_tmp is not None): 
         print("Adding temp of ", add_tmp)
         # Add the layer temps
         # -------------------
         new_data['t'][(new_data['z'] >= zmin) & \
             (new_data['z'] <= zmax)] += add_tmp
+
+        # Recalculate relative humidity in these layers
+        # ---------------------------------------------
+        new_rh = mpcalc.relative_humidity_from_mixing_ratio(\
+            np.array(new_data['p'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)]) * units('mbar'), \
+            np.array(new_data['t'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)]) * units('K'), \
+            np.array(new_data['mix_rat'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)]) / 1e3) * 100.
+        new_data['rhum'][(new_data['z'] >= zmin) & \
+            (new_data['z'] <= zmax)] = new_rh
  
     if(set_wv_mix is not None):  
         new_data['mix_rat'][(new_data['z'] >= zmin) & \
@@ -580,12 +604,19 @@ def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
                                 'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
                                 'addtmp'+str(int(data_dict['info']['met_var_vals'][kk,ii]))
                 elif(set_rh is not None):
+                    if(np.isnan(data_dict['info']['met_var_vals'][kk,ii])):
+                        local_rh = None
+                        run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
+                                    'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
+                                    'setrhcontrol'
+                    else:
+                        run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
+                                    'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
+                                    'setrh'+str(int(data_dict['info']['met_var_vals'][kk,ii]))
+                        local_rh = data_dict['info']['met_var_vals'][kk,ii]
                     new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
-                        zmax = z_maxs[kk,ii], set_rh = data_dict['info']['met_var_vals'][kk,ii])
+                        zmax = z_maxs[kk,ii], set_rh = local_rh)
                         #set_wv_mix = adr)
-                    run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
-                                'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
-                                'setrh'+str(int(data_dict['info']['met_var_vals'][kk,ii]))
                 print(run_adder) 
                 #prep_atmos_file(data, zmin = 0., zmax = 5., \
                 #    add_wv_mix = adr)
@@ -926,6 +957,62 @@ def plot_bright_vza(sbout, pax = None, save = False):
         else:
             plt.show() 
 
+def plot_bright_sfc_tmp(sbout, pax = None, save = False):
+    # Set up axis
+    # -----------
+    in_ax = True 
+    if(pax is None):
+        in_ax = False
+        plt.close('all')   
+        fig = plt.figure()
+        pax = fig.add_subplot(1,1,1)
+
+    if((sbout['info']['z_mins'].shape != sbout['info']['z_mins'].squeeze().shape) & \
+       (sbout['info']['z_maxs'].shape != sbout['info']['z_maxs'].squeeze().shape)):
+        local_z_mins = sbout['info']['z_mins'].squeeze()
+        local_z_maxs = sbout['info']['z_maxs'].squeeze()
+        # Check if user wants multiple meteorological values
+        if(sbout['info']['met_var_vals'].shape != sbout['info']['met_var_vals'].squeeze().shape):
+            # Only 1 critical dimension to each of the arrays. No dual runs here
+            print("Single run")
+        else:
+            # Multiple critical dimension on met variable. Multiple runs
+            print("Multiple met runs")
+    else: 
+        if(sbout['info']['z_mins'].shape != sbout['info']['z_mins'].squeeze().shape):
+            print("Multiple lower plume heights")
+        else:
+            print("Multiple upper plume heights")
+
+    # Extract the single brightness temperature for each run
+    # ------------------------------------------------------
+    bght_tmps = np.array([[sbout['output'][r1_key][r2_key]['bght_tmp'] for r2_key \
+        in sbout['output'][r1_key].keys()] for r1_key in sbout['output'].keys()])
+
+    print(sbout['info']['run_name'], bght_tmps.squeeze())
+
+    # X axis is the low-level cooling. Y-axis is the brightness temp
+    # --------------------------------------------------------------
+    x_vals = sbout['info']['met_var_vals']
+    if(np.mean(x_vals) < 0):
+        label_str = 'Surface cooling [K]'
+        x_vals = np.abs(x_vals)
+    else:
+        label_str = 'Surface warming [K]'
+
+    pax.plot(x_vals, bght_tmps.squeeze())
+    if((pax.get_ylim()[1] - pax.get_ylim()[0]) < 0.5):
+        mean_val = np.mean(bght_tmps.squeeze())
+        pax.set_ylim([mean_val - 0.5, mean_val + 0.5])
+    pax.set_xlabel(label_str, fontsize = 8)
+    pax.set_ylabel('Brightness temperature [K]', fontsize = 9)
+    pax.set_title(title_dict[sbout['info']['run_name']], fontsize = 10)
+
+    if(not in_ax):
+        if(save):
+            print("SAVE NAME NEEDED")
+        else:
+            plt.show()
 
 def plot_bright_plume_height(sbout, pax = None, save = False):
     # Set up axis
@@ -1001,8 +1088,13 @@ def plot_bright_plume_height(sbout, pax = None, save = False):
             pax.set_xlabel('Plume thickness [km]')
        
         for ii in range(bght_tmps.shape[0]): 
-            pax.plot(x_vals, bght_tmps[ii].squeeze(), label = \
-                add_label_dict[sbout['info']['met_var_name']].format(int(sbout['info']['met_var_vals'][ii,0]))) 
+            if(np.isnan(sbout['info']['met_var_vals'][ii,0])):
+                label_str = 'RH = original'
+            else:
+                label_str = \
+                    add_label_dict[sbout['info']['met_var_name']].format(\
+                    int(sbout['info']['met_var_vals'][ii,0])) 
+            pax.plot(x_vals, bght_tmps[ii].squeeze(), label = label_str)
         pax.legend(fontsize = 8)
         pax.set_ylabel('Brightness temperature [K]')
 
@@ -1017,71 +1109,76 @@ title_dict = {
     'goes17_ch08': 'GOES 17 Band 8 (6.2 μm)', \
     'goes17_ch09': 'GOES 17 Band 9 (6.94 μm)', \
     'goes17_ch10': 'GOES 17 Band 10 (7.34 μm)', \
+    'goes17_ch13': 'GOES 17 Band 13 (10.35 μm)', \
 }
 
-def plot_SBDART_dual_height_thickness(data1, data2, save = False):
+def plot_SBDART_dual_height_thickness(data1, data2, ax1 = None, ax2 = None, save = False):
 
-    plt.close('all')
-    fig = plt.figure(figsize = (8, 4))
-    ax1 = fig.add_subplot(1,2,1)
-    ax2 = fig.add_subplot(1,2,2)
+    in_ax = True
+    if((ax1 is None) and (ax2 is None)):
+        in_ax = False
+        plt.close('all')
+        fig = plt.figure(figsize = (8, 4))
+        ax1 = fig.add_subplot(1,2,1)
+        ax2 = fig.add_subplot(1,2,2)
     
     plot_bright_plume_height(data1, pax = ax1)
     plot_bright_plume_height(data2, pax = ax2)
-    plt.suptitle(title_dict[data1['info']['run_name']])
-    fig.tight_layout()
-   
-    if(save):
-        outname = 'sbdart_dual_height_thickness_' + \
-            data1['info']['run_name'] + '_' + \
-            data1['info']['met_var_name'] + '.png'
-        fig.savefig(outname, dpi = 300)
-        print("Saved image", outname)
-    else:
-        plt.show()
+    if(in_ax):
+        ax1.set_title(title_dict[data1['info']['run_name']])
+        ax2.set_title(title_dict[data2['info']['run_name']])
+    else: 
+        plt.suptitle(title_dict[data1['info']['run_name']])
+        fig.tight_layout()
+        if(save):
+            outname = 'sbdart_dual_height_thickness_' + \
+                data1['info']['run_name'] + '_' + \
+                data1['info']['met_var_name'] + '.png'
+            fig.savefig(outname, dpi = 300)
+            print("Saved image", outname)
+        else:
+            plt.show()
 
-def plot_SBDART_atmos(sbout, r1_key = '1', ptype = 'met', save = False):
+def plot_SBDART_atmos(sbout, r1_key = '1', ptype = 'met', close_plots = True, save = False):
+
+    # Use the met_var_name to figure out how to make the plot
+    if((sbout['info']['met_var_name'][4:] == 'wv_mix') | ((sbout['info']['met_var_name'][4:] == 'rh'))):
+        ncols = 3
+        plot_vars = ['wv','mix_rat','rhum']
+        plot_names = ['Absolute Humidity [g/m$^{3}$]', \
+            'Mixing Ratio [g/kg]', 'Relative Humidity [%]']
+        tmp_fig = False
+    else:
+        ncols = 2
+        plot_vars = ['t','rhum']
+        plot_names = ['Temperature [K]', 'Relative Humidity [%]']
+        tmp_fig = True 
+
     # Set up axis
     # -----------
-    plt.close('all')   
-    fig = plt.figure(figsize = (6, 8))
+    if(close_plots):
+        plt.close('all')   
+    figsize = (2 * ncols, 7)
+    fig = plt.figure(figsize = figsize)
     r_num = len(sbout['output'].keys())
-    axs = fig.subplots(nrows = r_num, ncols = 3)
+    axs = fig.subplots(nrows = r_num, ncols = ncols)
 
+    xfontsize = 10
     for ii, r1_key in enumerate(sbout['output'].keys()):
         print(r1_key) 
-        # Plot absolute humidity in first column
-        axs[ii,0].plot(sbout['orig_atmos']['wv'], sbout['orig_atmos']['z'], \
-            label = 'control') 
-        axs[ii,1].plot(sbout['orig_atmos']['mix_rat'], sbout['orig_atmos']['z'], \
-            label = 'control') 
-        axs[ii,2].plot(sbout['orig_atmos']['rhum'], sbout['orig_atmos']['z'], \
-            label = 'control') 
-        for jj, r2_key in enumerate(sbout['output'][r1_key].keys()):
-            axs[ii,0].plot(sbout['output'][r1_key][r2_key]['atmos']['wv'], \
-                sbout['output'][r1_key][r2_key]['atmos']['z'], label = \
-                add_label_dict[sbout['info']['met_var_name']].format(\
-                sbout['info']['met_var_vals'][ii,0])) 
-            axs[ii,1].plot(sbout['output'][r1_key][r2_key]['atmos']['mix_rat'], \
-                sbout['output'][r1_key][r2_key]['atmos']['z'], label = \
-                add_label_dict[sbout['info']['met_var_name']].format(\
-                sbout['info']['met_var_vals'][ii,0])) 
-            axs[ii,2].plot(sbout['output'][r1_key][r2_key]['atmos']['rhum'], \
-                sbout['output'][r1_key][r2_key]['atmos']['z'], label = \
-                add_label_dict[sbout['info']['met_var_name']].format(\
-                sbout['info']['met_var_vals'][ii,0])) 
-        # Plot mixing ratio in second column
-        ##!#axs[ii,0].legend()
-        ##!#axs[ii,1].legend()
-        axs[ii,0].set_ylim(-2, 15)
-        axs[ii,1].set_ylim(-2, 15)
-        axs[ii,2].set_ylim(-2, 15)
-        axs[ii,0].set_ylabel('Height')
-        axs[ii,1].set_ylabel('Height')
-        axs[ii,2].set_ylabel('Height')
-        axs[ii,0].set_xlabel('Absolute Humidity')
-        axs[ii,1].set_xlabel('Mixing Ratio')
-        axs[ii,2].set_xlabel('Relative Humidity')
+        for kk in range(len(plot_names)):
+            axs[ii,kk].plot(sbout['orig_atmos'][plot_vars[kk]], sbout['orig_atmos']['z'], \
+                label = 'control') 
+            for jj, r2_key in enumerate(sbout['output'][r1_key].keys()):
+                axs[ii,kk].plot(sbout['output'][r1_key][r2_key]['atmos'][plot_vars[kk]], \
+                    sbout['output'][r1_key][r2_key]['atmos']['z'], label = \
+                    add_label_dict[sbout['info']['met_var_name']].format(\
+                    sbout['info']['met_var_vals'][ii,0])) 
+            axs[ii,kk].set_ylim(-1, 16)
+            if(kk == 0):
+                axs[ii,kk].set_ylabel('Height [km]')
+            if(ii == r_num - 1):
+                axs[ii,kk].set_xlabel(plot_names[kk])
 
     fig.tight_layout()
 
@@ -1091,4 +1188,125 @@ def plot_SBDART_atmos(sbout, r1_key = '1', ptype = 'met', save = False):
         print("Saved image", outname)
     else:
         plt.show()
+
+def process_SBDART_multi_plume_height_thick(atms_file = '', plot_atmos = False, save = False):
+
+    satellites = ['goes17_ch08','goes17_ch09','goes17_ch10','goes17_ch13', 'modis_ch31']
+
+    # Set up the overall figures. Figure 1 is for the mixing ratio changes. 
+    # Figure 2 is for the RH changes
+    # ---------------------------------------------------------------------
+    plt.close('all')
+    fig1 = plt.figure(figsize = (6, 11))
+    axs1 = fig1.subplots(nrows = len(satellites), ncols = 2)
+    fig2 = plt.figure(figsize = (6, 11))
+    axs2 = fig2.subplots(nrows = len(satellites), ncols = 2)
+    
+    for ii, satellite in enumerate(satellites):
+    
+        # ADD MIX RUNS
+        
+        # Run num 1
+        z_maxs = np.arange(1.0, 11., 1.00)
+        z_mins = np.full(z_maxs.shape, 0.)
+        add_wv_mix = np.full((3, len(z_maxs)), np.nan)
+        add_wv_mix[0,:] = 0
+        add_wv_mix[1,:] = 2
+        add_wv_mix[2,:] = 4
+        
+        data1 = run_sbdart(satellite, calc_radiance = True, atms_file = atms_file, \
+            z_mins = z_mins, z_maxs = z_maxs, add_wv_mix = add_wv_mix)
+        
+        # Run num 2
+        z_maxs = np.arange(2, 11.)
+        z_mins = np.arange(0, 9.)
+        add_wv_mix = np.full((3, len(z_maxs)), np.nan)
+        add_wv_mix[0,:] = 0
+        add_wv_mix[1,:] = 2
+        add_wv_mix[2,:] = 4
+        
+        data2 = run_sbdart(satellite, calc_radiance = True, atms_file = atms_file, \
+            z_mins = z_mins, z_maxs = z_maxs, add_wv_mix = add_wv_mix)
+        
+        
+        plot_SBDART_dual_height_thickness(data1, data2, \
+            ax1 = axs1[ii, 0], ax2 = axs1[ii, 1], save = True)
+        if(plot_atmos):
+            plot_SBDART_atmos(data1, ptype = 'thicktop', close_plots = False, save = True)
+            plot_SBDART_atmos(data2, ptype = 'height', close_plots = False, save = True)
+        
+        # RHUM runs
+        
+        # Run num 1
+        z_maxs = np.arange(1.0, 11., 1.00)
+        z_mins = np.full(z_maxs.shape, 0.)
+        set_rh = np.full((3, len(z_maxs)), np.nan)
+        set_rh[0,:] = None
+        set_rh[1,:] = 40
+        set_rh[2,:] = 80
+        
+        data3 = run_sbdart(satellite, calc_radiance = True, atms_file = atms_file, \
+            z_mins = z_mins, z_maxs = z_maxs, set_rh = set_rh)
+        
+        # Run num 2
+        z_maxs = np.arange(2, 11.)
+        z_mins = np.arange(0, 9.)
+        ##!#set_rh = np.full(len(z_maxs), 4.)
+        set_rh = np.full((3, len(z_maxs)), np.nan)
+        set_rh[0,:] = None
+        set_rh[1,:] = 40
+        set_rh[2,:] = 80
+        
+        data4 = run_sbdart(satellite, calc_radiance = True, atms_file = atms_file, \
+            z_mins = z_mins, z_maxs = z_maxs, set_rh = set_rh)
+        
+        
+        plot_SBDART_dual_height_thickness(data3, data4, \
+            ax1 = axs2[ii, 0], ax2 = axs2[ii, 1], save = True)
+        if(plot_atmos):
+            plot_SBDART_atmos(data3, ptype = 'thicktop', close_plots = False, save = True)
+            plot_SBDART_atmos(data4, ptype = 'height', close_plots = False, save = True)
+
+    fig1.tight_layout()
+    fig2.tight_layout()
+    if(save):
+        outname1 = 'sbdart_multi_height_thick_mixrat.png'
+        outname2 = 'sbdart_multi_height_thick_RH.png'
+        fig1.savefig(outname1, dpi = 300)
+        fig2.savefig(outname2, dpi = 300)
+        print("Saved image", outname1)
+        print("Saved image", outname2)
+    else:
+        plt.show()
+
+def process_SBDART_multi_lower_tmps(atms_file = '', save = False):
+    satellites = ['goes17_ch08','goes17_ch09','goes17_ch10','goes17_ch13', 'modis_ch31']
+   
+    plt.close('all')
+    fig = plt.figure(figsize = (9, 6))
+    #axs = fig.subplots(nrows = 2, ncols = 3)
+ 
+    for jj, satellite in enumerate(satellites):
+    
+        # These max vals cool the surface in the lowest 1 km 
+        z_maxs = np.arange(1.0, 2., 1.00)
+        z_mins = np.full(z_maxs.shape, 0.)
+        add_tmp = np.full((11, len(z_maxs)), np.nan)
+        for ii in range(11):
+            add_tmp[ii,:] = -ii
+        
+        data1 = run_sbdart(satellite, calc_radiance = True, atms_file = atms_file, \
+            z_mins = z_mins, z_maxs = z_maxs, add_tmp = add_tmp)
+    
+        pax = fig.add_subplot(2,3,jj+1)    
+        plot_bright_sfc_tmp(data1, pax = pax, save = False)
+
+    fig.tight_layout()
+    if(save):
+        outname = 'sbdart_multi_sfc_cool.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
 

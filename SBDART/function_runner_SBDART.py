@@ -11,6 +11,11 @@ import sys
 
 satellite = 'modis_ch31'
 atms_file = ''
+
+process_SBDART_multi_plume_height_thick(save = True)
+sys.exit()
+process_SBDART_multi_lower_tmps(atms_file = '', save = True)
+
 #atms_file = '/home/bsorenson/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
 
 # This makes a re-creation of the SBDART GOES/MODIS figure from the paper
@@ -49,7 +54,7 @@ atms_file = ''
 ##!#
 ##!#sys.exit()
 
-satellites = ['modis_ch31','goes17_ch08','goes17_ch09','goes17_ch10']
+satellites = ['modis_ch31','goes17_ch08','goes17_ch09','goes17_ch10','goes17_ch13']
 
 for satellite in satellites:
 
@@ -58,11 +63,10 @@ for satellite in satellites:
     # Run num 1
     z_maxs = np.arange(1.0, 11., 1.00)
     z_mins = np.full(z_maxs.shape, 0.)
-    add_wv_mix = np.full((4, len(z_maxs)), np.nan)
-    add_wv_mix[0,:] = 1
+    add_wv_mix = np.full((3, len(z_maxs)), np.nan)
+    add_wv_mix[0,:] = 0
     add_wv_mix[1,:] = 2
-    add_wv_mix[2,:] = 3
-    add_wv_mix[3,:] = 4
+    add_wv_mix[2,:] = 4
     
     data1 = run_sbdart(satellite, calc_radiance = True, atms_file = atms_file, \
         z_mins = z_mins, z_maxs = z_maxs, add_wv_mix = add_wv_mix)
@@ -70,12 +74,10 @@ for satellite in satellites:
     # Run num 2
     z_maxs = np.arange(2, 11.)
     z_mins = np.arange(0, 9.)
-    ##!#add_wv_mix = np.full(len(z_maxs), 4.)
-    add_wv_mix = np.full((4, len(z_maxs)), np.nan)
-    add_wv_mix[0,:] = 1
+    add_wv_mix = np.full((3, len(z_maxs)), np.nan)
+    add_wv_mix[0,:] = 0
     add_wv_mix[1,:] = 2
-    add_wv_mix[2,:] = 3
-    add_wv_mix[3,:] = 4
+    add_wv_mix[2,:] = 4
     
     data2 = run_sbdart(satellite, calc_radiance = True, atms_file = atms_file, \
         z_mins = z_mins, z_maxs = z_maxs, add_wv_mix = add_wv_mix)
@@ -90,11 +92,10 @@ for satellite in satellites:
     # Run num 1
     z_maxs = np.arange(1.0, 11., 1.00)
     z_mins = np.full(z_maxs.shape, 0.)
-    set_rh = np.full((4, len(z_maxs)), np.nan)
-    set_rh[0,:] = 20
+    set_rh = np.full((3, len(z_maxs)), np.nan)
+    set_rh[0,:] = None
     set_rh[1,:] = 40
-    set_rh[2,:] = 60
-    set_rh[3,:] = 80
+    set_rh[2,:] = 80
     
     data3 = run_sbdart(satellite, calc_radiance = True, atms_file = atms_file, \
         z_mins = z_mins, z_maxs = z_maxs, set_rh = set_rh)
@@ -103,11 +104,10 @@ for satellite in satellites:
     z_maxs = np.arange(2, 11.)
     z_mins = np.arange(0, 9.)
     ##!#set_rh = np.full(len(z_maxs), 4.)
-    set_rh = np.full((4, len(z_maxs)), np.nan)
-    set_rh[0,:] = 20
+    set_rh = np.full((3, len(z_maxs)), np.nan)
+    set_rh[0,:] = None
     set_rh[1,:] = 40
-    set_rh[2,:] = 60
-    set_rh[3,:] = 80
+    set_rh[2,:] = 80
     
     data4 = run_sbdart(satellite, calc_radiance = True, atms_file = atms_file, \
         z_mins = z_mins, z_maxs = z_maxs, set_rh = set_rh)
@@ -116,3 +116,5 @@ for satellite in satellites:
     plot_SBDART_dual_height_thickness(data3, data4, save = True)
     plot_SBDART_atmos(data1, ptype = 'thicktop', save = True)
     plot_SBDART_atmos(data2, ptype = 'height', save = True)
+    plot_SBDART_atmos(data3, ptype = 'thicktop', save = True)
+    plot_SBDART_atmos(data4, ptype = 'height', save = True)
