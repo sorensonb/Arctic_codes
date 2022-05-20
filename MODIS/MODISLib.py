@@ -68,201 +68,321 @@ channel_dict = {
     '1': {
         'Name': 'EV_250_Aggr1km_RefSB',\
         'Index': 0,\
+        'cmap': 'Greys_r',
+        'Unit': '%',
+        'Unit_name': 'reflectance',
         'Bandwidth': [0.620, 0.670]
     },\
     '2': {
         'Name': 'EV_250_Aggr1km_RefSB',\
         'Index': 1,\
+        'cmap': 'Greys_r',
+        'Unit': '%',
+        'Unit_name': 'reflectance',
         'Bandwidth': [0.841, 0.876]
     },\
     '3': {
         'Name': 'EV_500_Aggr1km_RefSB',\
         'Index': 0,\
+        'cmap': 'Greys_r',
+        'Unit': '%',
+        'Unit_name': 'reflectance',
         'Bandwidth': [0.459, 0.479]
     },\
     '4': {
         'Name': 'EV_500_Aggr1km_RefSB',\
         'Index': 1,\
+        'cmap': 'Greys_r',
+        'Unit': '%',
+        'Unit_name': 'reflectance',
         'Bandwidth': [0.545, 0.565]
     },\
     '5': {
         'Name': 'EV_500_Aggr1km_RefSB',\
         'Index': 2,\
+        'cmap': 'Greys_r',
+        'Unit': '%',
+        'Unit_name': 'reflectance',
         'Bandwidth': [1.230, 1.250]
     },\
     '6': {
         'Name': 'EV_500_Aggr1km_RefSB',\
         'Index': 3,\
+        'cmap': 'Greys_r',
+        'Unit': '%',
+        'Unit_name': 'reflectance',
         'Bandwidth': [1.628, 1.652]
     },\
     '7': {
         'Name': 'EV_500_Aggr1km_RefSB',\
         'Index': 4,\
+        'cmap': 'Greys_r',
+        'Unit': '%',
+        'Unit_name': 'reflectance',
         'Bandwidth': [2.105, 2.155]
     },\
     '8': {
         'Name': 'EV_1KM_RefSB',\
         'Index': 0,\
+        'cmap': 'Greys_r',
+        'Unit': '%',
+        'Unit_name': 'reflectance',
         'Bandwidth': [0.405, 0.420]
     },\
     '9': {
         'Name': 'EV_1KM_RefSB',\
         'Index': 1,\
+        'cmap': 'Greys_r',
+        'Unit': '%',
+        'Unit_name': 'reflectance',
         'Bandwidth': [0.438, 0.448]
     },\
     '10': {
         'Name': 'EV_1KM_RefSB',\
         'Index': 2,\
+        'cmap': 'Greys_r',
+        'Unit': '%',
+        'Unit_name': 'reflectance',
         'Bandwidth': [0.483, 0.493]
     },\
     '11': {
         'Name': 'EV_1KM_RefSB',\
         'Index': 3,\
+        'cmap': 'Greys_r',
+        'Unit': '%',
+        'Unit_name': 'reflectance',
         'Bandwidth': [0.526, 0.536]
     },\
     '12': {
         'Name': 'EV_1KM_RefSB',\
         'Index': 4,\
+        'cmap': 'Greys_r',
+        'Unit': '%',
+        'Unit_name': 'reflectance',
         'Bandwidth': [0.546, 0.556]
     },\
     '13lo': {
         'Name': 'EV_1KM_RefSB',\
         'Index': 5,\
+        'cmap': 'Greys_r',
+        'Unit': '%',
+        'Unit_name': 'reflectance',
         'Bandwidth': [0.662, 0.672]
     },\
     '13hi': {
         'Name': 'EV_1KM_RefSB',\
         'Index': 6,\
+        'cmap': 'Greys_r',
+        'Unit': '%',
+        'Unit_name': 'reflectance',
         'Bandwidth': [0.662, 0.672]
     },\
     '14lo': {
         'Name': 'EV_1KM_RefSB',\
         'Index': 7,\
+        'cmap': 'Greys_r',
+        'Unit': '%',
+        'Unit_name': 'reflectance',
         'Bandwidth': [0.673, 0.683]
     },\
     '14hi': {
         'Name': 'EV_1KM_RefSB',\
         'Index': 8,\
+        'cmap': 'Greys_r',
+        'Unit': '%',
+        'Unit_name': 'reflectance',
         'Bandwidth': [0.673, 0.683]
     },\
     '15': {
         'Name': 'EV_1KM_RefSB',\
         'Index': 9,\
+        'cmap': 'Greys_r',
+        'Unit': '%',
+        'Unit_name': 'reflectance',
         'Bandwidth': [0.743, 0.753]
     },\
     '16': {
         'Name': 'EV_1KM_RefSB',\
         'Index': 10,\
+        'cmap': 'Greys_r',
+        'Unit': '%',
+        'Unit_name': 'reflectance',
         'Bandwidth': [0.862, 0.877]
     },\
     '17': {
         'Name': 'EV_1KM_RefSB',\
         'Index': 11,\
+        'cmap': 'Greys_r',
+        'Unit': '%',
+        'Unit_name': 'reflectance',
         'Bandwidth': [0.890, 0.920]
     },\
     '18': {
         'Name': 'EV_1KM_RefSB',\
         'Index': 12,\
+        'cmap': 'Greys_r',
+        'Unit': '%',
+        'Unit_name': 'reflectance',
         'Bandwidth': [0.931, 0.941]
     },\
     '19': {
         'Name': 'EV_1KM_RefSB',\
         'Index': 13,\
+        'cmap': 'Greys_r',
+        'Unit': '%',
+        'Unit_name': 'reflectance',
         'Bandwidth': [0.915, 0.965]
     },\
     '20': {
         'Name': 'EV_1KM_Emissive',\
         'Index': 0,\
+        'cmap': 'plasma',
+        'Unit': 'K',
+        'Unit_name': 'brightness_temperature',
         'Bandwidth': [3.660, 3.840]
     },\
     '21': {
         'Name': 'EV_1KM_Emissive',\
         'Index': 1,\
+        'cmap': 'plasma',
+        'Unit': 'K',
+        'Unit_name': 'brightness_temperature',
         'Bandwidth': [3.929, 3.989]
     },\
     '22': {
         'Name': 'EV_1KM_Emissive',\
         'Index': 2,\
+        'cmap': 'plasma',
+        'Unit': 'K',
+        'Unit_name': 'brightness_temperature',
         'Bandwidth': [3.929, 3.989]
     },\
     '23': {
         'Name': 'EV_1KM_Emissive',\
         'Index': 3,\
+        'cmap': 'plasma',
+        'Unit': 'K',
+        'Unit_name': 'brightness_temperature',
         'Bandwidth': [4.020, 4.080]
     },\
     '24': {
         'Name': 'EV_1KM_Emissive',\
         'Index': 4,\
+        'cmap': 'plasma',
+        'Unit': 'K',
+        'Unit_name': 'brightness_temperature',
         'Bandwidth': [4.433, 4.498]
     },\
     '25': {
         'Name': 'EV_1KM_Emissive',\
         'Index': 5,\
+        'cmap': 'plasma',
+        'Unit': 'K',
+        'Unit_name': 'brightness_temperature',
         'Bandwidth': [4.482, 4.549]
     },\
     '26': {
         'Name': 'EV_1KM_RefSB',\
         'Index': 14,\
+        'cmap': 'plasma',
+        'Unit': 'K',
+        'Unit_name': 'brightness_temperature',
         'Bandwidth': [1.360, 1.390]
     },\
     '27': {
         'Name': 'EV_1KM_Emissive',\
         'Index': 6,\
+        'cmap': 'plasma',
+        'Unit': 'K',
+        'Unit_name': 'brightness_temperature',
         'Bandwidth': [6.535, 6.895]
     },\
     '28': {
         'Name': 'EV_1KM_Emissive',\
         'Index': 7,\
+        'cmap': 'plasma',
+        'Unit': 'K',
+        'Unit_name': 'brightness_temperature',
         'Bandwidth': [7.175, 7.475]
     },\
     '29': {
         'Name': 'EV_1KM_Emissive',\
         'Index': 8,\
+        'cmap': 'plasma',
+        'Unit': 'K',
+        'Unit_name': 'brightness_temperature',
         'Bandwidth': [8.400, 8.700]
     },\
     '30': {
         'Name': 'EV_1KM_Emissive',\
         'Index': 9,\
+        'cmap': 'plasma',
+        'Unit': 'K',
+        'Unit_name': 'brightness_temperature',
         'Bandwidth': [9.580, 9.880]
     },\
     '31': {
         'Name': 'EV_1KM_Emissive',\
         'Index': 10,\
+        'cmap': 'plasma',
+        'Unit': 'K',
+        'Unit_name': 'brightness_temperature',
         'Bandwidth': [10.780, 11.280]
     },\
     '32': {
         'Name': 'EV_1KM_Emissive',\
         'Index': 11,\
+        'cmap': 'plasma',
+        'Unit': 'K',
+        'Unit_name': 'brightness_temperature',
         'Bandwidth': [11.770, 12.270]
     },\
     '33': {
         'Name': 'EV_1KM_Emissive',\
         'Index': 12,\
+        'cmap': 'plasma',
+        'Unit': 'K',
+        'Unit_name': 'brightness_temperature',
         'Bandwidth': [13.185, 13.485]
     },\
     '34': {
         'Name': 'EV_1KM_Emissive',\
         'Index': 13,\
+        'cmap': 'plasma',
+        'Unit': 'K',
+        'Unit_name': 'brightness_temperature',
         'Bandwidth': [13.485, 13.785]
     },\
     '35': {
         'Name': 'EV_1KM_Emissive',\
         'Index': 14,\
+        'cmap': 'plasma',
+        'Unit': 'K',
+        'Unit_name': 'brightness_temperature',
         'Bandwidth': [13.785, 14.085]
     },\
     '36': {
         'Name': 'EV_1KM_Emissive',\
         'Index': 15,\
+        'cmap': 'plasma',
+        'Unit': 'K',
+        'Unit_name': 'brightness_temperature',
         'Bandwidth': [14.085, 14.385]
     },\
     'wv_ir': {
         'Name': 'Water_Vapor_Infrared',\
         'Index': None,
+        'cmap': 'plasma',
+        'Unit': 'K',
+        'Unit_name': 'brightness_temperature',
         'Bandwidth': None 
     },\
     'wv_nir': {
         'Name': 'Water_Vapor_Near_Infrared',\
         'Index': None,
+        'cmap': 'plasma',
+        'Unit': 'K',
+        'Unit_name': 'brightness_temperature',
         'Bandwidth': None 
     }
 }
@@ -911,7 +1031,8 @@ def grid_data_trends(modis_dict):
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-def read_true_color(date_str,composite = False):
+def read_MODIS_satpy(date_str, channel,  composite = False):
+#def read_true_color(date_str,composite = False):
     # Determine the correct MODIS file associated with the date
     # ---------------------------------------------------------
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
@@ -938,24 +1059,108 @@ def read_true_color(date_str,composite = False):
     scn = Scene(reader = 'modis_l1b', filenames = day_filenames)
 
     # Load true-color data 
-    scn.load(['true_color'])
+    scn.load([str(channel)])
+    #scn.load(['true_color'])
 
-    # Set the map projection and center the data
-    # ------------------------------------------
-    my_area = scn['true_color'].attrs['area'].compute_optimal_bb_area({\
+    ##!#if(channel == 'true_color'):
+    ##!#    # Set the map projection and center the data
+    ##!#    # ------------------------------------------
+    my_area = scn[str(channel)].attrs['area'].compute_optimal_bb_area({\
         'proj':'lcc', 'lon_0': lon_lims[0], 'lat_0': lat_lims[0], 'lat_1': lat_lims[0], 'lat_2': lat_lims[0]})
     new_scn = scn.resample(my_area)
+    ##!#else:
+    ##!#    new_scn = scn
 
-    # Enhance the image for plotting
-    # ------------------------------
-    var = get_enhanced_image(new_scn['true_color']).data
+    # Extract the lats, lons, and data
+    # -----------------------------------------------------
+    lons, lats = new_scn[str(channel)].attrs['area'].get_lonlats()
+
+    ##!#if(channel == 'true_color'):
+    ##!#    # Enhance the image for plotting
+    ##!#    # ------------------------------
+    var = get_enhanced_image(new_scn[str(channel)]).data
     var = var.transpose('y','x','bands')
+    ##!#else:
+    ##!#    var = new_scn[str(channel)].data
 
     # Extract the map projection from the data for plotting
     # -----------------------------------------------------
-    crs = new_scn['true_color'].attrs['area'].to_cartopy_crs()
+    crs = new_scn[str(channel)].attrs['area'].to_cartopy_crs()
 
-    return var, crs, lat_lims, lon_lims
+    if(channel != 'true_color'):
+        var = var.data
+
+    # Extract the appropriate units
+    # -----------------------------
+    if(channel == 'true_color'):
+        plabel = ''
+    else:
+        plabel = channel_dict[str(channel)]['Unit_name'].title() + ' [' + \
+            channel_dict[str(channel)]['Unit'] + ']'
+
+    return var, crs, lons, lats, lat_lims, lon_lims, plabel
+
+# channel must be an integer between 1 and 16
+def plot_MODIS_satpy(date_str, channel, ax = None, var = None, crs = None, \
+        lons = None, lats = None, lat_lims = None, lon_lims = None, \
+        vmin = None, vmax = None, ptitle = None, plabel = None, \
+        labelsize = 10, colorbar = True, zoom=True,save=False):
+
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    if(var is None): 
+        var, crs, lons, lats, lat_lims, lon_lims, plabel = read_MODIS_satpy(date_str, str(channel))
+
+    # Plot the GOES data
+    # ------------------
+    in_ax = True 
+    if(ax is None):
+        in_ax = False
+        plt.close('all')
+        ax = plt.axes(projection=crs)
+
+    ##!#ax.imshow(var.data, transform = crs, extent=(var.x[0], var.x[-1], \
+    ##!#    var.y[-1], var.y[0]), vmin = vmin, vmax = vmax, origin='upper', \
+    ##!#    cmap = 'Greys_r')
+    #im1 = ax.imshow(var, transform = crs, vmin = vmin, vmax = vmax, \
+    print(lons, lats, var.data)
+    im1 = ax.pcolormesh(lons, lats, var.data, transform = datacrs, \
+        vmin = vmin, vmax = vmax, \
+        cmap = channel_dict[str(channel)]['cmap'], \
+        shading = 'auto')
+    ax.add_feature(cfeature.STATES)
+    if(colorbar):
+        cbar = plt.colorbar(im1, ax = ax, pad = 0.03, fraction = 0.052, \
+            extend = 'both')
+        cbar.set_label(plabel.replace('_',' '), size = labelsize, weight = 'bold')
+
+    # Zoom in the figure if desired
+    # -----------------------------
+    if(zoom):
+        ax.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+                       crs = ccrs.PlateCarree())
+        zoom_add = '_zoom'
+    else:
+        zoom_add = ''
+
+    # NOTE: commented out after removing the 'enhanced_image' code because
+    #       it doesn't work now .
+    ##!#ax.coastlines(resolution = '50m')
+    ##!#ax.add_feature(cfeature.STATES)
+    ##!#ax.add_feature(cfeature.BORDERS)
+    if(ptitle is None):
+        ax.set_title('MODIS\n'+dt_date_str.strftime('%Y-%m-%d %H:%M'))
+    else:
+        ax.set_title(ptitle)
+
+    if(not in_ax): 
+        print('here')
+        if(save):
+            outname = 'modis__' + date_str + zoom_add + cmpst_add + '.png'
+            plt.savefig(outname,dpi=300)
+            print("Saved image",outname)
+        else:
+            plt.show()
 
 def plot_true_color_satpy(date_str,ax = None,zoom=True,save=False,composite=False):
 
@@ -7206,18 +7411,23 @@ def plot_combined_figure1_v4(date_str = '202107222110', zoom = True, show_smoke 
     # Call read_MODIS_channel to read the desired MODIS data from the file 
     # and put it in a dictionary
     # ---------------------------------------------------------------------
-    MODIS_data_ch7  = read_MODIS_channel(date_str, 7, zoom = zoom)
-    MODIS_data_ch31 = read_MODIS_channel(date_str, 31, zoom = zoom)
+    ##!#MODIS_data_ch7  = read_MODIS_channel(date_str, 6, zoom = zoom)
+    ##!##MODIS_data_ch7  = read_MODIS_channel(date_str, 7, zoom = zoom)
+    ##!#MODIS_data_ch31 = read_MODIS_channel(date_str, 31, zoom = zoom)
+    var8, crs8, lons8, lats8, lat_lims8, lon_lims8, plabel8 = read_MODIS_satpy(date_str, 5)
+    var9, crs8, lons8, lats8, lat_lims9, lon_lims9, plabel9 = read_MODIS_satpy(date_str, 31)
 
     # Read the true color data
     # ------------------------
-    var1, crs1, lat_lims1, lon_lims1 = read_true_color(date_str,\
+    var1, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel = read_MODIS_satpy(date_str,'true_color',\
+    #var1, crs1, lat_lims1, lon_lims1 = read_true_color(date_str,\
         composite=composite)
 
     # Read the GOES data
     # ------------------------
     var2, crs0, lons, lats, lat_lims2, lon_lims2, plabel2   = read_GOES_satpy(date_str2, 2)
-    var3, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel3 = read_GOES_satpy(date_str2, 6)
+    var3, crs0, lons3, lats3, lat_lims3, lon_lims3, plabel3 = read_GOES_satpy(date_str2, 5)
+    #var3, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel3 = read_GOES_satpy(date_str2, 6)
     var4, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel4 = read_GOES_satpy(date_str2, 13)
     var5, crs0, lons2, lats2, lat_lims0, lon_lims2, plabel5 = read_GOES_satpy(date_str2, 8)
     var6, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel6 = read_GOES_satpy(date_str2, 9)
@@ -7234,8 +7444,10 @@ def plot_combined_figure1_v4(date_str = '202107222110', zoom = True, show_smoke 
     fig = plt.figure(figsize=(10,9))
     #gs = fig.add_gridspec(nrows = 2, ncols = 8)
     ax1  = fig.add_subplot(3,3,1,  projection = crs1)   # true color    
-    ax2  = fig.add_subplot(3,3,2,  projection = mapcrs) # Ch 7
-    ax3  = fig.add_subplot(3,3,3,  projection = mapcrs) # Ch 31
+    ax2  = fig.add_subplot(3,3,2,  projection = crs8) # Ch 7
+    ax3  = fig.add_subplot(3,3,3,  projection = crs8) # Ch 31
+    #ax2  = fig.add_subplot(3,3,2,  projection = mapcrs) # Ch 7
+    #ax3  = fig.add_subplot(3,3,3,  projection = mapcrs) # Ch 31
     ax4  = fig.add_subplot(3,3,4,  projection = crs0)   # GOES vis 
     ax5  = fig.add_subplot(3,3,5,  projection = crs0)   # GOES SWIR
     ax6  = fig.add_subplot(3,3,6,  projection = crs0)   # GOES TIR 
@@ -7263,10 +7475,18 @@ def plot_combined_figure1_v4(date_str = '202107222110', zoom = True, show_smoke 
 
     # Plot channel 1, 5, 31, and WV data spatial data
     # -----------------------------------------------
-    plot_MODIS_spatial(MODIS_data_ch7,  ax2, zoom = zoom, ptitle = '', labelsize = 10, labelticksize = 9)
-    plot_MODIS_spatial(MODIS_data_ch31, ax3, zoom = zoom, ptitle = '', labelsize = 10, labelticksize = 9)
-
+    ##!#plot_MODIS_spatial(MODIS_data_ch7,  ax2, zoom = zoom, ptitle = '', labelsize = 10, labelticksize = 9)
+    ##!#plot_MODIS_spatial(MODIS_data_ch31, ax3, zoom = zoom, ptitle = '', labelsize = 10, labelticksize = 9)
     labelsize = 10
+    plot_MODIS_satpy(date_str, 5, ax = ax2, var = var8, crs = crs8, \
+        lons = lons8, lats = lats8, lat_lims = lat_lims8, lon_lims = lon_lims8, \
+        vmin = 270, vmax = 330, ptitle = None, plabel = plabel8, \
+        labelsize = 10, colorbar = True, zoom=True,save=False)
+    plot_MODIS_satpy(date_str, 31, ax = ax3, var = var9, crs = crs8, \
+        lons = lons8, lats = lats8, lat_lims = lat_lims9, lon_lims = lon_lims9, \
+        vmin = None, vmax = None, ptitle = None, plabel = plabel9, \
+        labelsize = 10, colorbar = True, zoom=True,save=False)
+
     # Plot channel 1, 5, 31, and WV data spatial data
     # -----------------------------------------------
     plot_GOES_satpy(date_str, 2, ax = ax4, var = var2, crs = crs0, \
@@ -7274,8 +7494,9 @@ def plot_combined_figure1_v4(date_str = '202107222110', zoom = True, show_smoke 
         vmin = None, vmax = 60, \
         ptitle = '', plabel = plabel2, colorbar = True, labelsize = labelsize, \
         zoom=True,save=False)
+    print(var2.shape, lons.shape, lats.shape, lons2.shape, lats2.shape, var3.shape)
     plot_GOES_satpy(date_str, 6, ax = ax5, var = var3, crs = crs0, \
-        lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+        lons = lons3, lats = lats3, lat_lims = lat_lims3, lon_lims = lon_lims3, \
         vmin = None, vmax = 40, \
         ptitle = '', plabel = plabel3, colorbar = True, labelsize = labelsize, \
         zoom=True,save=False)
@@ -7317,14 +7538,18 @@ def plot_combined_figure1_v4(date_str = '202107222110', zoom = True, show_smoke 
     # -------------
     plot_figure_text(ax1, 'MODIS True Color', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax2, 'MODIS 2.2 μm', xval = None, yval = None, transform = None, \
+    plot_figure_text(ax2, 'MODIS 1.6 μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    #plot_figure_text(ax2, 'MODIS 2.2 μm', xval = None, yval = None, transform = None, \
+    #    color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
     plot_figure_text(ax3, 'MODIS 11.0 μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
     plot_figure_text(ax4, 'GOES-17 0.64 μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax5, 'GOES-17 2.25 μm', xval = None, yval = None, transform = None, \
+    plot_figure_text(ax5, 'GOES-17 1.61 μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    #plot_figure_text(ax5, 'GOES-17 2.25 μm', xval = None, yval = None, transform = None, \
+    #    color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
     plot_figure_text(ax6, 'GOES-17 10.35 μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
     plot_figure_text(ax7, 'GOES-17 6.18 μm', xval = None, yval = None, transform = None, \
@@ -7342,8 +7567,8 @@ def plot_combined_figure1_v4(date_str = '202107222110', zoom = True, show_smoke 
 
     fig.tight_layout()
 
-    MODIS_data_ch7.clear()
-    MODIS_data_ch31.clear()
+    #MODIS_data_ch7.clear()
+    #MODIS_data_ch31.clear()
 
     if(save):
         outname = 'modis_total_combined_' + date_str + '_fig1_v4.png'

@@ -15,13 +15,13 @@ channel1 = 1
 channel2 = 5
 channel3 = 31
 
-plot_viewing_geometry(date_str = '202107222110', zoom = True, show_smoke = False, composite = True, \
-        save=False)
 
+plot_combined_figure1_v4(date_str = '202107222110', zoom = True, show_smoke = False, composite = True, \
+        save= False)
 sys.exit()
 
-#plot_combined_figure1_v4(date_str = '202107222110', zoom = True, show_smoke = True, composite = True, \
-#        save= True)
+#plot_viewing_geometry(date_str = '202107222110', zoom = True, show_smoke = False, composite = True, \
+#        save=False)
 #plot_MODIS_VIIRS_SBDART(save=True, composite = True, calc_radiance = True)
 #plot_spatial_scatter_wAI(date_str, zoom=True,save=True,composite=True,\
 #    avg_pixel=True,plume_only=False)

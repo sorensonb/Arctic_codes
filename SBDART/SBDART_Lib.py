@@ -227,6 +227,23 @@ def prep_sbdart_input(isat = -1, iout = 5, nzen = None, uzen = [0, 60]):
 
         fout.write(out_str)
 
+def check_max_rhum(data):
+    # See if any regions of this profile exceed 80% relative humidity
+    num_exceed = len(np.where(data['rhum'] > 80.)[0])
+    if(num_exceed > 0):
+        # If any are over 4 g/kg, set the maximum to 4 and continue
+        data['rhum'][data['rhum'] > 80.] = 80.
+
+        # Recalculate mixing ratios using the 80% max RH
+        data['mix_rat'][data['rhum'] > 80.] = \
+            mpcalc.mixing_ratio_from_relative_humidity(\
+            np.array(data['p'][data['rhum'] > 80.]) * units('mbar'), \
+            np.array(data['t'][data['rhum'] > 80.]) * units('K'), \
+            np.array(data['rhum'][data['rhum'] > 80.]) * units('%')).to('g/kg')
+    
+    return data
+
+
 def prep_atmos_file(data, \
         zmin = None, zmax = None, \
         set_tmp = None, add_tmp = None, \
@@ -292,18 +309,20 @@ def prep_atmos_file(data, \
         new_data['rhum'][(new_data['z'] >= zmin) & \
             (new_data['z'] <= zmax)] = new_rh
 
-        # See if any regions of this profile exceed 80% relative humidity
-        num_exceed = len(np.where(new_data['rhum'] > 80.)[0])
-        if(num_exceed > 0):
-            # If any are over 4 g/kg, set the maximum to 4 and continue
-            new_data['rhum'][new_data['rhum'] > 80.] = 80.
+        new_data = check_max_rhum(new_data)
 
-            # Recalculate mixing ratios using the 80% max RH
-            new_data['mix_rat'][new_data['rhum'] > 80.] = \
-                mpcalc.mixing_ratio_from_relative_humidity(\
-                np.array(new_data['p'][new_data['rhum'] > 80.]) * units('mbar'), \
-                np.array(new_data['t'][new_data['rhum'] > 80.]) * units('K'), \
-                np.array(new_data['rhum'][new_data['rhum'] > 80.]) * units('%')).to('g/kg')
+        ##!## See if any regions of this profile exceed 80% relative humidity
+        ##!#num_exceed = len(np.where(new_data['rhum'] > 80.)[0])
+        ##!#if(num_exceed > 0):
+        ##!#    # If any are over 4 g/kg, set the maximum to 4 and continue
+        ##!#    new_data['rhum'][new_data['rhum'] > 80.] = 80.
+
+        ##!#    # Recalculate mixing ratios using the 80% max RH
+        ##!#    new_data['mix_rat'][new_data['rhum'] > 80.] = \
+        ##!#        mpcalc.mixing_ratio_from_relative_humidity(\
+        ##!#        np.array(new_data['p'][new_data['rhum'] > 80.]) * units('mbar'), \
+        ##!#        np.array(new_data['t'][new_data['rhum'] > 80.]) * units('K'), \
+        ##!#        np.array(new_data['rhum'][new_data['rhum'] > 80.]) * units('%')).to('g/kg')
 
         # Convert the added water vapor mixing ratio to added
         # absolute humidity
@@ -334,18 +353,7 @@ def prep_atmos_file(data, \
         new_data['rhum'][(new_data['z'] >= zmin) & \
             (new_data['z'] <= zmax)] = new_rh
 
-        # See if any regions of this profile exceed 80% relative humidity
-        num_exceed = len(np.where(new_data['rhum'] > 80.)[0])
-        if(num_exceed > 0):
-            # If any are over 4 g/kg, set the maximum to 4 and continue
-            new_data['rhum'][new_data['rhum'] > 80.] = 80.
-
-            # Recalculate mixing ratios using the 80% max RH
-            new_data['mix_rat'][new_data['rhum'] > 80.] = \
-                mpcalc.mixing_ratio_from_relative_humidity(\
-                np.array(new_data['p'][new_data['rhum'] > 80.]) * units('mbar'), \
-                np.array(new_data['t'][new_data['rhum'] > 80.]) * units('K'), \
-                np.array(new_data['rhum'][new_data['rhum'] > 80.]) * units('%')).to('g/kg')
+        new_data = check_max_rhum(new_data)
 
         # Convert the added water vapor mixing ratio to added
         # absolute humidity
@@ -957,7 +965,7 @@ def plot_bright_vza(sbout, pax = None, save = False):
         else:
             plt.show() 
 
-def plot_bright_sfc_tmp(sbout, pax = None, save = False):
+def plot_bright_sfc_tmp(sbout, pax = None, relative = False, multi_sat = False, save = False):
     # Set up axis
     # -----------
     in_ax = True 
@@ -989,6 +997,9 @@ def plot_bright_sfc_tmp(sbout, pax = None, save = False):
     bght_tmps = np.array([[sbout['output'][r1_key][r2_key]['bght_tmp'] for r2_key \
         in sbout['output'][r1_key].keys()] for r1_key in sbout['output'].keys()])
 
+    if(relative):
+        bght_tmps = bght_tmps - bght_tmps[0]
+    
     print(sbout['info']['run_name'], bght_tmps.squeeze())
 
     # X axis is the low-level cooling. Y-axis is the brightness temp
@@ -1000,13 +1011,23 @@ def plot_bright_sfc_tmp(sbout, pax = None, save = False):
     else:
         label_str = 'Surface warming [K]'
 
-    pax.plot(x_vals, bght_tmps.squeeze())
-    if((pax.get_ylim()[1] - pax.get_ylim()[0]) < 0.5):
-        mean_val = np.mean(bght_tmps.squeeze())
-        pax.set_ylim([mean_val - 0.5, mean_val + 0.5])
-    pax.set_xlabel(label_str, fontsize = 8)
-    pax.set_ylabel('Brightness temperature [K]', fontsize = 9)
-    pax.set_title(title_dict[sbout['info']['run_name']], fontsize = 10)
+    if(multi_sat):
+        pax.plot(x_vals, bght_tmps.squeeze(), label = title_dict[sbout['info']['run_name']])
+        axis_fontsize = 10
+    else:
+        pax.plot(x_vals, bght_tmps.squeeze())
+        pax.set_title(title_dict[sbout['info']['run_name']], fontsize = 10)
+        if((pax.get_ylim()[1] - pax.get_ylim()[0]) < 0.5):
+            mean_val = np.mean(bght_tmps.squeeze())
+            pax.set_ylim([mean_val - 0.5, mean_val + 0.5])
+        axis_fontsize = 10
+    pax.set_xlabel(label_str, fontsize = axis_fontsize)
+    if(relative):
+        ylabel_str = 'Brightness temperature cooling [K]'
+    else:
+        ylabel_str = 'Brightness temperature [K]'
+    pax.set_ylabel(ylabel_str, fontsize = axis_fontsize)
+    
 
     if(not in_ax):
         if(save):
@@ -1279,11 +1300,17 @@ def process_SBDART_multi_plume_height_thick(atms_file = '', plot_atmos = False, 
     else:
         plt.show()
 
-def process_SBDART_multi_lower_tmps(atms_file = '', save = False):
+def process_SBDART_multi_lower_tmps(atms_file = '', save = False, multi_sat = True, relative = True):
     satellites = ['goes17_ch08','goes17_ch09','goes17_ch10','goes17_ch13', 'modis_ch31']
    
     plt.close('all')
-    fig = plt.figure(figsize = (9, 6))
+    if(multi_sat):
+        figsize = (5,5)
+    else:
+        figsize = (9,6)
+    fig = plt.figure(figsize = figsize)
+    if(multi_sat):
+        pax = fig.add_subplot(1,1,1)
     #axs = fig.subplots(nrows = 2, ncols = 3)
  
     for jj, satellite in enumerate(satellites):
@@ -1297,13 +1324,24 @@ def process_SBDART_multi_lower_tmps(atms_file = '', save = False):
         
         data1 = run_sbdart(satellite, calc_radiance = True, atms_file = atms_file, \
             z_mins = z_mins, z_maxs = z_maxs, add_tmp = add_tmp)
-    
-        pax = fig.add_subplot(2,3,jj+1)    
-        plot_bright_sfc_tmp(data1, pax = pax, save = False)
+  
+        if(not multi_sat): 
+            pax = fig.add_subplot(2,3,jj+1)    
+        plot_bright_sfc_tmp(data1, pax = pax, save = False, \
+            multi_sat = multi_sat, relative = relative)
+
+    if(multi_sat):
+        pax.legend(fontsize = 9)
 
     fig.tight_layout()
     if(save):
-        outname = 'sbdart_multi_sfc_cool.png'
+        rel_add = ''
+        mult_add = ''
+        if(relative):
+            rel_add = '_relative'
+        if(multi_sat):
+            mult_add = '_multisat' 
+        outname = 'sbdart_multi_sfc_cool'+rel_add+mult_add+'.png'
         fig.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else:
