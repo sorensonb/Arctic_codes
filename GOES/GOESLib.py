@@ -70,7 +70,7 @@ case_dict = {
 # - 6.95  (band 9, Mid-Level Water Vapor)
 # - 7.34  (band 10, Lower-Level Water Vapor)
 # - 10.35 (band 13, Clean IR Longwave Window)
-channel_dict = {
+goes_channel_dict = {
     '1': {
         'name': 'Blue',
         'wavelength': 0.47
@@ -137,12 +137,12 @@ channel_dict = {
     }
 }
 
-for key in channel_dict.keys():
-    if(channel_dict[key]['wavelength'] is not None):
-        channel_dict[key]['wavelength_label'] = \
-            str(channel_dict[key]['wavelength']) + ' μm'
+for key in goes_channel_dict.keys():
+    if(goes_channel_dict[key]['wavelength'] is not None):
+        goes_channel_dict[key]['wavelength_label'] = \
+            str(goes_channel_dict[key]['wavelength']) + ' μm'
     else:
-        channel_dict[key]['wavelength_label'] = ''
+        goes_channel_dict[key]['wavelength_label'] = ''
 
 goes_area_dict = {
     "2021-07-13": {
@@ -1037,7 +1037,7 @@ def read_GOES_satpy(date_str, channel, zoom = True):
 
     # Extract the channel wavelength using the input string
     # -----------------------------------------------------
-    channel = channel_dict[str(channel)]['wavelength']
+    channel = goes_channel_dict[str(channel)]['wavelength']
 
     # Determine the correct GOES files associated with the date
     # ---------------------------------------------------------
@@ -1062,7 +1062,7 @@ def read_GOES_satpy(date_str, channel, zoom = True):
 
     # Load the desired channel data
     # -----------------------------
-    scn.load([channel], calibration = [calib_dict[channel]])
+    scn.load([channel])
 
     ## Set the map projection and center the data
     ## ------------------------------------------
@@ -1126,7 +1126,7 @@ def plot_GOES_satpy(date_str, channel, ax = None, var = None, crs = None, \
     #im1 = ax.imshow(var, transform = crs, vmin = vmin, vmax = vmax, \
     im1 = ax.pcolormesh(lons, lats, var, transform = datacrs, \
         vmin = vmin, vmax = vmax, \
-        cmap = cmap_dict[channel_dict[str(channel)]['wavelength']], \
+        cmap = cmap_dict[goes_channel_dict[str(channel)]['wavelength']], \
         shading = 'auto')
     ax.add_feature(cfeature.STATES)
     if(colorbar):
@@ -1200,7 +1200,7 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
     ax5 = fig1.add_subplot(2,3,6, projection = crs5)
 
     ##!#ax1.set_title('GOES-17 Band ' + str(ch2) + '\n' + \
-    ##!#    channel_dict[str(ch2)]['name'] + '\n' + \
+    ##!#    goes_channel_dict[str(ch2)]['name'] + '\n' + \
     labelsize = 11
     font_size = 10
     plot_GOES_satpy(date_str, ch1, ax = ax0, var = var0, crs = crs0, \
@@ -1229,32 +1229,32 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
         colorbar = True, labelsize = labelsize, zoom=True,save=False)
 
     plot_figure_text(ax0, 'GOES-17 ' + \
-        str(channel_dict[str(ch1)]['wavelength']) + ' μm', \
+        str(goes_channel_dict[str(ch1)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
     plot_figure_text(ax1, 'GOES-17 ' + \
-        str(channel_dict[str(ch2)]['wavelength']) + ' μm', \
+        str(goes_channel_dict[str(ch2)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
     plot_figure_text(ax2, 'GOES-17 ' + \
-        str(channel_dict[str(ch3)]['wavelength']) + ' μm', \
+        str(goes_channel_dict[str(ch3)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
     plot_figure_text(ax3, 'GOES-17 ' + \
-        str(channel_dict[str(ch4)]['wavelength']) + ' μm', \
+        str(goes_channel_dict[str(ch4)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
     plot_figure_text(ax4, 'GOES-17 ' + \
-        str(channel_dict[str(ch5)]['wavelength']) + ' μm', \
+        str(goes_channel_dict[str(ch5)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
     plot_figure_text(ax5, 'GOES-17 ' + \
-        str(channel_dict[str(ch6)]['wavelength']) + ' μm', \
+        str(goes_channel_dict[str(ch6)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
@@ -1486,10 +1486,10 @@ def read_GOES_channel(date_str, channel, zoom = False):
     #print('Solar zenith: ', goes.select('SolarZenith').get().shape)
     #print('Solar zenith scale: ', goes.select('SolarZenith').attributes().get('scale_factor'))
 
-    data  = goes.select(channel_dict[str(channel)]['Name']).get()
+    data  = goes.select(goes_channel_dict[str(channel)]['Name']).get()
     if(str(channel)[2:] != '_ir'):
         if(str(channel) != 'wv_nir'):
-            data = data[channel_dict[str(channel)]['Index']]
+            data = data[goes_channel_dict[str(channel)]['Index']]
         data  = data[::5,::5]
 
         if(data.shape != lat5.shape):
@@ -1497,14 +1497,14 @@ def read_GOES_channel(date_str, channel, zoom = False):
 
 
     if(str(channel)[:2] == 'wv'):
-        data_scale    = goes.select(channel_dict[str(channel)]['Name']\
+        data_scale    = goes.select(goes_channel_dict[str(channel)]['Name']\
             ).attributes().get('scale_factor')
-        data_offset   = goes.select(channel_dict[str(channel)]['Name']\
+        data_offset   = goes.select(goes_channel_dict[str(channel)]['Name']\
             ).attributes().get('add_offset')
         # Extract the fill value and make sure any missing values are
         # removed.
         # -----------------------------------------------------------
-        mask_val = goes.select(channel_dict[str(channel)]['Name']\
+        mask_val = goes.select(goes_channel_dict[str(channel)]['Name']\
             ).attributes().get('_FillValue')
         bad_locations = np.where(data == mask_val)
 
@@ -1520,37 +1520,37 @@ def read_GOES_channel(date_str, channel, zoom = False):
         colors = 'Greys_r'
         label = 'IR Precipitable water vapor [cm]'
         ##!#try:
-        ##!#    label = goes.select(channel_dict[str(channel)]['Name']\
+        ##!#    label = goes.select(goes_channel_dict[str(channel)]['Name']\
         ##!#        ).attributes().get('long_name') +  ' [' + \
-        ##!#        goes.select(channel_dict[str(channel)]['Name']\
+        ##!#        goes.select(goes_channel_dict[str(channel)]['Name']\
         ##!#        ).attributes().get('units') + ']'
         ##!#except:
-        ##!#    label = goes.select(channel_dict[str(channel)]['Name']\
+        ##!#    label = goes.select(goes_channel_dict[str(channel)]['Name']\
         ##!#        ).attributes().get('long_name') +  ' [' + \
-        ##!#        goes.select(channel_dict[str(channel)]['Name']\
+        ##!#        goes.select(goes_channel_dict[str(channel)]['Name']\
         ##!#        ).attributes().get('unit') + ']'
     else:
         channel = int(channel)
         # Thermal emission data
         if((channel >= 20) & (channel != 26)):
-            data_scale    = goes.select(channel_dict[str(channel)]['Name']\
-                ).attributes().get('radiance_scales')[channel_dict[str(channel)]['Index']]
-            data_offset   = goes.select(channel_dict[str(channel)]['Name']\
-                ).attributes().get('radiance_offsets')[channel_dict[str(channel)]['Index']]
+            data_scale    = goes.select(goes_channel_dict[str(channel)]['Name']\
+                ).attributes().get('radiance_scales')[goes_channel_dict[str(channel)]['Index']]
+            data_offset   = goes.select(goes_channel_dict[str(channel)]['Name']\
+                ).attributes().get('radiance_offsets')[goes_channel_dict[str(channel)]['Index']]
 
             # Extract the fill value and make sure any missing values are
             # removed.
             # -----------------------------------------------------------
-            mask_val = goes.select(channel_dict[str(channel)]['Name']\
+            mask_val = goes.select(goes_channel_dict[str(channel)]['Name']\
                 ).attributes().get('_FillValue')
             bad_locations = np.where(data == mask_val)
 
             data = ((data - data_offset) * data_scale)
 
             # Define constants for converting radiances to temperatures
-            lmbda = (1e-6) * (np.average(channel_dict[str(channel)]['wavelength'])) # in m
+            lmbda = (1e-6) * (np.average(goes_channel_dict[str(channel)]['wavelength'])) # in m
             if(debug):
-                print("Average wavelength = ",np.average(channel_dict[str(channel)]['wavelength']))
+                print("Average wavelength = ",np.average(goes_channel_dict[str(channel)]['wavelength']))
             c_const = 3e8
             h_const = 6.626e-34 # J*s
             k_const = 1.381e-23 # J/K
@@ -1571,15 +1571,15 @@ def read_GOES_channel(date_str, channel, zoom = False):
 
         # Reflectances
         else:
-            data_scale    = goes.select(channel_dict[str(channel)]['Name']\
-                ).attributes().get('reflectance_scales')[channel_dict[str(channel)]['Index']]
-            data_offset   = goes.select(channel_dict[str(channel)]['Name']\
-                ).attributes().get('reflectance_offsets')[channel_dict[str(channel)]['Index']]
+            data_scale    = goes.select(goes_channel_dict[str(channel)]['Name']\
+                ).attributes().get('reflectance_scales')[goes_channel_dict[str(channel)]['Index']]
+            data_offset   = goes.select(goes_channel_dict[str(channel)]['Name']\
+                ).attributes().get('reflectance_offsets')[goes_channel_dict[str(channel)]['Index']]
 
             # Extract the fill value and make sure any missing values are
             # removed.
             # -----------------------------------------------------------
-            mask_val = goes.select(channel_dict[str(channel)]['Name']\
+            mask_val = goes.select(goes_channel_dict[str(channel)]['Name']\
                 ).attributes().get('_FillValue')
             bad_locations = np.where(data == mask_val)
 
@@ -1693,7 +1693,7 @@ def plot_GOES_channel(date_str,channel,zoom=True,show_smoke=False):
     ##!#                   goes_area_dict[GOES_data['cross_date']][GOES_data['file_time']]['Lat'][1]],\
     ##!#                   ccrs.PlateCarree())
     ##!#ax.set_title('Channel ' + str(channel) + '\n' + \
-    ##!#    channel_dict[str(channel)]['wavelength_label']) 
+    ##!#    goes_channel_dict[str(channel)]['wavelength_label']) 
 
     plt.show()
 
@@ -1901,10 +1901,10 @@ def compare_GOES_3panel(date_str,channel1,channel2,channel3,zoom=True,save=False
     ##!#                    goes_area_dict[GOES_data1['cross_date']][GOES_data1['file_time']]['Lat'][1]],\
     ##!#                    datacrs)
     ##!##ax0.set_title('GOES Ch. ' + str(channel1) + '\n' + \
-    ##!##    str(channel_dict[str(channel1)]['wavelength'][0]) + ' μm - ' + \
-    ##!##    str(channel_dict[str(channel1)]['wavelength'][1]) + ' μm')
+    ##!##    str(goes_channel_dict[str(channel1)]['wavelength'][0]) + ' μm - ' + \
+    ##!##    str(goes_channel_dict[str(channel1)]['wavelength'][1]) + ' μm')
     ##!#ax0.set_title('Channel ' + str(channel1) + '\n' + \
-    ##!#    channel_dict[str(channel1)]['wavelength_label']) 
+    ##!#    goes_channel_dict[str(channel1)]['wavelength_label']) 
 
 
     ##!## Plot channel 2
@@ -1927,10 +1927,10 @@ def compare_GOES_3panel(date_str,channel1,channel2,channel3,zoom=True,save=False
     ##!#                    goes_area_dict[GOES_data2['cross_date']][GOES_data2['file_time']]['Lat'][1]],\
     ##!#                    datacrs)
     ##!##ax1.set_title('GOES Ch. ' + str(channel2) + '\n' + \
-    ##!##    str(channel_dict[str(channel2)]['wavelength'][0]) + ' μm - ' + \
-    ##!##    str(channel_dict[str(channel2)]['wavelength'][1]) + ' μm')
+    ##!##    str(goes_channel_dict[str(channel2)]['wavelength'][0]) + ' μm - ' + \
+    ##!##    str(goes_channel_dict[str(channel2)]['wavelength'][1]) + ' μm')
     ##!#ax1.set_title('Channel ' + str(channel2) + '\n' + \
-    ##!#    channel_dict[str(channel2)]['wavelength_label']) 
+    ##!#    goes_channel_dict[str(channel2)]['wavelength_label']) 
 
     ##!## Plot channel 3
     ##!#mesh2 = ax2.pcolormesh(GOES_data3['lon'],GOES_data3['lat'],\
@@ -1950,10 +1950,10 @@ def compare_GOES_3panel(date_str,channel1,channel2,channel3,zoom=True,save=False
     ##!#                    goes_area_dict[GOES_data3['cross_date']][GOES_data3['file_time']]['Lat'][1]],\
     ##!#                    datacrs)
     ##!##ax2.set_title('GOES Ch. ' + str(channel3) + '\n' + \
-    ##!##    str(channel_dict[str(channel3)]['wavelength'][0]) + ' μm - ' + \
-    ##!##    str(channel_dict[str(channel3)]['wavelength'][1]) + ' μm')
+    ##!##    str(goes_channel_dict[str(channel3)]['wavelength'][0]) + ' μm - ' + \
+    ##!##    str(goes_channel_dict[str(channel3)]['wavelength'][1]) + ' μm')
     ##!#ax2.set_title('Channel ' + str(channel3) + '\n' + \
-    ##!#    channel_dict[str(channel3)]['wavelength_label']) 
+    ##!#    goes_channel_dict[str(channel3)]['wavelength_label']) 
 
 
     if(compare_OMI):
@@ -2235,10 +2235,10 @@ def compare_GOES_channels(date_str,channel1,channel2,zoom=True,save=False,\
                         goes_area_dict[GOES_data1['cross_date']][GOES_data1['file_time']]['Lat'][1]],\
                         datacrs)
     #ax0.set_title('GOES Ch. ' + str(channel1) + '\n' + \
-    #    str(channel_dict[str(channel1)]['wavelength'][0]) + ' μm - ' + \
-    #    str(channel_dict[str(channel1)]['wavelength'][1]) + ' μm')
+    #    str(goes_channel_dict[str(channel1)]['wavelength'][0]) + ' μm - ' + \
+    #    str(goes_channel_dict[str(channel1)]['wavelength'][1]) + ' μm')
     ax0.set_title('Channel ' + str(channel1) + '\n' + \
-        channel_dict[str(channel1)]['wavelength_label']) 
+        goes_channel_dict[str(channel1)]['wavelength_label']) 
 
     # Plot channel 2
     mesh1 = ax1.pcolormesh(GOES_data2['lon'],GOES_data2['lat'],\
@@ -2262,10 +2262,10 @@ def compare_GOES_channels(date_str,channel1,channel2,zoom=True,save=False,\
                         goes_area_dict[GOES_data2['cross_date']][GOES_data2['file_time']]['Lat'][1]],\
                         datacrs)
     #ax1.set_title('GOES Ch. ' + str(channel2) + '\n' + \
-    #    str(channel_dict[str(channel2)]['wavelength'][0]) + ' μm - ' + \
-    #    str(channel_dict[str(channel2)]['wavelength'][1]) + ' μm')
+    #    str(goes_channel_dict[str(channel2)]['wavelength'][0]) + ' μm - ' + \
+    #    str(goes_channel_dict[str(channel2)]['wavelength'][1]) + ' μm')
     ax1.set_title('Channel ' + str(channel2) + '\n' + \
-        channel_dict[str(channel2)]['wavelength_label']) 
+        goes_channel_dict[str(channel2)]['wavelength_label']) 
 
     ##!## Shade areas that are inside the plume, defined currently as areas
     ##!## with reflectance below the mean
@@ -2633,7 +2633,7 @@ def plot_GOES_spatial(GOES_data, pax, zoom, vmin = None, vmax = None, \
                         datacrs)
     if(ptitle == None):
         pax.set_title('Channel ' + str(GOES_data['channel']) + '\n' + \
-            channel_dict[str(GOES_data['channel'])]['wavelength_label']) 
+            goes_channel_dict[str(GOES_data['channel'])]['wavelength_label']) 
     else:
         pax.set_title(ptitle)
 
@@ -2714,11 +2714,11 @@ def plot_scatter(lax,data1, data2, GOES_data1, GOES_data2, hash_data1,\
 
     if(xlabel == None):
         xlabel = 'Ch. ' + str(GOES_data1['channel']) +' [' + \
-        channel_dict[str(GOES_data1['channel'])]['wavelength_label'] + '] '+ \
+        goes_channel_dict[str(GOES_data1['channel'])]['wavelength_label'] + '] '+ \
         GOES_data1['variable']
     if(ylabel == None):
         ylabel ='Ch. ' + str(GOES_data2['channel']) +' [' + \
-        channel_dict[str(GOES_data2['channel'])]['wavelength_label'] + ']' + \
+        goes_channel_dict[str(GOES_data2['channel'])]['wavelength_label'] + ']' + \
         GOES_data2['variable'] 
 
     lax.set_xlabel(xlabel, fontsize = 14)
@@ -2886,7 +2886,7 @@ def plot_scatter_OMI(date_str, GOES_data, pax, avg_pixel = False, \
 
         if(xlabel == None):
             xlabel = 'Averaged Ch. ' + str(GOES_data['channel']) +' [' + \
-            channel_dict[str(GOES_data['channel'])]['wavelength_label'] + \
+            goes_channel_dict[str(GOES_data['channel'])]['wavelength_label'] + \
             GOES_data['variable']
         pax.set_xlabel(xlabel, fontsize = 14)
         if(ptitle is None):
@@ -2960,7 +2960,7 @@ def plot_scatter_OMI(date_str, GOES_data, pax, avg_pixel = False, \
 
         if(xlabel == None):
             xlabel = 'Ch. ' + str(GOES_data['channel']) +' [' + \
-            channel_dict[str(GOES_data['channel'])]['wavelength_label'] + \
+            goes_channel_dict[str(GOES_data['channel'])]['wavelength_label'] + \
             GOES_data['variable']
         pax.set_xlabel(xlabel, fontsize = 14)
         if(ptitle is None):
@@ -3260,7 +3260,7 @@ def plot_scatter_CERES(date_str, GOES_data, pax, avg_pixel = False,\
         '\nLWF smoke: '+str(np.round(lhrval_p,3)) + '  LWF clear: ' + \
         str(np.round(lnrval_p,3))) 
     pax.set_xlabel('Ch. ' + str(GOES_data['channel']) +' [' + \
-        channel_dict[str(GOES_data['channel'])]['wavelength_label'] + \
+        goes_channel_dict[str(GOES_data['channel'])]['wavelength_label'] + \
         GOES_data['variable'])
     pax.set_ylabel('CERES TOA Flux [Wm$^{-2}$]', fontsize = 14)
     pax.legend()
@@ -3273,11 +3273,11 @@ def plot_scatter_CERES(date_str, GOES_data, pax, avg_pixel = False,\
     ##!#    s = 6, color='tab:orange')
 
     ##!#axcl.set_xlabel('Ch. ' + str(GOES_data0['channel']) +' [' + \
-    ##!#    channel_dict[str(channel0)]['wavelength_label'] + \
+    ##!#    goes_channel_dict[str(channel0)]['wavelength_label'] + \
     ##!#    GOES_data0['variable'])
     ##!#axcl.set_title('Smoke correlation: '+str(np.round(lrval_p, 3)))
     ##!#axcs.set_xlabel('Ch. ' + str(GOES_data0['channel']) +' [' + \
-    ##!#    channel_dict[str(channel0)]['wavelength_label'] + \
+    ##!#    goes_channel_dict[str(channel0)]['wavelength_label'] + \
     ##!#    GOES_data0['variable'])
     ##!#axcs.set_title('Smoke correlation: '+str(np.round(srval_p, 3)))
     ##!#axcl.set_ylabel('CERES LWF [W/m2]')
@@ -3348,11 +3348,11 @@ def plot_scatter_CERES(date_str, GOES_data, pax, avg_pixel = False,\
     ##!#    ##!#    s = 6, color='tab:orange')
 
     ##!###axcl.set_xlabel('Ch. ' + str(GOES_data['channel']) +' [' + \
-    ##!###    channel_dict[str(GOES_data['channel'])]['wavelength_label'] + \
+    ##!###    goes_channel_dict[str(GOES_data['channel'])]['wavelength_label'] + \
     ##!###    GOES_data0['variable'])
     ##!###axcl.set_title('Smoke correlation: '+str(np.round(lrval_p, 3)))
     ##!#pax.set_xlabel('Ch. ' + str(GOES_data['channel']) +' [' + \
-    ##!#    channel_dict[str(GOES_data['channel'])]['wavelength_label'] + \
+    ##!#    goes_channel_dict[str(GOES_data['channel'])]['wavelength_label'] + \
     ##!#    GOES_data['variable'])
     ##!#pax.set_title('Smoke correlation: '+str(np.round(srval_p, 3)))
     ##!##axcl.set_ylabel('CERES LWF [W/m2]')

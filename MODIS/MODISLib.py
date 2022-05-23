@@ -1031,7 +1031,7 @@ def grid_data_trends(modis_dict):
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-def read_MODIS_satpy(date_str, channel,  composite = False):
+def read_MODIS_satpy(date_str, channel,  composite = False, zoom = True):
 #def read_true_color(date_str,composite = False):
     # Determine the correct MODIS file associated with the date
     # ---------------------------------------------------------
@@ -1058,37 +1058,48 @@ def read_MODIS_satpy(date_str, channel,  composite = False):
     # ----------------------------------
     scn = Scene(reader = 'modis_l1b', filenames = day_filenames)
 
-    # Load true-color data 
-    scn.load([str(channel)])
-    #scn.load(['true_color'])
+    # Load true-color data
+    scn.load(['true_color'])
+    if(channel != 'true_color'): 
+        scn.load([str(channel)], calibration = [channel_dict[str(channel)]['Unit_name']])
+    ##!#else:
+    ##!#    scn.load([str(channel)])
 
     ##!#if(channel == 'true_color'):
     ##!#    # Set the map projection and center the data
     ##!#    # ------------------------------------------
-    my_area = scn[str(channel)].attrs['area'].compute_optimal_bb_area({\
+    #my_area = scn[str(channel)].attrs['area'].compute_optimal_bb_area({\
+    my_area = scn['true_color'].attrs['area'].compute_optimal_bb_area({\
         'proj':'lcc', 'lon_0': lon_lims[0], 'lat_0': lat_lims[0], 'lat_1': lat_lims[0], 'lat_2': lat_lims[0]})
     new_scn = scn.resample(my_area)
     ##!#else:
     ##!#    new_scn = scn
 
+    ##!#if(zoom):
+    ##!#    scn = scn.crop(ll_bbox = (lon_lims[0] + 0.65, lat_lims[0], \
+    ##!#        lon_lims[1] - 0.65, lat_lims[1]))
+
     # Extract the lats, lons, and data
     # -----------------------------------------------------
-    lons, lats = new_scn[str(channel)].attrs['area'].get_lonlats()
+    lons, lats = scn[str(channel)].attrs['area'].get_lonlats()
+    #lons, lats = new_scn[str(channel)].attrs['area'].get_lonlats()
 
-    ##!#if(channel == 'true_color'):
-    ##!#    # Enhance the image for plotting
-    ##!#    # ------------------------------
-    var = get_enhanced_image(new_scn[str(channel)]).data
-    var = var.transpose('y','x','bands')
-    ##!#else:
-    ##!#    var = new_scn[str(channel)].data
+    if(channel == 'true_color'):
+        # Enhance the image for plotting
+        # ------------------------------
+        var = get_enhanced_image(new_scn[str(channel)]).data
+        var = var.transpose('y','x','bands')
+    else:
+        var = scn[str(channel)].data
+    #var = new_scn[str(channel)].data
 
     # Extract the map projection from the data for plotting
     # -----------------------------------------------------
-    crs = new_scn[str(channel)].attrs['area'].to_cartopy_crs()
+    crs = new_scn['true_color'].attrs['area'].to_cartopy_crs()
+    #crs = new_scn[str(channel)].attrs['area'].to_cartopy_crs()
 
-    if(channel != 'true_color'):
-        var = var.data
+    ##!#if(channel != 'true_color'):
+    ##!#    var = var.data
 
     # Extract the appropriate units
     # -----------------------------
@@ -1123,8 +1134,10 @@ def plot_MODIS_satpy(date_str, channel, ax = None, var = None, crs = None, \
     ##!#    var.y[-1], var.y[0]), vmin = vmin, vmax = vmax, origin='upper', \
     ##!#    cmap = 'Greys_r')
     #im1 = ax.imshow(var, transform = crs, vmin = vmin, vmax = vmax, \
-    print(lons, lats, var.data)
-    im1 = ax.pcolormesh(lons, lats, var.data, transform = datacrs, \
+    print(lons, lons.shape)
+    print(lats, lats.shape)
+    print(var.squeeze(), var.squeeze().shape)
+    im1 = ax.pcolormesh(lons, lats, var.squeeze(), transform = datacrs, \
         vmin = vmin, vmax = vmax, \
         cmap = channel_dict[str(channel)]['cmap'], \
         shading = 'auto')
@@ -7389,8 +7402,17 @@ def plot_combined_figure1_v3(date_str = '202107222110', zoom = True, show_smoke 
     else:
         plt.show()
 
-def plot_combined_figure1_v4(date_str = '202107222110', zoom = True, show_smoke = False, composite = True, \
-        save=False):
+def plot_combined_figure1_v4(date_str = '202107222110', \
+        zoom = True, \
+        modis_ch1 = 7, \
+        modis_ch2 = 31, \
+        goes_ch1 = 2, \
+        goes_ch2 = 6, \
+        goes_ch3 = 13, \
+        goes_ch4 = 8, \
+        goes_ch5 = 9, \
+        goes_ch6 = 10, \
+        show_smoke = False, composite = True, save=False):
 
     #date_str = '202107202125'
     date_str = '202107222110'
@@ -7400,7 +7422,8 @@ def plot_combined_figure1_v4(date_str = '202107222110', zoom = True, show_smoke 
 
     if('/home/bsorenson/Research/GOES' not in sys.path):
         sys.path.append('/home/bsorenson/Research/GOES')
-    from GOESLib import read_GOES_satpy, plot_GOES_satpy
+    from GOESLib import read_GOES_satpy, plot_GOES_satpy,\
+        goes_channel_dict
 
     # ----------------------------------------------------------------------
     #
@@ -7414,24 +7437,33 @@ def plot_combined_figure1_v4(date_str = '202107222110', zoom = True, show_smoke 
     ##!#MODIS_data_ch7  = read_MODIS_channel(date_str, 6, zoom = zoom)
     ##!##MODIS_data_ch7  = read_MODIS_channel(date_str, 7, zoom = zoom)
     ##!#MODIS_data_ch31 = read_MODIS_channel(date_str, 31, zoom = zoom)
-    var8, crs8, lons8, lats8, lat_lims8, lon_lims8, plabel8 = read_MODIS_satpy(date_str, 5)
-    var9, crs8, lons8, lats8, lat_lims9, lon_lims9, plabel9 = read_MODIS_satpy(date_str, 31)
+    var8, crs8, lons8, lats8, lat_lims8, lon_lims8, plabel8 = \
+        read_MODIS_satpy(date_str, modis_ch1)
+    var9, crs8, lons8, lats8, lat_lims9, lon_lims9, plabel9 = \
+        read_MODIS_satpy(date_str, modis_ch2)
 
     # Read the true color data
     # ------------------------
-    var1, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel = read_MODIS_satpy(date_str,'true_color',\
+    var1, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel = \
+        read_MODIS_satpy(date_str,'true_color',\
     #var1, crs1, lat_lims1, lon_lims1 = read_true_color(date_str,\
         composite=composite)
 
     # Read the GOES data
     # ------------------------
-    var2, crs0, lons, lats, lat_lims2, lon_lims2, plabel2   = read_GOES_satpy(date_str2, 2)
-    var3, crs0, lons3, lats3, lat_lims3, lon_lims3, plabel3 = read_GOES_satpy(date_str2, 5)
+    var2, crs0, lons, lats, lat_lims2, lon_lims2, plabel2   = \
+        read_GOES_satpy(date_str2, goes_ch1)
+    var3, crs0, lons3, lats3, lat_lims3, lon_lims3, plabel3 = \
+        read_GOES_satpy(date_str2, goes_ch2)
     #var3, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel3 = read_GOES_satpy(date_str2, 6)
-    var4, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel4 = read_GOES_satpy(date_str2, 13)
-    var5, crs0, lons2, lats2, lat_lims0, lon_lims2, plabel5 = read_GOES_satpy(date_str2, 8)
-    var6, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel6 = read_GOES_satpy(date_str2, 9)
-    var7, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel7 = read_GOES_satpy(date_str2, 10)
+    var4, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel4 = \
+        read_GOES_satpy(date_str2, goes_ch3)
+    var5, crs0, lons2, lats2, lat_lims0, lon_lims2, plabel5 = \
+        read_GOES_satpy(date_str2, goes_ch4)
+    var6, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel6 = \
+        read_GOES_satpy(date_str2, goes_ch5)
+    var7, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel7 = \
+        read_GOES_satpy(date_str2, goes_ch6)
 
     # ----------------------------------------------------------------------
     #
@@ -7480,11 +7512,11 @@ def plot_combined_figure1_v4(date_str = '202107222110', zoom = True, show_smoke 
     labelsize = 10
     plot_MODIS_satpy(date_str, 5, ax = ax2, var = var8, crs = crs8, \
         lons = lons8, lats = lats8, lat_lims = lat_lims8, lon_lims = lon_lims8, \
-        vmin = 270, vmax = 330, ptitle = None, plabel = plabel8, \
+        vmin = None, vmax = None, ptitle = '', plabel = plabel8, \
         labelsize = 10, colorbar = True, zoom=True,save=False)
     plot_MODIS_satpy(date_str, 31, ax = ax3, var = var9, crs = crs8, \
         lons = lons8, lats = lats8, lat_lims = lat_lims9, lon_lims = lon_lims9, \
-        vmin = None, vmax = None, ptitle = None, plabel = plabel9, \
+        vmin = 270, vmax = 330, ptitle = '', plabel = plabel9, \
         labelsize = 10, colorbar = True, zoom=True,save=False)
 
     # Plot channel 1, 5, 31, and WV data spatial data
@@ -7538,25 +7570,41 @@ def plot_combined_figure1_v4(date_str = '202107222110', zoom = True, show_smoke 
     # -------------
     plot_figure_text(ax1, 'MODIS True Color', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax2, 'MODIS 1.6 μm', xval = None, yval = None, transform = None, \
+    plot_figure_text(ax2, 'MODIS ' + \
+        str(np.round(np.mean(channel_dict[str(modis_ch1)]['Bandwidth']), 2)) \
+        + ' μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
     #plot_figure_text(ax2, 'MODIS 2.2 μm', xval = None, yval = None, transform = None, \
     #    color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax3, 'MODIS 11.0 μm', xval = None, yval = None, transform = None, \
+    plot_figure_text(ax3, 'MODIS ' + \
+        str(np.round(np.mean(channel_dict[str(modis_ch2)]['Bandwidth']), 2)) \
+        + ' μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax4, 'GOES-17 0.64 μm', xval = None, yval = None, transform = None, \
+    plot_figure_text(ax4, 'GOES-17 ' + \
+        str(goes_channel_dict[str(goes_ch1)]['wavelength']) \
+        + ' μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax5, 'GOES-17 1.61 μm', xval = None, yval = None, transform = None, \
+    plot_figure_text(ax5, 'GOES-17 ' + \
+        str(goes_channel_dict[str(goes_ch2)]['wavelength']) \
+        + ' μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
     #plot_figure_text(ax5, 'GOES-17 2.25 μm', xval = None, yval = None, transform = None, \
     #    color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax6, 'GOES-17 10.35 μm', xval = None, yval = None, transform = None, \
+    plot_figure_text(ax6, 'GOES-17 ' + \
+        str(goes_channel_dict[str(goes_ch3)]['wavelength']) \
+        + ' μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax7, 'GOES-17 6.18 μm', xval = None, yval = None, transform = None, \
+    plot_figure_text(ax7, 'GOES-17 ' + \
+        str(goes_channel_dict[str(goes_ch4)]['wavelength']) \
+        + ' μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax8, 'GOES-17 6.95 μm', xval = None, yval = None, transform = None, \
+    plot_figure_text(ax8, 'GOES-17 ' + \
+        str(goes_channel_dict[str(goes_ch5)]['wavelength']) \
+        + ' μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax9, 'GOES-17 7.34 μm', xval = None, yval = None, transform = None, \
+    plot_figure_text(ax9, 'GOES-17 ' + \
+        str(goes_channel_dict[str(goes_ch6)]['wavelength']) \
+        + ' μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
 
     fig.text(0.03, 0.83, '---- 21:10 UTC 22 July 2021 ----', ha='center', va='center', \
@@ -7571,7 +7619,7 @@ def plot_combined_figure1_v4(date_str = '202107222110', zoom = True, show_smoke 
     #MODIS_data_ch31.clear()
 
     if(save):
-        outname = 'modis_total_combined_' + date_str + '_fig1_v4.png'
+        outname = 'modis_total_combined_' + date_str + '_fig1_v42.png'
         fig.savefig(outname, dpi=300)
         print("Saved",outname)
     else:

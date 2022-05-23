@@ -17,7 +17,7 @@ channel3 = 31
 
 
 plot_combined_figure1_v4(date_str = '202107222110', zoom = True, show_smoke = False, composite = True, \
-        save= False)
+        save= True)
 sys.exit()
 
 #plot_viewing_geometry(date_str = '202107222110', zoom = True, show_smoke = False, composite = True, \

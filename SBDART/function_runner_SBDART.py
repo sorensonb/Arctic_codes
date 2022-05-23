@@ -15,8 +15,8 @@ satellite = 'modis_ch31'
 atms_file = '/home/bsorenson/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
 ##!#process_SBDART_multi_plume_height_thick(atms_file = atms_file, save = True)
 ##!#sys.exit()
-##!#process_SBDART_multi_lower_tmps(atms_file = '', save = True)
-
+process_SBDART_multi_lower_tmps(atms_file = atms_file, save = False)
+sys.exit()
 
 # This makes a re-creation of the SBDART GOES/MODIS figure from the paper
 ##!#atms_file = '/home/bsorenson/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'

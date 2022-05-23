@@ -1316,7 +1316,7 @@ def process_SBDART_multi_lower_tmps(atms_file = '', save = False, multi_sat = Tr
     for jj, satellite in enumerate(satellites):
     
         # These max vals cool the surface in the lowest 1 km 
-        z_maxs = np.arange(1.0, 2., 1.00)
+        z_maxs = np.arange(2.0, 3., 1.00)
         z_mins = np.full(z_maxs.shape, 0.)
         add_tmp = np.full((11, len(z_maxs)), np.nan)
         for ii in range(11):
