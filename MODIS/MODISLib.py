@@ -1134,9 +1134,6 @@ def plot_MODIS_satpy(date_str, channel, ax = None, var = None, crs = None, \
     ##!#    var.y[-1], var.y[0]), vmin = vmin, vmax = vmax, origin='upper', \
     ##!#    cmap = 'Greys_r')
     #im1 = ax.imshow(var, transform = crs, vmin = vmin, vmax = vmax, \
-    print(lons, lons.shape)
-    print(lats, lats.shape)
-    print(var.squeeze(), var.squeeze().shape)
     im1 = ax.pcolormesh(lons, lats, var.squeeze(), transform = datacrs, \
         vmin = vmin, vmax = vmax, \
         cmap = channel_dict[str(channel)]['cmap'], \
@@ -7412,7 +7409,8 @@ def plot_combined_figure1_v4(date_str = '202107222110', \
         goes_ch4 = 8, \
         goes_ch5 = 9, \
         goes_ch6 = 10, \
-        show_smoke = False, composite = True, save=False):
+        show_smoke = False, composite = True, double_fig = False, \
+        save=False):
 
     #date_str = '202107202125'
     date_str = '202107222110'
@@ -7473,19 +7471,35 @@ def plot_combined_figure1_v4(date_str = '202107222110', \
 
     mapcrs = init_proj(date_str)
     plt.close('all')
-    fig = plt.figure(figsize=(10,9))
-    #gs = fig.add_gridspec(nrows = 2, ncols = 8)
-    ax1  = fig.add_subplot(3,3,1,  projection = crs1)   # true color    
-    ax2  = fig.add_subplot(3,3,2,  projection = crs8) # Ch 7
-    ax3  = fig.add_subplot(3,3,3,  projection = crs8) # Ch 31
-    #ax2  = fig.add_subplot(3,3,2,  projection = mapcrs) # Ch 7
-    #ax3  = fig.add_subplot(3,3,3,  projection = mapcrs) # Ch 31
-    ax4  = fig.add_subplot(3,3,4,  projection = crs0)   # GOES vis 
-    ax5  = fig.add_subplot(3,3,5,  projection = crs0)   # GOES SWIR
-    ax6  = fig.add_subplot(3,3,6,  projection = crs0)   # GOES TIR 
-    ax7  = fig.add_subplot(3,3,7,  projection = crs0)   # GOES upper WV
-    ax8  = fig.add_subplot(3,3,8,  projection = crs0)   # GOES midle WV
-    ax9  = fig.add_subplot(3,3,9,  projection = crs0)   # GOES lower WV
+    if(double_fig):
+        fig1 = plt.figure(figsize=(9,4))
+        fig2 = plt.figure(figsize=(9,6))
+        #gs = fig.add_gridspec(nrows = 2, ncols = 8)
+        ax1  = fig1.add_subplot(1,3,1,  projection = crs1)   # true color    
+        ax2  = fig1.add_subplot(1,3,2,  projection = crs8) # Ch 7
+        ax3  = fig1.add_subplot(1,3,3,  projection = crs8) # Ch 31
+        #ax2  = fig.add_subplot(3,3,2,  projection = mapcrs) # Ch 7
+        #ax3  = fig.add_subplot(3,3,3,  projection = mapcrs) # Ch 31
+        ax4  = fig2.add_subplot(2,3,1,  projection = crs0)   # GOES vis 
+        ax5  = fig2.add_subplot(2,3,2,  projection = crs0)   # GOES SWIR
+        ax6  = fig2.add_subplot(2,3,3,  projection = crs0)   # GOES TIR 
+        ax7  = fig2.add_subplot(2,3,4,  projection = crs0)   # GOES upper WV
+        ax8  = fig2.add_subplot(2,3,5,  projection = crs0)   # GOES midle WV
+        ax9  = fig2.add_subplot(2,3,6,  projection = crs0)   # GOES lower WV
+    else:
+        fig = plt.figure(figsize=(10,9))
+        #gs = fig.add_gridspec(nrows = 2, ncols = 8)
+        ax1  = fig.add_subplot(3,3,1,  projection = crs1)   # true color    
+        ax2  = fig.add_subplot(3,3,2,  projection = crs8) # Ch 7
+        ax3  = fig.add_subplot(3,3,3,  projection = crs8) # Ch 31
+        #ax2  = fig.add_subplot(3,3,2,  projection = mapcrs) # Ch 7
+        #ax3  = fig.add_subplot(3,3,3,  projection = mapcrs) # Ch 31
+        ax4  = fig.add_subplot(3,3,4,  projection = crs0)   # GOES vis 
+        ax5  = fig.add_subplot(3,3,5,  projection = crs0)   # GOES SWIR
+        ax6  = fig.add_subplot(3,3,6,  projection = crs0)   # GOES TIR 
+        ax7  = fig.add_subplot(3,3,7,  projection = crs0)   # GOES upper WV
+        ax8  = fig.add_subplot(3,3,8,  projection = crs0)   # GOES midle WV
+        ax9  = fig.add_subplot(3,3,9,  projection = crs0)   # GOES lower WV
 
 
     # Plot the true-color data for the previous date
@@ -7556,15 +7570,19 @@ def plot_combined_figure1_v4(date_str = '202107222110', \
     # Add subplot labels
     # ------------------
     font_size = 10
+    if(double_fig):
+        plabels = ['(a)','(b)','(c)','(d)','(e)','(f)']
+    else:
+        plabels = ['(d)','(e)','(f)','(g)','(h)','(i)']
     plot_subplot_label(ax1, '(a)', backgroundcolor = 'white', fontsize = font_size)
     plot_subplot_label(ax2, '(b)', backgroundcolor = 'white', fontsize = font_size)
     plot_subplot_label(ax3, '(c)', backgroundcolor = 'white', fontsize = font_size)
-    plot_subplot_label(ax4, '(d)', backgroundcolor = 'white', fontsize = font_size)
-    plot_subplot_label(ax5, '(e)', backgroundcolor = 'white', fontsize = font_size)
-    plot_subplot_label(ax6, '(f)', backgroundcolor = 'white', fontsize = font_size)
-    plot_subplot_label(ax7, '(g)', backgroundcolor = 'white', fontsize = font_size)
-    plot_subplot_label(ax8, '(h)', backgroundcolor = 'white', fontsize = font_size)
-    plot_subplot_label(ax9, '(i)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax4, plabels[0], backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax5, plabels[1], backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax6, plabels[2], backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax7, plabels[3], backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax8, plabels[4], backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax9, plabels[5], backgroundcolor = 'white', fontsize = font_size)
 
     # Add plot text
     # -------------
@@ -7607,21 +7625,34 @@ def plot_combined_figure1_v4(date_str = '202107222110', \
         + ' μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
 
-    fig.text(0.03, 0.83, '---- 21:10 UTC 22 July 2021 ----', ha='center', va='center', \
-        rotation='vertical', weight = 'bold', fontsize = labelsize + 2)
-    fig.text(0.03, 0.335, '------------------------- 00:00 UTC 21 July 2021 -------------------------', ha='center', va='center', \
-        rotation='vertical', weight = 'bold', fontsize = labelsize + 2)
-    #plt.suptitle(date_str)
+    if(double_fig):
+        fig1.suptitle('21:10 UTC 22 July 2021')
+        fig2.suptitle('00:00 UTC 21 July 2021')
+        fig1.tight_layout()
+        fig2.tight_layout()
+    else:
+        fig.text(0.03, 0.83, '---- 21:10 UTC 22 July 2021 ----', ha='center', va='center', \
+            rotation='vertical', weight = 'bold', fontsize = labelsize + 2)
+        fig.text(0.03, 0.335, '------------------------- 00:00 UTC 21 July 2021 -------------------------', ha='center', va='center', \
+            rotation='vertical', weight = 'bold', fontsize = labelsize + 2)
+        #plt.suptitle(date_str)
 
-    fig.tight_layout()
-
+        fig.tight_layout()
     #MODIS_data_ch7.clear()
     #MODIS_data_ch31.clear()
 
     if(save):
-        outname = 'modis_total_combined_' + date_str + '_fig1_v42.png'
-        fig.savefig(outname, dpi=300)
-        print("Saved",outname)
+        if(double_fig):
+            outname1 = 'modis_total_combined_' + date_str + '_fig1_v4_modis.png'
+            outname2 = 'modis_total_combined_' + date_str + '_fig1_v4_goes.png'
+            fig1.savefig(outname1, dpi=300)
+            fig2.savefig(outname2, dpi=300)
+            print("Saved",outname1)
+            print("Saved",outname2)
+        else:
+            outname = 'modis_total_combined_' + date_str + '_fig1_v42.png'
+            fig.savefig(outname, dpi=300)
+            print("Saved",outname)
     else:
         plt.show()
 
