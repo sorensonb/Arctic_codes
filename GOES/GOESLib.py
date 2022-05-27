@@ -499,7 +499,7 @@ def download_GOES_bucket(date_str, sat = 'goes17',channels = [2,6,8,9,10,13]):
 
     # Loop over the selected files and download them
     # ----------------------------------------------
-    down_dir = '/home/bsorenson/data/GOES/'
+    down_dir = '/home/bsorenson/data/GOES/goes17_abi/'
     for gf in good_files:
         request_add = dt_date_str.strftime('s3://noaa-'+sat+\
             '/ABI-L1b-RadC/2021/%j/%H/' + gf)
