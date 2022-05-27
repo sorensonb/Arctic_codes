@@ -336,8 +336,8 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     if(satellite == 'Terra'):
         base_path = '/home/bsorenson/data/CERES/SSF_Level2/Terra/'
     else:
-        base_path = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/'
-        #base_path = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/modis_comp/'
+        #base_path = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/'
+        base_path = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/modis_comp/'
     total_list = sorted(glob.glob(base_path+'CERES_SSF_*.nc'))
 
     # Convert the desired dt to a datetime object to use for finding the file

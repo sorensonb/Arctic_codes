@@ -15,6 +15,9 @@ import metpy.calc as mpcalc
 from metpy.units import units
 import scipy
 
+sys.path.append('/home/bsorenson/')
+from python_lib import *
+
 h_const = 6.626e-34 #J*s
 k_const = 1.3806e-23 #J/K
 c_const = 3e8 # m/s
@@ -929,14 +932,14 @@ add_label_dict = {
     'set_rh':     'RH = {0}%',\
 }
 
-def plot_bright_vza(sbout, pax = None, save = False):
+def plot_bright_vza(sbout, pax = None, ptitle = '', plabelsize = 12, \
+        legendsize = 9, titlesize = 12, save = False):
     in_pax = True
     if(pax is None):
         in_pax = False 
         plt.close('all')
         fig1 = plt.figure(figsize = (8,4))
         pax = fig1.add_subplot(1,1,1)
-  
 
     ii = 0 
     for r1_key in sbout['output'].keys():
@@ -949,14 +952,20 @@ def plot_bright_vza(sbout, pax = None, save = False):
             # Plot the correct wv amounts
             pax.plot(sbout['output'][r1_key][r2_key]['vza'],  \
                 sbout['output'][r1_key][r2_key]['bght_tmp'], label = \
-                    add_label_dict[sbout['info']['met_var_name']].format(sbout['info']['met_var_vals'][ii,0])) 
+                    add_label_dict[sbout['info']['met_var_name']].format(\
+                    sbout['info']['met_var_vals'][ii,0])) 
         ii += 1
 
-    pax.set_xlabel('Viewing Zenith Angle [$^{o}$]', fontsize = 12, weight = 'bold')
-    pax.set_ylabel('Brightness temperature [K]',    fontsize = 12, weight = 'bold')
-    pax.set_title('SBDART-simulated ' + sbout['info']['satellite'].upper() + \
-        ' Channel ' + sbout['info']['channel'] + ' (' + str(wavel) + ' μm)')
-    pax.legend(fontsize = 9, loc = 'lower left')
+    pax.set_xlabel('Viewing Zenith Angle [$^{o}$]', fontsize = plabelsize, \
+        weight = 'bold')
+    pax.set_ylabel('Brightness temperature [K]',    fontsize = plabelsize, \
+        weight = 'bold')
+    if(ptitle == ''):
+        #ptitle = 'SBDART-simulated ' + sbout['info']['satellite'].upper() + \
+        ptitle = sbout['info']['satellite'].upper() + \
+        ' Channel ' + sbout['info']['channel'] + ' (' + str(wavel) + ' μm)'
+    pax.set_title(ptitle, fontsize = titlesize)
+    pax.legend(fontsize = legendsize, loc = 'lower left')
     if(not in_pax):
         if(save):
             outname = 'sbdart_'+sbout['run_name']+'_bright_vza.png'
@@ -1023,7 +1032,7 @@ def plot_bright_sfc_tmp(sbout, pax = None, relative = False, multi_sat = False, 
         axis_fontsize = 10
     pax.set_xlabel(label_str, fontsize = axis_fontsize)
     if(relative):
-        ylabel_str = 'Brightness temperature cooling [K]'
+        ylabel_str = 'Brightness temperature difference [K]'
     else:
         ylabel_str = 'Brightness temperature [K]'
     pax.set_ylabel(ylabel_str, fontsize = axis_fontsize)
@@ -1228,7 +1237,7 @@ def process_SBDART_multi_plume_height_thick(atms_file = '', plot_atmos = False, 
         # ADD MIX RUNS
         
         # Run num 1
-        z_maxs = np.arange(1.0, 11., 1.00)
+        z_maxs = np.arange(1.0, 6., 1.00)
         z_mins = np.full(z_maxs.shape, 0.)
         add_wv_mix = np.full((3, len(z_maxs)), np.nan)
         add_wv_mix[0,:] = 0
@@ -1239,8 +1248,8 @@ def process_SBDART_multi_plume_height_thick(atms_file = '', plot_atmos = False, 
             z_mins = z_mins, z_maxs = z_maxs, add_wv_mix = add_wv_mix)
         
         # Run num 2
-        z_maxs = np.arange(2, 11.)
-        z_mins = np.arange(0, 9.)
+        z_maxs = np.arange(2, 6.)
+        z_mins = np.arange(0, 4.)
         add_wv_mix = np.full((3, len(z_maxs)), np.nan)
         add_wv_mix[0,:] = 0
         add_wv_mix[1,:] = 2
@@ -1259,7 +1268,8 @@ def process_SBDART_multi_plume_height_thick(atms_file = '', plot_atmos = False, 
         # RHUM runs
         
         # Run num 1
-        z_maxs = np.arange(1.0, 11., 1.00)
+        #z_maxs = np.arange(1.0, 11., 1.00)
+        z_maxs = np.arange(1.0, 6., 1.00)
         z_mins = np.full(z_maxs.shape, 0.)
         set_rh = np.full((3, len(z_maxs)), np.nan)
         set_rh[0,:] = None
@@ -1270,8 +1280,10 @@ def process_SBDART_multi_plume_height_thick(atms_file = '', plot_atmos = False, 
             z_mins = z_mins, z_maxs = z_maxs, set_rh = set_rh)
         
         # Run num 2
-        z_maxs = np.arange(2, 11.)
-        z_mins = np.arange(0, 9.)
+        #z_maxs = np.arange(2, 11.)
+        #z_mins = np.arange(0, 9.)
+        z_maxs = np.arange(2, 6.)
+        z_mins = np.arange(0, 4.)
         ##!#set_rh = np.full(len(z_maxs), 4.)
         set_rh = np.full((3, len(z_maxs)), np.nan)
         set_rh[0,:] = None
@@ -1347,9 +1359,8 @@ def process_SBDART_multi_lower_tmps(atms_file = '', save = False, multi_sat = Tr
     else:
         plt.show()
 
-def process_SBDART_multi_sat_vza(atms_file = '', save = False, \
-        multi_sat = True, relative = True):
-    # This makes a re-creation of the SBDART GOES/MODIS figure from the paper
+# This makes a re-creation of the SBDART GOES/MODIS figure from the paper
+def process_SBDART_multi_sat_vza(atms_file = '', save = False):
     #atms_file = '/home/bsorenson/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
     # Run num 1
     z_maxs = np.array([5.])
@@ -1379,10 +1390,33 @@ def process_SBDART_multi_sat_vza(atms_file = '', save = False, \
     ax3 = fig.add_subplot(2,2,3)
     ax4 = fig.add_subplot(2,2,4)
     
-    plot_bright_vza(data1, pax = ax1)
-    plot_bright_vza(data2, pax = ax2)
-    plot_bright_vza(data3, pax = ax3)
-    plot_bright_vza(data4, pax = ax4)
+    plot_bright_vza(data1, pax = ax1, plabelsize = 10)
+    plot_bright_vza(data2, pax = ax2, plabelsize = 10)
+    plot_bright_vza(data3, pax = ax3, plabelsize = 10)
+    plot_bright_vza(data4, pax = ax4, plabelsize = 10)
+
+    # Add dashed lines at the correct VZAs
+    # ------------------------------------
+    ax1.axvline(49.61378, linestyle = '--', color = 'black')
+    ax2.axvline(49.61378, linestyle = '--', color = 'black')
+    ax3.axvline(49.61378, linestyle = '--', color = 'black')
+    ax4.axvline(3.15, linestyle = '--', color = 'black')
+
+    plot_subplot_label(ax1, '(a)', location = 'upper_right', fontsize = 11)
+    plot_subplot_label(ax2, '(b)', location = 'upper_right', fontsize = 11)
+    plot_subplot_label(ax3, '(c)', location = 'upper_right', fontsize = 11)
+    plot_subplot_label(ax4, '(d)', location = 'upper_right', fontsize = 11)
+
     fig.tight_layout()
-    plt.show()
+
+    if(save):
+        if(atms_file == ''):
+            atms_add = 'mdlat_sum'
+        else:
+            atms_add = 'atms_file'
+        outname = 'modis_goes_sbdart_comps_' + atms_add + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
     

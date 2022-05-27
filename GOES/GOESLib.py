@@ -442,6 +442,73 @@ goes_area_dict = {
 ##!#            transform = transform, fontsize=fontsize, \
 ##!#            backgroundcolor = backgroundcolor, \
 ##!#            horizontalalignment = halign)
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
+# Download data
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# date_str: YYYYMMDDHHMM
+# channels is a list containing the numbers of the desired channels
+def download_GOES_bucket(date_str, sat = 'goes17',channels = [2,6,8,9,10,13]):
+
+    # Convert the input date_str to datetime
+    # --------------------------------------
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    # Pull the entire file list for this date and time
+    # ------------------------------------------------
+    request_add = dt_date_str.strftime('s3://noaa-'+sat+'/ABI-L1b-RadC/2021/%j/%H/')
+
+    # For each desired channel, figure out the closest file time
+    # to the input date
+    # ----------------------------------------------------------
+    try:
+        files = subprocess.run(['aws','s3','ls','--no-sign-request',\
+            request_add], check=True, \
+            capture_output=True).stdout.decode('utf-8').strip().split('\n') 
+    except subprocess.CalledProcessError:
+        print("ERROR: No ",sat," files for the input DTG",date_str)
+        return
+
+    # Remove the timestamps from the file strings
+    # -------------------------------------------
+    files_only = [tfile.strip().split()[3] for tfile in files]
+
+    # Use the actual file times to get timestamps
+    # -------------------------------------------
+    file_dates = [datetime.strptime(tfile[27:40],'%Y%j%H%M%S') for tfile in files_only] 
+
+    # Extract the channels
+    # --------------------
+    file_channels = np.array([int(tfile[19:21]) for tfile in files_only])
+
+    # Figure out where the closest files to the desired time are
+    # ----------------------------------------------------------
+    time_diffs = np.array([(dt_date_str - ddate).seconds \
+        for ddate in file_dates])
+
+    # Select those files. Should result in all 16 channels for a single
+    # time
+    # -----------------------------------------------------------------
+    files_found = np.array(files_only)[np.where(time_diffs == np.min(time_diffs))]
+
+    # Use the input channels to extract only the desired channels
+    # -----------------------------------------------------------
+    np_channels = np.array(channels) - 1
+    good_files = files_found[np_channels]
+
+    # Loop over the selected files and download them
+    # ----------------------------------------------
+    down_dir = '/home/bsorenson/data/GOES/'
+    for gf in good_files:
+        request_add = dt_date_str.strftime('s3://noaa-'+sat+\
+            '/ABI-L1b-RadC/2021/%j/%H/' + gf)
+        #print(request_add)
+        cmnd_list = ['aws','s3','cp','--no-sign-request',\
+            request_add, down_dir]
+        print(' '.join(cmnd_list))
+        subprocess.run(cmnd_list, check=True, \
+            capture_output=False)
 
 def plot_zenith_angles():
     p_lats = np.arange(0, 60, 0.5)

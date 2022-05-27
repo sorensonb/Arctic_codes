@@ -12,44 +12,13 @@ import sys
 satellite = 'modis_ch31'
 #atms_file = ''
 
-##!#atms_file = '/home/bsorenson/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
-##!###!#process_SBDART_multi_plume_height_thick(atms_file = atms_file, save = True)
-##!###!#sys.exit()
-##!#process_SBDART_multi_lower_tmps(atms_file = atms_file, save = False)
-##!#sys.exit()
-
-# This makes a re-creation of the SBDART GOES/MODIS figure from the paper
 atms_file = '/home/bsorenson/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
-# Run num 1
-z_maxs = np.array([5.])
-z_mins = np.array([0.])
-add_wv_mix = np.full((3, len(z_maxs)), np.nan)
-add_wv_mix[0,:] = 0. 
-add_wv_mix[1,:] = 2. 
-add_wv_mix[2,:] = 4. 
+process_SBDART_multi_plume_height_thick(atms_file = atms_file, save = True)
+sys.exit()
+#process_SBDART_multi_lower_tmps(atms_file = atms_file, save = False)
+#sys.exit()
 
-data1 = run_sbdart('goes17_ch08', calc_radiance = True, atms_file = atms_file, \
-    z_mins = z_mins, z_maxs = z_maxs, add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60])
-data2 = run_sbdart('goes17_ch09', calc_radiance = True, atms_file = atms_file, \
-    z_mins = z_mins, z_maxs = z_maxs, add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60])
-data3 = run_sbdart('goes17_ch10', calc_radiance = True, atms_file = atms_file, \
-    z_mins = z_mins, z_maxs = z_maxs, add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60])
-data4 = run_sbdart('modis_ch31', calc_radiance = True, atms_file = atms_file, \
-    z_mins = z_mins, z_maxs = z_maxs, add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60])
-
-plt.close('all')
-fig = plt.figure(figsize = (9, 7))
-ax1 = fig.add_subplot(2,2,1)
-ax2 = fig.add_subplot(2,2,2)
-ax3 = fig.add_subplot(2,2,3)
-ax4 = fig.add_subplot(2,2,4)
-
-plot_bright_vza(data1, pax = ax1)
-plot_bright_vza(data2, pax = ax2)
-plot_bright_vza(data3, pax = ax3)
-plot_bright_vza(data4, pax = ax4)
-fig.tight_layout()
-plt.show()
+process_SBDART_multi_sat_vza(atms_file = atms_file, save = False)
 
 sys.exit()
 

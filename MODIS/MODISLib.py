@@ -4083,13 +4083,15 @@ def plot_spatial_scatter(date_str, zoom=True,save=False,composite=True,\
     # ---------------------------------------------------------------------
     MODIS_data0 = read_MODIS_channel(dt_date_str.strftime("%Y%m%d%H%M"), \
         31, zoom = zoom)
+    var0, crs0, lons0, lats0, lat_lims0, lon_lims0, plabel0 = \
+        read_MODIS_satpy(date_str, 31)
     
     # ----------------------------------------------------------------------
     #
     # Read the CERES data
     #
     # ----------------------------------------------------------------------
-    CERES_data_hrly_swf = readgridCERES_hrly_grid(date_str[:10], 'SWF')
+    CERES_data_hrly_swf = readgridCERES_hrly_grid(date_str[:10], 'SWF', minlat = 20.)
 
     ##!#mask_LAT, mask_LON, mask_swf, mask_lwf = \
     ##!#    read_CERES_match_MODIS(date_str)
@@ -4103,10 +4105,11 @@ def plot_spatial_scatter(date_str, zoom=True,save=False,composite=True,\
     if(date_str == '202108062025'):
         fig = plt.figure(figsize=(11,9))
     else:
-        fig = plt.figure(figsize=(9,9))
+        fig = plt.figure(figsize=(9,8))
     ax0 = fig.add_subplot(2,2,1, projection = mapcrs) # CERES SW
     ax1 = fig.add_subplot(2,2,2, projection = mapcrs) # CERES LW
-    ax2 = fig.add_subplot(2,2,3, projection = mapcrs) # MODIS ch 31
+    ax2 = fig.add_subplot(2,2,3, projection = crs0) # MODIS ch 31
+    #ax2 = fig.add_subplot(2,2,3, projection = mapcrs) # MODIS ch 31
     ax3 = fig.add_subplot(2,2,4)                      # 31 vs SW/LW/Total
 
     ##!## Determine where the smoke is located
@@ -4140,7 +4143,11 @@ def plot_spatial_scatter(date_str, zoom=True,save=False,composite=True,\
     # Plot the MODIS data
     #
     # ----------------------------------------------------------------------
-    plot_MODIS_spatial(MODIS_data0, ax2, zoom = zoom, ptitle = '')
+    ##!#plot_MODIS_spatial(MODIS_data0, ax2, zoom = zoom, ptitle = '')
+    plot_MODIS_satpy(date_str, 31, ax = ax2, var = var0, crs = crs0, \
+        lons = lons0, lats = lats0, lat_lims = lat_lims0, lon_lims = lon_lims0, \
+        vmin = 270, vmax = 330, ptitle = '', plabel = plabel0, \
+        labelsize = 12, colorbar = True, zoom=True,save=False)
 
     # ----------------------------------------------------------------------
     #
@@ -4159,7 +4166,7 @@ def plot_spatial_scatter(date_str, zoom=True,save=False,composite=True,\
         sw_vmin = 190
         lw_vmax = 370
         lw_vmin = 300
-    
+   
     plotCERES_hrly(ax0, CERES_data_hrly_swf, 'swf', \
         vmin = sw_vmin, vmax = sw_vmax, title = '', label = 'TOA Flux [W/m$^{2}$]', \
         circle_bound = False, gridlines = False, grid_data = True, \
@@ -7472,8 +7479,8 @@ def plot_combined_figure1_v4(date_str = '202107222110', \
     mapcrs = init_proj(date_str)
     plt.close('all')
     if(double_fig):
-        fig1 = plt.figure(figsize=(9,4))
-        fig2 = plt.figure(figsize=(9,6))
+        fig1 = plt.figure(figsize=(8.2,3))
+        fig2 = plt.figure(figsize=(9.5,6))
         #gs = fig.add_gridspec(nrows = 2, ncols = 8)
         ax1  = fig1.add_subplot(1,3,1,  projection = crs1)   # true color    
         ax2  = fig1.add_subplot(1,3,2,  projection = crs8) # Ch 7
