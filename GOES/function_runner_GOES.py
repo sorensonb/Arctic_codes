@@ -8,6 +8,17 @@
 from GOESLib import *
 import sys
 
+begin_date = '202107201200'
+end_date   = '202107220300'
+GOES_dict = read_GOES_time_series_auto(begin_date, end_date)
+plot_GOES_time_series(GOES_dict, save = False)
+#auto_GOES_download(begin_date, end_date, 30)
+#plot_GOES_6panel_auto(begin_date, end_date,\
+#    save_dir = '/home/bsorenson/Research/GOES/six_panel/goes17_sixpanel_v3/', \
+#    save = True)
+
+sys.exit()
+
 #date_str = ['202107210000'] 
 #date_str = ['202107202126'] 
 date_str = ['202107201200',\
