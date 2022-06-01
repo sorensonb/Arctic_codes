@@ -10,8 +10,21 @@ import sys
 
 begin_date = '202107201200'
 end_date   = '202107220300'
+save_dir = '/home/bsorenson/Research/GOES/time_series_points/points_cross_section/'
 GOES_dict = read_GOES_time_series_auto(begin_date, end_date)
-plot_GOES_time_series(GOES_dict, save = False)
+plot_GOES_time_series_points_auto(GOES_dict, 0, \
+        save_dir = save_dir + 'ch2/')
+plot_GOES_time_series_points_auto(GOES_dict, 1, \
+        save_dir = save_dir + 'ch6/')
+plot_GOES_time_series_points_auto(GOES_dict, 2, \
+        save_dir = save_dir + 'ch13/')
+plot_GOES_time_series_points_auto(GOES_dict, 3, \
+        save_dir = save_dir + 'ch8/')
+plot_GOES_time_series_points_auto(GOES_dict, 4, \
+        save_dir = save_dir + 'ch9/')
+plot_GOES_time_series_points_auto(GOES_dict, 5, \
+        save_dir = save_dir + 'ch10/')
+#plot_GOES_time_series(GOES_dict, save = False)
 #auto_GOES_download(begin_date, end_date, 30)
 #plot_GOES_6panel_auto(begin_date, end_date,\
 #    save_dir = '/home/bsorenson/Research/GOES/six_panel/goes17_sixpanel_v3/', \
