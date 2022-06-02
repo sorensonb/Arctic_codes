@@ -1427,13 +1427,16 @@ def plot_GOES_time_series_channels(GOES_dict, time_idx = 20, \
     ax2.tick_params(axis="x", labelsize = 9)
     ax2.legend(fontsize = 9) 
 
-    if(idx == 0):
-        point_name = 'Clearest Pixel'
-    elif(idx == 1):
-        point_name = 'Smokiest pixel'
-    else:
-        point_name = 'Lightly Smoky Pixel'
-    plt.title(point_name)
+    names = ['Blue','Orange','Green','Red','Purple','Brown','Pink','Grey']
+
+    #if(idx == 0):
+    #    point_name = 'Clearest Pixel'
+    #elif(idx == 1):
+    #    point_name = 'Smokiest pixel'
+    #else:
+    #    point_name = 'Lightly Smoky Pixel'
+    #plt.title(point_name)
+    plt.title(names[idx])
 
     fig.autofmt_xdate()
     fig.tight_layout()
