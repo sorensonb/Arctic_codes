@@ -9,9 +9,37 @@ from GOESLib import *
 import sys
 
 begin_date = '202107201200'
-end_date   = '202107220300'
+end_date   = '202107210300'
+#end_date   = '202107220300'
 save_dir = '/home/bsorenson/Research/GOES/time_series_points/points_cross_section/'
-GOES_dict = read_GOES_time_series_auto(begin_date, end_date)
+
+# Prep the points - mid-plume
+num_points = 29
+upper_lat = 40.850577
+upper_lon = -121.177811
+lower_lat = 40.339418
+lower_lon = -120.426204
+
+
+#upper_lat = 40.75052
+#upper_lon = -121.040965
+#lower_lat = 40.339418
+#lower_lon = -120.426204
+
+# Select the interpolated lats and lons between the end points
+interp_lats = np.linspace(lower_lat, upper_lat, num_points)
+interp_lons = np.linspace(lower_lon, upper_lon, num_points)
+
+
+GOES_dict = read_GOES_time_series_auto(begin_date, end_date, \
+    channels = [2, 6, 13], dlat = list(interp_lats), \
+    dlon = list(interp_lons))
+
+sys.exit()
+
+plot_GOES_time_series_mesh(GOES_dict, date_idx = 26, ch_idx1 = 0, ch_idx2 = 1)
+plot_GOES_cross_channels(GOES_dict, time_idx = 25)
+
 plot_GOES_time_series_points_auto(GOES_dict, 0, \
         save_dir = save_dir + 'ch2/')
 plot_GOES_time_series_points_auto(GOES_dict, 1, \
