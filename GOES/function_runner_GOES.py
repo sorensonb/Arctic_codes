@@ -8,8 +8,10 @@
 from GOESLib import *
 import sys
 
-begin_date = '202107201200'
-end_date   = '202107210300'
+begin_date  = '202107201200'
+end_date    = '202107210300'
+begin_date2 = '202107211200'
+end_date2   = '202107220300'
 #end_date   = '202107220300'
 save_dir = '/home/bsorenson/Research/GOES/time_series_points/points_cross_section/'
 
@@ -20,6 +22,12 @@ upper_lon = -121.177811
 lower_lat = 40.339418
 lower_lon = -120.426204
 
+# Prep the points - upper-plume
+num_points_up = 32
+upper_lat_up = 40.586326
+upper_lon_up = -120.059622
+lower_lat_up = 41.082106
+lower_lon_up = -120.795154
 
 #upper_lat = 40.75052
 #upper_lon = -121.040965
@@ -29,11 +37,22 @@ lower_lon = -120.426204
 # Select the interpolated lats and lons between the end points
 interp_lats = np.linspace(lower_lat, upper_lat, num_points)
 interp_lons = np.linspace(lower_lon, upper_lon, num_points)
+interp_lats_up = np.linspace(lower_lat_up, upper_lat_up, num_points_up)
+interp_lons_up = np.linspace(lower_lon_up, upper_lon_up, num_points_up)
 
 
-GOES_dict = read_GOES_time_series_auto(begin_date, end_date, \
+GOES_dict1_mid = read_GOES_time_series_auto(begin_date, end_date, \
     channels = [2, 6, 13], dlat = list(interp_lats), \
     dlon = list(interp_lons))
+GOES_dict2_mid = read_GOES_time_series_auto(begin_date2, end_date2, \
+    channels = [2, 6, 13], dlat = list(interp_lats), \
+    dlon = list(interp_lons))
+GOES_dict1_up = read_GOES_time_series_auto(begin_date, end_date, \
+    channels = [2, 6, 13], dlat = list(interp_lats_up), \
+    dlon = list(interp_lons_up))
+GOES_dict2_up = read_GOES_time_series_auto(begin_date2, end_date2, \
+    channels = [2, 6, 13], dlat = list(interp_lats_up), \
+    dlon = list(interp_lons_up))
 
 sys.exit()
 
