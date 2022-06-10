@@ -29,6 +29,20 @@ upper_lon_up = -120.059622
 lower_lat_up = 41.082106
 lower_lon_up = -120.795154
 
+# Prep the points - mid-lower-plume
+num_points_ml = 28
+upper_lat_ml = 40.184126
+upper_lon_ml = -120.721026
+lower_lat_ml = 40.600837
+lower_lon_ml = -121.319833
+
+# Prep the points - lower-plume
+num_points_low = 24
+upper_lat_low = 40.417340
+upper_lon_low = -121.345775
+lower_lat_low = 40.007783
+lower_lon_low = -120.794903
+
 #upper_lat = 40.75052
 #upper_lon = -121.040965
 #lower_lat = 40.339418
@@ -39,8 +53,27 @@ interp_lats = np.linspace(lower_lat, upper_lat, num_points)
 interp_lons = np.linspace(lower_lon, upper_lon, num_points)
 interp_lats_up = np.linspace(lower_lat_up, upper_lat_up, num_points_up)
 interp_lons_up = np.linspace(lower_lon_up, upper_lon_up, num_points_up)
+interp_lats_ml = np.linspace(lower_lat_ml, upper_lat_ml, num_points_ml)
+interp_lons_ml = np.linspace(lower_lon_ml, upper_lon_ml, num_points_ml)
+interp_lats_low = np.linspace(lower_lat_low, upper_lat_low, num_points_low)
+interp_lons_low = np.linspace(lower_lon_low, upper_lon_low, num_points_low)
 
+#goes_var, goes_lat, goes_lon  = \
+#    get_GOES_data_lat_lon(date_str, list(interp_lats_ml), \
+#    list(interp_lons_ml), 2, version = 1, verbose = True)
 
+GOES_dict1_low = read_GOES_time_series_auto(begin_date, end_date, \
+    channels = [2, 6, 13], dlat = list(interp_lats_low), \
+    dlon = list(interp_lons_low))
+GOES_dict2_low = read_GOES_time_series_auto(begin_date2, end_date2, \
+    channels = [2, 6, 13], dlat = list(interp_lats_low), \
+    dlon = list(interp_lons_low))
+GOES_dict1_ml = read_GOES_time_series_auto(begin_date, end_date, \
+    channels = [2, 6, 13], dlat = list(interp_lats_ml), \
+    dlon = list(interp_lons_ml))
+GOES_dict2_ml = read_GOES_time_series_auto(begin_date2, end_date2, \
+    channels = [2, 6, 13], dlat = list(interp_lats_ml), \
+    dlon = list(interp_lons_ml))
 GOES_dict1_mid = read_GOES_time_series_auto(begin_date, end_date, \
     channels = [2, 6, 13], dlat = list(interp_lats), \
     dlon = list(interp_lons))
@@ -54,9 +87,23 @@ GOES_dict2_up = read_GOES_time_series_auto(begin_date2, end_date2, \
     channels = [2, 6, 13], dlat = list(interp_lats_up), \
     dlon = list(interp_lons_up))
 
+GOES_dict1_low['ptype'] = 'low'
+GOES_dict2_low['ptype'] = 'low'
+GOES_dict1_ml['ptype'] = 'ml'
+GOES_dict2_ml['ptype'] = 'ml'
+GOES_dict1_mid['ptype'] = 'mid'
+GOES_dict2_mid['ptype'] = 'mid'
+GOES_dict1_up['ptype'] = 'up'
+GOES_dict2_up['ptype'] = 'up'
+
 sys.exit()
 
-plot_GOES_time_series_mesh(GOES_dict, date_idx = 26, ch_idx1 = 0, ch_idx2 = 1)
+plot_GOES_time_series_channel_comp(GOES_dict1_ml, 0, 1, 27, 22, \
+    ch_idx3 = 2, date_idx = 15, save = True)
+plot_GOES_time_series_channel_comp_2loc(GOES_dict1_low, GOES_dict1_ml, \
+    0, 1, 3, 8, 27, 22, ch_idx3 = 2, date_idx = 23, save = True)
+plot_GOES_time_series_mesh(GOES_dict, date_idx = 26, ch_idx1 = 0, \
+    ch_idx2 = 1)
 plot_GOES_cross_channels(GOES_dict, time_idx = 25)
 
 plot_GOES_time_series_points_auto(GOES_dict, 0, \
