@@ -2,11 +2,46 @@
   NAME:
 
   PURPOSE:
+    Read and plot GOES data using satpy. Also contains functions for 
+        automatically downloading GOES data from the Amazon bucket. 
+
+    NOTE: must be running a Conda environment with satpy installed. 
+
+  SYNTAX:
+    # = = = = = = = = = = =
+    # Notes for downloading
+    # = = = = = = = = = = =
+    Before running the downloading scripts, the main of which is 
+        auto_GOES_download(), you MUST have the Amazon AWS CLI 
+        interface installed on your Linux terminal. To do this, 
+        you must have sudo permissions on your computer. If you
+        have sudo permissions, run the following in the command
+        line:
+    
+    $ sudo apt install awscli
+
+    Once this is installed, and if you have a Conda environment
+        installed that has satpy and datetime (and the other essential
+        packages listed in the "import" section), you may download
+        GOES data automatically using auto_GOES_download. To run
+        the function, use the following syntax:
+
+    >>> from GOESLib_lite import *
+    >>> begin_date = '202107201200' # begin_date in YYYYMMDDHHMM format
+    >>> end_date   = '202107210000' # end_date in YYYYMMDDHHMM format
+    >>> interval   = 30  # this is the number of minutes between each file
+    >>> auto_GOES_download(begin_date, end_date, interval)
   
-    NOTE: The GOES channel and true color functions are designed to work with
-    HDF GOES files retriefed from 
-    the data ordering website at this address:
-    https://ladsweb.modaps.eosdis.nasa.gov/search/order/1/GOES:Aqua
+    # = = = = = = = = = = 
+    # Notes for plotting
+    # = = = = = = = = = =
+    When running in a separate Python script, use the following syntax:
+    >>> from GOESLib_lite import *
+    >>> date_str = '202107202126'  # date_str in YYYYMMDDHHMM format, for whatever the time of the GOES file 
+    >>> plot_GOES_satpy(date_str, 2)   # Plots for channel 2 data
+    
+    If you want to save the image, do:
+    >>> plot_GOES_satpy(date_str, 2, save = True)
 
 
 """
@@ -537,6 +572,16 @@ def download_GOES_bucket(date_str, sat = 'goes17', \
 # begin_date : YYYYMMDDHHMM
 # end_date   : YYYYMMDDHHMM
 # interval   : minutes between desired images
+# sat        : default is 'goes17', but can set to 'goes16' or 
+#              'goes18' to download other data.
+# channels   : a list containing the channel numbers you want
+#              to download. For example, [2] would download
+#              just data for the 0.64 micron channel (channel 2)
+#              [2,6,13] downloads data for the 0.64 micron channel,
+#              the 2.25 micron channel, and the 10.35 micron channel.
+# dest_dir   : the location where files are going to be downloaded to.
+#              NOTE: This MUST be changed when running on a computer
+#              that does not belong to bsorenson.
 def auto_GOES_download(begin_date, end_date, interval, sat = 'goes17', \
         channels = [2,6,8,9,10,13], dest_dir = \
         '/home/bsorenson/data/GOES/goes17_abi/'):
@@ -591,6 +636,8 @@ def plot_zenith_angles():
     ax.set_ylabel('Viewing zenith angle [degrees]')
     plt.show()
 
+# phi  = latitude of the point
+# lbda = longitude of the point
 def calc_zenith_angle(phi, lbda):
     # GOES-17 values
     sat_height = 35786.0234375 # km
@@ -615,47 +662,6 @@ def calc_zenith_angle(phi, lbda):
 
     return vza
     
-
-def getCorners_1d(centers):
-    one = centers[:-1]
-    two = centers[1:]
-    d1 = (two - one) / 2.0
-    one = one - d1
-    two = two + d1
-    stepOne = np.zeros((centers.shape[0] + 1))
-    stepOne[:-2] = one
-    stepOne[-2:] = two[-2:]
-    return stepOne
-
-    ##!#one = stepOne[:,:-1]
-    ##!#two = stepOne[:,1:]
-    ##!#d2 = (two - one) / 2.
-    ##!#one = one - d2
-    ##!#two = two + d2
-    ##!#stepTwo = np.zeros((centers.shape[0] + 1, centers.shape[1] + 1))
-    ##!#stepTwo[:,:-2] = one
-    ##!#stepTwo[:,-2:] = two[:,-2:]
-    ##!#return stepTwo
-
-def getCorners(centers):
-    one = centers[:-1,:]
-    two = centers[1:,:]
-    d1 = (two - one) / 2.0
-    one = one - d1
-    two = two + d1
-    stepOne = np.zeros((centers.shape[0] + 1, centers.shape[1]))
-    stepOne[:-2,:] = one
-    stepOne[-2:,:] = two[-2:,:]
-    one = stepOne[:,:-1]
-    two = stepOne[:,1:]
-    d2 = (two - one) / 2.
-    one = one - d2
-    two = two + d2
-    stepTwo = np.zeros((centers.shape[0] + 1, centers.shape[1] + 1))
-    stepTwo[:,:-2] = one
-    stepTwo[:,-2:] = two[:,-2:]
-    return stepTwo
-
 # Find the gridpoint in the gridded lat/lon data that 
 # corresponds to the station at slat and slon
 # ---------------------------------------------------- 

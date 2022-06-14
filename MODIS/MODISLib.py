@@ -30,6 +30,7 @@ import matplotlib.colors as cm
 from matplotlib.dates import DateFormatter
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+import matplotlib.patches as mpatches
 #from matplotlib.tri import Triangulation
 import cartopy
 import cartopy.crs as ccrs
@@ -41,7 +42,7 @@ from glob import glob
 sys.path.append('/home/bsorenson/')
 from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
     nearest_gridpoint, aerosol_event_dict, init_proj, \
-    convert_radiance_to_temp
+    convert_radiance_to_temp, format_coord
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 # Set up global variables
@@ -1098,6 +1099,8 @@ def read_MODIS_satpy(date_str, channel,  composite = False, zoom = True):
     crs = new_scn['true_color'].attrs['area'].to_cartopy_crs()
     #crs = new_scn[str(channel)].attrs['area'].to_cartopy_crs()
 
+    del scn 
+
     ##!#if(channel != 'true_color'):
     ##!#    var = var.data
 
@@ -1121,7 +1124,7 @@ def plot_MODIS_satpy(date_str, channel, ax = None, var = None, crs = None, \
 
     if(var is None): 
         var, crs, lons, lats, lat_lims, lon_lims, plabel = read_MODIS_satpy(date_str, str(channel))
-
+    
     # Plot the GOES data
     # ------------------
     in_ax = True 
@@ -1159,7 +1162,13 @@ def plot_MODIS_satpy(date_str, channel, ax = None, var = None, crs = None, \
     ##!#ax.add_feature(cfeature.STATES)
     ##!#ax.add_feature(cfeature.BORDERS)
     if(ptitle is None):
-        ax.set_title('MODIS\n'+dt_date_str.strftime('%Y-%m-%d %H:%M'))
+        ax.set_title('MODIS Ch ' + str(channel) + ' (' + \
+            str(np.round(np.mean(channel_dict[str(channel)]['Bandwidth']),\
+             3)) + ' μm )\n'+\
+            dt_date_str.strftime('%Y-%m-%d %H:%M'))
+    ##!#axcs.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
+    ##!#    channel_dict[str(channel0)]['Bandwidth_label'] + \
+    ##!#    MODIS_data0['variable'])
     else:
         ax.set_title(ptitle)
 
@@ -1171,6 +1180,189 @@ def plot_MODIS_satpy(date_str, channel, ax = None, var = None, crs = None, \
             print("Saved image",outname)
         else:
             plt.show()
+
+def plot_MODIS_satpy_point_test(date_str, channel1 = 1, \
+        channel2 = 7, channel3 = 31, \
+        plats = [40.750520, \
+                 40.672445,\
+                 40.624068, \
+                 40.575759, \
+                 40.546941, \
+                 40.487687, \
+                 40.397445, \
+                 40.339418], \
+        plons = [-121.040965, \
+                 -120.906663, \
+                 -120.812962, \
+                 -120.719259, \
+                 -120.659137, \
+                 -120.588284, \
+                 -120.526473, \
+                 -120.426204], \
+        plats_2 = None, plons_2 = None, \
+        vmin = None, vmax = None, save = False):
+
+    # Read MODIS image data
+    # --------------------
+    #print(MODIS_dict['dt_dates'][time_idx])
+    #date_str = MODIS_dict['dt_dates'][time_idx].strftime('%Y%m%d%H%M')
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+    var1, crs, lons1, lats1, lat_lims, lon_lims, plabel1 = \
+        read_MODIS_satpy(date_str, channel1)
+    var2, crs, lons2, lats2, lat_lims, lon_lims, plabel2 = \
+        read_MODIS_satpy(date_str, channel2)
+    var3, crs, lons3, lats3, lat_lims, lon_lims, plabel3 = \
+        read_MODIS_satpy(date_str, channel3)
+
+    plt.close('all')
+    fig = plt.figure(figsize = (11, 4))
+    ax1 = fig.add_subplot(1,3,1, projection = crs)
+    ax2 = fig.add_subplot(1,3,2, projection = crs)
+    ax3 = fig.add_subplot(1,3,3, projection = crs)
+
+    labelsize = 10
+    font_size = 8
+    print('lim = ',aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+        dt_date_str.strftime('%H%M')]['data_lim'][channel1])
+    plot_MODIS_satpy(date_str, channel1, \
+        ax = ax1, var = var1, crs = crs, \
+        lons = lons1, lats = lats1, lat_lims = lat_lims, lon_lims = lon_lims, \
+        vmin = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+            dt_date_str.strftime('%H%M')]['data_lim'][channel1][0], \
+        vmax = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+            dt_date_str.strftime('%H%M')]['data_lim'][channel1][1], \
+        #vmin = channel_dict[str(channel)]['limits'][0], \
+        #vmax = channel_dict[str(channel)]['limits'][1], \
+        ptitle = '', plabel = plabel2, \
+        #vmin = 5, vmax = 80, ptitle = '', plabel = plabel0, \
+        colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+    plot_MODIS_satpy(date_str, channel2, \
+        ax = ax2, var = var2, crs = crs, \
+        lons = lons2, lats = lats2, lat_lims = lat_lims, lon_lims = lon_lims, \
+        vmin = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+            dt_date_str.strftime('%H%M')]['data_lim'][channel2][0], \
+        vmax = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+            dt_date_str.strftime('%H%M')]['data_lim'][channel2][1], \
+        #vmin = channel_dict[str(channel)]['limits'][0], \
+        #vmax = channel_dict[str(channel)]['limits'][1], \
+        ptitle = '', plabel = plabel2, \
+        #vmin = 5, vmax = 80, ptitle = '', plabel = plabel0, \
+        colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+    plot_MODIS_satpy(date_str, channel3, \
+        ax = ax3, var = var3, crs = crs, \
+        lons = lons3, lats = lats3, lat_lims = lat_lims, lon_lims = lon_lims, \
+        vmin = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+            dt_date_str.strftime('%H%M')]['data_lim'][channel3][0], \
+        vmax = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+            dt_date_str.strftime('%H%M')]['data_lim'][channel3][1], \
+        #vmin = channel_dict[str(channel)]['limits'][0], \
+        #vmax = channel_dict[str(channel)]['limits'][1], \
+        ptitle = '', plabel = plabel3, \
+        #vmin = 5, vmax = 80, ptitle = '', plabel = plabel0, \
+        colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+
+
+    # Add the locations of the points
+    # -------------------------------
+    width = height = 0.1
+    for tlat, tlon in zip(plats, plons):
+        ax1.add_patch(mpatches.Rectangle(\
+            xy=[tlon - width/2, tlat - height/2], width=width, height=height,
+            edgecolor = 'black', facecolor=None, alpha=0.8,
+            transform=datacrs))
+        ax2.add_patch(mpatches.Rectangle(\
+            xy=[tlon - width/2, tlat - height/2], width=width, height=height,
+            edgecolor = 'black', facecolor=None, alpha=0.8,
+            transform=datacrs))
+        ax3.add_patch(mpatches.Rectangle(\
+            xy=[tlon - width/2, tlat - height/2], width=width, height=height,
+            edgecolor = 'black', facecolor=None, alpha=0.8,
+            transform=datacrs))
+        ax1.plot(tlon, tlat, linewidth=2, markersize = 8, marker='.',
+                 color = 'black', transform=datacrs)
+        ax1.plot(tlon, tlat, linewidth=2, markersize = 5, marker='.',
+                 transform=datacrs)
+        ax2.plot(tlon, tlat, linewidth=2, markersize = 8, marker='.',
+                 color = 'black', transform=datacrs)
+        ax2.plot(tlon, tlat, linewidth=2, markersize = 5, marker='.',
+                 transform=datacrs)
+        ax3.plot(tlon, tlat, linewidth=2, markersize = 8, marker='.',
+                 color = 'black', transform=datacrs)
+        ax3.plot(tlon, tlat, linewidth=2, markersize = 5, marker='.',
+                 transform=datacrs)
+    if(plats_2 is not None):
+        # Add the locations of the second points, if desired
+        # --------------------------------------------------
+        for tlat, tlon in zip(plats_2, plons_2):
+            print(tlat, tlon)
+            ax1.plot(tlon, tlat, linewidth=2, markersize = 5, marker='^',
+                     color = 'black', transform=datacrs)
+            ax1.plot(tlon, tlat, linewidth=2, markersize = 3, marker='^',
+                     transform=datacrs)
+       
+    # Using the lat and lons of the point, pull out the data
+    # for each channel 
+    # -------------------------------------------------------
+    arr_var1 = np.array(var1)
+    arr_var2 = np.array(var2)
+    arr_var3 = np.array(var3)
+
+    points_var1 = np.array([arr_var1[\
+        (lats1 > (tplat - (width / 2))) & \
+        (lats1 <= (tplat + (width / 2))) & \
+        (lons1 > (tplon - (height / 2))) & \
+        (lons1 <= (tplon + (height / 2)))] \
+        for tplat, tplon in zip(plats, plons)])
+    points_var2 = np.array([arr_var2[\
+        (lats2 > (tplat - (width / 2))) & \
+        (lats2 <= (tplat + (width / 2))) & \
+        (lons2 > (tplon - (height / 2))) & \
+        (lons2 <= (tplon + (height / 2)))] \
+        for tplat, tplon in zip(plats, plons)])
+    points_var3 = np.array([arr_var3[\
+        (lats3 > (tplat - (width / 2))) & \
+        (lats3 <= (tplat + (width / 2))) & \
+        (lons3 > (tplon - (height / 2))) & \
+        (lons3 <= (tplon + (height / 2)))] \
+        for tplat, tplon in zip(plats, plons)])
+
+    # Print out the mean and std dev point values for each channel
+    # ------------------------------------------------------------
+    avg_diff1 = np.nanmean(points_var1, axis = 1)
+    avg_diff2 = np.nanmean(points_var2, axis = 1)
+    avg_diff3 = np.nanmean(points_var3, axis = 1)
+    print("Channel 1")
+    print(avg_diff1, avg_diff1[0] - avg_diff1[1])
+    print("Channel 2")
+    print(avg_diff2, avg_diff2[0] - avg_diff2[1])
+    print("Channel 3")
+    print(avg_diff3, avg_diff3[0] - avg_diff3[1])
+    ##!#print("Point 1:",plats[0], plons[0])
+    ##!#print("   channel 1", np.mean(arr_var1[0]))
+    ##!#print("   channel 2", np.mean(arr_var2[0]))
+    ##!#print("   channel 3", np.mean(arr_var3[0]))
+    ##!#print("Point 2:",plats[1], plons[1])
+    ##!#print("   channel 1", np.mean(arr_var1[1]))
+    ##!#print("   channel 2", np.mean(arr_var2[1]))
+    ##!#print("   channel 3", np.mean(arr_var3[1]))
+ 
+    # Add plot labels
+    # ---------------
+    plot_figure_text(ax1, 'MODIS ' + \
+        str(np.round(np.mean(channel_dict[str(channel1)]['Bandwidth']), 3)\
+        ) + ' μm', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+    ax1.set_title(dt_date_str.strftime(\
+        '%Y-%m-%d %H:%MZ'), fontsize = 10)
+
+    fig.tight_layout()
+
+    if(save):
+        print("SAVE HERE")
+    else:
+        plt.show()
 
 def plot_true_color_satpy(date_str,ax = None,zoom=True,save=False,composite=False):
 
@@ -7663,6 +7855,361 @@ def plot_combined_figure1_v4(date_str = '202107222110', \
     else:
         plt.show()
 
+def plot_combined_figure1_v5(date_str = '202107222110', \
+        zoom = True, \
+        modis_ch1 = 7, \
+        modis_ch2 = 31, \
+        goes_ch1 = 2, \
+        goes_ch2 = 6, \
+        goes_ch3 = 13, \
+        goes_ch4 = 8, \
+        goes_ch5 = 9, \
+        goes_ch6 = 10, \
+        GOES_dict = None, ch_idx1 = 0, ch_idx2 = 1, ch_idx3 = 2,\
+        idx1 = 3, idx2 = 8, date_idx = 26, 
+        show_smoke = False, composite = True, double_fig = False, \
+        save=False):
+
+    #date_str = '202107202125'
+    date_str = '202107222110'
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+    date_str2 = '202107210000'
+    dt_date_str2 = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    if('/home/bsorenson/Research/GOES' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/GOES')
+    from GOESLib import read_GOES_satpy, plot_GOES_satpy,\
+        goes_channel_dict
+
+    # ----------------------------------------------------------------------
+    #
+    # Read the MODIS and CERES data
+    #
+    # ----------------------------------------------------------------------
+
+    # Call read_MODIS_channel to read the desired MODIS data from the file 
+    # and put it in a dictionary
+    # ---------------------------------------------------------------------
+    ##!#MODIS_data_ch7  = read_MODIS_channel(date_str, 6, zoom = zoom)
+    ##!##MODIS_data_ch7  = read_MODIS_channel(date_str, 7, zoom = zoom)
+    ##!#MODIS_data_ch31 = read_MODIS_channel(date_str, 31, zoom = zoom)
+    var1, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel1 = \
+        read_MODIS_satpy(date_str, 1)
+    var8, crs8, lons8, lats8, lat_lims8, lon_lims8, plabel8 = \
+        read_MODIS_satpy(date_str, modis_ch1)
+    var9, crs8, lons8, lats8, lat_lims9, lon_lims9, plabel9 = \
+        read_MODIS_satpy(date_str, modis_ch2)
+
+    # Read the true color data
+    # ------------------------
+    ##var1, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel = \
+    ##    read_MODIS_satpy(date_str,'true_color',\
+    ###var1, crs1, lat_lims1, lon_lims1 = read_true_color(date_str,\
+    ##    composite=composite)
+
+    # Read the GOES data
+    # ------------------------
+    var2, crs0, lons, lats, lat_lims2, lon_lims2, plabel2   = \
+        read_GOES_satpy(date_str2, goes_ch1)
+    var3, crs0, lons3, lats3, lat_lims3, lon_lims3, plabel3 = \
+        read_GOES_satpy(date_str2, goes_ch2)
+    #var3, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel3 = read_GOES_satpy(date_str2, 6)
+    var4, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel4 = \
+        read_GOES_satpy(date_str2, goes_ch3)
+    var5, crs0, lons2, lats2, lat_lims0, lon_lims2, plabel5 = \
+        read_GOES_satpy(date_str2, goes_ch4)
+    var6, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel6 = \
+        read_GOES_satpy(date_str2, goes_ch5)
+    var7, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel7 = \
+        read_GOES_satpy(date_str2, goes_ch6)
+
+    # ----------------------------------------------------------------------
+    #
+    #  Set up the 6-panel figure
+    #
+    # ----------------------------------------------------------------------
+
+    mapcrs = init_proj(date_str)
+    plt.close('all')
+    if(double_fig):
+        fig1 = plt.figure(figsize=(8.2,3))
+        fig2 = plt.figure(figsize=(9.5,6))
+        #gs = fig.add_gridspec(nrows = 2, ncols = 8)
+        ax1  = fig1.add_subplot(1,3,1,  projection = crs1)   # true color    
+        ax2  = fig1.add_subplot(1,3,2,  projection = crs8) # Ch 7
+        ax3  = fig1.add_subplot(1,3,3,  projection = crs8) # Ch 31
+        #ax2  = fig.add_subplot(3,3,2,  projection = mapcrs) # Ch 7
+        #ax3  = fig.add_subplot(3,3,3,  projection = mapcrs) # Ch 31
+        ax4  = fig2.add_subplot(2,3,1,  projection = crs0)   # GOES vis 
+        ax5  = fig2.add_subplot(2,3,2,  projection = crs0)   # GOES SWIR
+        ax6  = fig2.add_subplot(2,3,3,  projection = crs0)   # GOES TIR 
+        ax7  = fig2.add_subplot(2,3,4,  projection = crs0)   # GOES upper WV
+        ax8  = fig2.add_subplot(2,3,5,  projection = crs0)   # GOES midle WV
+        ax9  = fig2.add_subplot(2,3,6,  projection = crs0)   # GOES lower WV
+    else:
+        fig = plt.figure(figsize=(9.5,11))
+        gs = fig.add_gridspec(nrows = 4, ncols = 3)
+        ax1  = fig.add_subplot(gs[0,0], projection = crs1) # true color    
+        ax2  = fig.add_subplot(gs[0,1], projection = crs8) # MODIS Ch 7
+        ax3  = fig.add_subplot(gs[0,2], projection = crs8) # MODIS Ch 31
+        ax4  = fig.add_subplot(gs[1,0], projection = crs0) # GOES VIS 
+        ax5  = fig.add_subplot(gs[1,1], projection = crs0)   # GOES SWIR
+        ax6  = fig.add_subplot(gs[1,2], projection = crs0)   # GOES TIR 
+        ax7  = fig.add_subplot(gs[2,0], projection = crs0)   # GOES upper WV
+        ax8  = fig.add_subplot(gs[2,1], projection = crs0)   # GOES midle WV
+        ax9  = fig.add_subplot(gs[2,2], projection = crs0)   # GOES lower WV
+        ax10 = fig.add_subplot(gs[3,:]) # time series of GOES data
+
+
+    ##!## Plot the true-color data for the previous date
+    ##!## ----------------------------------------------
+    ##!#ax1.imshow(var1.data, transform = crs1, extent=(var1.x[0], var1.x[-1], \
+    ##!#    var1.y[-1], var1.y[0]), origin='upper')
+
+    ##!## Zoom in the figure if desired
+    ##!## -----------------------------
+    ##!#if(zoom):
+    ##!#    ax1.set_extent([lon_lims1[0],lon_lims1[1],lat_lims1[0],\
+    ##!#        lat_lims1[1]],crs = datacrs)
+
+    # ----------------------------------------------------------------------
+    #
+    # Plot the data in the figure
+    #
+    # ----------------------------------------------------------------------
+
+    # Plot channel 1, 5, 31, and WV data spatial data
+    # -----------------------------------------------
+    ##!#plot_MODIS_spatial(MODIS_data_ch7,  ax2, zoom = zoom, ptitle = '', labelsize = 10, labelticksize = 9)
+    ##!#plot_MODIS_spatial(MODIS_data_ch31, ax3, zoom = zoom, ptitle = '', labelsize = 10, labelticksize = 9)
+    labelsize = 10
+    plot_MODIS_satpy(date_str, 1, ax = ax1, var = var1, crs = crs1, \
+        lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+        vmin = 0, vmax = 70, ptitle = '', plabel = plabel1, \
+        labelsize = 10, colorbar = True, zoom=True,save=False)
+    plot_MODIS_satpy(date_str, 5, ax = ax2, var = var8, crs = crs8, \
+        lons = lons8, lats = lats8, lat_lims = lat_lims8, lon_lims = lon_lims8, \
+        vmin = None, vmax = None, ptitle = '', plabel = plabel8, \
+        labelsize = 10, colorbar = True, zoom=True,save=False)
+    plot_MODIS_satpy(date_str, 31, ax = ax3, var = var9, crs = crs8, \
+        lons = lons8, lats = lats8, lat_lims = lat_lims9, lon_lims = lon_lims9, \
+        vmin = 270, vmax = 330, ptitle = '', plabel = plabel9, \
+        labelsize = 10, colorbar = True, zoom=True,save=False)
+
+    # Plot channel 1, 5, 31, and WV data spatial data
+    # -----------------------------------------------
+    plot_GOES_satpy(date_str, 2, ax = ax4, var = var2, crs = crs0, \
+        lons = lons, lats = lats, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+        vmin = None, vmax = 60, \
+        ptitle = '', plabel = plabel2, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
+    plot_GOES_satpy(date_str, 6, ax = ax5, var = var3, crs = crs0, \
+        lons = lons3, lats = lats3, lat_lims = lat_lims3, lon_lims = lon_lims3, \
+        vmin = None, vmax = 40, \
+        ptitle = '', plabel = plabel3, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
+    plot_GOES_satpy(date_str, 13, ax = ax6, var = var4, crs = crs0, \
+        lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+        vmin = None, vmax = None, \
+        ptitle = '', plabel = plabel4, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
+    plot_GOES_satpy(date_str, 8, ax = ax7, var = var5, crs = crs0, \
+        lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+        vmin = None, vmax = None, \
+        ptitle = '', plabel = plabel5, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
+    plot_GOES_satpy(date_str, 9, ax = ax8, var = var6, crs = crs0, \
+        lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+        vmin = None, vmax = None, \
+        ptitle = '', plabel = plabel6, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
+    plot_GOES_satpy(date_str, 10, ax = ax9, var = var7, crs = crs0, \
+        lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+        vmin = None, vmax = None, \
+        ptitle = '', plabel = plabel7, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
+
+    point_size = 5
+    ax4.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax4.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs)
+    ax4.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax4.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs)
+    ax5.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax5.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs)
+    ax5.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax5.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs)
+    ax6.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax6.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs)
+    ax6.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax6.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs)
+
+    # Plot the two channel data for the first point
+    # ---------------------------------------------
+    ln11 = ax10.plot(GOES_dict['dt_dates'], GOES_dict['data'][:,ch_idx1,idx1], \
+        label = str(goes_channel_dict[\
+        str(GOES_dict['channels'][ch_idx1])]['wavelength']) + \
+        ' μm', color = 'tab:blue')
+    ln21 = ax10.plot(GOES_dict['dt_dates'], GOES_dict['data'][:,ch_idx1,idx2], \
+        label = str(goes_channel_dict[\
+        str(GOES_dict['channels'][ch_idx1])]['wavelength']) + \
+        ' μm', color = 'tab:orange')
+
+    # Plot the two channel data for the second point
+    # ----------------------------------------------
+    ln12 = ax10.plot(GOES_dict['dt_dates'], GOES_dict['data'][:,ch_idx2,idx1], \
+        label = str(goes_channel_dict[\
+        str(GOES_dict['channels'][ch_idx2])]['wavelength']) + \
+        ' μm', linestyle = '--', color = 'tab:blue')
+    ln22 = ax10.plot(GOES_dict['dt_dates'], GOES_dict['data'][:,ch_idx2,idx2], \
+        label = str(goes_channel_dict[\
+        str(GOES_dict['channels'][ch_idx2])]['wavelength']) + \
+        ' μm', linestyle = '--', color = 'tab:orange')
+    ax10.axvline(GOES_dict['dt_dates'][date_idx], color = 'black',\
+        linestyle = ':')
+
+    lns = ln11 + ln21 + ln12 + ln22 
+
+    if(ch_idx3 is not None):
+        ax102 = ax10.twinx()
+        ln31 = ax102.plot(GOES_dict['dt_dates'], GOES_dict['data'][:,ch_idx3,idx1], \
+            label = str(goes_channel_dict[\
+            str(GOES_dict['channels'][ch_idx3])]['wavelength']) + \
+            ' μm', linestyle = ':', color = 'tab:blue')
+        ln32 = ax102.plot(GOES_dict['dt_dates'], GOES_dict['data'][:,ch_idx3,idx2], \
+            label = str(goes_channel_dict[\
+            str(GOES_dict['channels'][ch_idx3])]['wavelength']) + \
+            ' μm', linestyle = ':', color = 'tab:orange')
+        ax102.set_ylabel('Brightness Temperature [K]')
+
+        lns = lns + ln31 + ln32 
+
+    ax10.set_title('GOES-17')
+    labelsize = 10
+    font_size = 10
+    ax10.set_ylabel(plabel1.replace('_',' '), weight = 'bold')
+    ax102.set_ylabel(plabel7.replace('_',' '), weight = 'bold')
+    ax10.grid()
+    ax10.xaxis.set_major_formatter(DateFormatter('%m/%d\n%H:%MZ'))
+    ax10.tick_params(axis="x", labelsize = font_size + 1)
+
+    labs = [l.get_label() for l in lns]
+    ax10.legend(lns, labs, fontsize = font_size)
+
+    # Add subplot labels
+    # ------------------
+    font_size = 10
+    if(double_fig):
+        plabels = ['(a)','(b)','(c)','(d)','(e)','(f)','(g)']
+    else:
+        plabels = ['(d)','(e)','(f)','(g)','(h)','(i)','(j)']
+    plot_subplot_label(ax1, '(a)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax2, '(b)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax3, '(c)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax4, plabels[0], backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax5, plabels[1], backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax6, plabels[2], backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax7, plabels[3], backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax8, plabels[4], backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax9, plabels[5], backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax10, plabels[6], backgroundcolor = 'white', fontsize = font_size, location = 'upper_right')
+
+    # Add plot text
+    # -------------
+    plot_figure_text(ax1, 'MODIS ' + \
+        str(np.round(np.mean(channel_dict[str(1)]['Bandwidth']), 2))  \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax2, 'MODIS ' + \
+        str(np.round(np.mean(channel_dict[str(modis_ch1)]['Bandwidth']), 2)) \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    #plot_figure_text(ax2, 'MODIS 2.2 μm', xval = None, yval = None, transform = None, \
+    #    color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax3, 'MODIS ' + \
+        str(np.round(np.mean(channel_dict[str(modis_ch2)]['Bandwidth']), 2)) \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax4, 'GOES-17 ' + \
+        str(goes_channel_dict[str(goes_ch1)]['wavelength']) \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax5, 'GOES-17 ' + \
+        str(goes_channel_dict[str(goes_ch2)]['wavelength']) \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    #plot_figure_text(ax5, 'GOES-17 2.25 μm', xval = None, yval = None, transform = None, \
+    #    color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax6, 'GOES-17 ' + \
+        str(goes_channel_dict[str(goes_ch3)]['wavelength']) \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax7, 'GOES-17 ' + \
+        str(goes_channel_dict[str(goes_ch4)]['wavelength']) \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax8, 'GOES-17 ' + \
+        str(goes_channel_dict[str(goes_ch5)]['wavelength']) \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax9, 'GOES-17 ' + \
+        str(goes_channel_dict[str(goes_ch6)]['wavelength']) \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+
+    if(double_fig):
+        fig1.suptitle('21:10 UTC 22 July 2021')
+        fig2.suptitle('00:00 UTC 21 July 2021')
+        fig1.tight_layout()
+        fig2.tight_layout()
+    else:
+        fig.text(0.09, 0.880, '21:10 UTC 2021/07/22', ha='center', va='center', \
+            rotation='vertical', weight = 'bold', fontsize = labelsize + 2)
+        fig.text(0.09, 0.520, '-------------------- 00:00 UTC 2021/07/21 --------------------', ha='center', va='center', \
+            rotation='vertical', weight = 'bold', fontsize = labelsize + 2)
+        #plt.suptitle(date_str)
+
+        fig.tight_layout()
+    #MODIS_data_ch7.clear()
+    #MODIS_data_ch31.clear()
+
+    if(save):
+        if(double_fig):
+            outname1 = 'modis_total_combined_' + date_str + '_fig1_v4_modis.png'
+            outname2 = 'modis_total_combined_' + date_str + '_fig1_v4_goes.png'
+            fig1.savefig(outname1, dpi=300)
+            fig2.savefig(outname2, dpi=300)
+            print("Saved",outname1)
+            print("Saved",outname2)
+        else:
+            outname = 'modis_total_combined_' + date_str + '_fig1_v5.png'
+            fig.savefig(outname, dpi=300)
+            print("Saved",outname)
+    else:
+        plt.show()
 def plot_viewing_geometry(date_str = '202107222110', zoom = True, show_smoke = False, composite = True, \
         save=False):
 

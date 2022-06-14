@@ -74,27 +74,27 @@ GOES_dict1_ml = read_GOES_time_series_auto(begin_date, end_date, \
 GOES_dict2_ml = read_GOES_time_series_auto(begin_date2, end_date2, \
     channels = [2, 6, 13], dlat = list(interp_lats_ml), \
     dlon = list(interp_lons_ml))
-GOES_dict1_mid = read_GOES_time_series_auto(begin_date, end_date, \
-    channels = [2, 6, 13], dlat = list(interp_lats), \
-    dlon = list(interp_lons))
-GOES_dict2_mid = read_GOES_time_series_auto(begin_date2, end_date2, \
-    channels = [2, 6, 13], dlat = list(interp_lats), \
-    dlon = list(interp_lons))
-GOES_dict1_up = read_GOES_time_series_auto(begin_date, end_date, \
-    channels = [2, 6, 13], dlat = list(interp_lats_up), \
-    dlon = list(interp_lons_up))
-GOES_dict2_up = read_GOES_time_series_auto(begin_date2, end_date2, \
-    channels = [2, 6, 13], dlat = list(interp_lats_up), \
-    dlon = list(interp_lons_up))
+##!#GOES_dict1_mid = read_GOES_time_series_auto(begin_date, end_date, \
+##!#    channels = [2, 6, 13], dlat = list(interp_lats), \
+##!#    dlon = list(interp_lons))
+##!#GOES_dict2_mid = read_GOES_time_series_auto(begin_date2, end_date2, \
+##!#    channels = [2, 6, 13], dlat = list(interp_lats), \
+##!#    dlon = list(interp_lons))
+##!#GOES_dict1_up = read_GOES_time_series_auto(begin_date, end_date, \
+##!#    channels = [2, 6, 13], dlat = list(interp_lats_up), \
+##!#    dlon = list(interp_lons_up))
+##!#GOES_dict2_up = read_GOES_time_series_auto(begin_date2, end_date2, \
+##!#    channels = [2, 6, 13], dlat = list(interp_lats_up), \
+##!#    dlon = list(interp_lons_up))
 
 GOES_dict1_low['ptype'] = 'low'
 GOES_dict2_low['ptype'] = 'low'
 GOES_dict1_ml['ptype'] = 'ml'
 GOES_dict2_ml['ptype'] = 'ml'
-GOES_dict1_mid['ptype'] = 'mid'
-GOES_dict2_mid['ptype'] = 'mid'
-GOES_dict1_up['ptype'] = 'up'
-GOES_dict2_up['ptype'] = 'up'
+#GOES_dict1_mid['ptype'] = 'mid'
+#GOES_dict2_mid['ptype'] = 'mid'
+#GOES_dict1_up['ptype'] = 'up'
+#GOES_dict2_up['ptype'] = 'up'
 
 sys.exit()
 
