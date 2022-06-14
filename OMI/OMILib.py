@@ -57,17 +57,102 @@ from scipy.signal import argrelextrema, find_peaks
 sys.path.append('/home/bsorenson')
 from python_lib import circle, plot_subplot_label, plot_lat_circles
 
-def get_ice_flags(value):
-    return int(format(value,"016b")[-15:-8],2)
+# Bits 
+#  0 - Missing
+#  1 - Bad Pixel
+#  2 - Processing Error
+#  3 - Transient Pixel Warning
+#  4 - RTS Pixel Warning
+#  5 - Saturation Possibility Warning
+#  6 - Noise Calculation Warning
+#  7 - Dark Current Warning
+#  8 - Offset Warning
+#  9 - Exposure Smear Warning
+#  10 - Stray Light Warning
+#  11 - 13 Reserved 
+#  14 - Dead Pixel Identifcation (OML1BCAL only)
+#  15 - Dead Pixel Identifcation Error (OML1BCAL only)
+def get_pxqf_flags(value, flag_idx = None):
+    bit_vals = np.array([int(format(value,"016b")[-idx],2) \
+        for idx in range(1, 17)])
+    if(flag_idx == None):
+        return bit_vals
+    else:
+        return bit_vals[flag_idx]
 
+# Bits 0 to 3 together contain the land/water flags:
+#      0 - shallow ocean
+#      1 - land
+#      2 - shallow inland water
+#      3 - ocean coastline/lake shoreline
+#      4 - ephemeral (intermittent) water
+#      5 - deep inland water
+#      6 - continental shelf ocean
+#      7 - deep ocean
+#      8-14 - not used
+#      15 - error flag for land/water
+#  Bits 4 to 6 are flags that are set to 0 for FALSE, or 1 for TRUE:
+#      Bit 4 - sun glint possibility flag
+#      Bit 5 - solar eclipse possibility flag
+#      Bit 6 - geolocation error flag
+#  Bit 7 is reserved for future use (currently set to 0)
+#  Bits 8 to 14 together contain the snow/ice flags (based on NISE):
+#      0 - snow-free land
+#      1-100 - sea ice concentration (percent)
+#      101 - permanent ice (Greenland, Antarctica)
+#      102 - not used
+#      103 - dry snow
+#      104 - ocean (NISE-255)
+#      105-123 - reserved for future use
+#      124 - mixed pixels at coastline (NISE-252)
+#      125 - suspect ice value (NISE-253)
+#      126 - corners undefined (NISE-254)
+#      127 - error
+#  Bit 15 - NISE nearest neighbor filling flag
+#  (See Section 6.2 of Reference 4 for more details.)
+def get_gpqf_flags(value, flag_idx = None):
+    bit_vals = np.full(7,np.nan)
+    bit_vals[0] = int(format(value,"016b")[-4:],2) # land/water flags
+    bit_vals[1] = int(format(value,"016b")[-5],2)  # sun glint possiblity
+    bit_vals[2] = int(format(value,"016b")[-6],2)  # solar eclipse possiblity
+    bit_vals[3] = int(format(value,"016b")[-7],2)  # geolocation error flag
+    bit_vals[4] = int(format(value,"016b")[-8],2)  # future use
+    bit_vals[5] = int(format(value,"016b")[-15:-8],2) # NISE snow/ice flags
+    bit_vals[6] = int(format(value,"016b")[-16],2) # 
+    if(flag_idx == None):
+        return bit_vals
+    else:
+        return bit_vals[flag_idx]
+
+def get_ice_flags(value):
+    return get_gpqf_flags(value, flag_idx = 5)
+    ##!#return int(format(value,"016b")[-15:-8],2)
+
+# The cross track quality flags assigned to each pixel in
+#  OMI L1B data. Flags indicate detection of the OMI row
+#  anomaly and if the effect has been corrected.
+#  Bits 0 to 2 together indicate row anomaly status:
+#  0 - Not affected
+#  1 - Affected, Not corrected, do not use
+#  2 - Slightly affected, not corrected, use with caution
+#  3 - Affected, corrected, use with caution
+#  4 - Affected, corrected, use pixel
+#  5 - Not used
+#  6 - Not used
+#  7 - Error during anomaly detection processing
+#  Bit 3 - Reserved for future use.
+#  Bit 4 - Possibly affected by wavelength shift
+#  Bit 5 - Possibly affected by blockage
+#  Bit 6 - Possibly affected by stray sunlight
+#  Bit 7 - Possibly affected by stray earthshine
 def get_xtrack_flags(value, flag_idx = None):
-    #return int(format(XTRACK[1000,yyy],"08b")[-3:],2))
-    bit_vals = np.full(5,np.nan)
-    bit_vals[0] = int(format(value,"08b")[-3:],2)
-    bit_vals[1] = int(format(value,"08b")[-4],2)
-    bit_vals[2] = int(format(value,"08b")[-5],2)
-    bit_vals[3] = int(format(value,"08b")[-6],2)
-    bit_vals[4] = int(format(value,"08b")[-7],2)
+    bit_vals = np.full(6,np.nan)
+    bit_vals[0] = int(format(value,"08b")[-3:],2) # row anomaly status
+    bit_vals[1] = int(format(value,"08b")[-4],2)  # future use
+    bit_vals[2] = int(format(value,"08b")[-5],2)  # possible wavelength shift
+    bit_vals[3] = int(format(value,"08b")[-6],2)  # possible blockage
+    bit_vals[4] = int(format(value,"08b")[-7],2)  # possible stray sunlight
+    bit_vals[5] = int(format(value,"08b")[-8],2)  # possible stray earthshine
     if(flag_idx == None):
         return bit_vals
     else:
@@ -487,9 +572,14 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
     XTRACK = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/XTrackQualityFlags'][:,:]
     UVAI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex'][:,:]
     GPQF   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags'][:,:]
+    PXQF   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/PixelQualityFlags'][:,:]
     AZM    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/RelativeAzimuthAngle'][:,:]
-    GPQF_decode = np.array([[get_ice_flags(val) for val in GPQFrow] for GPQFrow in GPQF])
-    XTRK_decode = np.array([[get_xtrack_flags(val) for val in GPQFrow] for GPQFrow in GPQF])
+    GPQF_decode = np.array([[get_gpqf_flags(val) for val in GPQFrow] \
+        for GPQFrow in GPQF])
+    XTRK_decode = np.array([[get_xtrack_flags(val) for val in XTRKrow] \
+        for XTRKrow in XTRACK])
+    PXQF_decode = np.array([[[get_pxqf_flags(val) for val in PXQFline] \
+        for PXQFline in PXQFrow] for PXQFrow in PXQF])
 
     # If the user wants certain lines to not be included, set the AI values
     # to -9e5 to ensure they are removed
@@ -501,17 +591,18 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
     # Mask the AI data where the values are either missing or the Xtrack flags
     # are not zero
     # ------------------------------------------------------------------------
-    mask_UVAI = np.ma.masked_where((XTRACK != 0) | (UVAI < -2e5) | (LAT < latmin), UVAI)
+    mask_UVAI = np.ma.masked_where((XTRACK != 0) | \
+        (UVAI < -2e5) | (LAT < latmin), UVAI)
 
     if(only_sea_ice):
-        mask_UVAI = np.ma.masked_where((GPQF_decode < 1) | \
-            (GPQF_decode > 100), mask_UVAI)
+        mask_UVAI = np.ma.masked_where((GPQF_decode[:,:,5] < 1) | \
+            (GPQF_decode[:,:,5] > 100), mask_UVAI)
     elif(only_ice):
-        mask_UVAI = np.ma.masked_where((GPQF_decode < 1) | \
-            (GPQF_decode > 101), mask_UVAI)
+        mask_UVAI = np.ma.masked_where((GPQF_decode[:,:,5] < 1) | \
+            (GPQF_decode[:,:,5] > 101), mask_UVAI)
     elif(no_ice):
-        mask_UVAI = np.ma.masked_where((GPQF_decode >= 1) & \
-            (GPQF_decode < 103), mask_UVAI)
+        mask_UVAI = np.ma.masked_where((GPQF_decode[:,:,5] >= 1) & \
+            (GPQF_decode[:,:,5] < 103), mask_UVAI)
 
     #UVAI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/' + path_dict[variable] + variable][:,:]
     ##!#if(len(UVAI.shape) == 3):
@@ -530,11 +621,13 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
     OMI_swath['LON']    = LON
     OMI_swath['AZM']    = AZM
     OMI_swath['GPQF']   = GPQF_decode
-    OMI_swath['XTRACK'] = XTRACK
+    OMI_swath['PXQF']   = PXQF_decode
+    OMI_swath['XTRACK'] = XTRK_decode
 
     if(dtype == 'JZ'):
 
-        mask_UVAI[~((((GPQF_decode >= 0) & (GPQF_decode <= 101)) | (GPQF_decode == 104)) & \
+        mask_UVAI[~((((GPQF_decode[:,:,5] >= 0) & \
+            (GPQF_decode[:,:,5] <= 101)) | (GPQF_decode[:,:,5] == 104)) & \
                       (AZM > 100))] = np.nan
         mask_UVAI = np.ma.masked_invalid(mask_UVAI)
 
@@ -3953,29 +4046,92 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
     if(title == ''):
         title = 'OMI UVAI ' + OMI_hrly['dtype'] + ' ' + OMI_hrly['date']
     pax.set_title(title)
-    if(pvar == 'GPQF'):
-        # Convert the GPQF flag values to ice flags
-        # -----------------------------------------
-        local_GPQF = np.full(OMI_hrly[pvar].shape,np.nan)
+    if(pvar != 'UVAI'):
+        if(pvar == 'ice'): #if(pvar == 'GPQF'):
+            # Convert the GPQF flag values to ice flags
+            # -----------------------------------------
+            work_GPQF = OMI_hrly['GPQF'][:,:,5]
+            local_GPQF = np.full(work_GPQF.shape,np.nan)
 
-        local_GPQF[(OMI_hrly[pvar] > 0) & (OMI_hrly[pvar] < 101)] = 9
-        local_GPQF[OMI_hrly[pvar] == 0]                           = 8
-        local_GPQF[OMI_hrly[pvar] == 101]                         = 10
-        local_GPQF[OMI_hrly[pvar] == 103]                         = 11
-        local_GPQF[OMI_hrly[pvar] == 104]                         = 12
-        local_GPQF[OMI_hrly[pvar] == 124]                         = 13
+            local_GPQF[(work_GPQF > 0) & (work_GPQF < 101)] = 9
+            local_GPQF[ work_GPQF == 0]                     = 8
+            local_GPQF[ work_GPQF == 101]                   = 10
+            local_GPQF[ work_GPQF == 103]                   = 11
+            local_GPQF[ work_GPQF == 104]                   = 12
+            local_GPQF[ work_GPQF == 124]                   = 13
 
-        mask_GPQF = np.ma.masked_invalid(local_GPQF)
-        cmap = plt.get_cmap('jet', np.max(mask_GPQF) - np.min(mask_GPQF)+1)
+            mask_GPQF = np.ma.masked_invalid(local_GPQF)
+            cmap = plt.get_cmap('jet', np.max(mask_GPQF) - np.min(mask_GPQF)+1)
 
-        cbar_labels = ['Shallow ocean','Land','Shallow inland water',\
-                        'Ocean coastline / lake shoreline',\
-                        'ephemeral (intermittent) water','Deep inland water',\
-                        'Continental shelf ocean','Deep ocean',\
-                        'Snow-free land','Sea ice',\
-                        'Permanent ice\n(Greenland, Antarctica)','Dry snow',\
-                        'Ocean','Mixed pixels\nat coastline',\
-                        'Suspect ice value','Corners']
+            cbar_labels = ['Shallow ocean','Land','Shallow inland water',\
+                            'Ocean coastline / lake shoreline',\
+                            'ephemeral (intermittent) water','Deep inland water',\
+                            'Continental shelf ocean','Deep ocean',\
+                            'Snow-free land','Sea ice',\
+                            'Permanent ice\n(Greenland, Antarctica)','Dry snow',\
+                            'Ocean','Mixed pixels\nat coastline',\
+                            'Suspect ice value','Corners']
+        elif(pvar == 'ground'):
+            # Convert the GPQF flag values to land/water flags
+            # ------------------------------------------------
+            work_GPQF = OMI_hrly['GPQF'][:,:,0]
+            local_GPQF = np.copy(work_GPQF)
+            #local_GPQF = np.full(work_GPQF.shape,np.nan)
+            local_GPQF[ work_GPQF > 8]                     = 16
+
+            mask_GPQF = np.ma.masked_invalid(local_GPQF)
+            cmap = plt.get_cmap('jet', np.max(mask_GPQF) - np.min(mask_GPQF)+1)
+            cbar_labels = ['Shallow ocean','Land','Shallow inland water',\
+                            'Ocean coastline / lake shoreline',\
+                            'ephemeral (intermittent) water','Deep inland water',\
+                            'Continental shelf ocean','Deep ocean',\
+                            'Snow-free land','Sea ice',\
+                            'Permanent ice\n(Greenland, Antarctica)','Dry snow',\
+                            'Ocean','Mixed pixels\nat coastline',\
+                            'Suspect ice value','Corners','N/A']
+        elif(pvar == 'glint'):
+            # Convert the GPQF flag values to glint flags 
+            # -------------------------------------------
+            work_GPQF = OMI_hrly['GPQF'][:,:,1]
+            local_GPQF = np.copy(work_GPQF)
+            #local_GPQF = np.full(work_GPQF.shape,np.nan)
+
+            mask_GPQF = np.ma.masked_invalid(local_GPQF)
+            cmap = plt.get_cmap('jet', np.max(mask_GPQF) - np.min(mask_GPQF)+1)
+            cbar_labels = ['Unaffected','Possible Glint']
+
+        elif(pvar == 'stray'):
+            # Convert the GPQF flag values to glint flags 
+            # -------------------------------------------
+            work_GPQF = OMI_hrly['PXQF'][:,:,0,10]
+            local_GPQF = np.copy(work_GPQF)
+            #local_GPQF = np.full(work_GPQF.shape,np.nan)
+
+            mask_GPQF = np.ma.masked_invalid(local_GPQF)
+            cmap = plt.get_cmap('jet', np.max(mask_GPQF) - np.min(mask_GPQF)+1)
+            cbar_labels = ['Unaffected','Stray Light Warning']
+
+        elif(pvar == 'sunshine'):
+            # Convert the GPQF flag values to glint flags 
+            # -------------------------------------------
+            work_GPQF = OMI_hrly['XTRACK'][:,:,4]
+            local_GPQF = np.copy(work_GPQF)
+            #local_GPQF = np.full(work_GPQF.shape,np.nan)
+
+            mask_GPQF = np.ma.masked_invalid(local_GPQF)
+            cmap = plt.get_cmap('jet', np.max(mask_GPQF) - np.min(mask_GPQF)+1)
+            cbar_labels = ['Unaffected','Possible Stray Sunshine']
+
+        elif(pvar == 'earthshine'):
+            # Convert the GPQF flag values to glint flags 
+            # -------------------------------------------
+            work_GPQF = OMI_hrly['XTRACK'][:,:,5]
+            local_GPQF = np.copy(work_GPQF)
+            #local_GPQF = np.full(work_GPQF.shape,np.nan)
+
+            mask_GPQF = np.ma.masked_invalid(local_GPQF)
+            cmap = plt.get_cmap('jet', np.max(mask_GPQF) - np.min(mask_GPQF)+1)
+            cbar_labels = ['Unaffected','Possible Stray Earthshine']
 
         mesh = pax.pcolormesh(OMI_hrly['LON'], OMI_hrly['LAT'], mask_GPQF,\
                 transform = datacrs, cmap = cmap,\
@@ -4212,9 +4368,11 @@ def plotOMI_single_swath_multiple(dtype = 'control',  \
     else:
         plt.show()
 
-# 2 panel plot showing control UVAI and ground classification
+# 2 panel plot showing control UVAI and ice classification
+# (formerly "ground")
 # -----------------------------------------------------------
-def plotOMI_single_ground(date_str, only_sea_ice = False, minlat = 65., \
+def plotOMI_single_flags(date_str, pvar = 'ice', \
+        only_sea_ice = False, minlat = 65., \
         zoom = False, multi_panel = False, save = False):
 
     # ----------------------------------------------------
@@ -4230,7 +4388,13 @@ def plotOMI_single_ground(date_str, only_sea_ice = False, minlat = 65., \
         circle_bound = False
         mapcrs = ccrs.NorthPolarStereo(central_longitude = -40)
         #mapcrs = ccrs.Robinson()
-    #mapcrs = ccrs.NorthPolarStereo()
+    else:
+        if(minlat > 50):
+            mapcrs = ccrs.NorthPolarStereo()
+            figsize = (11,5)
+        else:
+            mapcrs = ccrs.Robinson()
+            figsize = (11,5)
     # ----------------------------------------------------
     # Set up the overall figure
     # ----------------------------------------------------
@@ -4240,7 +4404,7 @@ def plotOMI_single_ground(date_str, only_sea_ice = False, minlat = 65., \
         ax0 = fig1.add_subplot(2,2,1, projection = mapcrs)
         ax1 = fig1.add_subplot(2,2,2, projection = mapcrs)
     else:
-        fig1 = plt.figure(figsize = (11,5))
+        fig1 = plt.figure(figsize = figsize)
         ax0 = fig1.add_subplot(1,2,1, projection = mapcrs)
         ax1 = fig1.add_subplot(1,2,2, projection = mapcrs)
 
@@ -4248,11 +4412,18 @@ def plotOMI_single_ground(date_str, only_sea_ice = False, minlat = 65., \
     # Use the single-swath plotting function to plot each
     # of the 3 data types
     # ----------------------------------------------------
+    pvar_dict = {
+        'stray': 'Possible Stray Light',\
+        'earthshine': 'Possible Stray Earthshine', \
+        'sunshine': 'Possible Stray Sunshine', \
+        'glint': 'Possible Sun Glint',\
+    }
     gridlines = False
     plotOMI_single_swath(ax0, OMI_base, title = 'Control', \
         circle_bound = circle_bound, gridlines = gridlines)
-    plotOMI_single_swath(ax1, OMI_base, title = 'Screened', pvar = 'GPQF', \
-        circle_bound = circle_bound, gridlines = gridlines)
+    plotOMI_single_swath(ax1, OMI_base, title = pvar_dict[pvar], \
+        pvar = pvar, circle_bound = circle_bound, gridlines = gridlines)
+    #plotOMI_single_swath(ax1, OMI_base, title = 'Screened', pvar = 'GPQF', \
 
     if(zoom):
         ax0.set_extent([-90., -20., 75., 87.], datacrs)
@@ -4265,7 +4436,8 @@ def plotOMI_single_ground(date_str, only_sea_ice = False, minlat = 65., \
     fig1.tight_layout()
 
     if(save):
-        outname = 'omi_single_swath_ground_' + date_str + zoom_add + '.png'
+        outname = 'omi_single_swath_' + pvar + '_' + date_str + \
+            zoom_add + '.png'
         fig1.savefig(outname, dpi=300)
         print("Saved image",outname)
     else:

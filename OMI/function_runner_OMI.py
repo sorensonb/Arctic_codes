@@ -29,6 +29,9 @@ import sys
 ####fig1.savefig('arctic_lat_circles_80.png',dpi=300)
 ###plt.show()
 
+# pvars = 'glint', 'earthshine', 'sunshine', 'stray'
+plotOMI_single_flags('201204101833', pvar = 'glint', minlat = 55, zoom = True)
+
 #plot_combined_fort_out('20170818', min_lat = 70., vtype = 'areas', save = False)
 
 # NOTE: for plotting the bias between OMI rows, use this line with the
