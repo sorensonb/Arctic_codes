@@ -28,6 +28,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colors as cm
 from matplotlib.dates import DateFormatter
+from matplotlib.lines import Line2D
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.patches as mpatches
@@ -3253,40 +3254,24 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
  
     mask_total = mask_swf + mask_lwf
 
+    markersize = 14
     lhrval_p = spearmanr(hash_match_LWF.compressed(), \
         hash_mask_lwf)[0]
     lnrval_p = spearmanr(nohash_match_LWF.compressed(), \
         nohash_mask_lwf)[0]
-    pax.scatter(hash_match_LWF.compressed(), hash_mask_lwf,\
-        s = 18, color='tab:blue', marker='x',label = 'LWF smoke')
-    pax.scatter(nohash_match_LWF.compressed(), nohash_mask_lwf,\
-        s = 18, color='tab:orange', marker='x',label = 'LWF clear')
+    ln1 = pax.scatter(hash_match_SWF.compressed(), hash_mask_swf,\
+        s = markersize, color='tab:blue', marker='o',label = 'SWF smoke')
+    ln2 = pax.scatter(nohash_match_SWF.compressed(), nohash_mask_swf,\
+        s = markersize, color='tab:orange', marker='o',label = 'SWF clear')
+    ln3 = pax.scatter(hash_match_LWF.compressed(), hash_mask_lwf,\
+        s = markersize, color='tab:green', marker='o',label = 'LWF smoke')
+    ln4 = pax.scatter(nohash_match_LWF.compressed(), nohash_mask_lwf,\
+        s = markersize, color='tab:red', marker='o',label = 'LWF clear')
 
-    shrval_p = spearmanr(hash_match_SWF.compressed(), \
-        hash_mask_swf)[0]
-    snrval_p = spearmanr(nohash_match_SWF.compressed(), \
-        nohash_mask_swf)[0]
-    pax.scatter(hash_match_SWF.compressed(), hash_mask_swf,\
-        s = 18, color='tab:blue', marker='o',label = 'SWF smoke')
-    pax.scatter(nohash_match_SWF.compressed(), nohash_mask_swf,\
-        s = 18, color='tab:orange', marker='o',label = 'SWF clear')
-
-    # Plot total flux data
-    # --------------------
-    hash_match_TF   = hash_match_SWF + hash_match_LWF
-    nohash_match_TF = nohash_match_SWF + nohash_match_LWF
-    hash_mask_TF   = hash_mask_swf + hash_mask_lwf
-    nohash_mask_TF = nohash_mask_swf + nohash_mask_lwf
-
-    thrval_p = spearmanr(hash_match_TF.compressed(), \
-        hash_mask_swf)[0]
-    tnrval_p = spearmanr(nohash_match_TF.compressed(), \
-        nohash_mask_swf)[0]
-    if(plot_total_flux):
-        pax.scatter(hash_match_SWF.compressed(), hash_mask_TF,\
-            s = 18, color='tab:blue', marker='*',label = 'Total smoke')
-        pax.scatter(nohash_match_SWF.compressed(), nohash_mask_TF,\
-            s = 18, color='tab:orange', marker='*',label = 'Total clear')
+    ##!#shrval_p = spearmanr(hash_match_SWF.compressed(), \
+    ##!#    hash_mask_swf)[0]
+    ##!#snrval_p = spearmanr(nohash_match_SWF.compressed(), \
+    ##!#    nohash_mask_swf)[0]
 
     # Plot trend lines for each set
     # -----------------------------
@@ -3299,19 +3284,54 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
 
     print("Calculating MODIS/LWF smoke trend")
     plot_trend_line(pax, hash_match_LWF.compressed(), hash_mask_lwf, \
-        color='tab:blue',  linestyle = '--')
+        color='tab:green')
     print("Calculating MODIS/LWF clear trend")
     plot_trend_line(pax, nohash_match_LWF.compressed(), nohash_mask_lwf, \
-        color='tab:orange', linestyle = '--')
+        color='tab:red')
+
+    #lns = ln1 + ln2 + ln3 + ln4
+    custom_lines = [Line2D([0], [0], color='tab:blue', label = 'SWF Smoke',),
+                    Line2D([0], [0], color='tab:orange', label = 'SWF Clear',),
+                    Line2D([0], [0], color='tab:green', label = 'LWF Smoke',),\
+                    Line2D([0], [0], color='tab:red', label = 'LWF Clear')]
 
     if(plot_total_flux):
-        print("Calculating MODIS/Total smoke trend")
-        plot_trend_line(pax, hash_match_SWF.compressed(), hash_mask_TF, \
-            color='tab:blue',  linestyle = '--')
-        print("Calculating MODIS/Total clear trend")
-        plot_trend_line(pax, nohash_match_SWF.compressed(), nohash_mask_TF, \
-            color='tab:orange', linestyle = '--')
+        # Plot total flux data
+        # --------------------
+        hash_match_TF   = hash_match_SWF + hash_match_LWF
+        nohash_match_TF = nohash_match_SWF + nohash_match_LWF
+        hash_mask_TF   = hash_mask_swf + hash_mask_lwf
+        nohash_mask_TF = nohash_mask_swf + nohash_mask_lwf
 
+        thrval_p = spearmanr(hash_match_TF.compressed(), \
+            hash_mask_swf)[0]
+        tnrval_p = spearmanr(nohash_match_TF.compressed(), \
+            nohash_mask_swf)[0]
+
+        pax2 = pax.twinx()
+        ln5 = pax2.scatter(hash_match_SWF.compressed(), hash_mask_TF,\
+            s = markersize, color='tab:cyan', marker='o',label = 'Total smoke')
+        ln6 = pax2.scatter(nohash_match_SWF.compressed(), nohash_mask_TF,\
+            s = markersize, color='tab:purple', marker='o',label = 'Total clear')
+
+        print("Calculating MODIS/Total smoke trend")
+        plot_trend_line(pax2, hash_match_SWF.compressed(), hash_mask_TF, \
+            color='tab:cyan')
+        print("Calculating MODIS/Total clear trend")
+        plot_trend_line(pax2, nohash_match_SWF.compressed(), nohash_mask_TF, \
+            color='tab:purple')
+
+        #lns = lns + ln5 + ln6
+        custom_lines = [Line2D([0], [0], color='tab:blue', label = 'SWF Smoke',),
+                        Line2D([0], [0], color='tab:orange', label = 'SWF Clear',),
+                        Line2D([0], [0], color='tab:green', label = 'LWF Smoke',),\
+                        Line2D([0], [0], color='tab:red', label = 'LWF Clear'), \
+                        Line2D([0], [0], color='tab:cyan', label = 'Total Smoke'),
+                        Line2D([0], [0], color='tab:purple', label = 'Total Clear')]
+
+
+    labs = [l.get_label() for l in custom_lines]
+    pax.legend(custom_lines, labs, bbox_to_anchor = (1.05, 1.0), loc = 0, fontsize = 9)
     ##!#pax.set_title('SWF smoke: '+str(np.round(shrval_p,3)) + '  SWF clear: ' + \
     ##!#     str(np.round(snrval_p,3)) + \
     ##!#    '\nLWF smoke: '+str(np.round(lhrval_p,3)) + '  LWF clear: ' + \
@@ -3320,7 +3340,7 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
         str(MODIS_data['channel'])]['Bandwidth']),1)) + ' μm T$_{B}$', \
         fontsize = labelsize, weight = 'bold')
     pax.set_ylabel('CERES TOA Flux [Wm$^{-2}$]', fontsize = labelsize, weight = 'bold')
-    pax.legend(bbox_to_anchor = (1.05, 1.0), loc = 'upper left')
+    #pax.legend(bbox_to_anchor = (1.05, 1.0), loc = 'upper left')
     #pax.set_title('Smoke correlation: '+str(np.round(lrval_p, 3)))
 
 
@@ -4380,7 +4400,7 @@ def plot_spatial_scatter(date_str, zoom=True,save=False,composite=True,\
                         datacrs)
 
     plot_scatter_CERES(date_str, MODIS_data0, ax3, avg_pixel = avg_pixel,\
-        plume_only = plume_only,  plot_total_flux = False)
+        plume_only = plume_only,  plot_total_flux = True)
 
     # Add labels to all the subplots
     # ------------------------------
@@ -7856,19 +7876,15 @@ def plot_combined_figure1_v4(date_str = '202107222110', \
         plt.show()
 
 def plot_combined_figure1_v5(date_str = '202107222110', \
-        zoom = True, \
-        modis_ch1 = 7, \
-        modis_ch2 = 31, \
-        goes_ch1 = 2, \
-        goes_ch2 = 6, \
-        goes_ch3 = 13, \
-        goes_ch4 = 8, \
-        goes_ch5 = 9, \
-        goes_ch6 = 10, \
-        GOES_dict = None, ch_idx1 = 0, ch_idx2 = 1, ch_idx3 = 2,\
-        idx1 = 3, idx2 = 8, date_idx = 26, 
+        modis_ch1 = 7, modis_ch2 = 31, \
+        goes_ch1 = 2, goes_ch2 = 6, goes_ch3 = 13, \
+        goes_ch4 = 8, goes_ch5 = 9, goes_ch6 = 10, \
+        ch_idx1 = 0, ch_idx2 = 1, ch_idx3 = 2,\
+        ttype1 = 'low', ttype2 = 'ml', \
+        idx1 = 3, idx2 = 8, idx3 = 5, \
+        date_idx = 25, 
         show_smoke = False, composite = True, double_fig = False, \
-        save=False):
+        zoom = True, save=False):
 
     #date_str = '202107202125'
     date_str = '202107222110'
@@ -7879,7 +7895,7 @@ def plot_combined_figure1_v5(date_str = '202107222110', \
     if('/home/bsorenson/Research/GOES' not in sys.path):
         sys.path.append('/home/bsorenson/Research/GOES')
     from GOESLib import read_GOES_satpy, plot_GOES_satpy,\
-        goes_channel_dict
+        goes_channel_dict, read_GOES_time_series_NCDF
 
     # ----------------------------------------------------------------------
     #
@@ -7922,6 +7938,15 @@ def plot_combined_figure1_v5(date_str = '202107222110', \
         read_GOES_satpy(date_str2, goes_ch5)
     var7, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel7 = \
         read_GOES_satpy(date_str2, goes_ch6)
+
+    # Read the GOES time series data
+    # ------------------------------
+    file_name1 = '/home/bsorenson/Research/GOES/goes_cross_data_' + \
+        ttype1 + '_202107201201_202107210231.nc'
+    file_name2 = '/home/bsorenson/Research/GOES/goes_cross_data_' + \
+        ttype2 + '_202107201201_202107210231.nc'
+    GOES_dict  = read_GOES_time_series_NCDF(file_name1)
+    GOES_dict2 = read_GOES_time_series_NCDF(file_name2)
 
     # ----------------------------------------------------------------------
     #
@@ -8042,6 +8067,12 @@ def plot_combined_figure1_v5(date_str = '202107222110', \
     ax4.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
             linewidth=2, markersize = point_size, marker='.',
             transform=datacrs)
+    ax4.plot(GOES_dict2['plon'][idx3], GOES_dict2['plat'][idx3], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax4.plot(GOES_dict2['plon'][idx3], GOES_dict2['plat'][idx3], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs)
     ax5.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
             linewidth=2, markersize = point_size + 2, marker='.',
             color = 'black', transform=datacrs)
@@ -8054,6 +8085,12 @@ def plot_combined_figure1_v5(date_str = '202107222110', \
     ax5.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
             linewidth=2, markersize = point_size, marker='.',
             transform=datacrs)
+    ax5.plot(GOES_dict2['plon'][idx3], GOES_dict2['plat'][idx3], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax5.plot(GOES_dict2['plon'][idx3], GOES_dict2['plat'][idx3], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs)
     ax6.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
             linewidth=2, markersize = point_size + 2, marker='.',
             color = 'black', transform=datacrs)
@@ -8064,6 +8101,12 @@ def plot_combined_figure1_v5(date_str = '202107222110', \
             linewidth=2, markersize = point_size + 2, marker='.',
             color = 'black', transform=datacrs)
     ax6.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs)
+    ax6.plot(GOES_dict2['plon'][idx3], GOES_dict2['plat'][idx3], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax6.plot(GOES_dict2['plon'][idx3], GOES_dict2['plat'][idx3], \
             linewidth=2, markersize = point_size, marker='.',
             transform=datacrs)
 
@@ -8077,6 +8120,10 @@ def plot_combined_figure1_v5(date_str = '202107222110', \
         label = str(goes_channel_dict[\
         str(GOES_dict['channels'][ch_idx1])]['wavelength']) + \
         ' μm', color = 'tab:orange')
+    ln41 = ax10.plot(GOES_dict2['dt_dates'], GOES_dict2['data'][:,ch_idx1,idx3], \
+        label = str(goes_channel_dict[\
+        str(GOES_dict2['channels'][ch_idx1])]['wavelength']) + \
+        ' μm', color = 'tab:green')
 
     # Plot the two channel data for the second point
     # ----------------------------------------------
@@ -8088,10 +8135,14 @@ def plot_combined_figure1_v5(date_str = '202107222110', \
         label = str(goes_channel_dict[\
         str(GOES_dict['channels'][ch_idx2])]['wavelength']) + \
         ' μm', linestyle = '--', color = 'tab:orange')
-    ax10.axvline(GOES_dict['dt_dates'][date_idx], color = 'black',\
-        linestyle = ':')
+    ln42 = ax10.plot(GOES_dict2['dt_dates'], GOES_dict2['data'][:,ch_idx2,idx3], \
+        label = str(goes_channel_dict[\
+        str(GOES_dict2['channels'][ch_idx2])]['wavelength']) + \
+        ' μm', linestyle = '--', color = 'tab:green')
+    #ax10.axvline(GOES_dict['dt_dates'][date_idx], color = 'black',\
+    #    linestyle = ':')
 
-    lns = ln11 + ln21 + ln12 + ln22 
+    ##!#lns = ln11 + ln21 + ln41 + ln12 + ln22 + ln42
 
     if(ch_idx3 is not None):
         ax102 = ax10.twinx()
@@ -8103,9 +8154,14 @@ def plot_combined_figure1_v5(date_str = '202107222110', \
             label = str(goes_channel_dict[\
             str(GOES_dict['channels'][ch_idx3])]['wavelength']) + \
             ' μm', linestyle = ':', color = 'tab:orange')
+        ln33 = ax102.plot(GOES_dict2['dt_dates'], GOES_dict2['data'][:,\
+            ch_idx3,idx3], \
+            label = str(goes_channel_dict[\
+            str(GOES_dict2['channels'][ch_idx3])]['wavelength']) + \
+            ' μm', linestyle = ':', color = 'tab:green')
         ax102.set_ylabel('Brightness Temperature [K]')
 
-        lns = lns + ln31 + ln32 
+        ##!#lns = lns + ln31 + ln32 
 
     ax10.set_title('GOES-17')
     labelsize = 10
@@ -8116,8 +8172,15 @@ def plot_combined_figure1_v5(date_str = '202107222110', \
     ax10.xaxis.set_major_formatter(DateFormatter('%m/%d\n%H:%MZ'))
     ax10.tick_params(axis="x", labelsize = font_size + 1)
 
-    labs = [l.get_label() for l in lns]
-    ax10.legend(lns, labs, fontsize = font_size)
+    ##!#labs = [l.get_label() for l in lns]
+
+    custom_lines = [Line2D([0], [0], color='k'),
+                    Line2D([0], [0], color='k', linestyle = '--'),
+                    Line2D([0], [0], color='k', linestyle = ':')]
+
+    ax10.legend(custom_lines, ['0.64 μm', '2.25 μm', '10.35 μm'],\
+        fontsize = font_size, loc = 2)
+    #ax10.legend(lns, labs, fontsize = font_size)
 
     # Add subplot labels
     # ------------------
@@ -8198,14 +8261,14 @@ def plot_combined_figure1_v5(date_str = '202107222110', \
 
     if(save):
         if(double_fig):
-            outname1 = 'modis_total_combined_' + date_str + '_fig1_v4_modis.png'
-            outname2 = 'modis_total_combined_' + date_str + '_fig1_v4_goes.png'
+            outname1 = 'modis_total_combined_' + date_str + '_fig1_v5_modis.png'
+            outname2 = 'modis_total_combined_' + date_str + '_fig1_v5_goes.png'
             fig1.savefig(outname1, dpi=300)
             fig2.savefig(outname2, dpi=300)
             print("Saved",outname1)
             print("Saved",outname2)
         else:
-            outname = 'modis_total_combined_' + date_str + '_fig1_v5.png'
+            outname = 'modis_total_combined_' + date_str + '_fig1_v52.png'
             fig.savefig(outname, dpi=300)
             print("Saved",outname)
     else:

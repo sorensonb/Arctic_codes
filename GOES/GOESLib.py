@@ -73,6 +73,7 @@ from satpy import find_files_and_readers
 from satpy.scene import Scene
 from satpy.writers import get_enhanced_image
 from glob import glob
+import os
 
 sys.path.append('/home/bsorenson/')
 from python_lib import *
@@ -198,17 +199,34 @@ for key in goes_channel_dict.keys():
 
 goes_area_dict = {
     "2021-07-13": {
-        '2110': {
-            'asos': 'asos_data_20210713.csv',
-            #'goes': '/home/bsorenson/data/GOES/Aqua/MYD021KM.A2021203.2110.061.2021204155922.hdf',
-            #'mdswv': '/home/bsorenson/data/GOES/Aqua/MYD05_L2.A2021203.2110.061.2021204163638.hdf',
-            #'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072210-2021072221.nc',
-            #'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.22.212.L2.SUBS2RET.v6.0.32.0.G21204140844.hdf'],
-            'Lat': [39.5, 42.0],
-            'Lon': [-122.0, -119.5],
-            'goes_Lat': [39.0, 42.5],
-            'goes_Lon': [-123., -119.]
-        }
+        ##!#'2110': {
+        'asos': 'asos_data_20210713.csv',
+        #'goes': '/home/bsorenson/data/GOES/Aqua/MYD021KM.A2021203.2110.061.2021204155922.hdf',
+        #'mdswv': '/home/bsorenson/data/GOES/Aqua/MYD05_L2.A2021203.2110.061.2021204163638.hdf',
+        #'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072210-2021072221.nc',
+        #'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.22.212.L2.SUBS2RET.v6.0.32.0.G21204140844.hdf'],
+        'Lat': [39.5, 42.0],
+        'Lon': [-122.0, -119.5],
+        ##!#'goes_Lat': [39.0, 42.5],
+        ##!#'goes_Lon': [-123., -119.]
+        'goes_Lat': [39.5, 42.0],
+        'goes_Lon': [-122.0, -119.5],
+        ##!#}
+    },
+    "2021-07-14": {
+        ##!#'2110': {
+        'asos': 'asos_data_20210713.csv',
+        #'goes': '/home/bsorenson/data/GOES/Aqua/MYD021KM.A2021203.2110.061.2021204155922.hdf',
+        #'mdswv': '/home/bsorenson/data/GOES/Aqua/MYD05_L2.A2021203.2110.061.2021204163638.hdf',
+        #'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072210-2021072221.nc',
+        #'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.22.212.L2.SUBS2RET.v6.0.32.0.G21204140844.hdf'],
+        'Lat': [39.5, 42.0],
+        'Lon': [-122.0, -119.5],
+        ##!#'goes_Lat': [39.0, 42.5],
+        ##!#'goes_Lon': [-123., -119.]
+        'goes_Lat': [39.5, 42.0],
+        'goes_Lon': [-122.0, -119.5],
+        ##!#}
     },
     "2021-07-20": {
         'asos': 'asos_data_20210720.csv',
@@ -561,7 +579,7 @@ def download_GOES_bucket(date_str, sat = 'goes17', \
     # ----------------------------------------------
     for gf in good_files:
         request_add = dt_date_str.strftime('s3://noaa-'+sat+\
-            '/ABI-L1b-RadC/2021/%j/%H/' + gf)
+            '/ABI-L1b-RadC/%Y/%j/%H/' + gf)
         #print(request_add)
         cmnd_list = ['aws','s3','cp','--no-sign-request',\
             request_add, dest_dir]
@@ -2581,6 +2599,165 @@ def read_GOES_time_series_auto(begin_date, end_date, \
     out_dict['plon'] = dlon
 
     return out_dict
+
+def read_GOES_time_series_NCDF(file_name):
+
+    # Set up the output dictionary
+    # ----------------------------
+    GOES_dict = {}
+
+    # Open the netCDF file
+    # --------------------
+    nc = Dataset(file_name, 'r')
+
+    # Convert the seconds in the file to datetime objects
+    # ---------------------------------------------------
+    base_date = datetime.strptime(nc.base_date, '%Y%m%d%H%M')
+    dates = np.array([(base_date + timedelta(seconds = int(ttime))) \
+        for ttime in nc['time'][:]])
+
+    # Insert the data into the dictionary
+    # -----------------------------------
+    GOES_dict['data']      = nc['data'][:,:,:].data
+    GOES_dict['goes_lats'] = nc['goes_lat'][:,:,:].data
+    GOES_dict['goes_lons'] = nc['goes_lon'][:,:,:].data
+    GOES_dict['dt_dates']  = dates
+    GOES_dict['channels']  = nc['channel_num'][:].data
+    GOES_dict['plat']      = nc['point_lat'][:].data
+    GOES_dict['plon']      = nc['point_lon'][:].data
+    GOES_dict['ptype']     = nc.ptype
+
+    nc.close()
+
+    return GOES_dict
+ 
+def write_GOES_time_series_NCDF(GOES_dict, save_dir = './'):
+
+    file_name_start = save_dir + 'goes_cross_data_' + GOES_dict['ptype'] + \
+        '_' + \
+        GOES_dict['dt_dates'][0].strftime('%Y%m%d%H%M') + '_' + \
+        GOES_dict['dt_dates'][-1].strftime('%Y%m%d%H%M')
+    file_name = file_name_start + '.nc'
+
+    # Check if the file already exists
+    # --------------------------------
+    while(os.path.exists(file_name)):
+        print("WARNING: file",file_name," already exists. Making new version")
+
+        # Check if this file exists
+        # -------------------------
+        if(file_name.strip().split('_')[-1].split('.')[0][0] == 'v'):
+            version_num = int(file_name.strip().split('_')[-1].split('.')[0][1:])
+            file_name = file_name_start + '_v' + str(version_num + 1) + '.nc'
+
+        else:
+            file_name = save_dir + file_name_start + '_v2.nc'
+
+    print(file_name) 
+
+    # Create a new netCDF dataset to write to
+    # --------------------------------------- 
+    nc = Dataset(file_name,'w',format='NETCDF4')
+  
+    # Dimensions = datetime, channel, point
+    # Create the sizes of each dimension in the file. 
+    # -----------------------------------------------
+    num_point = len(GOES_dict['plat'])
+    num_ch    = len(GOES_dict['channels'])
+    num_time  = len(GOES_dict['dt_dates'])
+  
+    # For the dates, calculate the number of seconds between 
+    # each date and a reference date, which is January 1st, 2000
+    # at 00:00 UTC.
+    # ---------------------------------------------------------- 
+    base_date = datetime(year=2000,month=1,day=1,hour = 0, minute = 0,\
+        second = 0) 
+    times = np.array([(tdate - base_date).total_seconds() \
+        for tdate in GOES_dict['dt_dates']])
+  
+    # Add an attribute to the file to contain the cross section
+    # location
+    # ---------------------------------------------------------
+    nc.ptype = GOES_dict['ptype']
+    nc.base_date = base_date.strftime('%Y%m%d%H%M')
+ 
+    # Use the dimension size variables to actually create dimensions in 
+    # the file.
+    # ----------------------------------------------------------------- 
+    n_point = nc.createDimension('n_point',num_point)
+    n_ch    = nc.createDimension('n_ch',   num_ch)
+    n_time  = nc.createDimension('n_time', num_time)
+
+    # Create variables for the three dimensions. Note that since these
+    # are variables, they are still given 'dimensions' using 'n_point',
+    # 'n_ch', and 'n_time'.
+    # ----------------------------------------------------------------
+    TIME = nc.createVariable('time','f8',('n_time'))
+    TIME.description = 'Seconds since 00:00 UTC 1 January 2000'
+    CHANNEL = nc.createVariable('channel_num','i2',('n_ch'))
+    CHANNEL.description = 'GOES channel number'
+    POINT = nc.createVariable('cross_point','i2',('n_point'))
+    POINT.description = 'Cross section point index'
+   
+    # Create variables
+    # ----------------
+    DATA = nc.createVariable('data','f4',('n_time','n_ch','n_point'))
+    DATA.description = 'GOES reflectance and/or brightness temperature at each point'
+    GOES_LAT = nc.createVariable('goes_lat','f4',('n_time','n_ch','n_point'))
+    GOES_LAT.description = 'GOES latitude of each point for each channel'
+    GOES_LON = nc.createVariable('goes_lon','f4',('n_time','n_ch','n_point'))
+    GOES_LON.description = 'GOES longitude of each point for each channel'
+    POINT_LAT = nc.createVariable('point_lat','f4',('n_point'))
+    POINT_LAT.description = 'Latitude of each cross section point'
+    POINT_LON = nc.createVariable('point_lon','f4',('n_point'))
+    POINT_LON.description = 'Longitude of each cross section point'
+
+    # Fill in dimension variables one-by-one.
+    # NOTE: not sure if you can insert the entire data array into the
+    # dimension (for example, doing MONTH = times), so this could be
+    # something for you to try. Might make this faster if it works
+    # ---------------------------------------------------------------
+    TIME[:]          = times[:]
+    CHANNEL[:]       = GOES_dict['channels'][:]
+    POINT[:]         = np.arange(num_point)
+    DATA[:,:,:]      = GOES_dict['data'][:,:,:]
+    GOES_LAT[:,:,:]  = GOES_dict['goes_lats'][:,:,:]
+    GOES_LON[:,:,:]  = GOES_dict['goes_lons'][:,:,:]
+    POINT_LAT[:]     = GOES_dict['plat'][:]
+    POINT_LON[:]     = GOES_dict['plon'][:]
+    ##!#for i in range(num_time):
+    ##!#    MONTH[i] = times[i]
+    ##!#for i in range(num_lat):
+    ##!#    for j in range(num_lon):
+    ##!#        LAT[i,j]=lat_ranges[i]
+    ##!#        LON[i,j]=lon_ranges[j]
+
+    ##!## Fill in actual variables
+    ##!## I have a bunch of extra stuff in here for handling the dictionary
+    ##!## keys, which you will likely not need for your data
+    ##!## ------------------------------------------------------------------
+    ##!#for i in range(num_lat):
+    ##!#    print(lat_ranges[i])
+    ##!#    for j in range(num_lon):
+    ##!#        dictkey = (str(int(lat_ranges[i]))+'x'+str(int(lon_ranges[j])))
+    ##!#        if(dictkey not in OMI_data):
+    ##!#            # Insert missing values for AI and count
+    ##!#            AI[:,i,j] = [-999.9 for m in range(num_time)]
+    ##!#            OB_COUNT[:,i,j] = [-99 for m in range(num_time)]
+    ##!#        else:
+    ##!#            for m in range(num_time):
+    ##!#                timekey = testkeys[m]
+    ##!#                if(timekey not in OMI_data[dictkey]):
+    ##!#                    AI[m,i,j] = -999.9
+    ##!#                    OB_COUNT[m,i,j] = -99
+    ##!#                else:
+    ##!#                    AI[m,i,j] = OMI_data[dictkey][timekey]['avg']
+    ##!#                    OB_COUNT[m,i,j] = OMI_data[dictkey][timekey]['#_obs']
+
+    # Close the netCDF file, which actually saves it.
+    # -----------------------------------------------
+    nc.close()
+    print("Saved file",file_name)
 
 def plot_GOES_satpy_point_test(date_str, channel = 2, \
         plats = [40.750520, \

@@ -18,8 +18,8 @@ channel3 = 31
 
 #plot_combined_figure1_v4(date_str = '202107222110', zoom = True, show_smoke = False, composite = True, \
 #        double_fig = True, save = True)
-plot_spatial_scatter(date_str, zoom = True, save = True, composite = True,\
-    avg_pixel = True, plume_only = False)
+plot_spatial_scatter(date_str, zoom = True, composite = True,\
+    avg_pixel = True, plume_only = False, save = False)
 sys.exit()
 
 #plot_viewing_geometry(date_str = '202107222110', zoom = True, show_smoke = False, composite = True, \
