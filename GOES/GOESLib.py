@@ -66,6 +66,7 @@ import matplotlib.colors as cm
 from matplotlib.dates import DateFormatter
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib.tri import Triangulation
+from matplotlib.lines import Line2D
 import cartopy
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
@@ -918,7 +919,8 @@ calib_dict = {
     0.64: 'reflectance',
     1.61: 'reflectance',
     2.25: 'reflectance',
-    3.90: 'radiance',
+    3.90: 'brightness_temperature',
+    #3.90: 'radiance',
     6.18: 'brightness_temperature',
     6.95: 'brightness_temperature',
     7.34: 'brightness_temperature',
@@ -928,7 +930,8 @@ label_dict = {
     0.64: '%',
     1.61: '%',
     2.25: '%',
-    3.90: 'mW m$^{-2}$ Sr$^{-1}$ (cm$^{-1}$)$^{-1}$',
+    3.90: 'K',
+    #3.90: 'mW m$^{-2}$ Sr$^{-1}$ (cm$^{-1}$)$^{-1}$',
     #6.18: 'mW m$^{-2}$ Sr$^{-1}$ (cm$^{-1}$)$^{-1}$',
     6.18: 'K',
     6.95: 'K',
@@ -985,7 +988,7 @@ def read_GOES_satpy(date_str, channel, scene_date = None, zoom = True):
 
     # Load the desired channel data
     # -----------------------------
-    scn.load([channel])
+    scn.load([channel], calibration = calib_dict[channel])
 
     ## Set the map projection and center the data
     ## ------------------------------------------
@@ -2092,6 +2095,227 @@ def plot_GOES_time_series_channel_comp_2loc(GOES_dict1, GOES_dict2, \
         outname = outname + '_pt'+ str(idx1) + '_pt' + str(idx2)\
              + '_' + date_str + \
             '.png'
+            #GOES_dict['dt_dates'][time_idx].strftime('%Y%m%d%H%M') + \
+            #'.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+# This is written to compare time series of any two desired channels
+# (as long as they're in the GOES_dict structure). Compares data
+# from the same point(s) along the same cross section but from different
+# dates.
+def plot_GOES_time_series_channel_comp_2loc(GOES_dict1, GOES_dict2, \
+        ch_idx1, ch_idx2, idx1, ch_idx3 = None, \
+        date_idx = 20, save_dir = './', save = False):
+
+    # Make the plot for panels 1 and 2
+    # --------------------------------
+
+    channel1 = int(GOES_dict1['channels'][ch_idx1])
+    channel2 = int(GOES_dict1['channels'][ch_idx2])
+    if(ch_idx3 is not None):
+        channel3 = int(GOES_dict1['channels'][ch_idx3])
+        figsize = (8, 7)
+    else:
+        figsize = (9, 7)
+       
+
+    dt_date_str1 = GOES_dict1['dt_dates'][date_idx]
+    dt_date_str2 = GOES_dict2['dt_dates'][date_idx + 1]
+    date_str1 = dt_date_str1.strftime('%Y%m%d%H%M')
+    date_str2 = dt_date_str2.strftime('%Y%m%d%H%M')
+    var1, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel1 = \
+        read_GOES_satpy(date_str1, channel2)
+    var2, crs2, lons2, lats2, lat_lims2, lon_lims2, plabel2 = \
+        read_GOES_satpy(date_str2, channel2)
+
+    # Figure out relative dates to plot the same plot
+    # -----------------------------------------------
+    base_date1 = datetime.strptime('200007130000','%Y%m%d%H%M')
+    base_date2 = datetime.strptime('200007200000','%Y%m%d%H%M')
+    rel_date1 = GOES_dict1['dt_dates'] - base_date1
+    rel_date2 = GOES_dict2['dt_dates'] - base_date2
+
+    plt.close('all')
+    fig = plt.figure(figsize = figsize)
+    gs = fig.add_gridspec(nrows = 2, ncols = 2)
+    ax2  = fig.add_subplot(gs[0,0], projection = crs1)   # true color    
+    ax3  = fig.add_subplot(gs[0,1], projection = crs2)   # true color    
+    ax1  = fig.add_subplot(gs[1,:]) # Ch 1
+
+    # Plot the two channel data for the first date 
+    # ---------------------------------------------
+    ln11 = ax1.plot(GOES_dict1['dt_dates'], GOES_dict1['data'][:,ch_idx1,idx1], \
+    #ln11 = ax1.plot(rel_date1, GOES_dict1['data'][:,ch_idx1,idx1], \
+        label = str(goes_channel_dict[\
+        str(channel1)]['wavelength']) + \
+        ' μm', color = 'tab:blue')
+    ax112 = ax1.twiny()
+    ln12 = ax112.plot(GOES_dict2['dt_dates'], GOES_dict2['data'][:,ch_idx1,idx1], \
+    #ln12 = ax1.plot(rel_date2, GOES_dict2['data'][:,ch_idx1,idx1], \
+        label = str(goes_channel_dict[\
+        str(channel1)]['wavelength']) + \
+        ' μm', color = 'tab:orange')
+
+
+    # Plot the two channel data for the second point
+    # ----------------------------------------------
+    ln21 = ax1.plot(GOES_dict1['dt_dates'], GOES_dict1['data'][:,ch_idx2,idx1], \
+        label = str(goes_channel_dict[\
+        str(channel2)]['wavelength']) + \
+        ' μm', linestyle = '--', color = 'tab:blue')
+    ln22 = ax112.plot(GOES_dict2['dt_dates'], GOES_dict2['data'][:,ch_idx2,idx1], \
+        label = str(goes_channel_dict[\
+        str(channel1)]['wavelength']) + \
+        ' μm', linestyle = '--', color = 'tab:orange')
+    ax1.axvline(dt_date_str1, color = 'black',\
+        linestyle = ':')
+
+    lns = ln11 + ln12 + ln21 + ln22
+
+    labelsize = 10
+    font_size = 10
+    if(ch_idx3 is not None):
+        ax12 = ax1.twinx()
+        ax212 = ax12.twiny()
+        ln31 = ax12.plot(GOES_dict1['dt_dates'], GOES_dict1['data'][:,ch_idx3,idx1], \
+            label = str(goes_channel_dict[\
+            str(channel3)]['wavelength']) + \
+            ' μm', linestyle = ':', color = 'tab:blue')
+        ln32 = ax212.plot(GOES_dict2['dt_dates'], GOES_dict2['data'][:,ch_idx3,idx1], \
+            label = str(goes_channel_dict[\
+            str(channel3)]['wavelength']) + \
+            ' μm', linestyle = ':', color = 'tab:orange')
+        ax12.set_ylabel('Brightness Temperature [K]', weight = 'bold')
+        ax212.xaxis.set_major_formatter(DateFormatter(''))
+        ax212.tick_params(axis="x", labelsize = font_size)
+
+        lns = lns + ln31 + ln32
+        print(len(lns))
+
+    ax1.set_ylabel(plabel1.replace('_',' '), weight = 'bold')
+    ax1.grid()
+    ax1.xaxis.set_major_formatter(DateFormatter('%H:%MZ'))
+    ax1.tick_params(axis="x", labelsize = font_size)
+    ax112.xaxis.set_major_formatter(DateFormatter(''))
+    ax112.tick_params(axis="x", labelsize = font_size)
+
+    # Print out the values of each channel at each point
+    # --------------------------------------------------
+    print(str(goes_channel_dict[str(channel1)]['wavelength']) + \
+        ' μm\n')
+    print("    Date blue   - ", GOES_dict1['data'][date_idx,ch_idx1,idx1])
+    print("    Date orange - ", GOES_dict2['data'][date_idx,ch_idx1,idx1])
+    print(str(goes_channel_dict[str(channel2)]['wavelength']) + \
+        ' μm\n')
+    print("    Date blue   - ", GOES_dict1['data'][date_idx,ch_idx2,idx1])
+    print("    Date orange - ", GOES_dict2['data'][date_idx,ch_idx2,idx1])
+    if(ch_idx3 is not None):
+        print(str(goes_channel_dict[str(channel3)]['wavelength']) + \
+            ' μm\n')
+        print("    Date blue   - ", GOES_dict1['data'][date_idx,ch_idx3,idx1])
+        print("    Date orange - ", GOES_dict2['data'][date_idx,ch_idx3,idx1])
+
+    #lns = ln1+ln2+ln3
+    #labs = [l.get_label() for l in lns]
+    #ax1.legend(fontsize = font_size)
+    ##!#labs = [l.get_label() for l in lns]
+    ##!#ax1.legend(lns, labs, loc=2, fontsize = font_size)
+
+    custom_lines = [Line2D([0], [0], color='k'),
+                    Line2D([0], [0], color='k', linestyle = '--'),
+                    Line2D([0], [0], color='k', linestyle = ':')]
+
+    ax1.legend(custom_lines, ['0.64 μm', '2.25 μm', '10.35 μm'],\
+        fontsize = font_size, loc = 2)
+
+
+    # Plot the GOES 0.64 micron image for date 1
+    # ------------------------------------------
+    plot_GOES_satpy(date_str1, channel1, \
+        ax = ax2, var = var1, crs = crs1, \
+        lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+        vmin = goes_channel_dict[str(channel2)]['limits'][0], \
+        vmax = goes_channel_dict[str(channel2)]['limits'][1] - 20, \
+        ptitle = '', plabel = plabel1, \
+        #vmin = 5, vmax = 80, ptitle = '', plabel = plabel0, \
+        colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+
+    # Plot the point for date 1
+    # -------------------------
+    point_size = 5
+    ax2.plot(GOES_dict1['plon'][idx1], GOES_dict1['plat'][idx1], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax2.plot(GOES_dict1['plon'][idx1], GOES_dict1['plat'][idx1], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs)
+
+    plot_figure_text(ax2, 'Before Dixie Fire', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right', location = 'upper_right')
+    plot_figure_text(ax2, 'GOES-17 ' + \
+        str(goes_channel_dict[str(channel2)]['wavelength']) + ' μm', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+    ax2.set_title(dt_date_str1.strftime(\
+        '%Y-%m-%d %H:%MZ'), fontsize = labelsize)
+
+    # Plot the GOES 0.64 micron image for date 2
+    # ------------------------------------------
+    plot_GOES_satpy(date_str2, channel1, \
+        ax = ax3, var = var2, crs = crs2, \
+        lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+        vmin = goes_channel_dict[str(channel2)]['limits'][0], \
+        vmax = goes_channel_dict[str(channel2)]['limits'][1] - 20, \
+        ptitle = '', plabel = plabel2, \
+        #vmin = 5, vmax = 80, ptitle = '', plabel = plabel0, \
+        colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+
+    # Plot the currently-analyzed points
+    # ----------------------------------
+    point_size = 5
+    ax3.plot(GOES_dict2['plon'][idx1], GOES_dict2['plat'][idx1], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax3.plot(GOES_dict2['plon'][idx1], GOES_dict2['plat'][idx1], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs, color = 'tab:orange')
+
+    plot_figure_text(ax3, 'During Dixie Fire', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right', location = 'upper_right')
+    plot_figure_text(ax3, 'GOES-17 ' + \
+        str(goes_channel_dict[str(channel2)]['wavelength']) + ' μm', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+    ax3.set_title(dt_date_str2.strftime(\
+        '%Y-%m-%d %H:%MZ'), fontsize = labelsize)
+
+    plot_subplot_label(ax1, '(c)', backgroundcolor = 'white', \
+        fontsize = font_size + 2, location = 'upper_right')
+    plot_subplot_label(ax2, '(a)', backgroundcolor = 'white', \
+        fontsize = font_size + 2)
+    plot_subplot_label(ax3, '(b)', backgroundcolor = 'white', \
+        fontsize = font_size + 2)
+
+    fig.autofmt_xdate()
+    fig.tight_layout()
+
+    if(save):
+        outname = save_dir + 'goes_time_series_channel_comp_2date_' + \
+            GOES_dict1['ptype'] + '_ch' + \
+            str(channel1) + '_ch' + str(channel2)
+        if(ch_idx3 is not None):
+            outname = outname + '_ch' + str(channel3)
+        outname = outname + '_pt'+ str(idx1) + '_' + date_str1 + \
+            '_' + date_str2 + '.png'
             #GOES_dict['dt_dates'][time_idx].strftime('%Y%m%d%H%M') + \
             #'.png'
         fig.savefig(outname, dpi = 300)

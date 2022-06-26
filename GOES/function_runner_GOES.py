@@ -20,7 +20,14 @@ end_date   = '202107140300'
 begin_date2 = '202107211200'
 end_date2   = '202107220300'
 #end_date   = '202107220300'
-save_dir = '/home/bsorenson/Research/GOES/time_series_points/points_cross_section/'
+save_dir = \
+    '/home/bsorenson/Research/GOES/time_series_points/points_cross_section/20210713/'
+
+##!#plot_GOES_6panel_auto(begin_date, end_date,\
+##!#    save_dir = '/home/bsorenson/Research/GOES/six_panel/goes17_sixpanel_v3/20210713/', \
+##!#    save = True)
+##!#
+##!#sys.exit()
 
 ##!## Prep the points - mid-plume
 ##!#num_points = 29
@@ -108,22 +115,24 @@ GOES_dict0_low  = read_GOES_time_series_NCDF(base_dir + \
     'goes_cross_data_low_202107131201_202107140231.nc')
 GOES_dict1_low  = read_GOES_time_series_NCDF(base_dir + \
     'goes_cross_data_low_202107201201_202107210231.nc')
-GOES_dict2_low  = read_GOES_time_series_NCDF(base_dir + \
-    'goes_cross_data_low_202107211201_202107220231.nc')
+##!#GOES_dict2_low  = read_GOES_time_series_NCDF(base_dir + \
+##!#    'goes_cross_data_low_202107211201_202107220231.nc')
 GOES_dict0_ml   = read_GOES_time_series_NCDF(base_dir + \
     'goes_cross_data_ml_202107131201_202107140231.nc')
 GOES_dict1_ml   = read_GOES_time_series_NCDF(base_dir + \
     'goes_cross_data_ml_202107201201_202107210231.nc')
-GOES_dict2_ml   = read_GOES_time_series_NCDF(base_dir + \
-    'goes_cross_data_ml_202107211201_202107220231.nc')
+##!#GOES_dict2_ml   = read_GOES_time_series_NCDF(base_dir + \
+##!#    'goes_cross_data_ml_202107211201_202107220231.nc')
 GOES_dict1_mid  = read_GOES_time_series_NCDF(base_dir + \
-    'goes_cross_data_mid_202107201201_202107210231.nc')
-GOES_dict2_mid  = read_GOES_time_series_NCDF(base_dir + \
-    'goes_cross_data_mid_202107211201_202107220231.nc')
+    'goes_cross_data_mid_202107131201_202107140231.nc')
+    #'goes_cross_data_mid_202107201201_202107210231.nc')
+##!#GOES_dict2_mid  = read_GOES_time_series_NCDF(base_dir + \
+##!#    'goes_cross_data_mid_202107211201_202107220231.nc')
 GOES_dict1_up   = read_GOES_time_series_NCDF(base_dir + \
-    'goes_cross_data_up_202107201201_202107210231.nc')
-GOES_dict2_up   = read_GOES_time_series_NCDF(base_dir + \
-    'goes_cross_data_up_202107211201_202107220231.nc')
+    'goes_cross_data_up_202107131201_202107140231.nc')
+    #'goes_cross_data_up_202107201201_202107210231.nc')
+##!#GOES_dict2_up   = read_GOES_time_series_NCDF(base_dir + \
+##!#    'goes_cross_data_up_202107211201_202107220231.nc')
 
 ##!#write_GOES_time_series_NCDF(GOES_dict1_low, save_dir = './')
 ##!#write_GOES_time_series_NCDF(GOES_dict2_low, save_dir = './')
@@ -134,7 +143,27 @@ GOES_dict2_up   = read_GOES_time_series_NCDF(base_dir + \
 ##!#write_GOES_time_series_NCDF(GOES_dict1_up,  save_dir = './')
 ##!#write_GOES_time_series_NCDF(GOES_dict2_up,  save_dir = './')
 
+##!#plot_GOES_time_series_points_auto(GOES_dict, 0, \
+##!#        save_dir = save_dir + 'ch2/')
+##!#plot_GOES_time_series_points_auto(GOES_dict, 1, \
+##!#        save_dir = save_dir + 'ch6/')
+##!#plot_GOES_time_series_points_auto(GOES_dict, 2, \
+##!#        save_dir = save_dir + 'ch13/')
+##!#plot_GOES_time_series_points_auto(GOES_dict, 3, \
+##!#        save_dir = save_dir + 'ch8/')
+##!#plot_GOES_time_series_points_auto(GOES_dict, 4, \
+##!#        save_dir = save_dir + 'ch9/')
+##!#plot_GOES_time_series_points_auto(GOES_dict, 5, \
+##!#        save_dir = save_dir + 'ch10/')
+
+plot_GOES_time_series_channel_comp_2loc(GOES_dict0_ml, GOES_dict1_ml, \
+    0, 1, 18, ch_idx3 = 2, \
+    date_idx = 20, save_dir = './', save = False)
+
 sys.exit()
+
+plot_GOES_time_series_channel_comp(GOES_dict1_ml, 0, 1, 27, 22, \
+    ch_idx3 = 2, date_idx = 15, save = False)
 
 plot_GOES_time_series_channel_comp(GOES_dict1_ml, 0, 1, 27, 22, \
     ch_idx3 = 2, date_idx = 15, save = True)
@@ -144,23 +173,8 @@ plot_GOES_time_series_mesh(GOES_dict, date_idx = 26, ch_idx1 = 0, \
     ch_idx2 = 1)
 plot_GOES_cross_channels(GOES_dict, time_idx = 25)
 
-plot_GOES_time_series_points_auto(GOES_dict, 0, \
-        save_dir = save_dir + 'ch2/')
-plot_GOES_time_series_points_auto(GOES_dict, 1, \
-        save_dir = save_dir + 'ch6/')
-plot_GOES_time_series_points_auto(GOES_dict, 2, \
-        save_dir = save_dir + 'ch13/')
-plot_GOES_time_series_points_auto(GOES_dict, 3, \
-        save_dir = save_dir + 'ch8/')
-plot_GOES_time_series_points_auto(GOES_dict, 4, \
-        save_dir = save_dir + 'ch9/')
-plot_GOES_time_series_points_auto(GOES_dict, 5, \
-        save_dir = save_dir + 'ch10/')
 #plot_GOES_time_series(GOES_dict, save = False)
 #auto_GOES_download(begin_date, end_date, 30)
-#plot_GOES_6panel_auto(begin_date, end_date,\
-#    save_dir = '/home/bsorenson/Research/GOES/six_panel/goes17_sixpanel_v3/', \
-#    save = True)
 
 sys.exit()
 

@@ -3028,7 +3028,7 @@ def plot_scatter_OMI(date_str, MODIS_data, pax, avg_pixel = False, \
 
 def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
         plume_only = True, plot_total_flux = True, labelsize = 13,\
-        labelticksize = 11):
+        labelticksize = 11, lw_pax = None, total_pax = None):
 
     # Determine where the smoke is located
     # ------------------------------------
@@ -3260,13 +3260,19 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
     lnrval_p = spearmanr(nohash_match_LWF.compressed(), \
         nohash_mask_lwf)[0]
     ln1 = pax.scatter(hash_match_SWF.compressed(), hash_mask_swf,\
-        s = markersize, color='tab:blue', marker='o',label = 'SWF smoke')
+        s = markersize, color='tab:blue', marker='o',label = 'Smoke')
     ln2 = pax.scatter(nohash_match_SWF.compressed(), nohash_mask_swf,\
-        s = markersize, color='tab:orange', marker='o',label = 'SWF clear')
-    ln3 = pax.scatter(hash_match_LWF.compressed(), hash_mask_lwf,\
-        s = markersize, color='tab:green', marker='o',label = 'LWF smoke')
-    ln4 = pax.scatter(nohash_match_LWF.compressed(), nohash_mask_lwf,\
-        s = markersize, color='tab:red', marker='o',label = 'LWF clear')
+        s = markersize, color='tab:orange', marker='o',label = 'Clear')
+    if(lw_pax is None):
+        ln3 = pax.scatter(hash_match_LWF.compressed(), hash_mask_lwf,\
+            s = markersize, color='tab:green', marker='o',label = 'Smoke')
+        ln4 = pax.scatter(nohash_match_LWF.compressed(), nohash_mask_lwf,\
+            s = markersize, color='tab:red', marker='o',label = 'Clear')
+    else:
+        ln3 = lw_pax.scatter(hash_match_LWF.compressed(), hash_mask_lwf,\
+            s = markersize, color='tab:blue', marker='o',label = 'Smoke')
+        ln4 = lw_pax.scatter(nohash_match_LWF.compressed(), nohash_mask_lwf,\
+            s = markersize, color='tab:orange', marker='o',label = 'Clear')
 
     ##!#shrval_p = spearmanr(hash_match_SWF.compressed(), \
     ##!#    hash_mask_swf)[0]
@@ -3283,11 +3289,17 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
         color='tab:orange')
 
     print("Calculating MODIS/LWF smoke trend")
-    plot_trend_line(pax, hash_match_LWF.compressed(), hash_mask_lwf, \
-        color='tab:green')
     print("Calculating MODIS/LWF clear trend")
-    plot_trend_line(pax, nohash_match_LWF.compressed(), nohash_mask_lwf, \
-        color='tab:red')
+    if(lw_pax is None):
+        plot_trend_line(pax, hash_match_LWF.compressed(), hash_mask_lwf, \
+            color='tab:green')
+        plot_trend_line(pax, nohash_match_LWF.compressed(), nohash_mask_lwf, \
+            color='tab:red')
+    else:
+        plot_trend_line(lw_pax, hash_match_LWF.compressed(), hash_mask_lwf, \
+            color='tab:blue')
+        plot_trend_line(lw_pax, nohash_match_LWF.compressed(), nohash_mask_lwf, \
+            color='tab:orange')
 
     #lns = ln1 + ln2 + ln3 + ln4
     custom_lines = [Line2D([0], [0], color='tab:blue', label = 'SWF Smoke',),
@@ -3308,18 +3320,30 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
         tnrval_p = spearmanr(nohash_match_TF.compressed(), \
             nohash_mask_swf)[0]
 
-        pax2 = pax.twinx()
-        ln5 = pax2.scatter(hash_match_SWF.compressed(), hash_mask_TF,\
-            s = markersize, color='tab:cyan', marker='o',label = 'Total smoke')
-        ln6 = pax2.scatter(nohash_match_SWF.compressed(), nohash_mask_TF,\
-            s = markersize, color='tab:purple', marker='o',label = 'Total clear')
+        if(total_pax is None):
+            pax2 = pax.twinx()
+            ln5 = pax2.scatter(hash_match_SWF.compressed(), hash_mask_TF,\
+                s = markersize, color='tab:cyan', marker='o',label = 'Smoke')
+            ln6 = pax2.scatter(nohash_match_SWF.compressed(), nohash_mask_TF,\
+                s = markersize, color='tab:purple', marker='o',label = 'Clear')
+            print("Calculating MODIS/Total smoke trend")
+            plot_trend_line(pax2, hash_match_SWF.compressed(), hash_mask_TF, \
+                color='tab:cyan')
+            print("Calculating MODIS/Total clear trend")
+            plot_trend_line(pax2, nohash_match_SWF.compressed(), nohash_mask_TF, \
+                color='tab:purple')
+        else:
+            ln5 = total_pax.scatter(hash_match_SWF.compressed(), hash_mask_TF,\
+                s = markersize, color='tab:blue', marker='o',label = 'Smoke')
+            ln6 = total_pax.scatter(nohash_match_SWF.compressed(), nohash_mask_TF,\
+                s = markersize, color='tab:orange', marker='o',label = 'Clear')
+            print("Calculating MODIS/Total smoke trend")
+            plot_trend_line(total_pax, hash_match_SWF.compressed(), hash_mask_TF, \
+                color='tab:blue')
+            print("Calculating MODIS/Total clear trend")
+            plot_trend_line(total_pax, nohash_match_SWF.compressed(), nohash_mask_TF, \
+                color='tab:orange')
 
-        print("Calculating MODIS/Total smoke trend")
-        plot_trend_line(pax2, hash_match_SWF.compressed(), hash_mask_TF, \
-            color='tab:cyan')
-        print("Calculating MODIS/Total clear trend")
-        plot_trend_line(pax2, nohash_match_SWF.compressed(), nohash_mask_TF, \
-            color='tab:purple')
 
         #lns = lns + ln5 + ln6
         custom_lines = [Line2D([0], [0], color='tab:blue', label = 'SWF Smoke',),
@@ -3330,8 +3354,13 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
                         Line2D([0], [0], color='tab:purple', label = 'Total Clear')]
 
 
-    labs = [l.get_label() for l in custom_lines]
-    pax.legend(custom_lines, labs, bbox_to_anchor = (1.05, 1.0), loc = 0, fontsize = 9)
+    if(lw_pax is None):
+        labs = [l.get_label() for l in custom_lines]
+        pax.legend(custom_lines, labs, bbox_to_anchor = (1.05, 1.0), loc = 0, fontsize = 9)
+    else:
+        pax.legend(fontsize = 9, loc = 0)
+        lw_pax.legend(fontsize = 9, loc = 3)
+        total_pax.legend(fontsize = 9, loc = 0)
     ##!#pax.set_title('SWF smoke: '+str(np.round(shrval_p,3)) + '  SWF clear: ' + \
     ##!#     str(np.round(snrval_p,3)) + \
     ##!#    '\nLWF smoke: '+str(np.round(lhrval_p,3)) + '  LWF clear: ' + \
@@ -3339,103 +3368,18 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
     pax.set_xlabel('MODIS ' + str(np.round(np.average(channel_dict[\
         str(MODIS_data['channel'])]['Bandwidth']),1)) + ' μm T$_{B}$', \
         fontsize = labelsize, weight = 'bold')
-    pax.set_ylabel('CERES TOA Flux [Wm$^{-2}$]', fontsize = labelsize, weight = 'bold')
-    #pax.legend(bbox_to_anchor = (1.05, 1.0), loc = 'upper left')
-    #pax.set_title('Smoke correlation: '+str(np.round(lrval_p, 3)))
-
-
-    ##!#axcl.scatter(nohash_plot_data0, nohash_match_LWF,\
-    ##!#    s = 6, color='tab:orange')
-    ##!#axcs.scatter(nohash_plot_data0, nohash_match_SWF,\
-    ##!#    s = 6, color='tab:orange')
-
-    ##!#axcl.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
-    ##!#    channel_dict[str(channel0)]['Bandwidth_label'] + \
-    ##!#    MODIS_data0['variable'])
-    ##!#axcl.set_title('Smoke correlation: '+str(np.round(lrval_p, 3)))
-    ##!#axcs.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
-    ##!#    channel_dict[str(channel0)]['Bandwidth_label'] + \
-    ##!#    MODIS_data0['variable'])
-    ##!#axcs.set_title('Smoke correlation: '+str(np.round(srval_p, 3)))
-    ##!#axcl.set_ylabel('CERES LWF [W/m2]')
-    ##!#axcs.set_ylabel('CERES SWF [W/m2]')
-
-    ##!#else:
-    ##!#    hash_match_SWF   = np.full(hash_plot_data.shape,np.nan)
-    ##!#    hash_match_LWF   = np.full(hash_plot_data.shape,np.nan)
-    ##!#    hash_match_LAT   = np.full(hash_plot_lat.shape,np.nan)
-    ##!#    hash_match_LON   = np.full(hash_plot_lon.shape,np.nan)
-    ##!#    nohash_match_SWF = np.full(nohash_plot_data.shape,np.nan)
-    ##!#    nohash_match_LWF = np.full(nohash_plot_data.shape,np.nan)
-    ##!#    nohash_match_LAT = np.full(nohash_plot_lat.shape,np.nan)
-    ##!#    nohash_match_LON = np.full(nohash_plot_lon.shape,np.nan)
-
-    ##!#    for ii in range(hash_match_SWF.shape[0]):
-    ##!#        # Find the gridpoint in the gridded lat/lon data that 
-    ##!#        # corresponds to the station at slat and slon
-    ##!#        # ---------------------------------------------------- 
-    ##!#        o_idx = nearest_gridpoint(hash_plot_lat[ii], hash_plot_lon[ii],\
-    ##!#            mask_LAT, mask_LON)
-
-    ##!#        if(len(o_idx[0]) > 1):
-    ##!#            o_idx = (np.array([o_idx[0][0]])), (np.array([o_idx[1][0]]))
-    ##!#        hash_match_SWF[ii] = mask_swf[o_idx]
-    ##!#        hash_match_LWF[ii] = mask_lwf[o_idx]
-    ##!#        hash_match_LAT[ii] = mask_LAT[o_idx] 
-    ##!#        hash_match_LON[ii] = mask_LON[o_idx] 
-
-    ##!#    print(nohash_plot_data.shape)
-    ##!#    for ii in range(nohash_match_SWF.shape[0]):
-    ##!#        # Find the gridpoint in the gridded lat/lon data that 
-    ##!#        # corresponds to the station at slat and slon
-    ##!#        # ---------------------------------------------------- 
-    ##!#        o_idx = nearest_gridpoint(nohash_plot_lat[ii], nohash_plot_lon[ii],\
-    ##!#            mask_LAT, mask_LON)
-
-    ##!#        #print(o_idx, o_idx[0], o_idx[0].shape)
-    ##!#        if(len(o_idx[0].shape) > 1):
-    ##!#            o_idx = (np.array([o_idx[0][0]])), (np.array([o_idx[1][0]]))
-    ##!#        nohash_match_SWF[ii] = mask_swf[o_idx]
-    ##!#        nohash_match_LWF[ii] = mask_lwf[o_idx]
-    ##!#        nohash_match_LAT[ii] = mask_LAT[o_idx] 
-    ##!#        nohash_match_LON[ii] = mask_LON[o_idx] 
-
-    ##!#    #xy = np.vstack([plot_data0,match_OMI])
-    ##!#    #z = stats.gaussian_kde(xy)(xy)
-    ##!#    #axo.scatter(plot_data0,match_OMI,c=z,s=6)
-
-    ##!#    lrval_p = spearmanr(hash_plot_data, \
-    ##!#        hash_match_LWF)[0]
-    ##!#    ##plt.scatter(hash_plot_data, hash_match_SWF,\
-    ##!#    ##    s = 6, color='tab:blue')
-    ##!#    ##plt.scatter(hash_plot_data, hash_match_LWF,\
-    ##!#    ##    s = 6, color='tab:orange')
-    ##!#    #axcl.scatter(hash_plot_data, hash_match_LWF,\
-    ##!#    #    s = 6, color='tab:blue')
-    ##!#    mask_total = mask_swf + mask_lwf
-    ##!#    srval_p = spearmanr(hash_plot_data, \
-    ##!#        hash_match_SWF)[0]
-    ##!#    pax.scatter(hash_plot_data, hash_match_SWF,\
-    ##!#        s = 6, color='tab:blue', label = 'SWF')
-    ##!#    pax.scatter(hash_plot_data, hash_match_LWF,\
-    ##!#        s = 6, color='tab:orange', label = 'LWF')
-    ##!#    ##!#axcl.scatter(nohash_plot_data0, nohash_match_LWF,\
-    ##!#    ##!#    s = 6, color='tab:orange')
-    ##!#    ##!#axcs.scatter(nohash_plot_data0, nohash_match_SWF,\
-    ##!#    ##!#    s = 6, color='tab:orange')
-
-    ##!###axcl.set_xlabel('Ch. ' + str(MODIS_data['channel']) +' [' + \
-    ##!###    channel_dict[str(MODIS_data['channel'])]['Bandwidth_label'] + \
-    ##!###    MODIS_data0['variable'])
-    ##!###axcl.set_title('Smoke correlation: '+str(np.round(lrval_p, 3)))
-    ##!#pax.set_xlabel('Ch. ' + str(MODIS_data['channel']) +' [' + \
-    ##!#    channel_dict[str(MODIS_data['channel'])]['Bandwidth_label'] + \
-    ##!#    MODIS_data['variable'])
-    ##!#pax.set_title('Smoke correlation: '+str(np.round(srval_p, 3)))
-    ##!##axcl.set_ylabel('CERES LWF [W/m2]')
-    ##!#pax.set_ylabel('CERES Flux [W/m2]')
-    ##!#pax.legend()
-    ##!## end compare_CERES
+    if(lw_pax is None):
+        pax.set_ylabel('TOA Flux [Wm$^{-2}$]', fontsize = labelsize, weight = 'bold')
+    else:
+        #pax.set_ylabel('SW Flux [Wm$^{-2}$]', fontsize = labelsize, weight = 'bold')
+        lw_pax.set_xlabel('MODIS ' + str(np.round(np.average(channel_dict[\
+            str(MODIS_data['channel'])]['Bandwidth']),1)) + ' μm T$_{B}$', \
+            fontsize = labelsize, weight = 'bold')
+        #lw_pax.set_ylabel('LW Flux [Wm$^{-2}$]', fontsize = labelsize, weight = 'bold')
+        total_pax.set_xlabel('MODIS ' + str(np.round(np.average(channel_dict[\
+            str(MODIS_data['channel'])]['Bandwidth']),1)) + ' μm T$_{B}$', \
+            fontsize = labelsize, weight = 'bold')
+        #total_pax.set_ylabel('Total Flux [Wm$^{-2}$]', fontsize = labelsize, weight = 'bold')
 
 def plot_scatter_OMI_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
         plume_only = True, xlabel = None, ylabel = None, ptitle = None,\
@@ -4317,12 +4261,15 @@ def plot_spatial_scatter(date_str, zoom=True,save=False,composite=True,\
     if(date_str == '202108062025'):
         fig = plt.figure(figsize=(11,9))
     else:
-        fig = plt.figure(figsize=(9,8))
-    ax0 = fig.add_subplot(2,2,1, projection = mapcrs) # CERES SW
-    ax1 = fig.add_subplot(2,2,2, projection = mapcrs) # CERES LW
-    ax2 = fig.add_subplot(2,2,3, projection = crs0) # MODIS ch 31
+        fig = plt.figure(figsize=(6.5,12))
+    ax0 = fig.add_subplot(4,2,1, projection = mapcrs) # CERES SW
+    ax1 = fig.add_subplot(4,2,3, projection = mapcrs) # CERES LW
+    ax6 = fig.add_subplot(4,2,5, projection = mapcrs) # MODIS ch 31
+    ax2 = fig.add_subplot(4,2,8, projection = crs0) # MODIS ch 31
     #ax2 = fig.add_subplot(2,2,3, projection = mapcrs) # MODIS ch 31
-    ax3 = fig.add_subplot(2,2,4)                      # 31 vs SW/LW/Total
+    ax3 = fig.add_subplot(4,2,2)                      # 31 vs SW
+    ax4 = fig.add_subplot(4,2,4)                      # 31 vs LW
+    ax5 = fig.add_subplot(4,2,6)                      # 31 vs Total
 
     ##!## Determine where the smoke is located
     ##!## ------------------------------------
@@ -4373,6 +4320,8 @@ def plot_spatial_scatter(date_str, zoom=True,save=False,composite=True,\
         sw_vmin = 130
         lw_vmax = 370
         lw_vmin = 300
+        tot_vmax = 580
+        tot_vmin = 460
     elif(date_str == '202108062025'):
         sw_vmax = 330
         sw_vmin = 190
@@ -4387,6 +4336,10 @@ def plot_spatial_scatter(date_str, zoom=True,save=False,composite=True,\
         vmin = lw_vmin, vmax = lw_vmax, title = '', label = 'TOA Flux [W/m$^{2}$]', \
         circle_bound = False, gridlines = False, grid_data = True, \
         zoom = True)
+    plotCERES_hrly(ax6, CERES_data_hrly_swf, 'total', \
+        vmin = tot_vmin, vmax = tot_vmax, title = '', label = 'TOA Flux [W/m$^{2}$]', \
+        circle_bound = False, gridlines = False, grid_data = True, \
+        zoom = True)
     if(zoom):
         ax0.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
                         aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
@@ -4398,22 +4351,39 @@ def plot_spatial_scatter(date_str, zoom=True,save=False,composite=True,\
                         aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
                         aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
                         datacrs)
+        ax6.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
+                        datacrs)
 
     plot_scatter_CERES(date_str, MODIS_data0, ax3, avg_pixel = avg_pixel,\
-        plume_only = plume_only,  plot_total_flux = True)
+        plume_only = plume_only,  plot_total_flux = True, lw_pax = ax4, total_pax = ax5)
+
+    ax0.set_extent([lon_lims0[0],lon_lims0[1],lat_lims0[0],lat_lims0[1]],\
+                   crs = ccrs.PlateCarree())
+    ax1.set_extent([lon_lims0[0],lon_lims0[1],lat_lims0[0],lat_lims0[1]],\
+                   crs = ccrs.PlateCarree())
+    ax6.set_extent([lon_lims0[0],lon_lims0[1],lat_lims0[0],lat_lims0[1]],\
+                   crs = ccrs.PlateCarree())
 
     # Add labels to all the subplots
     # ------------------------------
     plot_subplot_label(ax0, '(a)', backgroundcolor = 'white')
-    plot_subplot_label(ax1, '(b)', backgroundcolor = 'white')
-    plot_subplot_label(ax2, '(c)', backgroundcolor = 'white')
-    plot_subplot_label(ax3, '(d)')
+    plot_subplot_label(ax1, '(c)', backgroundcolor = 'white')
+    plot_subplot_label(ax3, '(b)')
+    plot_subplot_label(ax4, '(d)')
+    plot_subplot_label(ax6, '(e)', backgroundcolor = 'white')
+    plot_subplot_label(ax5, '(f)')
+    plot_subplot_label(ax2, '(g)', backgroundcolor = 'white')
 
     font_size = 13
     plot_figure_text(ax0, 'CERES SW', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
     plot_figure_text(ax1, 'CERES LW', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax6, 'CERES Total', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size - 2, backgroundcolor = 'white', halign = 'right')
     plot_figure_text(ax2, 'MODIS 11.0 μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
 
@@ -4429,7 +4399,8 @@ def plot_spatial_scatter(date_str, zoom=True,save=False,composite=True,\
         if(avg_pixel):
             pixel_add = '_avgpixel' 
         outname = 'modis_spatial_scatter_' + date_str + plume_add + \
-            pixel_add + '.png'
+            pixel_add + '_v2.png'
+            #pixel_add + '.png'
         fig.savefig(outname,dpi=300)
         print("Saved image",outname)
     else:
