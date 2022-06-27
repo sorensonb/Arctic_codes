@@ -2226,9 +2226,12 @@ def plot_GOES_time_series_channel_comp_2loc(GOES_dict1, GOES_dict2, \
 
     custom_lines = [Line2D([0], [0], color='k'),
                     Line2D([0], [0], color='k', linestyle = '--'),
-                    Line2D([0], [0], color='k', linestyle = ':')]
+                    Line2D([0], [0], color='k', linestyle = ':'), 
+                    Line2D([0], [0], color = 'tab:blue'), 
+                    Line2D([0], [0], color = 'tab:orange')]
 
-    ax1.legend(custom_lines, ['0.64 μm', '2.25 μm', '10.35 μm'],\
+    ax1.legend(custom_lines, ['0.64 μm', '2.25 μm', '10.35 μm', \
+            'Before', 'During'],\
         fontsize = font_size, loc = 2)
 
 

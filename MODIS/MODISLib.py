@@ -3358,9 +3358,9 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
         labs = [l.get_label() for l in custom_lines]
         pax.legend(custom_lines, labs, bbox_to_anchor = (1.05, 1.0), loc = 0, fontsize = 9)
     else:
-        pax.legend(fontsize = 9, loc = 0)
-        lw_pax.legend(fontsize = 9, loc = 3)
-        total_pax.legend(fontsize = 9, loc = 0)
+        pax.legend(fontsize = 9, bbox_to_anchor = (1.05, 1.0), loc = 0)
+        lw_pax.legend(fontsize = 9, bbox_to_anchor = (1.05, 1.0), loc = 0)
+        total_pax.legend(fontsize = 9, bbox_to_anchor = (1.05, 1.0), loc = 0)
     ##!#pax.set_title('SWF smoke: '+str(np.round(shrval_p,3)) + '  SWF clear: ' + \
     ##!#     str(np.round(snrval_p,3)) + \
     ##!#    '\nLWF smoke: '+str(np.round(lhrval_p,3)) + '  LWF clear: ' + \
