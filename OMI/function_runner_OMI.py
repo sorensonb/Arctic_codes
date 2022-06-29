@@ -30,20 +30,13 @@ import sys
 ###plt.show()
 
 # pvars = 'glint', 'earthshine', 'sunshine', 'stray'
-plotOMI_single_flags('201204101833', pvar = 'glint', minlat = 55, zoom = True)
+#plotOMI_single_flags('201204101833', pvar = 'glint', minlat = 55, zoom = True)
 
 #plot_combined_fort_out('20170818', min_lat = 70., vtype = 'areas', save = False)
 
 # NOTE: for plotting the bias between OMI rows, use this line with the
 #       CSCI netCDF data
 #plt.plot(np.nanmean(np.nanmean(netdata['AI'], axis = 0), axis = 0))
-
-plot_row_bias(save = True)
-sys.exit()
-plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
-        minlat = 65., save = True)
-
-sys.exit()
 
 minlat = 65.
 OMI_VBS0   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VBS0_2005_2020.nc', minlat = minlat)
@@ -52,9 +45,17 @@ OMI_VSJ4   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VSJ4_200
 #plotOMI_Compare_ClimoTrend_summer(OMI_VBS0,OMI_VJZ211,OMI_VSJ4,\
 #        trend_type = 'standard', minlat=minlat,save=False)
 plotOMI_Compare_ClimoTrend_all(OMI_VBS0,OMI_VJZ211, OMI_VSJ4,\
-        trend_type = 'standard', minlat=minlat,save = True)
+        trend_type = 'standard', minlat=minlat,save = False)
 
 sys.exit()
+
+plot_row_bias(save = True)
+sys.exit()
+plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
+        minlat = 65., save = True)
+
+sys.exit()
+
 
 #OMI_data, CERES_data = plot_OMI_CERES_trend_compare_summer(minlat=72,\
 #        ceres_type = 'sw', trend_type = 'standard', save=False)

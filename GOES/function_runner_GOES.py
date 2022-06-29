@@ -155,6 +155,7 @@ GOES_dict1_up   = read_GOES_time_series_NCDF(base_dir + \
 ##!#        save_dir = save_dir + 'ch9/')
 ##!#plot_GOES_time_series_points_auto(GOES_dict, 5, \
 ##!#        save_dir = save_dir + 'ch10/')
+sys.exit()
 
 plot_GOES_time_series_channel_comp_2loc(GOES_dict0_ml, GOES_dict1_ml, \
     0, 1, 18, ch_idx3 = 2, \

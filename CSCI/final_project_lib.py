@@ -99,6 +99,7 @@ def resample_OMI_swath(OMI_data):
     x_max = np.where(OMI_data['UVAI'][:,59].mask == False)[0][-1]
     #x_max = OMI_data['UVAI'].shape[0]
 
+    x_max = x_max - 300 # 2022/06/27 - added to only use blocks around equator for OMI stuff
     LAT1, LON1, AI1 = select_OMI_section(OMI_data, x_max)
     x_max = x_max - 300
     LAT2, LON2, AI2 = select_OMI_section(OMI_data, x_max)
@@ -151,7 +152,8 @@ def build_training_dataset(date_str):
     # ----------------------
     # Set up the netCDF file
     # ----------------------
-    file_name = 'train_dataset_' + date_str + '.nc'
+    file_name = '/home/bsorenson/Research/OMI/train_dataset_' + date_str + '_equator.nc'
+    print(file_name)
     nc = Dataset(file_name,'w',format='NETCDF4')
     
     # Use the dimension size variables to actually create dimensions in 
@@ -189,7 +191,7 @@ def build_training_dataset(date_str):
     TIME.units = 'seconds'
 
     base_date = datetime(year = 2005, month = 1, day = 1, hour = 0, minute = 0)
-    latmin = 5
+    latmin = -50
     print('latmin = ', latmin)
     # Loop over the glob list
     # -----------------------

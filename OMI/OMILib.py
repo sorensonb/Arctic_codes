@@ -52,6 +52,7 @@ from sklearn.linear_model import HuberRegressor
 from sklearn.preprocessing import StandardScaler
 import pandas as pd
 from scipy.signal import argrelextrema, find_peaks
+from glob import glob
 
 
 sys.path.append('/home/bsorenson')
@@ -1163,6 +1164,59 @@ def write_da_to_NCDF(avgAI,counts,latmin,da_time):
 # Calculation functions
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+
+# Calculate the amount of total sampled area reduced by the row anomaly
+# ---------------------------------------------------------------------
+def calcOMI_row_area_reduce(date_str):
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+
+    # Read in OMI swath
+    # -----------------
+    base_path = '/home/bsorenson/data/OMI/H5_files/'
+    filename = glob(base_path + dt_date_str.strftime('OMI-*%Ym%m%dt%H%M*.he5'))
+    ##!#total_list = subprocess.check_output('ls '+base_path+'OMI-Aura_L2-OMAERUV_'+\
+    ##!#    year+'m'+date+'t'+time+'*.he5',shell=True).decode('utf-8').strip().split('\n')
+    data = h5py.File(filename[0], 'r')
+    areas = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/FoV75Area'][:]
+
+    data.close()
+    OMI_base  = readOMI_swath_hdf(date_str, 'control', latmin = 55)
+
+    # Find out exactly which rows are row anomaly-affected
+    # ----------------------------------------------------
+    flag_avgs = np.mean(OMI_base['XTRACK'][:,:,0], axis = 0)
+    flagged   = flag_avgs != 0
+    unflagged = flag_avgs == 0
+
+    # Extract the pixel areas and the row anomaly flags
+    # -------------------------------------------------
+    rows = np.arange(1, len(flag_avgs) + 1)
+    total_area = np.sum(areas)
+    total_clear_area = np.sum(areas[unflagged])
+
+    print("Total area", total_area)
+    print("Total clear area", total_clear_area)
+    print("% reduced", 100. - (total_clear_area / total_area) * 100.)
+
+    # Make a plot showing this
+    # ------------------------
+    plt.close('all')
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.plot(rows, areas, label = 'Unaffected')
+    #ax.plot(np.arange(len(areas))[unflagged], areas[unflagged], color = 'tab:blue')
+    ax.plot(rows[flagged], areas[flagged], color = 'red', \
+        label = 'Affected')
+    ax.legend()
+    ax.set_xlabel('Row number')
+    ax.set_ylabel('FoV Area [km$^{2}$]')
+    ax.set_title(date_str)
+    #ax.fill_between(range(len(areas)), np.min(areas), np.max(areas), \
+    #    where = flagged, alpha = 0.5)
+
+    ax.grid()
+    plt.show()
 
 def calcOMI_grid_trend(OMI_data, month_idx, trend_type, minlat):
     version = OMI_data['VERSION']
@@ -3428,7 +3482,7 @@ def plotOMI_Compare_ClimoTrend_all(OMI_data1,OMI_data2,OMI_data3,\
     norm2 = mpl.colors.Normalize(vmin = -0.5, vmax = 0.5)
     cb2 = mpl.colorbar.ColorbarBase(cax2, cmap = plt.cm.bwr, norm = norm2, \
         orientation = 'horizontal', extend = 'both')
-    cb2.set_label('AI Trend', weight = 'bold')
+    cb2.set_label('AI Trend (2005 - 2020)', weight = 'bold')
     #fig.colorbar(norm, cax = cax, orientation = 'horizontal')
 
     #fig.tight_layout()
@@ -4219,7 +4273,8 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
     # ----------------------------------------------------
     plt.close('all')
     fig1 = plt.figure(figsize = (6,6))
-    #mapcrs = ccrs.NorthPolarStereo()
+    mapcrs = ccrs.NorthPolarStereo()
+    #mapcrs = ccrs.Robinson()
     ax0 = fig1.add_subplot(1,1,1, projection = mapcrs)
 
     # ----------------------------------------------------
@@ -4228,10 +4283,11 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
     # ----------------------------------------------------
     plotOMI_single_swath(ax0, OMI_base, title = dtype.title(), \
     #plotOMI_single_swath(ax0, OMI_base, title = 'No row 53', \
-        circle_bound = True, gridlines = False)
+        circle_bound = False, gridlines = False)
+        #circle_bound = True, gridlines = False)
 
     #ax0.set_extent([-180., , -40., 0.], datacrs)
-    ax0.set_extent([-180,180,minlat,90], datacrs)
+    ax0.set_extent([-180,180,-90,90], datacrs)
 
     plt.suptitle(date_str)
 
@@ -4963,11 +5019,14 @@ def plotOMI_shawn_3panel(date_str, only_sea_ice = False, minlat = 65.,\
 ##!#    
 ##!#    plt.show()
 
-def plot_row_bias(minlat = 65., save = False):
+def plot_row_bias(minlat = 65., dataset = 'equator', save = False):
 
     # Open the 2006 CSCI training dataset
     # -----------------------------------
     net_data = Dataset('/home/bsorenson/CSCI/CSCI_543/final_project/train_dataset_2006.nc','r')
+    if(dataset == 'equator'):
+        net_data2 = Dataset('/home/bsorenson/Research/OMI/'+\
+            'train_dataset_2006_equator.nc','r')
    
     # Read in OMI data from the two single swaths
     # ------------------------------------------- 
@@ -4992,6 +5051,8 @@ def plot_row_bias(minlat = 65., save = False):
     # 1 x 60, with one average for each row
     # -----------------------------------------------------------
     avg_AI_climo = np.nanmean(np.nanmean(net_data['AI'], axis = 0), axis = 0)
+    if(dataset == 'equator'):
+        avg_AI_climo2 = np.nanmean(np.nanmean(net_data2['AI'], axis = 0), axis = 0)
     #std_AI_climo = np.nanstd(np.nanstd(net_data['AI'], axis = 0), axis = 0)
 
     # Calculate the average azimuth angle value for each row 
@@ -5014,24 +5075,34 @@ def plot_row_bias(minlat = 65., save = False):
     #avg_AI  = np.nanmean(AI[1300:1600,:],\
     #    axis = 0)   
 
-    net_data.close()
-    ##!#data.close()
-
     # Generate figure
     # ---------------
     mapcrs2 = ccrs.NorthPolarStereo()
-    fig = plt.figure(figsize = (8,7.6))
-    gs  = fig.add_gridspec(nrows = 2, ncols = 2, hspace = 0.3)
-    ax0 = plt.subplot(gs[0,:])
-    ax1 = plt.subplot(gs[1,0], projection = mapcrs2)
-    ax2 = plt.subplot(gs[1,1], projection = mapcrs2)
+    if(dataset == 'equator'):
+        fig = plt.figure(figsize = (8,4.5))
+        ax0 = fig.add_subplot(1,1,1)
+    else:
+        fig = plt.figure(figsize = (8,7.6))
+        gs  = fig.add_gridspec(nrows = 2, ncols = 2, hspace = 0.3)
+        ax0 = plt.subplot(gs[0,:])
+        ax1 = plt.subplot(gs[1,0], projection = mapcrs2)
+        ax2 = plt.subplot(gs[1,1], projection = mapcrs2)
 
-    ax0.plot(np.arange(1,len(avg_AI_climo)+1), avg_AI_climo, label = 'AI')
+    if(dataset == 'equator'):
+        print('Arctic: ', np.min(net_data['LAT']), np.max(net_data['LAT']))
+        print('Equator: ', np.min(net_data2['LAT']), np.max(net_data2['LAT']))
+        ln1 = ax0.plot(np.arange(1,len(avg_AI_climo)+1), avg_AI_climo, \
+            label =   'AI:  2$^{o}$ S - 90$^{o}$ N')
+        ln2 = ax0.plot(np.arange(1,len(avg_AI_climo2)+1), avg_AI_climo2, \
+            label = 'AI: 65$^{o}$ S - 67$^{o}$ N', color = 'tab:green')
+    else:
+        ln1 = ax0.plot(np.arange(1,len(avg_AI_climo)+1), avg_AI_climo, label = 'AI')
     #ax.plot(avg_AI_climo + std_AI_climo, label = 'AI', color = 'tab:blue', linestyle = '--')
     #ax.plot(std_AI_climo, label = 'AI', color = 'tab:blue', linestyle = '-.')
     #ax.plot(avg_AI,       label = 'AI', color = 'tab:blue', linestyle = '--')
     ax02 = ax0.twinx()
-    ax02.plot(np.arange(1, len(avg_AI_climo) + 1), avg_AZM, color = 'tab:orange', label = 'AZM')
+    ln3 = ax02.plot(np.arange(1, len(avg_AI_climo) + 1), avg_AZM, \
+        color = 'tab:orange', label = 'AZM')
     ax0.set_ylabel('OMI AI')
     ax02.set_ylabel('Relative Azimuth Angle [$^{o}$]')
     ax0.set_xlabel('Row number')
@@ -5042,21 +5113,42 @@ def plot_row_bias(minlat = 65., save = False):
     ax0.yaxis.label.set_color('tab:blue')
     ax02.yaxis.label.set_color('tab:orange')
     ax0.grid()
+    ax0.set_title('1 April 2006 - 30 September 2006')
 
-    # Plot single-swath data
-    # ----------------------
-    plotOMI_single_swath(ax1, OMI_base1, title = dt_dates[0].strftime('%H:%M UTC %m/%d/%Y'), \
-        circle_bound = True, gridlines = False, vmax = 3.0, colorbar = False)
-    #plotOMI_single_swath(ax1, OMI_base2, title = dates[1], \
-    plotOMI_single_swath(ax2, OMI_base2, title = dt_dates[1].strftime('%H:%M UTC %m/%d/%Y'), \
-        circle_bound = True, gridlines = False, vmax = 3.0)
+    if(dataset != 'equator'):
+        # Plot single-swath data
+        # ----------------------
+        plotOMI_single_swath(ax1, OMI_base1, title = dt_dates[0].strftime('%H:%M UTC %m/%d/%Y'), \
+            circle_bound = True, gridlines = False, vmax = 3.0, colorbar = False)
+        #plotOMI_single_swath(ax1, OMI_base2, title = dates[1], \
+        plotOMI_single_swath(ax2, OMI_base2, title = dt_dates[1].strftime('%H:%M UTC %m/%d/%Y'), \
+            circle_bound = True, gridlines = False, vmax = 3.0)
 
-    plot_subplot_label(ax0, '(a)')
-    plot_subplot_label(ax1, '(b)')
-    plot_subplot_label(ax2, '(c)')
+        plot_subplot_label(ax0, '(a)')
+        plot_subplot_label(ax1, '(b)')
+        plot_subplot_label(ax2, '(c)')
+
+        lns = ln1 + ln3
+    else:
+        lns = ln1 + ln2 + ln3
+
+    labs = [l.get_label() for l in lns]
+    if(dataset == 'equator'):
+        ax0.legend(lns, labs, loc='upper center', bbox_to_anchor=(0.5, -0.20),
+              fancybox=True, shadow=False, ncol=3)
+
+    net_data.close()
+    if(dataset == 'equator'):
+        net_data2.close()
+        fig.tight_layout()
+    ##!#data.close()
+
 
     if(save):
-        outname = 'omi_row_bias_v2.png'
+        if(dataset == 'equator'):
+            outname = 'omi_row_bias_v3.png'
+        else:
+            outname = 'omi_row_bias_v2.png'
         fig.savefig(outname, dpi = 300)
         print("Saved iamge", outname)
     else:

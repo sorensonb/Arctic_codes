@@ -4261,15 +4261,14 @@ def plot_spatial_scatter(date_str, zoom=True,save=False,composite=True,\
     if(date_str == '202108062025'):
         fig = plt.figure(figsize=(11,9))
     else:
-        fig = plt.figure(figsize=(6.5,12))
-    ax0 = fig.add_subplot(4,2,1, projection = mapcrs) # CERES SW
-    ax1 = fig.add_subplot(4,2,3, projection = mapcrs) # CERES LW
-    ax6 = fig.add_subplot(4,2,5, projection = mapcrs) # MODIS ch 31
-    ax2 = fig.add_subplot(4,2,8, projection = crs0) # MODIS ch 31
+        fig = plt.figure(figsize=(8.0,10))
+    ax0 = fig.add_subplot(3,2,1, projection = mapcrs) # CERES SW
+    ax1 = fig.add_subplot(3,2,3, projection = mapcrs) # CERES LW
+    ax2 = fig.add_subplot(3,2,5, projection = mapcrs) # CERES total 
     #ax2 = fig.add_subplot(2,2,3, projection = mapcrs) # MODIS ch 31
-    ax3 = fig.add_subplot(4,2,2)                      # 31 vs SW
-    ax4 = fig.add_subplot(4,2,4)                      # 31 vs LW
-    ax5 = fig.add_subplot(4,2,6)                      # 31 vs Total
+    ax3 = fig.add_subplot(3,2,2)                      # 31 vs SW
+    ax4 = fig.add_subplot(3,2,4)                      # 31 vs LW
+    ax5 = fig.add_subplot(3,2,6)                      # 31 vs Total
 
     ##!## Determine where the smoke is located
     ##!## ------------------------------------
@@ -4303,10 +4302,10 @@ def plot_spatial_scatter(date_str, zoom=True,save=False,composite=True,\
     #
     # ----------------------------------------------------------------------
     ##!#plot_MODIS_spatial(MODIS_data0, ax2, zoom = zoom, ptitle = '')
-    plot_MODIS_satpy(date_str, 31, ax = ax2, var = var0, crs = crs0, \
-        lons = lons0, lats = lats0, lat_lims = lat_lims0, lon_lims = lon_lims0, \
-        vmin = 270, vmax = 330, ptitle = '', plabel = plabel0, \
-        labelsize = 12, colorbar = True, zoom=True,save=False)
+    ##!#plot_MODIS_satpy(date_str, 31, ax = ax2, var = var0, crs = crs0, \
+    ##!#    lons = lons0, lats = lats0, lat_lims = lat_lims0, lon_lims = lon_lims0, \
+    ##!#    vmin = 270, vmax = 330, ptitle = '', plabel = plabel0, \
+    ##!#    labelsize = 12, colorbar = True, zoom=True,save=False)
 
     # ----------------------------------------------------------------------
     #
@@ -4336,7 +4335,7 @@ def plot_spatial_scatter(date_str, zoom=True,save=False,composite=True,\
         vmin = lw_vmin, vmax = lw_vmax, title = '', label = 'TOA Flux [W/m$^{2}$]', \
         circle_bound = False, gridlines = False, grid_data = True, \
         zoom = True)
-    plotCERES_hrly(ax6, CERES_data_hrly_swf, 'total', \
+    plotCERES_hrly(ax2, CERES_data_hrly_swf, 'total', \
         vmin = tot_vmin, vmax = tot_vmax, title = '', label = 'TOA Flux [W/m$^{2}$]', \
         circle_bound = False, gridlines = False, grid_data = True, \
         zoom = True)
@@ -4351,20 +4350,21 @@ def plot_spatial_scatter(date_str, zoom=True,save=False,composite=True,\
                         aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
                         aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
                         datacrs)
-        ax6.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
+        ax2.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
                         aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
                         aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
                         aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
                         datacrs)
 
     plot_scatter_CERES(date_str, MODIS_data0, ax3, avg_pixel = avg_pixel,\
-        plume_only = plume_only,  plot_total_flux = True, lw_pax = ax4, total_pax = ax5)
+        plume_only = plume_only,  plot_total_flux = True, lw_pax = ax4, \
+        total_pax = ax5, labelsize = 11)
 
     ax0.set_extent([lon_lims0[0],lon_lims0[1],lat_lims0[0],lat_lims0[1]],\
                    crs = ccrs.PlateCarree())
     ax1.set_extent([lon_lims0[0],lon_lims0[1],lat_lims0[0],lat_lims0[1]],\
                    crs = ccrs.PlateCarree())
-    ax6.set_extent([lon_lims0[0],lon_lims0[1],lat_lims0[0],lat_lims0[1]],\
+    ax2.set_extent([lon_lims0[0],lon_lims0[1],lat_lims0[0],lat_lims0[1]],\
                    crs = ccrs.PlateCarree())
 
     # Add labels to all the subplots
@@ -4373,19 +4373,16 @@ def plot_spatial_scatter(date_str, zoom=True,save=False,composite=True,\
     plot_subplot_label(ax1, '(c)', backgroundcolor = 'white')
     plot_subplot_label(ax3, '(b)')
     plot_subplot_label(ax4, '(d)')
-    plot_subplot_label(ax6, '(e)', backgroundcolor = 'white')
+    plot_subplot_label(ax2, '(e)', backgroundcolor = 'white')
     plot_subplot_label(ax5, '(f)')
-    plot_subplot_label(ax2, '(g)', backgroundcolor = 'white')
 
     font_size = 13
     plot_figure_text(ax0, 'CERES SW', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
     plot_figure_text(ax1, 'CERES LW', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax6, 'CERES Total', xval = None, yval = None, transform = None, \
+    plot_figure_text(ax2, 'CERES Total', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size - 2, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax2, 'MODIS 11.0 μm', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
 
     fig.tight_layout()
 
@@ -4399,7 +4396,7 @@ def plot_spatial_scatter(date_str, zoom=True,save=False,composite=True,\
         if(avg_pixel):
             pixel_add = '_avgpixel' 
         outname = 'modis_spatial_scatter_' + date_str + plume_add + \
-            pixel_add + '_v2.png'
+            pixel_add + '_v3.png'
             #pixel_add + '.png'
         fig.savefig(outname,dpi=300)
         print("Saved image",outname)
