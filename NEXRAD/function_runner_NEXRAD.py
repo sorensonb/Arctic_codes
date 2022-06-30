@@ -4,16 +4,16 @@
 
 
 """
-
+import importlib, NEXRADLib
 from NEXRADLib import *
 import sys
 
 begin_date = '202107210300'
 end_date   = '202107220300'
-plot_NEXRAD_auto(begin_date, end_date, 'KBBX', 'reflectivity', \
+sys.exit()
+plot_NEXRAD_ppi_auto(begin_date, end_date, 'KBBX', 'reflectivity', \
     save_dir = './', angle_idx = 4, zoom = True, save = True)
 #auto_NEXRAD_download(begin_date, end_date, 30, 'KRGX')
-sys.exit()
 
 begin_date = '202107201200'
 end_date   = '202107140300'

@@ -67,6 +67,7 @@ from matplotlib.dates import DateFormatter
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib.tri import Triangulation
 from matplotlib.lines import Line2D
+from metpy.plots import USCOUNTIES
 import cartopy
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
@@ -637,49 +638,87 @@ def test_thermal_remove(date_str, colorbar = True):
 
     # Read the GOES data using the two calibrations
     # ---------------------------------------------
-    var3_rad, crs3, lons3, lats3, lon_lims3, plabel3 = \
+    var3_rad, crs3, lons3, lats3, lat_lims3, lon_lims3, plabel3 = \
         read_GOES_satpy(date_str, 7, calibration = 'radiance')
-    var3_btmp, _, _, _, _, _ = \
+    var3_btmp,   _,     _,     _,         _,         _, _ = \
         read_GOES_satpy(date_str, 7, calibration = 'brightness_temperature')
+    var10_btmp,   _,     _,     _,         _,         _, _ = \
+        read_GOES_satpy(date_str, 13, calibration = 'brightness_temperature')
 
     # Convert the brightness temperatures to radiances
     # ------------------------------------------------
-    var3_calc_rad = convert_temp_to_radiance(3.9, np.aray(var3_btmp))
+    var3_calc_rad = convert_temp_to_radiance(3.9, np.array(var3_btmp))
+    var10_calc_rad = convert_temp_to_radiance(10.35, np.array(var3_btmp))
+
+    var3_minus_bght_rad = var3_rad - var3_calc_rad
 
     # Set up a figure
     # ---------------
     plt.close('all')
-    fig = plt.figure()
-    ax1 = fig.add_subplot(1,3,1, projection = crs3)
-    ax2 = fig.add_subplot(1,3,2, projection = crs3)
-    ax3 = fig.add_subplot(1,3,3, projection = crs3)
+    fig = plt.figure(figsize = (8, 8))
+    ax1 = fig.add_subplot(2,2,1, projection = crs3)
+    ax2 = fig.add_subplot(2,2,2, projection = crs3)
+    ax3 = fig.add_subplot(2,2,3, projection = crs3)
+    ax4 = fig.add_subplot(2,2,4, projection = crs3)
 
-    im1 = ax1.pcolormesh(lons3, lats3, var3_rad, transform = datacrs, \
-        vmin = None, vmax = 3, \
+    ##!#im1 = ax1.pcolormesh(lons3, lats3, var3_rad, transform = datacrs, \
+    ##!#    vmin = None, vmax = 3, \
+    ##!#    cmap = 'plasma', \
+    ##!#    shading = 'auto')
+    im1 = ax1.pcolormesh(lons3, lats3, var10_btmp, transform = datacrs, \
+        vmin = None, vmax = None, \
         cmap = 'plasma', \
         shading = 'auto')
     ax1.add_feature(cfeature.STATES)
     im2 = ax2.pcolormesh(lons3, lats3, var3_btmp, transform = datacrs, \
-        vmin = None, vmax = 330, \
+        vmin = None, vmax = None, \
+        #vmin = None, vmax = 330, \
         cmap = 'plasma', \
         shading = 'auto')
     ax2.add_feature(cfeature.STATES)
-    im3 = ax2.pcolormesh(lons3, lats3, var3_calc_rad, transform = datacrs, \
-        vmin = None, vmax = 2, \
+    im3 = ax3.pcolormesh(lons3, lats3, var10_calc_rad, transform = datacrs, \
+    #im3 = ax3.pcolormesh(lons3, lats3, var3_calc_rad, transform = datacrs, \
+        vmin = None, vmax = None, \
+        #vmin = None, vmax = 2, \
         cmap = 'plasma', \
         shading = 'auto')
     ax3.add_feature(cfeature.STATES)
+    im4 = ax4.pcolormesh(lons3, lats3, var3_calc_rad, transform = datacrs, \
+    #im4 = ax4.pcolormesh(lons3, lats3, var3_minus_bght_rad, transform = datacrs, \
+        vmin = None, vmax = None, \
+        #vmin = None, vmax = 1, \
+        cmap = 'plasma', \
+        shading = 'auto')
+    ax4.add_feature(cfeature.STATES)
     if(colorbar):
         labelsize = 10
         cbar1 = plt.colorbar(im1, ax = ax1, pad = 0.03, fraction = 0.052, \
             extend = 'both')
-        cbar1.set_label('Radiance', size = labelsize, weight = 'bold')
-        cbar2 = plt.colorbar(im1, ax = ax1, pad = 0.03, fraction = 0.052, \
+        cbar1.set_label('10.35 micron bright temp', size = labelsize, weight = 'bold')
+        #cbar1.set_label('Radiance', size = labelsize, weight = 'bold')
+        cbar2 = plt.colorbar(im2, ax = ax2, pad = 0.03, fraction = 0.052, \
             extend = 'both')
-        cbar2.set_label('Brightness Temperature', size = labelsize, weight = 'bold')
-        cbar3 = plt.colorbar(im1, ax = ax1, pad = 0.03, fraction = 0.052, \
+        cbar2.set_label('3.9 micron bright temp', size = labelsize, weight = 'bold')
+        #cbar2.set_label('Brightness Temperature', size = labelsize, weight = 'bold')
+        cbar3 = plt.colorbar(im3, ax = ax3, pad = 0.03, fraction = 0.052, \
             extend = 'both')
-        cbar3.set_label('Radiance', size = labelsize, weight = 'bold')
+        cbar3.set_label('10.35 micron radiance', size = labelsize, weight = 'bold')
+        #cbar3.set_label('Radiance from Bright Temp', size = labelsize, weight = 'bold')
+        cbar4 = plt.colorbar(im4, ax = ax4, pad = 0.03, fraction = 0.052, \
+            extend = 'both')
+        cbar4.set_label('3.9 micron radiance', size = labelsize, weight = 'bold')
+        #cbar4.set_label('Radiance - Bright Rad', size = labelsize, weight = 'bold')
+
+    # Set up another scatter plot
+    # ---------------------------
+    fig2 = plt.figure()
+    axs1 = fig2.add_subplot(1,1,1)
+    #scatter_data = [var3_rad.flatten(), var3_calc_rad.flatten(), \
+    #    var3_minus_bght_rad.flatten()]
+    axs1.scatter(var3_btmp.flatten(), var10_btmp.flatten(), s = 6)
+    #axs1.scatter(var3_btmp.flatten(), var10_btmp.flatten(), s = 6)
+    #axs1.boxplot(scatter_data)
+
 
     plt.show()
 
@@ -1090,7 +1129,8 @@ def read_GOES_satpy(date_str, channel, scene_date = None, \
 def plot_GOES_satpy(date_str, channel, ax = None, var = None, crs = None, \
         lons = None, lats = None, lat_lims = None, lon_lims = None, \
         vmin = None, vmax = None, ptitle = None, plabel = None, \
-        calibration = None, labelsize = 10, colorbar = True, zoom=True,\
+        calibration = None, labelsize = 10, \
+        colorbar = True, counties = False, zoom=True,\
         save=False):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
@@ -1120,6 +1160,9 @@ def plot_GOES_satpy(date_str, channel, ax = None, var = None, crs = None, \
         cbar = plt.colorbar(im1, ax = ax, pad = 0.03, fraction = 0.052, \
             extend = 'both')
         cbar.set_label(plabel.replace('_',' '), size = labelsize, weight = 'bold')
+
+    if(counties):
+        ax.add_feature(USCOUNTIES.with_scale('5m'))    
 
     # Zoom in the figure if desired
     # -----------------------------

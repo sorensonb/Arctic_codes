@@ -421,7 +421,7 @@ def auto_NEXRAD_download(begin_date, end_date, interval, radar, \
 
 # Adapted from Alec Sczepanski's ASGSA PyArt Tools of the Trade
 # -------------------------------------------------------------
-def read_NEXRAD(date_str, radar, angle_idx = 0):
+def read_NEXRAD(date_str, radar, angle = 0):
 
     dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
 
@@ -438,6 +438,12 @@ def read_NEXRAD(date_str, radar, angle_idx = 0):
     # ----------------------------------------------------------
     time_diffs = np.array([abs((dt_date_str - ddate).total_seconds()) \
         for ddate in file_dates])
+
+    # If none of the time differences are less than 15 minutes, abort
+    # ---------------------------------------------------------------
+    if(np.min(time_diffs) > (15 * 60)):
+        print("ERROR: No ",radar," swaths matching time",date_str)
+        return
 
     # Select those files. Should result in 2 files, with one being MDM
     # -----------------------------------------------------------------
@@ -466,7 +472,7 @@ def read_NEXRAD(date_str, radar, angle_idx = 0):
     # (Can change the [0] in the next line to another number for another
     # elevation angle. [0] is the lowest elevation angle, typically 0.5 deg)
     angles = data.fixed_angle['data'][:]
-    fixed_angle = angles[angle_idx]
+    fixed_angle = angles[angle]
     
     # Pull time data:
     radar_date = pyart.graph.common.generate_radar_time_begin(data)
@@ -490,7 +496,7 @@ def read_NEXRAD(date_str, radar, angle_idx = 0):
     NEXRAD_dict['max_lat']       = max_lat
     NEXRAD_dict['max_lon']       = max_lon
     NEXRAD_dict['angles']        = angles
-    NEXRAD_dict['angle_idx']     = angle_idx
+    NEXRAD_dict['angle_idx']     = angle
     NEXRAD_dict['fixed_angle']   = fixed_angle
     NEXRAD_dict['radar_date']    = radar_date_str
     NEXRAD_dict['figure_title']  = figure_title
@@ -498,20 +504,99 @@ def read_NEXRAD(date_str, radar, angle_idx = 0):
     return NEXRAD_dict
 
 title_dict = {
+    'composite_reflectivity': 'Composite Equiv. Refl. Fact. (dBZ)',\
     'reflectivity': 'Equiv. Refl. Fact. (dBZ)',\
     'velocity':     'Radial Velocity (m/s)',\
     'differential_reflectivity': 'Log Diff. Refl. Factor (dB)', \
     'cross_correlation_ratio': 'Cross Corr. Ratio',\
-
 }
+
+#def plot_NEXRAD_GOES(NEXRAD_dict, variable, channel, ax = None, \
+def plot_NEXRAD_GOES_2panel(date_str, radar, variable, channel, ax = None, \
+        angle = 0, ptitle = None, plabel = None, vmin = -5, vmax = 90, \
+        labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+        alpha = 1.0, mask_outside = True, zoom=True, save=False):
+
+    if('/home/bsorenson/Research/GOES' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/GOES')
+    from GOESLib import read_GOES_satpy, plot_GOES_satpy
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+    #dt_date_str = datetime.strptime(NEXRAD_dict['radar_date'],"%Y%m%d%H%M")
+
+    # Read the NEXRAD data
+    # --------------------
+    NEXRAD_dict = read_NEXRAD(date_str, radar, angle = angle)
+
+    # Read the GOES data
+    # ------------------
+    var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel_goes = \
+        read_GOES_satpy(date_str, channel)
+
+    labelsize = 10
+    # Set up the figure
+    # -----------------
+    plt.close('all')
+    fig = plt.figure()
+    ax1 = fig.add_subplot(1,2,1, projection = crs0)
+    ax2 = fig.add_subplot(1,2,2, projection = crs0)
+    plot_GOES_satpy(NEXRAD_dict['radar_date'], channel, ax = ax1, var = var0, \
+        crs = crs0, lons = lons0, lats = lats0, lat_lims = lat_lims, \
+        lon_lims = lon_lims, vmin = 5, vmax = 80, ptitle = '', \
+        plabel = plabel_goes, colorbar = True, labelsize = labelsize + 1, \
+        counties = counties, zoom=True,save=False) 
+    plot_NEXRAD_ppi(NEXRAD_dict, variable, ax = ax2, angle = angle, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = None)
+        #mask_outside = mask_outside, crs = crs0)
+
+    plt.show()
+
+#def plot_NEXRAD_GOES(NEXRAD_dict, variable, channel, ax = None, \
+def plot_NEXRAD_GOES(date_str, radar, variable, channel, ax = None, \
+        angle = 0, ptitle = None, plabel = None, vmin = -5, vmax = 90, \
+        labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+        alpha = 1.0, mask_outside = True, zoom=True, save=False):
+
+    if('/home/bsorenson/Research/GOES' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/GOES')
+    from GOESLib import read_GOES_satpy, plot_GOES_satpy
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+    #dt_date_str = datetime.strptime(NEXRAD_dict['radar_date'],"%Y%m%d%H%M")
+
+    # Read the NEXRAD data
+    # --------------------
+    NEXRAD_dict = read_NEXRAD(date_str, radar, angle = angle)
+
+    # Read the GOES data
+    # ------------------
+    var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel_goes = \
+        read_GOES_satpy(NEXRAD_dict['radar_date'], channel)
+
+    labelsize = 10
+    # Set up the figure
+    # -----------------
+    plt.close('all')
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1, projection = crs0)
+    plot_GOES_satpy(NEXRAD_dict['radar_date'], channel, ax = ax, var = var0, \
+        crs = crs0, lons = lons0, lats = lats0, lat_lims = lat_lims, \
+        lon_lims = lon_lims, vmin = 5, vmax = 80, ptitle = '', \
+        plabel = plabel_goes, colorbar = True, labelsize = labelsize + 1, \
+        zoom=True,save=False) 
+    plot_NEXRAD_ppi(NEXRAD_dict, variable, ax = ax, angle = angle, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside)
+
+    plt.show()
+
 
 # variable must be 'reflectivity', 'velocity', 'differential_reflectivity',
 # or 'cross_correlation_ratio'
-def plot_NEXRAD(NEXRAD_dict, variable, ax = None, angle = None, ptitle = None, \
+def plot_NEXRAD_ppi(NEXRAD_dict, variable, ax = None, angle = None, ptitle = None, \
         plabel = None, vmin = -5, vmax = 90, \
         labelsize = 10, colorbar = True, \
         counties = True, save_dir = './',\
-        zoom=True, save=False):
+        alpha = 1.0, mask_outside = True, crs = None, zoom=True, save=False):
 
     dt_date_str = datetime.strptime(NEXRAD_dict['radar_date'],"%Y%m%d%H%M")
 
@@ -523,6 +608,7 @@ def plot_NEXRAD(NEXRAD_dict, variable, ax = None, angle = None, ptitle = None, \
         plt.close('all')
         fig = plt.figure()
         mapcrs = init_proj(NEXRAD_dict)
+        crs = mapcrs
         ax = fig.add_subplot(1,1,1, projection = mapcrs)
 
     # Begin section adapted from Alec Sczepanski's ASGSA PyArt Tools of the 
@@ -550,7 +636,10 @@ def plot_NEXRAD(NEXRAD_dict, variable, ax = None, angle = None, ptitle = None, \
             '\n' + dt_date_str.strftime('%Y%m%d %H:%M')
 
     gatefilter = pyart.filters.GateFilter(NEXRAD_dict['radar'])
-    gatefilter.exclude_below('reflectivity', vmin)
+    gatefilter.exclude_below(variable, vmin)
+
+    if(crs is None):
+        crs = datacrs
 
     display.plot_ppi_map(variable, # Variable name
         angle, # Elevation angle
@@ -561,7 +650,7 @@ def plot_NEXRAD(NEXRAD_dict, variable, ax = None, angle = None, ptitle = None, \
         min_lat = NEXRAD_dict['min_lat'], # Min latitude of plot
         max_lat = NEXRAD_dict['max_lat'], # Max latitude of plot
         resolution = '10m', # Projection resolution
-        projection = datacrs, # Set projection
+        projection = crs, # Set projection
         #projection = mapcrs, # Set projection
         colorbar_flag = colorbar_flag, # Turn on colorbar?
         #fig = fig, # Where to plot data
@@ -571,7 +660,9 @@ def plot_NEXRAD(NEXRAD_dict, variable, ax = None, angle = None, ptitle = None, \
         cmap = 'gist_ncar', 
         title = ptitle,
         colorbar_label  = title_dict[variable],\
-        gatefilter = gatefilter)
+        gatefilter = gatefilter, \
+        alpha = alpha, \
+        mask_outside = mask_outside)
 
     ax.add_feature(cfeature.STATES)
 
@@ -596,22 +687,59 @@ def plot_NEXRAD(NEXRAD_dict, variable, ax = None, angle = None, ptitle = None, \
         else:
             plt.show()
 
-    """
+# variable must be 'reflectivity', 'velocity', 'differential_reflectivity',
+# or 'cross_correlation_ratio'
+# azimuth may be a single number or a list of numbers
+# -------------------------------------------------------------------------
+def plot_NEXRAD_rhi(NEXRAD_dict, variable, azimuth, ax = None, angle = None, \
+        ptitle = None, plabel = None, vmin = -5, vmax = 64, \
+        labelsize = 10, range_lim = 100, height_lim = 8,\
+        colorbar = True, counties = True, save_dir = './',\
+        alpha = 1.0, zoom=True, save=False):
 
-    # Extract the true-color data
-    # ---------------------------
-    scn.load(['true_color'])
+    dt_date_str = datetime.strptime(NEXRAD_dict['radar_date'],"%Y%m%d%H%M")
 
-    scn.save_dataset('true_color','test_image_true'+date_str+'.png')
-    scn.show('true_color')
+    if(not isinstance(azimuth, list)):
+        azimuth = [azimuth]
 
-    # Overlay the imagery on cartopy
-    # ------------------------------
-    ##my_area
+    # Plot the NEXRAD data
+    # ------------------
+    in_ax = True 
+    if(ax is None):
+        in_ax = False
+        plt.close('all')
+        fig = plt.figure()
+        num_row = len(azimuth)
+        #axs = fig.subplots(nrows = num_row, ncols = 1)
 
-    # Save the image
-    # --------------
-    """
+    xsect = pyart.util.cross_section_ppi(NEXRAD_dict['radar'], azimuth)
+
+    if(colorbar):
+        colorbar_flag = 1
+    else:
+        colorbar_flag = 0
+
+    #gatefilter = pyart.filters.GateFilter(NEXRAD_dict['radar'])
+    #gatefilter.exclude_below(variable, vmin)
+
+    display = pyart.graph.RadarDisplay(xsect)
+    for ii, azm in enumerate(azimuth):
+        ax = fig.add_subplot(num_row, 1, ii + 1) 
+        display.plot(variable, ii, vmin = vmin, vmax = vmax)
+        ax.set_xlim(0, range_lim)
+        ax.set_ylim(0, height_lim)
+    
+    fig.tight_layout()
+
+    if(not in_ax): 
+        if(save):
+            outname = save_dir + NEXRAD_dict['radar_name'] + '_' + variable + \
+                '_cross' + str(int(azimuth[0])) + '_' + \
+                NEXRAD_dict['radar_date'] + '.png'
+            plt.savefig(outname,dpi=300)
+            print("Saved image",outname)
+        else:
+            plt.show()
 
 # This function gets the NEXRAD data from a higher-resolution channel
 # and co-locates it with data from a lower-resolution channel.
@@ -698,193 +826,8 @@ def plot_NEXRAD_scatter(date_str):
     ax.boxplot(data)
     plt.show()
 
-def plot_NEXRAD_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
-        zoom = True, save_dir = './', save = False):
-    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
-
-    plt.close('all')
-    fig1 = plt.figure(figsize = (10,6))
-    var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel0 = read_NEXRAD_satpy(date_str, ch1)
-    var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel1 = read_NEXRAD_satpy(date_str, ch2)
-    var2, crs2, lons2, lats2, lat_lims, lon_lims, plabel2 = read_NEXRAD_satpy(date_str, ch3)
-    var3, crs3, lons3, lats3, lat_lims, lon_lims, plabel3 = read_NEXRAD_satpy(date_str, ch4)
-    var4, crs4, lons4, lats4, lat_lims, lon_lims, plabel4 = read_NEXRAD_satpy(date_str, ch5)
-    var5, crs5, lons5, lats5, lat_lims, lon_lims, plabel5 = read_NEXRAD_satpy(date_str, ch6)
-
-    ax0 = fig1.add_subplot(2,3,1, projection = crs0)
-    ax1 = fig1.add_subplot(2,3,2, projection = crs1)
-    ax2 = fig1.add_subplot(2,3,3, projection = crs2)
-    ax3 = fig1.add_subplot(2,3,4, projection = crs3)
-    ax4 = fig1.add_subplot(2,3,5, projection = crs4)
-    ax5 = fig1.add_subplot(2,3,6, projection = crs5)
-
-    ##!#ax1.set_title('NEXRAD-17 Band ' + str(ch2) + '\n' + \
-    ##!#    nexrad_channel_dict[str(ch2)]['name'] + '\n' + \
-    labelsize = 11
-    font_size = 10
-    plot_NEXRAD_satpy(date_str, ch1, ax = ax0, var = var0, crs = crs0, \
-        lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
-        vmin = 5, vmax = 80, ptitle = '', plabel = plabel0, \
-        colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
-    plot_NEXRAD_satpy(date_str, ch2, ax = ax1, var = var1, crs = crs0, \
-        lons = lons1, lats = lats1, lat_lims = lat_lims, lon_lims = lon_lims, \
-        vmin = 5, vmax = 50, ptitle = '', plabel = plabel1, \
-        colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
-    plot_NEXRAD_satpy(date_str, ch3, ax = ax2, var = var2, crs = crs0, \
-        lons = lons2, lats = lats2, lat_lims = lat_lims, lon_lims = lon_lims, \
-        vmin = 270, vmax = 330, ptitle = '', plabel = plabel2, \
-        colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
-    plot_NEXRAD_satpy(date_str, ch4, ax = ax3, var = var3, crs = crs0, \
-        lons = lons3, lats = lats3, lat_lims = lat_lims, lon_lims = lon_lims, \
-        vmin = 240, vmax = 250, ptitle = '', plabel = plabel3, \
-        colorbar = True, labelsize = labelsize, zoom=True,save=False)
-    plot_NEXRAD_satpy(date_str, ch5, ax = ax4, var = var4, crs = crs0, \
-        lons = lons4, lats = lats4, lat_lims = lat_lims, lon_lims = lon_lims, \
-        vmin = 250, vmax = 260, ptitle = '', plabel = plabel4, \
-        colorbar = True, labelsize = labelsize, zoom=True,save=False)
-    plot_NEXRAD_satpy(date_str, ch6, ax = ax5, var = var5, crs = crs0, \
-        lons = lons5, lats = lats5, lat_lims = lat_lims, lon_lims = lon_lims, \
-        vmin = 255, vmax = 270, ptitle = '', plabel = plabel5, \
-        colorbar = True, labelsize = labelsize, zoom=True,save=False)
-
-    plot_figure_text(ax0, 'NEXRAD-17 ' + \
-        str(nexrad_channel_dict[str(ch1)]['wavelength']) + ' μm', \
-        xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
-        halign = 'right')
-    plot_figure_text(ax1, 'NEXRAD-17 ' + \
-        str(nexrad_channel_dict[str(ch2)]['wavelength']) + ' μm', \
-        xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
-        halign = 'right')
-    plot_figure_text(ax2, 'NEXRAD-17 ' + \
-        str(nexrad_channel_dict[str(ch3)]['wavelength']) + ' μm', \
-        xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
-        halign = 'right')
-    plot_figure_text(ax3, 'NEXRAD-17 ' + \
-        str(nexrad_channel_dict[str(ch4)]['wavelength']) + ' μm', \
-        xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
-        halign = 'right')
-    plot_figure_text(ax4, 'NEXRAD-17 ' + \
-        str(nexrad_channel_dict[str(ch5)]['wavelength']) + ' μm', \
-        xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
-        halign = 'right')
-    plot_figure_text(ax5, 'NEXRAD-17 ' + \
-        str(nexrad_channel_dict[str(ch6)]['wavelength']) + ' μm', \
-        xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
-        halign = 'right')
-
-    plot_subplot_label(ax0,  '(a)', backgroundcolor = 'white', fontsize = font_size)
-    plot_subplot_label(ax1,  '(b)', backgroundcolor = 'white', fontsize = font_size)
-    plot_subplot_label(ax2,  '(c)', backgroundcolor = 'white', fontsize = font_size)
-    plot_subplot_label(ax3,  '(d)', backgroundcolor = 'white', fontsize = font_size)
-    plot_subplot_label(ax4,  '(e)', backgroundcolor = 'white', fontsize = font_size)
-    plot_subplot_label(ax5,  '(f)', backgroundcolor = 'white', fontsize = font_size)
-
-    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-    #
-    # Extract the WV values in each position
-    #
-    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
    
-    # "Coldest" values
-    # -------------
-    c_lon_stn = -120.6530
-    c_lat_stn = 40.7595
-    cd_idx = nearest_gridpoint(c_lat_stn, c_lon_stn,\
-        lats3, lons3)
-    # "Cold" values
-    # -------------
-    lon_stn = -120.3877
-    lat_stn = 41.2456
-    c_idx = nearest_gridpoint(lat_stn, lon_stn,\
-        lats3, lons3)
-    # "Warm" values
-    # -------------
-    w_lon_stn = -120.9810
-    w_lat_stn = 41.20980
-
-    #w_lat_stn = 40.50900
-    w_idx = nearest_gridpoint(w_lat_stn, w_lon_stn,\
-        lats3, lons3)
-
-    ax2.plot(c_lon_stn, c_lat_stn,
-             color='tab:green', linewidth=2, marker='o',
-             transform=datacrs)
-    ax2.plot(lon_stn, lat_stn,
-             color='tab:blue', linewidth=2, marker='o',
-             transform=datacrs)
-    ax2.plot(w_lon_stn, w_lat_stn,
-             color='tab:purple', linewidth=2, marker='o',
-             transform=datacrs)
-    ax3.plot(lon_stn, lat_stn,
-             color='tab:blue', linewidth=2, marker='o',
-             transform=datacrs)
-    ax3.plot(w_lon_stn, w_lat_stn,
-             color='tab:purple', linewidth=2, marker='o',
-             transform=datacrs)
-    ax4.plot(lon_stn, lat_stn,
-             color='tab:blue', linewidth=2, marker='o',
-             transform=datacrs)
-    ax4.plot(w_lon_stn, w_lat_stn,
-             color='tab:purple', linewidth=2, marker='o',
-             transform=datacrs)
-    ax5.plot(lon_stn, lat_stn,
-             color='tab:blue', linewidth=2, marker='o',
-             transform=datacrs)
-    ax5.plot(w_lon_stn, w_lat_stn,
-             color='tab:purple', linewidth=2, marker='o',
-             transform=datacrs)
-
-    print("TIR")
-    print("     Cold - ", np.array(var2)[cd_idx])
-    print("     Warm - ", np.array(var2)[w_idx])
-    print("Upper WV")
-    print("     Cold - ", np.array(var3)[c_idx])
-    print("     Warm - ", np.array(var3)[w_idx])
-    print("Mid   WV")
-    print("     Cold - ", np.array(var4)[c_idx])
-    print("     Warm - ", np.array(var4)[w_idx])
-    print("Lower WV")
-    print("     Cold - ", np.array(var5)[c_idx])
-    print("     Warm - ", np.array(var5)[w_idx])
-
-    lon_stn = -120.7605
-    lat_stn = 41.2098
-
-    # Zoom in the figure if desired
-    # -----------------------------
-    if(zoom):
-    ##!#    ax0.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
-    ##!#                   crs = ccrs.PlateCarree())
-    ##!#    ax1.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
-    ##!#                   crs = ccrs.PlateCarree())
-    ##!#    ax2.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
-    ##!#                   crs = ccrs.PlateCarree())
-    ##!#    ax3.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
-    ##!#                   crs = ccrs.PlateCarree())
-    ##!#    ax4.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
-    ##!#                   crs = ccrs.PlateCarree())
-    ##!#    ax5.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
-    ##!#                   crs = ccrs.PlateCarree())
-        zoom_add = '_zoom'
-    else:
-        zoom_add = ''
-
-    fig1.tight_layout()
-
-    if(save):
-        outname = save_dir + 'nexrad17_'+date_str+'_6panel.png'
-        fig1.savefig(outname, dpi = 300)
-        print('Saved image', outname)
-    else:
-        plt.show()
-   
-def plot_NEXRAD_auto(begin_date, end_date, radar, variable, save_dir = './', \
+def plot_NEXRAD_ppi_auto(begin_date, end_date, radar, variable, save_dir = './', \
         angle_idx = 0, zoom = True, save = False):
 
     # Convert the input date_str to datetime
@@ -932,10 +875,43 @@ def plot_NEXRAD_auto(begin_date, end_date, radar, variable, save_dir = './', \
         if(date_str == '202107202126'):
             print("Not making image for this time")
         else:
-            NEXRAD_dict = read_NEXRAD(date_str, radar, angle_idx = angle_idx)
-            plot_NEXRAD(NEXRAD_dict, variable, zoom = True, \
+            NEXRAD_dict = read_NEXRAD(date_str, radar, angle = angle_idx)
+            plot_NEXRAD_ppi(NEXRAD_dict, variable, zoom = True, \
                 save_dir = total_save_dir, \
                 angle = angle_idx, save = True)
+
+# Plots azimuths between a min and max value for a single date
+# (Can be modified to do multiple dates)
+# ------------------------------------------------------------
+def plot_NEXRAD_rhi_auto(date_str, radar, variable, \
+        save_dir = './', min_azm = 0, max_azm = 50, range_lim = 100, \
+        height_lim = 8, zoom = True, save = False):
+
+    # Convert the input date_str to datetime
+    # --------------------------------------
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    # See if the output directory exists
+    # ----------------------------------
+    total_save_dir = save_dir + 'rhi/' + radar + '/' + variable + '/'
+        
+    try:
+        Path(total_save_dir).mkdir(parents = True, exist_ok = False)
+    except FileExistsError:
+        print("Save directory already exists. Overwriting images there")
+
+    # Set up the range of azimuth angles
+    # ----------------------------------
+    azimuths = np.arange(min_azm, max_azm + 1)
+
+    for azm in azimuths:
+        print(azm)
+        NEXRAD_dict = read_NEXRAD(date_str, radar)
+        plot_NEXRAD_rhi(NEXRAD_dict, variable, azm, \
+            ptitle = None, plabel = None, vmin = -5, vmax = 90, \
+            range_lim = range_lim, height_lim = height_lim, \
+            labelsize = 10, colorbar = True, \
+            save_dir = total_save_dir,save= True)
 
 def plot_NEXRAD_time_series_points(NEXRAD_dict, time_idx = 20, \
         ch_idx = 0, save_dir = './', save = False):

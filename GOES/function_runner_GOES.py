@@ -22,7 +22,7 @@ end_date2   = '202107220300'
 #end_date   = '202107220300'
 save_dir = \
     '/home/bsorenson/Research/GOES/time_series_points/points_cross_section/20210713/'
-
+sys.exit()
 ##!#plot_GOES_6panel_auto(begin_date, end_date,\
 ##!#    save_dir = '/home/bsorenson/Research/GOES/six_panel/goes17_sixpanel_v3/20210713/', \
 ##!#    save = True)
