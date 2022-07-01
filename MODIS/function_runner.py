@@ -15,6 +15,9 @@ channel1 = 1
 channel2 = 5
 channel3 = 31
 
+plot_combined_figure1_v6(save = False)
+
+sys.exit()
 
 #plot_combined_figure1_v4(date_str = '202107222110', zoom = True, show_smoke = False, composite = True, \
 #        double_fig = True, save = True)

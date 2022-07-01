@@ -12,6 +12,12 @@ import sys
 ##!#end_date   = '202107140300'
 ##!#auto_GOES_download(begin_date, end_date, 30)
 ##!#sys.exit()
+##!#download_GOES_bucket('202107201700', sat = 'goes17', channels = [1,3])
+##!#download_GOES_bucket('202107202300', sat = 'goes17', channels = [1,3])
+##!#download_GOES_bucket('202107210300', sat = 'goes17', channels = [1,3])
+##!#download_GOES_bucket('202107211300', sat = 'goes17', channels = [1,3])
+
+sys.exit()
 
 begin_date = '202107131200'
 end_date   = '202107140300'
