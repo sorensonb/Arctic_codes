@@ -1005,7 +1005,9 @@ def find_plume_GOES(date_str):
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 calib_dict = {
+    0.47: 'reflectance',
     0.64: 'reflectance',
+    0.86: 'reflectance',
     1.61: 'reflectance',
     2.25: 'reflectance',
     3.90: 'brightness_temperature',
@@ -1016,7 +1018,9 @@ calib_dict = {
     10.35: 'brightness_temperature'
 }   
 label_dict = {
+    0.47: '%',
     0.64: '%',
+    0.86: '%',
     1.61: '%',
     2.25: '%',
     3.90: 'K',
@@ -1028,7 +1032,9 @@ label_dict = {
     10.35: 'K'
 }   
 cmap_dict = {
+    0.47:  'Greys_r',
     0.64:  'Greys_r',
+    0.86:  'Greys_r',
     1.61:  'Greys_r',
     2.25:  'Greys_r',
     3.90:  'plasma',
@@ -1051,7 +1057,8 @@ def read_GOES_satpy(date_str, channel, scene_date = None, \
 
     # Extract the channel wavelength using the input string
     # -----------------------------------------------------
-    channel = goes_channel_dict[str(channel)]['wavelength']
+    if(channel != 'true_color'):
+        channel = goes_channel_dict[str(channel)]['wavelength']
 
     # Determine the correct GOES files associated with the date
     # ---------------------------------------------------------
@@ -1076,11 +1083,40 @@ def read_GOES_satpy(date_str, channel, scene_date = None, \
     # ----------------------------------
     scn = Scene(reader = 'abi_l1b', filenames = files)
 
+    print('channel = ',channel)
+
     # Load the desired channel data
     # -----------------------------
-    if(calibration == None):
-        calibration = calib_dict[channel]
-    scn.load([channel], calibration = calibration)
+    if(channel != 'true_color'):
+        if(calibration == None):
+            calibration = calib_dict[channel]
+        scn.load([channel], calibration = calibration)
+
+        # Zoom the image on the desired area
+        # ----------------------------------
+        if(zoom):
+            try:
+                scn = scn.crop(ll_bbox = (lon_lims[0] + 0.65, lat_lims[0], \
+                    lon_lims[1] - 0.65, lat_lims[1]))
+            except NotImplementedError:
+                print("WARNING: zoom didn't work for dtg",date_str,\
+                    " and channel", channel)
+
+    else:
+        scn.load([0.47, 0.64, 0.86])
+        scn = scn.resample(scn.min_area(), resampler = 'native')
+        scn.load(['true_color'])
+
+        try:
+            scn = scn.crop(ll_bbox = (lon_lims[0] + 0.65, lat_lims[0], \
+                lon_lims[1] - 0.65, lat_lims[1]))
+        except NotImplementedError:
+            print("WARNING: zoom didn't work for dtg",date_str,\
+                " and channel", channel)
+
+
+        var = get_enhanced_image(scn[channel]).data
+        var = var.transpose('y','x','bands')
 
     ## Set the map projection and center the data
     ## ------------------------------------------
@@ -1094,31 +1130,25 @@ def read_GOES_satpy(date_str, channel, scene_date = None, \
     ##!#var = get_enhanced_image(scn[channel]).data
     ##!#var = var.transpose('y','x','bands')
 
-    # Zoom the image on the desired area
-    # ----------------------------------
-    if(zoom):
-        try:
-            scn = scn.crop(ll_bbox = (lon_lims[0] + 0.65, lat_lims[0], \
-                lon_lims[1] - 0.65, lat_lims[1]))
-        except NotImplementedError:
-            print("WARNING: zoom didn't work for dtg",date_str,\
-                " and channel", channel)
-
-
-    # Extract the lats, lons, and data
-    # -----------------------------------------------------
-    lons, lats = scn[channel].attrs['area'].get_lonlats()
-    var = scn[channel].data
 
     # Extract the map projection from the data for plotting
     # -----------------------------------------------------
     crs = scn[channel].attrs['area'].to_cartopy_crs()
 
-    # Extract the appropriate units
-    # -----------------------------
-    units = label_dict[channel]
-    #units = scn[channel].units
-    plabel = calib_dict[channel].title() + ' [' + units + ']'
+    # Extract the lats, lons, and data
+    # -----------------------------------------------------
+    lons, lats = scn[channel].attrs['area'].get_lonlats()
+    if(channel != 'true_color'):
+        var = scn[channel].data
+
+        # Extract the appropriate units
+        # -----------------------------
+        units = label_dict[channel]
+        #units = scn[channel].units
+        plabel = calib_dict[channel].title() + ' [' + units + ']'
+    else:
+        units = ''
+        plabel = ''
 
     del scn 
 
@@ -1147,19 +1177,20 @@ def plot_GOES_satpy(date_str, channel, ax = None, var = None, crs = None, \
         plt.close('all')
         ax = plt.axes(projection=crs)
 
-    ##!#ax.imshow(var.data, transform = crs, extent=(var.x[0], var.x[-1], \
-    ##!#    var.y[-1], var.y[0]), vmin = vmin, vmax = vmax, origin='upper', \
-    ##!#    cmap = 'Greys_r')
-    #im1 = ax.imshow(var, transform = crs, vmin = vmin, vmax = vmax, \
-    im1 = ax.pcolormesh(lons, lats, var, transform = datacrs, \
-        vmin = vmin, vmax = vmax, \
-        cmap = cmap_dict[goes_channel_dict[str(channel)]['wavelength']], \
-        shading = 'auto')
+    if(channel == 'true_color'):
+        ax.imshow(var.data, transform = crs, extent=(var.x[0], var.x[-1], \
+            var.y[-1], var.y[0]), vmin = vmin, vmax = vmax, origin='upper')
+    else:
+        #im1 = ax.imshow(var, transform = crs, vmin = vmin, vmax = vmax, \
+        im1 = ax.pcolormesh(lons, lats, var, transform = datacrs, \
+            vmin = vmin, vmax = vmax, \
+            cmap = cmap_dict[goes_channel_dict[str(channel)]['wavelength']], \
+            shading = 'auto')
+        if(colorbar):
+            cbar = plt.colorbar(im1, ax = ax, pad = 0.03, fraction = 0.052, \
+                extend = 'both')
+            cbar.set_label(plabel.replace('_',' '), size = labelsize, weight = 'bold')
     ax.add_feature(cfeature.STATES)
-    if(colorbar):
-        cbar = plt.colorbar(im1, ax = ax, pad = 0.03, fraction = 0.052, \
-            extend = 'both')
-        cbar.set_label(plabel.replace('_',' '), size = labelsize, weight = 'bold')
 
     if(counties):
         ax.add_feature(USCOUNTIES.with_scale('5m'))    
@@ -1179,9 +1210,13 @@ def plot_GOES_satpy(date_str, channel, ax = None, var = None, crs = None, \
     ##!#ax.add_feature(cfeature.STATES)
     ##!#ax.add_feature(cfeature.BORDERS)
     if(ptitle is None):
-        ax.set_title('GOES-17 ' + \
-            str(np.round(goes_channel_dict[str(channel)]['wavelength'],2)) \
-            + ' μm\n' + dt_date_str.strftime('%Y-%m-%d %H:%M UTC'))
+        if(channel == 'true_color'):
+            ax.set_title('GOES-17 True Color\n' + \
+                dt_date_str.strftime('%Y-%m-%d %H:%M UTC'))
+        else:
+            ax.set_title('GOES-17 ' + \
+                str(np.round(goes_channel_dict[str(channel)]['wavelength'],2)) \
+                + ' μm\n' + dt_date_str.strftime('%Y-%m-%d %H:%M UTC'))
     else:
         ax.set_title(ptitle)
 
@@ -1319,10 +1354,16 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
     ##!#    goes_channel_dict[str(ch2)]['name'] + '\n' + \
     labelsize = 11
     font_size = 10
-    plot_GOES_satpy(date_str, ch1, ax = ax0, var = var0, crs = crs0, \
-        lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
-        vmin = 5, vmax = 80, ptitle = '', plabel = plabel0, \
-        colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+    if(ch1 == 'true_color'):
+        plot_GOES_satpy(date_str, ch1, ax = ax0, var = var0, crs = crs0, \
+            lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
+            ptitle = '', plabel = plabel0, \
+            colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+    else:
+        plot_GOES_satpy(date_str, ch1, ax = ax0, var = var0, crs = crs0, \
+            lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
+            vmin = 5, vmax = 80, ptitle = '', plabel = plabel0, \
+            colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
     plot_GOES_satpy(date_str, ch2, ax = ax1, var = var1, crs = crs0, \
         lons = lons1, lats = lats1, lat_lims = lat_lims, lon_lims = lon_lims, \
         vmin = 5, vmax = 50, ptitle = '', plabel = plabel1, \
@@ -1344,11 +1385,17 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
         vmin = 255, vmax = 270, ptitle = '', plabel = plabel5, \
         colorbar = True, labelsize = labelsize, zoom=True,save=False)
 
-    plot_figure_text(ax0, 'GOES-17 ' + \
-        str(goes_channel_dict[str(ch1)]['wavelength']) + ' μm', \
-        xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
-        halign = 'right')
+    if(ch1 == 'true_color'):
+        plot_figure_text(ax0, 'GOES-17 True Color', \
+            xval = None, yval = None, transform = None, \
+            color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+            halign = 'right')
+    else: 
+        plot_figure_text(ax0, 'GOES-17 ' + \
+            str(goes_channel_dict[str(ch1)]['wavelength']) + ' μm', \
+            xval = None, yval = None, transform = None, \
+            color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+            halign = 'right')
     plot_figure_text(ax1, 'GOES-17 ' + \
         str(goes_channel_dict[str(ch2)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
@@ -1409,33 +1456,33 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
     w_idx = nearest_gridpoint(w_lat_stn, w_lon_stn,\
         lats3, lons3)
 
-    ax2.plot(c_lon_stn, c_lat_stn,
-             color='tab:green', linewidth=2, marker='o',
-             transform=datacrs)
-    ax2.plot(lon_stn, lat_stn,
-             color='tab:blue', linewidth=2, marker='o',
-             transform=datacrs)
-    ax2.plot(w_lon_stn, w_lat_stn,
-             color='tab:purple', linewidth=2, marker='o',
-             transform=datacrs)
-    ax3.plot(lon_stn, lat_stn,
-             color='tab:blue', linewidth=2, marker='o',
-             transform=datacrs)
-    ax3.plot(w_lon_stn, w_lat_stn,
-             color='tab:purple', linewidth=2, marker='o',
-             transform=datacrs)
-    ax4.plot(lon_stn, lat_stn,
-             color='tab:blue', linewidth=2, marker='o',
-             transform=datacrs)
-    ax4.plot(w_lon_stn, w_lat_stn,
-             color='tab:purple', linewidth=2, marker='o',
-             transform=datacrs)
-    ax5.plot(lon_stn, lat_stn,
-             color='tab:blue', linewidth=2, marker='o',
-             transform=datacrs)
-    ax5.plot(w_lon_stn, w_lat_stn,
-             color='tab:purple', linewidth=2, marker='o',
-             transform=datacrs)
+    ##!#ax2.plot(c_lon_stn, c_lat_stn,
+    ##!#         color='tab:green', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
+    ##!#ax2.plot(lon_stn, lat_stn,
+    ##!#         color='tab:blue', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
+    ##!#ax2.plot(w_lon_stn, w_lat_stn,
+    ##!#         color='tab:purple', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
+    ##!#ax3.plot(lon_stn, lat_stn,
+    ##!#         color='tab:blue', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
+    ##!#ax3.plot(w_lon_stn, w_lat_stn,
+    ##!#         color='tab:purple', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
+    ##!#ax4.plot(lon_stn, lat_stn,
+    ##!#         color='tab:blue', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
+    ##!#ax4.plot(w_lon_stn, w_lat_stn,
+    ##!#         color='tab:purple', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
+    ##!#ax5.plot(lon_stn, lat_stn,
+    ##!#         color='tab:blue', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
+    ##!#ax5.plot(w_lon_stn, w_lat_stn,
+    ##!#         color='tab:purple', linewidth=2, marker='o',
+    ##!#         transform=datacrs)
 
     print("TIR")
     print("     Cold - ", np.array(var2)[cd_idx])
@@ -1471,6 +1518,8 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
         zoom_add = '_zoom'
     else:
         zoom_add = ''
+
+    fig1.suptitle(dt_date_str.strftime('%H:%M UTC %Y/%m/%d'))
 
     fig1.tight_layout()
 

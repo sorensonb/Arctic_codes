@@ -8249,9 +8249,9 @@ def plot_combined_figure1_v5(date_str = '202107222110', \
         plt.show()
 
 def plot_combined_figure1_v6(date_str = '202107222110', \
-        modis_ch1 = 'true_color', modis_ch2 = 6, \
+        modis_ch1 = 'true_color', modis_ch2 = 5, \
         modis_ch3 = 7, modis_ch4 = 20, \
-        modis_ch5 = 27, modis_ch6 = 31, \
+        modis_ch5 = 28, modis_ch6 = 31, \
         show_smoke = False, composite = True, \
         zoom = True, save=False):
 
@@ -8360,7 +8360,7 @@ def plot_combined_figure1_v6(date_str = '202107222110', \
         labelsize = 10, colorbar = True, zoom=True,save=False)
     plot_MODIS_satpy(date_str, modis_ch5, ax = ax5, var = var5, crs = crs5, \
         lons = lons5, lats = lats5, lat_lims = lat_lims1, lon_lims = lon_lims1, \
-        vmin = 240, vmax = 260, ptitle = '', plabel = plabel5, \
+        vmin = 255, vmax = 275, ptitle = '', plabel = plabel5, \
         labelsize = 10, colorbar = True, zoom=True,save=False)
     plot_MODIS_satpy(date_str, modis_ch6, ax = ax6, var = var6, crs = crs6, \
         lons = lons6, lats = lats6, lat_lims = lat_lims1, lon_lims = lon_lims1, \

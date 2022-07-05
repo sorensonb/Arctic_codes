@@ -10,13 +10,23 @@ import sys
 
 ##!#begin_date = '202107131200'
 ##!#end_date   = '202107140300'
-##!#auto_GOES_download(begin_date, end_date, 30)
-##!#sys.exit()
+begin_date = '202107201200'
+end_date   = '202107220300'
+auto_GOES_download(begin_date, end_date, 30, channels = [1, 3])
+plot_GOES_6panel_auto(begin_date, end_date,\
+    save_dir = '/home/bsorenson/Research/GOES/six_panel/goes17_sixpanel_v4/20210720/', \
+    save = True)
+
+sys.exit()
+sys.exit()
 ##!#download_GOES_bucket('202107201700', sat = 'goes17', channels = [1,3])
 ##!#download_GOES_bucket('202107202300', sat = 'goes17', channels = [1,3])
 ##!#download_GOES_bucket('202107210300', sat = 'goes17', channels = [1,3])
 ##!#download_GOES_bucket('202107211300', sat = 'goes17', channels = [1,3])
 
+date_str = '202107210300'
+plot_GOES_satpy_6panel(date_str, 'true_color', 6, 13, 8, 9, 10, \
+    zoom = True, save_dir = './', save = False)
 sys.exit()
 
 begin_date = '202107131200'
@@ -29,11 +39,6 @@ end_date2   = '202107220300'
 save_dir = \
     '/home/bsorenson/Research/GOES/time_series_points/points_cross_section/20210713/'
 sys.exit()
-##!#plot_GOES_6panel_auto(begin_date, end_date,\
-##!#    save_dir = '/home/bsorenson/Research/GOES/six_panel/goes17_sixpanel_v3/20210713/', \
-##!#    save = True)
-##!#
-##!#sys.exit()
 
 ##!## Prep the points - mid-plume
 ##!#num_points = 29
