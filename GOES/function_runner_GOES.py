@@ -12,8 +12,12 @@ import sys
 ##!#end_date   = '202107140300'
 begin_date = '202107201200'
 end_date   = '202107220300'
-auto_GOES_download(begin_date, end_date, 30, channels = [1, 3])
-plot_GOES_6panel_auto(begin_date, end_date,\
+#auto_GOES_download(begin_date, end_date, 30, channels = [1, 3])
+date_str = '202107202130'
+#plot_GOES_satpy_6panel(date_str, 'true_color', 6, 8, 9, 10, 13, \
+#    zoom = True, save_dir = './', save = False)
+#sys.exit()
+plot_GOES_6panel_auto(begin_date, end_date, ch1 = 'true_color', \
     save_dir = '/home/bsorenson/Research/GOES/six_panel/goes17_sixpanel_v4/20210720/', \
     save = True)
 

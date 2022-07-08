@@ -113,81 +113,97 @@ goes_channel_dict = {
     '1': {
         'limits': [None, None],\
         'name': 'Blue',
+        'short_name': 'Blue',
         'wavelength': 0.47
     },\
     '2': {
         'limits': [0, 80],\
         'name': 'Red',
+        'short_name': 'Red',
         'wavelength': 0.64
     },\
     '3': {
         'limits': [None, None],\
         'name': 'Veggie',
+        'short_name': 'Veggie',
         'wavelength': 0.86
     },\
     '4': {
         'limits': [None, None],\
         'name': 'Cirrus',
+        'short_name': 'Cirrus',
         'wavelength': 1.38
     },\
     '5': {
         'limits': [None, None],\
         'name': 'Snow/Ice',
+        'short_name': 'Snow/Ice',
         'wavelength': 1.61
     },\
     '6': {
         'limits': [0, 50],\
         'name': 'Cloud Particle Size',
+        'short_name': 'Cloud Particle Size',
         'wavelength': 2.25
     },\
     '7': {
         'limits': [None, None],\
         'name': 'Shortwave Window',
+        'short_name': 'Shortwave Window',
         'wavelength': 3.90
     },\
     '8': {
         'limits': [240, 250],\
         'name': 'Upper-Level Water Vapor',
+        'short_name': 'Upper-Level WV',
         'wavelength': 6.18
     },\
     '9': {
         'limits': [250, 260],\
         'name': 'Mid-Level Water Vapor',
+        'short_name': 'Mid-Level WV',
         'wavelength': 6.95
     },\
     '10': {
         'limits': [255, 270],\
         'name': 'Lower-Level Water Vapor',
+        'short_name': 'Lower-Level WV',
         'wavelength': 7.34
     },\
     '11': {
         'limits': [None, None],\
         'name': 'Cloud-Top Phase',
+        'short_name': 'Cloud-Top Phase',
         'wavelength': 8.50
     },\
     '12': {
         'limits': [None, None],\
         'name': 'Ozone',
+        'short_name': 'Ozone',
         'wavelength': 9.61
     },\
     '13': {
         'limits': [270, 330],\
         'name': 'Clean IR Longwave Window',
+        'short_name': 'Clean TIR',
         'wavelength': 10.35
     },\
     '14': {
         'limits': [None, None],\
         'name': 'IR Longwave Window',
+        'short_name': 'TIR',
         'wavelength': 11.20
     },\
     '15': {
         'limits': [None, None],\
         'name': 'Dirty IR Longwave Window',
+        'short_name': 'Dirty TIR',
         'wavelength': 12.30
     },\
     '16': {
         'limits': [None, None],\
         'name': 'CO2 Longwave Infrared',
+        'short_name': 'CO2 TIR',
         'wavelength': 13.30
     }
 }
@@ -1335,7 +1351,7 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
 
     plt.close('all')
-    fig1 = plt.figure(figsize = (10,6))
+    fig1 = plt.figure(figsize = (10,6.5))
     var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel0 = read_GOES_satpy(date_str, ch1)
     var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel1 = read_GOES_satpy(date_str, ch2)
     var2, crs2, lons2, lats2, lat_lims, lon_lims, plabel2 = read_GOES_satpy(date_str, ch3)
@@ -1350,6 +1366,23 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
     ax4 = fig1.add_subplot(2,3,5, projection = crs4)
     ax5 = fig1.add_subplot(2,3,6, projection = crs5)
 
+    min_dict = {
+        2: 5,
+        6: 5,
+        8: 240, 
+        9: 250, 
+        10: 255, 
+        13: 270,
+    }
+    max_dict = {
+        2: 80,
+        6: 50, 
+        8: 250, 
+        9: 260, 
+        10: 270, 
+        13: 330,
+    }
+
     ##!#ax1.set_title('GOES-17 Band ' + str(ch2) + '\n' + \
     ##!#    goes_channel_dict[str(ch2)]['name'] + '\n' + \
     labelsize = 11
@@ -1362,65 +1395,105 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
     else:
         plot_GOES_satpy(date_str, ch1, ax = ax0, var = var0, crs = crs0, \
             lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
-            vmin = 5, vmax = 80, ptitle = '', plabel = plabel0, \
+            vmin = min_dict[ch1], vmax = max_dict[ch1], ptitle = '', plabel = plabel0, \
             colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
     plot_GOES_satpy(date_str, ch2, ax = ax1, var = var1, crs = crs0, \
         lons = lons1, lats = lats1, lat_lims = lat_lims, lon_lims = lon_lims, \
-        vmin = 5, vmax = 50, ptitle = '', plabel = plabel1, \
+        vmin = min_dict[ch2], vmax = max_dict[ch2], ptitle = '', plabel = plabel1, \
         colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
     plot_GOES_satpy(date_str, ch3, ax = ax2, var = var2, crs = crs0, \
         lons = lons2, lats = lats2, lat_lims = lat_lims, lon_lims = lon_lims, \
-        vmin = 270, vmax = 330, ptitle = '', plabel = plabel2, \
+        vmin = min_dict[ch3], vmax = max_dict[ch3], ptitle = '', plabel = plabel2, \
         colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
     plot_GOES_satpy(date_str, ch4, ax = ax3, var = var3, crs = crs0, \
         lons = lons3, lats = lats3, lat_lims = lat_lims, lon_lims = lon_lims, \
-        vmin = 240, vmax = 250, ptitle = '', plabel = plabel3, \
+        vmin = min_dict[ch4], vmax = max_dict[ch4], ptitle = '', plabel = plabel3, \
         colorbar = True, labelsize = labelsize, zoom=True,save=False)
     plot_GOES_satpy(date_str, ch5, ax = ax4, var = var4, crs = crs0, \
         lons = lons4, lats = lats4, lat_lims = lat_lims, lon_lims = lon_lims, \
-        vmin = 250, vmax = 260, ptitle = '', plabel = plabel4, \
+        vmin = min_dict[ch5], vmax = max_dict[ch5], ptitle = '', plabel = plabel4, \
         colorbar = True, labelsize = labelsize, zoom=True,save=False)
     plot_GOES_satpy(date_str, ch6, ax = ax5, var = var5, crs = crs0, \
         lons = lons5, lats = lats5, lat_lims = lat_lims, lon_lims = lon_lims, \
-        vmin = 255, vmax = 270, ptitle = '', plabel = plabel5, \
+        vmin = min_dict[ch6], vmax = max_dict[ch6], ptitle = '', plabel = plabel5, \
         colorbar = True, labelsize = labelsize, zoom=True,save=False)
 
     if(ch1 == 'true_color'):
-        plot_figure_text(ax0, 'GOES-17 True Color', \
+        plot_figure_text(ax0, 'True Color', \
             xval = None, yval = None, transform = None, \
             color = 'red', fontsize = font_size, backgroundcolor = 'white', \
             halign = 'right')
     else: 
-        plot_figure_text(ax0, 'GOES-17 ' + \
+        plot_figure_text(ax0, \
             str(goes_channel_dict[str(ch1)]['wavelength']) + ' μm', \
             xval = None, yval = None, transform = None, \
             color = 'red', fontsize = font_size, backgroundcolor = 'white', \
             halign = 'right')
-    plot_figure_text(ax1, 'GOES-17 ' + \
+        plot_figure_text(ax0, \
+            str(goes_channel_dict[str(ch1)]['short_name']), \
+            xval = None, yval = None, transform = None, \
+            color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
+            location = 'upper_right', halign = 'right')
+    # 2nd channel
+    # -----------
+    plot_figure_text(ax1, \
         str(goes_channel_dict[str(ch2)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
-    plot_figure_text(ax2, 'GOES-17 ' + \
+    plot_figure_text(ax1, \
+        str(goes_channel_dict[str(ch2)]['short_name']), \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
+        location = 'upper_right', halign = 'right')
+    # 3rd channel
+    # -----------
+    plot_figure_text(ax2, \
         str(goes_channel_dict[str(ch3)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
-    plot_figure_text(ax3, 'GOES-17 ' + \
+    plot_figure_text(ax2, \
+        str(goes_channel_dict[str(ch3)]['short_name']), \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
+        location = 'upper_right', halign = 'right')
+    # 4th channel
+    # -----------
+    plot_figure_text(ax3, \
         str(goes_channel_dict[str(ch4)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
-    plot_figure_text(ax4, 'GOES-17 ' + \
+    plot_figure_text(ax3, \
+        str(goes_channel_dict[str(ch4)]['short_name']), \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
+        location = 'upper_right', halign = 'right')
+    # 5th channel
+    # -----------
+    plot_figure_text(ax4, \
         str(goes_channel_dict[str(ch5)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
-    plot_figure_text(ax5, 'GOES-17 ' + \
+    plot_figure_text(ax4, \
+        str(goes_channel_dict[str(ch5)]['short_name']), \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
+        location = 'upper_right', halign = 'right')
+    # 6th channel
+    # -----------
+    plot_figure_text(ax5, \
         str(goes_channel_dict[str(ch6)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
+    plot_figure_text(ax5, \
+        str(goes_channel_dict[str(ch6)]['short_name']), \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
+        location = 'upper_right', halign = 'right')
 
     plot_subplot_label(ax0,  '(a)', backgroundcolor = 'white', fontsize = font_size)
     plot_subplot_label(ax1,  '(b)', backgroundcolor = 'white', fontsize = font_size)
@@ -1435,26 +1508,26 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
     #
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
    
-    # "Coldest" values
-    # -------------
-    c_lon_stn = -120.6530
-    c_lat_stn = 40.7595
-    cd_idx = nearest_gridpoint(c_lat_stn, c_lon_stn,\
-        lats3, lons3)
-    # "Cold" values
-    # -------------
-    lon_stn = -120.3877
-    lat_stn = 41.2456
-    c_idx = nearest_gridpoint(lat_stn, lon_stn,\
-        lats3, lons3)
-    # "Warm" values
-    # -------------
-    w_lon_stn = -120.9810
-    w_lat_stn = 41.20980
+    ##!## "Coldest" values
+    ##!## -------------
+    ##!#c_lon_stn = -120.6530
+    ##!#c_lat_stn = 40.7595
+    ##!#cd_idx = nearest_gridpoint(c_lat_stn, c_lon_stn,\
+    ##!#    lats3, lons3)
+    ##!## "Cold" values
+    ##!## -------------
+    ##!#lon_stn = -120.3877
+    ##!#lat_stn = 41.2456
+    ##!#c_idx = nearest_gridpoint(lat_stn, lon_stn,\
+    ##!#    lats3, lons3)
+    ##!## "Warm" values
+    ##!## -------------
+    ##!#w_lon_stn = -120.9810
+    ##!#w_lat_stn = 41.20980
 
-    #w_lat_stn = 40.50900
-    w_idx = nearest_gridpoint(w_lat_stn, w_lon_stn,\
-        lats3, lons3)
+    ##!##w_lat_stn = 40.50900
+    ##!#w_idx = nearest_gridpoint(w_lat_stn, w_lon_stn,\
+    ##!#    lats3, lons3)
 
     ##!#ax2.plot(c_lon_stn, c_lat_stn,
     ##!#         color='tab:green', linewidth=2, marker='o',
@@ -1484,18 +1557,18 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
     ##!#         color='tab:purple', linewidth=2, marker='o',
     ##!#         transform=datacrs)
 
-    print("TIR")
-    print("     Cold - ", np.array(var2)[cd_idx])
-    print("     Warm - ", np.array(var2)[w_idx])
-    print("Upper WV")
-    print("     Cold - ", np.array(var3)[c_idx])
-    print("     Warm - ", np.array(var3)[w_idx])
-    print("Mid   WV")
-    print("     Cold - ", np.array(var4)[c_idx])
-    print("     Warm - ", np.array(var4)[w_idx])
-    print("Lower WV")
-    print("     Cold - ", np.array(var5)[c_idx])
-    print("     Warm - ", np.array(var5)[w_idx])
+    ##!#print("TIR")
+    ##!#print("     Cold - ", np.array(var2)[cd_idx])
+    ##!#print("     Warm - ", np.array(var2)[w_idx])
+    ##!#print("Upper WV")
+    ##!#print("     Cold - ", np.array(var3)[c_idx])
+    ##!#print("     Warm - ", np.array(var3)[w_idx])
+    ##!#print("Mid   WV")
+    ##!#print("     Cold - ", np.array(var4)[c_idx])
+    ##!#print("     Warm - ", np.array(var4)[w_idx])
+    ##!#print("Lower WV")
+    ##!#print("     Cold - ", np.array(var5)[c_idx])
+    ##!#print("     Warm - ", np.array(var5)[w_idx])
 
     lon_stn = -120.7605
     lat_stn = 41.2098
@@ -1519,7 +1592,8 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
     else:
         zoom_add = ''
 
-    fig1.suptitle(dt_date_str.strftime('%H:%M UTC %Y/%m/%d'))
+    fig1.suptitle('GOES-17\n' + \
+        dt_date_str.strftime('%Y/%m/%d %H:%M UTC'))
 
     fig1.tight_layout()
 
@@ -1577,8 +1651,9 @@ def plot_GOES_6panel_auto(begin_date, end_date, ch1 = 2, ch2 = 6, \
     # desired times.
     # -------------------------------------------------------
     if(not ch1 in good_all_channels):
-        print("ERROR: data for ",ch1," not downloaded")
-        return
+        if(ch1 != 'true_color'):
+            print("ERROR: data for ",ch1," not downloaded")
+            return
     if(not ch2 in good_all_channels):
         print("ERROR: data for ",ch2," not downloaded")
         return

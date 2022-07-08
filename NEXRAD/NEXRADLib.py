@@ -589,16 +589,87 @@ def plot_NEXRAD_GOES(date_str, radar, variable, channel, ax = None, \
 
     plt.show()
 
+min_dict = {
+    'composite_reflectivity': {\
+        'ppi': -5, \
+        'rhi': -5, \
+    },
+    'reflectivity': {\
+        'ppi': -5,\
+        'rhi': -5,\
+    },
+    'velocity':  {\
+        'ppi': -30,\
+        'rhi': -30,\
+    },
+    'differential_reflectivity': {\
+        'ppi':-2.5, \
+        'rhi':-2.5, \
+    },
+    'cross_correlation_ratio': {\
+        'ppi': 0,\
+        'rhi': 0,\
+    }
+}
+max_dict = {
+    'composite_reflectivity': {\
+        'ppi': 90, \
+        'rhi': 64, \
+    },
+    'reflectivity': {\
+        'ppi': 90,\
+        'rhi': 64,\
+    },
+    'velocity':  {\
+        'ppi': 30,\
+        'rhi': 30,\
+    },
+    'differential_reflectivity': {\
+        'ppi': 5.0, \
+        'rhi': 5.0, \
+    },
+    'cross_correlation_ratio': {\
+        'ppi': 1.,\
+        'rhi': 1.,\
+    }
+}
+cmap_dict = {
+    'composite_reflectivity': 'gist_ncar',\
+    'reflectivity': 'gist_ncar',\
+    'velocity':    'bwr',\
+    'differential_reflectivity': 'gist_ncar', \
+    'cross_correlation_ratio': 'gist_rainbow',\
+}
+
+def plot_NEXRAD_ppi_figure(date_str, radar, variable, angle = 0, \
+    save_dir = './', vmin = None, vmax = None,\
+    mask_outside = True, zoom = True, save = False):
+
+    # Read in the NEXRAD data
+    # -----------------------
+    NEXRAD_dict = read_NEXRAD(date_str, radar, angle = angle)
+
+    # Plot the NEXRAD data
+    # --------------------
+    plot_NEXRAD_ppi(NEXRAD_dict, variable, angle = angle, save_dir = save_dir,\
+        vmin = vmin, vmax = vmax, \
+        mask_outside = mask_outside, zoom = zoom, save = save) 
+    
 
 # variable must be 'reflectivity', 'velocity', 'differential_reflectivity',
 # or 'cross_correlation_ratio'
 def plot_NEXRAD_ppi(NEXRAD_dict, variable, ax = None, angle = None, ptitle = None, \
-        plabel = None, vmin = -5, vmax = 90, \
+        plabel = None, vmin = None, vmax = None, \
         labelsize = 10, colorbar = True, \
         counties = True, save_dir = './',\
         alpha = 1.0, mask_outside = True, crs = None, zoom=True, save=False):
 
     dt_date_str = datetime.strptime(NEXRAD_dict['radar_date'],"%Y%m%d%H%M")
+
+    if(vmin is None):
+        vmin = min_dict[variable]['ppi']
+    if(vmax is None):
+        vmax = max_dict[variable]['ppi']
 
     # Plot the NEXRAD data
     # ------------------
@@ -643,8 +714,8 @@ def plot_NEXRAD_ppi(NEXRAD_dict, variable, ax = None, angle = None, ptitle = Non
 
     display.plot_ppi_map(variable, # Variable name
         angle, # Elevation angle
-        vmin = -5,  # min value
-        vmax = 90,  # max value
+        vmin = vmin,  # min value
+        vmax = vmax,  # max value
         min_lon = NEXRAD_dict['min_lon'], # Min longitude of plot
         max_lon = NEXRAD_dict['max_lon'], # Max longitude of plot
         min_lat = NEXRAD_dict['min_lat'], # Min latitude of plot
@@ -657,7 +728,7 @@ def plot_NEXRAD_ppi(NEXRAD_dict, variable, ax = None, angle = None, ptitle = Non
         ax = ax, 
         lat_0 = NEXRAD_dict['center_lat'], 
         lon_0 = NEXRAD_dict['center_lon'],
-        cmap = 'gist_ncar', 
+        cmap = cmap_dict[variable], 
         title = ptitle,
         colorbar_label  = title_dict[variable],\
         gatefilter = gatefilter, \
@@ -687,12 +758,25 @@ def plot_NEXRAD_ppi(NEXRAD_dict, variable, ax = None, angle = None, ptitle = Non
         else:
             plt.show()
 
+def plot_NEXRAD_rhi_figure(date_str, radar, variable, azimuth = 0, \
+    save_dir = './', vmin = None, vmax = None,\
+    mask_outside = True, zoom = True, save = False):
+
+    # Read in the NEXRAD data
+    # -----------------------
+    NEXRAD_dict = read_NEXRAD(date_str, radar)
+
+    # Plot the NEXRAD data
+    # --------------------
+    plot_NEXRAD_rhi(NEXRAD_dict, variable, azimuth, save_dir = save_dir,\
+        vmin = vmin, vmax = vmax, zoom = zoom, save = save)
+ 
 # variable must be 'reflectivity', 'velocity', 'differential_reflectivity',
 # or 'cross_correlation_ratio'
 # azimuth may be a single number or a list of numbers
 # -------------------------------------------------------------------------
 def plot_NEXRAD_rhi(NEXRAD_dict, variable, azimuth, ax = None, angle = None, \
-        ptitle = None, plabel = None, vmin = -5, vmax = 64, \
+        ptitle = None, plabel = None, vmin = None, vmax = None, \
         labelsize = 10, range_lim = 100, height_lim = 8,\
         colorbar = True, counties = True, save_dir = './',\
         alpha = 1.0, zoom=True, save=False):
@@ -701,6 +785,11 @@ def plot_NEXRAD_rhi(NEXRAD_dict, variable, azimuth, ax = None, angle = None, \
 
     if(not isinstance(azimuth, list)):
         azimuth = [azimuth]
+
+    if(vmin is None):
+        vmin = min_dict[variable]['rhi']
+    if(vmax is None):
+        vmax = max_dict[variable]['rhi']
 
     # Plot the NEXRAD data
     # ------------------

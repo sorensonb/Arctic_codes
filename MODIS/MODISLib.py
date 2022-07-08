@@ -8307,7 +8307,7 @@ def plot_combined_figure1_v6(date_str = '202107222110', \
 
     mapcrs = init_proj(date_str)
     plt.close('all')
-    fig = plt.figure(figsize=(9.5,11))
+    fig = plt.figure(figsize=(10.0,9.5))
     gs = fig.add_gridspec(nrows = 3, ncols = 3)
     ax1  = fig.add_subplot(gs[0,0], projection = crs1) # true color    
     ax2  = fig.add_subplot(gs[0,1], projection = crs2) # MODIS Ch 6
@@ -8504,6 +8504,8 @@ def plot_combined_figure1_v6(date_str = '202107222110', \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
     plot_figure_text(ax9, 'CERES Total', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+
+    fig.suptitle(dt_date_str.strftime('%Y/%m/%d %H:%M UTC'))
 
     fig.tight_layout()
 
