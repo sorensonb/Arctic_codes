@@ -8650,3 +8650,49 @@ def plot_viewing_geometry(date_str = '202107222110', zoom = True, show_smoke = F
         print("Saved",outname)
     else:
         plt.show()
+
+# This function shows the locations of ASOS stations around
+# the Dixie Fire
+# ---------------------------------------------------------
+def plot_MODIS_asos_sites(date_str, sites = None, save = False):
+
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    # ----------------------------------------------------------------------
+    #
+    # Read the MODIS  data
+    #
+    # ----------------------------------------------------------------------
+
+    # Call read_MODIS_channel to read the desired MODIS data from the file 
+    # and put it in a dictionary
+    # ---------------------------------------------------------------------
+    var1, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel1 = \
+        read_MODIS_satpy(date_str, 'true_color')
+    
+    # ----------------------------------------------------------------------
+    #
+    #  Set up the figure
+    #
+    # ----------------------------------------------------------------------
+    plt.close('all')
+    fig = plt.figure()
+    ax1  = fig.add_subplot(1,1,1, projection = crs1) # true color    
+
+    # ----------------------------------------------------------------------
+    #
+    # Plot the data in the figure
+    #
+    # ----------------------------------------------------------------------
+    labelsize = 10
+    plot_MODIS_satpy(date_str, 'true_color', ax = ax1, var = var1, crs = crs1, \
+        lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+        ptitle = '', plabel = plabel1, \
+        labelsize = 10, zoom=True, save=False)
+
+    # Plot the ASOS locations on the map
+    # ----------------------------------
+    plot_ASOS_locs(ax1,date_str,color='lime')
+
+    plt.show()
+

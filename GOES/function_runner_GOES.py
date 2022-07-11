@@ -14,6 +14,9 @@ begin_date = '202107201200'
 end_date   = '202107220300'
 #auto_GOES_download(begin_date, end_date, 30, channels = [1, 3])
 date_str = '202107202130'
+
+plot_GOES_figure2(save=False)
+sys.exit()
 #plot_GOES_satpy_6panel(date_str, 'true_color', 6, 8, 9, 10, 13, \
 #    zoom = True, save_dir = './', save = False)
 #sys.exit()

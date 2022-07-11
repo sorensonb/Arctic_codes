@@ -15,7 +15,8 @@ channel1 = 1
 channel2 = 5
 channel3 = 31
 
-plot_combined_figure1_v6(save = False)
+plot_MODIS_asos_sites(date_str, sites = None, save = False)
+#plot_combined_figure1_v6(save = False)
 
 sys.exit()
 
