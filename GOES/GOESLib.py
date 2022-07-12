@@ -438,7 +438,7 @@ min_dict = {
 }
 max_dict = {
     2: 80,
-    6: 50, 
+    6: 30, 
     8: 250, 
     9: 260, 
     10: 270, 
@@ -1705,15 +1705,15 @@ def plot_GOES_6panel_auto(begin_date, end_date, ch1 = 2, ch2 = 6, \
 ##
 ##fig.subplots_adjust(wspace=0, hspace=0)
 
-def plot_GOES_figure2(date_str1 = '202107201700', date_str2 = '202107202300',\
-        date_str3 = '202107210330', date_str4 = '202107211300', \
+def plot_GOES_figure2(date_str1 = '202107201330', date_str2 = '202107201830',\
+        date_str3 = '202107202300', date_str4 = '202107210330', \
         ch1 = 'true_color', ch2 = 6, ch3 = 9, \
         ch4 = 10, ch5 = 13, \
         ch_idx1 = 0, ch_idx2 = 1, ch_idx3 = 2,\
         ttype1 = 'low', ttype2 = 'ml',\
         idx1 = 3, idx2 = 8, idx3 = 5, \
         show_smoke = False, composite = True, double_fig = False, \
-        zoom = True, save=False):
+        zoom = True, add_wv_time = True, save=False):
 
     dt_date_str1 = datetime.strptime(date_str1,"%Y%m%d%H%M")
     dt_date_str2 = datetime.strptime(date_str2,"%Y%m%d%H%M")
@@ -1744,9 +1744,9 @@ def plot_GOES_figure2(date_str1 = '202107201700', date_str2 = '202107202300',\
     # Read the GOES time series data
     # ------------------------------
     file_name1 = '/home/bsorenson/Research/GOES/goes_cross_data_' + \
-        ttype1 + '_202107201201_202107210231.nc'
+        ttype1 + '_202107201201_202107210331.nc'
     file_name2 = '/home/bsorenson/Research/GOES/goes_cross_data_' + \
-        ttype2 + '_202107201201_202107210231.nc'
+        ttype2 + '_202107201201_202107210331.nc'
     GOES_dict  = read_GOES_time_series_NCDF(file_name1)
     GOES_dict2 = read_GOES_time_series_NCDF(file_name2)
 
@@ -1756,8 +1756,14 @@ def plot_GOES_figure2(date_str1 = '202107201700', date_str2 = '202107202300',\
     #
     # ----------------------------------------------------------------------
     plt.close('all')
-    fig = plt.figure(figsize = (6.4,12))
-    gs = fig.add_gridspec(nrows = 6, ncols = 4)
+    if(add_wv_time):
+        figsize = (6.0, 15)
+        numrows = 7
+    else:
+        figsize = (5.65, 12)
+        numrows = 6
+    fig = plt.figure(figsize = figsize)
+    gs = fig.add_gridspec(nrows = numrows, ncols = 4)
 
     dt_date_strs = [dt_date_str1, dt_date_str2, dt_date_str3,\
         dt_date_str4]
@@ -1766,6 +1772,10 @@ def plot_GOES_figure2(date_str1 = '202107201700', date_str2 = '202107202300',\
 
     colorbar = False 
     labelsize = 8
+    if(add_wv_time):
+        point_size = 4
+    else:
+        point_size = 3
     for ii, dstr in enumerate(date_strs):
         #if(ii == len(date_strs) - 1):
         #    colorbar = True
@@ -1793,8 +1803,27 @@ def plot_GOES_figure2(date_str1 = '202107201700', date_str2 = '202107202300',\
                      ptitle = '', plabel = plabel1, colorbar = colorbar, \
                      labelsize = labelsize, zoom=True,save=False)
 
+            tax.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+                    linewidth=2, markersize = point_size + 2, marker='.',
+                    color = 'black', transform=datacrs)
+            tax.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+                    linewidth=2, markersize = point_size, marker='.',
+                    transform=datacrs)
+            tax.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+                    linewidth=2, markersize = point_size + 2, marker='.',
+                    color = 'black', transform=datacrs)
+            tax.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+                    linewidth=2, markersize = point_size, marker='.',
+                    transform=datacrs)
+            tax.plot(GOES_dict2['plon'][idx3], GOES_dict2['plat'][idx3], \
+                    linewidth=2, markersize = point_size + 2, marker='.',
+                    color = 'black', transform=datacrs)
+            tax.plot(GOES_dict2['plon'][idx3], GOES_dict2['plat'][idx3], \
+                    linewidth=2, markersize = point_size, marker='.',
+                    transform=datacrs)
+
             if(jj == 0):
-                tax.set_title(dt_date_strs[ii].strftime('%Y/%m/%d\n%H%M UTC'),\
+                tax.set_title(dt_date_strs[ii].strftime('%Y/%m/%d\n%H:%M UTC'),\
                     fontsize = 8)
    
     ax10  = fig.add_subplot(gs[5,:]) # time series of GOES data
@@ -1844,27 +1873,119 @@ def plot_GOES_figure2(date_str1 = '202107201700', date_str2 = '202107202300',\
             label = str(goes_channel_dict[\
             str(GOES_dict2['channels'][ch_idx3])]['wavelength']) + \
             ' μm', linestyle = ':', color = 'tab:green')
-        ax102.set_ylabel('Brightness Temperature [K]')
+        ax102.set_ylabel('BT [K]')
+        ax102.tick_params(axis="y", labelsize = 7)
+    ax10.xaxis.set_major_formatter(DateFormatter('%m/%d\n%H:%MZ'))
+    ax10.tick_params(axis="x", labelsize = labelsize)
+    ax10.tick_params(axis="y", labelsize = 7)
+    ax10.set_ylabel('Reflectance')
+    ax10.grid()
 
-    fig.subplots_adjust(wspace=0, hspace=0)
+    custom_lines = [Line2D([0], [0], color='k'),
+                    Line2D([0], [0], color='k', linestyle = '--'),\
+                    Line2D([0], [0], color='k', linestyle = ':')]
+
+    ax10.legend(custom_lines, ['0.64 μm', '2.25 μm', '10.35 μm'],\
+        fontsize = 8, loc = 2)
+
+    if(add_wv_time):
+        ax11  = fig.add_subplot(gs[6,:]) # time series of GOES data
+
+        # Plot the two channel data for the first point
+        # ---------------------------------------------
+        ln111 = ax11.plot(GOES_dict['dt_dates'], GOES_dict['data'][:,4,idx1], \
+            label = str(goes_channel_dict[\
+            str(GOES_dict['channels'][3])]['wavelength']) + \
+            ' μm', color = 'tab:blue')
+        ln211 = ax11.plot(GOES_dict['dt_dates'], GOES_dict['data'][:,4,idx2], \
+            label = str(goes_channel_dict[\
+            str(GOES_dict['channels'][3])]['wavelength']) + \
+            ' μm', color = 'tab:orange')
+        ln411 = ax11.plot(GOES_dict2['dt_dates'], GOES_dict2['data'][:,4,idx3], \
+            label = str(goes_channel_dict[\
+            str(GOES_dict2['channels'][3])]['wavelength']) + \
+            ' μm', color = 'tab:green')
+
+        # Plot the two channel data for the second point
+        # ----------------------------------------------
+        ln121 = ax11.plot(GOES_dict['dt_dates'], GOES_dict['data'][:,5,idx1], \
+            label = str(goes_channel_dict[\
+            str(GOES_dict['channels'][5])]['wavelength']) + \
+            ' μm', linestyle = '--', color = 'tab:blue')
+        ln221 = ax11.plot(GOES_dict['dt_dates'], GOES_dict['data'][:,5,idx2], \
+            label = str(goes_channel_dict[\
+            str(GOES_dict['channels'][5])]['wavelength']) + \
+            ' μm', linestyle = '--', color = 'tab:orange')
+        ln421 = ax11.plot(GOES_dict2['dt_dates'], GOES_dict2['data'][:,5,idx3], \
+            label = str(goes_channel_dict[\
+            str(GOES_dict2['channels'][5])]['wavelength']) + \
+            ' μm', linestyle = '--', color = 'tab:green')
+
+        ##!#if(ch_idx3 is not None):
+        ##!#    ax102 = ax10.twinx()
+        ##!#    ln31 = ax102.plot(GOES_dict['dt_dates'], GOES_dict['data'][:,ch_idx3,idx1], \
+        ##!#        label = str(goes_channel_dict[\
+        ##!#        str(GOES_dict['channels'][ch_idx3])]['wavelength']) + \
+        ##!#        ' μm', linestyle = ':', color = 'tab:blue')
+        ##!#    ln32 = ax102.plot(GOES_dict['dt_dates'], GOES_dict['data'][:,ch_idx3,idx2], \
+        ##!#        label = str(goes_channel_dict[\
+        ##!#        str(GOES_dict['channels'][ch_idx3])]['wavelength']) + \
+        ##!#        ' μm', linestyle = ':', color = 'tab:orange')
+        ##!#    ln33 = ax102.plot(GOES_dict2['dt_dates'], GOES_dict2['data'][:,\
+        ##!#        ch_idx3,idx3], \
+        ##!#        label = str(goes_channel_dict[\
+        ##!#        str(GOES_dict2['channels'][ch_idx3])]['wavelength']) + \
+        ##!#        ' μm', linestyle = ':', color = 'tab:green')
+        ##!#    ax102.set_ylabel('Brightness Temperature [K]')
+        ax11.xaxis.set_major_formatter(DateFormatter('%m/%d\n%H:%MZ'))
+        ax11.tick_params(axis="x", labelsize = labelsize + 1)
+        ax11.tick_params(axis="y", labelsize = 7)
+        ax11.set_ylabel('BT')
+        ax11.grid()
+        custom_lines = [Line2D([0], [0], color='k'),
+                        Line2D([0], [0], color='k', linestyle = '--')]
+
+        ax11.legend(custom_lines, ['6.95 μm', '7.34 μm'],\
+            fontsize = 8, loc = 2)
 
     # Add plot text
     # -------------
     row_label_size = 10
-    fig.text(0.10, 0.83, 'True Color', ha='center', va='center', \
-        rotation='vertical',weight='bold',fontsize=row_label_size)
-    fig.text(0.10, 0.68, '2.25 μm', ha='center', va='center', \
-        rotation='vertical',weight='bold',fontsize=row_label_size)
-    fig.text(0.10, 0.55, '6.95 μm', ha='center', va='center', \
-        rotation='vertical',weight='bold',fontsize=row_label_size)
-    fig.text(0.10, 0.45, '7.34 μm', ha='center', va='center', \
-        rotation='vertical',weight='bold',fontsize=row_label_size)
-    fig.text(0.10, 0.30, '10.35 μm', ha='center', va='center', \
-        rotation='vertical',weight='bold',fontsize=row_label_size)
-    outname = 'goes_multi_big_file_test.png'
-    fig.savefig(outname, dpi = 300)
-    print('Saved image', outname)
-    #plt.show()
+    if(add_wv_time):
+        fig.text(0.10, 0.83, 'True Color', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.10, 0.74, '2.25 μm', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.10, 0.64, '6.95 μm', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.10, 0.54, '7.34 μm', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.10, 0.45, '10.35 μm', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+    else:
+        fig.text(0.10, 0.82, 'True Color', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.10, 0.72, '2.25 μm', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.10, 0.60, '6.95 μm', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.10, 0.49, '7.34 μm', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.10, 0.37, '10.35 μm', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+
+    fig.autofmt_xdate()
+    fig.subplots_adjust(wspace=0, hspace=0)
+
+    if(save):
+        if(add_wv_time):
+            outname = 'goes_multi_big_file_wv_test.png'
+        else:
+            outname = 'goes_multi_big_file_test.png'
+        fig.savefig(outname, dpi = 300)
+        print('Saved image', outname)
+    else:
+        plt.show()
     return
     ##!#axi11  = fig.add_subplot(gs[0,0], projection = crs1) # true color    
     ##!#axi12  = fig.add_subplot(gs[1,0], projection = crs8) # MODIS Ch 7

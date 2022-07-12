@@ -249,7 +249,7 @@ def check_max_rhum(data):
 
 def prep_atmos_file(data, \
         zmin = None, zmax = None, \
-        set_tmp = None, add_tmp = None, \
+        set_tmp = None, add_tmp = None, add_tmp_sfc = None,\
         set_wv_mix = None, add_wv_mix = None, \
         set_rh = None, \
         out_path = './', saver = None):
@@ -276,6 +276,18 @@ def prep_atmos_file(data, \
             (new_data['z'] <= zmax)]) / 1e3) * 100.
         new_data['rhum'][(new_data['z'] >= zmin) & \
             (new_data['z'] <= zmax)] = new_rh
+
+    if(add_tmp_sfc is not None):
+        new_data['t'][:2] += add_tmp_sfc
+
+        # Recalculate relative humidity in these layers
+        # ---------------------------------------------
+        new_rh = mpcalc.relative_humidity_from_mixing_ratio(\
+            np.array(new_data['p'][:2]) * units('mbar'), \
+            np.array(new_data['t'][:2]) * units('K'), \
+            np.array(new_data['mix_rat'][:2]) / 1e3) * 100.
+
+        new_data['rhum'][:2] = new_rh
 
     elif(add_tmp is not None): 
         print("Adding temp of ", add_tmp)
@@ -435,7 +447,7 @@ def prep_atmos_file(data, \
 
 def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
         nzen = None, atms_file = '', z_mins = None, z_maxs = None, \
-        set_tmp = None, add_tmp = None, \
+        set_tmp = None, add_tmp = None, add_tmp_sfc = None, \
         set_wv_mix = None, add_wv_mix = None, \
         set_rh = None):
     if(calc_radiance):
@@ -586,6 +598,7 @@ def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
                 # Prep the atmosphere file 
                 # NOTE: for now, only allow one meteorological variable to change
                 # ---------------------------------------------------------------
+                new_data = None
                 if(set_wv_mix is not None):
                     new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
                         zmax = z_maxs[kk,ii], set_wv_mix = data_dict['info']['met_var_vals'][kk,ii])
@@ -600,6 +613,7 @@ def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
                     run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
                                 'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
                                 'addwv'+str(int(data_dict['info']['met_var_vals'][kk,ii]))
+
                 elif(set_tmp is not None):
                     new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
                         zmax = z_maxs[kk,ii], set_tmp = data_dict['info']['met_var_vals'][kk,ii])
@@ -614,6 +628,24 @@ def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
                     run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
                                 'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
                                 'addtmp'+str(int(data_dict['info']['met_var_vals'][kk,ii]))
+
+                # Allows the user to modify the surface temperature in 
+                # addition to other variables
+                # ----------------------------------------------------
+                if(add_tmp_sfc is not None):
+                    if(new_data is None):
+                        new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
+                            zmax = z_maxs[kk,ii], add_tmp = data_dict['info']['met_var_vals'][kk,ii])
+                            #set_wv_mix = adr)
+                        run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
+                                    'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
+                                    'addtmp'+str(int(data_dict['info']['met_var_vals'][kk,ii]))
+                    else:
+                        new_data = prep_atmos_file(new_data, zmin = z_mins[kk,ii], \
+                            zmax = z_maxs[kk,ii], add_tmp_sfc = add_tmp_sfc)
+                            #set_wv_mix = adr)
+                        run_adder = run_adder + '_addtmpsfc' + str(int(add_tmp_sfc))
+
                 elif(set_rh is not None):
                     if(np.isnan(data_dict['info']['met_var_vals'][kk,ii])):
                         local_rh = None
@@ -1420,3 +1452,138 @@ def process_SBDART_multi_sat_vza(atms_file = '', save = False):
     else:
         plt.show()
     
+def process_SBDART_single_sat_wv_tmp_vza(satellite = 'modis_ch31',\
+        atms_file = '', save = False):
+    #atms_file = '/home/bsorenson/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
+    # Run num 1
+    z_maxs = np.array([5.])
+    z_mins = np.array([0.])
+    add_wv_mix = np.full((3, len(z_maxs)), np.nan)
+    add_wv_mix[0,:] = 0. 
+    add_wv_mix[1,:] = 2. 
+    add_wv_mix[2,:] = 4. 
+
+    satellites = ['goes17_ch08','goes17_ch09','goes17_ch10','goes17_ch13',\
+        'modis_ch31']
+
+    plt.close('all')
+    fig = plt.figure()
+    ax1 = fig.add_subplot(1,1,1)
+
+    for kk, satellite in enumerate(satellites):
+
+        print(kk, satellite)
+        tax = fig.add_subplot(2,3,kk + 1)
+        tmp_diffs = np.arange(11.)
+        bght_tmps = np.full((len(add_wv_mix), len(tmp_diffs)), np.nan)
+
+        for ii, tmp_diff in enumerate(tmp_diffs):
+            data = run_sbdart(satellite, calc_radiance = True, \
+                atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
+                add_wv_mix = add_wv_mix, add_tmp_sfc = -tmp_diff)
+
+            bght_tmps[0,ii] = data['output']['1']['1']['bght_tmp']
+            bght_tmps[1,ii] = data['output']['2']['1']['bght_tmp']
+            bght_tmps[2,ii] = data['output']['3']['1']['bght_tmp']
+            
+
+        ax1.plot(bght_tmps[2,:] - bght_tmps[0,0], label = satellite)
+        ##!#tax.plot(bght_tmps[0,:], label = 'wo')
+        ##!#tax.plot(bght_tmps[1,:], label = 'wo + 2')
+        ##!#tax.plot(bght_tmps[2,:], label = 'wo + 4')
+        ##!#tax.set_xlabel('Surface temperature reduction [K]')
+        ##!#tax.set_ylabel('BT')
+        #tax.set_ylabel('TOA ΔBT')
+        tax.set_title('Stuff')
+        tax.legend()
+    ax1.set_xlabel('Surface temperature reduction [K]')
+    ax1.set_ylabel('TOA ΔBT')
+    ax1.set_title('Stuff')
+    ax1.legend()
+    fig.tight_layout()
+    plt.show()
+    return 
+    ##!#ax1 = fig.add_subplot(1,3,1)
+    ##!#ax2 = fig.add_subplot(1,3,2)
+    ##!#ax3 = fig.add_subplot(1,3,3)
+    ##!#data1 = run_sbdart(satellite, calc_radiance = True, \
+    ##!#    atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
+    ##!#    add_wv_mix = add_wv_mix,  \
+    ##!#    nzen = 9, vza = [0, 60])
+    ##!#data2 = run_sbdart(satellite, calc_radiance = True, \
+    ##!#    atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
+    ##!#    add_wv_mix = add_wv_mix, add_tmp_sfc = add_tmp[1],\
+    ##!#    nzen = 9, vza = [0, 60])
+    ##!#data3 = run_sbdart(satellite, calc_radiance = True, \
+    ##!#    atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
+    ##!#    add_wv_mix = add_wv_mix, add_tmp_sfc = add_tmp[2],\
+    ##!#    nzen = 9, vza = [0, 60])
+    ##!#plot_bright_vza(data1, pax = ax1, plabelsize = 10)
+    ##!#plot_bright_vza(data2, pax = ax2, plabelsize = 10)
+    ##!#plot_bright_vza(data3, pax = ax3, plabelsize = 10)
+    ##!#fig.tight_layout()
+    ##!#plt.show()
+    ##!#return
+
+    kk = 0
+    for ii in range(len(add_wv_mix)):
+        print(ii, add_wv_mix[ii])
+        for jj in range(len(add_tmp)):
+            print('  ', jj, add_tmp[jj])
+            tax = fig.add_subplot(3,3,kk)
+
+            data1 = run_sbdart(satellite, calc_radiance = True, \
+                atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
+                add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60])
+
+            kk += 1
+
+    return
+ 
+    data1 = run_sbdart('goes17_ch08', calc_radiance = True, \
+        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
+        add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60])
+    data2 = run_sbdart('goes17_ch09', calc_radiance = True, \
+        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
+        add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60])
+    data3 = run_sbdart('goes17_ch10', calc_radiance = True, \
+        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
+        add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60])
+    data4 = run_sbdart('modis_ch31', calc_radiance = True, \
+        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
+        add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60])
+    
+    ax1 = fig.add_subplot(2,2,1)
+    ax2 = fig.add_subplot(2,2,2)
+    ax3 = fig.add_subplot(2,2,3)
+    ax4 = fig.add_subplot(2,2,4)
+    
+    plot_bright_vza(data1, pax = ax1, plabelsize = 10)
+    plot_bright_vza(data2, pax = ax2, plabelsize = 10)
+    plot_bright_vza(data3, pax = ax3, plabelsize = 10)
+    plot_bright_vza(data4, pax = ax4, plabelsize = 10)
+
+    # Add dashed lines at the correct VZAs
+    # ------------------------------------
+    ax1.axvline(49.61378, linestyle = '--', color = 'black')
+    ax2.axvline(49.61378, linestyle = '--', color = 'black')
+    ax3.axvline(49.61378, linestyle = '--', color = 'black')
+    ax4.axvline(3.15, linestyle = '--', color = 'black')
+
+    plot_subplot_label(ax1, '(a)', location = 'upper_right', fontsize = 11)
+    plot_subplot_label(ax2, '(b)', location = 'upper_right', fontsize = 11)
+    plot_subplot_label(ax3, '(c)', location = 'upper_right', fontsize = 11)
+    plot_subplot_label(ax4, '(d)', location = 'upper_right', fontsize = 11)
+
+    fig.tight_layout()
+
+    if(save):
+        if(atms_file == ''):
+            atms_add = 'mdlat_sum'
+        else:
+            atms_add = 'atms_file'
+        outname = 'modis_goes_sbdart_comps_' + atms_add + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()

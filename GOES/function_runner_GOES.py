@@ -15,37 +15,35 @@ end_date   = '202107220300'
 #auto_GOES_download(begin_date, end_date, 30, channels = [1, 3])
 date_str = '202107202130'
 
-plot_GOES_figure2(save=False)
+plot_GOES_figure2(save=True, add_wv_time = False)
 sys.exit()
-#plot_GOES_satpy_6panel(date_str, 'true_color', 6, 8, 9, 10, 13, \
-#    zoom = True, save_dir = './', save = False)
-#sys.exit()
-plot_GOES_6panel_auto(begin_date, end_date, ch1 = 'true_color', \
-    save_dir = '/home/bsorenson/Research/GOES/six_panel/goes17_sixpanel_v4/20210720/', \
-    save = True)
-
-sys.exit()
-sys.exit()
+##!##plot_GOES_satpy_6panel(date_str, 'true_color', 6, 8, 9, 10, 13, \
+##!##    zoom = True, save_dir = './', save = False)
+##!##sys.exit()
+##!#plot_GOES_6panel_auto(begin_date, end_date, ch1 = 'true_color', \
+##!#    save_dir = '/home/bsorenson/Research/GOES/six_panel/goes17_sixpanel_v4/20210720/', \
+##!#    save = True)
+##!#
+##!#sys.exit()
 ##!#download_GOES_bucket('202107201700', sat = 'goes17', channels = [1,3])
 ##!#download_GOES_bucket('202107202300', sat = 'goes17', channels = [1,3])
 ##!#download_GOES_bucket('202107210300', sat = 'goes17', channels = [1,3])
 ##!#download_GOES_bucket('202107211300', sat = 'goes17', channels = [1,3])
 
-date_str = '202107210300'
-plot_GOES_satpy_6panel(date_str, 'true_color', 6, 13, 8, 9, 10, \
-    zoom = True, save_dir = './', save = False)
-sys.exit()
+##!#date_str = '202107210300'
+##!#plot_GOES_satpy_6panel(date_str, 'true_color', 6, 13, 8, 9, 10, \
+##!#    zoom = True, save_dir = './', save = False)
+##!#sys.exit()
 
-begin_date = '202107131200'
-end_date   = '202107140300'
+begin_date = '202107201200'
+end_date   = '202107210400'
 #begin_date  = '202107201200'
 #end_date    = '202107210300'
 begin_date2 = '202107211200'
 end_date2   = '202107220300'
 #end_date   = '202107220300'
 save_dir = \
-    '/home/bsorenson/Research/GOES/time_series_points/points_cross_section/20210713/'
-sys.exit()
+    '/home/bsorenson/Research/GOES/time_series_points/points_cross_section/20210720/'
 
 ##!## Prep the points - mid-plume
 ##!#num_points = 29
@@ -61,19 +59,19 @@ sys.exit()
 ##!#lower_lat_up = 41.082106
 ##!#lower_lon_up = -120.795154
 ##!#
-##!## Prep the points - mid-lower-plume
-##!#num_points_ml = 28
-##!#upper_lat_ml = 40.600837
-##!#upper_lon_ml = -121.319833
-##!#lower_lat_ml = 40.184126
-##!#lower_lon_ml = -120.721026
+# Prep the points - mid-lower-plume
+num_points_ml = 28
+upper_lat_ml = 40.600837
+upper_lon_ml = -121.319833
+lower_lat_ml = 40.184126
+lower_lon_ml = -120.721026
 ##!#
-##!## Prep the points - lower-plume
-##!#num_points_low = 24
-##!#upper_lat_low = 40.417340
-##!#upper_lon_low = -121.345775
-##!#lower_lat_low = 40.007783
-##!#lower_lon_low = -120.794903
+# Prep the points - lower-plume
+num_points_low = 24
+upper_lat_low = 40.417340
+upper_lon_low = -121.345775
+lower_lat_low = 40.007783
+lower_lon_low = -120.794903
 ##!#
 ##!##upper_lat = 40.75052
 ##!##upper_lon = -121.040965
@@ -85,24 +83,24 @@ sys.exit()
 ##!#interp_lons = np.linspace(lower_lon, upper_lon, num_points)
 ##!#interp_lats_up = np.linspace(lower_lat_up, upper_lat_up, num_points_up)
 ##!#interp_lons_up = np.linspace(lower_lon_up, upper_lon_up, num_points_up)
-##!#interp_lats_ml = np.linspace(lower_lat_ml, upper_lat_ml, num_points_ml)
-##!#interp_lons_ml = np.linspace(lower_lon_ml, upper_lon_ml, num_points_ml)
-##!#interp_lats_low = np.linspace(lower_lat_low, upper_lat_low, num_points_low)
-##!#interp_lons_low = np.linspace(lower_lon_low, upper_lon_low, num_points_low)
+interp_lats_ml = np.linspace(lower_lat_ml, upper_lat_ml, num_points_ml)
+interp_lons_ml = np.linspace(lower_lon_ml, upper_lon_ml, num_points_ml)
+interp_lats_low = np.linspace(lower_lat_low, upper_lat_low, num_points_low)
+interp_lons_low = np.linspace(lower_lon_low, upper_lon_low, num_points_low)
 ##!#
 ##!##goes_var, goes_lat, goes_lon  = \
 ##!##    get_GOES_data_lat_lon(date_str, list(interp_lats_ml), \
 ##!##    list(interp_lons_ml), 2, version = 1, verbose = True)
 
-##!#GOES_dict1_low = read_GOES_time_series_auto(begin_date, end_date, \
-##!#    channels = [2, 6, 13], dlat = list(interp_lats_low), \
-##!#    dlon = list(interp_lons_low))
+GOES_dict1_low = read_GOES_time_series_auto(begin_date, end_date, \
+    channels = [2, 6, 13, 8, 9, 10], dlat = list(interp_lats_low), \
+    dlon = list(interp_lons_low))
 ##!#GOES_dict2_low = read_GOES_time_series_auto(begin_date2, end_date2, \
 ##!#    channels = [2, 6, 13], dlat = list(interp_lats_low), \
 ##!#    dlon = list(interp_lons_low))
-##!#GOES_dict1_ml = read_GOES_time_series_auto(begin_date, end_date, \
-##!#    channels = [2, 6, 13], dlat = list(interp_lats_ml), \
-##!#    dlon = list(interp_lons_ml))
+GOES_dict1_ml = read_GOES_time_series_auto(begin_date, end_date, \
+    channels = [2, 6, 13, 8, 9, 10], dlat = list(interp_lats_ml), \
+    dlon = list(interp_lons_ml))
 ##!#GOES_dict2_ml = read_GOES_time_series_auto(begin_date2, end_date2, \
 ##!#    channels = [2, 6, 13], dlat = list(interp_lats_ml), \
 ##!#    dlon = list(interp_lons_ml))
@@ -119,9 +117,9 @@ sys.exit()
 ##!#    channels = [2, 6, 13], dlat = list(interp_lats_up), \
 ##!#    dlon = list(interp_lons_up))
 
-##!#GOES_dict1_low['ptype'] = 'low'
+GOES_dict1_low['ptype'] = 'low'
 ##!#GOES_dict2_low['ptype'] = 'low'
-##!#GOES_dict1_ml['ptype'] = 'ml'
+GOES_dict1_ml['ptype'] = 'ml'
 ##!#GOES_dict2_ml['ptype'] = 'ml'
 ##!#GOES_dict1_mid['ptype'] = 'mid'
 ##!#GOES_dict2_mid['ptype'] = 'mid'
@@ -129,32 +127,32 @@ sys.exit()
 ##!#GOES_dict2_up['ptype'] = 'up'
 
 base_dir = '/home/bsorenson/Research/GOES/'
-GOES_dict0_low  = read_GOES_time_series_NCDF(base_dir + \
-    'goes_cross_data_low_202107131201_202107140231.nc')
-GOES_dict1_low  = read_GOES_time_series_NCDF(base_dir + \
-    'goes_cross_data_low_202107201201_202107210231.nc')
+##!#GOES_dict0_low  = read_GOES_time_series_NCDF(base_dir + \
+##!#    'goes_cross_data_low_202107131201_202107140231.nc')
+##!#GOES_dict1_low  = read_GOES_time_series_NCDF(base_dir + \
+##!#    'goes_cross_data_low_202107201201_202107210231.nc')
 ##!#GOES_dict2_low  = read_GOES_time_series_NCDF(base_dir + \
 ##!#    'goes_cross_data_low_202107211201_202107220231.nc')
-GOES_dict0_ml   = read_GOES_time_series_NCDF(base_dir + \
-    'goes_cross_data_ml_202107131201_202107140231.nc')
-GOES_dict1_ml   = read_GOES_time_series_NCDF(base_dir + \
-    'goes_cross_data_ml_202107201201_202107210231.nc')
+##!#GOES_dict0_ml   = read_GOES_time_series_NCDF(base_dir + \
+##!#    'goes_cross_data_ml_202107131201_202107140231.nc')
+##!#GOES_dict1_ml   = read_GOES_time_series_NCDF(base_dir + \
+##!#    'goes_cross_data_ml_202107201201_202107210231.nc')
 ##!#GOES_dict2_ml   = read_GOES_time_series_NCDF(base_dir + \
 ##!#    'goes_cross_data_ml_202107211201_202107220231.nc')
-GOES_dict1_mid  = read_GOES_time_series_NCDF(base_dir + \
-    'goes_cross_data_mid_202107131201_202107140231.nc')
+##!#GOES_dict1_mid  = read_GOES_time_series_NCDF(base_dir + \
+##!#    'goes_cross_data_mid_202107131201_202107140231.nc')
     #'goes_cross_data_mid_202107201201_202107210231.nc')
 ##!#GOES_dict2_mid  = read_GOES_time_series_NCDF(base_dir + \
 ##!#    'goes_cross_data_mid_202107211201_202107220231.nc')
-GOES_dict1_up   = read_GOES_time_series_NCDF(base_dir + \
-    'goes_cross_data_up_202107131201_202107140231.nc')
+##!#GOES_dict1_up   = read_GOES_time_series_NCDF(base_dir + \
+##!#    'goes_cross_data_up_202107131201_202107140231.nc')
     #'goes_cross_data_up_202107201201_202107210231.nc')
 ##!#GOES_dict2_up   = read_GOES_time_series_NCDF(base_dir + \
 ##!#    'goes_cross_data_up_202107211201_202107220231.nc')
 
-##!#write_GOES_time_series_NCDF(GOES_dict1_low, save_dir = './')
+write_GOES_time_series_NCDF(GOES_dict1_low, save_dir = './')
 ##!#write_GOES_time_series_NCDF(GOES_dict2_low, save_dir = './')
-##!#write_GOES_time_series_NCDF(GOES_dict1_ml,  save_dir = './')
+write_GOES_time_series_NCDF(GOES_dict1_ml,  save_dir = './')
 ##!#write_GOES_time_series_NCDF(GOES_dict2_ml,  save_dir = './')
 ##!#write_GOES_time_series_NCDF(GOES_dict1_mid, save_dir = './')
 ##!#write_GOES_time_series_NCDF(GOES_dict2_mid, save_dir = './')

@@ -10,17 +10,18 @@ from SBDART_Lib import *
 import sys
 
 satellite = 'modis_ch31'
-#atms_file = ''
-
+atms_file = ''
 atms_file = '/home/bsorenson/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
+bght_tmps = process_SBDART_single_sat_wv_tmp_vza(satellite = 'modis_ch31',\
+    atms_file = atms_file, save = False)
+
+sys.exit()
+
 process_SBDART_multi_plume_height_thick(atms_file = atms_file, save = True)
 sys.exit()
 #process_SBDART_multi_lower_tmps(atms_file = atms_file, save = False)
 #sys.exit()
 
-process_SBDART_multi_sat_vza(atms_file = atms_file, save = False)
-
-sys.exit()
 
 satellites = ['modis_ch31','goes17_ch08','goes17_ch09','goes17_ch10','goes17_ch13']
 
