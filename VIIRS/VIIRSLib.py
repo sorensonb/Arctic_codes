@@ -110,6 +110,11 @@ channel_dict = {
     }
 }
 
+sat_changer = {
+    'SNPP': 'NP0',\
+    'JPSS': 'J10'
+}
+
 def find_plume_VIIRS(filename):
     VIIRS_data5  = readVIIRS_granule(filename, band = 'M05', zoom = True)
     VIIRS_data7  = readVIIRS_granule(filename, band = 'M07', zoom = True)
@@ -158,17 +163,18 @@ def find_plume_VIIRS(filename):
 
     return hash_data, nohash_data
 
-def readVIIRS_granule(filename, band = 'M15', zoom = True):
-   
+def readVIIRS_granule(filename, band = 'M15', \
+        zoom = True):
+  
     VIIRS_data = {}
     VIIRS_data['filename'] = filename
     VIIRS_data['band']     = band
- 
     # Read the filename to determine the file type
     # --------------------------------------------
     total_split = filename.split('/')
     name_split = total_split[-1].split('.')
     dataset_name = name_split[0]
+    sat_id = dataset_name[:5]
     if(dataset_name == 'VNP46A1'):
         cmap = 'cividis'
         dtype = 'DNB'        
@@ -193,7 +199,9 @@ def readVIIRS_granule(filename, band = 'M15', zoom = True):
 
         viirs_ds.close()
 
-    elif(dataset_name[:5] == 'VNP02'):
+    #else:
+    #elif(dataset_name[:5] == 'V'+file_adder + '2'):
+    elif(dataset_name[4:5] == '2'):
 
         # Extract whether DNB or MOD
         # --------------------------
@@ -202,9 +210,9 @@ def readVIIRS_granule(filename, band = 'M15', zoom = True):
         # Determine if geolocation data is present in same path
         # -----------------------------------------------------
         print("Searching for geolocation data for",'/'.join(total_split[:-1]) \
-            + '/VNP03' + data_type + '.' + '.'.join(name_split[1:4]))
-        geoloc_list = glob('/'.join(total_split[:-1]) + '/VNP03' + data_type + \
-            '.' + '.'.join(name_split[1:4]) + '*') 
+            + '/'+sat_id + data_type + '.' + '.'.join(name_split[1:4]))
+        geoloc_list = glob('/'.join(total_split[:-1]) + '/'+ sat_id[:4] + \
+            '3' + data_type + '.' + '.'.join(name_split[1:4]) + '*') 
         if(len(geoloc_list) == 0):
             print("ERROR: no geolocation found for file",filename)
             return
@@ -294,14 +302,15 @@ def readVIIRS_granule(filename, band = 'M15', zoom = True):
         ##!#MODIS_data['lon'] = np.ma.masked_where(MODIS_data['lon'] == -999., MODIS_data['lon'])
         
 
-    VIIRS_data['filename'] = filename
-    VIIRS_data['dtype']    = dtype
-    VIIRS_data['label']    = label
-    VIIRS_data['lon']      = x
-    VIIRS_data['lat']      = y
-    VIIRS_data['data']     = dnb
-    VIIRS_data['vmax']     = vmax
-    VIIRS_data['cmap']     = cmap
+    VIIRS_data['filename']  = filename
+    VIIRS_data['satellite'] = filename
+    VIIRS_data['dtype']     = dtype
+    VIIRS_data['label']     = label
+    VIIRS_data['lon']       = x
+    VIIRS_data['lat']       = y
+    VIIRS_data['data']      = dnb
+    VIIRS_data['vmax']      = vmax
+    VIIRS_data['cmap']      = cmap
 
     return VIIRS_data
 
@@ -349,7 +358,8 @@ def plot_VIIRS_granule(VIIRS_data, ax = None, labelsize = 12, \
     if(not in_ax):
         plt.show()
 
-def plot_VIIRS_figure(filename, band = 'M12', ax = None, show_smoke = False, \
+def plot_VIIRS_figure(filename, satellite = 'SNPP', band = 'M12', \
+        ax = None, show_smoke = False, \
         vmin = None, vmax = None, ptitle = '', zoom = True):
 
     in_ax = True
@@ -367,7 +377,8 @@ def plot_VIIRS_figure(filename, band = 'M12', ax = None, show_smoke = False, \
 
             # Read the data for this granule
             # ------------------------------
-            VIIRS_data = readVIIRS_granule(ff, band = band, zoom = zoom)
+            VIIRS_data = readVIIRS_granule(ff, \
+                band = band, zoom = zoom)
         
             # Plot the data for this granule
             # ------------------------------
@@ -379,7 +390,8 @@ def plot_VIIRS_figure(filename, band = 'M12', ax = None, show_smoke = False, \
 
         # Read the data for this granule
         # ------------------------------
-        VIIRS_data = readVIIRS_granule(filename, band = band, zoom = zoom)
+        VIIRS_data = readVIIRS_granule(filename,\
+            band = band, zoom = zoom)
 
         # Plot the data for this granule
         # ------------------------------
@@ -511,8 +523,22 @@ def plot_VIIRS_scatter(fname1, fname2, band1, band2, ax = None, save = False):
     if(not in_ax):
         plt.show() 
 
+def plot_VIIRS_sixpanel(satellite = 'SNPP', save = False):
 
-def plot_VIIRS_sixpanel(save = False):
+    file_adder = sat_changer[satellite]
+
+    if(satellite == 'SNPP'):
+        date_str1 = '202107222124'
+        date_str2 = '202107230942'
+        date_str3 = '202107232100'
+    elif(satellite == 'JPSS'):
+        date_str1 = '202107222030'
+        date_str2 = '202107231030'
+        date_str3 = '202107232012'
+
+    dt_date_str1 = datetime.strptime(date_str1, '%Y%m%d%H%M')
+    dt_date_str2 = datetime.strptime(date_str2, '%Y%m%d%H%M')
+    dt_date_str3 = datetime.strptime(date_str3, '%Y%m%d%H%M')
 
     # Set up the figure
     # -----------------
@@ -532,10 +558,32 @@ def plot_VIIRS_sixpanel(save = False):
     #filename_n0722_dat = glob('/home/bsorenson/data/VIIRS/DNB/VNP02MOD.A2021203.1000*.nc')
     #filename_n0722_dnb = glob('/home/bsorenson/data/VIIRS/DNB/VNP02DNB.A2021203.1000*.nc')
     #filename_n0722_dat = glob('/home/bsorenson/data/VIIRS/DNB/VNP02MOD.A2021203.1000*.nc')
-    filename_d0722_dat = glob('/home/bsorenson/data/VIIRS/DNB/VNP02MOD.A2021203.2124*.nc')
-    filename_n0723_dnb = glob('/home/bsorenson/data/VIIRS/DNB/VNP02DNB.A2021204.0942*.nc')
-    filename_n0723_dat = glob('/home/bsorenson/data/VIIRS/DNB/VNP02MOD.A2021204.0942*.nc')
-    filename_d0723_dat = glob('/home/bsorenson/data/VIIRS/DNB/VNP02MOD.A2021204.2100*.nc')
+    filename_d0722_dat = glob(dt_date_str1.strftime(\
+        '/home/bsorenson/data/VIIRS/DNB/'+satellite+'/V'+file_adder + \
+        '2MOD.A%Y%j.%H%M*.nc'))
+    filename_n0723_dnb = glob(dt_date_str2.strftime(\
+        '/home/bsorenson/data/VIIRS/DNB/'+satellite+'/V'+file_adder + \
+        '2DNB.A%Y%j.%H%M*.nc'))
+    filename_n0723_dat = glob(dt_date_str2.strftime(\
+        '/home/bsorenson/data/VIIRS/DNB/'+satellite+'/V' + file_adder + \
+        '2MOD.A%Y%j.%H%M*.nc'))
+    filename_d0723_dat = glob(dt_date_str3.strftime(\
+        '/home/bsorenson/data/VIIRS/DNB/'+satellite+'/V'+file_adder + \
+        '2MOD.A%Y%j.%H%M*.nc'))
+
+    print(filename_d0722_dat)
+    print(filename_n0723_dnb)
+    print(filename_n0723_dat)
+    print(filename_d0723_dat)
+
+    ##!#filename_d0722_dat = glob('/home/bsorenson/data/VIIRS/DNB/V'+file_adder + \
+    ##!#    '2MOD.A2021203.2124*.nc')
+    ##!#filename_n0723_dnb = glob('/home/bsorenson/data/VIIRS/DNB/V'+file_adder + \
+    ##!#    '2DNB.A2021204.0942*.nc')
+    ##!#filename_n0723_dat = glob('/home/bsorenson/data/VIIRS/DNB/V'+file_adder + \
+    ##!#    '2MOD.A2021204.0942*.nc')
+    ##!#filename_d0723_dat = glob('/home/bsorenson/data/VIIRS/DNB/V'+file_adder + \
+    ##!#    '2MOD.A2021204.2100*.nc')
 
     namesplit = filename_d0722_dat[0].split('/')[-1].split('.')
     date1 = datetime.strptime('.'.join(namesplit[1:3])[1:], '%Y%j.%H%M')
@@ -555,9 +603,12 @@ def plot_VIIRS_sixpanel(save = False):
     plot_VIIRS_figure(filename_d0723_dat, band = 'M05', ax = ax3,\
         ptitle = date3.strftime('%Y-%m-%d %H:%M'), zoom = True)
 
-    plot_VIIRS_figure(filename_d0722_dat, band = 'M15', ax = ax4, zoom = True, vmin = 260, vmax = 330)
-    plot_VIIRS_figure(filename_n0723_dat, band = 'M15', ax = ax5, zoom = True, vmin = 260, vmax = 330)
-    plot_VIIRS_figure(filename_d0723_dat, band = 'M15', ax = ax6, zoom = True, vmin = 260, vmax = 330)
+    plot_VIIRS_figure(filename_d0722_dat, band = 'M15', ax = ax4, \
+        zoom = True, vmin = 260, vmax = 330)
+    plot_VIIRS_figure(filename_n0723_dat, band = 'M15', ax = ax5, \
+        zoom = True, vmin = 260, vmax = 330)
+    plot_VIIRS_figure(filename_d0723_dat, band = 'M15', ax = ax6, \
+        zoom = True, vmin = 260, vmax = 330)
 
     plot_subplot_label(ax1, '(a)', backgroundcolor = 'white')
     plot_subplot_label(ax2, '(b)', backgroundcolor = 'white')
@@ -566,29 +617,37 @@ def plot_VIIRS_sixpanel(save = False):
     plot_subplot_label(ax5, '(e)', backgroundcolor = 'white')
     plot_subplot_label(ax6, '(f)', backgroundcolor = 'white')
 
-    plot_figure_text(ax1, 'VIIRS 0.67 μm', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax2, 'VIIRS DNB', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax3, 'VIIRS 0.67 μm', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax4, 'VIIRS 10.76 μm', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax5, 'VIIRS 10.76 μm', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax6, 'VIIRS 10.76 μm', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax1, 'VIIRS 0.67 μm', xval = None, yval = None, \
+        transform = None, color = 'red', fontsize = 12, \
+        backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax2, 'VIIRS DNB', xval = None, yval = None, \
+        transform = None, color = 'red', fontsize = 12, \
+        backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax3, 'VIIRS 0.67 μm', xval = None, yval = None, \
+        transform = None, color = 'red', fontsize = 12, \
+        backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax4, 'VIIRS 10.76 μm', xval = None, yval = None, \
+        transform = None, color = 'red', fontsize = 12, \
+        backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax5, 'VIIRS 10.76 μm', xval = None, yval = None, \
+        transform = None, color = 'red', fontsize = 12, \
+        backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax6, 'VIIRS 10.76 μm', xval = None, yval = None, \
+        transform = None, color = 'red', fontsize = 12, \
+        backgroundcolor = 'white', halign = 'right')
 
     fig.tight_layout()
 
     if(save):
-        outname = 'viirs_sixpanel_' + date_str + '_v2.png'
+        outname = 'viirs_sixpanel_' + satellite + '_' + date_str + '_v2.png'
         plt.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else: 
         plt.show()
     
 def plot_VIIRS_ninepanel(save = False):
+
+    file_adder = sat_changer[satellite]
 
     # Set up the figure
     # -----------------
@@ -606,14 +665,20 @@ def plot_VIIRS_ninepanel(save = False):
 
     # Read the VIIRS data for each time
     # ---------------------------------
-    filename_n0722_dnb = glob('/home/bsorenson/data/VIIRS/DNB/VNP02DNB.A2021203.1000*.nc')
-    filename_n0722_dat = glob('/home/bsorenson/data/VIIRS/DNB/VNP02MOD.A2021203.1000*.nc')
-    filename_d0722_dat = glob('/home/bsorenson/data/VIIRS/DNB/VNP02MOD.A2021203.2124*.nc')
-    filename_n0723_dnb = glob('/home/bsorenson/data/VIIRS/DNB/VNP02DNB.A2021204.0942*.nc')
-    filename_n0723_dat = glob('/home/bsorenson/data/VIIRS/DNB/VNP02MOD.A2021204.0942*.nc')
+    filename_n0722_dnb = glob('/home/bsorenson/data/VIIRS/DNB/V' + \
+        file_adder + '2DNB.A2021203.1000*.nc')
+    filename_n0722_dat = glob('/home/bsorenson/data/VIIRS/DNB/V' + \
+        file_adder + '2MOD.A2021203.1000*.nc')
+    filename_d0722_dat = glob('/home/bsorenson/data/VIIRS/DNB/V' + \
+        file_adder + '2MOD.A2021203.2124*.nc')
+    filename_n0723_dnb = glob('/home/bsorenson/data/VIIRS/DNB/V' + \
+        file_adder + '2DNB.A2021204.0942*.nc')
+    filename_n0723_dat = glob('/home/bsorenson/data/VIIRS/DNB/V' + \
+        file_adder + '2MOD.A2021204.0942*.nc')
 
     ##!#plot_VIIRS_figure(filename_n0722_dnb, band = 'DNB', ax = ax1, zoom = True)
-    plot_VIIRS_figure(filename_d0722_dat, band = 'M05', ax = ax2, show_smoke = True, zoom = True)
+    plot_VIIRS_figure(filename_d0722_dat, band = 'M05', ax = ax2, \
+        show_smoke = True, zoom = True)
     ##!#plot_VIIRS_figure(filename_n0723_dnb, band = 'DNB', ax = ax3, zoom = True)
 
     ##!#plot_VIIRS_figure(filename_n0722_dat, band = 'M15', ax = ax4, zoom = True)

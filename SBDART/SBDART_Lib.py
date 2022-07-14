@@ -605,14 +605,14 @@ def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
                         #set_wv_mix = adr)
                     run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
                                 'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
-                                'setwv'+str(int(data_dict['info']['met_var_vals'][kk,ii]))
+                                'setwv'+str(data_dict['info']['met_var_vals'][kk,ii])
                 elif(add_wv_mix is not None):
                     new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
                         zmax = z_maxs[kk,ii], add_wv_mix = data_dict['info']['met_var_vals'][kk,ii])
                         #set_wv_mix = adr)
                     run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
                                 'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
-                                'addwv'+str(int(data_dict['info']['met_var_vals'][kk,ii]))
+                                'addwv'+str(data_dict['info']['met_var_vals'][kk,ii])
 
                 elif(set_tmp is not None):
                     new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
@@ -620,14 +620,14 @@ def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
                         #set_wv_mix = adr)
                     run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
                                 'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
-                                'settmp'+str(int(data_dict['info']['met_var_vals'][kk,ii]))
+                                'settmp'+str(data_dict['info']['met_var_vals'][kk,ii])
                 elif(add_tmp is not None):
                     new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
                         zmax = z_maxs[kk,ii], add_tmp = data_dict['info']['met_var_vals'][kk,ii])
                         #set_wv_mix = adr)
                     run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
                                 'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
-                                'addtmp'+str(int(data_dict['info']['met_var_vals'][kk,ii]))
+                                'addtmp'+str(data_dict['info']['met_var_vals'][kk,ii])
 
                 # Allows the user to modify the surface temperature in 
                 # addition to other variables
@@ -639,7 +639,7 @@ def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
                             #set_wv_mix = adr)
                         run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
                                     'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
-                                    'addtmp'+str(int(data_dict['info']['met_var_vals'][kk,ii]))
+                                    'addtmp'+str(data_dict['info']['met_var_vals'][kk,ii])
                     else:
                         new_data = prep_atmos_file(new_data, zmin = z_mins[kk,ii], \
                             zmax = z_maxs[kk,ii], add_tmp_sfc = add_tmp_sfc)
@@ -655,7 +655,7 @@ def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
                     else:
                         run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
                                     'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
-                                    'setrh'+str(int(data_dict['info']['met_var_vals'][kk,ii]))
+                                    'setrh'+str(data_dict['info']['met_var_vals'][kk,ii])
                         local_rh = data_dict['info']['met_var_vals'][kk,ii]
                     new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
                         zmax = z_maxs[kk,ii], set_rh = local_rh)
@@ -1458,48 +1458,59 @@ def process_SBDART_single_sat_wv_tmp_vza(satellite = 'modis_ch31',\
     # Run num 1
     z_maxs = np.array([5.])
     z_mins = np.array([0.])
-    add_wv_mix = np.full((3, len(z_maxs)), np.nan)
-    add_wv_mix[0,:] = 0. 
-    add_wv_mix[1,:] = 2. 
-    add_wv_mix[2,:] = 4. 
+    add_wv_mix_vals = np.arange(0, 4.1, 0.5)
+    add_wv_mix = np.full((len(add_wv_mix_vals), len(z_maxs)), np.nan)
+    for jj in range(len(add_wv_mix_vals)):
+        add_wv_mix[jj,:] = add_wv_mix_vals[jj]
+    ##!#add_wv_mix[0,:] = 0. 
+    ##!#add_wv_mix[1,:] = 2. 
+    ##!#add_wv_mix[2,:] = 4. 
 
     satellites = ['goes17_ch08','goes17_ch09','goes17_ch10','goes17_ch13',\
         'modis_ch31']
+    titles = ['GOES-17 6.18 μm','GOES-17 6.95 μm','GOES-17 7.34 μm',\
+        'GOES-17 10.35 μm','MODIS 11 μm']
 
     plt.close('all')
     fig = plt.figure()
-    ax1 = fig.add_subplot(1,1,1)
+    #ax1 = fig.add_subplot(1,1,1)
 
     for kk, satellite in enumerate(satellites):
 
         print(kk, satellite)
         tax = fig.add_subplot(2,3,kk + 1)
-        tmp_diffs = np.arange(11.)
+        ##!#tmp_diffs = np.arange(1.)
+        tmp_diffs = np.arange(0., 11., 5.)
         bght_tmps = np.full((len(add_wv_mix), len(tmp_diffs)), np.nan)
 
         for ii, tmp_diff in enumerate(tmp_diffs):
             data = run_sbdart(satellite, calc_radiance = True, \
                 atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
                 add_wv_mix = add_wv_mix, add_tmp_sfc = -tmp_diff)
+                #add_wv_mix = add_wv_mix)
 
-            bght_tmps[0,ii] = data['output']['1']['1']['bght_tmp']
-            bght_tmps[1,ii] = data['output']['2']['1']['bght_tmp']
-            bght_tmps[2,ii] = data['output']['3']['1']['bght_tmp']
-            
-
-        ax1.plot(bght_tmps[2,:] - bght_tmps[0,0], label = satellite)
-        ##!#tax.plot(bght_tmps[0,:], label = 'wo')
-        ##!#tax.plot(bght_tmps[1,:], label = 'wo + 2')
-        ##!#tax.plot(bght_tmps[2,:], label = 'wo + 4')
-        ##!#tax.set_xlabel('Surface temperature reduction [K]')
-        ##!#tax.set_ylabel('BT')
+            for jj, wvmix in enumerate(add_wv_mix[:,0]):
+                bght_tmps[jj,ii] = data['output'][str(jj+1)]['1']['bght_tmp']
+            ##!#bght_tmps[0,ii] = data['output']['1']['1']['bght_tmp']
+            ##!#bght_tmps[1,ii] = data['output']['2']['1']['bght_tmp']
+            ##!#bght_tmps[2,ii] = data['output']['3']['1']['bght_tmp']
+        
+        ##!#ax1.plot(bght_tmps[2,:] - bght_tmps[0,0], label = titles[kk])
+        #tax.plot(bght_tmps
+            tax.plot(add_wv_mix, bght_tmps[:,ii], label = str(int(tmp_diff)))
+        #tax.plot(bght_tmps[1,:], label = 'wo + 2')
+        #tax.plot(bght_tmps[2,:], label = 'wo + 4')
+        tax.set_xlabel('Water Vapor Mixing Ratio Increase')
+        #tax.set_xlabel('Surface temperature reduction [K]')
+        tax.set_ylabel('BT')
         #tax.set_ylabel('TOA ΔBT')
-        tax.set_title('Stuff')
+        tax.set_title(satellite)
         tax.legend()
-    ax1.set_xlabel('Surface temperature reduction [K]')
-    ax1.set_ylabel('TOA ΔBT')
-    ax1.set_title('Stuff')
-    ax1.legend()
+    ##!#ax1.set_xlabel('Surface temperature reduction [K]')
+    ##!#ax1.set_ylabel('TOA ΔBT')
+    ##!#ax1.set_title('SBDART-simulated TOA BT Cooling\n' + \
+    ##!#    'w = w$_{o}$ + 4 g kg$^{-1}$ in lowest 5 km')
+    ##!#ax1.legend()
     fig.tight_layout()
     plt.show()
     return 
