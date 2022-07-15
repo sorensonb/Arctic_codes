@@ -15,15 +15,17 @@ channel1 = 1
 channel2 = 5
 channel3 = 31
 
-plot_MODIS_asos_sites(date_str, sites = None, save = False)
+#plot_MODIS_asos_sites(date_str, sites = None, save = False)
 #plot_combined_figure1_v6(save = False)
+plot_ceres_scatter(date_str, zoom=True,save=True,composite=True,\
+    avg_pixel=True,plume_only=False)
 
 sys.exit()
 
 #plot_combined_figure1_v4(date_str = '202107222110', zoom = True, show_smoke = False, composite = True, \
 #        double_fig = True, save = True)
 plot_spatial_scatter(date_str, zoom = True, composite = True,\
-    avg_pixel = True, plume_only = False, save = True)
+    avg_pixel = True, plume_only = False, save = False)
 sys.exit()
 
 #plot_viewing_geometry(date_str = '202107222110', zoom = True, show_smoke = False, composite = True, \

@@ -334,7 +334,7 @@ def plotCrIS_profile(CrIS_volume, variable, slat, slon, pax = None, \
     else:
         z_var = 'air_pres'
     pax.plot(CrIS_volume[variable][idxs].flatten(), CrIS_volume[z_var][:])
-    pax.set_xlabel(label_dict[variable])
+    pax.set_xlabel(label_dict[variable] + ' [' + unit_dict[variable] + ']')
     
     pax.set_ylim(1000., 100.)
     pax.set_yscale('log')
@@ -358,7 +358,7 @@ def plotCrIS_profile_2panel(date_str, variable, layer_idx, slat, slon, \
     # Set up the figure
     # -----------------
     plt.close('all')
-    fig = plt.figure(figsize = (9, 5))
+    fig = plt.figure(figsize = (9, 4))
     mapcrs = init_proj('202107232155')
     ax1 = fig.add_subplot(1,2,1, projection = mapcrs)
     ax2 = fig.add_subplot(1,2,2)
@@ -386,6 +386,81 @@ def plotCrIS_profile_2panel(date_str, variable, layer_idx, slat, slon, \
         plotCrIS_profile(CrIS_volume, variable, tlat, tlon, pax = ax2)
     
     plt.show()
+
+# Add a VIIRS plot too
+def plotCrIS_profile_3panel(date_str, variable, layer_idx, slat, slon, \
+        viirs_channel = 'M15', zoom = True, save = False):
+   
+    if('/home/bsorenson/Research/VIIRS' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/VIIRS')
+    from VIIRSLib import plot_VIIRS_figure
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+ 
+    # Read the data
+    # -------------
+    CrIS_volume = readCrIS_volume(date_str)
+
+    # Use the date string to get the VIIRS JPSS image
+    # -----------------------------------------------
+    if(viirs_channel == 'DNB'):
+        filename = glob(dt_date_str.strftime(\
+            '/home/bsorenson/data/VIIRS/DNB/JPSS/VJ102DNB.A%Y%j.%H%M*.nc'))
+    else:
+        filename = glob(dt_date_str.strftime(\
+            '/home/bsorenson/data/VIIRS/DNB/JPSS/VJ102MOD.A%Y%j.%H%M*.nc'))
+     
+
+    # Set up the figure
+    # -----------------
+    plt.close('all')
+    fig = plt.figure(figsize = (11, 4))
+    mapcrs = init_proj('202107232155')
+    ax1 = fig.add_subplot(1,3,1, projection = mapcrs)
+    ax2 = fig.add_subplot(1,3,2, projection = mapcrs)
+    ax3 = fig.add_subplot(1,3,3)
+
+    plot_VIIRS_figure(filename, band = viirs_channel, ax = ax1, \
+        ptitle = dt_date_str.strftime('%Y-%m-%d %H:%M'), zoom = zoom)
+
+    # Plot the map
+    # ------------
+    plotCrIS_layer(CrIS_volume, variable, layer_idx, pax = ax2, zoom = zoom, \
+        save = False)
+    
+    # Add the point
+    # -------------
+    if(not isinstance(slat, list)):
+        slat = [slat]
+    if(not isinstance(slon, list)):
+        slon = [slon]
+    msize = 8 
+    for tlat, tlon in zip(slat, slon):
+        ax1.plot(tlon, tlat, linewidth=2, markersize = msize, marker='.',
+                 color = 'black', transform=datacrs)
+        ax1.plot(tlon, tlat, linewidth=2, markersize = msize - 2, marker='.',
+                 transform=datacrs)
+        ax2.plot(tlon, tlat, linewidth=2, markersize = msize, marker='.',
+                 color = 'black', transform=datacrs)
+        ax2.plot(tlon, tlat, linewidth=2, markersize = msize - 2, marker='.',
+                 transform=datacrs)
+
+        # Plot the profile
+        # ----------------
+        plotCrIS_profile(CrIS_volume, variable, tlat, tlon, pax = ax3)
+ 
+    ##!#print(ax3.get_yticks()) 
+    ##!#print([f'{y:.2f}' for y in ax3.get_yticks()])
+    ##!#ax3.set_yticks(ax3.get_yticks(), [f'{y:.2f}' for y in ax3.get_yticks()])
+     
+    fig.tight_layout()
+    if(save):
+        outname = 'cris_3panel_' + viirs_channel + '_' + variable + '_' + \
+            date_str + '.png' 
+        fig.savefig(outname, dpi = 300)
+        print('Saved image', outname)
+    else:
+        plt.show()
 
 def readCrIS_volume(date_str, zoom = True):
 

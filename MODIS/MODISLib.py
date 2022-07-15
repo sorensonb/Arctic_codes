@@ -3364,8 +3364,8 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
         labs = [l.get_label() for l in custom_lines]
         pax.legend(custom_lines, labs, bbox_to_anchor = (1.05, 1.0), loc = 0, fontsize = 9)
     else:
-        pax.legend(fontsize = 9, bbox_to_anchor = (1.05, 1.0), loc = 0)
-        lw_pax.legend(fontsize = 9, bbox_to_anchor = (1.05, 1.0), loc = 0)
+        ##!#pax.legend(fontsize = 9, bbox_to_anchor = (1.05, 1.0), loc = 0)
+        ##!#lw_pax.legend(fontsize = 9, bbox_to_anchor = (1.05, 1.0), loc = 0)
         total_pax.legend(fontsize = 9, bbox_to_anchor = (1.05, 1.0), loc = 0)
     ##!#pax.set_title('SWF smoke: '+str(np.round(shrval_p,3)) + '  SWF clear: ' + \
     ##!#     str(np.round(snrval_p,3)) + \
@@ -3375,17 +3375,17 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
         str(MODIS_data['channel'])]['Bandwidth']),1)) + ' μm T$_{B}$', \
         fontsize = labelsize, weight = 'bold')
     if(lw_pax is None):
-        pax.set_ylabel('TOA Flux [Wm$^{-2}$]', fontsize = labelsize, weight = 'bold')
+        pax.set_ylabel('TOA LW Flux [Wm$^{-2}$]', fontsize = labelsize, weight = 'bold')
     else:
-        #pax.set_ylabel('SW Flux [Wm$^{-2}$]', fontsize = labelsize, weight = 'bold')
+        pax.set_ylabel('CERES SW Flux [Wm$^{-2}$]', fontsize = labelsize, weight = 'bold')
         lw_pax.set_xlabel('MODIS ' + str(np.round(np.average(channel_dict[\
             str(MODIS_data['channel'])]['Bandwidth']),1)) + ' μm T$_{B}$', \
             fontsize = labelsize, weight = 'bold')
-        #lw_pax.set_ylabel('LW Flux [Wm$^{-2}$]', fontsize = labelsize, weight = 'bold')
+        lw_pax.set_ylabel('CERES LW Flux [Wm$^{-2}$]', fontsize = labelsize, weight = 'bold')
         total_pax.set_xlabel('MODIS ' + str(np.round(np.average(channel_dict[\
             str(MODIS_data['channel'])]['Bandwidth']),1)) + ' μm T$_{B}$', \
             fontsize = labelsize, weight = 'bold')
-        #total_pax.set_ylabel('Total Flux [Wm$^{-2}$]', fontsize = labelsize, weight = 'bold')
+        total_pax.set_ylabel('CERES Total Flux [Wm$^{-2}$]', fontsize = labelsize, weight = 'bold')
 
 def plot_scatter_OMI_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
         plume_only = True, xlabel = None, ylabel = None, ptitle = None,\
@@ -4408,6 +4408,78 @@ def plot_spatial_scatter(date_str, zoom=True,save=False,composite=True,\
         print("Saved image",outname)
     else:
         plt.show()
+
+def plot_ceres_scatter(date_str, zoom=True,save=False,composite=True,\
+        avg_pixel=False,plume_only=False):
+
+    if('/home/bsorenson/Research/CERES' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/CERES')
+    from gridCERESLib import readgridCERES_hrly_grid, plotCERES_hrly
+    
+    plt.close('all')
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    # ----------------------------------------------------------------------
+    #
+    # Read the MODIS data
+    #
+    # ----------------------------------------------------------------------
+
+    # Call read_MODIS_channel to read the desired MODIS data from the file 
+    # and put it in a dictionary
+    # ---------------------------------------------------------------------
+    MODIS_data0 = read_MODIS_channel(dt_date_str.strftime("%Y%m%d%H%M"), \
+        31, zoom = zoom)
+    var0, crs0, lons0, lats0, lat_lims0, lon_lims0, plabel0 = \
+        read_MODIS_satpy(date_str, 31)
+    
+    # ----------------------------------------------------------------------
+    #
+    # Read the CERES data
+    #
+    # ----------------------------------------------------------------------
+    CERES_data_hrly_swf = readgridCERES_hrly_grid(date_str[:10], 'SWF', minlat = 20.)
+
+    # ------------------------------------------------------------------------
+    #
+    # For 20210722:
+    #
+    # ------------------------------------------------------------------------
+    mapcrs = init_proj(date_str)
+    fig = plt.figure(figsize = (11.5, 4))
+    ax3 = fig.add_subplot(1,3,1)                      # 31 vs SW
+    ax4 = fig.add_subplot(1,3,2)                      # 31 vs LW
+    ax5 = fig.add_subplot(1,3,3)                      # 31 vs Total
+
+    plot_scatter_CERES(date_str, MODIS_data0, ax3, avg_pixel = avg_pixel,\
+        plume_only = plume_only,  plot_total_flux = True, lw_pax = ax4, \
+        total_pax = ax5, labelsize = 11)
+
+    # Add labels to all the subplots
+    # ------------------------------
+    plot_subplot_label(ax3, '(a)')
+    plot_subplot_label(ax4, '(b)')
+    plot_subplot_label(ax5, '(c)')
+
+    plt.suptitle(dt_date_str.strftime('%Y/%m/%d %H:%M UTC'))
+
+    fig.tight_layout()
+
+    if(save):
+        plume_add = '_onlyplume'
+        pixel_add = ''
+        if(plume_only == False):
+            plume_add = '_onlyplume'
+        if(avg_pixel):
+            pixel_add = '_avgpixel' 
+        outname = 'modis_ceres_scatter_' + date_str + plume_add + \
+            pixel_add + '_v4.png'
+            #pixel_add + '.png'
+        fig.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
 
 def plot_spatial_scatter_wAI(date_str, zoom=True,save=False,composite=True,\
         avg_pixel=False,plume_only=False):
