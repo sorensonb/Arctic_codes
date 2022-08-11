@@ -145,7 +145,7 @@ program omi_frequency
   ! Set up count variables to count the number of grid boxes with
   ! high AI values
   ! -------------------------------------------------------------
-  ai_thresh = 1.0
+  ai_thresh = 2.5
 
   ! Initialize the work_day value to -1
   ! -----------------------------------
