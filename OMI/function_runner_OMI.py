@@ -32,13 +32,31 @@ import sys
 # pvars = 'glint', 'earthshine', 'sunshine', 'stray'
 #plotOMI_single_flags('201204101833', pvar = 'glint', minlat = 55, zoom = True)
 
-#plot_combined_fort_out('20170818', min_lat = 70., vtype = 'areas', save = False)
+#plot_combined_fort_out('20170818', min_lat = 80., vtype = 'areas', save = False)
+
+sys.exit()
+minlat = 65.
+OMI_VBS0   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VBS0_2005_2020.nc', minlat = minlat)
+plotOMI_NCDF_Climo_SpringSummer(OMI_VBS0,start_idx=0,end_idx=96,minlat=65,\
+                   save=True)
+
+sys.exit()
+plot_combined_fort_out('20190811', min_lat = 70., vtype = 'areas', max_lat = 80., save = True)
 
 # NOTE: for plotting the bias between OMI rows, use this line with the
 #       CSCI netCDF data
 #plt.plot(np.nanmean(np.nanmean(netdata['AI'], axis = 0), axis = 0))
+##!#infile = '/home/bsorenson/Research/OMI/shawn_analysis/count_analysis/omi_vsj4_areas_2005_2020_100.txt'
+##!#plot_OMI_fort_out_two_lats(infile, minlat = 70., vtype = 'areas', save = True)
+##!#infile = '/home/bsorenson/Research/OMI/shawn_analysis/count_analysis/omi_vsj4_areas_2005_2020_150.txt'
+##!#plot_OMI_fort_out_two_lats(infile, minlat = 70., vtype = 'areas', save = True)
+##!#infile = '/home/bsorenson/Research/OMI/shawn_analysis/count_analysis/omi_vsj4_areas_2005_2020_200.txt'
+##!#plot_OMI_fort_out_two_lats(infile, minlat = 70., vtype = 'areas', save = True)
+##!#infile = '/home/bsorenson/Research/OMI/shawn_analysis/count_analysis/omi_vsj4_areas_2005_2020_250.txt'
+##!#plot_OMI_fort_out_two_lats(infile, minlat = 70., vtype = 'areas', save = True)
 
-minlat = 65.
+sys.exit()
+
 OMI_VBS0   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VBS0_2005_2020.nc', minlat = minlat)
 OMI_VJZ211 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VJZ211_2005_2020.nc', minlat = minlat)
 OMI_VSJ4   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VSJ4_2005_2020.nc', minlat = minlat)

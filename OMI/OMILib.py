@@ -53,7 +53,7 @@ from sklearn.preprocessing import StandardScaler
 import pandas as pd
 from scipy.signal import argrelextrema, find_peaks
 from glob import glob
-
+import os
 
 sys.path.append('/home/bsorenson')
 from python_lib import circle, plot_subplot_label, plot_lat_circles
@@ -638,7 +638,8 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
 
     return OMI_swath
 
-def readOMI_swath_shawn(plot_time, latmin = 65.):
+def readOMI_swath_shawn(plot_time, latmin = 65., \
+        shawn_path = '/home/bsorenson/data/OMI/shawn_files/'):
 
     # Read in the OMI data for this file, for matching purposes
     # ---------------------------------------------------------
@@ -646,7 +647,6 @@ def readOMI_swath_shawn(plot_time, latmin = 65.):
 
     # Open the shawn file
     # -------------------
-    shawn_path = '/home/bsorenson/data/OMI/shawn_files/'
     df_shawn = pd.read_csv(shawn_path + plot_time, delim_whitespace = True, \
         header = None)
 
@@ -657,6 +657,15 @@ def readOMI_swath_shawn(plot_time, latmin = 65.):
     s_airaw  = pd.to_numeric(df_shawn[2], errors = 'coerce').values
     s_aiclim = pd.to_numeric(df_shawn[3], errors = 'coerce').values
     s_aipert = pd.to_numeric(df_shawn[4], errors = 'coerce').values
+    s_sza    = pd.to_numeric(df_shawn[6], errors = 'coerce').values
+    s_vza    = pd.to_numeric(df_shawn[7], errors = 'coerce').values
+    s_raz    = pd.to_numeric(df_shawn[8], errors = 'coerce').values
+
+    # Convert the SZA and VZA from the cosine value to the actual
+    # value in degrees
+    # -----------------------------------------------------------
+    s_sza = np.degrees(np.arccos(s_sza))
+    s_vza = np.degrees(np.arccos(s_vza))
 
     # Make nan arrays dimensioned to the OMI swath data and fill with
     # nans. Then, loop over the shawn data, and wherever each shawn
@@ -668,9 +677,13 @@ def readOMI_swath_shawn(plot_time, latmin = 65.):
     sfile_AIraw  = np.full(OMI_data['LAT'].shape, np.nan)
     sfile_AIclim = np.full(OMI_data['LAT'].shape, np.nan)
     sfile_AIpert = np.full(OMI_data['LAT'].shape, np.nan)
+    sfile_SZA    = np.full(OMI_data['LAT'].shape, np.nan)
+    sfile_VZA    = np.full(OMI_data['LAT'].shape, np.nan)
+    sfile_RAZ    = np.full(OMI_data['LAT'].shape, np.nan)
 
-    for slat, slon, sair, saic, saip in \
-            zip(s_lat, s_lon, s_airaw, s_aiclim, s_aipert):
+    for slat, slon, sair, saic, saip, ssza, svza, sraz, in \
+            zip(s_lat, s_lon, s_airaw, s_aiclim, s_aipert, \
+                s_sza, s_vza, s_raz):
         match_loc = np.where((slat == OMI_data['LAT']) & \
             (slon == OMI_data['LON']))
         #print(slat, slon, sair, OMI_data['LAT'][match_loc], \
@@ -680,6 +693,9 @@ def readOMI_swath_shawn(plot_time, latmin = 65.):
         sfile_AIraw[match_loc] = sair
         sfile_AIclim[match_loc] = saic
         sfile_AIpert[match_loc] = saip
+        sfile_SZA[match_loc]    = ssza
+        sfile_VZA[match_loc]    = svza
+        sfile_RAZ[match_loc]    = sraz
 
     OMI_swath = {}
     OMI_swath['date'] = plot_time
@@ -689,6 +705,15 @@ def readOMI_swath_shawn(plot_time, latmin = 65.):
     OMI_swath['UVAI_raw']   = np.ma.masked_invalid(sfile_AIraw)
     OMI_swath['UVAI_climo'] = np.ma.masked_invalid(sfile_AIclim)
     OMI_swath['UVAI_pert']  = np.ma.masked_invalid(sfile_AIpert)
+    OMI_swath['SZA'] = np.ma.masked_invalid(sfile_SZA)
+    OMI_swath['VZA'] = np.ma.masked_invalid(sfile_VZA)
+    OMI_swath['RAZ'] = np.ma.masked_invalid(sfile_RAZ)
+
+    # Mask the data south of the desired latmin
+    # -----------------------------------------
+    OMI_swath['UVAI_raw']   = np.ma.masked_where(OMI_data['LAT'] < latmin, sfile_AIraw)
+    OMI_swath['UVAI_climo'] = np.ma.masked_where(OMI_data['LAT'] < latmin, sfile_AIclim)
+    OMI_swath['UVAI_pert']  = np.ma.masked_where(OMI_data['LAT'] < latmin, sfile_AIpert)
 
     return OMI_swath
 
@@ -777,7 +802,7 @@ def readOMI_swath_shawn_old(plot_time, latmin = 65., resolution = 0.25):
 
     return OMI_data
 
-def readOMI_single_swath(plot_time,row_max,only_sea_ice = True,latmin=65,coccolith = False):
+def readOMI_single_swath(plot_time,row_max, row_min = 0, only_sea_ice = True,latmin=65,coccolith = False):
     n_p = 1440
     nl = 720
     lonmin = -180.
@@ -791,22 +816,22 @@ def readOMI_single_swath(plot_time,row_max,only_sea_ice = True,latmin=65,coccoli
     lon_ranges = np.arange(-180.,180.,0.25)
 
     if(coccolith):
-        g_NRAD_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
-        g_NRAD_388 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
-        g_NRAD_500 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
-        g_REFL_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
-        g_REFL_388 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
-        g_SALB_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+        g_NRAD_354     = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+        g_NRAD_388     = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+        g_NRAD_500     = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+        g_REFL_354     = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+        g_REFL_388     = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+        g_SALB_354     = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
         count_NRAD_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
         count_NRAD_388 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
         count_NRAD_500 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
         count_REFL_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
         count_REFL_388 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
         count_SALB_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
-    g_UVAI_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
-    count_UVAI_354 = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
-    g_SZA = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
-    count_SZA = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    g_UVAI_354      = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    count_UVAI_354  = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    g_SZA           = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
+    count_SZA       = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
 
     algae = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
 
@@ -829,16 +854,16 @@ def readOMI_single_swath(plot_time,row_max,only_sea_ice = True,latmin=65,coccoli
         data = h5py.File(total_list[fileI],'r')
         print(total_list[fileI])
     
-        LAT     = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude']
-        LON     = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude']
-        UVAI    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex']
-        XTRACK  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/XTrackQualityFlags']
-        GPQF    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags']
-        SZA     = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/SolarZenithAngle']
+        LAT     = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude'][:,:]
+        LON     = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude'][:,:]
+        UVAI    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex'][:,:]
+        XTRACK  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/XTrackQualityFlags'][:,:]
+        GPQF    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags'][:,:]
+        SZA     = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/SolarZenithAngle'][:,:]
         if(coccolith):
-            NRAD    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/NormRadiance']
-            REFL    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/Reflectivity']
-            SALB    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/SurfaceAlbedo']
+            NRAD    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/NormRadiance'][:,:]
+            REFL    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/Reflectivity'][:,:]
+            SALB    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/SurfaceAlbedo'][:,:]
     
         #albedo = ALBEDO[:,:,0]   
         #reflectance = REFLECTANCE[:,:,0]   
@@ -848,9 +873,9 @@ def readOMI_single_swath(plot_time,row_max,only_sea_ice = True,latmin=65,coccoli
         #for i in range(0,int(CBA2)):
         #for i in range(albedo.shape[0]):
         for i in range(UVAI.shape[0]):
-            for j in range(0,row_max):
-                #if(j == 52):
-                #    continue
+            for j in range(row_min,row_max):
+                if(j == 52):
+                    continue
                 #if((albedo[i,j]>-20) & (reflectance[i,j]>-20)):
                 if(LAT[i,j] > latmin):
                     if((UVAI[i,j]>-2e5) & ((XTRACK[i,j] == 0) | (XTRACK[i,j] == 4))):
@@ -897,6 +922,7 @@ def readOMI_single_swath(plot_time,row_max,only_sea_ice = True,latmin=65,coccoli
                         g_SZA[index2, index1] = (g_SZA[index2,index1]*count_SZA[index2,index1] + SZA[i,j])/(count_SZA[index2,index1]+1)
                         count_SZA[index2,index1] = count_SZA[index2,index1] + 1
 
+        data.close()
   
     if(coccolith): 
         # Apply algae screening to 500 nm normalized radiance data 
@@ -914,6 +940,8 @@ def readOMI_single_swath(plot_time,row_max,only_sea_ice = True,latmin=65,coccoli
         mask_uvai = np.ma.masked_where(((g_REFL_354 > 0.18)), mask_uvai)
         mask_uvai = np.ma.masked_where(((g_REFL_354 < 0.09)), mask_uvai)
         mask_UVAI354 = np.ma.masked_where(((g_UVAI_354 < 0.6)), mask_uvai)
+
+    g_UVAI_354     = np.ma.masked_where(count_UVAI_354 == 0, g_UVAI_354)
 
     OMI_single_dict = {}
     OMI_single_dict['lat'] = lat_ranges
@@ -1158,6 +1186,364 @@ def write_da_to_NCDF(avgAI,counts,latmin,da_time):
     nc.close()
 
     print("Saved file ",outfile)  
+
+# Writes a single Shawn file to netCDF. The file must be on the local
+# computer under /home/bsorenson/data/OMI/shawn_files/
+def write_shawn_to_NCDF(filename,latmin, save_path = './', shawn_path = \
+        '/home/bsorenson/data/OMI/shawn_files/'):
+
+    # Convert the filename object to datetime
+    # ---------------------------------------
+    file_date = filename.strip().split('/')[-1]
+    dt_date_str = datetime.strptime(file_date, '%Y%m%d%H%M')
+
+    # Read in the Shawn file
+    # ----------------------
+    data = readOMI_swath_shawn(filename, latmin = latmin, \
+        shawn_path = shawn_path)
+
+    # Don't use swaths that contain entirely masked data. This will
+    # focus the netCDF file on only the chunk of data north of 65 N.
+    # --------------------------------------------------------------
+    data['UVAI_pert'] = np.ma.masked_invalid(data['UVAI_pert'])
+    data['UVAI_raw']  = np.ma.masked_invalid(data['UVAI_raw'])
+    data['SZA']  = np.ma.masked_invalid(data['SZA'])
+    data['VZA']  = np.ma.masked_invalid(data['VZA'])
+    data['RAZ']  = np.ma.masked_invalid(data['RAZ'])
+    tmp = np.array([False in line for line in data['UVAI_pert'].mask])
+    good_idx0 = np.where(tmp == True)
+
+    final_pert = data['UVAI_pert'][good_idx0,:].squeeze()
+    final_raw  = data['UVAI_raw'][good_idx0,:].squeeze()
+    final_lat  = data['LAT'][good_idx0,:].squeeze() 
+    final_lon  = data['LON'][good_idx0,:].squeeze() 
+    final_sza  = data['SZA'][good_idx0,:].squeeze() 
+    final_vza  = data['VZA'][good_idx0,:].squeeze() 
+    final_raz  = data['RAZ'][good_idx0,:].squeeze() 
+
+    # Create a new netCDF dataset to write to the file
+    # ------------------------------------------------
+    outfile = save_path + 'omi_uvai_perturbed_'+ file_date + '.nc'
+    nc = Dataset(outfile,'w',format='NETCDF4')
+  
+    # Dimensions = lon, lat
+    # Create the sizes of each dimension in the file. In this case,
+    # the dimensions are "# of latitude" and "# of longitude"
+    # -------------------------------------------------------------
+    num_x = final_pert.shape[0]
+    num_y = final_pert.shape[1]
+    
+    # Use the dimension size variables to actually create dimensions in 
+    # the file.
+    # ----------------------------------------------------------------- 
+    n_x  = nc.createDimension('nx',num_x)
+    n_y  = nc.createDimension('ny',num_y)
+
+    # Create variables for the three dimensions. Note that since these
+    # are variables, they are still given 'dimensions' using 'dlat', 
+    # and 'dlon'. Latitude and longitude are each 2-d grids, so they are 
+    # given 2 dimensions (dlat, dlon).
+    # ------------------------------------------------------------------
+    LON=nc.createVariable('Longitude','f4',('nx','ny'))
+    LON.description='Longitude (-180 to 180)'
+    LON.units='Degrees'
+    LAT=nc.createVariable('Latitude','f4',('nx','ny'))
+    LAT.description='Latitude (-90 to 90)'
+    LAT.units='Degrees'
+
+    # Create a variable for the AI data, dimensioned using both 
+    # dimensions.
+    # ---------------------------------------------------------  
+    AI_raw = nc.createVariable('UVAI_raw','f4',('nx','ny'))
+    AI_raw.description='Raw AI data before the quality control methods. These ' + \
+        'raw AI data were obtained from the online archive housed at the ' + \
+        'GES DISC OMAERUV dataset page ' + \
+        '(https://disc.gsfc.nasa.gov/datasets/OMAERUV_003/summary)'
+
+    AI_pert = nc.createVariable('UVAI_perturbed','f4',('nx','ny'))
+    AI_pert.description='Perturbed AI data. Calculated by subtracting the ' + \
+        'climatology value (determined by binning the raw AI data per month by' + \
+        ' viewing geometry, surface albedo, and ground pixel classification) ' + \
+        'from the raw AI value contained in the GES DISC HDF5 OMI files.'
+    AI_pert.units = 'None'
+
+    SZA = nc.createVariable('SolarZenithAngle','f4',('nx','ny'))
+    SZA.description='Solar Zenith Angle'
+    SZA.units = 'Degrees'
+
+    VZA = nc.createVariable('ViewingZenithAngle','f4',('nx','ny'))
+    VZA.description='Viewing Zenith Angle'
+    VZA.units = 'degrees'
+
+    RAZ = nc.createVariable('RelativeAzimuthAngle','f4',('nx','ny'))
+    RAZ.description='Relative Azimuth Angle (East of North)'
+    RAZ.units = 'Degrees'
+
+    # Fill in dimension variables one-by-one.
+    # NOTE: not sure if you can insert the entire data array into the
+    # dimension (for example, doing :
+    #      LAT, LON = np.meshgrid(lat_ranges,lon_ranges) ),
+    # so this could be
+    # something for you to try. Might make this faster if it works
+    # ---------------------------------------------------------------
+    LON[:,:]      = final_lon[:,:]
+    LAT[:,:]      = final_lat[:,:]
+    AI_raw[:,:]   = final_raw[:,:]
+    AI_pert[:,:]  = final_pert[:,:]
+    SZA[:,:]      = final_sza[:,:]
+    VZA[:,:]      = final_vza[:,:]
+    RAZ[:,:]      = final_raz[:,:]
+
+    # Save, write, and close the netCDF file
+    # --------------------------------------
+    nc.close()
+
+    print("Saved file ",outfile)  
+
+# Wrapper to automate the shawn file conversion
+# ---------------------------------------------
+def auto_shawn_convert(start_year = 2005, end_year = 2020, latmin = 65., run = False):
+
+    if(not run):
+        print("NOT RUNNING")
+
+    # This is the path that points to the HDF5 OMI files. This must be changed
+    # if running on a new system.
+    data_path = '/home/bsorenson/data/OMI/'
+    #data_path = '/data/OMI/'
+    hdf_path = data_path + 'H5_files/'
+    shawn_path = data_path + 'shawn_files/'
+    ltc4_path = shawn_path + 'ltc4/'
+    net_path = shawn_path + 'netCDF/'
+    
+    base_date = datetime(year=start_year,month=4,day=1)
+    end_date  = datetime(year=end_year,month=10,day=1)
+    
+    get_data = False
+    first_time = True
+    
+    # Keep looping until the end date is reached
+    # ------------------------------------------
+    while(base_date < end_date):
+    
+        work_time       = base_date.strftime("%Y%m")
+        data_time       = base_date.strftime("%Ym")
+        data_time_shawn = base_date.strftime("%Y")
+    
+        # Copy the working year's OMI data from Raindrop to the local
+        # computer.
+        # NOTE: If this code is being run on Raindrop, this is not
+        # necessary.
+        # -----------------------------------------------------------
+        if(get_data == True):
+            get_data = False
+            last_time       = (base_date - relativedelta(years = 1)).strftime("%Ym")
+            last_time_shawn = (base_date - relativedelta(years = 1)).strftime("%Y")
+            print("getting data")
+            for m_idx in range(base_date.month,10):
+
+                # Remove this month's data from last year
+                if(first_time == False):
+
+                    # Remove the HDF5 files
+                    # ---------------------
+                    print('rm '+hdf_path+'OMI*OMAERUV_'+last_time+\
+                        str(m_idx).zfill(2)+'*')
+                    if(run):
+                        os.system('rm '+ltc4_path+'OMI*OMAERUV_'+last_time+\
+                            str(m_idx).zfill(2)+'*')
+
+                    # Remove the shawn files
+                    # ----------------------
+                    print('rm '+ltc4_path + last_time_shawn + str(m_idx).zfill(2) + '*')
+                    if(run):
+                        os.system('rm '+ltc4_path + last_time_shawn + str(m_idx).zfill(2) + '*')
+
+                # Copy over the HDF files
+                # -----------------------
+                print('scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/H5_files/'+\
+                    'OMI*OMAERUV_'+data_time+str(m_idx).zfill(2)  + '* ' + hdf_path)
+                if(run):
+                    os.system('scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/H5_files/'+\
+                        'OMI*OMAERUV_'+data_time+str(m_idx).zfill(2)  + '* ' + hdf_path)
+
+                # Copy over the shawn files
+                # -------------------------
+                print('scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/out_files-ltc4/'+\
+                    data_time_shawn + str(m_idx).zfill(2)  + '* ' + ltc4_path)
+                if(run):
+                    os.system('scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/out_files-ltc4/'+\
+                        data_time_shawn + str(m_idx).zfill(2)  + '* ' + ltc4_path)
+            first_time = False
+    
+        print(base_date.strftime("%Y%m%d"))
+        
+        
+        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+        #
+        # Select the needed data files
+        #
+        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    
+        ##!#date = plot_time[4:8]
+        ##!#if(len(plot_time)==13):
+        ##!#    time = plot_time[9:]
+        ##!#elif(len(plot_time)==12):
+        ##!#    time = plot_time[8:]
+        ##!#else:
+        ##!#    time = ''
+    
+        try:
+            total_list = subprocess.check_output('ls ' + ltc4_path + \
+                work_time + '*', \
+                shell=True).decode('utf-8').strip().split('\n')
+        
+            # Loop over each of these files and run the netCDF4 generator
+            # -----------------------------------------------------------
+            for sfile in total_list:
+                print(sfile)
+                if(run):
+                    write_shawn_to_NCDF(sfile.strip().split('/')[-1],latmin, save_path = net_path,\
+                        shawn_path = ltc4_path)
+
+            ##!## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+            ##!##
+            ##!## Grid the data
+            ##!##
+            ##!## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+            ##!#whole_rows = np.zeros((len(total_list),60))
+            ##!#total_AI   = np.full((len(total_list),2000,60),np.nan)
+            ##!#total_X   = np.full((len(total_list),2000,60),np.nan)
+            ##!##total_AI   = np.full((len(total_list),2000,60),-99.)
+            ##!##total_X   = np.full((len(total_list),2000,60),-99.)
+            ##!#for fileI in range(len(total_list)):
+            ##!#    # read in data directly from HDF5 files
+            ##!#    #print(total_list[fileI])
+            ##!#    data = h5py.File(total_list[fileI],'r')
+    
+            ##!#    AI1     = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex'][:,:]
+            ##!#    XTRACK1 = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/XTrackQualityFlags'][:,:]
+            ##!#    XTRK_decode = np.array([[get_xtrack_flags(val) for val in XTRKrow] for XTRKrow in XTRACK1])
+            ##!#    #print(AI1.shape)
+        
+            ##!#    # Mask values with missing AI or XTrack values that are not 0 or 4
+            ##!#    # NEW: After decoding the XTRACK values, only see where the row anomaly
+            ##!#    #      flag isequal to zero
+            ##!#    AI1[(AI1 < -2e5) | ((XTRACK1 != 0) & (XTRACK1 != 4))] = np.nan 
+    
+            ##!#    total_AI[fileI,:AI1.shape[0],:] = AI1[:,:]
+    
+            ##!#    # NEW: After decoding the XTRACK values, only see where the row anomaly
+            ##!#    #      flag is equal to zero. Ignoring the other bit values
+            ##!#    total_X[fileI,:XTRACK1.shape[0],:] = XTRK_decode[:,:,0]
+        
+            ##!#    data.close()
+    
+            ##!## Calculate the averages along each row in the current swath over the 
+            ##!## Arctic. NOTE: This section should go in the file loop, but am
+            ##!## too lazy to do it now.
+            ##!## --------------------------------------------------------------------
+            ##!#total_avgs1 = np.array([[np.nanmean(total_AI[file_idx,1230:1500,idx]) \
+            ##!#    for idx in range(60)] for file_idx in range(len(total_list))])
+    
+            ##!## Calculate the average xtrack value along each row in the current 
+            ##!## swath over the Arctic. NOTE: This section should go in the file loop,
+            ##!## but am too lazy to do it now. This is used for identifying known
+            ##!## contaminted rows.
+            ##!## --------------------------------------------------------------------
+            ##!#total_avgs_X1 = np.array([[np.nanmean(total_X[file_idx,1230:1500,idx]) \
+            ##!#    for idx in range(60)] for file_idx in range(len(total_list))])
+        
+            ##!#total_stds1 = np.array([[np.nanstd(total_AI[file_idx,1230:1500,idx]) \
+            ##!#    for idx in range(60)] for file_idx in range(len(total_list))])
+        
+            ##!## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+            ##!##
+            ##!## A row is identified as "bad" if the average of that row between the 
+            ##!## 1230 and 1500 indices across each swath during the day is more than
+            ##!## 2 standard deviations away from the average of all rows between 1230 and
+            ##!## 1500 for the day..
+            ##!##
+            ##!## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+        
+            ##!#day_avgs = np.nanmean(total_avgs1,axis=0)
+            ##!#avg_day_avg = np.nanmean(day_avgs)
+            ##!#day_std  = np.nanstd(day_avgs)
+    
+            ##!## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+            ##!##
+            ##!## A row is identified as "contaminated" if it has at least 1 pixel within
+            ##!## indices 1230 and 1500 with an Xtrack QC value that is not zero, meaning
+            ##!## that it is not perfectly clean as defined by the flag. This is determined
+            ##!## by taking the average of all the Xtrack QC values along indices 1230 to
+            ##!## 1500 of each row, and if that average is not equal to 0, it has a non-zero
+            ##!## pixel inside it and is therefore contaminated.
+            ##!##
+            ##!## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+            ##!#day_avgs_X = np.nanmean(total_avgs_X1,axis=0)
+    
+            ##!## If all daily average Xtrack values are missing, then 
+            ##!## don't try to count the xtrack rows
+            ##!## ----------------------------------------------------
+            ##!#count_xtrack = True
+            ##!#if(np.count_nonzero(~np.isnan(day_avgs_X)) == 0):
+            ##!#    count_xtrack = False
+        
+            ##!## Deal with xtrack rows
+            ##!## If a row has any XTRACK flags set, add to xtrack row list
+            ##!## ---------------------------------------------------------
+            ##!#bad_rows = []
+            ##!#xtrack_rows = []
+            ##!#for rowI in range(len(day_avgs)):
+            ##!#    if((day_avgs[rowI] - avg_day_avg) > (day_std * 3)):
+            ##!#        bad_rows.append(rowI+1)
+            ##!#    if(count_xtrack):
+            ##!#        # If a row has any XTRACK flags set, add to xtrack row list
+            ##!#        if(day_avgs_X[rowI] != 0):
+            ##!#            xtrack_rows.append(rowI+1)
+            ##!#    #        print("Bad row number ", rowI+1) 
+            
+            
+           
+        except subprocess.CalledProcessError:
+            print("ERROR: no data found for time",work_time)
+
+        # Print the date and bad row values to the output file 
+        base_date = base_date + relativedelta(months=1)
+        #base_date = base_date + timedelta(months=1)
+        if(base_date.month == 10):
+            get_data = True
+            base_date = datetime(year = base_date.year+1,month=4,day=1)
+    
+    # Delete the ending data
+    # NOTE: IF this is being run on Raindrop, this MUST be removed
+    #       ensure that the OMI data on Raindrop are not deleted.
+    # ------------------------------------------------------------
+    last_time = (base_date - relativedelta(years = 1)).strftime("%Ym")
+    last_time_shawn = (base_date - relativedelta(years = 1)).strftime("%Y")
+    for m_idx in range(base_date.month,10):
+        # Remove this month's data from last year
+        if(first_time == False):
+            ##!#print('rm ' + ltc4_path + 'OMI*OMAERUV_' + last_time + \
+            ##!#      str(m_idx).zfill(2) + '*')
+            ##!#if(run):
+            ##!#    os.system('rm ' + ltc4_path + 'OMI*OMAERUV_' + last_time + \
+            ##!#          str(m_idx).zfill(2) + '*')
+
+            # Remove the HDF5 files
+            # ---------------------
+            print('rm '+hdf_path+'OMI*OMAERUV_'+last_time+\
+                str(m_idx).zfill(2)+'*')
+            if(run):
+                os.system('rm '+ltc4_path+'OMI*OMAERUV_'+last_time+\
+                    str(m_idx).zfill(2)+'*')
+
+            # Remove the shawn files
+            # ----------------------
+            print('rm '+ltc4_path + last_time_shawn + str(m_idx).zfill(2) + '*')
+            if(run):
+                os.system('rm '+ltc4_path + last_time_shawn + str(m_idx).zfill(2) + '*')
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
@@ -2708,7 +3094,7 @@ def plotOMI_NCDF_Climo_SpringSummer(OMI_data,start_idx=0,end_idx=96,minlat=65,\
     # ----------------
     #ax0 = plt.subplot(gs[0,0],projection=mapcrs)
     plotOMI_NCDF_Climo(OMI_data,start_idx=0,end_idx=None,season = 'spring',\
-        title = 'MAM', minlat=minlat,pax = ax0, save=False)
+        title = 'April + May', minlat=minlat,pax = ax0, save=False)
 
     ##!#ax0.set_extent([-180,180,60,90],ccrs.PlateCarree())
     ##!#ax0.gridlines()
@@ -4094,6 +4480,12 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
     if(vmax is None):
         vmax = var_dict[variable]['max']
 
+    in_ax = True 
+    if(pax is None): 
+        in_ax = False
+        fig0 = plt.figure()
+        pax = fig0.add_subplot(1,1,1, projection = ccrs.NorthPolarStereo())
+
     if(gridlines):
         pax.gridlines()
     pax.coastlines(resolution = '50m')
@@ -4236,6 +4628,10 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
     pax.add_feature(cfeature.STATES)
     if(circle_bound):
         pax.set_boundary(circle, transform=pax.transAxes)
+
+    if(not in_ax):
+        plt.show()
+
     # Depending on the desired variable, set the appropriate colorbar ticks
     ##!#if(variable == 'NormRadiance'):
     ##!#    tickvals = np.arange(0.0,1.010,0.10)
@@ -4255,18 +4651,22 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
 # --------------------------------------------
 def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
         only_sea_ice = False, minlat = 65., skiprows = None, \
-        lat_circles = None, save = False):
+        lat_circles = None, save = False, \
+        shawn_path = '/home/bsorenson/data/OMI/shawn_files/'):
+
 
     # ----------------------------------------------------
     # Read in data
     # ----------------------------------------------------
     if(dtype == 'shawn'):
         OMI_base  = readOMI_swath_shawn(date_str, latmin = minlat,\
-            skiprows = skiprows)
+            shawn_path = shawn_path)
     else:
         OMI_base  = readOMI_swath_hdf(date_str, dtype, \
             only_sea_ice = only_sea_ice, latmin = minlat, \
             skiprows = skiprows)
+
+    print(OMI_base['UVAI'][1300,:])
 
     # ----------------------------------------------------
     # Set up the overall figure
@@ -4283,11 +4683,12 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
     # ----------------------------------------------------
     plotOMI_single_swath(ax0, OMI_base, title = dtype.title(), \
     #plotOMI_single_swath(ax0, OMI_base, title = 'No row 53', \
-        circle_bound = False, gridlines = False)
-        #circle_bound = True, gridlines = False)
+        #circle_bound = False, gridlines = False)
+        circle_bound = True, gridlines = False)
 
     #ax0.set_extent([-180., , -40., 0.], datacrs)
-    ax0.set_extent([-180,180,-90,90], datacrs)
+    ax0.set_extent([-180,180,minlat,90], datacrs)
+    #ax0.set_extent([-180,180,-90,90], datacrs)
 
     plt.suptitle(date_str)
 
@@ -5446,7 +5847,8 @@ def plot_OMI_CERES_trend_compare_summer(minlat=72,\
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
-def read_OMI_fort_out(file_name, min_lat, vtype = 'areas'):
+def read_OMI_fort_out(file_name, min_lat, vtype = 'areas', max_lat = None, \
+        all_data = False):
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
     #
@@ -5509,7 +5911,13 @@ def read_OMI_fort_out(file_name, min_lat, vtype = 'areas'):
     # Convert the areas from square kilometers to 1e5 square kilometers
     count65  = in_data[data_str + str(int(min_lat))].values / divider
     x_range = np.arange(len(dates))
-    
+   
+    # If the user only wants the areas between two lat bins, do so here
+    if(max_lat is not None):
+        print("Reading max lat data now")
+        count_max  = in_data[data_str + str(int(max_lat))].values / divider
+        count65 = count65 - count_max
+ 
     # Calculate daily totals
     #daily_counts_65 = [np.average(tmparr) for tmparr in \
     if(not day_avgs):
@@ -5598,7 +6006,8 @@ def read_OMI_fort_out(file_name, min_lat, vtype = 'areas'):
     return omi_fort_dict   
  
 
-def plot_OMI_fort_out_func(infile, ax = None, min_lat = 70., vtype = 'areas', save = False):
+def plot_OMI_fort_out_func(infile, ax = None, min_lat = 70., vtype = 'areas', \
+        max_lat = None, save = False):
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
     #
@@ -5606,6 +6015,13 @@ def plot_OMI_fort_out_func(infile, ax = None, min_lat = 70., vtype = 'areas', sa
     #
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
     omi_fort_dict = read_OMI_fort_out(infile, min_lat, vtype = vtype)
+
+    if(max_lat is not None):
+        print("Reading max lat data now")
+        omi_fort_dict_max = read_OMI_fort_out(infile, max_lat, vtype = vtype)
+       
+        omi_fort_dict['daily_data'] = omi_fort_dict['daily_data'] - \
+            omi_fort_dict_max['daily_data'] 
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
     #
@@ -5641,16 +6057,16 @@ def plot_OMI_fort_out_func(infile, ax = None, min_lat = 70., vtype = 'areas', sa
         ##!#    (omi_fort_dict['daily_dt_dates'] >= datetime(year,4,1)) & \
         ##!#    (omi_fort_dict['daily_dt_dates'] <= datetime(year,9,30)))])
     
-        # Test the local maxima
-        # ---------------------
-        for jj in range(len(event_sizes) - 1):
-            # Find the peaks for this size
-            # ----------------------------
-            peaks, _ = find_peaks(omi_fort_dict['daily_data'][np.where( \
-                (omi_fort_dict['daily_dt_dates'] >= datetime(year,4,1)) & \
-                (omi_fort_dict['daily_dt_dates'] <= datetime(year,9,30)))], \
-                height = [event_sizes[jj], event_sizes[jj+1]], distance = d_val)
-            events_yearly[ii,jj] = len(peaks)        
+        ##!## Test the local maxima
+        ##!## ---------------------
+        ##!#for jj in range(len(event_sizes) - 1):
+        ##!#    # Find the peaks for this size
+        ##!#    # ----------------------------
+        ##!#    peaks, _ = find_peaks(omi_fort_dict['daily_data'][np.where( \
+        ##!#        (omi_fort_dict['daily_dt_dates'] >= datetime(year,4,1)) & \
+        ##!#        (omi_fort_dict['daily_dt_dates'] <= datetime(year,9,30)))], \
+        ##!#        height = [event_sizes[jj], event_sizes[jj+1]], distance = d_val)
+        ##!#    events_yearly[ii,jj] = len(peaks)        
      
         # Determine the counts of peaks greater than each height range
         # ------------------------------------------------------------
@@ -5679,8 +6095,13 @@ def plot_OMI_fort_out_func(infile, ax = None, min_lat = 70., vtype = 'areas', sa
     #ax.plot(plot_dates, mask_day_avgs,label='avg',color='black')
     #ax.plot(plot_dates, upper_range,label='+avg σ',linestyle='--',color='black')
     ax.set_ylabel(omi_fort_dict['axis_label'],weight='bold',fontsize=12)
-    ax.set_title('AI ' + vtype + ': Threshold of '+str(omi_fort_dict['ai_thresh'])+\
-        '\nNorth of '+str(int(min_lat))+'$^{o}$', fontsize = 14, weight = 'bold')
+    if(max_lat is not None):
+        ax.set_title('AI ' + vtype + ': Threshold of '+str(omi_fort_dict['ai_thresh'])+\
+            '\n' + str(int(min_lat))+'$^{o}$ - ' + str(int(max_lat))+'$^{o}$', \
+        fontsize = 14, weight = 'bold')
+    else: 
+        ax.set_title('AI ' + vtype + ': Threshold of '+str(omi_fort_dict['ai_thresh'])+\
+            '\nNorth of '+str(int(min_lat))+'$^{o}$', fontsize = 14, weight = 'bold')
     ax.tick_params(axis='both', labelsize = 12)
     ax.grid()
     
@@ -5842,7 +6263,7 @@ def plot_OMI_fort_out_two_lats(infile, minlat = 70., vtype = 'areas', save = Fal
     # Read the data from the file
     #
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-    omi_fort_dict_70 = read_OMI_fort_out(infile, 70., vtype = vtype)
+    omi_fort_dict_70 = read_OMI_fort_out(infile, 70., vtype = vtype, max_lat = 80.)
     omi_fort_dict_80 = read_OMI_fort_out(infile, 80., vtype = vtype)
     
     fig1 = plt.figure(figsize = (11,10)) 
@@ -5872,14 +6293,17 @@ def plot_OMI_fort_out_two_lats(infile, minlat = 70., vtype = 'areas', save = Fal
     plot_subplot_label(ax4, '(d)', location = 'upper_left')
 
     row_label_size = 14
-    fig1.text(0.05, 0.705, '---------- Latitude > 70$^{o}$ N ----------', ha='center', va='center', \
+    fig1.text(0.05, 0.705, '---------- 70$^{o}$ N - 80$^{o}$ N ----------', ha='center', va='center', \
         rotation='vertical',weight='bold',fontsize=row_label_size)
-    fig1.text(0.05, 0.285, '---------- Latitude > 80$^{o}$ N ----------', ha='center', va='center', \
+    fig1.text(0.05, 0.285, '--------------- > 80$^{o}$ N ----------------', ha='center', va='center', \
         rotation='vertical',weight='bold',fontsize=row_label_size)
 
+    plt.suptitle('AI ' + vtype + ': Threshold of '+str(omi_fort_dict_70['ai_thresh']), \
+        fontsize = 14, weight = 'bold')
+
     if(save):
-        thresh = str(int(omi_fort_dict_70['ai_thresh'])*100)
-        outname = 'ai_fort_out_thresh'+thresh+'_minlat7080.png'
+        thresh = str(int(omi_fort_dict_70['ai_thresh']*100))
+        outname = 'ai_fort_out_thresh'+thresh+'_minlat7080_split.png'
         fig1.savefig(outname, dpi = 300)
         print("Saved image",outname)
     
@@ -5889,7 +6313,8 @@ def plot_OMI_fort_out_two_lats(infile, minlat = 70., vtype = 'areas', save = Fal
 # Plot a three-panel figure. Panel 1 is the yearly time series of the OMI AI 
 # areas. Panel 2 is the WorldView image. Panel 3 is the single-day average
 # ----------------------------------------------------------------------------
-def plot_combined_fort_out(plot_time, min_lat = 70., vtype = 'areas', save = False):
+def plot_combined_fort_out(plot_time, min_lat = 70., vtype = 'areas', \
+        max_lat = None, save = False):
 
     if(len(plot_time) == 8):
         fmt_str = '%Y%m%d'
@@ -5947,7 +6372,7 @@ def plot_combined_fort_out(plot_time, min_lat = 70., vtype = 'areas', save = Fal
     infile = '/home/bsorenson/Research/OMI/shawn_analysis/count_analysis/' + \
         'omi_vsj4_areas_2005_2020_100.txt'
     plot_OMI_fort_out_func(infile, ax = ax0, min_lat = fort_minlat, vtype = 'areas', \
-        save = False)
+        max_lat = max_lat, save = False)
 
     # Add subplot labels
     # ------------------
@@ -5956,7 +6381,10 @@ def plot_combined_fort_out(plot_time, min_lat = 70., vtype = 'areas', save = Fal
     plot_subplot_label(ax2, '(c)')
 
     if(save):
-        outname = 'omi_fort_out_combined_' + plot_time + '.png'
+        if(max_lat is not None):
+            outname = 'omi_fort_out_combined_' + plot_time + '_max_lat.png'
+        else:
+            outname = 'omi_fort_out_combined_' + plot_time + '.png'
         fig.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else:
