@@ -48,7 +48,7 @@ elif(version == 'jz28'):
 elif(version == 'jz210'):
     title_string = 'Only good rows, no 43 for Jul/Aug 2019'
 elif(version == 'jz211'):
-    title_string = 'Only rows 55 - 60'
+    title_string = 'Only rows 56 - 60'
 elif(version == 'bs2'):
     title_string = 'Only rows 1 - 21'
 else:
@@ -65,7 +65,7 @@ if(len(sys.argv) == 3):
     elif(version2 == 'jz210'):
         title_string2 = 'Only good rows, no 43 for Jul/Aug 2019'
     elif(version2 == 'jz211'):
-        title_string2 = 'Only rows 55 - 60'
+        title_string2 = 'Only rows 56 - 60'
     elif(version2 == 'bs2'):
         title_string2 = 'Only rows 1 - 21'
     else:
@@ -117,7 +117,7 @@ ax1.tick_params(axis = 'y', colors = 'tab:blue')
 ax12.tick_params(axis = 'y', colors = 'tab:orange')
 ax12.set_ylabel('Ob counts',color='tab:orange')
 print('title string = ',title_string)
-ax1.set_title(title_string)
+ax1.set_title(title_string + '\nSouthern Pacific Ocean (0 - 40 S, 180 W - 140 W)')
 ax1.grid()
 
 if(len(sys.argv) == 3):
@@ -137,7 +137,7 @@ if(len(sys.argv) == 3):
     ax2.grid()
     ax2.set_xlabel('Year')
 else:
-    ax1.legend(lns1,labs1, loc = 'lower right')
+    #ax1.legend(lns1,labs1, loc = 'lower right')
     ax1.set_xlabel('Year')
 
 plt.subplots_adjust(left=0.09,right=0.88)

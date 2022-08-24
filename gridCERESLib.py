@@ -336,8 +336,8 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     if(satellite == 'Terra'):
         base_path = '/home/bsorenson/data/CERES/SSF_Level2/Terra/'
     else:
-        #base_path = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/'
-        base_path = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/modis_comp/'
+        base_path = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/'
+        #base_path = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/modis_comp/'
     total_list = sorted(glob.glob(base_path+'CERES_SSF_*.nc'))
 
     # Convert the desired dt to a datetime object to use for finding the file
@@ -608,7 +608,8 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     ##!#plt.show()
 
 # Data period is of format YYYYMMDDHH
-def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'):
+def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,\
+        resolution = 0.25, season='all'):
     CERES_data_hrly = {}
 
     lat_ranges = np.arange(minlat,90.0,0.25)
@@ -666,8 +667,14 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'
     #total_list = subprocess.check_output('ls '+base_path+'CERES_SSF_Aqua-XTRK_Edition4A_Subset_'+year+date+'*.nc',\
     #          shell=True).decode('utf-8').strip().split('\n')
     
-    # Set up values for gridding the AI data
-    lat_gridder = minlat * 4.
+    # Set up values for gridding the flux data
+    lat_gridder = minlat * (1. / resolution)
+    max_idx = int(360 / resolution)
+    multiplier = int(1 / resolution)
+    adder = int(180 / resolution)
+    
+    lat_ranges = np.arange(minlat,90, resolution)
+    lon_ranges = np.arange(-180,180, resolution)
 
 
     swf_grid = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
@@ -699,6 +706,8 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'
         # Loop over the values and rows
         print(flux.shape) 
         for i in range(flux.shape[0]):
+            if(i % 10000 == 0):
+                print(i)
             #if((albedo[i,j]>-20) & (reflectance[i,j]>-20)):
             local_time = base_date + relativedelta(days = time[i])
             if((local_time >= dt_data_begin) & (local_time < dt_data_end)):
@@ -708,16 +717,24 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'
                     # daily averages
                     if(day and (sza[i] >= 77)):
                         continue 
-                    index1 = int(np.floor(lat[i]*4 - lat_gridder))
-                    index2 = int(np.floor(lon[i]*4 + 720.))
+                    ##!#index1 = int(np.floor(lat[i]*4 - lat_gridder))
+                    ##!#index2 = int(np.floor(lon[i]*4 + 720.))
+                    ##!#if(index1 < 0): index1 = 0
+                    ##!#if(index1 > 719): index1 = 719
+                    ##!#if(index2 < 0): index2 = 0                                                                                            
+                    ##!#if(index2 > 1439): index2 = 1439
+
+                    index1 = int(np.floor(LAT[i,j]*multiplier - lat_gridder))
+                    index2 = int(np.floor(LON[i,j]*multiplier + adder))
                     
                     if(index1 < 0): index1 = 0
-                    if(index1 > 719): index1 = 719
+                    if(index1 > len(lat_ranges)-1): index1 = len(lat_ranges) - 1
                     if(index2 < 0): index2 = 0                                                                                            
-                    if(index2 > 1439): index2 = 1439
+                    if(index2 > (max_idx - 1)): index2 = max_idx - 1
              
                     try: 
-                        swf_grid[index2, index1] = (swf_grid[index2,index1]*count[index2,index1] + flux[i])/(count[index2,index1]+1)
+                        swf_grid[index2, index1] = swf_grid[index2,index1] + flux[i]
+                        #swf_grid[index2, index1] = (swf_grid[index2,index1]*count[index2,index1] + flux[i])/(count[index2,index1]+1)
                     except IndexError:
                         print(lat[i],lon[i],index1,index2)
                     #UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + diff)/(count[index2,index1]+1)
@@ -725,7 +742,9 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'
                     #if((ii==1309) and (ii2==59)): print UVAI[index1,index2]
                     count[index2, index1] = count[index2,index1] + 1
         data.close()
-    
+   
+    swf_grid = swf_grid / count
+ 
     CERES_data_hrly['param'] = param
     CERES_data_hrly['parm_name'] = var_dict[param]
     CERES_data_hrly['data']   = swf_grid

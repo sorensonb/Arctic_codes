@@ -34,7 +34,9 @@ import sys
 
 #plot_combined_fort_out('20170818', min_lat = 80., vtype = 'areas', save = False)
 
+#plot_Arctic_row_coverage_compare(date_str = '20180726', save = False)
 sys.exit()
+
 minlat = 65.
 OMI_VBS0   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VBS0_2005_2020.nc', minlat = minlat)
 plotOMI_NCDF_Climo_SpringSummer(OMI_VBS0,start_idx=0,end_idx=96,minlat=65,\

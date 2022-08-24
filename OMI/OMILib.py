@@ -749,8 +749,8 @@ def readOMI_swath_shawn_old(plot_time, latmin = 65., resolution = 0.25):
     multiplier = int(1 / resolution)
     adder = int(180 / resolution)
     
-    lat_ranges = np.arange(latmin,90.1, resolution)
-    lon_ranges = np.arange(-180,180.1, resolution)
+    lat_ranges = np.arange(latmin,90, resolution)
+    lon_ranges = np.arange(-180,180, resolution)
     
     # Set up blank grid arrays to hold the counts and the data
     UVAI = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
@@ -789,31 +789,39 @@ def readOMI_swath_shawn_old(plot_time, latmin = 65., resolution = 0.25):
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-    plot_lat, plot_lon = np.meshgrid(lat_ranges,lon_ranges)
+    #plot_lat, plot_lon = np.meshgrid(lat_ranges,lon_ranges)
     mask_UVAI = np.ma.masked_where(count == 0, UVAI)
 
     OMI_data = {}
     OMI_data['date']      = plot_time
     OMI_data['dtype']     = 'shawn'
-    OMI_data['LAT']       = plot_lat 
-    OMI_data['LON']       = plot_lon
-    OMI_data['UVAI_grid'] = mask_UVAI
+    OMI_data['LAT']       = lat_ranges
+    OMI_data['LON']       = lon_ranges
+    #OMI_data['LAT']       = plot_lat 
+    #OMI_data['LON']       = plot_lon
+    OMI_data['AI'] = mask_UVAI
     OMI_data['counts']    = count
 
     return OMI_data
 
-def readOMI_single_swath(plot_time,row_max, row_min = 0, only_sea_ice = True,latmin=65,coccolith = False):
-    n_p = 1440
-    nl = 720
-    lonmin = -180.
-    lonmax = 180.
-    #latmin = 60.
-    latmax = 90.
+# Reads a single swath of OMI data using the old method
+# -----------------------------------------------------
+def readOMI_single_swath(plot_time,row_max, row_min = 0, only_sea_ice = True,\
+        latmin=65, resolution = 0.25, dtype = 'control', coccolith = False):
+
+
+    if(dtype == 'JZ'):
+        row_min = 56
+
     # Set up values for gridding the AI data
-    lat_gridder = latmin * 4.
+    lat_gridder = latmin * (1. / resolution)
+    max_idx = int(360 / resolution)
+    multiplier = int(1 / resolution)
+    adder = int(180 / resolution)
     
-    lat_ranges = np.arange(latmin,90.,0.25)
-    lon_ranges = np.arange(-180.,180.,0.25)
+    lat_ranges = np.arange(latmin,90., resolution)
+    lon_ranges = np.arange(-180.,180., resolution)
+
 
     if(coccolith):
         g_NRAD_354     = np.zeros(shape=(len(lon_ranges),len(lat_ranges)))
@@ -892,16 +900,17 @@ def readOMI_single_swath(plot_time,row_max, row_min = 0, only_sea_ice = True,lat
                     # Only plot if XTrack flag is met
                         # Print values to text file
                         counter+=1
-                        index1 = int(np.floor(LAT[i,j]*4 - lat_gridder))
-                        index2 = int(np.floor(LON[i,j]*4 + 720.))
-                        #index1 = int(np.floor(plotLAT[i,j]*4 + 360.))
-                        #index2 = int(np.floor(plotLON[i,j]*4 + 720.))
-                        
+
+
+
+                        index1 = int(np.floor(LAT[i,j]*multiplier - lat_gridder))
+                        index2 = int(np.floor(LON[i,j]*multiplier + adder))
+                          
                         if(index1 < 0): index1 = 0
                         if(index1 > len(lat_ranges)-1): index1 = len(lat_ranges) - 1
                         if(index2 < 0): index2 = 0                                                                                            
-                        if(index2 > 1439): index2 = 1439
-                   
+                        if(index2 > (max_idx - 1)): index2 = max_idx - 1
+
                         #if(diff<0.2): 
                         #    UVAI[index2, index1] = (UVAI[index2,index1]*count[index2,index1] + AI[i,j])/(count[index2,index1]+1)
                         if(coccolith):
@@ -944,14 +953,15 @@ def readOMI_single_swath(plot_time,row_max, row_min = 0, only_sea_ice = True,lat
     g_UVAI_354     = np.ma.masked_where(count_UVAI_354 == 0, g_UVAI_354)
 
     OMI_single_dict = {}
-    OMI_single_dict['lat'] = lat_ranges
-    OMI_single_dict['lon'] = lon_ranges
+    OMI_single_dict['LAT'] = lat_ranges
+    OMI_single_dict['LON'] = lon_ranges
     OMI_single_dict['AI'] = g_UVAI_354
     OMI_single_dict['AI_count'] = count_UVAI_354
     OMI_single_dict['SZA'] = g_SZA
     OMI_single_dict['SZA_count'] = count_SZA
     OMI_single_dict['date'] = plot_time
     OMI_single_dict['row_max'] = row_max
+    OMI_single_dict['dtype'] = dtype
     if(coccolith):
         OMI_single_dict['NRAD500'] = g_NRAD_500
         OMI_single_dict['NRAD500_count'] = count_NRAD_500
@@ -1255,13 +1265,15 @@ def write_shawn_to_NCDF(filename,latmin, save_path = './', shawn_path = \
     # dimensions.
     # ---------------------------------------------------------  
     AI_raw = nc.createVariable('UVAI_raw','f4',('nx','ny'))
-    AI_raw.description='Raw AI data before the quality control methods. These ' + \
+    AI_raw.description='Raw OMI OMAERUV UltraViolet Aerosol Index data ' + \
+        'before the quality control methods. These ' + \
         'raw AI data were obtained from the online archive housed at the ' + \
         'GES DISC OMAERUV dataset page ' + \
         '(https://disc.gsfc.nasa.gov/datasets/OMAERUV_003/summary)'
 
     AI_pert = nc.createVariable('UVAI_perturbed','f4',('nx','ny'))
-    AI_pert.description='Perturbed AI data. Calculated by subtracting the ' + \
+    AI_pert.description='Perturbed OMI OMAERUV UltraViolet Aerosol Index data. ' + \
+        'Calculated by subtracting the ' + \
         'climatology value (determined by binning the raw AI data per month by' + \
         ' viewing geometry, surface albedo, and ground pixel classification) ' + \
         'from the raw AI value contained in the GES DISC HDF5 OMI files.'
@@ -4041,9 +4053,9 @@ def plot_OMI_shawn_old(OMI_shawn, ax = None, minlat = 65, labelsize = 12,\
     # for pcolormesh.
     plot_lat = OMI_shawn['LAT']
     plot_lon = OMI_shawn['LON']
-    mask_UVAI = OMI_shawn['UVAI_grid']
+    mask_UVAI = OMI_shawn['AI']
     #plot_lat, plot_lon = np.meshgrid(OMI_shawn['LAT'], OMI_shawn['LON'])
-    #mask_UVAI = np.ma.masked_where(OMI_shawn['counts'] == 0, OMI_shawn['UVAI_grid'])
+    #mask_UVAI = np.ma.masked_where(OMI_shawn['counts'] == 0, OMI_shawn['AI'])
     
     ax.set_title('OMI '+OMI_shawn['date'])
     mesh = ax.pcolormesh(plot_lon, plot_lat,mask_UVAI,transform = datacrs,cmap = colormap,\
@@ -5003,6 +5015,197 @@ def plotOMI_shawn_3panel(date_str, only_sea_ice = False, minlat = 65.,\
         outname = 'omi_single_swath_shawn_3panel_' + date_str + '.png'
         fig1.savefig(outname, dpi=300)
         print("Saved image",outname)
+    else:
+        plt.show()
+
+# Plot a daily average of OMI data
+# --------------------------------
+def plotOMI_daily(date_str, dtype = 'control',  \
+        only_sea_ice = False, minlat = 65., skiprows = None, \
+        lat_circles = None, ax = None, save = False, resolution = 0.25, \
+        row_max = 60, row_min = 0, circle_bound = True, colorbar = True, \
+        shawn_path = '/home/bsorenson/data/OMI/shawn_files/'):
+
+    # ----------------------------------------------------
+    # Read in data
+    # ----------------------------------------------------
+    if(dtype == 'shawn'):
+        ##!#OMI_base  = readOMI_swath_shawn(date_str, latmin = minlat,\
+        ##!#    shawn_path = shawn_path)
+        OMI_base = readOMI_swath_shawn_old(date_str, latmin = minlat, 
+            resolution = resolution)
+    else:
+        OMI_base = readOMI_single_swath(date_str, row_max, row_min = row_min,\
+            only_sea_ice = only_sea_ice, dtype = dtype, latmin = minlat,\
+            resolution = resolution)
+        ##!#OMI_base  = readOMI_swath_hdf(date_str, dtype, \
+        ##!#    only_sea_ice = only_sea_ice, latmin = minlat, \
+        ##!#    skiprows = skiprows)
+
+    # ----------------------------------------------------
+    # Set up the overall figure
+    # ----------------------------------------------------
+    in_ax = True 
+    if(ax is None): 
+        in_ax = False
+        plt.close('all')
+        fig1 = plt.figure()
+        #fig1 = plt.figure(figsize = (6,6))
+        mapcrs = ccrs.NorthPolarStereo()
+        #mapcrs = ccrs.Robinson()
+        ax = fig1.add_subplot(1,1,1, projection = mapcrs)
+
+    # ----------------------------------------------------
+    # Use the single-swath plotting function to plot each
+    # of the 3 data types
+    # ----------------------------------------------------
+    cmap = 'jet'
+    y_val, x_val = np.meshgrid(OMI_base['LAT'], OMI_base['LON'])
+    print(x_val.shape, y_val.shape, OMI_base['AI'].shape)
+    mesh = ax.pcolormesh(x_val, y_val, OMI_base['AI'],\
+            transform = datacrs, cmap = cmap,\
+            vmin = -2.0, vmax = 4.0, \
+            ##!#vmin = np.nanmin(mask_GPQF) - 0.5, \
+            ##!#vmax = np.nanmax(mask_GPQF) + 0.5,\
+            shading='auto')
+    ax.coastlines()
+
+    if(colorbar):
+            #cbar = plt.colorbar(mesh,ax = pax, orientation='horizontal',pad=0,\
+            cbar = plt.colorbar(mesh,ax = ax, orientation='vertical',\
+                pad = 0.04, fraction = 0.040, label = 'UVAI')
+            cbar.set_label('UVAI', fontsize = 12, weight='bold')
+                #int(np.nanmax(mask_GPQF)) + 1), pad = 0.04, fraction = 0.040)
+                #ticks = np.arange(int(np.nanmin(mask_GPQF)), \
+                #shrink = 0.8, ticks = np.arange(np.nanmin(mask_GPQF), \
+                #np.nanmax(mask_GPQF) + 1))
+            #cbar.ax.set_xticks(np.arange(int(np.nanmin(mask_GPQF)),int(np.nanmax(mask_GPQF)) + 1))
+            ##!#cbar.ax.set_yticklabels(cbar_labels[int(np.nanmin(mask_GPQF)):\
+            ##!#    int(np.nanmax(mask_GPQF))+1],fontsize=10,weight = 'bold', \
+            ##!#    rotation=0)
+                #fontsize=8,rotation=35)
+        
+    if(circle_bound):
+        ax.set_boundary(circle, transform=ax.transAxes)
+
+    #ax0.set_extent([-180., , -40., 0.], datacrs)
+    ax.set_extent([-180,180,minlat,90], datacrs)
+    #ax0.set_extent([-180,180,-90,90], datacrs)
+
+    plt.suptitle(date_str)
+
+    # ----------------------------------------------------
+    # If the user wants circles along latitude lines,    
+    # plot them here      
+    # ----------------------------------------------------
+    if(lat_circles is not None):
+        plot_lat_circles(ax0, lat_circles) 
+
+
+    if(not in_ax):
+        fig1.tight_layout()
+        if(save):
+            row_adder = ''
+            if(skiprows is not None):
+                row_adder = '_no'
+                for row in skiprows:
+                    row_adder = row_adder + 'r' + str(row + 1)
+                
+            outname = 'omi_single_swath_figure_' + date_str + '_' + \
+                dtype + row_adder + '_latlines.png'
+            fig1.savefig(outname, dpi=300)
+            print("Saved image",outname)
+        else:
+            plt.show()
+
+def plotOMI_daily_control_shawn(date_str, only_sea_ice = False, minlat = 65.,\
+        lat_circles = None, ax = None, save = False, resolution = 0.25, \
+        row_max = 60, row_min = 0, circle_bound = True, colorbar = True, \
+        shawn_path = '/home/bsorenson/data/OMI/shawn_files/'):
+
+    ##!## ----------------------------------------------------
+    ##!## Read in the shawn and control data
+    ##!## ----------------------------------------------------
+    ##!#OMI_shawn = readOMI_swath_shawn_old(date_str, latmin = minlat, 
+    ##!#        resolution = resolution)
+    ##!#OMI_ctrl = readOMI_single_swath(date_str, row_max, row_min = row_min,\
+    ##!#    only_sea_ice = only_sea_ice, dtype = 'control', latmin = minlat,\
+    ##!#    resolution = resolution)
+
+    # ----------------------------------------------------
+    # Set up the overall figure
+    # ----------------------------------------------------
+    plt.close('all')
+    fig1 = plt.figure(figsize = (10,5))
+    ax0 = fig1.add_subplot(1,2,1, projection = mapcrs)
+    ax1 = fig1.add_subplot(1,2,2, projection = mapcrs)
+
+    plotOMI_daily(date_str, dtype = 'control',  \
+        only_sea_ice = False, minlat = minlat, skiprows = None, \
+        lat_circles = None, ax = ax0, save = False, resolution = resolution, \
+        row_max = 60, row_min = row_min, circle_bound = True, colorbar = False, \
+        shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
+
+    plotOMI_daily(date_str, dtype = 'shawn',  \
+        only_sea_ice = False, minlat = minlat, skiprows = None, \
+        lat_circles = None, ax = ax1, save = False, resolution = resolution, \
+        row_max = 60, row_min = row_min, circle_bound = True, colorbar = True, \
+        shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
+
+    plot_subplot_label(ax0, '(a)')
+    plot_subplot_label(ax1, '(b)')
+
+    fig1.tight_layout()
+
+    if(save):
+        print("SAVING IMAGE")
+    else:
+        plt.show()
+
+# Compare the quarter-degree coverage as a function of latitude for 
+# single-swath daily averages (using the old read single swath function) 
+# using all good rows and only the screened data
+# ----------------------------------------------------------------------
+def plot_Arctic_row_coverage_compare(date_str = '20180726', minlat = 65., \
+        save = False):
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d')
+    
+    # Read the data using all good rows
+    # ---------------------------------
+    OMI_data = readOMI_single_swath('20180726', 60, only_sea_ice = False, \
+        latmin = minlat)
+
+    # Read only the last 5 rows
+    # -------------------------
+    OMI_data2 = readOMI_single_swath('20180726', 60, only_sea_ice = False, \
+        row_min = 55, latmin = minlat)
+
+    # Set up the figure
+    # -----------------
+    plt.close('all')
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.plot(OMI_data['lat'], (np.count_nonzero(OMI_data['AI_count'], \
+        axis = 0) / OMI_data['AI_count'][:,0].size) * 100., \
+        label = 'Rows 1 - 22, 56 - 60')
+   
+    ax.plot(OMI_data2['lat'], (np.count_nonzero(OMI_data2['AI_count'], \
+        axis = 0) / OMI_data2['AI_count'][:,0].size) * 100., \
+        label = 'Rows 56 - 60') 
+
+    ax.grid()
+    ax.set_xlabel('Latitude')
+    ax.set_ylabel('%')
+    ax.set_title('Percent coverage of quarter-degree grid boxes\n' + \
+        dt_date_str.strftime('%Y-%m-%d') + ' daily average')
+    ax.legend()
+   
+    if(save):
+        outname = 'omi_coverage_compare_' + date_str + '_' + \
+            str(int(minlat)) + 'to90.png' 
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
     else:
         plt.show()
 
