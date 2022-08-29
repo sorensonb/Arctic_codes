@@ -178,6 +178,13 @@ ceres_date_str = ['2017081701', \
 date_idx = 39 # very very good, JZ
 #date_idx = 40 # 
 
+date_str = '2018070521'
+param = 'SWF'
+plotCERES_hrly_figure(date_str, param,  \
+    only_sea_ice = False, minlat = 65., skiprows = None, \
+    lat_circles = None, grid_data = True, zoom = True, \
+    vmax = 450, vmin = None, save = False)
+sys.exit()
 # 20190811
 #date_idx = 44   # 2019081101
 #date_idx = 45   # 2019081103

@@ -37,17 +37,19 @@ import cartopy
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from satpy.scene import Scene
+from satpy import find_files_and_readers
 from satpy.writers import get_enhanced_image
 from glob import glob
 
 sys.path.append('/home/bsorenson/')
 from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
     nearest_gridpoint, aerosol_event_dict, init_proj, \
-    convert_radiance_to_temp, format_coord
+    convert_radiance_to_temp, format_coord, circle
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 # Set up global variables
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+data_dir = '/home/bsorenson/data/MODIS/Aqua/'
 datacrs = ccrs.PlateCarree()
 debug = False
 
@@ -1033,28 +1035,57 @@ def grid_data_trends(modis_dict):
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-def read_MODIS_satpy(date_str, channel,  composite = False, zoom = True):
+def read_MODIS_satpy(date_str, channel,  composite = False, swath = False, \
+        zoom = True):
 #def read_true_color(date_str,composite = False):
-    # Determine the correct MODIS file associated with the date
-    # ---------------------------------------------------------
-    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
-    filename = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
-    print(filename)
-    if(type(filename) is list):
-        day_filenames = filename
-        cmpst_add = ''
-    else:
-        if(composite):
-            day_filenames = glob(filename[:50]+'*')
-            cmpst_add = '_composite'
-        else:
-            day_filenames = glob(filename)
-            cmpst_add = ''
 
-    # Extract the modis true-color plot limits
-    # ----------------------------------------
-    lat_lims = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis_Lat']
-    lon_lims = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis_Lon']
+    if(swath):
+
+        # Determine the correct GOES files associated with the date
+        # ---------------------------------------------------------
+        dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+        #dt_date_str_beg = dt_date_str - timedelta(minutes = 10) datetime.strptime(date_str,"%Y%m%d%H%M")
+        dt_date_str_beg = datetime.strptime(date_str,"%Y%m%d%H%M")
+        dt_date_str_end = dt_date_str + timedelta(minutes = 10)
+
+        cmpst_add = '_composite'
+        lat_lims = [60, 90]
+        lon_lims = [-180, 180]
+
+        try:
+            # Use the Satpy find_files_and_readers to grab the files
+            # ------------------------------------------------------
+            files = find_files_and_readers(start_time = dt_date_str_beg, \
+                end_time = dt_date_str_end, base_dir = data_dir, \
+                reader = 'modis_l1b')
+        except ValueError:
+            print("ERROR: no files found for dtg",date_str)
+            return
+
+        day_filenames = files
+
+    else:
+        # Determine the correct MODIS file associated with the date
+        # ---------------------------------------------------------
+        dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+        filename = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
+        print(filename)
+
+        if(type(filename) is list):
+            day_filenames = filename
+            cmpst_add = ''
+        else:
+            if(composite):
+                day_filenames = glob(filename[:50]+'*')
+                cmpst_add = '_composite'
+            else:
+                day_filenames = glob(filename)
+                cmpst_add = ''
+
+        # Extract the modis true-color plot limits
+        # ----------------------------------------
+        lat_lims = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis_Lat']
+        lon_lims = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis_Lon']
 
     # Use satpy (Scene) to open the file
     # ----------------------------------
@@ -1071,11 +1102,14 @@ def read_MODIS_satpy(date_str, channel,  composite = False, zoom = True):
     ##!#    # Set the map projection and center the data
     ##!#    # ------------------------------------------
     #my_area = scn[str(channel)].attrs['area'].compute_optimal_bb_area({\
-    my_area = scn['true_color'].attrs['area'].compute_optimal_bb_area({\
-        'proj':'lcc', 'lon_0': lon_lims[0], 'lat_0': lat_lims[0], 'lat_1': lat_lims[0], 'lat_2': lat_lims[0]})
+    #if(not swath):
+    my_area = scn['true_color'].attrs['area'].compute_optimal_bb_area()
+    #my_area = scn['true_color'].attrs['area'].compute_optimal_bb_area({\
+    #    'proj':'lcc', 'lon_0': lon_lims[0], 'lat_0': lat_lims[0], \
+    #    'lat_1': lat_lims[0], 'lat_2': lat_lims[0]})
     new_scn = scn.resample(my_area)
-    ##!#else:
-    ##!#    new_scn = scn
+    #else:
+    #    new_scn = scn
 
     ##!#if(zoom):
     ##!#    scn = scn.crop(ll_bbox = (lon_lims[0] + 0.65, lat_lims[0], \
@@ -1095,12 +1129,16 @@ def read_MODIS_satpy(date_str, channel,  composite = False, zoom = True):
         var = scn[str(channel)].data
     #var = new_scn[str(channel)].data
 
-    # Extract the map projection from the data for plotting
-    # -----------------------------------------------------
-    crs = new_scn['true_color'].attrs['area'].to_cartopy_crs()
-    #crs = new_scn[str(channel)].attrs['area'].to_cartopy_crs()
+    if(not swath):
+        # Extract the map projection from the data for plotting
+        # -----------------------------------------------------
+        crs = new_scn['true_color'].attrs['area'].to_cartopy_crs()
+        #crs = new_scn[str(channel)].attrs['area'].to_cartopy_crs()
+    else:
+        crs = ccrs.NorthPolarStereo()
 
     del scn 
+    del new_scn
 
     ##!#if(channel != 'true_color'):
     ##!#    var = var.data
@@ -1119,12 +1157,13 @@ def read_MODIS_satpy(date_str, channel,  composite = False, zoom = True):
 def plot_MODIS_satpy(date_str, channel, ax = None, var = None, crs = None, \
         lons = None, lats = None, lat_lims = None, lon_lims = None, \
         vmin = None, vmax = None, ptitle = None, plabel = None, \
-        labelsize = 10, colorbar = True, zoom=True,save=False):
+        labelsize = 10, colorbar = True, swath = False, zoom=True,save=False):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
 
     if(var is None): 
-        var, crs, lons, lats, lat_lims, lon_lims, plabel = read_MODIS_satpy(date_str, str(channel))
+        var, crs, lons, lats, lat_lims, lon_lims, plabel = read_MODIS_satpy(\
+            date_str, str(channel), swath = swath)
     
     # Plot the GOES data
     # ------------------
@@ -1499,21 +1538,7 @@ def plot_true_color(filename,zoom=True):
 
     plt.show()
 
-# dt_date_str is of format YYYYMMDDHHMM
-def read_MODIS_channel(date_str, channel, zoom = False):
-
-    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
-
-    # Extract the filename given the channel
-    # --------------------------------------
-    if(str(channel)[:2] == 'wv'):
-        filename = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['mdswv']
-    else:
-        filename = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
-    
-    print("Reading MODIS channel",channel," from ",filename)
-
-    MODIS_data = {}
+def read_MODIS_granule(filename, channel, zoom = False):
 
     modis = SD.SD(filename)
 
@@ -1538,8 +1563,8 @@ def read_MODIS_channel(date_str, channel, zoom = False):
     #print('Solar zenith: ', modis.select('SolarZenith').get().shape)
     #print('Solar zenith scale: ', modis.select('SolarZenith').attributes().get('scale_factor'))
 
-    data  = modis.select(channel_dict[str(channel)]['Name']).get()
-    if(str(channel)[2:] != '_ir'):
+    if((str(channel)[2:] != '_ir') & (str(channel) != 'true_color')):
+        data  = modis.select(channel_dict[str(channel)]['Name']).get()
         if(str(channel) != 'wv_nir'):
             data = data[channel_dict[str(channel)]['Index']]
         data  = data[::5,::5]
@@ -1581,6 +1606,73 @@ def read_MODIS_channel(date_str, channel, zoom = False):
         ##!#        ).attributes().get('long_name') +  ' [' + \
         ##!#        modis.select(channel_dict[str(channel)]['Name']\
         ##!#        ).attributes().get('unit') + ']'
+    elif(str(channel) == 'true_color'):
+
+        # Pull out the red, green, and blue reflectance data
+        # --------------------------------------------------
+        red   = modis.select('EV_250_Aggr1km_RefSB').get()[0]
+        green = modis.select('EV_500_Aggr1km_RefSB').get()[1]
+        blue  = modis.select('EV_500_Aggr1km_RefSB').get()[0]
+        
+        # The RGB reflectances are on a much higher resolution than the lats and
+        # lons, so use only every 5th value
+        # ----------------------------------------------------------------------
+        red   = red[::5,::5]
+        green = green[::5,::5]
+        blue  = blue[::5,::5]
+        
+        # Extract the scales and offsets for each channel from the file. These are 
+        # used to convert these reflectance values into usable data
+        # ------------------------------------------------------------------------
+        red_scale    = modis.select('EV_250_Aggr1km_RefSB').attributes().get('reflectance_scales')[0]
+        red_offset   = modis.select('EV_250_Aggr1km_RefSB').attributes().get('reflectance_offsets')[0]
+        green_scale  = modis.select('EV_500_Aggr1km_RefSB').attributes().get('reflectance_scales')[1]
+        green_offset = modis.select('EV_500_Aggr1km_RefSB').attributes().get('reflectance_offsets')[1]
+        blue_scale   = modis.select('EV_500_Aggr1km_RefSB').attributes().get('reflectance_scales')[0]
+        blue_offset  = modis.select('EV_500_Aggr1km_RefSB').attributes().get('reflectance_offsets')[0]
+        
+        ##!## Close the satellite file object
+        ##!## -------------------------------
+        ##!#modis.end()
+        
+        # Use the scales and offset calibration values to convert from counts to
+        # reflectance
+        # ----------------------------------------------------------------------
+        red   = (red - red_offset) * red_scale
+        green = (green - green_offset) * green_scale
+        blue  = (blue - blue_offset) * blue_scale
+        
+        red   = red*(255./1.1) 
+        green = green*(255./1.1) 
+        blue  = blue*(255./1.1) 
+        
+        # Create color scales for each RGB channel
+        # ----------------------------------------
+        old_val = np.array([0,30,60,120,190,255])
+        ehn_val = np.array([0,110,160,210,240,255])
+        red     = np.interp(red,old_val,ehn_val) / 255.
+        old_val = np.array([0,30,60,120,190,255])
+        ehn_val = np.array([0,110,160,200,230,240])
+        green   = np.interp(green,old_val,ehn_val) / 255.
+        old_val = np.array([0,30,60,120,190,255])
+        ehn_val = np.array([0,100,150,210,240,255])
+        blue    = np.interp(blue,old_val,ehn_val) / 255.
+        
+        # Combine the three RGB channels into 1 3-d array
+        # -----------------------------------------------
+        image = np.zeros((red.shape[0],red.shape[1],3))
+        image[:,:,0] = red
+        image[:,:,1] = green
+        image[:,:,2] = blue
+        
+        # Convert the color values into a format usable for plotting
+        # ----------------------------------------------------------
+        colortuple = tuple(np.array([image[:,:,0].flatten(), \
+            image[:,:,1].flatten(), image[:,:,2].flatten()]).transpose().tolist())
+        
+        data = np.ma.masked_where(np.isnan(image),image)
+        label = 'True color'
+        colors = 'True color'
     else:
         channel = int(channel)
         # Thermal emission data
@@ -1636,6 +1728,7 @@ def read_MODIS_channel(date_str, channel, zoom = False):
             data_offset   = modis.select(channel_dict[str(channel)]['Name']\
                 ).attributes().get('reflectance_offsets')[channel_dict[str(channel)]['Index']]
 
+            print('HERE:', data.shape)
             # Extract the fill value and make sure any missing values are
             # removed.
             # -----------------------------------------------------------
@@ -1661,6 +1754,8 @@ def read_MODIS_channel(date_str, channel, zoom = False):
     # --------------------
     data = np.ma.masked_where(data > 340, data)
 
+    MODIS_data = {}
+
     MODIS_data['data'] = data
     MODIS_data['lat']  = lat5
     MODIS_data['lon']  = lon5
@@ -1672,6 +1767,10 @@ def read_MODIS_channel(date_str, channel, zoom = False):
     MODIS_data['channel']  = channel
     MODIS_data['colors']  = colors
     MODIS_data['file_time'] = filename.strip().split('/')[-1].split('.')[2]
+    if(str(channel) == 'true_color'):
+        MODIS_data['colortuple'] = colortuple
+    else:
+        MODIS_data['colortuple'] = None
 
     if(zoom):
         # Mask MODIS_data['data'] that are outside the desired range
@@ -1693,10 +1792,74 @@ def read_MODIS_channel(date_str, channel, zoom = False):
         MODIS_data['lat'] = np.ma.masked_where(MODIS_data['lat'] == -999., MODIS_data['lat'])
         MODIS_data['lon'] = np.ma.masked_where(MODIS_data['lon'] == -999., MODIS_data['lon'])
 
-
     return MODIS_data
 
-def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False):
+# dt_date_str is of format YYYYMMDDHHMM
+def read_MODIS_channel(date_str, channel, zoom = False, swath = False):
+
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    # Extract the filename given the channel
+    # --------------------------------------
+    if(str(channel)[:2] == 'wv'):
+        filename = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['mdswv']
+    else:
+
+        if(swath):
+            times = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['swath']
+            dt_times = [datetime.strptime(time, '%Y%m%d%H%M') for time in times]
+            filename = [aerosol_event_dict[ttime.strftime('%Y-%m-%d')][\
+                ttime.strftime('%H%M')]['modis'] for ttime in dt_times]
+            
+        else:
+            filename = [aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']]
+    
+
+    MODIS_holder = {}
+    counter = 0
+    for ifile in filename:
+
+        print("Reading MODIS channel",channel," from ",ifile)
+
+        MODIS_data = read_MODIS_granule(ifile, channel, zoom = zoom)
+
+        MODIS_holder[str(counter)] = MODIS_data 
+
+        counter += 1
+
+    MODIS_final = {}
+    MODIS_final['data'] = np.concatenate([MODIS_holder[key]['data'] for key in MODIS_holder.keys()], axis = 0)
+    MODIS_final['lat']  = np.concatenate([MODIS_holder[key]['lat']  for key in MODIS_holder.keys()], axis = 0)
+    MODIS_final['lon']  = np.concatenate([MODIS_holder[key]['lon']  for key in MODIS_holder.keys()], axis = 0)
+    MODIS_final['sza']  = np.concatenate([MODIS_holder[key]['sza']  for key in MODIS_holder.keys()], axis = 0)
+    MODIS_final['vza']  = np.concatenate([MODIS_holder[key]['vza']  for key in MODIS_holder.keys()], axis = 0)
+    MODIS_final['variable'] = MODIS_holder['0']['variable']
+    MODIS_final['cross_date'] = MODIS_holder['0']['cross_date']
+    MODIS_final['channel'] = MODIS_holder['0']['channel']
+    MODIS_final['colors'] = MODIS_holder['0']['colors']
+    MODIS_final['file_time'] = MODIS_holder['0']['file_time']
+    
+    print(MODIS_final['data'].shape, MODIS_final['lat'].shape, MODIS_final['lon'].shape)
+
+    if(str(channel) == 'true_color'):
+    
+        # Convert the color values into a format usable for plotting
+        # ----------------------------------------------------------
+        colortuple = tuple(np.array([MODIS_final['data'][:,:,0].flatten(), \
+            MODIS_final['data'][:,:,1].flatten(), \
+            MODIS_final['data'][:,:,2].flatten()]).transpose().tolist())
+        MODIS_final['colortuple'] = colortuple
+    else: 
+        MODIS_final['colortuple'] = None
+    if(swath):
+        MODIS_final['swath_times'] = times
+    else:
+        MODIS_final['swath_times'] = 'NONE'
+
+    return MODIS_final
+
+def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False, \
+        ax = None, swath = False, circle_bound = True):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
     filename = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
@@ -1711,20 +1874,23 @@ def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False):
     # Call read_MODIS_channel to read the desired MODIS data from the
     # file and put it in a dictionary
     # ---------------------------------------------------------------
-    MODIS_data = read_MODIS_channel(date_str, channel)
+    MODIS_data = read_MODIS_channel(date_str, channel, swath = swath)
 
     if(debug):
         print("Data max = ",np.max(MODIS_data['data']), "  Data min = ",\
         np.min(MODIS_data['data']))
 
-    plt.close('all')
-    fig1 = plt.figure()
-    datacrs = ccrs.PlateCarree()
-    #mapcrs = ccrs.Miller()
-    mapcrs = init_proj(date_str)
-    ax = plt.axes(projection = mapcrs)
+    in_ax = True 
+    if(ax is None): 
+        in_ax = False
+        plt.close('all')
+        fig1 = plt.figure()
+        #fig1 = plt.figure(figsize = (6,6))
+        mapcrs = ccrs.NorthPolarStereo()
+        #mapcrs = ccrs.Robinson()
+        ax = fig1.add_subplot(1,1,1, projection = mapcrs)
 
-    plot_MODIS_spatial(MODIS_data, ax, zoom)
+    plot_MODIS_spatial(MODIS_data, ax, zoom, circle_bound = circle_bound)
 
     #mesh = ax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\
     #    MODIS_data['data'],cmap = MODIS_data['colors'], shading='auto', \
@@ -1737,6 +1903,9 @@ def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False):
         #hash_data1, nohash_data1 = find_plume(filename) 
         hash0 = ax.pcolor(MODIS_data['lon'],MODIS_data['lat'],\
             hash_data1, hatch = '///', alpha=0., transform = datacrs)
+
+    if(swath and not zoom):
+        ax.set_extent([-180, 180, 65, 90], datacrs)
 
     ##!#cbar = plt.colorbar(mesh,orientation='horizontal',pad=0,\
     ##!#    aspect=50,shrink = 0.850)
@@ -2650,7 +2819,8 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
         plt.show()
 
 def plot_MODIS_spatial(MODIS_data, pax, zoom, vmin = None, vmax = None, \
-        pvar = 'data', ptitle = None, labelsize = 13, labelticksize = 11):
+        pvar = 'data', ptitle = None, labelsize = 13, labelticksize = 11, \
+        circle_bound = False):
 
     if(vmin is None):
         if('data_lim' in aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']].keys()):
@@ -2670,19 +2840,24 @@ def plot_MODIS_spatial(MODIS_data, pax, zoom, vmin = None, vmax = None, \
     #    MODIS_data['data'],cmap = MODIS_data['colors'], shading='auto', \
     #    transform = datacrs) 
 
-    # Plot channel 1
-    mesh1 = pax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\
-        MODIS_data[pvar],cmap = MODIS_data['colors'], shading='auto', \
-        vmin = vmin, \
-        vmax = vmax, transform = datacrs) 
-
-    #cbar1 = plt.colorbar(mesh1,ax=pax,orientation='vertical',\
-    #    pad=0.03, fraction = 0.046)
-    cbar1 = plt.colorbar(mesh1, ax = pax, pad = 0.03, fraction = 0.052, \
-        extend = 'both')
-        #shrink = 0.870, pad=0.03,label=MODIS_data['variable'])
-    cbar1.set_label(MODIS_data['variable'], size = labelsize, weight = 'bold')
-    cbar1.ax.tick_params(labelsize = labelticksize)
+    if(str(MODIS_data['channel']) == 'true_color'):
+        pax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\
+            MODIS_data['data'][:,:,0],color= MODIS_data['colortuple'], \
+            shading='auto', transform = ccrs.PlateCarree()) 
+    else:
+        # Plot channel 1
+        mesh1 = pax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\
+            MODIS_data[pvar],cmap = MODIS_data['colors'], shading='auto', \
+            vmin = vmin, \
+            vmax = vmax, transform = datacrs) 
+    
+        #cbar1 = plt.colorbar(mesh1,ax=pax,orientation='vertical',\
+        #    pad=0.03, fraction = 0.046)
+        cbar1 = plt.colorbar(mesh1, ax = pax, pad = 0.03, fraction = 0.052, \
+            extend = 'both')
+            #shrink = 0.870, pad=0.03,label=MODIS_data['variable'])
+        cbar1.set_label(MODIS_data['variable'], size = labelsize, weight = 'bold')
+        cbar1.ax.tick_params(labelsize = labelticksize)
 
     pax.add_feature(cfeature.BORDERS)
     pax.add_feature(cfeature.STATES)
@@ -2693,9 +2868,15 @@ def plot_MODIS_spatial(MODIS_data, pax, zoom, vmin = None, vmax = None, \
                         aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0], \
                         aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1]],\
                         datacrs)
+    else:
+        if(circle_bound):
+            pax.set_boundary(circle, transform=pax.transAxes)
     if(ptitle == None):
-        pax.set_title('Channel ' + str(MODIS_data['channel']) + '\n' + \
-            channel_dict[str(MODIS_data['channel'])]['Bandwidth_label']) 
+        if(str(MODIS_data['channel']) == 'true_color'):
+            pax.set_title('True color') 
+        else:
+            pax.set_title('Channel ' + str(MODIS_data['channel']) + '\n' + \
+                channel_dict[str(MODIS_data['channel'])]['Bandwidth_label']) 
     else:
         pax.set_title(ptitle)
 

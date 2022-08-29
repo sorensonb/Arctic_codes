@@ -15,6 +15,14 @@ channel1 = 1
 channel2 = 5
 channel3 = 31
 
+date_str = '201807052125'
+plot_MODIS_satpy(date_str, '7', ax = None, var = None, crs = None, \
+    lons = None, lats = None, lat_lims = None, lon_lims = None, \
+    vmin = None, vmax = None, ptitle = None, plabel = None, \
+    labelsize = 10, colorbar = True, swath = True, zoom=False,save=False)
+
+sys.exit()
+
 #plot_MODIS_asos_sites(date_str, sites = None, save = False)
 #plot_combined_figure1_v6(save = False)
 plot_ceres_scatter(date_str, zoom=True,save=True,composite=True,\

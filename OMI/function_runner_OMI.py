@@ -34,8 +34,39 @@ import sys
 
 #plot_combined_fort_out('20170818', min_lat = 80., vtype = 'areas', save = False)
 
-#plot_Arctic_row_coverage_compare(date_str = '20180726', save = False)
+
+#date_str = '201807050048'
+#date_str = '201807050227'
+#date_str = '201807050406'
+#date_str = '201807050545'
+#date_str = '201807050723'
+#date_str = '201807050902'
+#date_str = '201807051041'
+#date_str = '201807051220'
+#date_str = '201807051359'
+#date_str = '201807051538'
+#date_str = '201807051717'
+#date_str = '201807051856'
+date_str = '201807052034'
+#date_str = '201807052213'
+#date_str = '201807052352'
+
+#OMI_data = readOMI_swath_hdf(date_str, 'control', only_sea_ice = False, \
+#    only_ice = False, no_ice = False, latmin = 65, skiprows = [52])
+
+#sys.exit()
+
+plotOMI_single_swath_figure(date_str, dtype = 'shawn',  \
+        only_sea_ice = False, minlat = 65., skiprows = None, \
+        lat_circles = None, save = False, zoom = True)
+
 sys.exit()
+
+plotOMI_daily_control_shawn('20170818', resolution = 1.0,
+    shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
+sys.exit()
+
+plot_Arctic_row_coverage_compare(date_str = '20180726', save = False)
 
 minlat = 65.
 OMI_VBS0   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VBS0_2005_2020.nc', minlat = minlat)
@@ -123,12 +154,6 @@ date_str = ['200509270134',\
             '200509272259']
 
 ###
-date_str = '200609250756'
-plotOMI_single_swath_figure(date_str, dtype = 'control',  \
-        only_sea_ice = False, minlat = 65., skiprows = None, \
-        lat_circles = None, save = False)
-
-sys.exit()
 ###    
 ###plotOMI_single_ground(date_str, only_sea_ice = False, minlat = 65., \
 ###    zoom = True, multi_panel = False, save = True)

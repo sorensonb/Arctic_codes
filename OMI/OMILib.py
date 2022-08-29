@@ -54,9 +54,13 @@ import pandas as pd
 from scipy.signal import argrelextrema, find_peaks
 from glob import glob
 import os
+import importlib
 
 sys.path.append('/home/bsorenson')
 from python_lib import circle, plot_subplot_label, plot_lat_circles
+from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
+    nearest_gridpoint, aerosol_event_dict, init_proj, \
+    convert_radiance_to_temp, format_coord, circle
 
 # Bits 
 #  0 - Missing
@@ -575,12 +579,19 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
     GPQF   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags'][:,:]
     PXQF   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/PixelQualityFlags'][:,:]
     AZM    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/RelativeAzimuthAngle'][:,:]
+    TIME   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Time'][:]
     GPQF_decode = np.array([[get_gpqf_flags(val) for val in GPQFrow] \
         for GPQFrow in GPQF])
     XTRK_decode = np.array([[get_xtrack_flags(val) for val in XTRKrow] \
         for XTRKrow in XTRACK])
     PXQF_decode = np.array([[[get_pxqf_flags(val) for val in PXQFline] \
         for PXQFline in PXQFrow] for PXQFrow in PXQF])
+
+    # Process the time
+    # ----------------
+    base_date_str = '199301010000'
+    base_date = datetime.strptime(base_date_str, '%Y%m%d%H%M')
+    TIME = np.array([base_date + timedelta(seconds = time) for time in TIME])
 
     # If the user wants certain lines to not be included, set the AI values
     # to -9e5 to ensure they are removed
@@ -624,6 +635,8 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
     OMI_swath['GPQF']   = GPQF_decode
     OMI_swath['PXQF']   = PXQF_decode
     OMI_swath['XTRACK'] = XTRK_decode
+    OMI_swath['TIME']   = np.repeat(TIME, 60).reshape(TIME.shape[0], 60)
+    OMI_swath['base_date'] = base_date_str
 
     if(dtype == 'JZ'):
 
@@ -641,6 +654,11 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
 def readOMI_swath_shawn(plot_time, latmin = 65., \
         shawn_path = '/home/bsorenson/data/OMI/shawn_files/'):
 
+    # Convert the year, month, and day of the base date to
+    # datetime
+    # ----------------------------------------------------
+    base_date = datetime.strptime(plot_time[:8], '%Y%m%d')
+
     # Read in the OMI data for this file, for matching purposes
     # ---------------------------------------------------------
     OMI_data = readOMI_swath_hdf(plot_time, 'control', latmin = latmin)
@@ -657,6 +675,7 @@ def readOMI_swath_shawn(plot_time, latmin = 65., \
     s_airaw  = pd.to_numeric(df_shawn[2], errors = 'coerce').values
     s_aiclim = pd.to_numeric(df_shawn[3], errors = 'coerce').values
     s_aipert = pd.to_numeric(df_shawn[4], errors = 'coerce').values
+    #s_time   = pd.to_numeric(df_shawn[5], errors = 'coerce').values * 86400.
     s_sza    = pd.to_numeric(df_shawn[6], errors = 'coerce').values
     s_vza    = pd.to_numeric(df_shawn[7], errors = 'coerce').values
     s_raz    = pd.to_numeric(df_shawn[8], errors = 'coerce').values
@@ -677,6 +696,7 @@ def readOMI_swath_shawn(plot_time, latmin = 65., \
     sfile_AIraw  = np.full(OMI_data['LAT'].shape, np.nan)
     sfile_AIclim = np.full(OMI_data['LAT'].shape, np.nan)
     sfile_AIpert = np.full(OMI_data['LAT'].shape, np.nan)
+    #sfile_TIME   = np.full(OMI_data['LAT'].shape, np.nan)
     sfile_SZA    = np.full(OMI_data['LAT'].shape, np.nan)
     sfile_VZA    = np.full(OMI_data['LAT'].shape, np.nan)
     sfile_RAZ    = np.full(OMI_data['LAT'].shape, np.nan)
@@ -693,22 +713,36 @@ def readOMI_swath_shawn(plot_time, latmin = 65., \
         sfile_AIraw[match_loc] = sair
         sfile_AIclim[match_loc] = saic
         sfile_AIpert[match_loc] = saip
+        #print(base_date + timedelta(seconds = stime + 10), OMI_data['TIME'][match_loc])
+
+        #sfile_TIME[match_loc]   = base_date + timedelta(stime)
         sfile_SZA[match_loc]    = ssza
         sfile_VZA[match_loc]    = svza
         sfile_RAZ[match_loc]    = sraz
+
+    ## Convert the seconds per day to absolute time
+    ## --------------------------------------------
+    #sfile_TIME[~np.isnan(sfile_TIME)] = np.array([base_date + timedelta(seconds = stime2) \
+    #    for stime2 in sfile_TIME[~np.isnan(sfile_TIME)]])
+
+    #sfile_TIME = np.array([[base_date + timedelta(seconds = stime2) \
+    #    for stime2 in stime1] for stime1 in sfile_TIME])
 
     OMI_swath = {}
     OMI_swath['date'] = plot_time
     OMI_swath['dtype'] = 'shawn'
     OMI_swath['LAT'] = OMI_data['LAT']
     OMI_swath['LON'] = OMI_data['LON']
+    #OMI_swath['TIME'] = sfile_TIME
+    #OMI_swath['TIME'] = abs_time
+    OMI_swath['TIME'] = OMI_data['TIME']
     OMI_swath['UVAI_raw']   = np.ma.masked_invalid(sfile_AIraw)
     OMI_swath['UVAI_climo'] = np.ma.masked_invalid(sfile_AIclim)
     OMI_swath['UVAI_pert']  = np.ma.masked_invalid(sfile_AIpert)
     OMI_swath['SZA'] = np.ma.masked_invalid(sfile_SZA)
     OMI_swath['VZA'] = np.ma.masked_invalid(sfile_VZA)
     OMI_swath['RAZ'] = np.ma.masked_invalid(sfile_RAZ)
-
+   
     # Mask the data south of the desired latmin
     # -----------------------------------------
     OMI_swath['UVAI_raw']   = np.ma.masked_where(OMI_data['LAT'] < latmin, sfile_AIraw)
@@ -4663,7 +4697,8 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
 # --------------------------------------------
 def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
         only_sea_ice = False, minlat = 65., skiprows = None, \
-        lat_circles = None, save = False, \
+        lat_circles = None, save = False, zoom = False, \
+        circle_bound = True,\
         shawn_path = '/home/bsorenson/data/OMI/shawn_files/'):
 
 
@@ -4678,7 +4713,7 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
             only_sea_ice = only_sea_ice, latmin = minlat, \
             skiprows = skiprows)
 
-    print(OMI_base['UVAI'][1300,:])
+    #print(OMI_base['UVAI'][1300,:])
 
     # ----------------------------------------------------
     # Set up the overall figure
@@ -4693,14 +4728,25 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
     # Use the single-swath plotting function to plot each
     # of the 3 data types
     # ----------------------------------------------------
+    if(zoom):
+        circle_bound = False
     plotOMI_single_swath(ax0, OMI_base, title = dtype.title(), \
     #plotOMI_single_swath(ax0, OMI_base, title = 'No row 53', \
         #circle_bound = False, gridlines = False)
-        circle_bound = True, gridlines = False)
+        circle_bound = circle_bound, gridlines = False)
 
     #ax0.set_extent([-180., , -40., 0.], datacrs)
-    ax0.set_extent([-180,180,minlat,90], datacrs)
     #ax0.set_extent([-180,180,-90,90], datacrs)
+    if(zoom):
+        ax0.set_extent([-90., -20., 75., 87.], datacrs)
+        dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+        ax0.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]['Lon'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]['Lon'][1], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]['Lat'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]['Lat'][1]],\
+                        datacrs)
+    else:
+        ax0.set_extent([-180,180,minlat,90], datacrs)
 
     plt.suptitle(date_str)
 
@@ -4722,7 +4768,7 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
                 row_adder = row_adder + 'r' + str(row + 1)
             
         outname = 'omi_single_swath_figure_' + date_str + '_' + \
-            dtype + row_adder + '_latlines.png'
+            dtype + row_adder + '.png'
         fig1.savefig(outname, dpi=300)
         print("Saved image",outname)
     else:
@@ -5121,7 +5167,14 @@ def plotOMI_daily(date_str, dtype = 'control',  \
 def plotOMI_daily_control_shawn(date_str, only_sea_ice = False, minlat = 65.,\
         lat_circles = None, ax = None, save = False, resolution = 0.25, \
         row_max = 60, row_min = 0, circle_bound = True, colorbar = True, \
-        shawn_path = '/home/bsorenson/data/OMI/shawn_files/'):
+        shawn_path = '/home/bsorenson/data/OMI/shawn_files/', \
+        save_dir = '/home/bsorenson/Research/OMI/OMI_CERES_compares/'):
+
+    if('/home/bsorenson/Research/CERES' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/CERES')
+    import gridCERESLib
+    importlib.reload(gridCERESLib) 
+    from gridCERESLib import plotCERES_daily_figure
 
     ##!## ----------------------------------------------------
     ##!## Read in the shawn and control data
@@ -5136,9 +5189,10 @@ def plotOMI_daily_control_shawn(date_str, only_sea_ice = False, minlat = 65.,\
     # Set up the overall figure
     # ----------------------------------------------------
     plt.close('all')
-    fig1 = plt.figure(figsize = (10,5))
-    ax0 = fig1.add_subplot(1,2,1, projection = mapcrs)
-    ax1 = fig1.add_subplot(1,2,2, projection = mapcrs)
+    fig1 = plt.figure(figsize = (12,4))
+    ax0 = fig1.add_subplot(1,3,1, projection = mapcrs)
+    ax1 = fig1.add_subplot(1,3,2, projection = mapcrs)
+    ax2 = fig1.add_subplot(1,3,3, projection = mapcrs)
 
     plotOMI_daily(date_str, dtype = 'control',  \
         only_sea_ice = False, minlat = minlat, skiprows = None, \
@@ -5152,13 +5206,21 @@ def plotOMI_daily_control_shawn(date_str, only_sea_ice = False, minlat = 65.,\
         row_max = 60, row_min = row_min, circle_bound = True, colorbar = True, \
         shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
 
+    plotCERES_daily_figure(date_str, param = 'SWF',  \
+        only_sea_ice = False, minlat = minlat, \
+        lat_circles = None, ax = ax2, save = False, resolution = resolution, \
+        circle_bound = circle_bound, colorbar = True)
+
     plot_subplot_label(ax0, '(a)')
     plot_subplot_label(ax1, '(b)')
+    plot_subplot_label(ax2, '(c)')
 
     fig1.tight_layout()
 
     if(save):
-        print("SAVING IMAGE")
+        outname = save_dir + 'omi_ceres_daily_compare_' + date_str + '.png'
+        fig1.savefig(outname, dpi = 300)
+        print("Saved image", outname)
     else:
         plt.show()
 
@@ -5186,11 +5248,11 @@ def plot_Arctic_row_coverage_compare(date_str = '20180726', minlat = 65., \
     plt.close('all')
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    ax.plot(OMI_data['lat'], (np.count_nonzero(OMI_data['AI_count'], \
+    ax.plot(OMI_data['LAT'], (np.count_nonzero(OMI_data['AI_count'], \
         axis = 0) / OMI_data['AI_count'][:,0].size) * 100., \
         label = 'Rows 1 - 22, 56 - 60')
    
-    ax.plot(OMI_data2['lat'], (np.count_nonzero(OMI_data2['AI_count'], \
+    ax.plot(OMI_data2['LAT'], (np.count_nonzero(OMI_data2['AI_count'], \
         axis = 0) / OMI_data2['AI_count'][:,0].size) * 100., \
         label = 'Rows 56 - 60') 
 
@@ -6042,6 +6104,9 @@ def plot_OMI_CERES_trend_compare_summer(minlat=72,\
     
     fig1.tight_layout()
     plt.show()
+
+# Compare the OMI, CERES, and MODIS data over the Arctic
+# ------------------------------------------------------
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
