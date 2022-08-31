@@ -1,0 +1,78 @@
+# Comment line
+
+EXEC = omi_comp_exec 
+COMP = h5fc
+#COMP = gfortran
+LIB_PATH = ./
+#LIB_PATH = ../JZ_lib/
+#FORT_LIB_PATH = ../../fort_lib/
+OBJECTS = comp_vars.o \
+			read_comp_MODIS_LAT.o \
+			read_comp_MODIS_LON.o \
+			read_comp_NSIDC_LAT.o \
+			read_comp_NSIDC_LON.o \
+			read_comp_CERES_LAT.o \
+			read_comp_CERES_LON.o \
+			read_comp_OMI_LAT.o \
+			read_comp_OMI_LON.o \
+			omi_colocate.o
+
+FFLAGS = -g -O2 -Wall -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
+LDFLAGS = -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
+
+$(EXEC): $(OBJECTS)
+	$(COMP) $(LDFLAGS) $(OBJECTS) -o $(EXEC)
+
+comp_vars.o: $(LIB_PATH)comp_vars.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)comp_vars.f90
+
+#check_bad_rows.o: $(LIB_PATH)check_bad_rows.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)check_bad_rows.f90
+#
+#grid_raw_data_climo.o: grid_raw_data_climo.f90
+#	$(COMP) $(FFLAGS) -c grid_raw_data_climo.f90
+#
+#read_h5_AI.o: $(LIB_PATH)read_h5_AI.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_AI.f90
+#
+#read_h5_AZM.o: $(LIB_PATH)read_h5_AZM.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_AZM.f90
+#
+#read_h5_GPQF.o: $(LIB_PATH)read_h5_GPQF.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_GPQF.f90
+#
+read_comp_OMI_LAT.o: $(LIB_PATH)read_comp_OMI_LAT.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_LAT.f90
+
+read_comp_OMI_LON.o: $(LIB_PATH)read_comp_OMI_LON.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_LON.f90
+
+read_comp_MODIS_LAT.o: $(LIB_PATH)read_comp_MODIS_LAT.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_MODIS_LAT.f90
+
+read_comp_MODIS_LON.o: $(LIB_PATH)read_comp_MODIS_LON.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_MODIS_LON.f90
+
+read_comp_NSIDC_LAT.o: $(LIB_PATH)read_comp_NSIDC_LAT.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_NSIDC_LAT.f90
+
+read_comp_NSIDC_LON.o: $(LIB_PATH)read_comp_NSIDC_LON.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_NSIDC_LON.f90
+
+read_comp_CERES_LAT.o: $(LIB_PATH)read_comp_CERES_LAT.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_CERES_LAT.f90
+
+read_comp_CERES_LON.o: $(LIB_PATH)read_comp_CERES_LON.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_CERES_LON.f90
+#
+#read_h5_XTRACK.o: $(LIB_PATH)read_h5_XTRACK.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_XTRACK.f90
+
+#print_climo.o: $(FORT_LIB_PATH)print_climo.f90
+#	$(COMP) $(FFLAGS) -c $(FORT_LIB_PATH)print_climo.f90
+
+omi_colocate.o: omi_colocate.f90 $(LIB_PATH)comp_vars.f90
+	$(COMP) $(FFLAGS) -c omi_colocate.f90
+
+clean:
+	rm $(EXEC) $(OBJECTS) *.mod

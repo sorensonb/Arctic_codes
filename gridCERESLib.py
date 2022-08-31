@@ -47,6 +47,7 @@ from scipy.stats import pearsonr,spearmanr
 from sklearn.linear_model import HuberRegressor
 from sklearn.preprocessing import StandardScaler
 from scipy.signal import argrelextrema, find_peaks
+import h5py
 # The commands module was discontinued for Python 3, so if the user
 # is using python 2, import commands instead
 
@@ -632,6 +633,32 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     ##!#ax0.coastlines(resolution = '50m')
     ##!#ax0.set_extent([-180,180,65,90], datacrs)
     ##!#plt.show()
+
+# Writes a MODIS channel dictionary to HDF5 for Fortran colocation
+# ----------------------------------------------------------------
+def write_CERES_hrly_grid_to_HDF5(CERES_grid_hrly, save_path = './'):
+
+    # Convert the filename object to datetime
+    # ---------------------------------------
+    file_date = CERES_grid_hrly['date']
+    dt_date_str = datetime.strptime(file_date, '%Y%m%d%H')
+
+    # Create a new netCDF dataset to write to the file
+    # ------------------------------------------------
+    outfile = save_path + 'ceres_subset_' + file_date + '.hdf5'
+    dset = h5py.File(outfile,'w')
+ 
+    dset.create_dataset('latitude',  data = CERES_grid_hrly['lat'][:,:])
+    dset.create_dataset('longitude', data = CERES_grid_hrly['lon'][:,:])
+    dset.create_dataset('swf',       data = CERES_grid_hrly['swf'][:,:])
+    dset.create_dataset('lwf',       data = CERES_grid_hrly['lwf'][:,:])
+    dset.create_dataset('time',      data = CERES_grid_hrly['time'][:,:])
+
+    # Save, write, and close the HDF5 file
+    # --------------------------------------
+    dset.close()
+
+    print("Saved file ",outfile)  
 
 # Data period is of format YYYYMMDDHH
 def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,\
@@ -1609,10 +1636,10 @@ def plotCERES_daily_figure(date_str, param = 'SWF',  \
 # NOTE: modified to work with readgridCERES_hrly_grid
 # ---------------------------------------------------
 def plotCERES_hrly_figure(date_str, param,  \
-        only_sea_ice = False, minlat = 65., skiprows = None, \
+        only_sea_ice = False, minlat = 65., title = None, \
         lat_circles = None, grid_data = True, zoom = False, \
         vmin = None, vmax = None, circle_bound = True, \
-        save = False):
+        ax = None, save = False):
 
     dt_date_str = datetime.strptime(date_str, "%Y%m%d%H%M")
     
@@ -1634,12 +1661,15 @@ def plotCERES_hrly_figure(date_str, param,  \
     # ----------------------------------------------------
     # Set up the overall figure
     # ----------------------------------------------------
-    plt.close('all')
-    fig1 = plt.figure(figsize = (6,6))
-    mapcrs = ccrs.NorthPolarStereo()
-    #mapcrs = init_proj(date_str)
-    #mapcrs = ccrs.LambertConformal(central_longitude = -100.)
-    ax0 = fig1.add_subplot(1,1,1, projection = mapcrs)
+    in_ax = True 
+    if(ax is None): 
+        in_ax = False
+        plt.close('all')
+        fig1 = plt.figure(figsize = (6,6))
+        mapcrs = ccrs.NorthPolarStereo()
+        #mapcrs = init_proj(date_str)
+        #mapcrs = ccrs.LambertConformal(central_longitude = -100.)
+        ax = fig1.add_subplot(1,1,1, projection = mapcrs)
 
     # ----------------------------------------------------
     # Use the single-swath plotting function to plot each
@@ -1647,12 +1677,12 @@ def plotCERES_hrly_figure(date_str, param,  \
     # ----------------------------------------------------
     if(zoom):
         circle_bound = False
-    plotCERES_hrly(ax0, CERES_data_hrly, param, minlat = minlat, \
-        vmin = vmin, vmax = vmax, title = '', label = '', \
+    plotCERES_hrly(ax, CERES_data_hrly, param, minlat = minlat, \
+        vmin = vmin, vmax = vmax, title = title, label = 'Wm$^{-2}$', \
         circle_bound = circle_bound, gridlines = False, grid_data = grid_data)
 
     if(zoom):
-        ax0.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]['Lon'][0], \
+        ax.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]['Lon'][0], \
                         aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]['Lon'][1], \
                         aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]['Lat'][0], \
                         aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]['Lat'][1]],\
@@ -1663,27 +1693,27 @@ def plotCERES_hrly_figure(date_str, param,  \
 ##!#                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
 ##!#                        datacrs)
     else:
-        ax0.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
+        ax.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
 
-    plt.suptitle(date_str)
+    #ax.set_title(date_str)
 
     # ----------------------------------------------------
     # If the user wants circles along latitude lines,    
     # plot them here      
     # ----------------------------------------------------
     if(lat_circles is not None):
-        plot_lat_circles(ax0, lat_circles) 
+        plot_lat_circles(ax, lat_circles) 
 
-
-    fig1.tight_layout()
-    
-    if(save == True):
-        out_name = 'ceres_single_pass_' + CERES_data_hrly['param'].lower() + \
-            '_' + CERES_data_hrly['date'] + '.png'
-        plt.savefig(out_name,dpi=300)
-        print('Saved image '+out_name)
-    else:
-        plt.show()
+    if(not in_ax):
+        fig1.tight_layout()
+        
+        if(save == True):
+            out_name = 'ceres_single_pass_' + CERES_data_hrly['param'].lower() + \
+                '_' + CERES_data_hrly['date'] + '.png'
+            plt.savefig(out_name,dpi=300)
+            print('Saved image '+out_name)
+        else:
+            plt.show()
 
 
 # This function automatically regenerates all known figures 

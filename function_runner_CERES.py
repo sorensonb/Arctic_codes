@@ -178,8 +178,14 @@ ceres_date_str = ['2017081701', \
 date_idx = 39 # very very good, JZ
 #date_idx = 40 # 
 
+
 date_str = '2018070521'
 param = 'SWF'
+CERES_data_hrly = readgridCERES_hrly_grid(date_str, param, \
+    satellite = 'Aqua', minlat = minlat)
+
+sys.exit()
+
 plotCERES_hrly_figure(date_str, param,  \
     only_sea_ice = False, minlat = 65., skiprows = None, \
     lat_circles = None, grid_data = True, zoom = True, \

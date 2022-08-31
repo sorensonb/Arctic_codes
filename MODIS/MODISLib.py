@@ -1728,7 +1728,6 @@ def read_MODIS_granule(filename, channel, zoom = False):
             data_offset   = modis.select(channel_dict[str(channel)]['Name']\
                 ).attributes().get('reflectance_offsets')[channel_dict[str(channel)]['Index']]
 
-            print('HERE:', data.shape)
             # Extract the fill value and make sure any missing values are
             # removed.
             # -----------------------------------------------------------
@@ -1838,6 +1837,7 @@ def read_MODIS_channel(date_str, channel, zoom = False, swath = False):
     MODIS_final['channel'] = MODIS_holder['0']['channel']
     MODIS_final['colors'] = MODIS_holder['0']['colors']
     MODIS_final['file_time'] = MODIS_holder['0']['file_time']
+    MODIS_final['date'] = date_str
     
     print(MODIS_final['data'].shape, MODIS_final['lat'].shape, MODIS_final['lon'].shape)
 
@@ -1858,8 +1858,34 @@ def read_MODIS_channel(date_str, channel, zoom = False, swath = False):
 
     return MODIS_final
 
+# Writes a MODIS channel dictionary to HDF5 for Fortran colocation
+# ----------------------------------------------------------------
+def write_MODIS_to_HDF5(MODIS_data, save_path = './'):
+
+    # Convert the filename object to datetime
+    # ---------------------------------------
+    file_date = MODIS_data['date']
+    dt_date_str = datetime.strptime(file_date, '%Y%m%d%H%M')
+
+    # Create a new netCDF dataset to write to the file
+    # ------------------------------------------------
+    outfile = save_path + 'modis_ch' + str(MODIS_data['channel']) + \
+        '_subset_'+ file_date + '.hdf5'
+    dset = h5py.File(outfile,'w')
+ 
+    dset.create_dataset('latitude',  data = MODIS_data['lat'][:,:])
+    dset.create_dataset('longitude', data = MODIS_data['lon'][:,:])
+    dset.create_dataset('data', data = MODIS_data['data'][:,:])
+
+    # Save, write, and close the HDF5 file
+    # --------------------------------------
+    dset.close()
+
+    print("Saved file ",outfile)  
+
 def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False, \
-        ax = None, swath = False, circle_bound = True):
+        ax = None, swath = False, vmin = None, vmax = None, \
+        circle_bound = True):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
     filename = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
@@ -1890,7 +1916,8 @@ def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False, \
         #mapcrs = ccrs.Robinson()
         ax = fig1.add_subplot(1,1,1, projection = mapcrs)
 
-    plot_MODIS_spatial(MODIS_data, ax, zoom, circle_bound = circle_bound)
+    plot_MODIS_spatial(MODIS_data, ax, zoom, circle_bound = circle_bound, \
+        vmin = vmin, vmax = vmax)
 
     #mesh = ax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\
     #    MODIS_data['data'],cmap = MODIS_data['colors'], shading='auto', \
@@ -1924,7 +1951,11 @@ def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False, \
     ##!#ax.set_title('Channel ' + str(channel) + '\n' + \
     ##!#    channel_dict[str(channel)]['Bandwidth_label']) 
 
-    plt.show()
+    if(not in_ax):
+        if(save):
+            print("SAVE HERE")
+        else:
+            plt.show()
 
 def read_OMI_match_MODIS(date_str, min_AI = -2e5, corners = False):
 
