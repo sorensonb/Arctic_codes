@@ -16,6 +16,7 @@ channel2 = 5
 channel3 = 31
 
 date_str = '201807052125'
+sys.exit()
 plot_MODIS_satpy(date_str, '7', ax = None, var = None, crs = None, \
     lons = None, lats = None, lat_lims = None, lon_lims = None, \
     vmin = None, vmax = None, ptitle = None, plabel = None, \

@@ -1,11 +1,11 @@
-subroutine read_comp_OMI_AI(file_id)
+subroutine read_comp_CERES_LWF(file_id)
 !
 ! NAME:
-!   read_comp_OMI_AI
+!   read_comp_AI
 !
 ! PURPOSE:
-!   Read UVAerosolIndex data from an HDF5 file pointed to by file_id 
-!   and store the data in OMI_AI_data (and the dimensions in OMI_AI_dims) from
+!   Read Latitude data from an HDF5 file pointed to by file_id 
+!   and store the data in AI_data (and the dimensions in AI_dims) from
 !   h5_vars.
 !  
 ! CALLS:
@@ -16,11 +16,11 @@ subroutine read_comp_OMI_AI(file_id)
 ! MODIFICATIONS:
 !   Blake Sorenson <blake.sorenson@und.edu>     - 2021/07/09:
 !     Written
-!
+
 !  ############################################################################
 
   use hdf5
-  use comp_vars, only : OMI_AI_dims, OMI_AI_data
+  use comp_vars, only : CERES_LWF_dims, CERES_LWF_data
 
   implicit none
   
@@ -37,9 +37,12 @@ subroutine read_comp_OMI_AI(file_id)
  
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-  ! Open AI dataset
-  ! ---------------
-  call h5dopen_f(file_id, 'uvai_pert', ds_id, error)
+  ! Open LWF dataset
+  ! ----------------
+  !call h5dopen_f(file_id, 'HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation'&
+  !      //' Fields/Latitude', ds_id, error)
+  call h5dopen_f(file_id, 'lwf', ds_id, error)
+  !call h5dopen_f(file_id, 'latitude', ds_id, error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not open dataset'
     return
@@ -53,7 +56,7 @@ subroutine read_comp_OMI_AI(file_id)
     return
   endif
 
-  ! Determine the number of dimensions in the dataset, allocate the OMI_AI_dims
+  ! Determine the number of dimensions in the dataset, allocate the LWF_dims
   ! array
   ! -------------------------------------------------------------------------
   call h5sget_simple_extent_ndims_f(dspace, ndims, error)
@@ -62,7 +65,7 @@ subroutine read_comp_OMI_AI(file_id)
     return
   endif
 
-  allocate(OMI_AI_dims(ndims),stat=error)
+  allocate(CERES_LWF_dims(ndims),stat=error)
   if ( error /= 0 ) then
      write(*,*) " *** Error allocating dims"
      return
@@ -77,20 +80,20 @@ subroutine read_comp_OMI_AI(file_id)
      return
   endif
 
-  ! Insert important dimensions into the OMI_AI_dims array
+  ! Insert important dimensions into the LWF_dims array
   do ii=1,ndims
-    OMI_AI_dims(ii) = datadims(ii)
+    CERES_LWF_dims(ii) = datadims(ii)
   enddo
   
   ! Read the dataset and transfer the result to an allocated working array
   ! ----------------------------------------------------------------------
-  allocate(OMI_AI_data(OMI_AI_dims(1), OMI_AI_dims(2)), stat=error)
+  allocate(CERES_LWF_data(CERES_LWF_dims(1), CERES_LWF_dims(2)), stat=error)
   if ( error < 0 ) then
      write(*,*) " *** Error allocating H5dataset"
      return
   endif
 
-  call h5dread_f(ds_id, H5T_NATIVE_DOUBLE, OMI_AI_data, dims, &
+  call h5dread_f(ds_id, H5T_NATIVE_DOUBLE, CERES_LWF_data, dims, &
                  error)
   if (error.lt.0) then
       write(*,*) " *** Error reading data"
@@ -104,4 +107,4 @@ subroutine read_comp_OMI_AI(file_id)
     return
   endif
 
-end subroutine read_comp_OMI_AI
+end subroutine read_comp_CERES_LWF

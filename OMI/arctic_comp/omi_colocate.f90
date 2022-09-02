@@ -31,7 +31,9 @@ program omi_colocate
 
   use hdf5
   use comp_vars, only : clear_arrays, i_bad_list, &
+    find_distance_between_points, allocate_out_arrays, &
     MODIS_CH2_data, MODIS_CH2_dims, &
+    MODIS_CH7_data, MODIS_CH7_dims, &
     MODIS_LAT_data, MODIS_LAT_dims, &
     MODIS_LON_data, MODIS_LON_dims, &
     NSIDC_data,     NSIDC_dims, &
@@ -43,7 +45,18 @@ program omi_colocate
     CERES_LON_data, CERES_LON_dims, &
     OMI_AI_data,    OMI_AI_dims, &
     OMI_LAT_data,   OMI_LAT_dims, &
-    OMI_LON_data,   OMI_LON_dims
+    OMI_LON_data,   OMI_LON_dims, &
+    MODIS_out_CH2_data, &
+    MODIS_out_CH7_data, &
+    MODIS_out_LAT_data, &
+    MODIS_out_LON_data, &
+    NSIDC_out_data,     &
+    NSIDC_out_LAT_data, &
+    NSIDC_out_LON_data, &
+    CERES_out_LWF_data, &
+    CERES_out_SWF_data, &
+    CERES_out_LAT_data, &
+    CERES_out_LON_data
 
   implicit none
 
@@ -59,10 +72,58 @@ program omi_colocate
   !!#!integer                :: work_day 
   integer                :: error         ! error flag
   integer                :: istatus
-  integer                :: modis_file_id       ! id for current HDF5 file
+  integer                :: num_nan
+  integer                :: modis1_file_id       ! id for current HDF5 file
+  integer                :: modis2_file_id       ! id for current HDF5 file
   integer                :: nsidc_file_id       ! id for current HDF5 file
   integer                :: ceres_file_id       ! id for current HDF5 file
   integer                :: omi_file_id         ! id for current HDF5 file
+  integer                :: out_file_id         ! id for current HDF5 file
+
+  integer                :: dspace_id_OLT  ! OMI LAT
+  integer                :: dspace_id_OLN  ! OMI LON
+  integer                :: dspace_id_OAI  ! OMI AI
+  integer                :: dspace_id_CLT  ! CERES LAT
+  integer                :: dspace_id_CLN  ! CERES LON
+  integer                :: dspace_id_CLW  ! CERES LWF
+  integer                :: dspace_id_CSW  ! CERES SWF
+  integer                :: dspace_id_MLT  ! MODIS LAT
+  integer                :: dspace_id_MLN  ! MODIS LON
+  integer                :: dspace_id_MC2  ! MODIS CH2
+  integer                :: dspace_id_MC7  ! MODIS CH7
+  integer                :: dspace_id_NLT  ! NSIDC LAT
+  integer                :: dspace_id_NLN  ! NSIDC LON
+  integer                :: dspace_id_NIC  ! NSIDC ICE
+
+  integer                :: dset_id_OLT  ! OMI LAT
+  integer                :: dset_id_OLN  ! OMI LON
+  integer                :: dset_id_OAI  ! OMI AI
+  integer                :: dset_id_CLT  ! CERES LAT
+  integer                :: dset_id_CLN  ! CERES LON
+  integer                :: dset_id_CLW  ! CERES LWF
+  integer                :: dset_id_CSW  ! CERES SWF
+  integer                :: dset_id_MLT  ! MODIS LAT
+  integer                :: dset_id_MLN  ! MODIS LON
+  integer                :: dset_id_MC2  ! MODIS CH2
+  integer                :: dset_id_MC7  ! MODIS CH7
+  integer                :: dset_id_NLT  ! NSIDC LAT
+  integer                :: dset_id_NLN  ! NSIDC LON
+  integer                :: dset_id_NIC  ! NSIDC ICE
+
+  integer                :: rank
+  integer(hsize_t), dimension(2)    :: dims
+  integer(hsize_t), dimension(2)    :: test_dims
+
+  integer, dimension(20,10)             :: test_data
+
+  real                   :: distance
+  real                   :: closest_dist
+  real                   :: min_dist
+  real                   :: match_lat
+  real                   :: match_lon
+  real                   :: match_data1
+  real                   :: match_data2
+ 
 
   !!#!real                   :: lat_thresh    ! latitude threshold. Only analyze
   !!#!                                        ! data north of this value.
@@ -89,29 +150,31 @@ program omi_colocate
   !!#!                                          ! of file_name_file
   !!#!character(len = 4)     :: c_work_year     ! holds the previous year
 
-  character(len = 255)      :: modis_name     ! filename
+  character(len = 255)      :: modis_name1    ! filename
+  character(len = 255)      :: modis_name2    ! filename
   character(len = 255)      :: nsidc_name     ! filename
   character(len = 255)      :: ceres_name     ! filename
   character(len = 255)      :: omi_name       ! filename
+  character(len = 255)      :: out_file_name  ! filename
 
   !!#!! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-  write(*,*) 'yayyy'
 
   ! Check command line arguments
   ! ----------------------------
   arg_count = command_argument_count()
-  if(arg_count /= 4) then
-    write(*,*) 'SYNTAX: ./omi_exec modis_name nsidc_name ceres_name omi_name'
+  if(arg_count /= 5) then
+    write(*,*) 'SYNTAX: ./omi_exec modis_name1 modis_name2 nsidc_name ' &
+        //'ceres_name omi_name'
     return
   endif
 
   ! Pull the output file name and input file list file from the command line
   ! ------------------------------------------------------------------------
-  call get_command_argument(1,modis_name)
-  call get_command_argument(2,nsidc_name)
-  call get_command_argument(3,ceres_name)
-  call get_command_argument(4,omi_name)
+  call get_command_argument(1,modis_name1)
+  call get_command_argument(2,modis_name2)
+  call get_command_argument(3,nsidc_name)
+  call get_command_argument(4,ceres_name)
+  call get_command_argument(5,omi_name)
 
   ! Initialize the HDF5 interface
   ! -----------------------------
@@ -122,78 +185,890 @@ program omi_colocate
   endif
   write(*,*) "Interface opened"
 
-  write(*,*) trim(modis_name), trim(nsidc_name)
-
-  ! Open the HDF5 file
-  ! ------------------
-  call h5fopen_f(trim(modis_name), H5F_ACC_RDWR_F, modis_file_id, error)
+  ! Open the MODIS Ch2 HDF5 file
+  ! ----------------------------
+  call h5fopen_f(trim(modis_name1), H5F_ACC_RDWR_F, modis1_file_id, error)
   if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open file'
+    write(*,*) 'FATAL ERROR: could not open MODIS CH2 file'
     return
   endif
 
-  ! Open the HDF5 file
-  ! ------------------
+  ! Open the MODIS Ch7 HDF5 file
+  ! ----------------------------
+  call h5fopen_f(trim(modis_name2), H5F_ACC_RDWR_F, modis2_file_id, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open MODIS CH7 file'
+    return
+  endif
+
+  ! Open the NSIDC file
+  ! -------------------
   call h5fopen_f(trim(nsidc_name), H5F_ACC_RDWR_F, nsidc_file_id, error)
   if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open file'
+    write(*,*) 'FATAL ERROR: could not open NSIDC file'
     return
   endif
 
-  ! Open the HDF5 file
-  ! ------------------
+  ! Open the CERES file
+  ! -------------------
   call h5fopen_f(trim(ceres_name), H5F_ACC_RDWR_F, ceres_file_id, error)
   if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open file'
+    write(*,*) 'FATAL ERROR: could not open CERES file'
     return
   endif
 
-  ! Open the HDF5 file
-  ! ------------------
+  ! Open the OMI file
+  ! -----------------
   call h5fopen_f(trim(omi_name), H5F_ACC_RDWR_F, omi_file_id, error)
   if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open file'
+    write(*,*) 'FATAL ERROR: could not open OMI file'
     return
   endif
 
-  call read_comp_MODIS_LAT(modis_file_id)
-  call read_comp_MODIS_LON(modis_file_id)
+  call read_comp_MODIS_CH2(modis1_file_id)
+  call read_comp_MODIS_CH7(modis2_file_id)
+  call read_comp_MODIS_LAT(modis2_file_id)
+  call read_comp_MODIS_LON(modis2_file_id)
+  call read_comp_NSIDC_ICE(nsidc_file_id)
   call read_comp_NSIDC_LAT(nsidc_file_id)
   call read_comp_NSIDC_LON(nsidc_file_id)
+  call read_comp_CERES_SWF(ceres_file_id)
+  call read_comp_CERES_LWF(ceres_file_id)
   call read_comp_CERES_LAT(ceres_file_id)
   call read_comp_CERES_LON(ceres_file_id)
+  call read_comp_OMI_AI(omi_file_id)
   call read_comp_OMI_LAT(omi_file_id)
   call read_comp_OMI_LON(omi_file_id)
+  
+  !!#!call h5fcreate_f('testoutfile.hdf5', H5F_ACC_TRUNC_F, out_file_id, error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not open output file'
+  !!#!  return
+  !!#!endif
 
-  write(*,*) MODIS_LAT_data(100,100), MODIS_LON_data(100,100)
+  !test_dims = (/10, 20/)
+  test_dims = (/OMI_AI_dims(1), OMI_AI_dims(2)/)
+  !test_dims = OMI_AI_dims
+
+  ! Allocate the output arrays
+  ! --------------------------
+  call allocate_out_arrays
+
+  !!#!write(*,*) MODIS_LAT_data(100,100), MODIS_LON_data(100,100)
+  !!#!write(*,*) CERES_LAT_data(100,100), CERES_LON_data(100,100)
+
+  !!#!distance = &
+  !!#!  find_distance_between_points(MODIS_LAT_data(100,100), &
+  !!#!                               MODIS_LON_data(100,100), &
+  !!#!                               CERES_LAT_data(100,100), &
+  !!#!                               CERES_LON_data(100,100))
+
+  !!#!write(*,*) distance
 
   istatus = 0
-  modis_loop1: do ii=1,MODIS_LAT_dims(2)
-    modis_loop2: do jj=1,MODIS_LAT_dims(1) 
-      ! Now, loop over the NSIDC data
-      ! -----------------------------
-      nsidc_loop1: do nii=1,NSIDC_LAT_dims(2)
-        nsidc_loop2: do njj=1,NSIDC_LAT_dims(1) 
+  num_nan = 0 
+  min_dist  = 50.
+  closest_dist = 999999.
+  match_lat  = -999.
+  match_lon  = -999.
+  match_data1 = -999.
+  match_data2 = -999.
 
-          !write(*,*) LAT_data(jj,ii), LON_data(jj,ii)
-          istatus = 3
-        enddo nsidc_loop2
-      enddo nsidc_loop1
+  omi_loop1: do ii=1,OMI_LAT_dims(2)
+    write(*,*) ii
+    omi_loop2: do jj=1,OMI_LAT_dims(1) 
 
-      ! Now, loop over the CERES data
-      ! -----------------------------
-      ceres_loop1: do nii=1,CERES_LAT_dims(2)
-        ceres_loop2: do njj=1,CERES_LAT_dims(1) 
+      ! Check if the current pixel is missing
+      ! -------------------------------------
+      if(isnan(OMI_AI_data(jj,ii))) then
+        !write(*,*) 'NAN VALUE'
+        NSIDC_out_LAT_data(jj,ii) = -999.
+        NSIDC_out_LON_data(jj,ii) = -999.
+        NSIDC_out_data(jj,ii)     = -999.
+        CERES_out_LAT_data(jj,ii) = -999.
+        CERES_out_LON_data(jj,ii) = -999.
+        CERES_out_LWF_data(jj,ii) = -999.
+        CERES_out_SWF_data(jj,ii) = -999.
+        MODIS_out_LAT_data(jj,ii) = -999.
+        MODIS_out_LON_data(jj,ii) = -999.
+        MODIS_out_CH2_data(jj,ii) = -999.
+        MODIS_out_CH7_data(jj,ii) = -999.
+        num_nan = num_nan + 1
+      else
 
-          !write(*,*) LAT_data(jj,ii), LON_data(jj,ii)
-          istatus = istatus + 1
-        enddo ceres_loop2
-      enddo ceres_loop1
+        ! Now, loop over the NSIDC data
+        ! -----------------------------
+        nsidc_loop1: do nii=1,NSIDC_LAT_dims(2)
+          nsidc_loop2: do njj=1,NSIDC_LAT_dims(1) 
 
-    enddo modis_loop2
-  enddo modis_loop1
-   
-  write(*,*) istatus
+            ! Calculate the distance between the current pixels
+            ! -------------------------------------------------
+            distance = find_distance_between_points(OMI_LAT_data(jj,ii), &
+                                                    OMI_LON_data(jj,ii), &
+                                                    NSIDC_LAT_data(njj,nii), &
+                                                    NSIDC_LON_data(njj,nii))
+
+            if(distance < closest_dist) then
+              closest_dist = distance
+              NSIDC_out_LAT_data(jj,ii) = NSIDC_LAT_data(njj, nii) 
+              NSIDC_out_LON_data(jj,ii) = NSIDC_LON_data(njj, nii) 
+              NSIDC_out_data(jj,ii)     = NSIDC_data(njj, nii) 
+            endif
+
+          enddo nsidc_loop2
+        enddo nsidc_loop1
+
+        ! Check the distance requirement for the NSIDC pixel
+        ! --------------------------------------------------
+        if(closest_dist > min_dist) then
+          NSIDC_out_LAT_data(jj,ii) = -999.
+          NSIDC_out_LON_data(jj,ii) = -999.
+          NSIDC_out_data(jj,ii)     = -999.
+        endif
+
+        closest_dist = 999999.
+
+        ! Now, loop over the CERES data
+        ! -----------------------------
+        ceres_loop1: do nii=1,CERES_LAT_dims(2)
+          ceres_loop2: do njj=1,CERES_LAT_dims(1) 
+
+            ! Calculate the distance between the current pixels
+            ! -------------------------------------------------
+            distance = find_distance_between_points(OMI_LAT_data(jj,ii), &
+                                                    OMI_LON_data(jj,ii), &
+                                                    CERES_LAT_data(njj,nii), &
+                                                    CERES_LON_data(njj,nii))
+
+            if(distance < closest_dist) then
+              closest_dist = distance
+              CERES_out_LAT_data(jj,ii) = CERES_LAT_data(njj, nii) 
+              CERES_out_LON_data(jj,ii) = CERES_LON_data(njj, nii) 
+              CERES_out_LWF_data(jj,ii) = CERES_SWF_data(njj, nii) 
+              CERES_out_SWF_data(jj,ii) = CERES_LWF_data(njj, nii) 
+            endif
+
+          enddo ceres_loop2
+        enddo ceres_loop1
+
+        ! Check the distance requirement for the CERES pixel
+        ! --------------------------------------------------
+        if(closest_dist > min_dist) then
+          CERES_out_LAT_data(jj,ii) = -999.
+          CERES_out_LON_data(jj,ii) = -999.
+          CERES_out_LWF_data(jj,ii) = -999.
+          CERES_out_SWF_data(jj,ii) = -999.
+        endif
+
+        closest_dist = 999999.
+
+        modis_loop1: do nii=1,MODIS_LAT_dims(2)
+          modis_loop2: do njj=1,MODIS_LAT_dims(1) 
+
+            ! Calculate the distance between the current pixels
+            ! -------------------------------------------------
+            distance = find_distance_between_points(OMI_LAT_data(jj,ii), &
+                                                    OMI_LON_data(jj,ii), &
+                                                    MODIS_LAT_data(njj,nii), &
+                                                    MODIS_LON_data(njj,nii))
+
+            if(distance < closest_dist) then
+              closest_dist = distance
+              MODIS_out_LAT_data(jj,ii) = MODIS_LAT_data(njj, nii) 
+              MODIS_out_LON_data(jj,ii) = MODIS_LON_data(njj, nii) 
+              MODIS_out_CH2_data(jj,ii) = MODIS_CH2_data(njj, nii) 
+              MODIS_out_CH7_data(jj,ii) = MODIS_CH7_data(njj, nii) 
+            endif
+
+          enddo modis_loop2
+        enddo modis_loop1
+
+        ! Check the distance requirement for the MODIS pixel
+        ! --------------------------------------------------
+        if(closest_dist > min_dist) then
+          MODIS_out_LAT_data(jj,ii) = -999.
+          MODIS_out_LON_data(jj,ii) = -999.
+          MODIS_out_CH2_data(jj,ii) = -999.
+          MODIS_out_CH7_data(jj,ii) = -999.
+        endif
+
+        closest_dist = 999999.
+
+      endif
+
+    enddo omi_loop2
+  enddo omi_loop1
+
+  write(*,*) istatus, num_nan
+  
+  ! Open the output file
+  ! --------------------
+  write(*,*) modis_name1(18:29)
+  out_file_name = 'colocated_subset_'//modis_name1(18:29)//'.hdf5'
+  write(*,*) trim(out_file_name)
+
+  call h5fcreate_f(trim(out_file_name), H5F_ACC_TRUNC_F, out_file_id, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open output file'
+    return
+  endif
+
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! Write OMI Latitude
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+  rank = 2
+
+  ! Create the dataspace
+  ! --------------------
+  call h5screate_simple_f(rank, test_dims, dspace_id_OLT, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataspace'
+    return
+  endif
+
+  ! Create the dataset
+  ! ------------------
+  call h5dcreate_f(out_file_id, 'omi_lat', H5T_NATIVE_DOUBLE, dspace_id_OLT,  &
+                   dset_id_OLT, error) 
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataset '//'omi_lat'
+    return
+  endif
+
+  ! Write to the dataset
+  ! --------------------
+  call h5dwrite_f(dset_id_OLT, H5T_NATIVE_DOUBLE, OMI_LAT_data, OMI_AI_dims, &
+                      error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  ! Close the dataset
+  ! -----------------
+  call h5dclose_f(dset_id_OLT, error)
+
+  ! Close access to data space rank
+  call h5sclose_f(dspace_id_OLT, error)
+
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not close dataset'
+    return
+  endif
+
+  write(*,*) 'Wrote OMI LAT'
+
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! Write OMI Longitude
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+  ! Create the dataspace
+  ! --------------------
+  call h5screate_simple_f(rank, test_dims, dspace_id_OLN, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataspace'
+    return
+  endif
+
+  ! Create the dataset
+  ! ------------------
+  call h5dcreate_f(out_file_id, 'omi_lon', H5T_NATIVE_DOUBLE, dspace_id_OLN,  &
+                   dset_id_OLN, error) 
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataset '//'omi_lon'
+    return
+  endif
+
+  ! Write to the dataset
+  ! --------------------
+  call h5dwrite_f(dset_id_OLN, H5T_NATIVE_DOUBLE, OMI_LON_data, OMI_AI_dims, &
+                      error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  ! Close the dataset
+  ! -----------------
+  call h5dclose_f(dset_id_OLN, error)
+
+  ! Close access to data space rank
+  call h5sclose_f(dspace_id_OLN, error)
+
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not close output file'
+    return
+  endif
+
+  write(*,*) 'Wrote OMI LON'
+  
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! Write OMI AI data
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+  ! Create the dataspace
+  ! --------------------
+  call h5screate_simple_f(rank, test_dims, dspace_id_OAI, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataspace'
+    return
+  endif
+
+  ! Create the dataset
+  ! ------------------
+  call h5dcreate_f(out_file_id, 'omi_uvai_pert', H5T_NATIVE_DOUBLE, &
+                   dspace_id_OAI,  dset_id_OAI, error) 
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataset '//'omi_uvai_pert'
+    return
+  endif
+
+  ! Write to the dataset
+  ! --------------------
+  call h5dwrite_f(dset_id_OAI, H5T_NATIVE_DOUBLE, OMI_AI_data, OMI_AI_dims, &
+                      error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  ! Close the dataset
+  ! -----------------
+  call h5dclose_f(dset_id_OAI, error)
+
+  ! Close access to data space rank
+  call h5sclose_f(dspace_id_OAI, error)
+
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  write(*,*) 'Wrote OMI AI'
+
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! Write CERES LAT data
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+  ! Create the dataspace
+  ! --------------------
+  call h5screate_simple_f(rank, test_dims, dspace_id_CLT, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataspace'
+    return
+  endif
+
+  ! Create the dataset
+  ! ------------------
+  call h5dcreate_f(out_file_id, 'ceres_lat', H5T_NATIVE_DOUBLE, &
+                   dspace_id_CLT,  dset_id_CLT, error) 
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataset '//'ceres_lat'
+    return
+  endif
+
+  ! Write to the dataset
+  ! --------------------
+  call h5dwrite_f(dset_id_CLT, H5T_NATIVE_DOUBLE, CERES_out_LAT_data, &
+                  OMI_AI_dims, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  ! Close the dataset
+  ! -----------------
+  call h5dclose_f(dset_id_CLT, error)
+
+  ! Close access to data space rank
+  call h5sclose_f(dspace_id_CLT, error)
+
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  write(*,*) 'Wrote CERES LAT'
+
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! Write CERES LON data
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+  ! Create the dataspace
+  ! --------------------
+  call h5screate_simple_f(rank, test_dims, dspace_id_CLN, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataspace'
+    return
+  endif
+
+  ! Create the dataset
+  ! ------------------
+  call h5dcreate_f(out_file_id, 'ceres_lon', H5T_NATIVE_DOUBLE, &
+                   dspace_id_CLN,  dset_id_CLN, error) 
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataset '//'ceres_lon'
+    return
+  endif
+
+  ! Write to the dataset
+  ! --------------------
+  call h5dwrite_f(dset_id_CLN, H5T_NATIVE_DOUBLE, CERES_out_LON_data, &
+                  OMI_AI_dims, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  ! Close the dataset
+  ! -----------------
+  call h5dclose_f(dset_id_CLN, error)
+
+  ! Close access to data space rank
+  call h5sclose_f(dspace_id_CLN, error)
+
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  write(*,*) 'Wrote CERES LON'
+
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! Write CERES LWF data
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+  ! Create the dataspace
+  ! --------------------
+  call h5screate_simple_f(rank, test_dims, dspace_id_CLW, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataspace'
+    return
+  endif
+
+  ! Create the dataset
+  ! ------------------
+  call h5dcreate_f(out_file_id, 'ceres_lwf', H5T_NATIVE_DOUBLE, &
+                   dspace_id_CLW,  dset_id_CLW, error) 
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataset '//'ceres_lwf'
+    return
+  endif
+
+  ! Write to the dataset
+  ! --------------------
+  call h5dwrite_f(dset_id_CLW, H5T_NATIVE_DOUBLE, CERES_out_LWF_data, &
+                  OMI_AI_dims, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  ! Close the dataset
+  ! -----------------
+  call h5dclose_f(dset_id_CLW, error)
+
+  ! Close access to data space rank
+  call h5sclose_f(dspace_id_CLW, error)
+
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  write(*,*) 'Wrote CERES LWF'
+
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! Write CERES SWF data
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+  ! Create the dataspace
+  ! --------------------
+  call h5screate_simple_f(rank, test_dims, dspace_id_CSW, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataspace'
+    return
+  endif
+
+  ! Create the dataset
+  ! ------------------
+  call h5dcreate_f(out_file_id, 'ceres_swf', H5T_NATIVE_DOUBLE, &
+                   dspace_id_CSW,  dset_id_CSW, error) 
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataset '//'ceres_swf'
+    return
+  endif
+
+  ! Write to the dataset
+  ! --------------------
+  call h5dwrite_f(dset_id_CSW, H5T_NATIVE_DOUBLE, CERES_out_SWF_data, &
+                  OMI_AI_dims, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  ! Close the dataset
+  ! -----------------
+  call h5dclose_f(dset_id_CSW, error)
+
+  ! Close access to data space rank
+  call h5sclose_f(dspace_id_CSW, error)
+
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  write(*,*) 'Wrote CERES SWF'
+
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! Write MODIS LAT data
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+  ! Create the dataspace
+  ! --------------------
+  call h5screate_simple_f(rank, test_dims, dspace_id_MLT, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataspace'
+    return
+  endif
+
+  ! Create the dataset
+  ! ------------------
+  call h5dcreate_f(out_file_id, 'modis_lat', H5T_NATIVE_DOUBLE, &
+                   dspace_id_MLT,  dset_id_MLT, error) 
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataset '//'modis_lat'
+    return
+  endif
+
+  ! Write to the dataset
+  ! --------------------
+  call h5dwrite_f(dset_id_MLT, H5T_NATIVE_DOUBLE, MODIS_out_LAT_data, &
+                  OMI_AI_dims, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  ! Close the dataset
+  ! -----------------
+  call h5dclose_f(dset_id_MLT, error)
+
+  ! Close access to data space rank
+  call h5sclose_f(dspace_id_MLT, error)
+
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  write(*,*) 'Wrote MODIS LAT'
+
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! Write MODIS LON data
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+  ! Create the dataspace
+  ! --------------------
+  call h5screate_simple_f(rank, test_dims, dspace_id_MLN, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataspace'
+    return
+  endif
+
+  ! Create the dataset
+  ! ------------------
+  call h5dcreate_f(out_file_id, 'modis_lon', H5T_NATIVE_DOUBLE, &
+                   dspace_id_MLN,  dset_id_MLN, error) 
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataset '//'modis_lon'
+    return
+  endif
+
+  ! Write to the dataset
+  ! --------------------
+  call h5dwrite_f(dset_id_MLN, H5T_NATIVE_DOUBLE, MODIS_out_LON_data, &
+                  OMI_AI_dims, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  ! Close the dataset
+  ! -----------------
+  call h5dclose_f(dset_id_MLN, error)
+
+  ! Close access to data space rank
+  call h5sclose_f(dspace_id_MLN, error)
+
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  write(*,*) 'Wrote MODIS LON'
+
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! Write MODIS CH2 data
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+  ! Create the dataspace
+  ! --------------------
+  call h5screate_simple_f(rank, test_dims, dspace_id_MC2, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataspace'
+    return
+  endif
+
+  ! Create the dataset
+  ! ------------------
+  call h5dcreate_f(out_file_id, 'modis_ch2', H5T_NATIVE_DOUBLE, &
+                   dspace_id_MC2,  dset_id_MC2, error) 
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataset '//'modis_ch2'
+    return
+  endif
+
+  ! Write to the dataset
+  ! --------------------
+  call h5dwrite_f(dset_id_MC2, H5T_NATIVE_DOUBLE, MODIS_out_CH2_data, &
+                  OMI_AI_dims, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  ! Close the dataset
+  ! -----------------
+  call h5dclose_f(dset_id_MC2, error)
+
+  ! Close access to data space rank
+  call h5sclose_f(dspace_id_MC2, error)
+
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  write(*,*) 'Wrote MODIS CH2'
+
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! Write MODIS CH7 data
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+  ! Create the dataspace
+  ! --------------------
+  call h5screate_simple_f(rank, test_dims, dspace_id_MC7, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataspace'
+    return
+  endif
+
+  ! Create the dataset
+  ! ------------------
+  call h5dcreate_f(out_file_id, 'modis_ch7', H5T_NATIVE_DOUBLE, &
+                   dspace_id_MC7,  dset_id_MC7, error) 
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataset '//'modis_ch7'
+    return
+  endif
+
+  ! Write to the dataset
+  ! --------------------
+  call h5dwrite_f(dset_id_MC7, H5T_NATIVE_DOUBLE, MODIS_out_CH7_data, &
+                  OMI_AI_dims, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  ! Close the dataset
+  ! -----------------
+  call h5dclose_f(dset_id_MC7, error)
+
+  ! Close access to data space rank
+  call h5sclose_f(dspace_id_MC7, error)
+
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  write(*,*) 'Wrote MODIS CH7'
+
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! Write NSIDC LAT data
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+  ! Create the dataspace
+  ! --------------------
+  call h5screate_simple_f(rank, test_dims, dspace_id_NLT, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataspace'
+    return
+  endif
+
+  ! Create the dataset
+  ! ------------------
+  call h5dcreate_f(out_file_id, 'nsidc_lat', H5T_NATIVE_DOUBLE, &
+                   dspace_id_NLT,  dset_id_NLT, error) 
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataset '//'nsidc_lat'
+    return
+  endif
+
+  ! Write to the dataset
+  ! --------------------
+  call h5dwrite_f(dset_id_NLT, H5T_NATIVE_DOUBLE, NSIDC_out_LAT_data, &
+                  OMI_AI_dims, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  ! Close the dataset
+  ! -----------------
+  call h5dclose_f(dset_id_NLT, error)
+
+  ! Close access to data space rank
+  call h5sclose_f(dspace_id_NLT, error)
+
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  write(*,*) 'Wrote NSIDC LAT'
+
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! Write NSIDC LON data
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+  ! Create the dataspace
+  ! --------------------
+  call h5screate_simple_f(rank, test_dims, dspace_id_NLN, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataspace'
+    return
+  endif
+
+  ! Create the dataset
+  ! ------------------
+  call h5dcreate_f(out_file_id, 'nsidc_lon', H5T_NATIVE_DOUBLE, &
+                   dspace_id_NLN,  dset_id_NLN, error) 
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataset '//'nsidc_lon'
+    return
+  endif
+
+  ! Write to the dataset
+  ! --------------------
+  call h5dwrite_f(dset_id_NLN, H5T_NATIVE_DOUBLE, NSIDC_out_LON_data, &
+                  OMI_AI_dims, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  ! Close the dataset
+  ! -----------------
+  call h5dclose_f(dset_id_NLN, error)
+
+  ! Close access to data space rank
+  call h5sclose_f(dspace_id_NLN, error)
+
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  write(*,*) 'Wrote NSIDC LON'
+
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! Write NSIDC NIC data
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+  ! Create the dataspace
+  ! --------------------
+  call h5screate_simple_f(rank, test_dims, dspace_id_NIC, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataspace'
+    return
+  endif
+
+  ! Create the dataset
+  ! ------------------
+  call h5dcreate_f(out_file_id, 'nsidc_ice', H5T_NATIVE_DOUBLE, &
+                   dspace_id_NIC,  dset_id_NIC, error) 
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataset '//'nsidc_ice'
+    return
+  endif
+
+  ! Write to the dataset
+  ! --------------------
+  call h5dwrite_f(dset_id_NIC, H5T_NATIVE_DOUBLE, NSIDC_out_data, &
+                  OMI_AI_dims, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  ! Close the dataset
+  ! -----------------
+  call h5dclose_f(dset_id_NIC, error)
+
+  ! Close access to data space rank
+  call h5sclose_f(dspace_id_NIC, error)
+
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  write(*,*) 'Wrote NSIDC ice'
+
+
+  ! Close output file
+  ! -----------------
+  call h5fclose_f(out_file_id, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not close output file'
+    return
+  endif
+
+  write(*,*) 'Saved output file'//trim(out_file_name)
  
   ! Deallocate all the arrays for the next pass
   ! -------------------------------------------
@@ -201,194 +1076,36 @@ program omi_colocate
 
   ! Close file
   ! ----------
-  call h5fclose_f(modis_file_id, error)
+  call h5fclose_f(modis1_file_id, error)
   if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not close file'
+    write(*,*) 'FATAL ERROR: could not close MODIS CH2 file'
+    return
+  endif
+
+  call h5fclose_f(modis2_file_id, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not close MODIS CH7 file'
     return
   endif
 
   call h5fclose_f(nsidc_file_id, error)
   if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not close file'
+    write(*,*) 'FATAL ERROR: could not close NSIDC file'
     return
   endif
 
   call h5fclose_f(ceres_file_id, error)
   if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not close file'
+    write(*,*) 'FATAL ERROR: could not close CERES file'
     return
   endif
 
   call h5fclose_f(omi_file_id, error)
   if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not close file'
+    write(*,*) 'FATAL ERROR: could not close OMI file'
     return
   endif
 
-  !!#!! Initialize the working month to -1
-  !!#!! ----------------------------------
-  !!#!work_month = -1
-
-  !!#!! Set up lat/lon grids
-  !!#!! --------------------
-  !!#!lat_thresh = 45.
-  !!#!lat_gridder = lat_thresh
-  !!#!i_size = (90. - lat_thresh)
-  !!#!allocate(lat_range(i_size))
-  !!#!do ii=1,i_size
-  !!#!  lat_range(ii) = lat_thresh + (ii-1)
-  !!#!enddo
-
-  !!#!allocate(lon_range(360))
-  !!#!do ii=1,360
-  !!#!  lon_range(ii) = -180.0 + (ii-1)
-  !!#!enddo
-
-  !!#!! Initialize grid arrays and set to -9 initially
-  !!#!! ----------------------------------------------
-
-  !!#!allocate(grids(360,i_size))
-  !!#!allocate(i_counts(360,i_size))
-
-  !!#!grids(:,:) = 0.
-  !!#!i_counts(:,:) = 0
-
-  !!#!! open debug file
-  !!#!! ---------------
-  !!#!open(errout, file = "omi_jz_error_climo.txt", iostat = istatus)
-  !!#!if(istatus /= 0) then
-  !!#!  write(*,*) "error opening error file."
-  !!#!endif
-
-  !!#!! open row anomaly file
-  !!#!! ---------------
-  !!#!open(io10, file = "/home/bsorenson/OMI/"&
-  !!#!  //"row_anomaly_dates_20050401_20201001.txt", iostat = istatus)
-  !!#!if(istatus /= 0) then
-  !!#!  write(*,*) "error opening row file."
-  !!#!endif
-
-  !!#!! open output file
-  !!#!! ---------------
-  !!#!open(io6, file = trim(out_file_name), iostat = istatus)
-  !!#!if(istatus /= 0) then
-  !!#!  write(errout,*) "ERROR: error opening climo output file."
-  !!#!endif
-  !!#!write(io6,'(a4,2x,3(a7))') 'Date','Lat Lon','Avg','#_obs'
-
-  !!#!! Initialize the work_day value to -1
-  !!#!! -----------------------------------
-  !!#!work_day = -1
-
-  !!#!! Open the file name file
-  !!#!! -----------------------
-  !!#!open(io8, file = trim(file_name_file), iostat = istatus)
-  !!#!if(istatus > 0) then
-  !!#!  write(errout,*) "ERROR: Problem reading "//trim(file_name_file)
-  !!#!  return 
-  !!#!else
-  !!#!  ! Loop over the file name file
-  !!#!  ! ----------------------------
-  !!#!  file_loop: do
-  !!#!    ! Read the current total_file_name from the file
-  !!#!    ! ----------------------------------------------
-  !!#!    read(io8, '(A)', iostat=istatus) total_file_name
-  !!#!    if(istatus < 0) then 
-  !!#!      write(*,*) "End of "//trim(file_name_file)//" found"
-  !!#!      ! Print the final month of data to the output file using
-  !!#!      ! print_climo
-  !!#!      ! --------------------------------------------------------
-  !!#!      call print_climo(io6,grids,i_counts,i_size,c_work_year,&
-  !!#!                       work_month,lat_range,lon_range)
-  !!#!      exit
-  !!#!    else if(istatus > 0) then
-  !!#!      write(errout,*) "ERROR: problem reading total_file_name"
-  !!#!      cycle file_loop
-  !!#!    else
-
-  !!#!      ! Extract day information from file name
-  !!#!      ! --------------------------------------
-  !!#!      read(total_file_name(51:52), *) int_day
-
-  !!#!      ! If the day of the new file is different than the current working
-  !!#!      ! day, call check_bad_row and update the bad row list
-  !!#!      ! ----------------------------------------------------------------
-  !!#!      if(work_day /= int_day) then
-  !!#!        call check_bad_rows(total_file_name,errout,io10)
-  !!#!        work_day = int_day
-  !!#!      endif
-
-  !!#!      ! Extract month information from dtg
-  !!#!      ! ----------------------------------
-  !!#!      read(total_file_name(49:50), *) int_month
-
-  !!#!      ! If the month of the new file is greater than the current working
-  !!#!      ! month, call print_climo and print the grid values to the output
-  !!#!      ! file.
-  !!#!      ! ----------------------------------------------------------------
-  !!#!      if(work_month == -1) then
-  !!#!        work_month = int_month
-  !!#!        c_work_year = total_file_name(44:47)  
-  !!#!      else if(work_month /= int_month) then
-  !!#!        call print_climo(io6,grids,i_counts,i_size,c_work_year,&
-  !!#!                         work_month,lat_range,lon_range)
-  !!#!        work_month = int_month
-  !!#!        c_work_year = total_file_name(44:47)  
-  !!#!      endif
-
-  !!#!      ! Open the HDF5 file
-  !!#!      ! ------------------
-  !!#!      call h5fopen_f(total_file_name, H5F_ACC_RDWR_F, file_id, error)
-  !!#!      if(error /= 0) then
-  !!#!        write(*,*) 'FATAL ERROR: could not open file'
-  !!#!        return
-  !!#!      endif
-
-  !!#!      ! Read in the necessary data using the read routines
-  !!#!      ! --------------------------------------------------
-  !!#!      call read_h5_AI(file_id)
-  !!#!      call read_h5_LAT(file_id)
-  !!#!      call read_h5_LON(file_id)
-  !!#!      call read_h5_XTRACK(file_id)   
-  !!#!      call read_h5_AZM(file_id) 
-  !!#!      call read_h5_GPQF(file_id)
-
-  !!#!      ! Close file
-  !!#!      ! ----------
-  !!#!      call h5fclose_f(file_id, error)
-  !!#!      if(error /= 0) then
-  !!#!        write(*,*) 'FATAL ERROR: could not close file'
-  !!#!        return
-  !!#!      endif
-
-  !!#!      ! Insert this new data into the grid 
-  !!#!      ! ----------------------------------
-  !!#!      call grid_raw_data_climo(grids,i_counts,i_size,&
-  !!#!              lat_gridder,lat_thresh)
-
-  !!#!      ! Deallocate all the arrays for the next pass
-  !!#!      ! -------------------------------------------
-  !!#!      call clear_arrays
-  !!#!    endif
-  !!#!  enddo file_loop  
-  !!#!endif
-
-  !!#!! If, for some reason, the list of bad rows was not deallocated from
-  !!#!! before, deallocate it.
-  !!#!! ------------------------------------------------------------------
-  !!#!if(allocated(i_bad_list)) deallocate(i_bad_list)
-
-  !!#!! Deallocate the remaining allocated arrays and close all files
-  !!#!! -------------------------------------------------------------
-  !!#!close(io8)
-  !!#!close(io6)
-  !!#!close(io10)
-  !!#!close(errout)  
-  !!#!deallocate(grids)
-  !!#!deallocate(i_counts)
-  !!#!deallocate(lat_range)
-  !!#!deallocate(lon_range)
-  !!#!
   ! Close the HDF5 interface
   ! ------------------------
   call h5close_f(error)

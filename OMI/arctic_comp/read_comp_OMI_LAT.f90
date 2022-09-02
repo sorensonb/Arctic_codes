@@ -39,8 +39,7 @@ subroutine read_comp_OMI_LAT(file_id)
 
   ! Open OMI_LAT dataset
   ! ----------------
-  call h5dopen_f(file_id, 'HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation'&
-        //' Fields/Latitude', ds_id, error)
+  call h5dopen_f(file_id, 'latitude', ds_id, error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not open dataset'
     return

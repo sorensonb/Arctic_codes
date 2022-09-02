@@ -7,12 +7,18 @@ LIB_PATH = ./
 #LIB_PATH = ../JZ_lib/
 #FORT_LIB_PATH = ../../fort_lib/
 OBJECTS = comp_vars.o \
-			read_comp_MODIS_LAT.o \
-			read_comp_MODIS_LON.o \
-			read_comp_NSIDC_LAT.o \
-			read_comp_NSIDC_LON.o \
+			read_comp_CERES_LWF.o \
+			read_comp_CERES_SWF.o \
 			read_comp_CERES_LAT.o \
 			read_comp_CERES_LON.o \
+			read_comp_MODIS_CH2.o \
+			read_comp_MODIS_CH7.o \
+			read_comp_MODIS_LAT.o \
+			read_comp_MODIS_LON.o \
+			read_comp_NSIDC_ICE.o \
+			read_comp_NSIDC_LAT.o \
+			read_comp_NSIDC_LON.o \
+			read_comp_OMI_AI.o \
 			read_comp_OMI_LAT.o \
 			read_comp_OMI_LON.o \
 			omi_colocate.o
@@ -41,11 +47,23 @@ comp_vars.o: $(LIB_PATH)comp_vars.f90
 #read_h5_GPQF.o: $(LIB_PATH)read_h5_GPQF.f90
 #	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_GPQF.f90
 #
-read_comp_OMI_LAT.o: $(LIB_PATH)read_comp_OMI_LAT.f90
-	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_LAT.f90
+read_comp_CERES_LWF.o: $(LIB_PATH)read_comp_CERES_LWF.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_CERES_LWF.f90
 
-read_comp_OMI_LON.o: $(LIB_PATH)read_comp_OMI_LON.f90
-	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_LON.f90
+read_comp_CERES_SWF.o: $(LIB_PATH)read_comp_CERES_SWF.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_CERES_SWF.f90
+
+read_comp_CERES_LAT.o: $(LIB_PATH)read_comp_CERES_LAT.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_CERES_LAT.f90
+
+read_comp_CERES_LON.o: $(LIB_PATH)read_comp_CERES_LON.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_CERES_LON.f90
+
+read_comp_MODIS_CH2.o: $(LIB_PATH)read_comp_MODIS_CH2.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_MODIS_CH2.f90
+
+read_comp_MODIS_CH7.o: $(LIB_PATH)read_comp_MODIS_CH7.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_MODIS_CH7.f90
 
 read_comp_MODIS_LAT.o: $(LIB_PATH)read_comp_MODIS_LAT.f90
 	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_MODIS_LAT.f90
@@ -53,17 +71,24 @@ read_comp_MODIS_LAT.o: $(LIB_PATH)read_comp_MODIS_LAT.f90
 read_comp_MODIS_LON.o: $(LIB_PATH)read_comp_MODIS_LON.f90
 	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_MODIS_LON.f90
 
+read_comp_NSIDC_ICE.o: $(LIB_PATH)read_comp_NSIDC_ICE.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_NSIDC_ICE.f90
+
 read_comp_NSIDC_LAT.o: $(LIB_PATH)read_comp_NSIDC_LAT.f90
 	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_NSIDC_LAT.f90
 
 read_comp_NSIDC_LON.o: $(LIB_PATH)read_comp_NSIDC_LON.f90
 	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_NSIDC_LON.f90
 
-read_comp_CERES_LAT.o: $(LIB_PATH)read_comp_CERES_LAT.f90
-	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_CERES_LAT.f90
+read_comp_OMI_AI.o: $(LIB_PATH)read_comp_OMI_AI.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_AI.f90
 
-read_comp_CERES_LON.o: $(LIB_PATH)read_comp_CERES_LON.f90
-	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_CERES_LON.f90
+read_comp_OMI_LAT.o: $(LIB_PATH)read_comp_OMI_LAT.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_LAT.f90
+
+read_comp_OMI_LON.o: $(LIB_PATH)read_comp_OMI_LON.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_LON.f90
+
 #
 #read_h5_XTRACK.o: $(LIB_PATH)read_h5_XTRACK.f90
 #	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_XTRACK.f90
