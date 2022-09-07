@@ -48,15 +48,15 @@ program omi_colocate
     OMI_LON_data,   OMI_LON_dims, &
     MODIS_out_CH2_data, &
     MODIS_out_CH7_data, &
-    MODIS_out_LAT_data, &
-    MODIS_out_LON_data, &
+    !MODIS_out_LAT_data, &
+    !MODIS_out_LON_data, &
     NSIDC_out_data,     &
-    NSIDC_out_LAT_data, &
-    NSIDC_out_LON_data, &
+    !NSIDC_out_LAT_data, &
+    !NSIDC_out_LON_data, &
     CERES_out_LWF_data, &
-    CERES_out_SWF_data, &
-    CERES_out_LAT_data, &
-    CERES_out_LON_data
+    CERES_out_SWF_data   
+    !CERES_out_LAT_data, &
+    !CERES_out_LON_data
 
   implicit none
 
@@ -83,38 +83,35 @@ program omi_colocate
   integer                :: dspace_id_OLT  ! OMI LAT
   integer                :: dspace_id_OLN  ! OMI LON
   integer                :: dspace_id_OAI  ! OMI AI
-  integer                :: dspace_id_CLT  ! CERES LAT
-  integer                :: dspace_id_CLN  ! CERES LON
+  !integer                :: dspace_id_CLT  ! CERES LAT
+  !integer                :: dspace_id_CLN  ! CERES LON
   integer                :: dspace_id_CLW  ! CERES LWF
   integer                :: dspace_id_CSW  ! CERES SWF
-  integer                :: dspace_id_MLT  ! MODIS LAT
-  integer                :: dspace_id_MLN  ! MODIS LON
+  !integer                :: dspace_id_MLT  ! MODIS LAT
+  !integer                :: dspace_id_MLN  ! MODIS LON
   integer                :: dspace_id_MC2  ! MODIS CH2
   integer                :: dspace_id_MC7  ! MODIS CH7
-  integer                :: dspace_id_NLT  ! NSIDC LAT
-  integer                :: dspace_id_NLN  ! NSIDC LON
+  !integer                :: dspace_id_NLT  ! NSIDC LAT
+  !integer                :: dspace_id_NLN  ! NSIDC LON
   integer                :: dspace_id_NIC  ! NSIDC ICE
 
   integer                :: dset_id_OLT  ! OMI LAT
   integer                :: dset_id_OLN  ! OMI LON
   integer                :: dset_id_OAI  ! OMI AI
-  integer                :: dset_id_CLT  ! CERES LAT
-  integer                :: dset_id_CLN  ! CERES LON
+  !integer                :: dset_id_CLT  ! CERES LAT
+  !integer                :: dset_id_CLN  ! CERES LON
   integer                :: dset_id_CLW  ! CERES LWF
   integer                :: dset_id_CSW  ! CERES SWF
-  integer                :: dset_id_MLT  ! MODIS LAT
-  integer                :: dset_id_MLN  ! MODIS LON
+  !integer                :: dset_id_MLT  ! MODIS LAT
+  !integer                :: dset_id_MLN  ! MODIS LON
   integer                :: dset_id_MC2  ! MODIS CH2
   integer                :: dset_id_MC7  ! MODIS CH7
-  integer                :: dset_id_NLT  ! NSIDC LAT
-  integer                :: dset_id_NLN  ! NSIDC LON
+  !integer                :: dset_id_NLT  ! NSIDC LAT
+  !integer                :: dset_id_NLN  ! NSIDC LON
   integer                :: dset_id_NIC  ! NSIDC ICE
 
   integer                :: rank
-  integer(hsize_t), dimension(2)    :: dims
   integer(hsize_t), dimension(2)    :: test_dims
-
-  integer, dimension(20,10)             :: test_data
 
   real                   :: distance
   real                   :: closest_dist
@@ -282,15 +279,15 @@ program omi_colocate
       ! -------------------------------------
       if(isnan(OMI_AI_data(jj,ii))) then
         !write(*,*) 'NAN VALUE'
-        NSIDC_out_LAT_data(jj,ii) = -999.
-        NSIDC_out_LON_data(jj,ii) = -999.
+        !NSIDC_out_LAT_data(jj,ii) = -999.
+        !NSIDC_out_LON_data(jj,ii) = -999.
         NSIDC_out_data(jj,ii)     = -999.
-        CERES_out_LAT_data(jj,ii) = -999.
-        CERES_out_LON_data(jj,ii) = -999.
+        !CERES_out_LAT_data(jj,ii) = -999.
+        !CERES_out_LON_data(jj,ii) = -999.
         CERES_out_LWF_data(jj,ii) = -999.
         CERES_out_SWF_data(jj,ii) = -999.
-        MODIS_out_LAT_data(jj,ii) = -999.
-        MODIS_out_LON_data(jj,ii) = -999.
+        !MODIS_out_LAT_data(jj,ii) = -999.
+        !MODIS_out_LON_data(jj,ii) = -999.
         MODIS_out_CH2_data(jj,ii) = -999.
         MODIS_out_CH7_data(jj,ii) = -999.
         num_nan = num_nan + 1
@@ -310,8 +307,8 @@ program omi_colocate
 
             if(distance < closest_dist) then
               closest_dist = distance
-              NSIDC_out_LAT_data(jj,ii) = NSIDC_LAT_data(njj, nii) 
-              NSIDC_out_LON_data(jj,ii) = NSIDC_LON_data(njj, nii) 
+              !NSIDC_out_LAT_data(jj,ii) = NSIDC_LAT_data(njj, nii) 
+              !NSIDC_out_LON_data(jj,ii) = NSIDC_LON_data(njj, nii) 
               NSIDC_out_data(jj,ii)     = NSIDC_data(njj, nii) 
             endif
 
@@ -321,8 +318,8 @@ program omi_colocate
         ! Check the distance requirement for the NSIDC pixel
         ! --------------------------------------------------
         if(closest_dist > min_dist) then
-          NSIDC_out_LAT_data(jj,ii) = -999.
-          NSIDC_out_LON_data(jj,ii) = -999.
+          !NSIDC_out_LAT_data(jj,ii) = -999.
+          !NSIDC_out_LON_data(jj,ii) = -999.
           NSIDC_out_data(jj,ii)     = -999.
         endif
 
@@ -342,10 +339,10 @@ program omi_colocate
 
             if(distance < closest_dist) then
               closest_dist = distance
-              CERES_out_LAT_data(jj,ii) = CERES_LAT_data(njj, nii) 
-              CERES_out_LON_data(jj,ii) = CERES_LON_data(njj, nii) 
-              CERES_out_LWF_data(jj,ii) = CERES_SWF_data(njj, nii) 
-              CERES_out_SWF_data(jj,ii) = CERES_LWF_data(njj, nii) 
+              !CERES_out_LAT_data(jj,ii) = CERES_LAT_data(njj, nii) 
+              !CERES_out_LON_data(jj,ii) = CERES_LON_data(njj, nii) 
+              CERES_out_LWF_data(jj,ii) = CERES_LWF_data(njj, nii) 
+              CERES_out_SWF_data(jj,ii) = CERES_SWF_data(njj, nii) 
             endif
 
           enddo ceres_loop2
@@ -354,8 +351,8 @@ program omi_colocate
         ! Check the distance requirement for the CERES pixel
         ! --------------------------------------------------
         if(closest_dist > min_dist) then
-          CERES_out_LAT_data(jj,ii) = -999.
-          CERES_out_LON_data(jj,ii) = -999.
+          !CERES_out_LAT_data(jj,ii) = -999.
+          !CERES_out_LON_data(jj,ii) = -999.
           CERES_out_LWF_data(jj,ii) = -999.
           CERES_out_SWF_data(jj,ii) = -999.
         endif
@@ -374,8 +371,8 @@ program omi_colocate
 
             if(distance < closest_dist) then
               closest_dist = distance
-              MODIS_out_LAT_data(jj,ii) = MODIS_LAT_data(njj, nii) 
-              MODIS_out_LON_data(jj,ii) = MODIS_LON_data(njj, nii) 
+              !MODIS_out_LAT_data(jj,ii) = MODIS_LAT_data(njj, nii) 
+              !MODIS_out_LON_data(jj,ii) = MODIS_LON_data(njj, nii) 
               MODIS_out_CH2_data(jj,ii) = MODIS_CH2_data(njj, nii) 
               MODIS_out_CH7_data(jj,ii) = MODIS_CH7_data(njj, nii) 
             endif
@@ -386,8 +383,8 @@ program omi_colocate
         ! Check the distance requirement for the MODIS pixel
         ! --------------------------------------------------
         if(closest_dist > min_dist) then
-          MODIS_out_LAT_data(jj,ii) = -999.
-          MODIS_out_LON_data(jj,ii) = -999.
+          !MODIS_out_LAT_data(jj,ii) = -999.
+          !MODIS_out_LON_data(jj,ii) = -999.
           MODIS_out_CH2_data(jj,ii) = -999.
           MODIS_out_CH7_data(jj,ii) = -999.
         endif
@@ -403,8 +400,9 @@ program omi_colocate
   
   ! Open the output file
   ! --------------------
-  write(*,*) modis_name1(18:29)
-  out_file_name = 'colocated_subset_'//modis_name1(18:29)//'.hdf5'
+  write(*,*) modis_name1(len(trim(modis_name1)) - 16:len(trim(modis_name1)) - 5)
+  out_file_name = 'colocated_subset_'//modis_name1(len(trim(modis_name1)) - &
+    16:len(trim(modis_name1)) - 5)//'.hdf5'
   write(*,*) trim(out_file_name)
 
   call h5fcreate_f(trim(out_file_name), H5F_ACC_TRUNC_F, out_file_id, error)
@@ -553,97 +551,97 @@ program omi_colocate
 
   write(*,*) 'Wrote OMI AI'
 
-  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-  !
-  ! Write CERES LAT data
-  !
-  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !!#!! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !!#!!
+  !!#!! Write CERES LAT data
+  !!#!!
+  !!#!! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-  ! Create the dataspace
-  ! --------------------
-  call h5screate_simple_f(rank, test_dims, dspace_id_CLT, error)
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open dataspace'
-    return
-  endif
+  !!#!! Create the dataspace
+  !!#!! --------------------
+  !!#!call h5screate_simple_f(rank, test_dims, dspace_id_CLT, error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not open dataspace'
+  !!#!  return
+  !!#!endif
 
-  ! Create the dataset
-  ! ------------------
-  call h5dcreate_f(out_file_id, 'ceres_lat', H5T_NATIVE_DOUBLE, &
-                   dspace_id_CLT,  dset_id_CLT, error) 
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open dataset '//'ceres_lat'
-    return
-  endif
+  !!#!! Create the dataset
+  !!#!! ------------------
+  !!#!call h5dcreate_f(out_file_id, 'ceres_lat', H5T_NATIVE_DOUBLE, &
+  !!#!                 dspace_id_CLT,  dset_id_CLT, error) 
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not open dataset '//'ceres_lat'
+  !!#!  return
+  !!#!endif
 
-  ! Write to the dataset
-  ! --------------------
-  call h5dwrite_f(dset_id_CLT, H5T_NATIVE_DOUBLE, CERES_out_LAT_data, &
-                  OMI_AI_dims, error)
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not write to dataset'
-    return
-  endif
+  !!#!! Write to the dataset
+  !!#!! --------------------
+  !!#!call h5dwrite_f(dset_id_CLT, H5T_NATIVE_DOUBLE, CERES_out_LAT_data, &
+  !!#!                OMI_AI_dims, error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not write to dataset'
+  !!#!  return
+  !!#!endif
 
-  ! Close the dataset
-  ! -----------------
-  call h5dclose_f(dset_id_CLT, error)
+  !!#!! Close the dataset
+  !!#!! -----------------
+  !!#!call h5dclose_f(dset_id_CLT, error)
 
-  ! Close access to data space rank
-  call h5sclose_f(dspace_id_CLT, error)
+  !!#!! Close access to data space rank
+  !!#!call h5sclose_f(dspace_id_CLT, error)
 
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not write to dataset'
-    return
-  endif
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not write to dataset'
+  !!#!  return
+  !!#!endif
 
-  write(*,*) 'Wrote CERES LAT'
+  !!#!write(*,*) 'Wrote CERES LAT'
 
-  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-  !
-  ! Write CERES LON data
-  !
-  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !!#!! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !!#!!
+  !!#!! Write CERES LON data
+  !!#!!
+  !!#!! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-  ! Create the dataspace
-  ! --------------------
-  call h5screate_simple_f(rank, test_dims, dspace_id_CLN, error)
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open dataspace'
-    return
-  endif
+  !!#!! Create the dataspace
+  !!#!! --------------------
+  !!#!call h5screate_simple_f(rank, test_dims, dspace_id_CLN, error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not open dataspace'
+  !!#!  return
+  !!#!endif
 
-  ! Create the dataset
-  ! ------------------
-  call h5dcreate_f(out_file_id, 'ceres_lon', H5T_NATIVE_DOUBLE, &
-                   dspace_id_CLN,  dset_id_CLN, error) 
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open dataset '//'ceres_lon'
-    return
-  endif
+  !!#!! Create the dataset
+  !!#!! ------------------
+  !!#!call h5dcreate_f(out_file_id, 'ceres_lon', H5T_NATIVE_DOUBLE, &
+  !!#!                 dspace_id_CLN,  dset_id_CLN, error) 
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not open dataset '//'ceres_lon'
+  !!#!  return
+  !!#!endif
 
-  ! Write to the dataset
-  ! --------------------
-  call h5dwrite_f(dset_id_CLN, H5T_NATIVE_DOUBLE, CERES_out_LON_data, &
-                  OMI_AI_dims, error)
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not write to dataset'
-    return
-  endif
+  !!#!! Write to the dataset
+  !!#!! --------------------
+  !!#!call h5dwrite_f(dset_id_CLN, H5T_NATIVE_DOUBLE, CERES_out_LON_data, &
+  !!#!                OMI_AI_dims, error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not write to dataset'
+  !!#!  return
+  !!#!endif
 
-  ! Close the dataset
-  ! -----------------
-  call h5dclose_f(dset_id_CLN, error)
+  !!#!! Close the dataset
+  !!#!! -----------------
+  !!#!call h5dclose_f(dset_id_CLN, error)
 
-  ! Close access to data space rank
-  call h5sclose_f(dspace_id_CLN, error)
+  !!#!! Close access to data space rank
+  !!#!call h5sclose_f(dspace_id_CLN, error)
 
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not write to dataset'
-    return
-  endif
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not write to dataset'
+  !!#!  return
+  !!#!endif
 
-  write(*,*) 'Wrote CERES LON'
+  !!#!write(*,*) 'Wrote CERES LON'
 
   ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
   !
@@ -737,97 +735,97 @@ program omi_colocate
 
   write(*,*) 'Wrote CERES SWF'
 
-  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-  !
-  ! Write MODIS LAT data
-  !
-  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !!#!! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !!#!!
+  !!#!! Write MODIS LAT data
+  !!#!!
+  !!#!! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-  ! Create the dataspace
-  ! --------------------
-  call h5screate_simple_f(rank, test_dims, dspace_id_MLT, error)
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open dataspace'
-    return
-  endif
+  !!#!! Create the dataspace
+  !!#!! --------------------
+  !!#!call h5screate_simple_f(rank, test_dims, dspace_id_MLT, error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not open dataspace'
+  !!#!  return
+  !!#!endif
 
-  ! Create the dataset
-  ! ------------------
-  call h5dcreate_f(out_file_id, 'modis_lat', H5T_NATIVE_DOUBLE, &
-                   dspace_id_MLT,  dset_id_MLT, error) 
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open dataset '//'modis_lat'
-    return
-  endif
+  !!#!! Create the dataset
+  !!#!! ------------------
+  !!#!call h5dcreate_f(out_file_id, 'modis_lat', H5T_NATIVE_DOUBLE, &
+  !!#!                 dspace_id_MLT,  dset_id_MLT, error) 
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not open dataset '//'modis_lat'
+  !!#!  return
+  !!#!endif
 
-  ! Write to the dataset
-  ! --------------------
-  call h5dwrite_f(dset_id_MLT, H5T_NATIVE_DOUBLE, MODIS_out_LAT_data, &
-                  OMI_AI_dims, error)
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not write to dataset'
-    return
-  endif
+  !!#!! Write to the dataset
+  !!#!! --------------------
+  !!#!call h5dwrite_f(dset_id_MLT, H5T_NATIVE_DOUBLE, MODIS_out_LAT_data, &
+  !!#!                OMI_AI_dims, error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not write to dataset'
+  !!#!  return
+  !!#!endif
 
-  ! Close the dataset
-  ! -----------------
-  call h5dclose_f(dset_id_MLT, error)
+  !!#!! Close the dataset
+  !!#!! -----------------
+  !!#!call h5dclose_f(dset_id_MLT, error)
 
-  ! Close access to data space rank
-  call h5sclose_f(dspace_id_MLT, error)
+  !!#!! Close access to data space rank
+  !!#!call h5sclose_f(dspace_id_MLT, error)
 
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not write to dataset'
-    return
-  endif
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not write to dataset'
+  !!#!  return
+  !!#!endif
 
-  write(*,*) 'Wrote MODIS LAT'
+  !!#!write(*,*) 'Wrote MODIS LAT'
 
-  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-  !
-  ! Write MODIS LON data
-  !
-  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !!#!! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !!#!!
+  !!#!! Write MODIS LON data
+  !!#!!
+  !!#!! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-  ! Create the dataspace
-  ! --------------------
-  call h5screate_simple_f(rank, test_dims, dspace_id_MLN, error)
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open dataspace'
-    return
-  endif
+  !!#!! Create the dataspace
+  !!#!! --------------------
+  !!#!call h5screate_simple_f(rank, test_dims, dspace_id_MLN, error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not open dataspace'
+  !!#!  return
+  !!#!endif
 
-  ! Create the dataset
-  ! ------------------
-  call h5dcreate_f(out_file_id, 'modis_lon', H5T_NATIVE_DOUBLE, &
-                   dspace_id_MLN,  dset_id_MLN, error) 
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open dataset '//'modis_lon'
-    return
-  endif
+  !!#!! Create the dataset
+  !!#!! ------------------
+  !!#!call h5dcreate_f(out_file_id, 'modis_lon', H5T_NATIVE_DOUBLE, &
+  !!#!                 dspace_id_MLN,  dset_id_MLN, error) 
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not open dataset '//'modis_lon'
+  !!#!  return
+  !!#!endif
 
-  ! Write to the dataset
-  ! --------------------
-  call h5dwrite_f(dset_id_MLN, H5T_NATIVE_DOUBLE, MODIS_out_LON_data, &
-                  OMI_AI_dims, error)
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not write to dataset'
-    return
-  endif
+  !!#!! Write to the dataset
+  !!#!! --------------------
+  !!#!call h5dwrite_f(dset_id_MLN, H5T_NATIVE_DOUBLE, MODIS_out_LON_data, &
+  !!#!                OMI_AI_dims, error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not write to dataset'
+  !!#!  return
+  !!#!endif
 
-  ! Close the dataset
-  ! -----------------
-  call h5dclose_f(dset_id_MLN, error)
+  !!#!! Close the dataset
+  !!#!! -----------------
+  !!#!call h5dclose_f(dset_id_MLN, error)
 
-  ! Close access to data space rank
-  call h5sclose_f(dspace_id_MLN, error)
+  !!#!! Close access to data space rank
+  !!#!call h5sclose_f(dspace_id_MLN, error)
 
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not write to dataset'
-    return
-  endif
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not write to dataset'
+  !!#!  return
+  !!#!endif
 
-  write(*,*) 'Wrote MODIS LON'
+  !!#!write(*,*) 'Wrote MODIS LON'
 
   ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
   !
@@ -921,97 +919,97 @@ program omi_colocate
 
   write(*,*) 'Wrote MODIS CH7'
 
-  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-  !
-  ! Write NSIDC LAT data
-  !
-  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !!#!! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !!#!!
+  !!#!! Write NSIDC LAT data
+  !!#!!
+  !!#!! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-  ! Create the dataspace
-  ! --------------------
-  call h5screate_simple_f(rank, test_dims, dspace_id_NLT, error)
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open dataspace'
-    return
-  endif
+  !!#!! Create the dataspace
+  !!#!! --------------------
+  !!#!call h5screate_simple_f(rank, test_dims, dspace_id_NLT, error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not open dataspace'
+  !!#!  return
+  !!#!endif
 
-  ! Create the dataset
-  ! ------------------
-  call h5dcreate_f(out_file_id, 'nsidc_lat', H5T_NATIVE_DOUBLE, &
-                   dspace_id_NLT,  dset_id_NLT, error) 
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open dataset '//'nsidc_lat'
-    return
-  endif
+  !!#!! Create the dataset
+  !!#!! ------------------
+  !!#!call h5dcreate_f(out_file_id, 'nsidc_lat', H5T_NATIVE_DOUBLE, &
+  !!#!                 dspace_id_NLT,  dset_id_NLT, error) 
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not open dataset '//'nsidc_lat'
+  !!#!  return
+  !!#!endif
 
-  ! Write to the dataset
-  ! --------------------
-  call h5dwrite_f(dset_id_NLT, H5T_NATIVE_DOUBLE, NSIDC_out_LAT_data, &
-                  OMI_AI_dims, error)
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not write to dataset'
-    return
-  endif
+  !!#!! Write to the dataset
+  !!#!! --------------------
+  !!#!call h5dwrite_f(dset_id_NLT, H5T_NATIVE_DOUBLE, NSIDC_out_LAT_data, &
+  !!#!                OMI_AI_dims, error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not write to dataset'
+  !!#!  return
+  !!#!endif
 
-  ! Close the dataset
-  ! -----------------
-  call h5dclose_f(dset_id_NLT, error)
+  !!#!! Close the dataset
+  !!#!! -----------------
+  !!#!call h5dclose_f(dset_id_NLT, error)
 
-  ! Close access to data space rank
-  call h5sclose_f(dspace_id_NLT, error)
+  !!#!! Close access to data space rank
+  !!#!call h5sclose_f(dspace_id_NLT, error)
 
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not write to dataset'
-    return
-  endif
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not write to dataset'
+  !!#!  return
+  !!#!endif
 
-  write(*,*) 'Wrote NSIDC LAT'
+  !!#!write(*,*) 'Wrote NSIDC LAT'
 
-  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-  !
-  ! Write NSIDC LON data
-  !
-  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !!#!! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !!#!!
+  !!#!! Write NSIDC LON data
+  !!#!!
+  !!#!! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-  ! Create the dataspace
-  ! --------------------
-  call h5screate_simple_f(rank, test_dims, dspace_id_NLN, error)
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open dataspace'
-    return
-  endif
+  !!#!! Create the dataspace
+  !!#!! --------------------
+  !!#!call h5screate_simple_f(rank, test_dims, dspace_id_NLN, error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not open dataspace'
+  !!#!  return
+  !!#!endif
 
-  ! Create the dataset
-  ! ------------------
-  call h5dcreate_f(out_file_id, 'nsidc_lon', H5T_NATIVE_DOUBLE, &
-                   dspace_id_NLN,  dset_id_NLN, error) 
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open dataset '//'nsidc_lon'
-    return
-  endif
+  !!#!! Create the dataset
+  !!#!! ------------------
+  !!#!call h5dcreate_f(out_file_id, 'nsidc_lon', H5T_NATIVE_DOUBLE, &
+  !!#!                 dspace_id_NLN,  dset_id_NLN, error) 
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not open dataset '//'nsidc_lon'
+  !!#!  return
+  !!#!endif
 
-  ! Write to the dataset
-  ! --------------------
-  call h5dwrite_f(dset_id_NLN, H5T_NATIVE_DOUBLE, NSIDC_out_LON_data, &
-                  OMI_AI_dims, error)
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not write to dataset'
-    return
-  endif
+  !!#!! Write to the dataset
+  !!#!! --------------------
+  !!#!call h5dwrite_f(dset_id_NLN, H5T_NATIVE_DOUBLE, NSIDC_out_LON_data, &
+  !!#!                OMI_AI_dims, error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not write to dataset'
+  !!#!  return
+  !!#!endif
 
-  ! Close the dataset
-  ! -----------------
-  call h5dclose_f(dset_id_NLN, error)
+  !!#!! Close the dataset
+  !!#!! -----------------
+  !!#!call h5dclose_f(dset_id_NLN, error)
 
-  ! Close access to data space rank
-  call h5sclose_f(dspace_id_NLN, error)
+  !!#!! Close access to data space rank
+  !!#!call h5sclose_f(dspace_id_NLN, error)
 
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not write to dataset'
-    return
-  endif
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not write to dataset'
+  !!#!  return
+  !!#!endif
 
-  write(*,*) 'Wrote NSIDC LON'
+  !!#!write(*,*) 'Wrote NSIDC LON'
 
   ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
   !

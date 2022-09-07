@@ -1239,8 +1239,13 @@ def write_da_to_NCDF(avgAI,counts,latmin,da_time):
     print("Saved file ",outfile)  
 
 # Writes a single Shawn file to HDF5. 
-def write_shawn_to_HDF5(OMI_base, save_path = './', shawn_path = \
-        '/home/bsorenson/data/OMI/shawn_files/'):
+def write_shawn_to_HDF5(date_str, save_path = './', minlat = 65., \
+        shawn_path = '/home/bsorenson/data/OMI/shawn_files/'):
+
+    # Read the swath
+    # --------------
+    OMI_base  = readOMI_swath_shawn(date_str, latmin = minlat,\
+        skiprows = None)
 
     # Convert the filename object to datetime
     # ---------------------------------------
@@ -6162,6 +6167,10 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(modis_date_str, ch1, \
         '201807052125': {
             'OMI': '201807052034', 
             'CERES': '2018070521', 
+        },
+        '201808241435': {
+            'OMI': '201808241343', 
+            'CERES': '2018082414', 
         },
     }
 

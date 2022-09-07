@@ -115,15 +115,15 @@ module comp_vars
     ! --------------------------
     allocate(MODIS_out_CH2_data(OMI_AI_dims(1), OMI_AI_dims(2)), stat = error)
     allocate(MODIS_out_CH7_data(OMI_AI_dims(1), OMI_AI_dims(2)), stat = error)
-    allocate(MODIS_out_LAT_data(OMI_AI_dims(1), OMI_AI_dims(2)), stat = error)
-    allocate(MODIS_out_LON_data(OMI_AI_dims(1), OMI_AI_dims(2)), stat = error)
+    !allocate(MODIS_out_LAT_data(OMI_AI_dims(1), OMI_AI_dims(2)), stat = error)
+    !allocate(MODIS_out_LON_data(OMI_AI_dims(1), OMI_AI_dims(2)), stat = error)
     allocate(NSIDC_out_data(OMI_AI_dims(1), OMI_AI_dims(2)), stat = error)
-    allocate(NSIDC_out_LAT_data(OMI_AI_dims(1), OMI_AI_dims(2)), stat = error)
-    allocate(NSIDC_out_LON_data(OMI_AI_dims(1), OMI_AI_dims(2)), stat = error)
+    !allocate(NSIDC_out_LAT_data(OMI_AI_dims(1), OMI_AI_dims(2)), stat = error)
+    !allocate(NSIDC_out_LON_data(OMI_AI_dims(1), OMI_AI_dims(2)), stat = error)
     allocate(CERES_out_LWF_data(OMI_AI_dims(1), OMI_AI_dims(2)), stat = error)
     allocate(CERES_out_SWF_data(OMI_AI_dims(1), OMI_AI_dims(2)), stat = error)
-    allocate(CERES_out_LAT_data(OMI_AI_dims(1), OMI_AI_dims(2)), stat = error)
-    allocate(CERES_out_LON_data(OMI_AI_dims(1), OMI_AI_dims(2)), stat = error)
+    !allocate(CERES_out_LAT_data(OMI_AI_dims(1), OMI_AI_dims(2)), stat = error)
+    !allocate(CERES_out_LON_data(OMI_AI_dims(1), OMI_AI_dims(2)), stat = error)
 
     if ( error < 0 ) then
        write(*,*) " *** Error allocating H5datasets in output data"

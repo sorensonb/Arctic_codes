@@ -53,14 +53,13 @@ date_str = '201807052034'
 minlat = 65.
 #OMI_base  = readOMI_swath_shawn(date_str, latmin = minlat)
 #write_shawn_to_HDF5(OMI_base)
-sys.exit()
 
 #OMI_data = readOMI_swath_hdf(date_str, 'control', only_sea_ice = False, \
 #    only_ice = False, no_ice = False, latmin = 65, skiprows = [52])
 
 #sys.exit()
-plot_compare_OMI_CERES_MODIS_NSIDC('201807052125', '7', \
-    omi_dtype = 'shawn', minlat = 65., zoom = True, save = True)
+plot_compare_OMI_CERES_MODIS_NSIDC('201808241435', '7', \
+    omi_dtype = 'shawn', minlat = 65., zoom = True, save = False)
 
 #plotOMI_single_swath_figure(date_str, dtype = 'shawn',  \
 #        only_sea_ice = False, minlat = 65., skiprows = None, \

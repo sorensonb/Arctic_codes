@@ -1859,8 +1859,13 @@ def read_MODIS_channel(date_str, channel, zoom = False, swath = False):
     return MODIS_final
 
 # Writes a MODIS channel dictionary to HDF5 for Fortran colocation
+# NOTE: can take either a date string OR a dictionary
 # ----------------------------------------------------------------
-def write_MODIS_to_HDF5(MODIS_data, save_path = './'):
+def write_MODIS_to_HDF5(MODIS_data, channel = 2, swath = True, \
+        save_path = './'):
+
+    if(isinstance(MODIS_data, str)):
+        MODIS_data = read_MODIS_channel(MODIS_data, channel, swath = swath)
 
     # Convert the filename object to datetime
     # ---------------------------------------
@@ -1888,7 +1893,7 @@ def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False, \
         circle_bound = True):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
-    filename = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
+    #filename = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
 
     if(channel == 'red'):
         channel = 1

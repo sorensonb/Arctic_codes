@@ -638,6 +638,10 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
 # ----------------------------------------------------------------
 def write_CERES_hrly_grid_to_HDF5(CERES_grid_hrly, save_path = './'):
 
+    if(isinstance(CERES_grid_hrly, str)):
+        CERES_grid_hrly =  readgridCERES_hrly_grid(CERES_grid_hrly, 'swf', \
+            minlat=65.0)
+
     # Convert the filename object to datetime
     # ---------------------------------------
     file_date = CERES_grid_hrly['date']
