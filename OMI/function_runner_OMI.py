@@ -46,20 +46,70 @@ import sys
 #date_str = '201807051359'
 #date_str = '201807051538'
 #date_str = '201807051717'
-#date_str = '201807051856'
-date_str = '201807052034'
+date_str = '201807051856'
+#date_str = '201807052034'
 #date_str = '201807052213'
 #date_str = '201807052352'
-minlat = 65.
 #OMI_base  = readOMI_swath_shawn(date_str, latmin = minlat)
 #write_shawn_to_HDF5(OMI_base)
 
 #OMI_data = readOMI_swath_hdf(date_str, 'control', only_sea_ice = False, \
 #    only_ice = False, no_ice = False, latmin = 65, skiprows = [52])
+#date_str = '201605152104'
+#date_str = '201605162009'
 
-#sys.exit()
-plot_compare_OMI_CERES_MODIS_NSIDC('201808241435', '7', \
+#date_str = '201807051856'
+#date_str = '201908102115' # GOOD
+#date_str = '201908102254' # GOOD
+#date_str = '201908110033' # GOOD
+#date_str = '201908110351' # GOOD
+#date_str = '200607260017' # GOOD
+#date_str = '200607252238' # GOOD
+#date_str = '200607260156' # GOOD
+#date_str = '200607260335' # GOOD
+#date_str = '200607260513' # GOOD
+#date_str = '201708161504' # GOOD
+#date_str = '201708161643' # GOOD
+#date_str = '201708161821' # GOOD
+#date_str = '201708171408' # GOOD
+#date_str = '201708171547' # GOOD
+#date_str = '201708171726' # GOOD
+#date_str = '201708171905' # GOOD
+#date_str = '201708172043' # GOOD
+#date_str = '201708181312' # GOOD
+#date_str = '201708181451' # GOOD
+#date_str = '201708181630' # GOOD
+#date_str = '201708181809' # GOOD
+#date_str = '201708181948' # GOOD
+#date_str = '201708191355' # GOOD
+#date_str = '201708191534' # GOOD
+#date_str = '201708191713' # GOOD
+
+plotOMI_single_swath_figure(date_str, dtype = 'shawn',  \
+        only_sea_ice = False, minlat = 65., skiprows = None, \
+        lat_circles = None, save = False, zoom = False, \
+        circle_bound = True, ax = None, \
+        shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
+
+sys.exit()
+
+minlat = 65.
+OMI_base = '201908110033'
+#OMI_base = '201908110351'
+write_shawn_to_HDF5(OMI_base, save_path = '/home/bsorenson/Research/Arctic_compares/comp_data/20190811/', minlat = 65., \
+    shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
+sys.exit()
+
+plot_compare_OMI_CERES_MODIS_NSIDC('201908110125', '7', \
     omi_dtype = 'shawn', minlat = 65., zoom = True, save = False)
+sys.exit()
+
+sys.exit()
+
+
+#plot_compare_OMI_CERES_MODIS_NSIDC('201808241435', '7', \
+
+
 
 #plotOMI_single_swath_figure(date_str, dtype = 'shawn',  \
 #        only_sea_ice = False, minlat = 65., skiprows = None, \

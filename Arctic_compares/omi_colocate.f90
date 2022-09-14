@@ -46,6 +46,7 @@ program omi_colocate
     OMI_AI_data,    OMI_AI_dims, &
     OMI_LAT_data,   OMI_LAT_dims, &
     OMI_LON_data,   OMI_LON_dims, &
+    OMI_SZA_data,   OMI_SZA_dims, &
     MODIS_out_CH2_data, &
     MODIS_out_CH7_data, &
     !MODIS_out_LAT_data, &
@@ -82,6 +83,7 @@ program omi_colocate
 
   integer                :: dspace_id_OLT  ! OMI LAT
   integer                :: dspace_id_OLN  ! OMI LON
+  integer                :: dspace_id_OSZ  ! OMI SZA
   integer                :: dspace_id_OAI  ! OMI AI
   !integer                :: dspace_id_CLT  ! CERES LAT
   !integer                :: dspace_id_CLN  ! CERES LON
@@ -97,6 +99,7 @@ program omi_colocate
 
   integer                :: dset_id_OLT  ! OMI LAT
   integer                :: dset_id_OLN  ! OMI LON
+  integer                :: dset_id_OSZ  ! OMI SZA
   integer                :: dset_id_OAI  ! OMI AI
   !integer                :: dset_id_CLT  ! CERES LAT
   !integer                :: dset_id_CLN  ! CERES LON
@@ -236,6 +239,7 @@ program omi_colocate
   call read_comp_OMI_AI(omi_file_id)
   call read_comp_OMI_LAT(omi_file_id)
   call read_comp_OMI_LON(omi_file_id)
+  call read_comp_OMI_SZA(omi_file_id)
   
   !!#!call h5fcreate_f('testoutfile.hdf5', H5F_ACC_TRUNC_F, out_file_id, error)
   !!#!if(error /= 0) then
@@ -504,6 +508,52 @@ program omi_colocate
   endif
 
   write(*,*) 'Wrote OMI LON'
+  
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! Write OMI Solar Zenith Angle
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+  ! Create the dataspace
+  ! --------------------
+  call h5screate_simple_f(rank, test_dims, dspace_id_OSZ, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataspace'
+    return
+  endif
+
+  ! Create the dataset
+  ! ------------------
+  call h5dcreate_f(out_file_id, 'omi_sza', H5T_NATIVE_DOUBLE, dspace_id_OSZ,  &
+                   dset_id_OSZ, error) 
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataset '//'omi_sza'
+    return
+  endif
+
+  ! Write to the dataset
+  ! --------------------
+  call h5dwrite_f(dset_id_OSZ, H5T_NATIVE_DOUBLE, OMI_SZA_data, OMI_AI_dims, &
+                      error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  ! Close the dataset
+  ! -----------------
+  call h5dclose_f(dset_id_OSZ, error)
+
+  ! Close access to data space rank
+  call h5sclose_f(dspace_id_OSZ, error)
+
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not close output file'
+    return
+  endif
+
+  write(*,*) 'Wrote OMI OSZ'
   
   ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
   !

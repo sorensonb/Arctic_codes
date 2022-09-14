@@ -15,8 +15,15 @@ channel1 = 1
 channel2 = 5
 channel3 = 31
 
-date_str = '201807052125'
+#date_str = '201807052125'
+MODIS_data = '201908110125'
+write_MODIS_to_HDF5(MODIS_data, channel = 2, swath = True, \
+    save_path = '/home/bsorenson/Research/Arctic_compares/comp_data/20190811/')
+write_MODIS_to_HDF5(MODIS_data, channel = 7, swath = True, \
+    save_path = '/home/bsorenson/Research/Arctic_compares/comp_data/20190811/')
 sys.exit()
+
+
 plot_MODIS_satpy(date_str, '7', ax = None, var = None, crs = None, \
     lons = None, lats = None, lat_lims = None, lon_lims = None, \
     vmin = None, vmax = None, ptitle = None, plabel = None, \

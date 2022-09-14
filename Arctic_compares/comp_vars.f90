@@ -28,6 +28,7 @@ module comp_vars
   integer(hsize_t), dimension(:), allocatable       :: OMI_AI_dims
   integer(hsize_t), dimension(:), allocatable       :: OMI_LAT_dims
   integer(hsize_t), dimension(:), allocatable       :: OMI_LON_dims
+  integer(hsize_t), dimension(:), allocatable       :: OMI_SZA_dims
   integer(hsize_t), dimension(:), allocatable       :: MODIS_CH2_dims
   integer(hsize_t), dimension(:), allocatable       :: MODIS_CH7_dims
   integer(hsize_t), dimension(:), allocatable       :: MODIS_LAT_dims
@@ -60,6 +61,7 @@ module comp_vars
   real(kind=8), dimension(:,:), allocatable, target :: OMI_AI_data
   real(kind=8), dimension(:,:), allocatable, target :: OMI_LAT_data
   real(kind=8), dimension(:,:), allocatable, target :: OMI_LON_data
+  real(kind=8), dimension(:,:), allocatable, target :: OMI_SZA_data
   real(kind=8), dimension(:,:), allocatable, target :: MODIS_CH2_data
   real(kind=8), dimension(:,:), allocatable, target :: MODIS_CH7_data
   real(kind=8), dimension(:,:), allocatable, target :: MODIS_LAT_data
@@ -148,6 +150,7 @@ module comp_vars
       if(allocated(OMI_AI_dims))      deallocate(OMI_AI_dims)
       if(allocated(OMI_LAT_dims))     deallocate(OMI_LAT_dims)
       if(allocated(OMI_LON_dims))     deallocate(OMI_LON_dims)
+      if(allocated(OMI_SZA_dims))     deallocate(OMI_SZA_dims)
       if(allocated(MODIS_CH2_dims))   deallocate(MODIS_CH2_dims)
       if(allocated(MODIS_CH7_dims))   deallocate(MODIS_CH7_dims)
       if(allocated(MODIS_LAT_dims))   deallocate(MODIS_LAT_dims)
@@ -179,6 +182,7 @@ module comp_vars
       if(allocated(OMI_AI_data))      deallocate(OMI_AI_data)
       if(allocated(OMI_LAT_data))     deallocate(OMI_LAT_data)
       if(allocated(OMI_LON_data))     deallocate(OMI_LON_data)
+      if(allocated(OMI_SZA_data))     deallocate(OMI_SZA_data)
       if(allocated(MODIS_CH2_data))   deallocate(MODIS_CH2_data)
       if(allocated(MODIS_CH7_data))   deallocate(MODIS_CH7_data)
       if(allocated(MODIS_LAT_data))   deallocate(MODIS_LAT_data)

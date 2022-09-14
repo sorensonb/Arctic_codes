@@ -1239,13 +1239,13 @@ def write_da_to_NCDF(avgAI,counts,latmin,da_time):
     print("Saved file ",outfile)  
 
 # Writes a single Shawn file to HDF5. 
-def write_shawn_to_HDF5(date_str, save_path = './', minlat = 65., \
+def write_shawn_to_HDF5(OMI_base, save_path = './', minlat = 65., \
         shawn_path = '/home/bsorenson/data/OMI/shawn_files/'):
 
-    # Read the swath
-    # --------------
-    OMI_base  = readOMI_swath_shawn(date_str, latmin = minlat,\
-        skiprows = None)
+    if(isinstance(OMI_base, str)):
+        # Read the swath
+        # --------------
+        OMI_base  = readOMI_swath_shawn(OMI_base, latmin = minlat)
 
     # Convert the filename object to datetime
     # ---------------------------------------
@@ -1262,6 +1262,7 @@ def write_shawn_to_HDF5(date_str, save_path = './', minlat = 65., \
     dset.create_dataset('uvai_pert', data = OMI_base['UVAI_pert'][:,:])
     dset.create_dataset('uvai_raw',  data = OMI_base['UVAI_raw'][:,:])
     dset.create_dataset('time',      data = OMI_base['TIME_2'][:,:])
+    dset.create_dataset('sza',       data = OMI_base['SZA'][:,:])
 
     # Save, write, and close the HDF5 file
     # --------------------------------------
@@ -6172,6 +6173,14 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(modis_date_str, ch1, \
             'OMI': '201808241343', 
             'CERES': '2018082414', 
         },
+        '201908110125': {
+            'OMI': '201908110033', 
+            'CERES': '2019081101', 
+        },
+        '201908110440': {
+            'OMI': '201908110351', 
+            'CERES': '2019081104', 
+        },
     }
 
     # Make the overall figure
@@ -6190,14 +6199,14 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(modis_date_str, ch1, \
     plot_MODIS_channel(modis_date_str, 'true_color', swath = True, \
         zoom = zoom, ax = ax1)
     plot_MODIS_channel(modis_date_str, ch1, swath = True, \
-        zoom = zoom, ax = ax2)
+        zoom = zoom, ax = ax2, vmax = 0.4)
     #plot_MODIS_channel(modis_date_str, ch2, swath = True, \
     #    zoom = zoom, ax = ax3)
 
     # Plot the NSIDC data
     # -------------------
     plotNSIDC_daily_figure(modis_date_str[:8], minlat = minlat, \
-        zoom = True, ax = ax3, gridlines = False, save = False)
+        zoom = zoom, ax = ax3, gridlines = False, save = False)
 
     # Plot the OMI data
     # -----------------
