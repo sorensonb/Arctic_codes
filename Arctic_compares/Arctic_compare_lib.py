@@ -45,9 +45,10 @@ def read_colocated(date_str):
         data['modis_ch7'][:,:] == -999.) | (data['modis_ch7'][:,:] > 1.0), \
         data['modis_ch7'])
     coloc_data['NSIDC_ICE'] = np.ma.masked_where((\
-        data['nsidc_ice'][:,:] == -999.) | (data['nsidc_ice'][:,:] > 100.) | \
-        (data['nsidc_ice'][:,:] == 0.), \
+        data['nsidc_ice'][:,:] == -999.) | (data['nsidc_ice'][:,:] != 100.), \
         data['nsidc_ice'])
+        #data['nsidc_ice'][:,:] == -999.) | (data['nsidc_ice'][:,:] > 100.) | \
+        #(data['nsidc_ice'][:,:] == 0.), \
     coloc_data['NSIDC_OCEAN'] = np.ma.masked_where((\
         data['nsidc_ice'][:,:] == -999.) | (data['nsidc_ice'][:,:] > 0.), \
         data['nsidc_ice'])
@@ -75,6 +76,8 @@ def read_colocated(date_str):
 
 def select_category(coloc_data, var, cat):
 
+    ch7_lim = 0.05
+
     if(cat == 'ICE'):
         return np.ma.masked_where((coloc_data['NSIDC_ICE'].mask ), coloc_data[var])
     elif(cat == 'OCEAN'):
@@ -83,22 +86,22 @@ def select_category(coloc_data, var, cat):
         return np.ma.masked_where((coloc_data['NSIDC_LAND'].mask ), coloc_data[var])
     elif(cat == 'ICE_CLEAR'):
         return np.ma.masked_where((coloc_data['NSIDC_ICE'].mask) | \
-            (coloc_data['MODIS_CH7'] > 0.1), coloc_data[var])
+            (coloc_data['MODIS_CH7'] > ch7_lim), coloc_data[var])
     elif(cat == 'ICE_CLOUD'):
         return np.ma.masked_where((coloc_data['NSIDC_ICE'].mask) | \
-            (coloc_data['MODIS_CH7'] < 0.1), coloc_data[var])
+            (coloc_data['MODIS_CH7'] < ch7_lim), coloc_data[var])
     elif(cat == 'OCEAN_CLEAR'):
         return np.ma.masked_where((coloc_data['NSIDC_OCEAN'].mask) | \
-            (coloc_data['MODIS_CH7'] > 0.1), coloc_data[var])
+            (coloc_data['MODIS_CH7'] > ch7_lim), coloc_data[var])
     elif(cat == 'OCEAN_CLOUD'):
         return np.ma.masked_where((coloc_data['NSIDC_OCEAN'].mask) | \
-            (coloc_data['MODIS_CH7'] < 0.1), coloc_data[var])
+            (coloc_data['MODIS_CH7'] < ch7_lim), coloc_data[var])
     elif(cat == 'LAND_CLEAR'):
         return np.ma.masked_where((coloc_data['NSIDC_LAND'].mask) | \
-            (coloc_data['MODIS_CH7'] > 0.1), coloc_data[var])
+            (coloc_data['MODIS_CH7'] > ch7_lim), coloc_data[var])
     elif(cat == 'LAND_CLOUD'):
         return np.ma.masked_where((coloc_data['NSIDC_LAND'].mask) | \
-            (coloc_data['MODIS_CH7'] < 0.1), coloc_data[var])
+            (coloc_data['MODIS_CH7'] < ch7_lim), coloc_data[var])
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
@@ -126,10 +129,35 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(modis_date_str, ch1, \
     from NSIDCLib import plotNSIDC_daily_figure
 
     file_date_dict = {
+        '200804221935': {
+            'size': (14,5), 
+            'OMI': '200804221841', 
+            'CERES': '2008042219', 
+        },
+        '200804222110': {
+            'size': (14,5), 
+            'OMI': '200804222020', 
+            'CERES': '2008042221', 
+        },
+        '200804222250': {
+            'size': (14,5), 
+            'OMI': '200804222159', 
+            'CERES': '2008042222', 
+        },
+        '201807051950': {
+            'size': (14,5), 
+            'OMI': '201807051856', 
+            'CERES': '2018070519', 
+        },
         '201807052125': {
             'size': (14,5), 
             'OMI': '201807052034', 
             'CERES': '2018070521', 
+        },
+        '201807052305': {
+            'size': (14,5), 
+            'OMI': '201807052213',
+            'CERES': '2018070523', 
         },
         '201808241435': {
             'OMI': '201808241343', 

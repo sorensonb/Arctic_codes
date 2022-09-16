@@ -12,13 +12,20 @@ from Arctic_compare_lib import *
 # Set up the overall figure
 # ----------------------------------------------------
 
-date_str = '201807052125'
+#date_str = '200804221935'
+#date_str = '200804222110'
+date_str = '200804222250'
+#date_str = '201807051950'
+#date_str = '201807052125'
+#date_str = '201807052305'
 #date_str = '201908110125'
 #date_str = '201908110440'
 var1 = 'OMI'
 var2 = 'CERES_SWF'
-#plot_compare_OMI_CERES_MODIS_NSIDC(date_str, 7, \
-#    omi_dtype = 'shawn', minlat = 65., zoom = False, save = True)
+plot_compare_OMI_CERES_MODIS_NSIDC(date_str, 7, \
+    omi_dtype = 'shawn', minlat = 65., zoom = True, save = False)
+sys.exit()
+
 #plot_compare_scatter(date_str, var1, var2, var3 = 'NSIDC_LAND', minlat = 65., \
 #    xmin = 1, zoom = False, save = False, trend = True)
 #plot_compare_colocate_spatial(date_str, minlat = 65., zoom = False, \

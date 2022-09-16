@@ -28,6 +28,10 @@ from compare_cn2 import *
 ##!#
 ##!#sys.exit()
 
+plot_calibration_curves_both(save = True)
+
+sys.exit()
+
 date_str = '2018050505'
 #date_str = '2019050403'
 

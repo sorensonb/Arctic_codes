@@ -11,6 +11,9 @@ import matplotlib.pyplot as plt
 import os
 import warnings
 import datetime as dt
+import pandas as pd
+from scipy.optimize import curve_fit
+from sklearn.metrics import r2_score
 from adpaa import ADPAA
 from readsounding import *
 from compare_cn2 import cn2_calc, cn2_calc_thermo, smooth, plot_cn2
@@ -607,3 +610,181 @@ def plot_combined_figure(date_str, save = False):
     else:
         plt.show()
 
+def func(x, a, c):
+    return a * np.log(x) + c
+
+#def plot_calibration_curves(data, split_val, outname):
+def plot_calibration_curves(date_str, save = False):
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d')   
+ 
+    # Read the calibration curve data
+    # -------------------------------
+    data = pd.read_csv(dt_date_str.strftime('calibration_values_%m_%d_%Y.csv'))
+    #data2 = pd.read_csv('calibration_values_05_04_2019.csv')
+
+    if(date_str == '20171117'):
+        split_val = data['Vrms2'][5]
+    else:
+        split_val = data['Vrms2'][4]
+
+    xdata1 = data['Vrms2']
+    ydata1 = data['Vcorr2']
+
+    xdata2 = data['Vcorr2']
+    ydata2 = data['DeltaT']
+
+    xdata1_1 = xdata1[xdata1 <= split_val]
+    ydata1_1 = ydata1[xdata1 <= split_val]
+    xdata1_2 = xdata1[xdata1 >= split_val]
+    ydata1_2 = ydata1[xdata1 >= split_val]
+
+    print('xdata1_1 = ', xdata1_1)
+
+    popt, pcov = curve_fit(func, xdata1_1, ydata1_1)
+
+    print('popt = ', popt)
+
+    z1_2 = np.polyfit(xdata1_2, ydata1_2, 1)
+    p1_2 = np.poly1d(z1_2)
+
+    z2 = np.polyfit(xdata2, ydata2, 1)
+    p2 = np.poly1d(z2)
+
+    # Calculate R2
+    # ------------
+    r2_11 = r2_score(ydata1_1, func(xdata1_1, *popt))
+    print("R2_11 = ", r2_11)
+    r2_12 = r2_score(ydata1_2, p1_2(xdata1_2))
+    print("R2_12 = ", r2_12)
+    r2_2 = r2_score(ydata2, p2(xdata2))
+    print("R2_2 = ", r2_2)
+    
+
+    # Plot everything
+    # ---------------
+    fig = plt.figure(figsize = (9,4))
+    ax1 = fig.add_subplot(1,2,1)
+    ax2 = fig.add_subplot(1,2,2)
+
+    ax1.plot(xdata1_1, func(xdata1_1, *popt), linestyle = '-', color = 'tab:olive')
+    ax1.text(xdata1_1[2] + 0.5, ydata1_1[2], \
+        "V$_{{COR}}$= {0:.3f}*ln(V$_{{RMS}}$) + {1:.3f}\nr$^2$ = {2:}\nV$_{{RMS}}$ < {3:.3f}".format(*popt, \
+        np.round(r2_11,3), split_val), \
+        color = 'k', backgroundcolor = 'white', weight = 'bold')
+    ##!#out = plot_trend_line(ax1, xdata1_1, ydata1_1, color = 'tab:red', \
+    ##!#    linestyle = '-', slope = 'lin-regress', linewidth = 0.5)
+    ##!#print(out)
+    #out = plot_trend_line(ax1, xdata1_2, ydata1_2, color = 'tab:orange', \
+    #    linestyle = '-', slope = 'lin-regress', linewidth = 0.5)
+    ax1.plot(xdata1_2,p1_2(xdata1_2), color = 'tab:orange', linestyle = '-')
+    if(z1_2[1] < 0):
+        ax1.text(xdata1[2], ydata1[10], \
+            "V$_{{COR}}$ = {0:.3f}*V$_{{RMS}}$ - {1:.3f}\nr$^2$ = {2}\nV$_{{RMS}}$ >= {3:.3f}".format(\
+            z1_2[0], abs(z1_2[1]), np.round(r2_12), split_val), \
+            color = 'k', backgroundcolor = 'white', weight = 'bold')
+    else:       
+        ax1.text(xdata1[2], ydata1[10], \
+            "V$_{{COR}}$ = {0:.3f}*V$_{{RMS}}$ + {1:.3f}\nr$^2$ = {2}\nV$_{{RMS}}$ >= {3:.3f}".format(\
+            z1_2[0], abs(z1_2[1]), np.round(r2_12), split_val), \
+            color = 'k', backgroundcolor = 'white', weight = 'bold')
+    print(z1_2)
+    ax1.plot(xdata1,ydata1, 'o', markersize = 4)
+    ax1.set_xlabel('V$_{RMS}$ (V)', fontsize = 12)
+    ax1.set_ylabel('V$_{Corrected}$ (V)', fontsize = 12)
+    ax1.set_title('Voltage Calibration')
+    ax1.grid()
+
+    ax2.plot(xdata2,p2(xdata2), color = 'tab:orange', linestyle = '-')
+    #out = plot_trend_line(ax2, xdata2, ydata2, color = 'tab:orange', linestyle = '-', \
+    #    slope = 'lin-regress', linewidth = 0.5)
+    print(z2)
+    if(z2[1] < 0):
+        ax2.text(xdata2[2], ydata2[10], \
+            "ΔT = {0:.3f}*V$_{{COR}}$ - {1:.3f}\nr$^2$ = {2:}".format(z2[0], abs(z2[1]), np.round(r2_2)), \
+            color = 'k', backgroundcolor = 'white', weight = 'bold')
+    else:       
+        ax2.text(xdata2[2], ydata2[10], \
+            "ΔT = {0:.3f}*V$_{{COR}}$ + {1:.3f}\nr$^2$ = {2:}".format(z2, np.round(r2_2)), \
+            color = 'k', backgroundcolor = 'white', weight = 'bold')
+ 
+    ax2.plot(xdata2,ydata2, 'o', markersize = 4)
+    #ax2.plot(xdata2,p2(xdata2),'r--')
+    ax2.set_xlabel('V$_{Corrected}$ (V)', fontsize = 12)
+    ax2.set_ylabel('ΔT (K)', fontsize = 12)
+    ax2.set_title('Temperature Conversion')
+    ax2.grid()
+
+    plot_subplot_label(ax1, '(a)', fontsize = 11)
+    plot_subplot_label(ax2, '(b)', fontsize = 11)
+
+    plt.suptitle(dt_date_str.strftime('%Y-%m-%d'))
+
+    fig.tight_layout()
+
+    if(save):
+        outname = 'calib_curves_' + date_str + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+def plot_calibration_curves_both(save = False):
+
+    lab_floor = 0.23
+    site_floor = 0.25
+    lab_floor2 = 0.255
+
+    plot_calibration_curves('20171117', save = save)
+    plot_calibration_curves('20190504', save = save)
+    #plot_calibration_curves(data1, 0.667)
+    #plot_calibration_curves(data2, 0.4)
+
+    ##!#xdata1 = data['Vrms2']
+    ##!#ydata1 = data['Vcorr2']
+
+    ##!#xdata2 = data['Vcorr2']
+    ##!#ydata2 = data['DeltaT']
+
+    ##!## Divide the voltage calibration data
+    ##!## -----------------------------------
+    ##!#split_val = 0.6
+    ##!#xdata1_1 = xdata1[xdata1 < split_val]
+    ##!#ydata1_1 = ydata1[xdata1 < split_val]
+    ##!#xdata1_2 = xdata1[xdata1 >= split_val]
+    ##!#ydata1_2 = ydata1[xdata1 >= split_val]
+
+    ##!#z2 = np.polyfit(xdata2, ydata2, 1)
+    ##!#p2 = np.poly1d(z2)
+
+    ##!## Plot everything
+    ##!## ---------------
+    ##!#fig = plt.figure(figsize = (9,3))
+    ##!#ax1 = fig.add_subplot(1,2,1)
+    ##!#ax2 = fig.add_subplot(1,2,2)
+
+    ##!#out = plot_trend_line(ax1, xdata1_2, ydata1_2, color = 'tab:red', \
+    ##!#    linestyle = '-', slope = 'lin-regress', linewidth = 0.5)
+    ##!#print(out)
+    ##!#ax1.plot(xdata1,ydata1, 'o', markersize = 4)
+    ##!#ax1.set_xlabel('V$_{RMS}$ (V)')
+    ##!#ax1.set_ylabel('V$_{Corrected}$ (V)')
+    ##!#ax1.set_title('Voltage Calibration')
+    ##!#ax1.grid()
+
+    ##!#out = plot_trend_line(ax2, xdata2, ydata2, color = 'tab:red', linestyle = '-', \
+    ##!#    slope = 'lin-regress', linewidth = 0.5)
+    ##!#print(out)
+    ##!#ax2.plot(xdata2,ydata2, 'o', markersize = 4)
+    ##!##ax2.plot(xdata2,p2(xdata2),'r--')
+    ##!#ax2.set_xlabel('V$_{Corrected}$ (V)')
+    ##!#ax2.set_ylabel('ΔT (K)')
+    ##!#ax2.set_title('Temperature Conversion')
+    ##!#ax2.grid()
+
+    ##!#plot_subplot_label(ax1, '(a)', fontsize = 11)
+    ##!#plot_subplot_label(ax2, '(b)', fontsize = 11)
+
+    ##!#fig.tight_layout()
+
+    ##!#plt.show()

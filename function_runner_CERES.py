@@ -179,7 +179,16 @@ date_idx = 39 # very very good, JZ
 #date_idx = 40 # 
 
 
-date_str = '2018070519' # GOOD
+date_str = '2008042219' # GOOD
+#date_str = '2008042221' # GOOD
+#date_str = '2008042222' # GOOD
+#date_str = '2016051520' # MEDIOCRE
+#date_str = '2016051522' # MEDIOCRE
+#date_str = '2016051523' # MEDIOCRE
+#date_str = '2016051622' # MEDIOCRE
+#date_str = '2018070519' # GOOD
+#date_str = '2018070521' # GOOD
+#date_str = '2018070523' # GOOD
 #date_str = '2019081022' # GOOD
 #date_str = '2019081023' # GOOD
 #date_str = '2019081101' # GOOD
@@ -212,9 +221,10 @@ plotCERES_hrly_figure(date_str, param,  \
     vmax = 450, vmin = None, save = False)
 sys.exit()
 
-CERES_grid_hrly = '2019081101'
+CERES_grid_hrly = date_str
+#CERES_grid_hrly = '2019081101'
 write_CERES_hrly_grid_to_HDF5(CERES_grid_hrly, \
-    save_path = '/home/bsorenson/Research/Arctic_compares/comp_data/20190811/')
+    save_path = '/home/bsorenson/Research/Arctic_compares/comp_data/20180705/')
 ##!#CERES_data_hrly = readgridCERES_hrly_grid(date_str, param, \
 ##!#    satellite = 'Aqua', minlat = minlat)
 ##!#

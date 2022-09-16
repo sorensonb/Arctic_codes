@@ -58,7 +58,14 @@ date_str = '201807051856'
 #date_str = '201605152104'
 #date_str = '201605162009'
 
-#date_str = '201807051856'
+date_str = '200804221841' # GOOD
+#date_str = '200804222020' # GOOD
+#date_str = '200804222159' # GOOD
+#date_str = '201605151925' # MEDIOCRE
+#date_str = '201605152104' # MEDIOCRE
+#date_str = '201605152243' # MEDIOCRE
+#date_str = '201605162148' # MEDIOCRE
+#date_str = '201807051856' # GOOD
 #date_str = '201908102115' # GOOD
 #date_str = '201908102254' # GOOD
 #date_str = '201908110033' # GOOD
@@ -94,9 +101,9 @@ plotOMI_single_swath_figure(date_str, dtype = 'shawn',  \
 sys.exit()
 
 minlat = 65.
-OMI_base = '201908110033'
+OMI_base = date_str
 #OMI_base = '201908110351'
-write_shawn_to_HDF5(OMI_base, save_path = '/home/bsorenson/Research/Arctic_compares/comp_data/20190811/', minlat = 65., \
+write_shawn_to_HDF5(OMI_base, save_path = '/home/bsorenson/Research/Arctic_compares/comp_data/20180705/', minlat = 65., \
     shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
 sys.exit()
 

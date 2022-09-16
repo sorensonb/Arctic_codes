@@ -8,19 +8,22 @@
 from MODISLib import *
 
 #date_str = '202107202125'
-date_str = '202107222110'
+#date_str = '202107222110'
 #date_str = '202108062025'
 #date_str = '202109012105'
 channel1 = 1
 channel2 = 5
 channel3 = 31
 
+#date_str = '201807051950'
+date_str = '201807052305'
 #date_str = '201807052125'
-MODIS_data = '201908110125'
+MODIS_data = date_str
+#MODIS_data = '201908110125'
 write_MODIS_to_HDF5(MODIS_data, channel = 2, swath = True, \
-    save_path = '/home/bsorenson/Research/Arctic_compares/comp_data/20190811/')
+    save_path = '/home/bsorenson/Research/Arctic_compares/comp_data/' + date_str[:8] + '/')
 write_MODIS_to_HDF5(MODIS_data, channel = 7, swath = True, \
-    save_path = '/home/bsorenson/Research/Arctic_compares/comp_data/20190811/')
+    save_path = '/home/bsorenson/Research/Arctic_compares/comp_data/' + date_str[:8] + '/')
 sys.exit()
 
 
