@@ -14,25 +14,64 @@ from Arctic_compare_lib import *
 
 #date_str = '200804221935'
 #date_str = '200804222110'
-date_str = '200804222250'
+#date_str = '200804222250'
 #date_str = '201807051950'
 #date_str = '201807052125'
-#date_str = '201807052305'
+date_str = '201807052305'
 #date_str = '201908110125'
 #date_str = '201908110440'
+
+date_strs = ['200804221841',  # GOOD
+             '200804222020',  # GOOD
+             '200804222159',  # GOOD
+             ##!#'201605151925',  # MEDIOCRE
+             ##!#'201605152104',  # MEDIOCRE
+             ##!#'201605152243',  # MEDIOCRE
+             ##!#'201605162148',  # MEDIOCRE
+             '201807051856',  # GOOD
+             '201908102115',  # GOOD
+             '201908102254',  # GOOD
+             '201908110033',  # GOOD
+             '201908110351',  # GOOD
+             ##!#'200607260017',  # GOOD
+             ##!#'200607252238',  # GOOD
+             ##!#'200607260156',  # GOOD
+             ##!#'200607260335',  # GOOD
+             ##!#'200607260513',  # GOOD
+             '201708161504',  # GOOD
+             '201708161643',  # GOOD
+             '201708161821',  # GOOD
+             '201708171408',  # GOOD
+             '201708171547',  # GOOD
+             '201708171726',  # GOOD
+             '201708171905',  # GOOD
+             '201708172043',  # GOOD
+             '201708181312',  # GOOD
+             '201708181451',  # GOOD
+             '201708181630',  # GOOD
+             '201708181809',  # GOOD
+             '201708181948',  # GOOD
+             '201708191355',  # GOOD
+             '201708191534',  # GOOD
+             '201708191713' ] # GOOD
+
+out_dict = auto_all_download(date_strs, download = False)
+
+sys.exit()
+
 var1 = 'OMI'
 var2 = 'CERES_SWF'
-plot_compare_OMI_CERES_MODIS_NSIDC(date_str, 7, \
-    omi_dtype = 'shawn', minlat = 65., zoom = True, save = False)
-sys.exit()
+#plot_compare_OMI_CERES_MODIS_NSIDC(date_str, 7, \
+#    omi_dtype = 'shawn', minlat = 65., zoom = True, save = False)
+#sys.exit()
 
 #plot_compare_scatter(date_str, var1, var2, var3 = 'NSIDC_LAND', minlat = 65., \
 #    xmin = 1, zoom = False, save = False, trend = True)
 #plot_compare_colocate_spatial(date_str, minlat = 65., zoom = False, \
 #    save = False)
-#cat = 'ICE_CLOUD'
+cat = 'ICE_CLOUD'
 #cat = 'OCEAN_CLOUD'
-cat = 'LAND_CLEAR'
+#cat = 'LAND_CLEAR'
 #plot_compare_colocate_spatial_category(date_str, cat = cat, minlat = 65., \
 #    zoom = True, save = False)
 trend = True

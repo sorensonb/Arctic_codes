@@ -40,11 +40,13 @@ from satpy.scene import Scene
 from satpy import find_files_and_readers
 from satpy.writers import get_enhanced_image
 from glob import glob
+import os
 
 sys.path.append('/home/bsorenson/')
 from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
     nearest_gridpoint, aerosol_event_dict, init_proj, \
-    convert_radiance_to_temp, format_coord, circle
+    convert_radiance_to_temp, format_coord, circle, listFD, \
+    laads_daac_key
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 # Set up global variables
@@ -550,6 +552,108 @@ def getCorners(centers):
 ##!#        np.abs(grid_lon - slon))
 ##!#    m_idx = np.where(fun_c == np.min(fun_c))
 ##!#    return m_idx
+
+# Using a CERES swath as a base, download the matching MODIS granules
+# -------------------------------------------------------------------
+def download_MODIS_swath(CERES_date_str, \
+        dest_dir = '/home/bsorenson/data/MODIS/Aqua/', download = True):
+
+    if('/home/bsorenson/Research/CERES/' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/CERES/')
+    from gridCERESLib import readgridCERES_hrly_grid
+    
+    dt_date_str = datetime.strptime(CERES_date_str, '%Y%m%d%H')
+
+    # Read in the CERES swath
+    # -----------------------
+    CERES_data_hrly = readgridCERES_hrly_grid(CERES_date_str, 'SWF', \
+        satellite = 'Aqua', minlat = 65.0, season='all')
+    
+    # Use the pixel times to determine the granules to grab
+    # -----------------------------------------------------
+    min_dt = np.min(CERES_data_hrly['time_dt'])   
+    max_dt = np.max(CERES_data_hrly['time_dt'])   
+
+    min_modis = min_dt - timedelta(minutes = min_dt.minute % 5, \
+                                   seconds = min_dt.second, \
+                                   microseconds = min_dt.microsecond)
+
+    max_modis = max_dt - timedelta(minutes = max_dt.minute % 5, \
+                                   seconds = max_dt.second, \
+                                   microseconds = max_dt.microsecond)
+
+    modis_time = min_modis
+    return_str = ''
+    while(modis_time <= max_modis):
+        print(modis_time.strftime('%Y%m%d%H%M')) 
+
+        return_str = return_str + modis_time.strftime('%Y%m%d%H%M') + ' '
+
+        if(download):
+            download_MODIS_file(modis_time.strftime('%Y%m%d%H%M'), \
+                dest_dir = dest_dir)
+ 
+        modis_time = modis_time + timedelta(minutes = 5)
+    
+    return return_str.split()
+
+# This downloads the MODIS l1b HDF5 file that is closest to the passed
+# date string from the LAADS DAAC archive. 
+# --------------------------------------------------------------------
+def download_MODIS_file(date_str, dest_dir = '/home/bsorenson/data/MODIS/Aqua/'):
+
+    base_url = 'https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/61/MYD021KM'
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+
+    # For each desired channel, figure out the closest file time
+    # to the input date
+    # ----------------------------------------------------------
+    try:
+        files = listFD(dt_date_str.strftime(base_url + '/%Y/%j/'), ext = '.hdf')
+    except subprocess.CalledProcessError:
+        print("ERROR: No MODIS files for the input DTG",date_str)
+        return
+
+    if(len(files) == 0):
+        print("ERROR: No MODIS files returned from the request. Exiting")
+        return
+    
+    # Remove the timestamps from the file strings
+    # -------------------------------------------
+    files_only = [tfile.strip().split('/')[-1] for tfile in files]
+
+    # Use the actual file times to get timestamps
+    # -------------------------------------------
+    file_dates = [datetime.strptime(tfile[10:22],'%Y%j.%H%M') for tfile in files_only]
+
+    # Figure out where the closest files to the desired time are
+    # ----------------------------------------------------------
+    time_diffs = np.array([abs((dt_date_str - ddate).total_seconds()) \
+        for ddate in file_dates])
+
+    # Extract the index of the matching MODIS file
+    # --------------------------------------------
+    file_idx = np.argmin(time_diffs)
+    found_file = files_only[file_idx]
+ 
+    # Check if the file is already downloaded
+    # ---------------------------------------
+    if(os.path.exists(dest_dir + found_file)):
+        print(found_file + ' already exists. Not downloading')
+    else: 
+        # Download the file
+        # -----------------
+        cmnd = dt_date_str.strftime("wget \"" + base_url + '/%Y/%j/' + found_file + \
+            "\" --header \"Authorization: Bearer " + laads_daac_key + "\" -P .")
+        print(cmnd)
+        os.system(cmnd)
+
+        # Move the file to the destination folder
+        # ---------------------------------------
+        cmnd = "mv " + found_file + " " + dest_dir
+        print(cmnd) 
+        os.system(cmnd)
  
 # Extract the MODIS information from a given channel at each ob point
 # -------------------------------------------------------------------

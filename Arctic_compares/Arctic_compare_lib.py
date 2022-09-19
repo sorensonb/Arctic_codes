@@ -6,6 +6,7 @@
 
 """
 import sys
+import json
 sys.path.append('/home/bsorenson')
 from python_lib import circle, plot_trend_line, nearest_gridpoint, \
     aerosol_event_dict, init_proj, plot_lat_circles, plot_figure_text, \
@@ -22,6 +23,60 @@ from NSIDCLib import *
 data_dir = '/home/bsorenson/Research/Arctic_compares/comp_data/'
 datacrs = ccrs.PlateCarree()
 mapcrs = ccrs.NorthPolarStereo()
+
+json_database = '/home/bsorenson/Research/Arctic_compares/test_file_json.txt'
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
+# Downloading functions
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def auto_all_download(date_str, download = True):
+    if(isinstance(date_str, str)):
+        date_str = [date_str]
+
+    out_dict = {}
+
+    file_exists = False
+    # if the json file exists, read it in
+    # -----------------------------------
+    if(os.path.exists(json_database)):
+        print("JSON already exists. Reading in")
+        file_exists = True
+        with open(json_database,'r') as fin:
+            out_dict = json.load(fin)
+
+    for dstr in date_str:
+        print(dstr)
+        if(dstr not in out_dict.keys()):
+            OMI_base = readOMI_swath_shawn(dstr, latmin = 65., \
+                shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
+
+            CERES_date_str = np.min(OMI_base['TIME'][~OMI_base['UVAI_raw'].mask]).strftime('%Y%m%d%H')
+
+            modis_list = download_MODIS_swath(CERES_date_str, \
+                    dest_dir = '/home/bsorenson/data/MODIS/Aqua/', download = download)
+   
+            if(download): 
+                download_NSIDC_daily(CERES_date_str[:10])
+
+            print(date_str)
+            print('    OMI - ', date_str)
+            print('  CERES - ', CERES_date_str)
+            print('  MODIS - ', *modis_list)
+            print('  NSIDC - ', CERES_date_str[:8])
+
+            out_dict[dstr] = {}
+            out_dict[dstr]['CERES'] = CERES_date_str
+            out_dict[dstr]['MODIS'] = modis_list
+            out_dict[dstr]['NSIDC'] = CERES_date_str
+
+    with open(json_database,'w') as fout:
+        json.dump(out_dict, fout)
+
+    return out_dict
+        
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
@@ -45,10 +100,10 @@ def read_colocated(date_str):
         data['modis_ch7'][:,:] == -999.) | (data['modis_ch7'][:,:] > 1.0), \
         data['modis_ch7'])
     coloc_data['NSIDC_ICE'] = np.ma.masked_where((\
-        data['nsidc_ice'][:,:] == -999.) | (data['nsidc_ice'][:,:] != 100.), \
+        #data['nsidc_ice'][:,:] == -999.) | (data['nsidc_ice'][:,:] > 100.), \
+        data['nsidc_ice'][:,:] == -999.) | (data['nsidc_ice'][:,:] > 100.) | \
+        (data['nsidc_ice'][:,:] < 80.), \
         data['nsidc_ice'])
-        #data['nsidc_ice'][:,:] == -999.) | (data['nsidc_ice'][:,:] > 100.) | \
-        #(data['nsidc_ice'][:,:] == 0.), \
     coloc_data['NSIDC_OCEAN'] = np.ma.masked_where((\
         data['nsidc_ice'][:,:] == -999.) | (data['nsidc_ice'][:,:] > 0.), \
         data['nsidc_ice'])
@@ -127,6 +182,8 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(modis_date_str, ch1, \
     from gridCERESLib import plotCERES_hrly_figure
     from MODISLib import plot_MODIS_channel
     from NSIDCLib import plotNSIDC_daily_figure
+
+    
 
     file_date_dict = {
         '200804221935': {

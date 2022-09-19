@@ -58,7 +58,42 @@ date_str = '201807051856'
 #date_str = '201605152104'
 #date_str = '201605162009'
 
-date_str = '200804221841' # GOOD
+
+date_strs = ['200804221841',  # GOOD
+             '200804222020',  # GOOD
+             '200804222159',  # GOOD
+             '201605151925',  # MEDIOCRE
+             '201605152104',  # MEDIOCRE
+             '201605152243',  # MEDIOCRE
+             '201605162148',  # MEDIOCRE
+             '201807051856',  # GOOD
+             '201908102115',  # GOOD
+             '201908102254',  # GOOD
+             '201908110033',  # GOOD
+             '201908110351',  # GOOD
+             '200607260017',  # GOOD
+             '200607252238',  # GOOD
+             '200607260156',  # GOOD
+             '200607260335',  # GOOD
+             '200607260513',  # GOOD
+             '201708161504',  # GOOD
+             '201708161643',  # GOOD
+             '201708161821',  # GOOD
+             '201708171408',  # GOOD
+             '201708171547',  # GOOD
+             '201708171726',  # GOOD
+             '201708171905',  # GOOD
+             '201708172043',  # GOOD
+             '201708181312',  # GOOD
+             '201708181451',  # GOOD
+             '201708181630',  # GOOD
+             '201708181809',  # GOOD
+             '201708181948',  # GOOD
+             '201708191355',  # GOOD
+             '201708191534',  # GOOD
+             '201708191713' ] # GOOD
+
+
 #date_str = '200804222020' # GOOD
 #date_str = '200804222159' # GOOD
 #date_str = '201605151925' # MEDIOCRE
@@ -92,11 +127,33 @@ date_str = '200804221841' # GOOD
 #date_str = '201708191534' # GOOD
 #date_str = '201708191713' # GOOD
 
-plotOMI_single_swath_figure(date_str, dtype = 'shawn',  \
-        only_sea_ice = False, minlat = 65., skiprows = None, \
-        lat_circles = None, save = False, zoom = False, \
-        circle_bound = True, ax = None, \
+sys.path.append('/home/bsorenson/Research/MODIS/obs_smoke_forcing/')
+from MODISLib import *
+
+
+for date_str in date_strs[:5]:
+
+    OMI_base = readOMI_swath_shawn(date_str, latmin = 65., \
         shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
+
+    CERES_date_str = np.min(OMI_base['TIME'][~OMI_base['UVAI_raw'].mask]).strftime('%Y%m%d%H')
+
+    modis_list = download_MODIS_swath(CERES_date_str, \
+            dest_dir = '/home/bsorenson/data/MODIS/Aqua/', download = False)
+
+    print(date_str)
+    print('    OMI - ', date_str)
+    print('  CERES - ', CERES_date_str)
+    print('  MODIS - ', *modis_list)
+    print('  NSIDC - ', CERES_date_str[:10])
+    
+    #print('    ', np.min(OMI_base['TIME'][~OMI_base['UVAI_raw'].mask]), np.max(OMI_base['TIME'][~OMI_base['UVAI_raw'].mask]))
+
+#plotOMI_single_swath_figure(date_str, dtype = 'shawn',  \
+#        only_sea_ice = False, minlat = 65., skiprows = None, \
+#        lat_circles = None, save = False, zoom = False, \
+#        circle_bound = True, ax = None, \
+#        shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
 
 sys.exit()
 

@@ -16,7 +16,16 @@ channel2 = 5
 channel3 = 31
 
 #date_str = '201807051950'
-date_str = '201807052305'
+date_str = '201807052127'
+
+CERES_date_str = '2008042219'
+download_MODIS_swath(CERES_date_str, \
+    dest_dir = '/home/bsorenson/data/MODIS/Aqua/')
+
+#download_MODIS_file(date_str, dest_dir = '/home/bsorenson/data/MODIS/Aqua/')
+
+sys.exit()
+
 #date_str = '201807052125'
 MODIS_data = date_str
 #MODIS_data = '201908110125'
