@@ -53,11 +53,16 @@ date_strs = ['200804221841',  # GOOD
              '201708181948',  # GOOD
              '201708191355',  # GOOD
              '201708191534',  # GOOD
-             '201708191713' ] # GOOD
+             '201708191713',  # GOOD
+             '201808241343',
+            ]
 
-out_dict = auto_all_download(date_strs, download = False)
-
+automate_all_preprocess(date_strs, download = False, images = True, process = False)
 sys.exit()
+
+out_time_dict, out_file_dict = auto_all_download(date_strs, download = True, rewrite_json = True)
+sys.exit()
+
 
 var1 = 'OMI'
 var2 = 'CERES_SWF'

@@ -24,7 +24,76 @@ data_dir = '/home/bsorenson/Research/Arctic_compares/comp_data/'
 datacrs = ccrs.PlateCarree()
 mapcrs = ccrs.NorthPolarStereo()
 
-json_database = '/home/bsorenson/Research/Arctic_compares/test_file_json.txt'
+json_time_database = '/home/bsorenson/Research/Arctic_compares/json_comp_times.txt'
+json_file_database = '/home/bsorenson/Research/Arctic_compares/json_comp_files.txt'
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
+# Automation
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+# This function automates everything for a single OMI date string:
+# the data downloading/matching, the first-look comparison-making, the 
+# HDF5 file-making, and the data copying to Raindrop.
+def automate_all_preprocess(date_str, download = True, images = True, \
+        process = True):
+    if(isinstance(date_str, str)):
+        date_str = [date_str]
+
+    # If desired, download all data and/or match up the files in the JSON
+    # -------------------------------------------------------------------
+    #auto_all_download(date_str, download = download)
+
+    # Load in the JSON file string relations
+    # --------------------------------------
+    with open(json_time_database, 'r') as fin:
+        file_date_dict = json.load(fin)
+
+    # date_str should consist of an array of OMI swath times
+    for dstr in date_str:
+
+        dt_date_str = datetime.strptime(dstr, '%Y%m%d%H%M')
+
+        print(dstr)
+
+        # Select the matching MODIS swath time from the time JSON
+        # -------------------------------------------------------
+
+        if(images):
+            # Plot the first-look 6-panel comparison plot
+            # -------------------------------------------
+            modis_date_str = file_date_dict[dstr]['MODIS'][0]
+            plot_compare_OMI_CERES_MODIS_NSIDC(modis_date_str, 7, \
+                omi_dtype = 'shawn', minlat = 65., zoom = True, save = True)
+
+        if(process):
+            # Make a data storage directory, if one does not already exist
+            # ------------------------------------------------------------
+            save_dir = dt_date_str.strftime(data_dir + '%Y%m%d/')
+            print(save_dir)
+
+            if(not os.path.exists(save_dir)):
+                print('Making ', save_dir)
+                os.system('mkdir ' +  save_dir)
+    
+            # Run the data subsetter codes
+            # ----------------------------
+            write_shawn_to_HDF5(dstr, save_path = save_dir, minlat = 65., \
+                shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
+
+            write_CERES_hrly_grid_to_HDF5(file_date_dict[dstr]['CERES'], \
+                save_path = save_dir)
+
+            MODIS_date = file_date_dict[dstr]['MODIS'][0]
+            write_MODIS_to_HDF5(MODIS_date, channel = 2, swath = True, \
+                save_path = save_dir)
+            write_MODIS_to_HDF5(MODIS_date, channel = 7, swath = True, \
+                save_path = save_dir)
+
+            NSIDC_date = file_date_dict[dstr]['NSIDC'][:8]
+            print(NSIDC_date)
+            writeNSIDC_to_HDF5(NSIDC_date, save_path = save_dir)
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
@@ -32,51 +101,133 @@ json_database = '/home/bsorenson/Research/Arctic_compares/test_file_json.txt'
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-def auto_all_download(date_str, download = True):
+def auto_all_download(date_str, download = True, rewrite_json = False):
     if(isinstance(date_str, str)):
         date_str = [date_str]
 
-    out_dict = {}
+    out_time_dict = {}
+    out_file_dict = {}
 
-    file_exists = False
+    time_file_exists = False
+    file_file_exists = False
+
     # if the json file exists, read it in
     # -----------------------------------
-    if(os.path.exists(json_database)):
-        print("JSON already exists. Reading in")
-        file_exists = True
-        with open(json_database,'r') as fin:
-            out_dict = json.load(fin)
+    if(os.path.exists(json_time_database)):
+        print("JSON time already exists. Reading in")
+        if(not rewrite_json):
+            time_file_exists = True
+        with open(json_time_database,'r') as fin:
+            out_time_dict = json.load(fin)
+
+    if(os.path.exists(json_file_database)):
+        print("JSON file already exists. Reading in")
+        if(not rewrite_json):
+            file_file_exists = True
+        with open(json_file_database,'r') as fin:
+            out_file_dict = json.load(fin)
 
     for dstr in date_str:
         print(dstr)
-        if(dstr not in out_dict.keys()):
+        if(dstr not in out_time_dict.keys() or rewrite_json):
             OMI_base = readOMI_swath_shawn(dstr, latmin = 65., \
                 shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
 
+            omi_file = subprocess.check_output('ls ' + \
+                '/home/bsorenson/data/OMI/H5_files/' + \
+                'OMI-*_' + OMI_base['date'][:4] + 'm' + OMI_base['date'][4:8] + 't' + \
+                    OMI_base['date'][8:] + '*.he5', shell = True).decode(\
+                'utf-8').strip().split('\n')[0]
+
+            omi_shawn = '/home/bsorenson/data/OMI/shawn_files/' + OMI_base['date']
+
             CERES_date_str = np.min(OMI_base['TIME'][~OMI_base['UVAI_raw'].mask]).strftime('%Y%m%d%H')
 
-            modis_list = download_MODIS_swath(CERES_date_str, \
+            # Look for the CERES file
+            # -----------------------
+            try:
+                ceres_file = subprocess.check_output('ls ' + \
+                    '/home/bsorenson/data/CERES/SSF_Level2/Aqua/' + \
+                    'CERES_SSF_Aqua-XTRK_Edition4A_Subset_' + \
+                    CERES_date_str[:8] + '*', shell = True).decode(\
+                    'utf-8').strip().split('\n')[0]
+                print(ceres_file)
+            except subprocess.CalledProcessError:
+                print("CERES file not found. Must download")
+                print(" Cycling the loop.")
+                continue
+
+            modis_date_list, file_list = download_MODIS_swath(CERES_date_str, \
                     dest_dir = '/home/bsorenson/data/MODIS/Aqua/', download = download)
    
             if(download): 
-                download_NSIDC_daily(CERES_date_str[:10])
+                download_NSIDC_daily(CERES_date_str[:8])
 
-            print(date_str)
-            print('    OMI - ', date_str)
-            print('  CERES - ', CERES_date_str)
-            print('  MODIS - ', *modis_list)
-            print('  NSIDC - ', CERES_date_str[:8])
+            nsidc_file = \
+                '/home/bsorenson/data/NSIDC/NSIDC0051_SEAICE_PS_N25km_' + \
+                CERES_date_str[:8] + '_v2.0.nc'
+    
+            ##!#print(date_str)
+            ##!#print('    OMI - ', dstr)
+            ##!#print('  CERES - ', CERES_date_str)
+            ##!#print('  MODIS - ', *modis_date_list)
+            ##!#print('  NSIDC - ', CERES_date_str[:8])
 
-            out_dict[dstr] = {}
-            out_dict[dstr]['CERES'] = CERES_date_str
-            out_dict[dstr]['MODIS'] = modis_list
-            out_dict[dstr]['NSIDC'] = CERES_date_str
+            ##!#print('   OMI file  - ', omi_shawn)
+            ##!#print(' CERES file  - ', ceres_file)
+            ##!#print(' MODIS files - ', file_list)
+            ##!#print('  NSIDC file - ', nsidc_file)
 
-    with open(json_database,'w') as fout:
-        json.dump(out_dict, fout)
+            out_time_dict[dstr] = {}
+            out_time_dict[dstr]['CERES'] = CERES_date_str
+            out_time_dict[dstr]['MODIS'] = modis_date_list
+            out_time_dict[dstr]['NSIDC'] = CERES_date_str[:8]
 
-    return out_dict
-        
+            ##out_file_dict[dstr] = {}
+            ##out_file_dict[dstr]['OMI'] = omi_shawn
+            ##out_file_dict[dstr]['CERES'] = ceres_file
+            ##out_file_dict[dstr]['MODIS'] = file_list
+            ##out_file_dict[dstr]['NSIDC'] = nsidc_file
+
+            dt_date_str = datetime.strptime(modis_date_list[0], '%Y%m%d%H%M')
+            local_date = dt_date_str.strftime('%Y-%m-%d')
+            if(local_date not in out_file_dict.keys()):
+                out_file_dict[local_date] = {}
+            if('Lat' not in out_file_dict[local_date].keys()):
+                out_file_dict[local_date]['Lat'] = [60., 90.]
+            if('Lon' not in out_file_dict[local_date].keys()):
+                out_file_dict[local_date]['Lon'] = [-180., 180.]
+
+            for ttime, tfile in zip(modis_date_list, file_list):
+                dt_date_str = datetime.strptime(ttime, '%Y%m%d%H%M')
+
+                local_time = dt_date_str.strftime('%H%M')
+
+                if(local_time not in out_file_dict[local_date].keys()):
+                    out_file_dict[local_date][local_time] = {}
+
+                out_file_dict[local_date][local_time]['omi']   = omi_file
+                out_file_dict[local_date][local_time]['ceres'] = ceres_file
+                out_file_dict[local_date][local_time]['modis'] = tfile
+                out_file_dict[local_date][local_time]['ceres_time'] = CERES_date_str[8:10]
+                out_file_dict[local_date][local_time]['swath']      = modis_date_list
+                if('Lat' not in out_file_dict[local_date][local_time].keys()):
+                    out_file_dict[local_date][local_time]['Lat'] = [60., 90.]
+                if('Lon' not in out_file_dict[local_date][local_time].keys()):
+                    out_file_dict[local_date][local_time]['Lon'] = [-180., 180.]
+                if('modis_Lat' not in out_file_dict[local_date][local_time].keys()):
+                    out_file_dict[local_date][local_time]['modis_Lat'] = [60., 90.]
+                if('modis_Lon' not in out_file_dict[local_date][local_time].keys()):
+                    out_file_dict[local_date][local_time]['modis_Lon'] = [-180., 180.]
+    
+
+    with open(json_time_database,'w') as fout:
+        json.dump(out_time_dict, fout, indent = 4)
+
+    with open(json_file_database,'w') as fout:
+        json.dump(out_file_dict, fout, indent = 4, sort_keys = True)
+
+    return out_time_dict, out_file_dict
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
@@ -185,57 +336,72 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(modis_date_str, ch1, \
 
     
 
-    file_date_dict = {
-        '200804221935': {
-            'size': (14,5), 
-            'OMI': '200804221841', 
-            'CERES': '2008042219', 
-        },
-        '200804222110': {
-            'size': (14,5), 
-            'OMI': '200804222020', 
-            'CERES': '2008042221', 
-        },
-        '200804222250': {
-            'size': (14,5), 
-            'OMI': '200804222159', 
-            'CERES': '2008042222', 
-        },
-        '201807051950': {
-            'size': (14,5), 
-            'OMI': '201807051856', 
-            'CERES': '2018070519', 
-        },
-        '201807052125': {
-            'size': (14,5), 
-            'OMI': '201807052034', 
-            'CERES': '2018070521', 
-        },
-        '201807052305': {
-            'size': (14,5), 
-            'OMI': '201807052213',
-            'CERES': '2018070523', 
-        },
-        '201808241435': {
-            'OMI': '201808241343', 
-            'CERES': '2018082414', 
-        },
-        '201908110125': {
-            'size': (12,6.5), 
-            'OMI': '201908110033', 
-            'CERES': '2019081101', 
-        },
-        '201908110440': {
-            'size': (12,6.5), 
-            'OMI': '201908110351', 
-            'CERES': '2019081104', 
-        },
-    }
+    # Load in the JSON file string relations
+    # --------------------------------------
+    with open(json_time_database, 'r') as fin:
+        file_date_dict = json.load(fin)
+
+    if((modis_date_str[:8] == '20080422') | \
+       (modis_date_str[:8] == '20180705')\
+        ):
+        size = (14, 5)
+    elif(modis_date_str[:8] == '20190811'\
+        ):
+        size = (12, 6.5)
+    else:
+        size = (10, 9)
+    ##!#file_date_dict = {
+    ##!#    '200804221935': {
+    ##!#        'size': (14,5), 
+    ##!#        'OMI': '200804221841', 
+    ##!#        'CERES': '2008042219', 
+    ##!#    },
+    ##!#    '200804222110': {
+    ##!#        'size': (14,5), 
+    ##!#        'OMI': '200804222020', 
+    ##!#        'CERES': '2008042221', 
+    ##!#    },
+    ##!#    '200804222250': {
+    ##!#        'size': (14,5), 
+    ##!#        'OMI': '200804222159', 
+    ##!#        'CERES': '2008042222', 
+    ##!#    },
+    ##!#    '201807051950': {
+    ##!#        'size': (14,5), 
+    ##!#        'OMI': '201807051856', 
+    ##!#        'CERES': '2018070519', 
+    ##!#    },
+    ##!#    '201807052125': {
+    ##!#        'size': (14,5), 
+    ##!#        'OMI': '201807052034', 
+    ##!#        'CERES': '2018070521', 
+    ##!#    },
+    ##!#    '201807052305': {
+    ##!#        'size': (14,5), 
+    ##!#        'OMI': '201807052213',
+    ##!#        'CERES': '2018070523', 
+    ##!#    },
+    ##!#    '201808241435': {
+    ##!#        'OMI': '201808241343', 
+    ##!#        'CERES': '2018082414', 
+    ##!#    },
+    ##!#    '201908110125': {
+    ##!#        'size': (12,6.5), 
+    ##!#        'OMI': '201908110033', 
+    ##!#        'CERES': '2019081101', 
+    ##!#    },
+    ##!#    '201908110440': {
+    ##!#        'size': (12,6.5), 
+    ##!#        'OMI': '201908110351', 
+    ##!#        'CERES': '2019081104', 
+    ##!#    },
+    ##!#}
 
     # Make the overall figure
     # -----------------------
     plt.close('all')
-    fig1 = plt.figure(figsize = file_date_dict[modis_date_str]['size'])
+    #fig1 = plt.figure(figsize = file_date_dict[modis_date_str]['size'])
+    fig1 = plt.figure(figsize = size)
     ax1 = fig1.add_subplot(2,3,1, projection = mapcrs)
     ax2 = fig1.add_subplot(2,3,2, projection = mapcrs)
     ax3 = fig1.add_subplot(2,3,3, projection = mapcrs)
@@ -245,9 +411,9 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(modis_date_str, ch1, \
    
     # Plot the MODIS true-color and channel data
     # ------------------------------------------
-    plot_MODIS_channel(modis_date_str, 'true_color', swath = True, \
+    plot_MODIS_channel(file_date_dict[modis_date_str][0], 'true_color', swath = True, \
         zoom = zoom, ax = ax1)
-    plot_MODIS_channel(modis_date_str, ch1, swath = True, \
+    plot_MODIS_channel(file_date_dict[modis_date_str][0], ch1, swath = True, \
         zoom = zoom, ax = ax2, vmax = 0.4)
     #plot_MODIS_channel(modis_date_str, ch2, swath = True, \
     #    zoom = zoom, ax = ax3)
@@ -259,7 +425,7 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(modis_date_str, ch1, \
 
     # Plot the OMI data
     # -----------------
-    plotOMI_single_swath_figure(file_date_dict[modis_date_str]['OMI'], \
+    plotOMI_single_swath_figure(modis_date_str, \
             dtype = omi_dtype, only_sea_ice = False, minlat = minlat, \
             ax = ax4, skiprows = [52], lat_circles = None, save = False, \
             zoom = zoom)

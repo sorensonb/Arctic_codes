@@ -584,18 +584,40 @@ def download_MODIS_swath(CERES_date_str, \
 
     modis_time = min_modis
     return_str = ''
+    file_list = ''
     while(modis_time <= max_modis):
-        print(modis_time.strftime('%Y%m%d%H%M')) 
 
-        return_str = return_str + modis_time.strftime('%Y%m%d%H%M') + ' '
+        local_time = modis_time.strftime('%Y%m%d%H%M')
+        print(local_time) 
 
-        if(download):
-            download_MODIS_file(modis_time.strftime('%Y%m%d%H%M'), \
-                dest_dir = dest_dir)
+        try:
+            found_file = subprocess.check_output('ls ' + \
+                modis_time.strftime(dest_dir + '*%Y%j.%H%M.*'), \
+                shell = True).decode('utf-8').strip().split('\n')[0]
+            print(found_file)
+        except subprocess.CalledProcessError:
+            print("File not found. Must download")
+
+            if(download):
+                found_file = download_MODIS_file(local_time, \
+                    dest_dir = dest_dir)
+
+                # Check for download errors
+                # -------------------------
+                if(found_file == -1):
+                    print("No MODIS file returned. Continuing.")
+                    continue
  
+        #if(os.path.exists(dest_dir + found_file)):
+        #    print(found_file + ' already exists. Not downloading')
+
+
+        return_str = return_str + local_time + ' '
+        file_list = file_list + found_file + ' '
+
         modis_time = modis_time + timedelta(minutes = 5)
     
-    return return_str.split()
+    return return_str.split(), file_list.split()
 
 # This downloads the MODIS l1b HDF5 file that is closest to the passed
 # date string from the LAADS DAAC archive. 
@@ -613,11 +635,11 @@ def download_MODIS_file(date_str, dest_dir = '/home/bsorenson/data/MODIS/Aqua/')
         files = listFD(dt_date_str.strftime(base_url + '/%Y/%j/'), ext = '.hdf')
     except subprocess.CalledProcessError:
         print("ERROR: No MODIS files for the input DTG",date_str)
-        return
+        return -2
 
     if(len(files) == 0):
         print("ERROR: No MODIS files returned from the request. Exiting")
-        return
+        return -1
     
     # Remove the timestamps from the file strings
     # -------------------------------------------
@@ -654,6 +676,8 @@ def download_MODIS_file(date_str, dest_dir = '/home/bsorenson/data/MODIS/Aqua/')
         cmnd = "mv " + found_file + " " + dest_dir
         print(cmnd) 
         os.system(cmnd)
+
+    return found_file
  
 # Extract the MODIS information from a given channel at each ob point
 # -------------------------------------------------------------------

@@ -619,6 +619,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     CERES_grid_hrly['time']      = grid_time
     CERES_grid_hrly['time_dt']   = grid_time_dt
     CERES_grid_hrly['base_date'] = '197001010000'
+    CERES_grid_hrly['filename'] = good_list[0]
 
     return CERES_grid_hrly  
 
