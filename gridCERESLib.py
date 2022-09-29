@@ -82,7 +82,7 @@ max_dict = {
     'TOTAL': 560.,
     'clr': 100.,
     'cld': 100.,
-    'alb': 1.
+    'ALB': 1.
 }
 
 min_dict = {
@@ -91,7 +91,7 @@ min_dict = {
     'TOTAL': 450.,
     'clr': 0.,
     'cld': 0.,
-    'alb': 0.
+    'ALB': 0.
 }
 
 ##!## Find the gridpoint in the gridded lat/lon data that 
@@ -405,6 +405,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     sza   = data.variables['CERES_solar_zenith_at_surface'][:]
     vza   = data.variables['CERES_viewing_zenith_at_surface'][:]
     azm   = data.variables['CERES_relative_azimuth_at_surface'][:]
+    alb   = data.variables['CERES_broadband_surface_albedo'][:]
     lon[lon>179.99] = -360.+lon[lon>179.99]
     ##!#if(param == 'clr'):
     ##!#    # clear layer overlap indices:
@@ -450,6 +451,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     test_sza  = sza[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
     test_vza  = vza[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
     test_azm  = azm[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
+    test_alb  = alb[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
 
     # Determine where the LAT peaks are located and separated by 181
     # --------------------------------------------------------------
@@ -495,6 +497,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     test_sza  = test_sza[begin_idx: end_idx]
     test_vza  = test_vza[begin_idx: end_idx]
     test_azm  = test_azm[begin_idx: end_idx]
+    test_alb  = test_alb[begin_idx: end_idx]
 
     # Make grid arrays for the data
     # -----------------------------
@@ -505,6 +508,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     grid_sza  = np.full((300, 181), np.nan)
     grid_vza  = np.full((300, 181), np.nan)
     grid_azm  = np.full((300, 181), np.nan)
+    grid_alb  = np.full((300, 181), np.nan)
     grid_time = np.full((300, 181), np.nan)
 
     # Loop over the data and insert into the grids
@@ -520,6 +524,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
             grid_sza[ii, :len(test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
             grid_vza[ii, :len(test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
             grid_azm[ii, :len(test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
+            grid_alb[ii, :len(test_alb[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_alb[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
             grid_time[ii,:len(test_ftim[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_ftim[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
         ##!#elif(idx_diff > 181):
         ##!#    print(idx_diff, test_time[keep_lat_peaks[ii]], np.nanmean(test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]), 'over estimate')
@@ -562,6 +567,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
                         grid_sza[ii,m_idx[0][0]:len(test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
                         grid_vza[ii,m_idx[0][0]:len(test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
                         grid_azm[ii,m_idx[0][0]:len(test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                        grid_alb[ii,m_idx[0][0]:len(test_alb[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_alb[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
                         grid_time[ii,m_idx[0][0]:len(test_ftim[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_ftim[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
 
     # Remove any rows in the grid arrays with any nans
@@ -595,6 +601,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     grid_vza  = grid_vza[finders]
     grid_sza  = grid_sza[finders]
     grid_azm  = grid_azm[finders]
+    grid_alb  = grid_alb[finders]
     grid_time = grid_time[finders]
 
     # Convert the day timedelta to actual datetimes
@@ -616,6 +623,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
     CERES_grid_hrly['vza']       = grid_vza
     CERES_grid_hrly['sza']       = grid_sza  
     CERES_grid_hrly['azm']       = grid_azm
+    CERES_grid_hrly['alb']       = grid_alb
     CERES_grid_hrly['time']      = grid_time
     CERES_grid_hrly['time_dt']   = grid_time_dt
     CERES_grid_hrly['base_date'] = '197001010000'

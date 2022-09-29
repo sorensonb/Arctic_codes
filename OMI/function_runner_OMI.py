@@ -50,7 +50,9 @@ date_str = '201807051856'
 #date_str = '201807052034'
 #date_str = '201807052213'
 #date_str = '201807052352'
-#OMI_base  = readOMI_swath_shawn(date_str, latmin = minlat)
+minlat = 65.
+OMI_base  = readOMI_swath_shawn(date_str, latmin = minlat)
+sys.exit()
 #write_shawn_to_HDF5(OMI_base)
 
 #OMI_data = readOMI_swath_hdf(date_str, 'control', only_sea_ice = False, \

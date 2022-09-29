@@ -579,6 +579,8 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
     GPQF   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags'][:,:]
     PXQF   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/PixelQualityFlags'][:,:]
     AZM    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/RelativeAzimuthAngle'][:,:]
+    LATcrnr = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/FoV75CornerLatitude'][:,:,:]
+    LONcrnr = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/FoV75CornerLongitude'][:,:,:]
     TIME_O = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Time'][:]
     GPQF_decode = np.array([[get_gpqf_flags(val) for val in GPQFrow] \
         for GPQFrow in GPQF])
@@ -640,6 +642,8 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
     OMI_swath['GPQF']   = GPQF_decode
     OMI_swath['PXQF']   = PXQF_decode
     OMI_swath['XTRACK'] = XTRK_decode
+    OMI_swath['LATcrnr']    = LATcrnr
+    OMI_swath['LONcrnr']    = LONcrnr
     OMI_swath['TIME']   = np.repeat(TIME, 60).reshape(TIME.shape[0], 60)
     OMI_swath['TIME_2'] = np.repeat(TIME_2, 60).reshape(TIME_2.shape[0], 60)
     OMI_swath['base_date'] = base_date_str
@@ -739,6 +743,8 @@ def readOMI_swath_shawn(plot_time, latmin = 65., \
     OMI_swath['dtype'] = 'shawn'
     OMI_swath['LAT'] = OMI_data['LAT']
     OMI_swath['LON'] = OMI_data['LON']
+    OMI_swath['LATcrnr'] = OMI_data['LATcrnr']
+    OMI_swath['LONcrnr'] = OMI_data['LONcrnr']
     #OMI_swath['TIME'] = sfile_TIME
     #OMI_swath['TIME'] = abs_time
     OMI_swath['TIME']   = OMI_data['TIME']
@@ -1259,10 +1265,14 @@ def write_shawn_to_HDF5(OMI_base, save_path = './', minlat = 65., \
  
     dset.create_dataset('latitude',  data = OMI_base['LAT'][:,:])
     dset.create_dataset('longitude', data = OMI_base['LON'][:,:])
+    dset.create_dataset('lat_crnr',  data = OMI_base['LATcrnr'][:,:,:])
+    dset.create_dataset('lon_crnr',  data = OMI_base['LONcrnr'][:,:,:])
     dset.create_dataset('uvai_pert', data = OMI_base['UVAI_pert'][:,:])
     dset.create_dataset('uvai_raw',  data = OMI_base['UVAI_raw'][:,:])
     dset.create_dataset('time',      data = OMI_base['TIME_2'][:,:])
     dset.create_dataset('sza',       data = OMI_base['SZA'][:,:])
+    dset.create_dataset('vza',       data = OMI_base['VZA'][:,:])
+    dset.create_dataset('azm',       data = OMI_base['RAZ'][:,:])
 
     # Save, write, and close the HDF5 file
     # --------------------------------------

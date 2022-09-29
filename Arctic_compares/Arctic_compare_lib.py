@@ -41,9 +41,10 @@ def automate_all_preprocess(date_str, download = True, images = True, \
     if(isinstance(date_str, str)):
         date_str = [date_str]
 
-    # If desired, download all data and/or match up the files in the JSON
-    # -------------------------------------------------------------------
-    #auto_all_download(date_str, download = download)
+    if(download):
+        # If desired, download all data and/or match up the files in the JSON
+        # -------------------------------------------------------------------
+        auto_all_download(date_str, download = download, rewrite_json = True)
 
     # Load in the JSON file string relations
     # --------------------------------------
@@ -63,8 +64,8 @@ def automate_all_preprocess(date_str, download = True, images = True, \
         if(images):
             # Plot the first-look 6-panel comparison plot
             # -------------------------------------------
-            modis_date_str = file_date_dict[dstr]['MODIS'][0]
-            plot_compare_OMI_CERES_MODIS_NSIDC(modis_date_str, 7, \
+            #modis_date_str = file_date_dict[dstr]['MODIS'][0]
+            plot_compare_OMI_CERES_MODIS_NSIDC(dstr, 7, \
                 omi_dtype = 'shawn', minlat = 65., zoom = True, save = True)
 
         if(process):
@@ -76,24 +77,39 @@ def automate_all_preprocess(date_str, download = True, images = True, \
             if(not os.path.exists(save_dir)):
                 print('Making ', save_dir)
                 os.system('mkdir ' +  save_dir)
-    
+
+            save_dir2 = dt_date_str.strftime(save_dir + '%Y%m%d%H%M/')
+            if(not os.path.exists(save_dir2)):
+                print('Making ', save_dir2)
+                os.system('mkdir ' +  save_dir2)
+   
+            short_save_dir2 = dt_date_str.strftime('%Y%m%d/%Y%m%d%H%M/')
+ 
             # Run the data subsetter codes
             # ----------------------------
-            write_shawn_to_HDF5(dstr, save_path = save_dir, minlat = 65., \
+            write_shawn_to_HDF5(dstr, save_path = save_dir2, minlat = 65., \
                 shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
 
             write_CERES_hrly_grid_to_HDF5(file_date_dict[dstr]['CERES'], \
-                save_path = save_dir)
+                save_path = save_dir2)
 
             MODIS_date = file_date_dict[dstr]['MODIS'][0]
             write_MODIS_to_HDF5(MODIS_date, channel = 2, swath = True, \
-                save_path = save_dir)
+                save_path = save_dir2)
             write_MODIS_to_HDF5(MODIS_date, channel = 7, swath = True, \
-                save_path = save_dir)
+                save_path = save_dir2)
 
             NSIDC_date = file_date_dict[dstr]['NSIDC'][:8]
             print(NSIDC_date)
-            writeNSIDC_to_HDF5(NSIDC_date, save_path = save_dir)
+            writeNSIDC_to_HDF5(NSIDC_date, save_path = save_dir2)
+
+            # Finally, gzip the data
+            # ---------------------
+            os.chdir(data_dir)
+            cmnd = dt_date_str.strftime('tar -cvzf ' + \
+                'combined_subsets_%Y%m%d%H%M.tar.gz ' + short_save_dir2)
+            print(cmnd)
+            os.system(cmnd)
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
@@ -237,9 +253,28 @@ def auto_all_download(date_str, download = True, rewrite_json = False):
 
 def read_colocated(date_str):
    
-    filename =  data_dir + date_str[:8] + '/colocated_subset_' + date_str + '.hdf5'
-    print(filename)
-    data = h5py.File(filename,'r')
+    filename =  data_dir + 'colocated_subset_' + date_str + '.hdf5'
+    #filename =  data_dir + date_str[:8] + '/colocated_subset_' + date_str + '.hdf5'
+    try:
+        print(filename)
+        data = h5py.File(filename,'r')
+    except FileNotFoundError:
+        print("WARNING: Unable to find colocation file with OMI dtg.")
+        print("  Using the time database to find the MODIS dtg.")
+        print("  Files now use the OMI dtg. Using the JSON comp times")
+        print('  file to correct')
+
+        with open(json_time_database, 'r') as fin:
+            file_date_dict = json.load(fin)
+
+        if(date_str in file_date_dict.keys()):
+            date_str2 = file_date_dict[date_str]['MODIS'][0]
+            filename =  data_dir + '/colocated_subset_' + date_str2 + '.hdf5'
+            #filename =  data_dir + date_str2[:8] + '/colocated_subset_' + date_str2 + '.hdf5'
+            print(filename)
+            date_str = date_str2
+            data = h5py.File(filename,'r')
+        
 
     coloc_data = {}
     coloc_data['date_str'] = date_str
@@ -317,7 +352,7 @@ def select_category(coloc_data, var, cat):
 
 # Compare the OMI, CERES, and MODIS data over the Arctic
 # ------------------------------------------------------
-def plot_compare_OMI_CERES_MODIS_NSIDC(modis_date_str, ch1, \
+def plot_compare_OMI_CERES_MODIS_NSIDC(date_str, ch1, \
         omi_dtype = 'shawn', minlat = 65., zoom = False, save = False):
 
     if('/home/bsorenson/Research/OMI/' not in sys.path):
@@ -341,11 +376,11 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(modis_date_str, ch1, \
     with open(json_time_database, 'r') as fin:
         file_date_dict = json.load(fin)
 
-    if((modis_date_str[:8] == '20080422') | \
-       (modis_date_str[:8] == '20180705')\
+    if((date_str[:8] == '20080422') | \
+       (date_str[:8] == '20180705')\
         ):
         size = (14, 5)
-    elif(modis_date_str[:8] == '20190811'\
+    elif(date_str[:8] == '20190811'\
         ):
         size = (12, 6.5)
     else:
@@ -397,6 +432,18 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(modis_date_str, ch1, \
     ##!#    },
     ##!#}
 
+    # Plot the MODIS true-color and channel data
+    # ------------------------------------------
+    modis_date = file_date_dict[date_str]['MODIS'][0]
+    ceres_date = file_date_dict[date_str]['CERES']
+    nsidc_date = file_date_dict[date_str]['NSIDC'][:8]
+    omi_date   = date_str
+
+    # Read in data for value printing
+    # -------------------------------
+    MODIS_ch7 = read_MODIS_channel(modis_date, 7, swath = True)
+    CERES_data = readgridCERES_hrly_grid(ceres_date, 'SWF', minlat = 65. )
+
     # Make the overall figure
     # -----------------------
     plt.close('all')
@@ -408,39 +455,58 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(modis_date_str, ch1, \
     ax4 = fig1.add_subplot(2,3,4, projection = mapcrs)
     ax5 = fig1.add_subplot(2,3,5, projection = mapcrs)
     ax6 = fig1.add_subplot(2,3,6, projection = mapcrs)
+
+    def mouse_event(event):
+        ix, iy = event.xdata, event.ydata
+        event_list = [ix, iy]
+        # convert from display coordinates to data coordinates
+        p_a_cart = datacrs.transform_point(event_list[0], event_list[1], src_crs=mapcrs)
+
+        match_idx = nearest_gridpoint(p_a_cart[1], p_a_cart[0], \
+            MODIS_ch7['lat'], MODIS_ch7['lon'])
+        c_match_idx = nearest_gridpoint(p_a_cart[1], p_a_cart[0], \
+            CERES_data['lat'], CERES_data['lon'])
+
+        print('x: {} and y: {}'.format(event.xdata, event.ydata))
+        print('lon: {} and lat: {}'.format(p_a_cart[0], p_a_cart[1]))
+        print('MODIS ch7 = ', MODIS_ch7['data'][match_idx])
+        print('CERES alb = ', CERES_data['alb'][c_match_idx])
+        print('CERES SWF = ', CERES_data['swf'][c_match_idx])
+        print('CERES sza = ', CERES_data['sza'][c_match_idx])
+        print('CERES vza = ', CERES_data['vza'][c_match_idx])
+
+    cid = fig1.canvas.mpl_connect('button_press_event', mouse_event)
    
-    # Plot the MODIS true-color and channel data
-    # ------------------------------------------
-    plot_MODIS_channel(file_date_dict[modis_date_str][0], 'true_color', swath = True, \
+    plot_MODIS_channel(modis_date, 'true_color', swath = True, \
         zoom = zoom, ax = ax1)
-    plot_MODIS_channel(file_date_dict[modis_date_str][0], ch1, swath = True, \
+    plot_MODIS_channel(modis_date, ch1, swath = True, \
         zoom = zoom, ax = ax2, vmax = 0.4)
     #plot_MODIS_channel(modis_date_str, ch2, swath = True, \
     #    zoom = zoom, ax = ax3)
 
     # Plot the NSIDC data
     # -------------------
-    plotNSIDC_daily_figure(modis_date_str[:8], minlat = minlat, \
+    plotNSIDC_daily_figure(nsidc_date, minlat = minlat, \
         zoom = zoom, ax = ax3, gridlines = False, save = False)
 
     # Plot the OMI data
     # -----------------
-    plotOMI_single_swath_figure(modis_date_str, \
+    plotOMI_single_swath_figure(omi_date, \
             dtype = omi_dtype, only_sea_ice = False, minlat = minlat, \
             ax = ax4, skiprows = [52], lat_circles = None, save = False, \
             zoom = zoom)
     
     # Plot the CERES data
     # -------------------
-    plotCERES_hrly_figure(file_date_dict[modis_date_str]['CERES'], 'SWF',  \
+    plotCERES_hrly_figure(ceres_date, 'SWF',  \
         minlat = minlat, lat_circles = None, ax = ax5, title = 'SWF',\
         grid_data = True, zoom = zoom, vmax = 450, vmin = None, save = False)
-    plotCERES_hrly_figure(file_date_dict[modis_date_str]['CERES'], 'LWF',  \
-        minlat = minlat, lat_circles = None, ax = ax6, title = 'LWF',\
-        grid_data = True, zoom = zoom, vmax = 275, vmin = 150, save = False)
+    plotCERES_hrly_figure(ceres_date, 'ALB',  \
+        minlat = minlat, lat_circles = None, ax = ax6, title = 'ALB',\
+        grid_data = True, zoom = zoom, vmax = None, vmin = None, save = False)
 
     if(save):
-        outname = 'omi_ceres_modis_nsidc_compare_' + modis_date_str + '.png'
+        outname = 'omi_ceres_modis_nsidc_compare_' + omi_date + '.png'
         fig1.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else:
@@ -819,3 +885,90 @@ def plot_compare_scatter_category(coloc_data, var1, var2, var3 = None, \
             print("Saved image", outname) 
         else:
             plt.show()
+
+def plot_compare_combined_category(coloc_data, var1 = 'OMI', \
+        var2 = 'CERES_SWF', var3 = None, cat = "ALL", minlat = 65., \
+        xmin = 1.0, xmax = None, ymin = None, ymax = None, ax = None, \
+        colorbar = True, trend = False, zoom = False, color = None, \
+        save = False):
+
+    if(isinstance(coloc_data, str)):
+        dt_date_str = datetime.strptime(coloc_data, '%Y%m%d%H%M')
+        coloc_data = read_colocated(coloc_data)
+    else:
+        dt_date_str = datetime.strptime(coloc_data['date_str'], '%Y%m%d%H%M')
+
+    # Make the overall figure
+    # -----------------------
+    plt.close('all')
+    fig1 = plt.figure(figsize = (10,9))
+    ax1 = fig1.add_subplot(3,3,1, projection = mapcrs)
+    ax2 = fig1.add_subplot(3,3,2, projection = mapcrs)
+    ax3 = fig1.add_subplot(3,3,3, projection = mapcrs)
+    ax4 = fig1.add_subplot(3,3,4, projection = mapcrs)
+    ax5 = fig1.add_subplot(3,3,5, projection = mapcrs)
+    ax6 = fig1.add_subplot(3,3,6, projection = mapcrs)
+    ax7 = fig1.add_subplot(3,3,7)
+    ax8 = fig1.add_subplot(3,3,8)
+    ax9 = fig1.add_subplot(3,3,9)
+  
+    pdate = dt_date_str.strftime('%Y-%m-%d') 
+    # Plot the MODIS true-color and channel data
+    # ------------------------------------------
+    plot_spatial(ax1, coloc_data['LON'], coloc_data['LAT'], coloc_data['MODIS_CH2'], \
+        pdate, cmap = 'Greys_r', zoom = zoom)
+    plot_spatial(ax2, coloc_data['LON'], coloc_data['LAT'], coloc_data['MODIS_CH7'], \
+        pdate, cmap = 'Greys_r', zoom = zoom)
+
+    # Plot the NSIDC coloc_data
+    # -------------------
+    plot_spatial(ax3, coloc_data['LON'], coloc_data['LAT'], coloc_data['NSIDC_ICE'], \
+        pdate, cmap = 'ocean', zoom = zoom)
+
+    # Plot the OMI coloc_data
+    # -----------------
+    plot_spatial(ax4, coloc_data['LON'], coloc_data['LAT'], coloc_data['OMI'], \
+        pdate, cmap = 'jet', zoom = zoom)
+    
+    # Plot the CERES coloc_data
+    # -------------------
+    plot_spatial(ax5, coloc_data['LON'], coloc_data['LAT'], coloc_data['CERES_SWF'], \
+        pdate, cmap = 'plasma', zoom = zoom)
+    plot_spatial(ax6, coloc_data['LON'], coloc_data['LAT'], coloc_data['CERES_LWF'], \
+        pdate, cmap = 'plasma', zoom = zoom)
+
+    # Plot the scatter data
+    date_str = dt_date_str.strftime('%Y%m%d%H%M')
+    plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
+        cat = 'ICE_CLOUD', minlat = 65., xmin = xmin, xmax = None, ymin = None, ymax = None, \
+        ax = ax7, colorbar = True, trend = trend, zoom = False, save = False,\
+        color = 'tab:blue')
+    plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
+        cat = 'ICE_CLEAR', minlat = 65., xmin = xmin, xmax = None, ymin = None, ymax = None, \
+        ax = ax7, colorbar = True, trend = trend, zoom = False, save = False,\
+        color = 'tab:orange')
+    plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
+        cat = 'OCEAN_CLOUD', minlat = 65., xmin = xmin, xmax = None, ymin = None, ymax = None, \
+        ax = ax8, colorbar = True, trend = trend, zoom = False, save = False, \
+        color = 'tab:blue')
+    plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
+        cat = 'OCEAN_CLEAR', minlat = 65., xmin = xmin, xmax = None, ymin = None, ymax = None, \
+        ax = ax8, colorbar = True, trend = trend, zoom = False, save = False, \
+        color = 'tab:orange')
+    plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
+        cat = 'LAND_CLOUD', minlat = 65., xmin = xmin, xmax = None, ymin = None, ymax = None, \
+        ax = ax9, colorbar = True, trend = trend, zoom = False, save = False, \
+        color = 'tab:blue')
+    plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
+        cat = 'LAND_CLEAR', minlat = 65., xmin = xmin, xmax = None, ymin = None, ymax = None, \
+        ax = ax9, colorbar = True, trend = trend, zoom = False, save = False, \
+        color = 'tab:orange')
+
+    fig1.tight_layout()
+
+    if(save):
+        outname = 'arctic_compare_combined_category_' + date_str + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()

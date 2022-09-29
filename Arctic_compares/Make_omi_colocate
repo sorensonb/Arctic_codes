@@ -21,7 +21,11 @@ OBJECTS = comp_vars.o \
 			read_comp_OMI_AI.o \
 			read_comp_OMI_LAT.o \
 			read_comp_OMI_LON.o \
+			read_comp_OMI_LATCRNR.o \
+			read_comp_OMI_LONCRNR.o \
 			read_comp_OMI_SZA.o \
+			read_comp_OMI_VZA.o \
+			read_comp_OMI_AZM.o \
 			omi_colocate.o
 
 FFLAGS = -g -O2 -Wall -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
@@ -90,8 +94,20 @@ read_comp_OMI_LAT.o: $(LIB_PATH)read_comp_OMI_LAT.f90
 read_comp_OMI_LON.o: $(LIB_PATH)read_comp_OMI_LON.f90
 	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_LON.f90
 
+read_comp_OMI_LATCRNR.o: $(LIB_PATH)read_comp_OMI_LATCRNR.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_LATCRNR.f90
+
+read_comp_OMI_LONCRNR.o: $(LIB_PATH)read_comp_OMI_LONCRNR.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_LONCRNR.f90
+
 read_comp_OMI_SZA.o: $(LIB_PATH)read_comp_OMI_SZA.f90
 	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_SZA.f90
+
+read_comp_OMI_VZA.o: $(LIB_PATH)read_comp_OMI_VZA.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_VZA.f90
+
+read_comp_OMI_AZM.o: $(LIB_PATH)read_comp_OMI_AZM.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_AZM.f90
 
 #
 #read_h5_XTRACK.o: $(LIB_PATH)read_h5_XTRACK.f90

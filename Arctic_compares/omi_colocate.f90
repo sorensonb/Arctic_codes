@@ -32,6 +32,7 @@ program omi_colocate
   use hdf5
   use comp_vars, only : clear_arrays, i_bad_list, &
     find_distance_between_points, allocate_out_arrays, &
+    pixel_in_box, &
     MODIS_CH2_data, MODIS_CH2_dims, &
     MODIS_CH7_data, MODIS_CH7_dims, &
     MODIS_LAT_data, MODIS_LAT_dims, &
@@ -46,7 +47,11 @@ program omi_colocate
     OMI_AI_data,    OMI_AI_dims, &
     OMI_LAT_data,   OMI_LAT_dims, &
     OMI_LON_data,   OMI_LON_dims, &
+    OMI_LATCRNR_data,   OMI_LATCRNR_dims, &
+    OMI_LONCRNR_data,   OMI_LONCRNR_dims, &
     OMI_SZA_data,   OMI_SZA_dims, &
+    OMI_VZA_data,   OMI_VZA_dims, &
+    OMI_AZM_data,   OMI_AZM_dims, &
     MODIS_out_CH2_data, &
     MODIS_out_CH7_data, &
     !MODIS_out_LAT_data, &
@@ -84,6 +89,8 @@ program omi_colocate
   integer                :: dspace_id_OLT  ! OMI LAT
   integer                :: dspace_id_OLN  ! OMI LON
   integer                :: dspace_id_OSZ  ! OMI SZA
+  integer                :: dspace_id_OVZ  ! OMI VZA
+  integer                :: dspace_id_OAZ  ! OMI AZM
   integer                :: dspace_id_OAI  ! OMI AI
   !integer                :: dspace_id_CLT  ! CERES LAT
   !integer                :: dspace_id_CLN  ! CERES LON
@@ -100,6 +107,8 @@ program omi_colocate
   integer                :: dset_id_OLT  ! OMI LAT
   integer                :: dset_id_OLN  ! OMI LON
   integer                :: dset_id_OSZ  ! OMI SZA
+  integer                :: dset_id_OVZ  ! OMI VZA
+  integer                :: dset_id_OAZ  ! OMI AZM
   integer                :: dset_id_OAI  ! OMI AI
   !integer                :: dset_id_CLT  ! CERES LAT
   !integer                :: dset_id_CLN  ! CERES LON
@@ -123,7 +132,10 @@ program omi_colocate
   real                   :: match_lon
   real                   :: match_data1
   real                   :: match_data2
- 
+
+  real                   :: run_modis_total_ch2
+  real                   :: run_modis_total_ch7
+  integer                :: count_modis_total 
 
   !!#!real                   :: lat_thresh    ! latitude threshold. Only analyze
   !!#!                                        ! data north of this value.
@@ -239,13 +251,11 @@ program omi_colocate
   call read_comp_OMI_AI(omi_file_id)
   call read_comp_OMI_LAT(omi_file_id)
   call read_comp_OMI_LON(omi_file_id)
+  call read_comp_OMI_LATCRNR(omi_file_id)
+  call read_comp_OMI_LONCRNR(omi_file_id)
   call read_comp_OMI_SZA(omi_file_id)
-  
-  !!#!call h5fcreate_f('testoutfile.hdf5', H5F_ACC_TRUNC_F, out_file_id, error)
-  !!#!if(error /= 0) then
-  !!#!  write(*,*) 'FATAL ERROR: could not open output file'
-  !!#!  return
-  !!#!endif
+  call read_comp_OMI_VZA(omi_file_id)
+  call read_comp_OMI_AZM(omi_file_id)
 
   !test_dims = (/10, 20/)
   test_dims = (/OMI_AI_dims(1), OMI_AI_dims(2)/)
@@ -363,34 +373,59 @@ program omi_colocate
 
         closest_dist = 999999.
 
+        count_modis_total = 0
+        run_modis_total_ch2 = 0.0
+        run_modis_total_ch7 = 0.0
+        
         modis_loop1: do nii=1,MODIS_LAT_dims(2)
           modis_loop2: do njj=1,MODIS_LAT_dims(1) 
 
-            ! Calculate the distance between the current pixels
-            ! -------------------------------------------------
-            distance = find_distance_between_points(OMI_LAT_data(jj,ii), &
-                                                    OMI_LON_data(jj,ii), &
-                                                    MODIS_LAT_data(njj,nii), &
-                                                    MODIS_LON_data(njj,nii))
+            ! Check if the current pixel is within the OMI pixel bounds
+            ! ---------------------------------------------------------
+            if(pixel_in_box(OMI_LATCRNR_data(:,jj,ii), OMI_LONCRNR_data(:,jj,ii), &
+                MODIS_LAT_data(njj,nii), MODIS_LON_data(njj,nii))) then
 
-            if(distance < closest_dist) then
-              closest_dist = distance
-              !MODIS_out_LAT_data(jj,ii) = MODIS_LAT_data(njj, nii) 
-              !MODIS_out_LON_data(jj,ii) = MODIS_LON_data(njj, nii) 
-              MODIS_out_CH2_data(jj,ii) = MODIS_CH2_data(njj, nii) 
-              MODIS_out_CH7_data(jj,ii) = MODIS_CH7_data(njj, nii) 
+                run_modis_total_ch2 = &
+                    run_modis_total_ch2 + MODIS_CH2_data(njj,nii)
+                run_modis_total_ch7 = &
+                    run_modis_total_ch7 + MODIS_CH7_data(njj,nii)
+                count_modis_total = count_modis_total + 1
+
             endif
+            !!#!! Calculate the distance between the current pixels
+            !!#!! -------------------------------------------------
+            !!#!distance = find_distance_between_points(OMI_LAT_data(jj,ii), &
+            !!#!                                        OMI_LON_data(jj,ii), &
+            !!#!                                        MODIS_LAT_data(njj,nii), &
+            !!#!                                        MODIS_LON_data(njj,nii))
+
+            !!#!if(distance < closest_dist) then
+            !!#!  closest_dist = distance
+            !!#!  !MODIS_out_LAT_data(jj,ii) = MODIS_LAT_data(njj, nii) 
+            !!#!  !MODIS_out_LON_data(jj,ii) = MODIS_LON_data(njj, nii) 
+            !!#!  MODIS_out_CH2_data(jj,ii) = MODIS_CH2_data(njj, nii) 
+            !!#!  MODIS_out_CH7_data(jj,ii) = MODIS_CH7_data(njj, nii) 
+            !!#!endif
 
           enddo modis_loop2
         enddo modis_loop1
 
-        ! Check the distance requirement for the MODIS pixel
-        ! --------------------------------------------------
-        if(closest_dist > min_dist) then
+        !!#!! Check the distance requirement for the MODIS pixel
+        !!#!! --------------------------------------------------
+        !!#!if(closest_dist > min_dist) then
+        !!#!  !MODIS_out_LAT_data(jj,ii) = -999.
+        !!#!  !MODIS_out_LON_data(jj,ii) = -999.
+        !!#!  MODIS_out_CH2_data(jj,ii) = -999.
+        !!#!  MODIS_out_CH7_data(jj,ii) = -999.
+        !!#!endif
+        if(count_modis_total == 0) then
           !MODIS_out_LAT_data(jj,ii) = -999.
           !MODIS_out_LON_data(jj,ii) = -999.
           MODIS_out_CH2_data(jj,ii) = -999.
           MODIS_out_CH7_data(jj,ii) = -999.
+        else
+          MODIS_out_CH2_data(jj,ii) = run_modis_total_ch2 / count_modis_total
+          MODIS_out_CH7_data(jj,ii) = run_modis_total_ch7 / count_modis_total
         endif
 
         closest_dist = 999999.
@@ -404,9 +439,9 @@ program omi_colocate
   
   ! Open the output file
   ! --------------------
-  write(*,*) modis_name1(len(trim(modis_name1)) - 16:len(trim(modis_name1)) - 5)
-  out_file_name = 'colocated_subset_'//modis_name1(len(trim(modis_name1)) - &
-    16:len(trim(modis_name1)) - 5)//'.hdf5'
+  write(*,*) omi_name(len(trim(omi_name)) - 16:len(trim(omi_name)) - 5)
+  out_file_name = 'colocated_subset_'//omi_name(len(trim(omi_name)) - &
+    16:len(trim(omi_name)) - 5)//'.hdf5'
   write(*,*) trim(out_file_name)
 
   call h5fcreate_f(trim(out_file_name), H5F_ACC_TRUNC_F, out_file_id, error)
@@ -554,6 +589,98 @@ program omi_colocate
   endif
 
   write(*,*) 'Wrote OMI OSZ'
+  
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! Write OMI Viewing Zenith Angle
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+  ! Create the dataspace
+  ! --------------------
+  call h5screate_simple_f(rank, test_dims, dspace_id_OVZ, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataspace'
+    return
+  endif
+
+  ! Create the dataset
+  ! ------------------
+  call h5dcreate_f(out_file_id, 'omi_vza', H5T_NATIVE_DOUBLE, dspace_id_OVZ,  &
+                   dset_id_OVZ, error) 
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataset '//'omi_vza'
+    return
+  endif
+
+  ! Write to the dataset
+  ! --------------------
+  call h5dwrite_f(dset_id_OVZ, H5T_NATIVE_DOUBLE, OMI_VZA_data, OMI_AI_dims, &
+                      error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  ! Close the dataset
+  ! -----------------
+  call h5dclose_f(dset_id_OVZ, error)
+
+  ! Close access to data space rank
+  call h5sclose_f(dspace_id_OVZ, error)
+
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not close output file'
+    return
+  endif
+
+  write(*,*) 'Wrote OMI OVZ'
+  
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! Write OMI Relative Azimuth Angle
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+  ! Create the dataspace
+  ! --------------------
+  call h5screate_simple_f(rank, test_dims, dspace_id_OAZ, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataspace'
+    return
+  endif
+
+  ! Create the dataset
+  ! ------------------
+  call h5dcreate_f(out_file_id, 'omi_azm', H5T_NATIVE_DOUBLE, dspace_id_OAZ,  &
+                   dset_id_OAZ, error) 
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataset '//'omi_azm'
+    return
+  endif
+
+  ! Write to the dataset
+  ! --------------------
+  call h5dwrite_f(dset_id_OAZ, H5T_NATIVE_DOUBLE, OMI_AZM_data, OMI_AI_dims, &
+                      error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  ! Close the dataset
+  ! -----------------
+  call h5dclose_f(dset_id_OAZ, error)
+
+  ! Close access to data space rank
+  call h5sclose_f(dspace_id_OAZ, error)
+
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not close output file'
+    return
+  endif
+
+  write(*,*) 'Wrote OMI OAZ'
   
   ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
   !

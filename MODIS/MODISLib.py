@@ -2049,6 +2049,7 @@ def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False, \
         #mapcrs = ccrs.Robinson()
         ax = fig1.add_subplot(1,1,1, projection = mapcrs)
 
+    print("HERE: ", date_str)
     plot_MODIS_spatial(MODIS_data, ax, zoom, circle_bound = circle_bound, \
         vmin = vmin, vmax = vmax)
 
@@ -2986,14 +2987,19 @@ def plot_MODIS_spatial(MODIS_data, pax, zoom, vmin = None, vmax = None, \
         pvar = 'data', ptitle = None, labelsize = 13, labelticksize = 11, \
         circle_bound = False):
 
+    print(MODIS_data['date'])
+    local_dstr = datetime.strptime(MODIS_data['date'], '%Y%m%d%H%M')
+    local_date = local_dstr.strftime('%Y-%m-%d')
+    local_time = local_dstr.strftime('%H%M')
+
     if(vmin is None):
-        if('data_lim' in aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']].keys()):
-            vmin = aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['data_lim'][MODIS_data['channel']][0]
+        if('data_lim' in aerosol_event_dict[local_date][local_time].keys()):
+            vmin = aerosol_event_dict[local_date][local_time]['data_lim'][MODIS_data['channel']][0]
         else:
             vmin = np.nanmin(MODIS_data[pvar])
     if(vmax is None):
-        if('data_lim' in aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']].keys()):
-            vmax = aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['data_lim'][MODIS_data['channel']][1]
+        if('data_lim' in aerosol_event_dict[local_date][local_time].keys()):
+            vmax = aerosol_event_dict[local_date][local_time]['data_lim'][MODIS_data['channel']][1]
         else:
             if(MODIS_data['channel'] == 'wv_ir'):
                 vmax = 1.5
@@ -3027,10 +3033,10 @@ def plot_MODIS_spatial(MODIS_data, pax, zoom, vmin = None, vmax = None, \
     pax.add_feature(cfeature.STATES)
     pax.coastlines()
     if(zoom):
-        pax.set_extent([aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][0], \
-                        aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][1], \
-                        aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0], \
-                        aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1]],\
+        pax.set_extent([aerosol_event_dict[local_date][local_time]['Lon'][0], \
+                        aerosol_event_dict[local_date][local_time]['Lon'][1], \
+                        aerosol_event_dict[local_date][local_time]['Lat'][0], \
+                        aerosol_event_dict[local_date][local_time]['Lat'][1]],\
                         datacrs)
     else:
         if(circle_bound):

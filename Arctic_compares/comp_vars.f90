@@ -28,7 +28,11 @@ module comp_vars
   integer(hsize_t), dimension(:), allocatable       :: OMI_AI_dims
   integer(hsize_t), dimension(:), allocatable       :: OMI_LAT_dims
   integer(hsize_t), dimension(:), allocatable       :: OMI_LON_dims
+  integer(hsize_t), dimension(:), allocatable       :: OMI_LATCRNR_dims
+  integer(hsize_t), dimension(:), allocatable       :: OMI_LONCRNR_dims
   integer(hsize_t), dimension(:), allocatable       :: OMI_SZA_dims
+  integer(hsize_t), dimension(:), allocatable       :: OMI_VZA_dims
+  integer(hsize_t), dimension(:), allocatable       :: OMI_AZM_dims
   integer(hsize_t), dimension(:), allocatable       :: MODIS_CH2_dims
   integer(hsize_t), dimension(:), allocatable       :: MODIS_CH7_dims
   integer(hsize_t), dimension(:), allocatable       :: MODIS_LAT_dims
@@ -61,7 +65,11 @@ module comp_vars
   real(kind=8), dimension(:,:), allocatable, target :: OMI_AI_data
   real(kind=8), dimension(:,:), allocatable, target :: OMI_LAT_data
   real(kind=8), dimension(:,:), allocatable, target :: OMI_LON_data
+  real(kind=8), dimension(:,:,:), allocatable, target :: OMI_LATCRNR_data
+  real(kind=8), dimension(:,:,:), allocatable, target :: OMI_LONCRNR_data
   real(kind=8), dimension(:,:), allocatable, target :: OMI_SZA_data
+  real(kind=8), dimension(:,:), allocatable, target :: OMI_VZA_data
+  real(kind=8), dimension(:,:), allocatable, target :: OMI_AZM_data
   real(kind=8), dimension(:,:), allocatable, target :: MODIS_CH2_data
   real(kind=8), dimension(:,:), allocatable, target :: MODIS_CH7_data
   real(kind=8), dimension(:,:), allocatable, target :: MODIS_LAT_data
@@ -150,7 +158,11 @@ module comp_vars
       if(allocated(OMI_AI_dims))      deallocate(OMI_AI_dims)
       if(allocated(OMI_LAT_dims))     deallocate(OMI_LAT_dims)
       if(allocated(OMI_LON_dims))     deallocate(OMI_LON_dims)
+      if(allocated(OMI_LATCRNR_dims))     deallocate(OMI_LATCRNR_dims)
+      if(allocated(OMI_LONCRNR_dims))     deallocate(OMI_LONCRNR_dims)
       if(allocated(OMI_SZA_dims))     deallocate(OMI_SZA_dims)
+      if(allocated(OMI_VZA_dims))     deallocate(OMI_VZA_dims)
+      if(allocated(OMI_AZM_dims))     deallocate(OMI_AZM_dims)
       if(allocated(MODIS_CH2_dims))   deallocate(MODIS_CH2_dims)
       if(allocated(MODIS_CH7_dims))   deallocate(MODIS_CH7_dims)
       if(allocated(MODIS_LAT_dims))   deallocate(MODIS_LAT_dims)
@@ -182,7 +194,11 @@ module comp_vars
       if(allocated(OMI_AI_data))      deallocate(OMI_AI_data)
       if(allocated(OMI_LAT_data))     deallocate(OMI_LAT_data)
       if(allocated(OMI_LON_data))     deallocate(OMI_LON_data)
+      if(allocated(OMI_LATCRNR_data))     deallocate(OMI_LATCRNR_data)
+      if(allocated(OMI_LONCRNR_data))     deallocate(OMI_LONCRNR_data)
       if(allocated(OMI_SZA_data))     deallocate(OMI_SZA_data)
+      if(allocated(OMI_VZA_data))     deallocate(OMI_VZA_data)
+      if(allocated(OMI_AZM_data))     deallocate(OMI_AZM_data)
       if(allocated(MODIS_CH2_data))   deallocate(MODIS_CH2_data)
       if(allocated(MODIS_CH7_data))   deallocate(MODIS_CH7_data)
       if(allocated(MODIS_LAT_data))   deallocate(MODIS_LAT_data)
@@ -241,41 +257,63 @@ module comp_vars
     function find_distance_between_points(lat1, lon1, lat2, lon2) &
             result(distance)
 
-        real(kind = 8), intent(in)    :: lat1
-        real(kind = 8), intent(in)    :: lon1
-        real(kind = 8), intent(in)    :: lat2
-        real(kind = 8), intent(in)    :: lon2
+      real(kind = 8), intent(in)    :: lat1
+      real(kind = 8), intent(in)    :: lon1
+      real(kind = 8), intent(in)    :: lat2
+      real(kind = 8), intent(in)    :: lon2
 
-        real                :: r_lat1
-        real                :: r_lon1
-        real                :: r_lat2
-        real                :: r_lon2
+      real                :: r_lat1
+      real                :: r_lon1
+      real                :: r_lat2
+      real                :: r_lon2
 
-        real                :: r_e 
-        real                :: distance
+      real                :: r_e 
+      real                :: distance
 
-        real                :: dlat
-        real                :: dlon
-        real                :: const_a
-        real                :: const_c
+      real                :: dlat
+      real                :: dlon
+      real                :: const_a
+      real                :: const_c
 
-        r_e = 6371. ! km
+      r_e = 6371. ! km
 
-        r_lat1 = degrees_to_radians(lat1)
-        r_lon1 = degrees_to_radians(lon1)
-        r_lat2 = degrees_to_radians(lat2)
-        r_lon2 = degrees_to_radians(lon2)
+      r_lat1 = degrees_to_radians(lat1)
+      r_lon1 = degrees_to_radians(lon1)
+      r_lat2 = degrees_to_radians(lat2)
+      r_lon2 = degrees_to_radians(lon2)
 
-        dlon = r_lon2 - r_lon1
-        dlat = r_lat2 - r_lat1
+      dlon = r_lon2 - r_lon1
+      dlat = r_lat2 - r_lat1
 
-        const_a = sin(dlat / 2)**2. + cos(r_lat1) * cos(r_lat2) * sin(dlon / 2)**2.
-        const_c = 2. * atan2(sqrt(const_a), sqrt(1 - const_a))
+      const_a = sin(dlat / 2)**2. + cos(r_lat1) * cos(r_lat2) * sin(dlon / 2)**2.
+      const_c = 2. * atan2(sqrt(const_a), sqrt(1 - const_a))
 
-        distance = r_e * const_c
+      distance = r_e * const_c
 
     end function
 
+    ! -------------------------------------------------------------
+    ! This function determines if lat/lon point is within a box
+    ! made by 4 lat/lon pairs.
+    ! -------------------------------------------------------------
+    function pixel_in_box(lats, lons, plat, plon) result(l_inside)
+
+      real(kind = 8), dimension(4), intent(in)    :: lats 
+      real(kind = 8), dimension(4), intent(in)    :: lons   
+      real(kind = 8), intent(in)                  :: plat
+      real(kind = 8), intent(in)                  :: plon
+
+      logical                                     :: l_inside
+
+      if( (plat <= maxval(lats) .and. plat >= minval(lats)) .and. &
+          (plon >= minval(lons) .and. plon <= maxval(lons))) then
+        l_inside = .true.
+      else
+        l_inside = .false.
+      endif
+
+    end function
+    
     ! -------------------------------------------------------------
     ! This function extracts the ice flag from the whole GPQF
     ! -------------------------------------------------------------

@@ -29,6 +29,8 @@ date_strs = ['200804221841',  # GOOD
              ##!#'201605152243',  # MEDIOCRE
              ##!#'201605162148',  # MEDIOCRE
              '201807051856',  # GOOD
+             '201807052034',  # GOOD
+             '201807052213',  # GOOD
              '201908102115',  # GOOD
              '201908102254',  # GOOD
              '201908110033',  # GOOD
@@ -57,70 +59,87 @@ date_strs = ['200804221841',  # GOOD
              '201808241343',
             ]
 
-automate_all_preprocess(date_strs, download = False, images = True, process = False)
-sys.exit()
 
-out_time_dict, out_file_dict = auto_all_download(date_strs, download = True, rewrite_json = True)
-sys.exit()
-
-
-var1 = 'OMI'
-var2 = 'CERES_SWF'
+#date_str = '200804222020'
 #plot_compare_OMI_CERES_MODIS_NSIDC(date_str, 7, \
 #    omi_dtype = 'shawn', minlat = 65., zoom = True, save = False)
 #sys.exit()
 
-#plot_compare_scatter(date_str, var1, var2, var3 = 'NSIDC_LAND', minlat = 65., \
-#    xmin = 1, zoom = False, save = False, trend = True)
-#plot_compare_colocate_spatial(date_str, minlat = 65., zoom = False, \
-#    save = False)
-cat = 'ICE_CLOUD'
-#cat = 'OCEAN_CLOUD'
-#cat = 'LAND_CLEAR'
-#plot_compare_colocate_spatial_category(date_str, cat = cat, minlat = 65., \
-#    zoom = True, save = False)
-trend = True
+date_str = '201807052034'
+plot_compare_combined_category(date_str, var1 = 'OMI', \
+    var2 = 'CERES_SWF', var3 = None, cat = "ALL", minlat = 65., \
+    xmin = None, xmax = None, ymin = None, ymax = None, ax = None, \
+    colorbar = True, trend = False, zoom = True, color = None, \
+    save = False)
+sys.exit()
 
-fig = plt.figure(figsize = (12,4))
-ax1 = fig.add_subplot(1,3,1)
-ax2 = fig.add_subplot(1,3,2)
-ax3 = fig.add_subplot(1,3,3)
-##ax1 = fig.add_subplot(2,3,1)
-##ax2 = fig.add_subplot(2,3,4)
-##ax3 = fig.add_subplot(2,3,2)
-##ax4 = fig.add_subplot(2,3,5)
-##ax5 = fig.add_subplot(2,3,3)
-##ax6 = fig.add_subplot(2,3,6)
+automate_all_preprocess(date_strs, download = False, images = False, process = True)
+sys.exit()
 
-plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
-    cat = 'ICE_CLOUD', minlat = 65., xmin = 1, xmax = None, ymin = None, ymax = None, \
-    ax = ax1, colorbar = True, trend = trend, zoom = False, save = False,\
-    color = 'tab:blue')
-plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
-    cat = 'ICE_CLEAR', minlat = 65., xmin = 1, xmax = None, ymin = None, ymax = None, \
-    ax = ax1, colorbar = True, trend = trend, zoom = False, save = False,\
-    color = 'tab:orange')
-plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
-    cat = 'OCEAN_CLOUD', minlat = 65., xmin = 1, xmax = None, ymin = None, ymax = None, \
-    ax = ax2, colorbar = True, trend = trend, zoom = False, save = False, \
-    color = 'tab:blue')
-plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
-    cat = 'OCEAN_CLEAR', minlat = 65., xmin = 1, xmax = None, ymin = None, ymax = None, \
-    ax = ax2, colorbar = True, trend = trend, zoom = False, save = False, \
-    color = 'tab:orange')
-plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
-    cat = 'LAND_CLOUD', minlat = 65., xmin = 1, xmax = None, ymin = None, ymax = None, \
-    ax = ax3, colorbar = True, trend = trend, zoom = False, save = False, \
-    color = 'tab:blue')
-plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
-    cat = 'LAND_CLEAR', minlat = 65., xmin = 1, xmax = None, ymin = None, ymax = None, \
-    ax = ax3, colorbar = True, trend = trend, zoom = False, save = False, \
-    color = 'tab:orange')
 
-fig.tight_layout()
+##!#
+##!#out_time_dict, out_file_dict = auto_all_download(date_strs, download = True, rewrite_json = True)
+##!#sys.exit()
+##!#
+##!#
 
-outname = 'arctic_compare_scatter_6panel_' + date_str + '.png'
-fig.savefig(outname, dpi = 300)
-print("Saved image", outname)
-
-plt.show()
+##!#var1 = 'OMI'
+##!#var2 = 'CERES_SWF'
+##!##plot_compare_OMI_CERES_MODIS_NSIDC(date_str, 7, \
+##!##    omi_dtype = 'shawn', minlat = 65., zoom = True, save = False)
+##!##sys.exit()
+##!#
+##!##plot_compare_scatter(date_str, var1, var2, var3 = 'NSIDC_LAND', minlat = 65., \
+##!##    xmin = 1, zoom = False, save = False, trend = True)
+##!##plot_compare_colocate_spatial(date_str, minlat = 65., zoom = False, \
+##!##    save = False)
+##!#cat = 'ICE_CLOUD'
+##!##cat = 'OCEAN_CLOUD'
+##!##cat = 'LAND_CLEAR'
+##!##plot_compare_colocate_spatial_category(date_str, cat = cat, minlat = 65., \
+##!##    zoom = True, save = False)
+##!#trend = True
+##!#
+##!#fig = plt.figure(figsize = (12,4))
+##!#ax1 = fig.add_subplot(1,3,1)
+##!#ax2 = fig.add_subplot(1,3,2)
+##!#ax3 = fig.add_subplot(1,3,3)
+##!###ax1 = fig.add_subplot(2,3,1)
+##!###ax2 = fig.add_subplot(2,3,4)
+##!###ax3 = fig.add_subplot(2,3,2)
+##!###ax4 = fig.add_subplot(2,3,5)
+##!###ax5 = fig.add_subplot(2,3,3)
+##!###ax6 = fig.add_subplot(2,3,6)
+##!#
+##!#plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
+##!#    cat = 'ICE_CLOUD', minlat = 65., xmin = 1, xmax = None, ymin = None, ymax = None, \
+##!#    ax = ax1, colorbar = True, trend = trend, zoom = False, save = False,\
+##!#    color = 'tab:blue')
+##!#plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
+##!#    cat = 'ICE_CLEAR', minlat = 65., xmin = 1, xmax = None, ymin = None, ymax = None, \
+##!#    ax = ax1, colorbar = True, trend = trend, zoom = False, save = False,\
+##!#    color = 'tab:orange')
+##!#plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
+##!#    cat = 'OCEAN_CLOUD', minlat = 65., xmin = 1, xmax = None, ymin = None, ymax = None, \
+##!#    ax = ax2, colorbar = True, trend = trend, zoom = False, save = False, \
+##!#    color = 'tab:blue')
+##!#plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
+##!#    cat = 'OCEAN_CLEAR', minlat = 65., xmin = 1, xmax = None, ymin = None, ymax = None, \
+##!#    ax = ax2, colorbar = True, trend = trend, zoom = False, save = False, \
+##!#    color = 'tab:orange')
+##!#plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
+##!#    cat = 'LAND_CLOUD', minlat = 65., xmin = 1, xmax = None, ymin = None, ymax = None, \
+##!#    ax = ax3, colorbar = True, trend = trend, zoom = False, save = False, \
+##!#    color = 'tab:blue')
+##!#plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
+##!#    cat = 'LAND_CLEAR', minlat = 65., xmin = 1, xmax = None, ymin = None, ymax = None, \
+##!#    ax = ax3, colorbar = True, trend = trend, zoom = False, save = False, \
+##!#    color = 'tab:orange')
+##!#
+##!#fig.tight_layout()
+##!#
+##!#outname = 'arctic_compare_scatter_6panel_' + date_str + '.png'
+##!##fig.savefig(outname, dpi = 300)
+##!#print("Saved image", outname)
+##!#
+##!#plt.show()
