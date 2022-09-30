@@ -19,6 +19,8 @@ sys.path.append('/home/bsorenson/Research/MODIS/obs_smoke_forcing')
 from MODISLib import *
 sys.path.append('/home/bsorenson/Research/NSIDC')
 from NSIDCLib import *
+sys.path.append('/home/bsorenson/Research/FuLiou')
+from FuLiouLib import *
 
 data_dir = '/home/bsorenson/Research/Arctic_compares/comp_data/'
 datacrs = ccrs.PlateCarree()
@@ -251,9 +253,10 @@ def auto_all_download(date_str, download = True, rewrite_json = False):
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-def read_colocated(date_str):
+def read_colocated(date_str, zoom = True):
    
     filename =  data_dir + 'colocated_subset_' + date_str + '.hdf5'
+    print(filename)
     #filename =  data_dir + date_str[:8] + '/colocated_subset_' + date_str + '.hdf5'
     try:
         print(filename)
@@ -269,7 +272,7 @@ def read_colocated(date_str):
 
         if(date_str in file_date_dict.keys()):
             date_str2 = file_date_dict[date_str]['MODIS'][0]
-            filename =  data_dir + '/colocated_subset_' + date_str2 + '.hdf5'
+            filename =  data_dir + 'colocated_subset_' + date_str2 + '.hdf5'
             #filename =  data_dir + date_str2[:8] + '/colocated_subset_' + date_str2 + '.hdf5'
             print(filename)
             date_str = date_str2
@@ -304,11 +307,75 @@ def read_colocated(date_str):
         data['ceres_lwf'])
     coloc_data['LAT'] = data['omi_lat'][:,:]
     coloc_data['LON'] = data['omi_lon'][:,:]
-   
+    coloc_data['SZA'] = data['omi_sza'][:,:]
+    #coloc_data['VZA'] = data['omi_vza'][:,:]
+    #coloc_data['AZM'] = data['omi_azm'][:,:]
+     
     data.close()
  
     return coloc_data
 
+def read_colocated_combined(date_str, zoom = True):
+
+    if(len(date_str) == 6):
+        fmt = '%Y%m'
+    elif(len(date_str) == 8):
+        fmt = '%Y%m%d'
+    elif(date_str == 'all'):
+        fmt = 'NONE' 
+   
+    dt_date_str = datetime.strptime(date_str, fmt)
+
+    # Locate all matching files
+    # -------------------------
+    files = subprocess.check_output(dt_date_str.strftime('ls ' + data_dir + 'colocated*' + fmt + \
+        '*.hdf5'), shell = True).decode('utf-8').strip().split('\n')
+
+    for ii, tfile in enumerate(files):
+        ttime = tfile.strip().split('/')[-1][-17:-5] 
+        print(ttime)
+        coloc_data = read_colocated(ttime)
+
+        if(ii == 0):
+            total_data = coloc_data
+        else:
+            for key in coloc_data.keys():
+                if(key != 'date_str'):
+                    total_data[key] = np.concatenate((total_data[key], coloc_data[key]))
+        #test_data = np.concatenate((test_data, temp_data['omi_uvai_pert'][:,:]))
+        #print(tfile, temp_data['omi_uvai_pert'].shape) 
+        #temp_data.close()
+
+    total_data['date_str'] = date_str
+
+    total_data['OMI'] = np.ma.masked_invalid(total_data['OMI'][:,:])
+    total_data['MODIS_CH2'] = np.ma.masked_where((\
+        total_data['MODIS_CH2'][:,:] == -999.) | (total_data['MODIS_CH2'][:,:] > 1.0), \
+        total_data['MODIS_CH2'][:,:])
+    total_data['MODIS_CH7'] = np.ma.masked_where((\
+        total_data['MODIS_CH7'][:,:] == -999.) | (total_data['MODIS_CH7'][:,:] > 1.0), \
+        total_data['MODIS_CH7'])
+    total_data['NSIDC_ICE'] = np.ma.masked_where((\
+        #data['NSIDC_ICE'][:,:] == -999.) | (data['NSIDC_ICE'][:,:] > 100.), \
+        total_data['NSIDC_ICE'][:,:] == -999.) | (total_data['NSIDC_ICE'][:,:] > 100.) | \
+        (total_data['NSIDC_ICE'][:,:] < 80.), \
+        total_data['NSIDC_ICE'])
+    total_data['NSIDC_OCEAN'] = np.ma.masked_where((\
+        total_data['NSIDC_ICE'][:,:] == -999.) | (total_data['NSIDC_ICE'][:,:] > 0.), \
+        total_data['NSIDC_ICE'])
+    total_data['NSIDC_LAND'] = np.ma.masked_where((\
+        total_data['NSIDC_ICE'][:,:] == -999.) |  (total_data['NSIDC_ICE'][:,:] != 254.), \
+        total_data['NSIDC_ICE'])
+    total_data['CERES_SWF'] = np.ma.masked_where((\
+        total_data['CERES_SWF'][:,:] == -999.) | (total_data['CERES_SWF'][:,:] > 5000.), \
+        total_data['CERES_SWF'])
+    total_data['CERES_LWF'] = np.ma.masked_where((\
+        total_data['CERES_LWF'][:,:] == -999.) | (total_data['CERES_LWF'][:,:] > 5000.), \
+        total_data['CERES_LWF'])
+
+    return total_data
+ 
+    #print(test_data.shape)    
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
 # Processing functions
@@ -783,13 +850,19 @@ def plot_compare_colocate_spatial_category(coloc_data, cat = 'ALL', minlat = 65.
 def plot_compare_scatter_category(coloc_data, var1, var2, var3 = None, \
         cat = "ALL", minlat = 65., xmin = None, xmax = None, ymin = None, \
         ymax = None, ax = None, colorbar = True, trend = False, zoom = False, \
-        color = None, save = False):
+        restrict_sza = False, color = None, save = False):
 
     if(isinstance(coloc_data, str)):
         dt_date_str = datetime.strptime(coloc_data, '%Y%m%d%H%M')
         coloc_data = read_colocated(coloc_data)
     else:
-        dt_date_str = datetime.strptime(coloc_data['date_str'], '%Y%m%d%H%M')
+        if(len(coloc_data['date_str']) == 6):
+            fmt = '%Y%m'
+        elif(len(coloc_data['date_str']) == 8):
+            fmt = '%Y%m%d'
+        elif(len(coloc_data['date_str']) == 12):
+            fmt = '%Y%m%d%H%M'
+        dt_date_str = datetime.strptime(coloc_data['date_str'], fmt)
 
     if(cat == 'ALL'):
         plot_var = 'NSIDC_ICE'
@@ -809,7 +882,11 @@ def plot_compare_scatter_category(coloc_data, var1, var2, var3 = None, \
         ymin = np.nanmin(ydata)
     if(ymax is None):
         ymax = np.nanmax(ydata)
-   
+  
+    # If desired, remove data on other size of terminator
+    # ---------------------------------------------------
+    #if(restrict_sza):
+    #    xdata = np.ma.masked_where(coloc_data[' 
  
     #in_data = np.where((coloc_data[var1] > xmin) & \
     #    (coloc_data[var1] < xmax) & (coloc_data[var2] > ymin) &
@@ -901,7 +978,7 @@ def plot_compare_combined_category(coloc_data, var1 = 'OMI', \
     # Make the overall figure
     # -----------------------
     plt.close('all')
-    fig1 = plt.figure(figsize = (10,9))
+    fig1 = plt.figure(figsize = (12,9))
     ax1 = fig1.add_subplot(3,3,1, projection = mapcrs)
     ax2 = fig1.add_subplot(3,3,2, projection = mapcrs)
     ax3 = fig1.add_subplot(3,3,3, projection = mapcrs)
@@ -920,15 +997,21 @@ def plot_compare_combined_category(coloc_data, var1 = 'OMI', \
     plot_spatial(ax2, coloc_data['LON'], coloc_data['LAT'], coloc_data['MODIS_CH7'], \
         pdate, cmap = 'Greys_r', zoom = zoom)
 
+    ax1.set_title('MODIS 0.64 μm')
+    ax2.set_title('MODIS 2.13 μm')
+
     # Plot the NSIDC coloc_data
     # -------------------
     plot_spatial(ax3, coloc_data['LON'], coloc_data['LAT'], coloc_data['NSIDC_ICE'], \
         pdate, cmap = 'ocean', zoom = zoom)
 
+    ax3.set_title('NSIDC Ice Conc')
+
     # Plot the OMI coloc_data
     # -----------------
     plot_spatial(ax4, coloc_data['LON'], coloc_data['LAT'], coloc_data['OMI'], \
         pdate, cmap = 'jet', zoom = zoom)
+    ax4.set_title('OMI AI Perturb')
     
     # Plot the CERES coloc_data
     # -------------------
@@ -937,38 +1020,46 @@ def plot_compare_combined_category(coloc_data, var1 = 'OMI', \
     plot_spatial(ax6, coloc_data['LON'], coloc_data['LAT'], coloc_data['CERES_LWF'], \
         pdate, cmap = 'plasma', zoom = zoom)
 
+    ax5.set_title('CERES SWF')
+    ax6.set_title('CERES LWF')
+
+    # Plot the box plots
+    # ------------------
+    #plot_FuLiou_boxes(axs = [ax7, ax8, ax9])
+
     # Plot the scatter data
     date_str = dt_date_str.strftime('%Y%m%d%H%M')
     plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
         cat = 'ICE_CLOUD', minlat = 65., xmin = xmin, xmax = None, ymin = None, ymax = None, \
-        ax = ax7, colorbar = True, trend = trend, zoom = False, save = False,\
+        ax = ax7, colorbar = True, trend = trend, zoom = zoom, save = False,\
         color = 'tab:blue')
     plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
         cat = 'ICE_CLEAR', minlat = 65., xmin = xmin, xmax = None, ymin = None, ymax = None, \
-        ax = ax7, colorbar = True, trend = trend, zoom = False, save = False,\
+        ax = ax7, colorbar = True, trend = trend, zoom = zoom, save = False,\
         color = 'tab:orange')
     plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
         cat = 'OCEAN_CLOUD', minlat = 65., xmin = xmin, xmax = None, ymin = None, ymax = None, \
-        ax = ax8, colorbar = True, trend = trend, zoom = False, save = False, \
+        ax = ax8, colorbar = True, trend = trend, zoom = zoom, save = False, \
         color = 'tab:blue')
     plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
         cat = 'OCEAN_CLEAR', minlat = 65., xmin = xmin, xmax = None, ymin = None, ymax = None, \
-        ax = ax8, colorbar = True, trend = trend, zoom = False, save = False, \
+        ax = ax8, colorbar = True, trend = trend, zoom = zoom, save = False, \
         color = 'tab:orange')
     plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
         cat = 'LAND_CLOUD', minlat = 65., xmin = xmin, xmax = None, ymin = None, ymax = None, \
-        ax = ax9, colorbar = True, trend = trend, zoom = False, save = False, \
+        ax = ax9, colorbar = True, trend = trend, zoom = zoom, save = False, \
         color = 'tab:blue')
     plot_compare_scatter_category(date_str, var1, var2, var3 = None, \
         cat = 'LAND_CLEAR', minlat = 65., xmin = xmin, xmax = None, ymin = None, ymax = None, \
-        ax = ax9, colorbar = True, trend = trend, zoom = False, save = False, \
+        ax = ax9, colorbar = True, trend = trend, zoom = zoom, save = False, \
         color = 'tab:orange')
 
     fig1.tight_layout()
 
     if(save):
-        outname = 'arctic_compare_combined_category_' + date_str + '.png'
-        fig.savefig(outname, dpi = 300)
+        date_str = dt_date_str.strftime('%Y%m%d%H%M')
+        outname = 'arctic_compare_combined_category_nomin_' + date_str + '.png'
+        fig1.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else:
         plt.show()
