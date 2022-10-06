@@ -21,10 +21,18 @@ from readsounding import *
 from adpaa import ADPAA
 
 if(len(sys.argv)!=3):
-    print "SYNTAX: ./thermo_test.py Graw_RTS_file thermo_file"
+    print("SYNTAX: ./thermo_test.py Graw_RTS_file thermo_file")
     sys.exit()
 
 radio = readsounding(sys.argv[1],allGraw=True,keepMissing=True)
+
+flight2019 = False
+
+if(radio['NAME'][:2] == '19'):
+    flight2019 = True
+else:
+    flight2019 = False
+
 thermo = ADPAA()
 thermo.ReadFile(sys.argv[2])
 # Mask any missing data in the thermosonde data
@@ -44,37 +52,40 @@ radio['ALT'] = np.delete(radio['ALT'],np.where(radio['ALT']==999999.9999))
 
 #start_time = 86332.0
 #stop_time  = 86606.0
-# Thermo data
-# After 2019/05/03
-#start_time = 13152.0
-#stop_time = 14220.0 
-# Before 2019/05/03
-start_time = 23331.0
-stop_time = 27380.0 
-# Radio data
-# After 2019/05/03
-#radio_ascent_start = 13334.7
-#radio_ascent_stop  = 14410.7
-#radio_last_contact = 14410.7
-# Before 2019/05/03
-radio_ascent_start = 20154.5
-radio_ascent_stop  = 24628.5
-radio_last_contact = 26398.5
-#radio_last_index = 7734 # last contact
-# After 2019/05/03
-#radio_last_index = 1076 # burst
-# Before 2019/05/03
-radio_last_index = 5964 # burst
+if(flight2019):
+    # Thermo data
+    # After 2019/05/03
+    start_time = 13152.0
+    stop_time = 14220.0 
+    # Radio data
+    # After 2019/05/03
+    radio_ascent_start = 13334.7
+    radio_ascent_stop  = 14410.7
+    radio_last_contact = 14410.7
+    # After 2019/05/03
+    radio_last_index = 1076 # burst
+    # After 2019/05/03
+    thermo_start_index= 2622
+    thermo_last_index = 3690
+    thermo_final_last_index = 3918  # last index in the file
 
-#thermo_last_index = 10226 # last contact 
-# After 2019/05/03
-#thermo_start_index= 2622
-#thermo_last_index = 3690
-#thermo_final_last_index = 3918  # last index in the file
-# Before 2019/05/03
-thermo_start_index = 4626
-thermo_last_index = 8675
-thermo_final_last_index = 10232  # last index in the file
+else:
+    # Before 2019/05/03
+    start_time = 23331.0
+    stop_time = 27380.0 
+    # Before 2019/05/03
+    radio_ascent_start = 20154.5
+    radio_ascent_stop  = 24628.5
+    radio_last_contact = 26398.5
+    #radio_last_index = 7734 # last contact
+    # Before 2019/05/03
+    radio_last_index = 5964 # burst
+    
+    #thermo_last_index = 10226 # last contact 
+    # Before 2019/05/03
+    thermo_start_index = 4626
+    thermo_last_index = 8675
+    thermo_final_last_index = 10232  # last index in the file
 
 #radio_last_contact = 26383.0
 radio_start_time  = radio_ascent_start 
@@ -102,16 +113,18 @@ diff = start_time-radio_start_time # first launch 2018 05 05
 plotTime = thermo.data['Time']-diff
 thermo.data['Time'] = thermo.data['Time']-diff
 
-# After 2019/05/03
-#ascent_rtime = radio['UTCTime'][0:radio_last_index]
-#ascent_ralt = radio['ALT'][0:radio_last_index]
-#ascent_ttime = plotTime[thermo_start_index:thermo_last_index]
-#ascent_talt = thermo.data['Alt'][thermo_start_index:thermo_last_index]
-# Before 2019/05/03
-ascent_rtime = radio['UTCTime'][1490:radio_last_index]
-ascent_ralt = radio['ALT'][1490:radio_last_index]
-ascent_ttime = plotTime[thermo_start_index:thermo_last_index]
-ascent_talt = thermo.data['Alt'][thermo_start_index:thermo_last_index]
+if(flight2019):
+    # After 2019/05/03
+    ascent_rtime = radio['UTCTime'][0:radio_last_index]
+    ascent_ralt = radio['ALT'][0:radio_last_index]
+    ascent_ttime = plotTime[thermo_start_index:thermo_last_index]
+    ascent_talt = thermo.data['Alt'][thermo_start_index:thermo_last_index]
+else:
+    # Before 2019/05/03
+    ascent_rtime = radio['UTCTime'][1490:radio_last_index]
+    ascent_ralt = radio['ALT'][1490:radio_last_index]
+    ascent_ttime = plotTime[thermo_start_index:thermo_last_index]
+    ascent_talt = thermo.data['Alt'][thermo_start_index:thermo_last_index]
 
 descent_rtime = radio['UTCTime'][radio_last_index:len(radio['UTCTime'])]
 descent_ralt = radio['ALT'][radio_last_index:len(radio['UTCTime'])]
@@ -156,14 +169,16 @@ for time in radio['UTCTime']:
 ##ad_ttime = np.concatenate([ascent_ttime,descent_ttime])
 ##ad_talt  = np.concatenate([ascent_talt,descent_talt])
 
-# After 2019/05/03
-#thermo.data['Time'][thermo_start_index:thermo_last_index] = ascent_ttime
-#thermo.data['Alt'][thermo_start_index:thermo_last_index] = ascent_talt
-#thermo.data['Time'][2622:thermo_final_last_index] = ascent_ttime
-#thermo.data['Alt'][2622:thermo_final_last_index] = ascent_talt
-# Before 2019/05/03
-thermo.data['Time'][thermo_start_index:thermo_final_last_index] = ad_ttime
-thermo.data['Alt'][thermo_start_index:thermo_final_last_index] = ad_talt
+if(flight2019):
+    # After 2019/05/03
+    thermo.data['Time'][thermo_start_index:thermo_last_index] = ascent_ttime
+    thermo.data['Alt'][thermo_start_index:thermo_last_index] = ascent_talt
+    #thermo.data['Time'][2622:thermo_final_last_index] = ascent_ttime
+    #thermo.data['Alt'][2622:thermo_final_last_index] = ascent_talt
+else:
+    # Before 2019/05/03
+    thermo.data['Time'][thermo_start_index:thermo_final_last_index] = ad_ttime
+    thermo.data['Alt'][thermo_start_index:thermo_final_last_index] = ad_talt
 
 thermo.mask_MVC()
 
@@ -173,6 +188,8 @@ plt.plot(rplot,ascent_rtime,color='orange',label='radio')
 #plt.plot(thermo.data['Time'],thermo.data['Alt'],color='blue',label='thermo')
 plt.plot(tplot,ascent_ttime,color='blue',label='thermo')
 plt.legend()
+
+
 fig2 = plt.figure()
 #plt.plot(plotTime,radio['ALT'],color='orange',label='radio')
 plt.plot(ascent_rtime,ascent_ralt,color='orange',label='radio')
@@ -183,6 +200,9 @@ plt.plot(ascent_ttime,ascent_talt,color='blue',label='thermo')
 ####plt.plot(thermo.data['Time'],thermo.data['Alt'],color='blue',label='thermo')
 ###plt.plot(descent_ttime,descent_talt,color='blue',label='thermo')
 plt.legend()
+
+plt.show()
+sys.exit()
 
 fig2 = plt.figure(figsize=(8,6))
 plt.xlabel('Time [seconds]',fontsize=11)

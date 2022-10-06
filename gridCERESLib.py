@@ -263,7 +263,8 @@ def readgridCERES(start_date,end_date,param,satellite = 'Aqua',minlat=60.5,\
 
 # For now, assume that the user only wants to grab a single file of daily data
 # User could cram multiple months into a single file, if wanted
-def readgridCERES_daily(start_date,end_date,param,satellite = 'Aqua',minlat=60.5,season='all'):
+#def readgridCERES_daily(start_date,end_date,param,satellite = 'Aqua',minlat=60.5,season='all'):
+def readgridCERES_daily(date_str,param,satellite = 'Aqua',minlat=60.5,season='all'):
     CERES_data = {}
   
     lat_ranges = np.arange(minlat,90.5,1.0)
@@ -272,51 +273,63 @@ def readgridCERES_daily(start_date,end_date,param,satellite = 'Aqua',minlat=60.5
     # Grab all the files
     if(satellite == 'Terra'):
         base_path = '/home/bsorenson/data/CERES/SSF_1Deg/daily/Terra/CERES_SSF1deg-Day_Terra-MODIS_Ed4.1_Subset_'
-    else:
+    elif(satellite == 'Aqua'):
         base_path = '/home/bsorenson/data/CERES/SSF_1Deg/daily/Aqua/CERES_SSF1deg-Day_Aqua-MODIS_Ed4.1_Subset_'
+    elif(satellite == 'SuomiNPP'):
+        base_path = '/home/bsorenson/data/CERES/SSF_1Deg/daily/SuomiNPP/CERES_SSF1deg-Day_NPP-SuomiNPP_Ed2A_Subset_'
     #base_path = '/data/CERES/SSF_1Deg/monthly/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
     #base_path = '/home/bsorenson/data/CERES/SSF_1Deg/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
     total_list = sorted(glob.glob(base_path+'*.nc'))
 
     # Loop over all files and find the ones that match with the desired times
-    start_date = datetime.strptime(str(start_date),'%Y%m%d')
-    end_date = datetime.strptime(str(end_date),'%Y%m%d')
-    final_list = []
-    for f in total_list:
-        fdate = f.split('_')[-1][:6]
-        fdate = datetime.strptime(str(fdate),'%Y%m')
-        if((fdate>=start_date) & (fdate<=end_date)):
-            final_list.append(f)
-    time_dim = len(final_list)
+    #start_date = datetime.strptime(str(start_date),'%Y%m%d')
+    #end_date = datetime.strptime(str(end_date),'%Y%m%d')
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d')
 
-    lat_indices = np.where(lat_ranges>=minlat)[0]
+    #final_list = []
+    #for f in total_list:
+    #    fdate = f.split('_')[-1][:6]
+    #    fdate = datetime.strptime(str(fdate),'%Y%m')
+    #    if((fdate>=start_date) & (fdate<=end_date)):
+    #        final_list.append(f)
+    # Loop over the list of current CERES data files and find the one that  
+    # corresponds to the desired datetime
+    # --------------------------------------------------------------------
+    good_list = []
+    for tfile in total_list:
+        filename   = tfile.strip().split('/')[-1]
+        begin_date = datetime.strptime(filename[-20:-12],"%Y%m%d")
+        end_date   = datetime.strptime(filename[-11:-3], "%Y%m%d")
+        if((dt_date_str >= begin_date) & (dt_date_str <= end_date)):
+            print("Found matching file",tfile)
+            good_list.append(tfile)
+            #work_file = tfile
 
     # Open up the file
-    data = Dataset(final_list[0],'r')
-    print(final_list[0])
+    data = Dataset(good_list[0],'r')
+    print(good_list[0])
 
-    CERES_data['param'] = param
-    CERES_data['data']   = np.zeros((data.variables['time'].size,len(lat_indices),len(lon_ranges)))
-    CERES_data['trends'] = np.zeros((len(lat_indices),len(lon_ranges)))
-    CERES_data['dates'] = [] 
-    CERES_data['parm_name'] = data.variables[param].standard_name 
-    CERES_data['parm_unit'] = data.variables[param].units 
-    CERES_data['lat'] = lat_ranges[lat_indices]
-    CERES_data['lon'] = lon_ranges
-    CERES_data['month_fix'] = ''
-    CERES_data['season']=season
+    #lat_indices = np.where(CERES_data['lat'] >= minlat)
+
+    CERES_data['alb_all'] = data['toa_alb_all_daily'][:,:,:]
+    CERES_data['alb_clr'] = data['toa_alb_clr_daily'][:,:,:]
+    CERES_data['swf_all'] = data['toa_sw_all_daily'][:,:,:]
+    CERES_data['swf_clr'] = data['toa_sw_clr_daily'][:,:,:]
+    CERES_data['cld'] = data['cldarea_total_day_daily'][:,:,:]
+    CERES_data['lat'] = data['lat'][:]
+    CERES_data['lon'] = data['lon'][:]
     CERES_data['satellite'] = satellite
 
-    split_date = data.variables['time'].units.split()[2].split('-')
-    base_date = datetime(year = int(split_date[0]), month = int(split_date[1]),\
-         day = int(split_date[2]))
+    #split_date = data.variables['time'].units.split()[2].split('-')
+    #base_date = datetime(year = int(split_date[0]), month = int(split_date[1]),\
+    #     day = int(split_date[2]))
 
-    # Loop over good files and insert data into dictionary
-    for ti in range(data.variables['time'].size):
-        CERES_data['data'][ti,:,:] = data.variables[param][ti,lat_indices,:]
-        new_date = base_date + relativedelta(days = data.variables['time'][ti])
-        CERES_data['dates'].append(new_date.strftime("%Y%m%d"))
-        ### print(data.variables[param][0,lat_indices,:])
+    ## Loop over good files and insert data into dictionary
+    #for ti in range(data.variables['time'].size):
+    #    CERES_data['data'][ti,:,:] = data.variables[param][ti,lat_indices,:]
+    #    new_date = base_date + relativedelta(days = data.variables['time'][ti])
+    #    CERES_data['dates'].append(new_date.strftime("%Y%m%d"))
+    #    ### print(data.variables[param][0,lat_indices,:])
     data.close() 
      
     #start_date = datetime.strptime(str(start_date),'%Y%m')

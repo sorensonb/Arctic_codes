@@ -28,6 +28,9 @@ from compare_cn2 import *
 ##!#
 ##!#sys.exit()
 
+
+plot_vert_tempdiffs(radio, thermo_scn2, save = False)
+
 plot_calibration_curves_both(save = True)
 
 sys.exit()

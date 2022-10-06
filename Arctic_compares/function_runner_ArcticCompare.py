@@ -21,56 +21,100 @@ date_str = '201807052305'
 #date_str = '201908110125'
 #date_str = '201908110440'
 
-date_strs = ['200804221841',  # GOOD
-             '200804222020',  # GOOD
-             '200804222159',  # GOOD
-             ##!#'201605151925',  # MEDIOCRE
-             ##!#'201605152104',  # MEDIOCRE
-             ##!#'201605152243',  # MEDIOCRE
-             ##!#'201605162148',  # MEDIOCRE
-             '201807051856',  # GOOD
-             '201807052034',  # GOOD
-             '201807052213',  # GOOD
-             '201908102115',  # GOOD
-             '201908102254',  # GOOD
-             '201908110033',  # GOOD
-             '201908110351',  # GOOD
-             ##!#'200607260017',  # GOOD
-             ##!#'200607252238',  # GOOD
-             ##!#'200607260156',  # GOOD
-             ##!#'200607260335',  # GOOD
-             ##!#'200607260513',  # GOOD
-             '201708161504',  # GOOD
-             '201708161643',  # GOOD
-             '201708161821',  # GOOD
-             '201708171408',  # GOOD
-             '201708171547',  # GOOD
-             '201708171726',  # GOOD
-             '201708171905',  # GOOD
-             '201708172043',  # GOOD
-             '201708181312',  # GOOD
-             '201708181451',  # GOOD
-             '201708181630',  # GOOD
-             '201708181809',  # GOOD
-             '201708181948',  # GOOD
-             '201708191355',  # GOOD
-             '201708191534',  # GOOD
-             '201708191713',  # GOOD
-             '201808241343',
-            ]
+date_strs = ['200607240029', # GOOD
+             '200607240208', # GOOD
+             '200607240347', # GOOD
+             '200607240526', # GOOD
+             '200607240705', # GOOD
+             '200607240844', # GOOD
+             '200607242155', # GOOD
+             '200607242334', # GOOD
+             '200607250112', # GOOD
+             '200607250251', # GOOD
+             '200607250609', # GOOD
+             '200607250748', # GOOD?
+             '200607252238', # GOOD
+             '200607260017', # GOOD
+             '200607260156', # GOOD
+             '200607260335', # GOOD
+             '200607260513', # GOOD?
+             '200607260831', # GOOD
+             '200607262142', # GOOD
+             '200607270100', # GOOD
+             '200607270239', # GOOD?
+             '200607270418', # GOOD?
+             '200607270557', # GOOD?
+             '200607270736', # GOOD?
+             '200607270914',
+             '200607271053',
+             '200607271232',
+             '200607271411',
+             '200607271550',
+             '200607271729',
+             '200607271908',
+             '200607272047', 
+             '200607272226', # GOOD
+             ]
+##             '200804221841',  # GOOD
+##             '200804222020',  # GOOD
+##             '200804222159',  # GOOD
+##             ##!#'201605151925',  # MEDIOCRE
+##             ##!#'201605152104',  # MEDIOCRE
+##             ##!#'201605152243',  # MEDIOCRE
+##             ##!#'201605162148',  # MEDIOCRE
+##             '201807051856',  # GOOD
+##             '201807052034',  # GOOD
+##             '201807052213',  # GOOD
+##             '201908102115',  # GOOD
+##             '201908102254',  # GOOD
+##             '201908110033',  # GOOD
+##             '201908110351',  # GOOD
+##             ##!#'200607260017',  # GOOD
+##             ##!#'200607252238',  # GOOD
+##             ##!#'200607260156',  # GOOD
+##             ##!#'200607260335',  # GOOD
+##             ##!#'200607260513',  # GOOD
+##             '201708161504',  # GOOD
+##             '201708161643',  # GOOD
+##             '201708161821',  # GOOD
+##             '201708171408',  # GOOD
+##             '201708171547',  # GOOD
+##             '201708171726',  # GOOD
+##             '201708171905',  # GOOD
+##             '201708172043',  # GOOD
+##             '201708181312',  # GOOD
+##             '201708181451',  # GOOD
+##             '201708181630',  # GOOD
+##             '201708181809',  # GOOD
+##             '201708181948',  # GOOD
+##             '201708191355',  # GOOD
+##             '201708191534',  # GOOD
+##             '201708191713',  # GOOD
+##             '201808241343',
+##            ]
+
+automate_all_preprocess(date_strs, download = True, images = True, process = True)
+sys.exit()
 
 date_str = '201908110033'
-date_str = '201807052034'
+date_str = '201708171547'
+#coloc_data = date_str
+#plot_compare_combined_category(coloc_data, var1 = 'OMI', \
+#    var2 = 'CERES_SWF', var3 = None, cat = "ALL", minlat = 65., \
+#    xmin = 1.0, xmax = None, ymin = None, ymax = None, ax = None, \
+#    colorbar = True, trend = False, zoom = False, color = None, \
+#    save = False)
+#sys.exit()
 #date_str = '201708161504'
 ##!#date_str = '201807052034'
-for date_str in date_strs:
-##data = read_colocated_combined('20180705', zoom = True)
-    plot_compare_combined_category(date_str, var1 = 'OMI', \
-        var2 = 'CERES_SWF', var3 = None, cat = "ALL", minlat = 65., \
-        xmin = None, xmax = None, ymin = None, ymax = None, ax = None, \
-        colorbar = True, trend = False, zoom = True, color = None, \
-        save = True)
-sys.exit()
+#for date_str in date_strs:
+##!#data = read_colocated_combined('20180705', zoom = True)
+##!#plot_compare_combined_category(data, var1 = 'OMI', \
+##!#    var2 = 'CERES_SWF', var3 = None, cat = "ALL", minlat = 65., \
+##!#    xmin = None, xmax = None, ymin = None, ymax = None, ax = None, \
+##!#    colorbar = True, trend = False, zoom = True, color = None, \
+##!#    save = False)
+##!#sys.exit()
 
 #date_str = '201908110351'
 ##date_str = '200804222020'
@@ -79,8 +123,6 @@ sys.exit()
 #    omi_dtype = 'shawn', minlat = 65., zoom = True, save = False)
 #sys.exit()
 
-#automate_all_preprocess(date_strs, download = False, images = False, process = True)
-#sys.exit()
 
 
 
@@ -106,11 +148,10 @@ var2 = 'CERES_SWF'
 ##!##cat = 'LAND_CLEAR'
 ##!##plot_compare_colocate_spatial_category(date_str, cat = cat, minlat = 65., \
 ##!##    zoom = True, save = False)
-trend = False
+trend = True 
 ##!#
-data = read_colocated_combined('20170816', zoom = True)
+data = read_colocated_combined('20170818', zoom = True)
 #data = '201708171547'
-
 
 fig = plt.figure(figsize = (12,4))
 ax1 = fig.add_subplot(1,3,1)
@@ -148,7 +189,7 @@ plot_compare_scatter_category(data, var1, var2, var3 = None, \
     ax = ax3, colorbar = True, trend = trend, zoom = False, save = False, \
     color = 'tab:orange')
 #plt.suptitle(data['date_str'])
-plt.suptitle(data)
+#plt.suptitle(data)
 fig.tight_layout()
 
 #outname = 'arctic_compare_scatter_6panel_' + date_str + '.png'

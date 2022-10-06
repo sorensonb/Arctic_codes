@@ -256,7 +256,6 @@ def auto_all_download(date_str, download = True, rewrite_json = False):
 def read_colocated(date_str, zoom = True):
    
     filename =  data_dir + 'colocated_subset_' + date_str + '.hdf5'
-    print(filename)
     #filename =  data_dir + date_str[:8] + '/colocated_subset_' + date_str + '.hdf5'
     try:
         print(filename)
@@ -337,41 +336,44 @@ def read_colocated_combined(date_str, zoom = True):
         coloc_data = read_colocated(ttime)
 
         if(ii == 0):
-            total_data = coloc_data
+            temp_data = coloc_data
         else:
             for key in coloc_data.keys():
                 if(key != 'date_str'):
-                    total_data[key] = np.concatenate((total_data[key], coloc_data[key]))
+                    temp_data[key] = np.concatenate((temp_data[key], coloc_data[key]))
         #test_data = np.concatenate((test_data, temp_data['omi_uvai_pert'][:,:]))
         #print(tfile, temp_data['omi_uvai_pert'].shape) 
         #temp_data.close()
 
+    temp_data['date_str'] = date_str
+
+    total_data = {}
     total_data['date_str'] = date_str
 
-    total_data['OMI'] = np.ma.masked_invalid(total_data['OMI'][:,:])
+    total_data['OMI'] = np.ma.masked_invalid(temp_data['OMI'][:,:])
     total_data['MODIS_CH2'] = np.ma.masked_where((\
-        total_data['MODIS_CH2'][:,:] == -999.) | (total_data['MODIS_CH2'][:,:] > 1.0), \
-        total_data['MODIS_CH2'][:,:])
+        temp_data['MODIS_CH2'][:,:] == -999.) | (temp_data['MODIS_CH2'][:,:] > 1.0), \
+        temp_data['MODIS_CH2'][:,:])
     total_data['MODIS_CH7'] = np.ma.masked_where((\
-        total_data['MODIS_CH7'][:,:] == -999.) | (total_data['MODIS_CH7'][:,:] > 1.0), \
-        total_data['MODIS_CH7'])
+        temp_data['MODIS_CH7'][:,:] == -999.) | (temp_data['MODIS_CH7'][:,:] > 1.0), \
+        temp_data['MODIS_CH7'])
     total_data['NSIDC_ICE'] = np.ma.masked_where((\
         #data['NSIDC_ICE'][:,:] == -999.) | (data['NSIDC_ICE'][:,:] > 100.), \
-        total_data['NSIDC_ICE'][:,:] == -999.) | (total_data['NSIDC_ICE'][:,:] > 100.) | \
-        (total_data['NSIDC_ICE'][:,:] < 80.), \
-        total_data['NSIDC_ICE'])
+        temp_data['NSIDC_ICE'][:,:] == -999.) | (temp_data['NSIDC_ICE'][:,:] > 100.) | \
+        (temp_data['NSIDC_ICE'][:,:] < 80.), \
+        temp_data['NSIDC_ICE'])
     total_data['NSIDC_OCEAN'] = np.ma.masked_where((\
-        total_data['NSIDC_ICE'][:,:] == -999.) | (total_data['NSIDC_ICE'][:,:] > 0.), \
-        total_data['NSIDC_ICE'])
+        temp_data['NSIDC_ICE'][:,:] == -999.) | (temp_data['NSIDC_ICE'][:,:] > 0.), \
+        temp_data['NSIDC_ICE'])
     total_data['NSIDC_LAND'] = np.ma.masked_where((\
-        total_data['NSIDC_ICE'][:,:] == -999.) |  (total_data['NSIDC_ICE'][:,:] != 254.), \
-        total_data['NSIDC_ICE'])
+        temp_data['NSIDC_ICE'][:,:] == -999.) |  (temp_data['NSIDC_ICE'][:,:] != 254.), \
+        temp_data['NSIDC_ICE'])
     total_data['CERES_SWF'] = np.ma.masked_where((\
-        total_data['CERES_SWF'][:,:] == -999.) | (total_data['CERES_SWF'][:,:] > 5000.), \
-        total_data['CERES_SWF'])
+        temp_data['CERES_SWF'][:,:] == -999.) | (temp_data['CERES_SWF'][:,:] > 5000.), \
+        temp_data['CERES_SWF'])
     total_data['CERES_LWF'] = np.ma.masked_where((\
-        total_data['CERES_LWF'][:,:] == -999.) | (total_data['CERES_LWF'][:,:] > 5000.), \
-        total_data['CERES_LWF'])
+        temp_data['CERES_LWF'][:,:] == -999.) | (temp_data['CERES_LWF'][:,:] > 5000.), \
+        temp_data['CERES_LWF'])
 
     return total_data
  
@@ -925,6 +927,8 @@ def plot_compare_scatter_category(coloc_data, var1, var2, var3 = None, \
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
     
+    print(plot_var, len(mask_xdata), len(mask_ydata), np.nanmax(mask_xdata), np.nanmax(mask_ydata))
+
     if(var3 is None):
         ax.scatter(mask_xdata, mask_ydata, s = 6, color = pcolor)
     else: 

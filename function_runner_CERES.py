@@ -214,6 +214,11 @@ date_idx = 39 # very very good, JZ
 #date_str = '2017081914' # GOOD
 #date_str = '2017081916' # GOOD
 #date_str = '2017081918' # GOOD
+
+
+CERES_data = readgridCERES_daily('20170817','SWF',satellite = 'Aqua',minlat=60.5,season='all')
+sys.exit()
+
 param = 'SWF'
 CERES_data_hrly = readgridCERES_hrly_grid(date_str, param, \
     satellite = 'Aqua', minlat = minlat)

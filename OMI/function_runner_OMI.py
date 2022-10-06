@@ -34,6 +34,11 @@ import sys
 
 #plot_combined_fort_out('20170818', min_lat = 80., vtype = 'areas', save = False)
 
+#infile = '/home/bsorenson/Research/OMI/shawn_analysis/count_analysis/omi_vsj4_areas_2005_2020_100.txt'
+##plot_OMI_fort_out_two_lats(infile, minlat = 70., vtype = 'areas', save = False)
+#plot_OMI_fort_out_peaks(infile, minlat = 75., vtype = 'areas', save = False)
+#
+#sys.exit()
 
 #date_str = '201807050048'
 #date_str = '201807050227'
@@ -51,8 +56,8 @@ date_str = '201807051856'
 #date_str = '201807052213'
 #date_str = '201807052352'
 minlat = 65.
-OMI_base  = readOMI_swath_shawn(date_str, latmin = minlat)
-sys.exit()
+#OMI_base  = readOMI_swath_shawn(date_str, latmin = minlat)
+#sys.exit()
 #write_shawn_to_HDF5(OMI_base)
 
 #OMI_data = readOMI_swath_hdf(date_str, 'control', only_sea_ice = False, \
@@ -60,40 +65,118 @@ sys.exit()
 #date_str = '201605152104'
 #date_str = '201605162009'
 
+date_strs = ['200607240029', # GOOD
+             '200607240208', # GOOD
+             '200607240347', # GOOD
+             '200607240526', # GOOD
+             '200607240705', # GOOD
+             '200607240844', # GOOD
+             '200607242155', # GOOD
+             '200607242334', # GOOD
+             '200607250112', # GOOD
+             '200607250251', # GOOD
+             '200607250609', # GOOD
+             '200607250748', # GOOD?
+             '200607252238', # GOOD
+             '200607260017', # GOOD
+             '200607260156', # GOOD
+             '200607260335', # GOOD
+             '200607260513', # GOOD?
+             '200607260831', # GOOD
+             '200607262142', # GOOD
+             '200607270100', # GOOD
+             '200607270239', # GOOD?
+             '200607270418', # GOOD?
+             '200607270557', # GOOD?
+             '200607270736', # GOOD?
+             '200607270914',
+             '200607271053',
+             '200607271232',
+             '200607271411',
+             '200607271550',
+             '200607271729',
+             '200607271908',
+             '200607272047', 
+             '200607272226'] # GOOD
 
-date_strs = ['200804221841',  # GOOD
-             '200804222020',  # GOOD
-             '200804222159',  # GOOD
-             '201605151925',  # MEDIOCRE
-             '201605152104',  # MEDIOCRE
-             '201605152243',  # MEDIOCRE
-             '201605162148',  # MEDIOCRE
-             '201807051856',  # GOOD
-             '201908102115',  # GOOD
-             '201908102254',  # GOOD
-             '201908110033',  # GOOD
-             '201908110351',  # GOOD
-             '200607260017',  # GOOD
-             '200607252238',  # GOOD
-             '200607260156',  # GOOD
-             '200607260335',  # GOOD
-             '200607260513',  # GOOD
-             '201708161504',  # GOOD
-             '201708161643',  # GOOD
-             '201708161821',  # GOOD
-             '201708171408',  # GOOD
-             '201708171547',  # GOOD
-             '201708171726',  # GOOD
-             '201708171905',  # GOOD
-             '201708172043',  # GOOD
-             '201708181312',  # GOOD
-             '201708181451',  # GOOD
-             '201708181630',  # GOOD
-             '201708181809',  # GOOD
-             '201708181948',  # GOOD
-             '201708191355',  # GOOD
-             '201708191534',  # GOOD
-             '201708191713' ] # GOOD
+
+
+#date_strs = ['200804221841',  # GOOD
+#             '200804222020',  # GOOD
+#             '200804222159',  # GOOD
+#date_strs = ['201207260009', 
+#             '201207260148', 
+#             '201207260327', 
+#             '201207260506', 
+#             '201207260645', 
+#             '201207260824', 
+#             '201207261003', 
+#             '201207261142', 
+#             '201207261320', 
+#             '201207261459', 
+#             '201207261638', 
+#             '201207261817', 
+#             '201207261956', 
+#             '201207262135', 
+#             '201207262314']
+#date_strs = ['201207250105', 
+#             '201207250244',
+#             '201207250423', 
+#             '201207250602', 
+#             '201207250741', 
+#             '201207250920', 
+#             '201207251058', 
+#             '201207251237', 
+#             '201207251416', 
+#             '201207251555', 
+#             '201207251734', 
+#             '201207251913', # good? 
+#             '201207252052', # good?
+#             '201207252231'] # good?
+#date_strs = ['201308020123',
+#             '201308020302',
+#             '201308020441',
+#             '201308020620',
+#             '201308020759',
+#             '201308020938',
+#             '201308021117',
+#             '201308021256',
+#             '201308021434',
+#             '201308021613',
+#             '201308021752',
+#             '201308021931',
+#             '201308022110',
+#             '201308022249']
+#             '201605151925',  # MEDIOCRE
+#             '201605152104',  # MEDIOCRE
+#             '201605152243',  # MEDIOCRE
+#             '201605162148',  # MEDIOCRE
+#             '201807051856',  # GOOD
+#             '201908102115',  # GOOD
+#             '201908102254',  # GOOD
+#             '201908110033',  # GOOD
+#             '201908110351',  # GOOD
+#             '200607260017',  # GOOD
+#             '200607252238',  # GOOD
+#             '200607260156',  # GOOD
+#             '200607260335',  # GOOD
+#             '200607260513',  # GOOD
+#             '201708161504',  # GOOD
+#             '201708161643',  # GOOD
+#             '201708161821',  # GOOD
+#             '201708171408',  # GOOD
+#             '201708171547',  # GOOD
+#             '201708171726',  # GOOD
+#             '201708171905',  # GOOD
+#             '201708172043',  # GOOD
+#             '201708181312',  # GOOD
+#             '201708181451',  # GOOD
+#             '201708181630',  # GOOD
+#             '201708181809',  # GOOD
+#             '201708181948',  # GOOD
+#             '201708191355',  # GOOD
+#             '201708191534',  # GOOD
+#             '201708191713' ] # GOOD
 
 
 #date_str = '200804222020' # GOOD
@@ -129,33 +212,34 @@ date_strs = ['200804221841',  # GOOD
 #date_str = '201708191534' # GOOD
 #date_str = '201708191713' # GOOD
 
-sys.path.append('/home/bsorenson/Research/MODIS/obs_smoke_forcing/')
-from MODISLib import *
+#sys.path.append('/home/bsorenson/Research/MODIS/obs_smoke_forcing/')
+#from MODISLib import *
 
 
-for date_str in date_strs[:5]:
+#for date_str in date_strs[:5]:
+for date_str in date_strs:
 
-    OMI_base = readOMI_swath_shawn(date_str, latmin = 65., \
-        shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
+    plotOMI_single_swath_figure(date_str, dtype = 'shawn',  \
+            only_sea_ice = False, minlat = 65., skiprows = None, \
+            lat_circles = None, save = False, zoom = False, \
+            circle_bound = True, ax = None, \
+            shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
+##!#    OMI_base = readOMI_swath_shawn(date_str, latmin = 65., \
+##!#        shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
+##!#
+##!#    CERES_date_str = np.min(OMI_base['TIME'][~OMI_base['UVAI_raw'].mask]).strftime('%Y%m%d%H')
+##!#
+##!#    modis_list = download_MODIS_swath(CERES_date_str, \
+##!#            dest_dir = '/home/bsorenson/data/MODIS/Aqua/', download = False)
+##!#
+##!#    print(date_str)
+##!#    print('    OMI - ', date_str)
+##!#    print('  CERES - ', CERES_date_str)
+##!#    print('  MODIS - ', *modis_list)
+##!#    print('  NSIDC - ', CERES_date_str[:10])
+##!#    
+##!#    #print('    ', np.min(OMI_base['TIME'][~OMI_base['UVAI_raw'].mask]), np.max(OMI_base['TIME'][~OMI_base['UVAI_raw'].mask]))
 
-    CERES_date_str = np.min(OMI_base['TIME'][~OMI_base['UVAI_raw'].mask]).strftime('%Y%m%d%H')
-
-    modis_list = download_MODIS_swath(CERES_date_str, \
-            dest_dir = '/home/bsorenson/data/MODIS/Aqua/', download = False)
-
-    print(date_str)
-    print('    OMI - ', date_str)
-    print('  CERES - ', CERES_date_str)
-    print('  MODIS - ', *modis_list)
-    print('  NSIDC - ', CERES_date_str[:10])
-    
-    #print('    ', np.min(OMI_base['TIME'][~OMI_base['UVAI_raw'].mask]), np.max(OMI_base['TIME'][~OMI_base['UVAI_raw'].mask]))
-
-#plotOMI_single_swath_figure(date_str, dtype = 'shawn',  \
-#        only_sea_ice = False, minlat = 65., skiprows = None, \
-#        lat_circles = None, save = False, zoom = False, \
-#        circle_bound = True, ax = None, \
-#        shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
 
 sys.exit()
 
@@ -231,9 +315,6 @@ sys.exit()
 
 #OMI_data, CERES_data = plot_OMI_CERES_trend_compare_summer(minlat=72,\
 #        ceres_type = 'sw', trend_type = 'standard', save=False)
-##!#infile = '/home/bsorenson/Research/OMI/shawn_analysis/count_analysis/omi_vsj4_areas_2005_2020_100.txt'
-##!#plot_OMI_fort_out_two_lats(infile, minlat = 70., vtype = 'areas', save = False)
-#plot_OMI_fort_out_peaks(infile, minlat = 70., vtype = 'areas', save = False)
 
 plotOMI_single_swath_multiple(dtype = 'control',  \
         only_sea_ice = False, minlat = 65., save = True)
