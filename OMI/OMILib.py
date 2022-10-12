@@ -5802,7 +5802,7 @@ def plot_row_bias(minlat = 65., dataset = 'equator', save = False):
         fig = plt.figure(figsize = (8,4.5))
         ax0 = fig.add_subplot(1,1,1)
     else:
-        fig = plt.figure(figsize = (8,7.6))
+        fig = plt.figure(figsize = (8,8.5))
         gs  = fig.add_gridspec(nrows = 2, ncols = 2, hspace = 0.3)
         ax0 = plt.subplot(gs[0,:])
         ax1 = plt.subplot(gs[1,0], projection = mapcrs2)
@@ -5823,7 +5823,7 @@ def plot_row_bias(minlat = 65., dataset = 'equator', save = False):
     ax02 = ax0.twinx()
     ln3 = ax02.plot(np.arange(1, len(avg_AI_climo) + 1), avg_AZM, \
         color = 'tab:orange', label = 'AZM')
-    ax0.set_ylabel('OMI AI')
+    ax0.set_ylabel('Raw OMI AI')
     ax02.set_ylabel('Relative Azimuth Angle [$^{o}$]')
     ax0.set_xlabel('Row number')
     
@@ -5833,16 +5833,18 @@ def plot_row_bias(minlat = 65., dataset = 'equator', save = False):
     ax0.yaxis.label.set_color('tab:blue')
     ax02.yaxis.label.set_color('tab:orange')
     ax0.grid()
-    ax0.set_title('1 April 2006 - 30 September 2006')
+    ax0.set_title('Average AI and Relative Azimuth Angle\n1 April 2006 - 30 September 2006')
 
     if(dataset != 'equator'):
         # Plot single-swath data
         # ----------------------
-        plotOMI_single_swath(ax1, OMI_base1, title = dt_dates[0].strftime('%H:%M UTC %m/%d/%Y'), \
-            circle_bound = True, gridlines = False, vmax = 3.0, colorbar = False)
+        plotOMI_single_swath(ax1, OMI_base1, title = 'Raw OMI UVAI\n' + \
+            dt_dates[0].strftime('%H:%M UTC %m/%d/%Y'), circle_bound = True, \
+            gridlines = False, vmax = 3.0, colorbar = False)
         #plotOMI_single_swath(ax1, OMI_base2, title = dates[1], \
-        plotOMI_single_swath(ax2, OMI_base2, title = dt_dates[1].strftime('%H:%M UTC %m/%d/%Y'), \
-            circle_bound = True, gridlines = False, vmax = 3.0)
+        plotOMI_single_swath(ax2, OMI_base2, title = 'Raw OMI UVAI\n' + \
+            dt_dates[1].strftime('%H:%M UTC %m/%d/%Y'), circle_bound = True, \
+            gridlines = False, vmax = 3.0)
 
         plot_subplot_label(ax0, '(a)')
         plot_subplot_label(ax1, '(b)')
@@ -5863,6 +5865,7 @@ def plot_row_bias(minlat = 65., dataset = 'equator', save = False):
         fig.tight_layout()
     ##!#data.close()
 
+    #fig.subplots_adjust(hspace = 0.2)
 
     if(save):
         if(dataset == 'equator'):
@@ -6959,11 +6962,11 @@ def plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
         circle_bound = True, gridlines = False)
 
     ax1.set_extent([-180,180,minlat,90], datacrs)
-    ax1.set_title(dt_date_str.strftime('%H:%M UTC %d %b %Y'))
+    ax1.set_title(dt_date_str.strftime('Raw OMI UVAI\n%H:%M UTC %d %b %Y'))
     ax2.set_extent([-180,180,minlat,90], datacrs)
-    ax2.set_title(dt_date_str2.strftime('%H:%M UTC %d %b %Y'))
+    ax2.set_title(dt_date_str2.strftime('Raw OMI UVAI\n%H:%M UTC %d %b %Y'))
     ax5.set_extent([-180,180,minlat,90], datacrs)
-    ax5.set_title(dt_date_str2.strftime('%H:%M UTC %d %b %Y'))
+    ax5.set_title(dt_date_str2.strftime('Raw OMI UVAI\nUnflagged Bad Rows Removed\n%H:%M UTC %d %b %Y'))
 
     # Plot the row averages
     # ---------------------
@@ -6971,9 +6974,9 @@ def plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
     #ax4.bar(np.arange(OMI_base['UVAI'].shape[1]), np.average(OMI_base['UVAI'][1230:1500,:], axis = 0))
     ax4.axhline(0.0, color = 'black')
     ax4.set_xlim(0, 60)
-    ax4.set_xlabel('Row Number')
-    ax4.set_ylabel('Average AI over Arctic')
-    ax4.set_title(dt_date_str2.strftime('%H:%M UTC %d %b %Y'))
+    ax4.set_xlabel('Row Number', fontsize = 12)
+    ax4.set_ylabel('Average AI over Arctic', fontsize = 12)
+    ax4.set_title(dt_date_str2.strftime('Raw OMI UVAI\n%H:%M UTC %d %b %Y'))
 
     ##!#ax5.bar(np.arange(OMI_base2['UVAI'].shape[1]), np.average(OMI_base2['UVAI'][1230:1500,:], axis = 0))
     ##!#ax5.axhline(0.0, color = 'black')
@@ -6987,6 +6990,7 @@ def plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
     bad_row_file = 'row_anomaly_dates_20050401_20201001.txt'
     xtrack_file = 'row_anomaly_xtrack_dates_20050401_20201001.txt'
     plot_bad_row_table(bad_row_file, xtrack_file = xtrack_file, ax = ax3)
+    ax3.set_title('Temporal Row Anomaly Flagging')
 
     plot_subplot_label(ax1, '(a)')
     plot_subplot_label(ax2, '(b)')

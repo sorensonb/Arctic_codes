@@ -27,6 +27,8 @@ from satpy.scene import Scene
 from satpy.writers import get_enhanced_image
 from glob import glob
 
+sys.path.append('/home/bsorenson/Research/CERES')
+from gridCERESLib import *
 sys.path.append('/home/bsorenson/')
 #from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
 #    nearest_gridpoint, aerosol_event_dict, init_proj, \
@@ -89,7 +91,7 @@ def read_NAAPS(date_str, minlat = 65.):
     idx2 = np.where(data['lat'][:] >= minlat)[0][-1] + 1
 
     xx, yy = np.meshgrid(data['lon'][:], data['lat'][idx1:idx2])
- 
+
     NAAPS_data = {}
     NAAPS_data['filename']       = filename
     NAAPS_data['date']           = date_str
@@ -99,6 +101,26 @@ def read_NAAPS(date_str, minlat = 65.):
     NAAPS_data['lon']            = xx
     NAAPS_data['lat']            = yy
 
+    over_180    = np.where(NAAPS_data['lon'][0,:] < 0. )
+    under_180   = np.where(NAAPS_data['lon'][0,:] > 0.)
+
+    for ii in range(yy.shape[0]):
+        NAAPS_data['smoke_conc_sfc'][ii,:] = \
+            np.concatenate([NAAPS_data['smoke_conc_sfc'][ii,:][under_180],\
+            NAAPS_data['smoke_conc_sfc'][ii,:][over_180]])
+        NAAPS_data['smoke_wetsink'][ii,:] = \
+            np.concatenate([NAAPS_data['smoke_wetsink'][ii,:][under_180],\
+            NAAPS_data['smoke_wetsink'][ii,:][over_180]])
+        NAAPS_data['smoke_drysink'][ii,:] = \
+            np.concatenate([NAAPS_data['smoke_drysink'][ii,:][under_180],\
+            NAAPS_data['smoke_drysink'][ii,:][over_180]])
+        NAAPS_data['lat'][ii,:] = \
+            np.concatenate([NAAPS_data['lat'][ii,:][under_180],\
+            NAAPS_data['lat'][ii,:][over_180]])
+        NAAPS_data['lon'][ii,:] = \
+            np.concatenate([NAAPS_data['lon'][ii,:][under_180],\
+            NAAPS_data['lon'][ii,:][over_180] + 360.])
+ 
     return NAAPS_data
 
 def read_NAAPS_event(date_str, minlat = 65.):
@@ -157,7 +179,7 @@ def read_NAAPS_event(date_str, minlat = 65.):
 
 def plot_NAAPS(NAAPS_data, var, ax = None, labelsize = 12, \
         plot_log = True, labelticksize = 10, zoom = True, vmin = None, \
-        vmax = None, save = False):
+        minlat = 65., circle_bound = True, vmax = None, save = False):
 
     in_ax = True
     if(ax is None):
@@ -185,8 +207,11 @@ def plot_NAAPS(NAAPS_data, var, ax = None, labelsize = 12, \
     #cbar.ax.tick_params(labelsize = labelticksize)
     ax.set_title(NAAPS_data['date'])
 
+    if(circle_bound):
+        ax.set_boundary(circle, transform = ax.transAxes)
+
     if(zoom):
-        ax.set_extent([-180.0,180.0,65.0,90.0],\
+        ax.set_extent([-180.0,180.0,minlat,90.0],\
                        ccrs.PlateCarree())
     else:
         ax.set_extent([-180.0,180.0,65.0,90.0],\
@@ -195,7 +220,8 @@ def plot_NAAPS(NAAPS_data, var, ax = None, labelsize = 12, \
         plt.show()
 
 def plot_NAAPS_figure(date_str, var, minlat = 65., vmin = None, vmax = None, \
-        plot_log = True, ptitle = '', zoom = True, save = False):
+        circle_bound = True, plot_log = True, ptitle = '', zoom = True, \
+        save = False):
 
     plt.close('all')
     fig = plt.figure()
@@ -208,7 +234,8 @@ def plot_NAAPS_figure(date_str, var, minlat = 65., vmin = None, vmax = None, \
     # Plot the data for this granule
     # ------------------------------
     plot_NAAPS(NAAPS_data, var, ax = ax, zoom = zoom, \
-            vmin = vmin, vmax = vmax, plot_log = plot_log)
+            vmin = vmin, vmax = vmax, plot_log = plot_log, \
+            circle_bound = circle_bound)
 
     ax.set_title('NAAPS-RA ' + var + '\n' + NAAPS_data['date'])
  
@@ -222,7 +249,8 @@ def plot_NAAPS_figure(date_str, var, minlat = 65., vmin = None, vmax = None, \
         plt.show()
 
 def plot_NAAPS_event(date_str, var, minlat = 65., vmin = None, vmax = None, \
-        plot_log = True, ptitle = '', zoom = True, save = False):
+        plot_log = True, ptitle = '', circle_bound = True, zoom = True, \
+        save = False):
 
     plt.close('all')
     fig = plt.figure()
@@ -235,7 +263,8 @@ def plot_NAAPS_event(date_str, var, minlat = 65., vmin = None, vmax = None, \
     # Plot the data for this granule
     # ------------------------------
     plot_NAAPS(NAAPS_data, var, ax = ax, zoom = zoom, \
-            vmin = vmin, vmax = vmax, plot_log = plot_log)
+            vmin = vmin, vmax = vmax, plot_log = plot_log, \
+            circle_bound = circle_bound)
 
     ax.set_title('NAAPS-RA ' + var + '\n' + \
         NAAPS_data['dt_begin_date'].strftime('%Y-%m-%d') + ' - ' + \
@@ -249,4 +278,93 @@ def plot_NAAPS_event(date_str, var, minlat = 65., vmin = None, vmax = None, \
         print("Saved image", outname)
     else:
         plt.show()
+
+def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
+        minlat = 70.5, vmin = None, vmax = None, min_ice = 80., \
+        min_smoke = 0, plot_log = True, \
+        satellite = 'Aqua', ptitle = '', zoom = True, save = False):
+
+    plt.close('all')
+    fig = plt.figure(figsize = (12,10))
+    ax1 = fig.add_subplot(2,2,1, projection = mapcrs)
+    ax2 = fig.add_subplot(2,2,2, projection = mapcrs)
+    ax3 = fig.add_subplot(2,2,3, projection = mapcrs)
+    ax4 = fig.add_subplot(2,2,4)
+    #ax4 = fig.add_subplot(2,2,4, projection = mapcrs)
+
+    # Read the data for this granule
+    # ------------------------------
+    NAAPS_data = read_NAAPS_event(date_str, minlat = minlat)
+
+    if(date_str[:6] == '201708'):
+        cdate_begin_str1 = '20170801'
+        cdate_end_str1   = '20170815'
+        cdate_begin_str2 = '20170822'
+        cdate_end_str2   = '20170831'
+
+    CERES_data1 = readgridCERES_daily('20170801',end_str = '20170815', \
+        satellite = satellite, minlat = minlat)
+    CERES_data2 = readgridCERES_daily('20170820',end_str = '20170831', \
+        satellite = satellite, minlat = minlat)
+
+    # Test masking the data
+    # ---------------------
+    avg_CERES1 = np.nanmean(CERES_data1[ceres_var], axis = 0)
+    avg_CERES2 = np.nanmean(CERES_data2[ceres_var], axis = 0)
+    avg_CERES1_ice = np.nanmean(CERES_data1['ice_conc'], axis = 0)
+
+    # Test pulling out the data that only exists in both zones
+    # --------------------------------------------------------
+    avg_CERES1 = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
+        (NAAPS_data['smoke_conc_sfc'] < min_smoke), avg_CERES1)  
+    avg_CERES2 = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
+        (NAAPS_data['smoke_conc_sfc'] < min_smoke), avg_CERES2)  
+
+    NAAPS_data['smoke_conc_sfc'] = np.ma.masked_where(\
+        (avg_CERES1_ice <= min_ice) | \
+        (NAAPS_data['smoke_conc_sfc'] < min_smoke), \
+        NAAPS_data['smoke_conc_sfc'])
+
+
+    # Plot the data for this granule
+    # ------------------------------
+    plot_NAAPS(NAAPS_data, var, ax = ax1, zoom = zoom, \
+            minlat = minlat, vmin = vmin, vmax = vmax, plot_log = plot_log)
+
+    # Plot the CERES data
+    plotCERES_daily(cdate_begin_str1, ceres_var, end_str = cdate_end_str1, \
+        satellite = satellite,  only_sea_ice = False, minlat = minlat, \
+        avg_data = True, ax = ax2, save = False, min_ice = min_ice, \
+        circle_bound = True, colorbar = True)
+    plotCERES_daily(cdate_begin_str2, ceres_var, end_str = cdate_end_str2, \
+        satellite = satellite,  only_sea_ice = False, minlat = minlat, \
+        avg_data = True, ax = ax3, save = False, min_ice = min_ice, \
+        circle_bound = True, colorbar = True)
+    #plotCERES_daily(cdate_begin_str2, 'ice_conc', end_str = cdate_end_str2, \
+    #    satellite = satellite,  only_sea_ice = False, minlat = minlat, \
+    #    avg_data = True, ax = ax4, save = False, \
+    #    circle_bound = True, colorbar = True)
+
+    ax4.boxplot([avg_CERES1.flatten().compressed(), avg_CERES2.flatten().compressed()])
+
+    ax1.set_title('NAAPS-RA ' + var + '\n' + \
+        NAAPS_data['dt_begin_date'].strftime('%Y-%m-%d') + ' - ' + \
+        NAAPS_data['dt_end_date'].strftime('%Y-%m-%d'))
+    ax2.set_title('CERES Average Clear-sky Albedo\n' + cdate_begin_str1 + ' - ' + \
+        cdate_end_str1)
+    ax3.set_title('CERES Average Clear-sky Albedo\n' + cdate_begin_str2 + ' - ' + \
+        cdate_end_str2)
+    #ax4.set_title('CERES Average Ice Concentration')
+     
+    ax1.coastlines()
+
+    fig.tight_layout()
+
+    if(save):
+        outname = 'naaps_ceres_event_' + var + '_' + date_str + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
 

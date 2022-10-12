@@ -6,7 +6,7 @@ cd $base_dir
 make -f Make_omi_colocate
 
 EXTRACT=true
-REPROCESS=true 
+REPROCESS=false
 
 #base_dir=$(pwd)
 #echo $base_dir

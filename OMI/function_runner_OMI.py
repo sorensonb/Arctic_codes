@@ -13,6 +13,12 @@ import sys
 # Set up the overall figure
 # ----------------------------------------------------
 
+plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
+        minlat = 65., save = True)
+sys.exit()
+
+#plot_row_bias(dataset = 'normal', save = True)
+#sys.exit()
 
 ###minlat = 65
 ###plt.close('all')
@@ -215,7 +221,13 @@ date_strs = ['200607240029', # GOOD
 #sys.path.append('/home/bsorenson/Research/MODIS/obs_smoke_forcing/')
 #from MODISLib import *
 
-
+date_str = '200607270100'
+plotOMI_single_swath_figure(date_str, dtype = 'shawn',  \
+        only_sea_ice = False, minlat = 65., skiprows = None, \
+        lat_circles = None, save = False, zoom = False, \
+        circle_bound = True, ax = None, \
+        shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
+sys.exit()
 #for date_str in date_strs[:5]:
 for date_str in date_strs:
 
@@ -305,12 +317,6 @@ plotOMI_Compare_ClimoTrend_all(OMI_VBS0,OMI_VJZ211, OMI_VSJ4,\
 
 sys.exit()
 
-plot_row_bias(save = True)
-sys.exit()
-plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
-        minlat = 65., save = True)
-
-sys.exit()
 
 
 #OMI_data, CERES_data = plot_OMI_CERES_trend_compare_summer(minlat=72,\

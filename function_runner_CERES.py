@@ -215,19 +215,35 @@ date_idx = 39 # very very good, JZ
 #date_str = '2017081916' # GOOD
 #date_str = '2017081918' # GOOD
 
+#date_str = '2006072701'
+#plotCERES_hrly_figure(date_str, 'SWF',  \
+#    only_sea_ice = False, minlat = 65., \
+#    lat_circles = None, grid_data = True, zoom = False, \
+#    vmax = 450, vmin = None, save = False)
+#sys.exit()
 
-CERES_data = readgridCERES_daily('20170817','SWF',satellite = 'Aqua',minlat=60.5,season='all')
+CERES_data = '20170820'
+end_str    = '20170831'
+pvar = 'alb_clr'
+#plotCERES_daily(CERES_data, pvar, end_str = end_str, satellite = 'Aqua',  \
+#    only_sea_ice = False, minlat = 65., avg_data = True, \
+#    lat_circles = None, ax = None, save = False, \
+#    circle_bound = True, colorbar = True)
+
+plotCERES_daily_allsat('20170801', pvar, end_str = '20170815', \
+    only_sea_ice = False, minlat = 65., avg_data = True, \
+    lat_circles = None, save = True, \
+    circle_bound = True, colorbar = True)
+#CERES_data1 = readgridCERES_daily('20170801',end_str = '20170815', satellite = 'Aqua',minlat=70.5)
+#CERES_data2 = readgridCERES_daily('20170801',end_str = '20170815', satellite = 'Terra',minlat=70.5)
+#CERES_data3 = readgridCERES_daily('20170801',end_str = '20170815', satellite = 'SuomiNPP',minlat=70.5)
+#CERES_data2 = readgridCERES_daily('20170820',end_str = '20170831', satellite = 'Aqua',minlat=70.5)
 sys.exit()
 
 param = 'SWF'
 CERES_data_hrly = readgridCERES_hrly_grid(date_str, param, \
     satellite = 'Aqua', minlat = minlat)
 
-##!#plotCERES_hrly_figure(date_str, param,  \
-##!#    only_sea_ice = False, minlat = 65., \
-##!#    lat_circles = None, grid_data = True, zoom = False, \
-##!#    vmax = 450, vmin = None, save = False)
-sys.exit()
 
 CERES_grid_hrly = date_str
 #CERES_grid_hrly = '2019081101'

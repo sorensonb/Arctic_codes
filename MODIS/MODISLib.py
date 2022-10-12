@@ -2049,7 +2049,6 @@ def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False, \
         #mapcrs = ccrs.Robinson()
         ax = fig1.add_subplot(1,1,1, projection = mapcrs)
 
-    print("HERE: ", date_str)
     plot_MODIS_spatial(MODIS_data, ax, zoom, circle_bound = circle_bound, \
         vmin = vmin, vmax = vmax)
 

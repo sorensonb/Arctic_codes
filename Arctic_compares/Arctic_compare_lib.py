@@ -159,8 +159,12 @@ def auto_all_download(date_str, download = True, rewrite_json = False):
 
             omi_shawn = '/home/bsorenson/data/OMI/shawn_files/' + OMI_base['date']
 
-            CERES_date_str = np.min(OMI_base['TIME'][~OMI_base['UVAI_raw'].mask]).strftime('%Y%m%d%H')
-
+            if(dstr == '200607270100'):
+                min_time = np.min(OMI_base['TIME'][~OMI_base['UVAI_raw'].mask]) - timedelta(minutes = 5)
+            else:
+                min_time = np.min(OMI_base['TIME'][~OMI_base['UVAI_raw'].mask])
+            CERES_date_str = min_time.strftime('%Y%m%d%H')
+    
             # Look for the CERES file
             # -----------------------
             try:
@@ -215,7 +219,7 @@ def auto_all_download(date_str, download = True, rewrite_json = False):
                 out_file_dict[local_date]['Lat'] = [60., 90.]
             if('Lon' not in out_file_dict[local_date].keys()):
                 out_file_dict[local_date]['Lon'] = [-180., 180.]
-
+       
             for ttime, tfile in zip(modis_date_list, file_list):
                 dt_date_str = datetime.strptime(ttime, '%Y%m%d%H%M')
 
@@ -231,12 +235,29 @@ def auto_all_download(date_str, download = True, rewrite_json = False):
                 out_file_dict[local_date][local_time]['swath']      = modis_date_list
                 if('Lat' not in out_file_dict[local_date][local_time].keys()):
                     out_file_dict[local_date][local_time]['Lat'] = [60., 90.]
+                elif( (out_file_dict[local_date]['Lat'] != [60., 90.]) & 
+                      (out_file_dict[local_date][local_time]['Lat'] != out_file_dict[local_date]['Lat'])):
+                    out_file_dict[local_date][local_time]['Lat'] = \
+                      out_file_dict[local_date]['Lat']
+                    print("Reset Lat value")
                 if('Lon' not in out_file_dict[local_date][local_time].keys()):
                     out_file_dict[local_date][local_time]['Lon'] = [-180., 180.]
+                elif( (out_file_dict[local_date]['Lon'] != [-180., 180.]) & 
+                      (out_file_dict[local_date][local_time]['Lon'] != out_file_dict[local_date]['Lon'])):
+                    out_file_dict[local_date][local_time]['Lon'] = \
+                      out_file_dict[local_date]['Lon']
                 if('modis_Lat' not in out_file_dict[local_date][local_time].keys()):
                     out_file_dict[local_date][local_time]['modis_Lat'] = [60., 90.]
+                elif( (out_file_dict[local_date]['Lat'] != [60., 90.]) & 
+                      (out_file_dict[local_date][local_time]['modis_Lat'] != out_file_dict[local_date]['Lat'])):
+                    out_file_dict[local_date][local_time]['modis_Lat'] = \
+                      out_file_dict[local_date]['Lat']
                 if('modis_Lon' not in out_file_dict[local_date][local_time].keys()):
                     out_file_dict[local_date][local_time]['modis_Lon'] = [-180., 180.]
+                elif( (out_file_dict[local_date]['Lon'] != [-180., 180.]) & 
+                      (out_file_dict[local_date][local_time]['modis_Lon'] != out_file_dict[local_date]['Lon'])):
+                    out_file_dict[local_date][local_time]['modis_Lon'] = \
+                      out_file_dict[local_date]['Lon']
     
 
     with open(json_time_database,'w') as fout:
@@ -452,6 +473,9 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(date_str, ch1, \
     elif(date_str[:8] == '20190811'\
         ):
         size = (12, 6.5)
+    elif(date_str[:7] == '2006072'\
+        ):
+        size = (12, 8)
     else:
         size = (10, 9)
     ##!#file_date_dict = {

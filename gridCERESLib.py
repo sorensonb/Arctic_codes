@@ -22,7 +22,7 @@ import numpy as np
 import sys
 import gzip
 import importlib
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import matplotlib
 import matplotlib.pyplot as plt
@@ -261,14 +261,56 @@ def readgridCERES(start_date,end_date,param,satellite = 'Aqua',minlat=60.5,\
 
     return CERES_data
 
+def readgridCERES_daily(date_str, end_str = None, satellite = 'Aqua', \
+        minlat = 60.5):
+
+    if((satellite == 'Aqua') | (satellite == 'Terra') | \
+        (satellite == 'SuomiNPP')):
+        CERES_data = readgridCERES_daily_file(date_str, end_str = end_str, \
+            satellite = satellite, minlat = minlat)
+    else:
+        CERES_data1 = readgridCERES_daily_file(date_str, end_str = end_str, \
+            satellite = 'Aqua', minlat = minlat)
+        CERES_data2 = readgridCERES_daily_file(date_str, end_str = end_str, \
+            satellite = 'Terra', minlat = minlat)
+        CERES_data3 = readgridCERES_daily_file(date_str, end_str = end_str, \
+            satellite = 'SuomiNPP', minlat = minlat)
+        CERES_data4 = readgridCERES_daily_file(date_str, end_str = end_str, \
+            satellite = 'SuomiNPP',minlat = minlat)
+
+        pvars = ['alb_all', 'alb_clr', 'swf_all', 'swf_clr', 'cld', 'ice_conc']
+
+        over_180    = np.where(CERES_data1['lon'] < 0)
+        under_180   = np.where(CERES_data1['lon'] >= 0)
+
+        #for ii in range(local_lon.shape[0]):
+        #    local_lon[ii,:] = np.concatenate([local_lon[ii,:][over_180] - 360.,\
+        #        local_lon[ii,:][under_180]])
+
+        for pvar in pvars:
+            total_data = np.concatenate((CERES_data1[pvar], CERES_data2[pvar], \
+                CERES_data3[pvar]))
+            total_data = np.ma.masked_where(total_data < 0, total_data)
+            #total_data = np.concatenate((total_data[over_180], \
+            #    total_data[under_180]))
+
+            CERES_data4[pvar] = total_data 
+
+        #CERES_data4['lon'] = np.concatenate((CERES_data4['lon'][over_180], \
+        #    CERES_data4['lon'][under_180]))
+        CERES_data4['satellite'] = 'All' 
+
+        return CERES_data4
+
 # For now, assume that the user only wants to grab a single file of daily data
 # User could cram multiple months into a single file, if wanted
 #def readgridCERES_daily(start_date,end_date,param,satellite = 'Aqua',minlat=60.5,season='all'):
-def readgridCERES_daily(date_str,param,satellite = 'Aqua',minlat=60.5,season='all'):
+def readgridCERES_daily_file(date_str, end_str = None, satellite = 'Aqua', \
+        minlat=60.5):
     CERES_data = {}
   
-    lat_ranges = np.arange(minlat,90.5,1.0)
-    lon_ranges = np.arange(0.5,360.5,1.0)
+#    lat_ranges = np.arange(minlat,90.5,1.0)
+#    lon_ranges = np.arange(0.5,360.5,1.0)
 
     # Grab all the files
     if(satellite == 'Terra'):
@@ -276,7 +318,7 @@ def readgridCERES_daily(date_str,param,satellite = 'Aqua',minlat=60.5,season='al
     elif(satellite == 'Aqua'):
         base_path = '/home/bsorenson/data/CERES/SSF_1Deg/daily/Aqua/CERES_SSF1deg-Day_Aqua-MODIS_Ed4.1_Subset_'
     elif(satellite == 'SuomiNPP'):
-        base_path = '/home/bsorenson/data/CERES/SSF_1Deg/daily/SuomiNPP/CERES_SSF1deg-Day_NPP-SuomiNPP_Ed2A_Subset_'
+        base_path = '/home/bsorenson/data/CERES/SSF_1Deg/daily/SuomiNPP/CERES_SSF1deg-Day_NPP-VIIRS_Ed2A_Subset_'
     #base_path = '/data/CERES/SSF_1Deg/monthly/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
     #base_path = '/home/bsorenson/data/CERES/SSF_1Deg/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
     total_list = sorted(glob.glob(base_path+'*.nc'))
@@ -309,15 +351,31 @@ def readgridCERES_daily(date_str,param,satellite = 'Aqua',minlat=60.5,season='al
     data = Dataset(good_list[0],'r')
     print(good_list[0])
 
-    #lat_indices = np.where(CERES_data['lat'] >= minlat)
+    # Convert the times to dt objects
+    # -------------------------------
+    base_date = datetime.strptime('20000301','%Y%m%d')
+    dt_date_str = dt_date_str + timedelta(days = 0.5)
+    times = np.array([base_date + timedelta(days = float(tdate)) for tdate in data['time']])
+    if(end_str is None):
+        time_idx = np.where(times == dt_date_str)[0]
+    else:
+        dt_end_str = datetime.strptime(end_str, '%Y%m%d') + timedelta(days = 0.5)
+        time_idx = np.where( (times >= dt_date_str ) & (times <= dt_end_str))[0] 
 
-    CERES_data['alb_all'] = data['toa_alb_all_daily'][:,:,:]
-    CERES_data['alb_clr'] = data['toa_alb_clr_daily'][:,:,:]
-    CERES_data['swf_all'] = data['toa_sw_all_daily'][:,:,:]
-    CERES_data['swf_clr'] = data['toa_sw_clr_daily'][:,:,:]
-    CERES_data['cld'] = data['cldarea_total_day_daily'][:,:,:]
-    CERES_data['lat'] = data['lat'][:]
+    lat_idx = np.where(data['lat'][:] >= minlat)[0]
+ 
+    dt_dates = times[time_idx]
+    CERES_data['dt_dates'] = dt_dates
+    CERES_data['alb_all']  = data['toa_alb_all_daily'][time_idx,lat_idx,:].squeeze()
+    CERES_data['alb_clr']  = data['toa_alb_clr_daily'][time_idx,lat_idx,:].squeeze()
+    CERES_data['swf_all']  = data['toa_sw_all_daily'][time_idx,lat_idx,:].squeeze()
+    CERES_data['swf_clr']  = data['toa_sw_clr_daily'][time_idx,lat_idx,:].squeeze()
+    CERES_data['cld']      = data['cldarea_total_day_daily'][time_idx,lat_idx,:].squeeze()
+    CERES_data['ice_conc'] = data['aux_snow_daily'][time_idx,lat_idx,:].squeeze()
+    CERES_data['lat'] = data['lat'][lat_idx]
     CERES_data['lon'] = data['lon'][:]
+    #CERES_data['lon'][CERES_data['lon'] > 179.99] = -360. + \
+    #    CERES_data['lon'][CERES_data['lon'] > 179.99]
     CERES_data['satellite'] = satellite
 
     #split_date = data.variables['time'].units.split()[2].split('-')
@@ -1267,252 +1325,6 @@ def make_scatter(CERES_dict_alb_clr,CERES_dict_sw_clr,\
     plt.savefig(outname,dpi=300)
     print("Saved image ",outname)
 
-def icePlots(infile,monthfix=False):
-
-    print("\n= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =")
-    print("\nIce Data\n")
-    
-    # Read data into arrays
-    with open(infile,'r') as f:
-        flines = f.readlines()
-        initial_years  = np.zeros(len(flines)-1)
-        initial_months = np.zeros(len(flines)-1)
-        initial_extent = np.zeros(len(flines)-1)
-        initial_area   = np.zeros(len(flines)-1)
-        for i, line in enumerate(flines[1:]):
-            templine = line.strip().split(',')
-            initial_years[i] = templine[0]
-            initial_months[i] = templine[1]
-            initial_extent[i] = templine[4]
-            initial_area[i] = templine[5]
-
-    ### Remove winter months out of solidarity with albedo
-    ##good_indices = np.where((initial_months<=2.)&(initial_months>=10.))
-    ##years = initial_years[good_indices]
-    ##months = initial_months[good_indices]
-    ##extent = initial_extent[good_indices]
-    years = initial_years
-    months = initial_months
-    extent = initial_extent
-    
-    jan_ext = extent[np.where(months==1)]
-    feb_ext = extent[np.where(months==2)]
-    mar_ext = extent[np.where(months==3)]
-    apr_ext = extent[np.where(months==4)]
-    may_ext = extent[np.where(months==5)]
-    jun_ext = extent[np.where(months==6)]
-    jul_ext = extent[np.where(months==7)]
-    aug_ext = extent[np.where(months==8)]
-    sep_ext = extent[np.where(months==9)]
-    oct_ext = extent[np.where(months==10)]
-    nov_ext = extent[np.where(months==11)]
-    dec_ext = extent[np.where(months==12)]
-
-    # Calculate the mean extent for each month
-    avg_jan = np.average(jan_ext)
-    avg_feb = np.average(feb_ext)
-    avg_mar = np.average(mar_ext)
-    avg_apr = np.average(apr_ext)
-    avg_may = np.average(may_ext)
-    avg_jun = np.average(jun_ext)
-    avg_jul = np.average(jul_ext)
-    avg_aug = np.average(aug_ext)
-    avg_sep = np.average(sep_ext)
-    avg_oct = np.average(oct_ext)
-    avg_nov = np.average(nov_ext)
-    avg_dec = np.average(dec_ext)
-  
-###    feby = feb_ext-np.full(len(feb_ext),avg_feb) 
-###    sepy = sep_ext-np.full(len(sep_ext),avg_sep) 
-###    figt = plt.figure()
-###    plt.plot(feby,label='Feb anomaly')
-###    plt.plot(sepy,label='Sep anomaly')
-######    plt.plot(feb_ext,label='Feb')
-######    plt.plot(np.full(len(feb_ext),avg_feb),label='Feb avg')
-######    plt.plot(sep_ext,label='Sep')
-######    plt.plot(np.full(len(sep_ext),avg_sep),label='Sep avg')
-###    plt.legend()
-###    plt.grid()
-###    plt.show() 
-    
-    # Calculate the average extent value over the period
-    avg_ext = np.average(extent) 
-    #avg_ext = np.average(extent) 
-    print("Average extent over period: ",avg_ext) 
-   
-    # Deseasonalize the data
-    deseasonal_ext = np.copy(extent)
-    
-    deseasonal_ext[np.where(months==1)]  = deseasonal_ext[np.where(months==1)]  - avg_jan
-    deseasonal_ext[np.where(months==2)]  = deseasonal_ext[np.where(months==2)]  - avg_feb
-    deseasonal_ext[np.where(months==3)]  = deseasonal_ext[np.where(months==3)]  - avg_mar
-    deseasonal_ext[np.where(months==4)]  = deseasonal_ext[np.where(months==4)]  - avg_apr
-    deseasonal_ext[np.where(months==5)]  = deseasonal_ext[np.where(months==5)]  - avg_may
-    deseasonal_ext[np.where(months==6)]  = deseasonal_ext[np.where(months==6)]  - avg_jun
-    deseasonal_ext[np.where(months==7)]  = deseasonal_ext[np.where(months==7)]  - avg_jul
-    deseasonal_ext[np.where(months==8)]  = deseasonal_ext[np.where(months==8)]  - avg_aug
-    deseasonal_ext[np.where(months==9)]  = deseasonal_ext[np.where(months==9)]  - avg_sep
-    deseasonal_ext[np.where(months==10)] = deseasonal_ext[np.where(months==10)] - avg_oct
-    deseasonal_ext[np.where(months==11)] = deseasonal_ext[np.where(months==11)] - avg_nov
-    deseasonal_ext[np.where(months==12)] = deseasonal_ext[np.where(months==12)] - avg_dec
-    avg_deseasonal = np.average(deseasonal_ext) 
-    print("Average deseasonal extent over period: ",avg_deseasonal) 
-
-    # Calculate the trend of the total data
-    interpx = np.arange(len(years))
-    total_interper = np.poly1d(np.polyfit(interpx,extent,1)) 
-    # Normalize trend by dividing by number of years
-    total_trend = (total_interper(interpx[-1])-total_interper(interpx[0]))
-    print("Total extent trend (200012 - 201812): ",np.round(total_trend,3))
-    pcnt_change = (total_trend/avg_ext)*100.
-    print("     % of average: ",pcnt_change)
-
-    # Calculate the trend of the deseasonalized data
-    interpx = np.arange(len(years))
-    total_de_interper = np.poly1d(np.polyfit(interpx,deseasonal_ext,1)) 
-    # Normalize trend by dividing by number of years
-    total_de_trend = (total_de_interper(interpx[-1])-total_de_interper(interpx[0]))
-
-    # Calculate the trend again using scipy
-    # Also finds r_value and p_value
-    slope,intercept,r_value,p_value,std_err = stats.linregress(interpx,deseasonal_ext)
-    newy = interpx*slope+intercept
-    test_total_de_trend = newy[-1]-newy[0] 
-
-    print("Total deseasonal extent trend (200012 - 201812): ",np.round(total_de_trend,5))
-    print("            r_value                            : ",np.round(r_value,5))
-    print("            p_value                            : ",np.round(p_value,5))
-    pcnt_change = (total_de_trend/avg_ext)*100.
-    print("     % of average: ",pcnt_change)
-    
-    # Calculate trend for each month data
-    print("\nMonthly trends")
-    trends = []
-    trends.append(trend_calc(years,months,jan_ext,avg_jan,1,'January'))
-    trends.append(trend_calc(years,months,feb_ext,avg_feb,2,'February'))
-    trends.append(trend_calc(years,months,mar_ext,avg_mar,3,'March'))
-    trends.append(trend_calc(years,months,apr_ext,avg_apr,4,'April'))
-    trends.append(trend_calc(years,months,may_ext,avg_may,5,'May'))
-    trends.append(trend_calc(years,months,jun_ext,avg_jun,6,'June'))
-    trends.append(trend_calc(years,months,jul_ext,avg_jul,7,'July'))
-    trends.append(trend_calc(years,months,aug_ext,avg_aug,8,'August'))
-    trends.append(trend_calc(years,months,sep_ext,avg_sep,9,'September'))
-    trends.append(trend_calc(years,months,oct_ext,avg_oct,10,'October'))
-    trends.append(trend_calc(years,months,nov_ext,avg_nov,11,'November'))
-    trends.append(trend_calc(years,months,dec_ext,avg_dec,12,'December'))
-   
-    fig0 = plt.figure(figsize=(9,9))
-    ax1 = fig0.add_subplot(211)
-    ax1.plot(extent,label='Extent')
-    ax1.plot(total_interper(interpx),'--',label='Trend ('+str(np.round(total_trend,3))+'/Study Period)')
-    ax1.set_title('Arctic Sea Ice Extent')
-    #ax1.set_xlabel('Months After January 2001')
-    ax1.set_xticks(np.arange(len(years)+1)[::24])
-    ax1.set_xticklabels(np.arange(2001,2020)[::2])
-    ax1.set_ylabel('Extent (Mkm$^{2}$)')
-    ax1.legend()
-
-    ax2 = fig0.add_subplot(212)
-    ax2.plot(deseasonal_ext,label='Deseasonalized Extent')
-    ax2.plot(total_de_interper(interpx),'--',label='Trend ('+str(np.round(total_de_trend,3))+'/Study Period)')
-    ax2.text(interpx[2],-1.00,"y = "+str(np.round(slope,4))+"x")
-    ax2.text(interpx[2],-1.20,"p = "+str(np.round(p_value,4)))
-    ax2.set_title('Arctic Deseasonalized Ice Extent')
-    #ax2.set_xlabel('Months After January 2001')
-    ax2.set_xticks(np.arange(len(years)+1)[::24])
-    ax2.set_xticklabels(np.arange(2001,2020)[::2])
-    ax2.set_ylabel('Extent Anomaly (Mkm$^{2}$)')
-    ax2.legend()
-
-    ###### Removing the monthly time series 
-    ###ax2 = fig0.add_subplot(212)
-    #### Plot the change for each month
-    ####fig1 = plt.figure()
-    ###ax2.plot(years[np.where(months==1)], jan_ext,label='January')
-    ###ax2.plot(years[np.where(months==2)], feb_ext,label='February')
-    ###ax2.plot(years[np.where(months==3)], mar_ext,label='March')
-    ###ax2.plot(years[np.where(months==4)], apr_ext,label='April')
-    ###ax2.plot(years[np.where(months==5)], may_ext,label='May')
-    ###ax2.plot(years[np.where(months==6)], jun_ext,label='June')
-    ###ax2.plot(years[np.where(months==7)], jul_ext,'--',label='July')
-    ###ax2.plot(years[np.where(months==8)], aug_ext,'--',label='August')
-    ###ax2.plot(years[np.where(months==9)], sep_ext,'--',label='September')
-    ###ax2.plot(years[np.where(months==10)],oct_ext,'--',label='October')
-    ###ax2.plot(years[np.where(months==11)],nov_ext,'--',label='November')
-    ###ax2.plot(years[np.where(months==12)],dec_ext,'--',label='December')
-    ###ax2.set_ylabel('Extent (Mkm$^{2}$)')
-    ###ax2.set_xticks(np.arange(2001,2019)[::2])
-    ###ax2.legend(loc='upper center',bbox_to_anchor=(0.5,-0.05), ncol=6)
-    fig0.savefig('extent_changes_with_deseason.png',dpi=300)
-    print("Saved image extent_changes_with_deseason.png") 
-    ### Make a figure of the deseasonalized trends
-    ##fig6 = plt.figure()
-    ##plt.plot(deseasonal_ext)
-    ##plt.ylabel('Extent Anomaly (Mkm$^{2}$)')
-    ##plt.title('Deseasonalized Arctic Ice Extent')
-    ##plt.show()
-    
-    
-    fig3,ax = plt.subplots()
-    labels=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-    ax.plot(np.arange(1,13),trends)
-    ax.set_xticks(np.arange(1,13))
-    ax.set_ylim(-2.0,-0.5)
-    ax.set_xticklabels(labels)
-    ax.set_title('Trend in Monthly Sea Ice Extent\n2001 - 2018')
-    ax.set_ylabel('Extent Trend (Mkm$^{2}$/Study Period)')
-    plt.grid()
-    fig3.savefig('monthly_extent_trends.png',dpi=300)
-    print("Saved image monthly_extent_trends.png") 
-    #plt.show()
-
-    return extent,trends,months,years,deseasonal_ext
-
-##!#def all_years(ice_avgs,alb_avgs,years,monthfix,minlat):
-##!#    colors = np.arange(2001,2019) 
-##!# 
-##!#    cmap = cm.bwr
-##!#    #norm = Normalize(vmin=vmin,vmax=vmax)
-##!#    norm = matplotlib.colors.Normalize(vmin=2001,vmax=2018) 
-##!#    mapper = ScalarMappable(norm=norm,cmap=cmap)
-##!#    ccolors = ['red','darkorange','gold',\
-##!#               'yellow','greenyellow','green',\
-##!#               'springgreen','aquamarine','aqua',\
-##!#               'deepskyblue','cornflowerblue','blue',\
-##!#               'mediumslateblue','blueviolet','darkviolet',\
-##!#               'purple','fuchsia','deeppink']
-##!#    fig    = plt.figure(figsize=(8,7))
-##!#    ax = fig.add_subplot(111)
-##!#    #fig.set_figheight(8)
-##!#    #fig.set_figwidth(10)
-##!#    ax.set_xlim(3,17)
-##!#    ax.set_ylim(0.3,0.65) 
-##!#    patches = []
-##!#    for xi in range(18):
-##!#        pairs = []
-##!#        for yi in range(12):
-##!#            index = xi*12+yi
-##!#            if(alb_avgs[index]!=-420):
-##!#                pairs.append((ice_avgs[index],alb_avgs[index]))
-##!#        color = mapper.to_rgba(2001+xi)
-##!#        color2 = rgb2hex(color)
-##!#        poly = Polygon(pairs,fill=False,edgecolor=color2) 
-##!#        #poly = Polygon(pairs,fill=False,edgecolor=ccolors[xi]) 
-##!#        plt.gca().add_patch(poly)
-##!#        patches.append(poly) 
-##!#    cax = fig.add_axes([0.91,0.11,0.025,0.77])
-##!#    cb = ColorbarBase(cax,cmap=cmap,norm=norm,orientation='vertical')
-##!#    #p = PatchCollection(patches,alpha=0.4)
-##!#    #p.set_array(np.array(colors))
-##!#    #ax.add_collection(p)
-##!#    #fig.colorbar(p,ax=ax)
-##!#    ax.set_xlabel('Sea Ice Extent (Mkm$^{2}$)')
-##!#    ax.set_ylabel('Clear-sky Albedo')
-##!#    outname = 'yearly_scatter_ice_vs_alb'+CERES_dict['month_fix']+'_'+str(int(CERES_dict['lat'][0]))+'.png'
-##!#    fig.savefig(outname,dpi=300)
-##!#    print('Saved image ',outname)
-##!#    #plt.show()
-
 def plotCERES_hrly(pax, CERES_data_hrly, param, minlat=65, \
         vmin = None, vmax = None, title = None, label = None, \
         labelsize = 13, labelticksize = 11, circle_bound = False, \
@@ -1572,16 +1384,22 @@ def plotCERES_hrly(pax, CERES_data_hrly, param, minlat=65, \
 
 # Plot a daily average of CERES data
 # ----------------------------------
-def plotCERES_daily_figure(date_str, param = 'SWF',  \
-        only_sea_ice = False, minlat = 65., \
-        lat_circles = None, ax = None, save = False, resolution = 0.25, \
-        row_max = 60, row_min = 0, circle_bound = True, colorbar = True):
+def plotCERES_daily(CERES_data, pvar, end_str = None, satellite = 'Aqua',  \
+        only_sea_ice = False, minlat = 65., avg_data = True, \
+        lat_circles = None, ax = None, save = False, min_ice = 0., \
+        circle_bound = True, colorbar = True):
 
     # ----------------------------------------------------
     # Read in data
     # ----------------------------------------------------
-    CERES_data = readgridCERES_hrly(date_str, param, minlat = minlat, \
-        resolution = resolution)
+    if(isinstance(CERES_data, str)):
+        date_str = CERES_data
+        dt_date_str = datetime.strptime(date_str, '%Y%m%d')
+        CERES_data = readgridCERES_daily(date_str, end_str = end_str, \
+            satellite = satellite, minlat = minlat)
+    else:
+        dt_date_str = CERES_data['dt_dates'][0] 
+        date_str = dt_date_str.strftime('%Y%m%d')
 
     # ----------------------------------------------------
     # Set up the overall figure
@@ -1596,40 +1414,28 @@ def plotCERES_daily_figure(date_str, param = 'SWF',  \
         #mapcrs = ccrs.Robinson()
         ax = fig1.add_subplot(1,1,1, projection = mapcrs)
 
-    # ----------------------------------------------------
-    # Use the single-swath plotting function to plot each
-    # of the 3 data types
-    # ----------------------------------------------------
-    cmap = 'jet'
-    y_val, x_val = np.meshgrid(CERES_data['lat'], CERES_data['lon'])
-    mesh = ax.pcolormesh(x_val, y_val, CERES_data['data'],\
-            transform = datacrs, cmap = cmap,\
-            ##!#vmin = np.nanmin(mask_GPQF) - 0.5, \
-            ##!#vmax = np.nanmax(mask_GPQF) + 0.5,\
-            shading='auto')
-    ax.coastlines()
+    if(len(CERES_data[pvar].shape) == 3):
+        pdata = np.nanmean(CERES_data[pvar], axis = 0)
+        ice_data = np.nanmean(CERES_data['ice_conc'], axis = 0)
+    else:
+        pdata = CERES_data[pvar] 
+        ice_data = CERES_data['ice_conc']
 
+    pdata = np.ma.masked_where(ice_data < min_ice, pdata)
+
+    mesh = ax.pcolormesh(CERES_data['lon'], CERES_data['lat'], pdata, \
+        transform = ccrs.PlateCarree(), shading = 'auto')
+    ax.coastlines()
+    ax.set_extent([-180, 180, minlat, 90], datacrs)
+    
     if(colorbar):
             #cbar = plt.colorbar(mesh,ax = pax, orientation='horizontal',pad=0,\
             cbar = plt.colorbar(mesh,ax = ax, orientation='vertical',\
                 pad = 0.04, fraction = 0.040)
-            cbar.set_label(CERES_data['param'], fontsize = 12, weight='bold')
-                #int(np.nanmax(mask_GPQF)) + 1), pad = 0.04, fraction = 0.040)
-                #ticks = np.arange(int(np.nanmin(mask_GPQF)), \
-                #shrink = 0.8, ticks = np.arange(np.nanmin(mask_GPQF), \
-                #np.nanmax(mask_GPQF) + 1))
-            #cbar.ax.set_xticks(np.arange(int(np.nanmin(mask_GPQF)),int(np.nanmax(mask_GPQF)) + 1))
-            ##!#cbar.ax.set_yticklabels(cbar_labels[int(np.nanmin(mask_GPQF)):\
-            ##!#    int(np.nanmax(mask_GPQF))+1],fontsize=10,weight = 'bold', \
-            ##!#    rotation=0)
-                #fontsize=8,rotation=35)
+            cbar.set_label(pvar, fontsize = 12, weight='bold')
         
     if(circle_bound):
         ax.set_boundary(circle, transform=ax.transAxes)
-
-    #ax0.set_extent([-180., , -40., 0.], datacrs)
-    ax.set_extent([-180,180,minlat,90], datacrs)
-    #ax0.set_extent([-180,180,-90,90], datacrs)
 
     plt.suptitle(date_str)
 
@@ -1640,22 +1446,74 @@ def plotCERES_daily_figure(date_str, param = 'SWF',  \
     if(lat_circles is not None):
         plot_lat_circles(ax, lat_circles) 
 
-
     if(not in_ax):
         fig1.tight_layout()
         if(save):
-            row_adder = ''
-            if(skiprows is not None):
-                row_adder = '_no'
-                for row in skiprows:
-                    row_adder = row_adder + 'r' + str(row + 1)
-                
-            outname = 'omi_single_swath_figure_' + date_str + '_' + \
-                dtype + row_adder + '_latlines.png'
+            outname = 'ceres_' + satellite + '_daily_' + pvar + '_' + \
+                date_str + '.png'
             fig1.savefig(outname, dpi=300)
             print("Saved image",outname)
         else:
             plt.show()
+
+def plotCERES_daily_allsat(date_str, pvar, end_str = None, \
+        only_sea_ice = False, minlat = 65., avg_data = True, \
+        lat_circles = None, save = False, \
+        circle_bound = True, colorbar = True):
+
+    # Read the data
+    # -------------
+    CERES_data1 = readgridCERES_daily(date_str, end_str = end_str, \
+        satellite = 'Aqua',minlat = minlat)
+    CERES_data2 = readgridCERES_daily(date_str, end_str = end_str, \
+        satellite = 'Terra',minlat = minlat)
+    CERES_data3 = readgridCERES_daily(date_str, end_str = end_str, \
+        satellite = 'SuomiNPP',minlat = minlat)
+    CERES_data4 = readgridCERES_daily(date_str, end_str = end_str, \
+        satellite = 'SuomiNPP',minlat = minlat)
+
+    total_data = np.concatenate((CERES_data1[pvar], CERES_data2[pvar], \
+        CERES_data3[pvar]))
+    total_data = np.ma.masked_where(total_data < 0, total_data)
+    #total_data = np.nanmean(total_data, axis = 0)
+    CERES_data4[pvar] = total_data 
+
+    # Set up the overall figure
+    # -------------------------
+    fig = plt.figure(figsize = (9, 9))
+    ax1 = fig.add_subplot(2,2,1, projection = mapcrs)
+    ax2 = fig.add_subplot(2,2,2, projection = mapcrs)
+    ax3 = fig.add_subplot(2,2,3, projection = mapcrs)
+    ax4 = fig.add_subplot(2,2,4, projection = mapcrs)
+
+    # Plot the data
+    # -------------
+    plotCERES_daily(CERES_data1, pvar, end_str = end_str, satellite = 'Aqua',  \
+        only_sea_ice = False, minlat = minlat, avg_data = True, \
+        lat_circles = None, ax = ax1, save = False, \
+        circle_bound = True, colorbar = True)
+    plotCERES_daily(CERES_data2, pvar, end_str = end_str, satellite = 'Terra',  \
+        only_sea_ice = False, minlat = minlat, avg_data = True, \
+        lat_circles = None, ax = ax2, save = False, \
+        circle_bound = True, colorbar = True)
+    plotCERES_daily(CERES_data3, pvar, end_str = end_str, satellite = 'SuomiNPP',  \
+        only_sea_ice = False, minlat = minlat, avg_data = True, \
+        lat_circles = None, ax = ax3, save = False, \
+        circle_bound = True, colorbar = True)
+    plotCERES_daily(CERES_data4, pvar, end_str = end_str, satellite = 'SuomiNPP',  \
+        only_sea_ice = False, minlat = minlat, avg_data = True, \
+        lat_circles = None, ax = ax4, save = False, \
+        circle_bound = True, colorbar = True)
+    
+    ax1.set_title('Aqua')
+    ax2.set_title('Terra')
+    ax3.set_title('SuomiNPP')
+    ax4.set_title('Average')
+
+    if(save):
+        outname = 'ceres_allsat_' + pvar + '_' + date_str + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
 
 # Plot just a single swath on a 1-panel figure
 #     skiprows - 

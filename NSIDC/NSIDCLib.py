@@ -313,7 +313,14 @@ def readNSIDC_daily(date_str, grid_data = False):
         # Read the netCDf file
         # --------------------
         in_data = Dataset(net_filename, 'r')
-        data = in_data['F17_ICECON'][0,:,:] * 100.
+        if('F17_ICECON' in in_data.variables.keys()):
+            data = in_data['F17_ICECON'][0,:,:] * 100.
+        elif('F13_ICECON' in in_data.variables.keys()):
+            data = in_data['F13_ICECON'][0,:,:] * 100.
+        else:
+            print("ERROR: incorrect NSIDC ice variable name")
+            in_data.close()
+            return
 
         in_data.close()
  
