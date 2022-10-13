@@ -1386,6 +1386,7 @@ def plotCERES_hrly(pax, CERES_data_hrly, param, minlat=65, \
 # ----------------------------------
 def plotCERES_daily(CERES_data, pvar, end_str = None, satellite = 'Aqua',  \
         only_sea_ice = False, minlat = 65., avg_data = True, \
+        vmin = None, vmax = None, \
         lat_circles = None, ax = None, save = False, min_ice = 0., \
         circle_bound = True, colorbar = True):
 
@@ -1419,12 +1420,14 @@ def plotCERES_daily(CERES_data, pvar, end_str = None, satellite = 'Aqua',  \
         ice_data = np.nanmean(CERES_data['ice_conc'], axis = 0)
     else:
         pdata = CERES_data[pvar] 
-        ice_data = CERES_data['ice_conc']
+        #ice_data = CERES_data['ice_conc']
+        ice_data = np.nanmean(CERES_data['ice_conc'], axis = 0)
 
     pdata = np.ma.masked_where(ice_data < min_ice, pdata)
 
     mesh = ax.pcolormesh(CERES_data['lon'], CERES_data['lat'], pdata, \
-        transform = ccrs.PlateCarree(), shading = 'auto')
+        transform = ccrs.PlateCarree(), vmin = vmin, vmax = vmax, \
+        shading = 'auto')
     ax.coastlines()
     ax.set_extent([-180, 180, minlat, 90], datacrs)
     

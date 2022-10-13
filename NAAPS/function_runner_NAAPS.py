@@ -14,7 +14,8 @@ var = 'smoke_conc_sfc'
 #    plot_log = False, ptitle = '', zoom = True, save = True)
 plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
     satellite = 'All', minlat = 78., vmin = None, vmax = 300, \
-    plot_log = False, min_ice = 80., min_smoke = 30, \
+    vmin2 = 0.2, vmax2 = 0.7, \
+    plot_log = False, min_ice = 80., min_smoke = 90, max_smoke = 2e5, \
     ptitle = '', zoom = True, save = False)
 #base_date = datetime.strptime('2017081600','%Y%m%d%H')
 #for ii in range(30):

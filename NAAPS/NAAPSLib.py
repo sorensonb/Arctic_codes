@@ -201,8 +201,7 @@ def plot_NAAPS(NAAPS_data, var, ax = None, labelsize = 12, \
         cmap = 'viridis', vmin = vmin, vmax = vmax, \
         transform = ccrs.PlateCarree(), shading = 'auto')
     cbar = plt.colorbar(mesh, ax = ax, orientation='vertical',\
-        pad=0.03, extend = 'both')
-
+        pad=0.04, fraction = 0.040, extend = 'both')
     cbar.set_label(var, size = labelsize, weight = 'bold')
     #cbar.ax.tick_params(labelsize = labelticksize)
     ax.set_title(NAAPS_data['date'])
@@ -280,16 +279,17 @@ def plot_NAAPS_event(date_str, var, minlat = 65., vmin = None, vmax = None, \
         plt.show()
 
 def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
-        minlat = 70.5, vmin = None, vmax = None, min_ice = 80., \
-        min_smoke = 0, plot_log = True, \
+        minlat = 70.5, vmin = None, vmax = None, vmin2 = None, vmax2 = None, \
+        min_ice = 80., min_smoke = 0, max_smoke = 2e5, plot_log = True, \
         satellite = 'Aqua', ptitle = '', zoom = True, save = False):
 
     plt.close('all')
     fig = plt.figure(figsize = (12,10))
-    ax1 = fig.add_subplot(2,2,1, projection = mapcrs)
-    ax2 = fig.add_subplot(2,2,2, projection = mapcrs)
-    ax3 = fig.add_subplot(2,2,3, projection = mapcrs)
-    ax4 = fig.add_subplot(2,2,4)
+    gs  = fig.add_gridspec(nrows = 2, ncols = 3)
+    ax1 = plt.subplot(gs[0,0], projection = mapcrs)
+    ax2 = plt.subplot(gs[0,1], projection = mapcrs)
+    ax3 = plt.subplot(gs[0,2], projection = mapcrs)
+    ax4 = plt.subplot(gs[1,:])
     #ax4 = fig.add_subplot(2,2,4, projection = mapcrs)
 
     # Read the data for this granule
@@ -297,14 +297,23 @@ def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
     NAAPS_data = read_NAAPS_event(date_str, minlat = minlat)
 
     if(date_str[:6] == '201708'):
-        cdate_begin_str1 = '20170801'
+        cdate_begin_str1 = '20170804'
         cdate_end_str1   = '20170815'
-        cdate_begin_str2 = '20170822'
+        cdate_begin_str2 = '20170820'
         cdate_end_str2   = '20170831'
 
-    CERES_data1 = readgridCERES_daily('20170801',end_str = '20170815', \
+    dt_begin_str1 = datetime.strptime(cdate_begin_str1, '%Y%m%d')
+    dt_end_str1   = datetime.strptime(cdate_end_str1, '%Y%m%d')
+    dt_begin_str2 = datetime.strptime(cdate_begin_str2, '%Y%m%d')
+    dt_end_str2   = datetime.strptime(cdate_end_str2, '%Y%m%d')
+
+    CERES_data1 = readgridCERES_daily(cdate_begin_str1,end_str = cdate_end_str1, \
         satellite = satellite, minlat = minlat)
-    CERES_data2 = readgridCERES_daily('20170820',end_str = '20170831', \
+    CERES_data12 = readgridCERES_daily('20160804',end_str = '20160815', \
+        satellite = satellite, minlat = minlat)
+    CERES_data2 = readgridCERES_daily(cdate_begin_str2,end_str = cdate_end_str2, \
+        satellite = satellite, minlat = minlat)
+    CERES_data22 = readgridCERES_daily('20160820',end_str = '20160831', \
         satellite = satellite, minlat = minlat)
 
     # Test masking the data
@@ -312,19 +321,32 @@ def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
     avg_CERES1 = np.nanmean(CERES_data1[ceres_var], axis = 0)
     avg_CERES2 = np.nanmean(CERES_data2[ceres_var], axis = 0)
     avg_CERES1_ice = np.nanmean(CERES_data1['ice_conc'], axis = 0)
+    #avg_CERES12 = np.nanmean(CERES_data12[ceres_var], axis = 0)
+    #avg_CERES22 = np.nanmean(CERES_data22[ceres_var], axis = 0)
+    #avg_CERES12_ice = np.nanmean(CERES_data12['ice_conc'], axis = 0)
 
     # Test pulling out the data that only exists in both zones
     # --------------------------------------------------------
-    avg_CERES1 = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
-        (NAAPS_data['smoke_conc_sfc'] < min_smoke), avg_CERES1)  
-    avg_CERES2 = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
-        (NAAPS_data['smoke_conc_sfc'] < min_smoke), avg_CERES2)  
+    #avg_CERES1 = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
+    CERES_data1[ceres_var] = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
+        (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
+        (NAAPS_data['smoke_conc_sfc'] > max_smoke), avg_CERES1)  
+    CERES_data2[ceres_var] = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
+        (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
+        (NAAPS_data['smoke_conc_sfc'] > max_smoke), avg_CERES2)  
+    #CERES_data12[ceres_var] = np.ma.masked_where((avg_CERES12_ice <= min_ice) | \
+    #    (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
+    #    (NAAPS_data['smoke_conc_sfc'] > max_smoke), avg_CERES12)  
+    #CERES_data22[ceres_var] = np.ma.masked_where((avg_CERES12_ice <= min_ice) | \
+    #    (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
+    #    (NAAPS_data['smoke_conc_sfc'] > max_smoke), avg_CERES22)  
 
     NAAPS_data['smoke_conc_sfc'] = np.ma.masked_where(\
         (avg_CERES1_ice <= min_ice) | \
-        (NAAPS_data['smoke_conc_sfc'] < min_smoke), \
+        (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
+        (NAAPS_data['smoke_conc_sfc'] > max_smoke), \
         NAAPS_data['smoke_conc_sfc'])
-
+    
 
     # Plot the data for this granule
     # ------------------------------
@@ -332,12 +354,15 @@ def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
             minlat = minlat, vmin = vmin, vmax = vmax, plot_log = plot_log)
 
     # Plot the CERES data
-    plotCERES_daily(cdate_begin_str1, ceres_var, end_str = cdate_end_str1, \
+    #plotCERES_daily(cdate_begin_str1, ceres_var, end_str = cdate_end_str1, \
+    plotCERES_daily(CERES_data1, ceres_var, end_str = cdate_end_str1, \
         satellite = satellite,  only_sea_ice = False, minlat = minlat, \
+        vmin = vmin2, vmax = vmax2, \
         avg_data = True, ax = ax2, save = False, min_ice = min_ice, \
         circle_bound = True, colorbar = True)
-    plotCERES_daily(cdate_begin_str2, ceres_var, end_str = cdate_end_str2, \
+    plotCERES_daily(CERES_data2, ceres_var, end_str = cdate_end_str2, \
         satellite = satellite,  only_sea_ice = False, minlat = minlat, \
+        vmin = vmin2, vmax = vmax2, \
         avg_data = True, ax = ax3, save = False, min_ice = min_ice, \
         circle_bound = True, colorbar = True)
     #plotCERES_daily(cdate_begin_str2, 'ice_conc', end_str = cdate_end_str2, \
@@ -345,7 +370,72 @@ def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
     #    avg_data = True, ax = ax4, save = False, \
     #    circle_bound = True, colorbar = True)
 
-    ax4.boxplot([avg_CERES1.flatten().compressed(), avg_CERES2.flatten().compressed()])
+    # Now, process the yearly data
+    # ----------------------------
+    combined_data = {}
+    for ii in np.arange(-2, 3):
+        dt_begin_local1 = dt_begin_str1 + relativedelta(years = ii)
+        dt_end_local1   = dt_end_str1 + relativedelta(years = ii)
+        dt_begin_local2 = dt_begin_str2 + relativedelta(years = ii)
+        dt_end_local2   = dt_end_str2 + relativedelta(years = ii)
+
+        combined_data[dt_begin_local1.strftime('%Y')] = {}
+
+        CERES_data1 = readgridCERES_daily(dt_begin_local1.strftime('%Y%m%d'),\
+            end_str = dt_end_local1.strftime('%Y%m%d'), \
+            satellite = satellite, minlat = minlat)
+        CERES_data2 = readgridCERES_daily(dt_begin_local1.strftime('%Y%m%d'),\
+            end_str = dt_end_local2.strftime('%Y%m%d'), \
+            satellite = satellite, minlat = minlat)
+
+        avg_CERES1 = np.nanmean(CERES_data1[ceres_var], axis = 0)
+        avg_CERES2 = np.nanmean(CERES_data2[ceres_var], axis = 0)
+        avg_CERES1_ice = np.nanmean(CERES_data1['ice_conc'], axis = 0)
+
+        CERES_data1[ceres_var] = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
+            (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
+            (NAAPS_data['smoke_conc_sfc'] > max_smoke), avg_CERES1)  
+        CERES_data2[ceres_var] = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
+            (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
+            (NAAPS_data['smoke_conc_sfc'] > max_smoke), avg_CERES2)  
+
+        bdata1 = CERES_data1[ceres_var].flatten().compressed()
+        bdata2 = CERES_data2[ceres_var].flatten().compressed()
+  
+        combined_data[dt_begin_local1.strftime('%Y')][\
+            dt_begin_local1.strftime('%m/%d') + ' - ' + \
+            dt_end_local1.strftime('%m/%d')] = bdata1
+        combined_data[dt_begin_local2.strftime('%Y')][\
+            dt_begin_local2.strftime('%m/%d') + ' - ' + \
+            dt_end_local2.strftime('%m/%d')] = bdata2
+
+    second_labels = np.array([[akey + '\n' + bkey for akey in \
+        combined_data[bkey].keys()] for bkey in combined_data.keys()])
+    labels = second_labels.flatten()
+    second_arrays = np.array([[combined_data[bkey][akey] for akey in \
+        combined_data[bkey].keys()] for bkey in combined_data.keys()])
+    final_arrays = second_arrays.flatten()
+
+    #print(len(avg_CERES1.flatten().compressed()), len(avg_CERES2.flatten().compressed()))
+    #bdata1 = CERES_data1[ceres_var].flatten().compressed()
+    #bdata12 = CERES_data12[ceres_var].flatten().compressed()
+    #bdata2 = CERES_data2[ceres_var].flatten().compressed()
+    #bdata22 = CERES_data22[ceres_var].flatten().compressed()
+    #print(len(bdata1), len(bdata2))
+    #ax4.boxplot([bdata12, bdata22 , bdata1, bdata2])
+  
+    colors = ['tab:blue','tab:orange','limegreen','tab:red','tab:purple'] 
+    for ii in range(len(second_arrays)):
+        boxs = ax4.boxplot([second_arrays[ii,0], second_arrays[ii,1]], \
+            labels = [second_labels[ii,0], second_labels[ii,1]], \
+            positions = [ii*2, ii*2 + 1], widths = [0.75, 0.75], \
+            patch_artist = True)
+        for item in ['boxes','whiskers','fliers','caps']:
+            plt.setp(boxs[item], color = colors[ii])
+        plt.setp(boxs['medians'], color = 'black')
+        for patch in boxs['boxes']:
+        #    patch.set_edgecolor(colors[ii])
+            patch.set_facecolor('white')
 
     ax1.set_title('NAAPS-RA ' + var + '\n' + \
         NAAPS_data['dt_begin_date'].strftime('%Y-%m-%d') + ' - ' + \

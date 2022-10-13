@@ -13,9 +13,15 @@ import sys
 # Set up the overall figure
 # ----------------------------------------------------
 
-plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
-        minlat = 65., save = True)
+infile = '/home/bsorenson/Research/OMI/shawn_analysis/count_analysis/omi_vsj4_areas_2005_2020_100.txt'
+#plot_OMI_fort_out_two_lats(infile, minlat = 70., vtype = 'areas', save = False)
+plot_OMI_fort_out_peaks(infile, minlat = 75., vtype = 'areas', save = False)
+
 sys.exit()
+
+#plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
+#        minlat = 65., save = True)
+#sys.exit()
 
 #plot_row_bias(dataset = 'normal', save = True)
 #sys.exit()
@@ -40,11 +46,6 @@ sys.exit()
 
 #plot_combined_fort_out('20170818', min_lat = 80., vtype = 'areas', save = False)
 
-#infile = '/home/bsorenson/Research/OMI/shawn_analysis/count_analysis/omi_vsj4_areas_2005_2020_100.txt'
-##plot_OMI_fort_out_two_lats(infile, minlat = 70., vtype = 'areas', save = False)
-#plot_OMI_fort_out_peaks(infile, minlat = 75., vtype = 'areas', save = False)
-#
-#sys.exit()
 
 #date_str = '201807050048'
 #date_str = '201807050227'
