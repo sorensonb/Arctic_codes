@@ -264,19 +264,35 @@ def readgridCERES(start_date,end_date,param,satellite = 'Aqua',minlat=60.5,\
 def readgridCERES_daily(date_str, end_str = None, satellite = 'Aqua', \
         minlat = 60.5):
 
+    dt_begin_str = datetime.strptime(date_str, '%Y%m%d')
+    dt_end_str = datetime.strptime(end_str, '%Y%m%d')
+    dt_begin_noaa20 = datetime.strptime('20180401', '%Y%m%d')
+    dt_begin_suominpp = datetime.strptime('20120401', '%Y%m%d')
+    dt_end_suominpp = datetime.strptime('20190930', '%Y%m%d')
+
     if((satellite == 'Aqua') | (satellite == 'Terra') | \
-        (satellite == 'SuomiNPP')):
+        (satellite == 'SuomiNPP') | (satellite == 'NOAA20')):
         CERES_data = readgridCERES_daily_file(date_str, end_str = end_str, \
             satellite = satellite, minlat = minlat)
     else:
+        
+        found_NPP = False
+        found_NOAA = False
+
         CERES_data1 = readgridCERES_daily_file(date_str, end_str = end_str, \
             satellite = 'Aqua', minlat = minlat)
         CERES_data2 = readgridCERES_daily_file(date_str, end_str = end_str, \
             satellite = 'Terra', minlat = minlat)
-        CERES_data3 = readgridCERES_daily_file(date_str, end_str = end_str, \
-            satellite = 'SuomiNPP', minlat = minlat)
+        if( (dt_begin_str > dt_begin_noaa20) ):
+            found_NOAA = True
+            CERES_data5 = readgridCERES_daily_file(date_str, end_str = end_str, \
+                satellite = 'NOAA20', minlat = minlat)
+        if( (dt_begin_str > dt_begin_suominpp) & (dt_end_str <= dt_end_suominpp)):
+            found_NPP = True
+            CERES_data3 = readgridCERES_daily_file(date_str, end_str = end_str, \
+                satellite = 'SuomiNPP', minlat = minlat)
         CERES_data4 = readgridCERES_daily_file(date_str, end_str = end_str, \
-            satellite = 'SuomiNPP',minlat = minlat)
+            satellite = 'Aqua',minlat = minlat)
 
         pvars = ['alb_all', 'alb_clr', 'swf_all', 'swf_clr', 'cld', 'ice_conc']
 
@@ -288,8 +304,13 @@ def readgridCERES_daily(date_str, end_str = None, satellite = 'Aqua', \
         #        local_lon[ii,:][under_180]])
 
         for pvar in pvars:
-            total_data = np.concatenate((CERES_data1[pvar], CERES_data2[pvar], \
-                CERES_data3[pvar]))
+            total_data = np.concatenate((CERES_data1[pvar], CERES_data2[pvar]))
+            if(found_NPP):
+                total_data = np.concatenate((total_data, CERES_data3[pvar]))
+            if(found_NOAA):
+                total_data = np.concatenate((total_data, CERES_data5[pvar]))
+                #CERES_data3[pvar]))
+                #CERES_data3[pvar], CERES_data5[pvar]))
             total_data = np.ma.masked_where(total_data < 0, total_data)
             #total_data = np.concatenate((total_data[over_180], \
             #    total_data[under_180]))
@@ -319,6 +340,8 @@ def readgridCERES_daily_file(date_str, end_str = None, satellite = 'Aqua', \
         base_path = '/home/bsorenson/data/CERES/SSF_1Deg/daily/Aqua/CERES_SSF1deg-Day_Aqua-MODIS_Ed4.1_Subset_'
     elif(satellite == 'SuomiNPP'):
         base_path = '/home/bsorenson/data/CERES/SSF_1Deg/daily/SuomiNPP/CERES_SSF1deg-Day_NPP-VIIRS_Ed2A_Subset_'
+    elif(satellite == 'NOAA20'):
+        base_path = '/home/bsorenson/data/CERES/SSF_1Deg/daily/NOAA20/CERES_SSF1deg-Day_NOAA20-VIIRS_Ed1B_Subset_'
     #base_path = '/data/CERES/SSF_1Deg/monthly/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
     #base_path = '/home/bsorenson/data/CERES/SSF_1Deg/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
     total_list = sorted(glob.glob(base_path+'*.nc'))
@@ -349,7 +372,6 @@ def readgridCERES_daily_file(date_str, end_str = None, satellite = 'Aqua', \
 
     # Open up the file
     data = Dataset(good_list[0],'r')
-    print(good_list[0])
 
     # Convert the times to dt objects
     # -------------------------------

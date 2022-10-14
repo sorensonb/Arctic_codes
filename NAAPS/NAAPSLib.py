@@ -12,7 +12,7 @@ import sys
 from netCDF4 import Dataset
 from datetime import datetime,timedelta
 from dateutil.relativedelta import relativedelta
-from scipy.stats import pearsonr,spearmanr
+from scipy.stats import pearsonr,spearmanr, mannwhitneyu
 import subprocess
 from scipy import stats
 import matplotlib as mpl
@@ -373,7 +373,7 @@ def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
     # Now, process the yearly data
     # ----------------------------
     combined_data = {}
-    for ii in np.arange(-2, 3):
+    for ii in np.arange(-4, 5):
         dt_begin_local1 = dt_begin_str1 + relativedelta(years = ii)
         dt_end_local1   = dt_end_str1 + relativedelta(years = ii)
         dt_begin_local2 = dt_begin_str2 + relativedelta(years = ii)
@@ -409,7 +409,7 @@ def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
             dt_begin_local2.strftime('%m/%d') + ' - ' + \
             dt_end_local2.strftime('%m/%d')] = bdata2
 
-    second_labels = np.array([[akey + '\n' + bkey for akey in \
+    second_labels = np.array([[bkey for akey in \
         combined_data[bkey].keys()] for bkey in combined_data.keys()])
     labels = second_labels.flatten()
     second_arrays = np.array([[combined_data[bkey][akey] for akey in \
@@ -424,7 +424,7 @@ def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
     #print(len(bdata1), len(bdata2))
     #ax4.boxplot([bdata12, bdata22 , bdata1, bdata2])
   
-    colors = ['tab:blue','tab:orange','limegreen','tab:red','tab:purple'] 
+    colors = ['tab:blue','tab:orange','limegreen','tab:red','tab:purple', 'cyan', 'tab:blue', 'tab:orange', 'limegreen'] 
     for ii in range(len(second_arrays)):
         boxs = ax4.boxplot([second_arrays[ii,0], second_arrays[ii,1]], \
             labels = [second_labels[ii,0], second_labels[ii,1]], \
@@ -437,6 +437,8 @@ def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
         #    patch.set_edgecolor(colors[ii])
             patch.set_facecolor('white')
 
+    ax4.set_ylabel('Clear-sky Albedo')
+    
     ax1.set_title('NAAPS-RA ' + var + '\n' + \
         NAAPS_data['dt_begin_date'].strftime('%Y-%m-%d') + ' - ' + \
         NAAPS_data['dt_end_date'].strftime('%Y-%m-%d'))
@@ -450,11 +452,42 @@ def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
 
     fig.tight_layout()
 
+    fig2 = plt.figure(figsize = (9,9))
+    axs = fig2.subplots(nrows = 3, ncols = 3)
+    jj = 0
+    for ii in range(second_arrays.shape[0]):
+        if((ii > 2) & (ii < 6)):
+            jj = 1
+        elif(ii >= 6):
+            jj = 2
+
+        u_stat, p_val = mannwhitneyu(second_arrays[ii,0], second_arrays[ii,1],\
+                         alternative = 'greater') 
+        print(second_labels[ii,0], len(second_arrays[ii,0]), len(second_arrays[ii,1]))
+        axs[jj,ii%3].hist(second_arrays[ii,0], alpha = 0.5, label = 'Before')
+        axs[jj,ii%3].hist(second_arrays[ii,1], alpha = 0.5, label = 'After')
+        #if(len(second_arrays[ii,0]) > len(second_arrays[ii,1])):
+        #    axs[jj,ii%3].hist(second_arrays[ii,1], label = 'After')
+        #    axs[jj,ii%3].hist(second_arrays[ii,0], label = 'Before')
+        #else:
+        #    axs[jj,ii%3].hist(second_arrays[ii,0], label = 'Before')
+        #    axs[jj,ii%3].hist(second_arrays[ii,1], label = 'After')
+        axs[jj,ii%3].set_title(second_labels[ii,0] + '\np_val = ' + str(np.round(p_val, 2)))
+        axs[jj,ii%3].set_xlabel('Clear-sky albedo')
+        axs[jj,ii%3].set_ylabel('Counts')
+        axs[jj,ii%3].legend()
+
+
+    fig2.tight_layout()
+
     if(save):
         outname = 'naaps_ceres_event_' + var + '_' + date_str + '.png'
         fig.savefig(outname, dpi = 300)
         print("Saved image", outname)
+        outname = 'naaps_ceres_event_boxplots_' + var + '_' + date_str + '.png'
+        fig2.savefig(outname, dpi = 300)
+        print("Saved image", outname)
     else:
         plt.show()
 
-
+    return second_arrays, second_labels
