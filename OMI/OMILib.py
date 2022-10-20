@@ -178,18 +178,18 @@ mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
 
 label_dict = {
     'V003': 'Only XTrack == 0',
-    'VJZ2': 'No Snow-free Land',
-    'VJZ28': 'No Snow-free Land, Only Pure Good Rows',
+    'VJZ2': 'No Snow-free Land', # no snow-free land, all available rows
+    'VJZ28': 'No Snow-free Land\nOnly 49, 50, 56 - 60', # 49, 50, 56 - 60, no snow-free land
     'VJZ282': 'No Snow-free Land, Only Pure Good Rows',
-    'VJZ29': 'Include Snow-free Land, Only Pure Good Rows',
-    'VJZ211': 'Include Snow-free Land, Rows 55 - 60',
+    'VJZ29': 'Include Snow-free Land\n49, 50, 56 - 60', #49, 50, 56 - 60, snow-free land
+    'VJZ211': 'Include Snow-free Land\n56 - 60', # 55 - 60, snow-free land
     'VJZ4': 'XTrack == 0, not 4',
     'VJZ5': 'AI >= 0',
     'VBS0': 'No Bad Row Screening',
     'VBS1': 'Bad Row Screening Only',
     'VBS2': 'Only Rows 1-22',
-    'VSJ2': 'Perturbation Analysis',
-    'VSJ4': 'Perturbation Analysis'
+    'VSJ2': 'Perturbation Version 2',
+    'VSJ4': 'Perturbation Version 4'
 }
 
 var_dict = {
@@ -2952,9 +2952,11 @@ def plotOMI_NCDF_SingleMonth(OMI_data,time_idx,minlat=65, pax = None, \
     local_data  = np.copy(OMI_data['AI'][time_idx,:,:])
     local_count = np.copy(OMI_data['OB_COUNT'][time_idx,:,:])
 
+    local_data[local_data == 0.0] = np.nan
+
     # Mask any missing values
     mask_AI = np.ma.masked_where(local_count == 0, local_data)
-    mask_AI = np.ma.masked_where(mask_AI == -999.9, mask_AI)
+    #mask_AI = np.ma.masked_where(mask_AI == -999.9, mask_AI)
 
     # Mask any data below the threshold latitude
     mask_AI = np.ma.masked_where(OMI_data['LAT'] < minlat,mask_AI)
@@ -3267,21 +3269,19 @@ def plotOMI_NCDF_Climo_SpringSummer(OMI_data,start_idx=0,end_idx=96,minlat=65,\
 
 # Plot a monthly climatology 
 def plotOMI_MonthClimo(OMI_data,month_idx,minlat = 60, pax = None, \
+        vmin = -1., vmax = 1., ptitle = None, plabel = None, 
         save=False):
 
     version = OMI_data['VERSION']
 
-    if(version == 'VSJ2'):
-        max_AI = 0.5
-        min_AI = -0.5
-        colormap = plt.cm.bwr
-    else:
-        max_AI = 1.5
-        min_AI = -1.5
-        colormap = plt.cm.jet
-
-    min_AI = -1.0
-    max_AI = 1.0
+    #if(version == 'VSJ2'):
+    #    vmax = 0.5
+    #    vmin = -0.5
+    #    colormap = plt.cm.bwr
+    #else:
+    #    vmax = 1.5
+    #    vmin = -1.5
+    #    colormap = plt.cm.jet
 
     # Make copy of OMI_data array
     if('MONTH_CLIMO' not in OMI_data.keys()):
@@ -3299,8 +3299,11 @@ def plotOMI_MonthClimo(OMI_data,month_idx,minlat = 60, pax = None, \
     # Make figure title
     #date_month = datetime(year = 1,month = month_idx+1, day = 1).strftime('%B')
     date_month = start_date.strftime('%B')
-    title = 'OMI AI ' + date_month + ' Climatology ('+version+')\n'+\
-        start_date.strftime('%b. %Y') + ' - ' + end_date.strftime('%b. %Y')
+    if(ptitle is None):
+        ptitle = 'OMI AI ' + date_month + ' Climatology ('+version+')\n'+\
+            start_date.strftime('%b. %Y') + ' - ' + end_date.strftime('%b. %Y')
+    if(plabel is None):
+        plabel = 'UV Aerosol Index'
 
     if(pax is None):
         # Make figure
@@ -3309,7 +3312,7 @@ def plotOMI_MonthClimo(OMI_data,month_idx,minlat = 60, pax = None, \
         ax = plt.axes(projection = mapcrs)
 
         plotOMI_spatial(ax, OMI_data['LAT'], OMI_data['LON'], mask_AI, 'climo', \
-            ptitle = title, plabel = 'UV Aerosol Index', \
+            ptitle = ptitle, plabel = plabel, \
             vmin = min_AI, vmax = max_AI, minlat = minlat)
 
         fig1.tight_layout()
@@ -3323,8 +3326,8 @@ def plotOMI_MonthClimo(OMI_data,month_idx,minlat = 60, pax = None, \
 
     else:
         plotOMI_spatial(pax, OMI_data['LAT'], OMI_data['LON'], mask_AI, 'climo', \
-            ptitle = title, plabel = 'UV Aerosol Index', \
-            vmin = min_AI, vmax = max_AI, minlat = minlat)
+            ptitle = ptitle, plabel = plabel, \
+            vmin = vmin, vmax = vmax, minlat = minlat)
 
     ##!#ax.gridlines()
     ##!#ax.coastlines(resolution='50m')
@@ -3977,6 +3980,289 @@ def plotOMI_Compare_ClimoTrend_all(OMI_data1,OMI_data2,OMI_data3,\
     else:
         plt.show()
 
+# Generate a 15-panel figure comparing the climatology and trend between 3
+# versions of the OMI data for all months
+def plotOMI_Type_MonthClimo_all(minlat=65, save = False, \
+        save_dir = '/home/bsorenson/Research/OMI/monthly_images/combined_climo/'):
+
+    colormap = plt.cm.jet
+
+    lat_ranges = np.arange(minlat,90,1.0)
+    lon_ranges = np.arange(-180,180,1.0)
+
+    colorbar_label_size = 7
+    axis_title_size = 8
+    row_label_size = 10 
+
+    data_types = ['VBS1','VJZ2','VJZ28','VJZ29','VJZ211','VSJ2','VSJ4']    
+
+    # Read in all the data
+    OMI_VBS1 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+        'omi_ai_' + data_types[0] + '_2005_2019.nc', minlat = minlat)
+    OMI_VJZ2 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+        'omi_ai_' + data_types[1] + '_2005_2019.nc', minlat = minlat)
+    OMI_VJZ28= readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+        'omi_ai_' + data_types[2] + '_2005_2019.nc', minlat = minlat)
+    OMI_VJZ29= readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+        'omi_ai_' + data_types[3] + '_2005_2019.nc', minlat = minlat)
+    OMI_VJZ211 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+        'omi_ai_' + data_types[4] + '_2005_2019.nc', minlat = minlat)
+    OMI_VSJ2 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+        'omi_ai_' + data_types[5] + '_2005_2019.nc', minlat = minlat)
+    OMI_VSJ4 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+        'omi_ai_' + data_types[6] + '_2005_2020.nc', minlat = minlat)
+   
+    OMI_VBS1['AI']   = np.ma.masked_where((OMI_VBS1['OB_COUNT'] == 0)  | (OMI_VBS1['OB_COUNT'] == -99)  , OMI_VBS1['AI'])
+    OMI_VJZ2['AI']   = np.ma.masked_where((OMI_VJZ2['OB_COUNT'] == 0)  | (OMI_VJZ2['OB_COUNT'] == -99)  , OMI_VJZ2['AI'])
+    OMI_VJZ28['AI']  = np.ma.masked_where((OMI_VJZ28['OB_COUNT'] == 0) | (OMI_VJZ28['OB_COUNT'] == -99) , OMI_VJZ28['AI'])
+    OMI_VJZ29['AI']  = np.ma.masked_where((OMI_VJZ29['OB_COUNT'] == 0) | (OMI_VJZ29['OB_COUNT'] == -99) , OMI_VJZ29['AI'])
+    OMI_VJZ211['AI'] = np.ma.masked_where((OMI_VJZ211['OB_COUNT'] == 0)| (OMI_VJZ211['OB_COUNT'] == -99), OMI_VJZ211['AI'])
+    OMI_VSJ2['AI']   = np.ma.masked_where((OMI_VSJ2['OB_COUNT'] == 0)  | (OMI_VSJ2['OB_COUNT'] == -99)  , OMI_VSJ2['AI'])
+    OMI_VSJ4['AI']   = np.ma.masked_where((OMI_VSJ4['OB_COUNT'] == 0)  | (OMI_VSJ4['OB_COUNT'] == -99)  , OMI_VSJ4['AI'])
+ 
+    #for ii in range(len(data_types)):
+    #print(data_types[ii])
+    #fig = plt.figure()
+
+    for jj in range(len(OMI_VJZ2['DATES'])):
+
+        plt.close('all')
+        fig = plt.figure(figsize=(12,6))
+        ax1 = fig.add_subplot(2,4,1, projection = mapcrs) # VBS1
+        ax2 = fig.add_subplot(2,4,2, projection = mapcrs) # VJZ2
+        ax3 = fig.add_subplot(2,4,3, projection = mapcrs) # VJZ28
+        ax4 = fig.add_subplot(2,4,4, projection = mapcrs) # VJZ29
+        ax5 = fig.add_subplot(2,4,5, projection = mapcrs) # VJZ211
+        ax6 = fig.add_subplot(2,4,6, projection = mapcrs) # VSJ2
+        ax7 = fig.add_subplot(2,4,7, projection = mapcrs) # VSJ4
+
+        # Read the data
+        
+        # Plot trend
+        plotOMI_NCDF_SingleMonth(OMI_VJZ2,jj,minlat = minlat, pax = ax1, \
+            save=False)
+        plotOMI_NCDF_SingleMonth(OMI_VJZ28,jj,minlat = minlat, pax = ax2, \
+            save=False)
+        plotOMI_NCDF_SingleMonth(OMI_VJZ29,jj,minlat = minlat, pax = ax3, \
+            save=False)
+        plotOMI_NCDF_SingleMonth(OMI_VJZ211,jj,minlat = minlat, pax = ax4, \
+            save=False)
+        plotOMI_NCDF_SingleMonth(OMI_VBS1,jj,minlat = minlat, pax = ax5, \
+            save=False)
+        plotOMI_NCDF_SingleMonth(OMI_VSJ2,jj,minlat = minlat, pax = ax6, \
+            save=False)
+        plotOMI_NCDF_SingleMonth(OMI_VSJ4,jj,minlat = minlat, pax = ax7, \
+            save=False)
+        
+        fig.tight_layout()
+
+        if(save == True):
+            outname = save_dir + 'omi_ai_monthly_comps_' + OMI_VJZ2['DATES'][jj] + '.png'
+            fig.savefig(outname,dpi=300)
+            print("Saved image",outname)
+        else:
+            plt.show()
+
+# Generate a 15-panel figure comparing the climatology and trend between 3
+# versions of the OMI data for all months
+def plotOMI_Type_Climo_all(trend_type = 'standard', \
+        minlat=65,save=False):
+
+    colormap = plt.cm.jet
+
+    lat_ranges = np.arange(minlat,90,1.0)
+    lon_ranges = np.arange(-180,180,1.0)
+
+    colorbar_label_size = 7
+    axis_title_size = 8
+    row_label_size = 10 
+
+    #fig = plt.figure()
+    plt.close('all')
+    fig = plt.figure(figsize=(11,13))
+    gs = fig.add_gridspec(nrows=6, ncols=4, hspace = 0.001, wspace = 0.15)
+
+    data_types = ['VJZ2','VJZ28','VJZ29','VJZ211']    
+ 
+    for ii in range(len(data_types)):
+        print(data_types[ii])
+
+        axi1 = plt.subplot(gs[0,ii], projection = mapcrs) # April
+        axi2 = plt.subplot(gs[1,ii], projection = mapcrs) # May
+        axi3 = plt.subplot(gs[2,ii], projection = mapcrs) # June
+        axi4 = plt.subplot(gs[3,ii], projection = mapcrs) # July
+        axi5 = plt.subplot(gs[4,ii], projection = mapcrs) # August
+        axi6 = plt.subplot(gs[5,ii], projection = mapcrs) # September
+
+        # Read the data
+        
+        OMI_data = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+            'omi_ai_' + data_types[ii] + '_2005_2019.nc', minlat = minlat)
+        
+        # Plot trend
+        plotOMI_MonthClimo(OMI_data, month_idx = 0,\
+            plabel = ' ', minlat=65., ptitle = data_types[ii], pax = axi1)
+        plotOMI_MonthClimo(OMI_data, month_idx = 1,\
+            plabel = ' ', minlat=65., ptitle = ' ', pax = axi2)
+        plotOMI_MonthClimo(OMI_data, month_idx = 2,\
+            plabel = ' ', minlat=65., ptitle = ' ', pax = axi3)
+        plotOMI_MonthClimo(OMI_data, month_idx = 3,\
+            plabel = ' ', minlat=65., ptitle = ' ', pax = axi4)
+        plotOMI_MonthClimo(OMI_data, month_idx = 4,\
+            plabel = ' ', minlat=65., ptitle = ' ', pax = axi5)
+        plotOMI_MonthClimo(OMI_data, month_idx = 5,\
+            plabel = ' ', minlat=65., ptitle = ' ', pax = axi6)
+
+    fig.text(0.10, 0.82, 'April', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.692, 'May', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.565, 'June', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.435, 'July', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.305, 'August', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.18, 'September', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+
+    
+    #fig.text(0.195, 0.89, label_dict[data_types[0]], ha='center', va='center', \
+    #    rotation='horizontal',weight='bold',fontsize=row_label_size)
+    #fig.text(0.355, 0.89, label_dict[data_types[1]], ha='center', va='center', \
+    #    rotation='horizontal',weight='bold',fontsize=row_label_size)
+    #fig.text(0.51, 0.89, label_dict[data_types[2]], ha='center', va='center', \
+    #    rotation='horizontal',weight='bold',fontsize=row_label_size)
+    #fig.text(0.67, 0.89, label_dict[data_types[3]], ha='center', va='center', \
+    #    rotation='horizontal',weight='bold',fontsize=row_label_size)
+
+    cax = fig.add_axes([0.13, 0.09, 0.29, 0.01])
+    norm = mpl.colors.Normalize(vmin = -2.0, vmax = 3.0)
+    cb1 = mpl.colorbar.ColorbarBase(cax, cmap = plt.cm.jet, norm = norm, \
+        orientation = 'horizontal', extend = 'both')
+    cb1.set_label('UV Aerosol Index', weight = 'bold')
+
+    cax2 = fig.add_axes([0.448, 0.09, 0.45, 0.01])
+    norm2 = mpl.colors.Normalize(vmin = -0.5, vmax = 0.5)
+    cb2 = mpl.colorbar.ColorbarBase(cax2, cmap = plt.cm.bwr, norm = norm2, \
+        orientation = 'horizontal', extend = 'both')
+    cb2.set_label('AI Trend (2005 - 2020)', weight = 'bold')
+    #fig.colorbar(norm, cax = cax, orientation = 'horizontal')
+
+    #fig.tight_layout()
+
+    outname = 'omi_ai_climo_comps_jz.png'
+    if(save == True):
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
+# Generate a 15-panel figure comparing the climatology and trend between 3
+# versions of the OMI data for all months
+def plotOMI_Type_Trend_all(trend_type = 'standard', \
+        minlat=65,save=False):
+
+    colormap = plt.cm.jet
+
+    lat_ranges = np.arange(minlat,90,1.0)
+    lon_ranges = np.arange(-180,180,1.0)
+
+    colorbar_label_size = 7
+    axis_title_size = 8
+    row_label_size = 10 
+
+    #fig = plt.figure()
+    plt.close('all')
+    fig = plt.figure(figsize=(11,13))
+    gs = fig.add_gridspec(nrows = 6, ncols = 6, hspace = 0.001, wspace = 0.15)
+
+    data_types = ['VJZ2','VJZ28','VJZ29','VJZ211','VSJ2','VSJ4']    
+ 
+    for ii in range(len(data_types)):
+        print(data_types[ii])
+
+        axi1 = plt.subplot(gs[0,ii], projection = mapcrs) # April
+        axi2 = plt.subplot(gs[1,ii], projection = mapcrs) # May
+        axi3 = plt.subplot(gs[2,ii], projection = mapcrs) # June
+        axi4 = plt.subplot(gs[3,ii], projection = mapcrs) # July
+        axi5 = plt.subplot(gs[4,ii], projection = mapcrs) # August
+        axi6 = plt.subplot(gs[5,ii], projection = mapcrs) # September
+
+        # Read the data
+       
+        if(data_types[ii] == 'VSJ4'):
+            OMI_data = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+                'omi_ai_' + data_types[ii] + '_2005_2020.nc', minlat = minlat)
+        else:
+            OMI_data = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+                'omi_ai_' + data_types[ii] + '_2005_2019.nc', minlat = minlat)
+
+        # Plot trend
+        plotOMI_MonthTrend(OMI_data, month_idx = 0, trend_type = trend_type,\
+            label = ' ', minlat=65., title = data_types[ii], pax = axi1, colorbar = False, \
+            colorbar_label_size = colorbar_label_size)
+        plotOMI_MonthTrend(OMI_data, month_idx = 1, trend_type = trend_type,\
+            label = ' ', minlat=65., title = ' ', pax = axi2, colorbar = False, \
+            colorbar_label_size = colorbar_label_size)
+        plotOMI_MonthTrend(OMI_data, month_idx = 2, trend_type = trend_type,\
+            label = ' ', minlat=65., title = ' ', pax = axi3, colorbar = False, \
+            colorbar_label_size = colorbar_label_size)
+        plotOMI_MonthTrend(OMI_data, month_idx = 3, trend_type = trend_type,\
+            label = ' ', minlat=65., title = ' ', pax = axi4, colorbar = False, \
+            colorbar_label_size = colorbar_label_size)
+        plotOMI_MonthTrend(OMI_data, month_idx = 4, trend_type = trend_type,\
+            label = ' ', minlat=65., title = ' ', pax = axi5, colorbar = False, \
+            colorbar_label_size = colorbar_label_size)
+        plotOMI_MonthTrend(OMI_data, month_idx = 5, trend_type = trend_type,\
+            label = ' ', minlat=65., title = ' ', pax = axi6, colorbar = False, \
+            colorbar_label_size = colorbar_label_size)
+
+    fig.text(0.10, 0.82, 'April', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.692, 'May', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.565, 'June', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.435, 'July', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.305, 'August', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.18, 'September', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+
+    #fig.text(0.195, 0.89, 'Original\nClimatology', ha='center', va='center', \
+    #    rotation='horizontal',weight='bold',fontsize=row_label_size)
+    #fig.text(0.355, 0.89, 'Screened\nClimatology', ha='center', va='center', \
+    #    rotation='horizontal',weight='bold',fontsize=row_label_size)
+    #fig.text(0.51, 0.89, 'Original\nTrend', ha='center', va='center', \
+    #    rotation='horizontal',weight='bold',fontsize=row_label_size)
+    #fig.text(0.67, 0.89, 'Screened\nTrend', ha='center', va='center', \
+    #    rotation='horizontal',weight='bold',fontsize=row_label_size)
+    #fig.text(0.83, 0.89, 'Perturbed\nTrend', ha='center', va='center', \
+    #    rotation='horizontal',weight='bold',fontsize=row_label_size)
+
+    cax = fig.add_axes([0.13, 0.09, 0.29, 0.01])
+    norm = mpl.colors.Normalize(vmin = -2.0, vmax = 3.0)
+    cb1 = mpl.colorbar.ColorbarBase(cax, cmap = plt.cm.jet, norm = norm, \
+        orientation = 'horizontal', extend = 'both')
+    cb1.set_label('UV Aerosol Index', weight = 'bold')
+
+    cax2 = fig.add_axes([0.448, 0.09, 0.45, 0.01])
+    norm2 = mpl.colors.Normalize(vmin = -0.5, vmax = 0.5)
+    cb2 = mpl.colorbar.ColorbarBase(cax2, cmap = plt.cm.bwr, norm = norm2, \
+        orientation = 'horizontal', extend = 'both')
+    cb2.set_label('AI Trend (2005 - 2020)', weight = 'bold')
+    #fig.colorbar(norm, cax = cax, orientation = 'horizontal')
+
+    #fig.tight_layout()
+
+    outname = 'omi_ai_trend_comps_jz.png'
+    if(save == True):
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
 def plot_omi_da(OMI_da_nc,save=False):
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 

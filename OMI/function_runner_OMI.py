@@ -13,6 +13,64 @@ import sys
 # Set up the overall figure
 # ----------------------------------------------------
 
+#plotOMI_Type_Climo_all(trend_type = 'standard', \
+#    minlat=65,save=True)
+plotOMI_Type_Trend_all(trend_type = 'standard', \
+    minlat=65,save=True)
+
+sys.exit()
+
+#minlat = 65.
+#
+#data_types = ['VBS1','VJZ2','VJZ28','VJZ29','VJZ211','VSJ2','VSJ4']    
+#
+## Read in all the data
+#OMI_VBS1 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+#    'omi_ai_' + data_types[0] + '_2005_2019.nc', minlat = minlat)
+#OMI_VJZ2 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+#    'omi_ai_' + data_types[1] + '_2005_2019.nc', minlat = minlat)
+#OMI_VJZ28= readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+#    'omi_ai_' + data_types[2] + '_2005_2019.nc', minlat = minlat)
+#OMI_VJZ29= readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+#    'omi_ai_' + data_types[3] + '_2005_2019.nc', minlat = minlat)
+#OMI_VJZ211 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+#    'omi_ai_' + data_types[4] + '_2005_2019.nc', minlat = minlat)
+#OMI_VSJ2 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+#    'omi_ai_' + data_types[5] + '_2005_2019.nc', minlat = minlat)
+#OMI_VSJ4 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+#    'omi_ai_' + data_types[6] + '_2005_2020.nc', minlat = minlat)
+#sys.exit()
+plotOMI_Type_MonthClimo_all(minlat=65, save = True, \
+        save_dir = '/home/bsorenson/Research/OMI/monthly_images/combined_climo/')
+
+sys.exit()
+
+
+minlat = 65.
+base_dir = '/home/bsorenson/Research/OMI/'
+image_dir = base_dir + 'monthly_images/'
+data_types = ['VJZ2','VJZ28','VJZ29','VJZ211']    
+for dtype in data_types:
+    print('\n\nNOW PROCESSING',dtype,'\n\n')
+
+    local_dir = image_dir + dtype + '/'
+
+    # Change to Arctic codes directory
+    os.chdir(local_dir)
+
+    print(os.system('pwd'))
+
+    # Read in the data
+    OMI_data = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+        'omi_ai_' + dtype + '_2005_2019.nc', minlat = minlat)
+
+    for ii in range(len(OMI_data['DATES'])):
+        plotOMI_NCDF_SingleMonth(OMI_data,ii,minlat = minlat, pax = None, \
+            save=True)
+
+sys.exit()
+
+
 infile = '/home/bsorenson/Research/OMI/shawn_analysis/count_analysis/omi_vsj4_areas_2005_2020_100.txt'
 #plot_OMI_fort_out_two_lats(infile, minlat = 70., vtype = 'areas', save = False)
 plot_OMI_fort_out_peaks(infile, minlat = 75., vtype = 'areas', save = False)
