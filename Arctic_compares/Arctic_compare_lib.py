@@ -39,7 +39,7 @@ json_file_database = '/home/bsorenson/Research/Arctic_compares/json_comp_files.t
 # the data downloading/matching, the first-look comparison-making, the 
 # HDF5 file-making, and the data copying to Raindrop.
 def automate_all_preprocess(date_str, download = True, images = True, \
-        process = True):
+        process = True, omi_dtype = 'shawn'):
     if(isinstance(date_str, str)):
         date_str = [date_str]
 
@@ -47,6 +47,14 @@ def automate_all_preprocess(date_str, download = True, images = True, \
         # If desired, download all data and/or match up the files in the JSON
         # -------------------------------------------------------------------
         auto_all_download(date_str, download = download, rewrite_json = True)
+
+    if(omi_dtype == 'shawn'):
+        omi_dtype2 = 'shawn'
+        shawn_path = '/home/bsorenson/data/OMI/shawn_files/'
+    elif(omi_dtype == 'ltc3'):
+        omi_dtype = 'shawn'
+        omi_dtype2 = 'ltc3'
+        shawn_path = '/home/bsorenson/data/OMI/shawn_files/ltc3/'
 
     # Load in the JSON file string relations
     # --------------------------------------
@@ -68,7 +76,7 @@ def automate_all_preprocess(date_str, download = True, images = True, \
             # -------------------------------------------
             #modis_date_str = file_date_dict[dstr]['MODIS'][0]
             plot_compare_OMI_CERES_MODIS_NSIDC(dstr, 7, \
-                omi_dtype = 'shawn', minlat = 65., zoom = True, save = True)
+                omi_dtype = omi_dtype2, minlat = 65., zoom = True, save = True)
 
         if(process):
             # Make a data storage directory, if one does not already exist
@@ -90,7 +98,7 @@ def automate_all_preprocess(date_str, download = True, images = True, \
             # Run the data subsetter codes
             # ----------------------------
             write_shawn_to_HDF5(dstr, save_path = save_dir2, minlat = 65., \
-                shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
+                shawn_path = shawn_path)
 
             write_CERES_hrly_grid_to_HDF5(file_date_dict[dstr]['CERES'], \
                 save_path = save_dir2)
@@ -459,7 +467,12 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(date_str, ch1, \
     from MODISLib import plot_MODIS_channel
     from NSIDCLib import plotNSIDC_daily_figure
 
-    
+    if(omi_dtype == 'shawn'):
+        shawn_path = '/home/bsorenson/data/OMI/shawn_files/'
+    elif(omi_dtype == 'ltc3'):
+        omi_dtype = 'shawn'
+        shawn_path = '/home/bsorenson/data/OMI/shawn_files/ltc3/'
+        print('In plotter, looking for ltc3')
 
     # Load in the JSON file string relations
     # --------------------------------------
@@ -587,7 +600,7 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(date_str, ch1, \
     plotOMI_single_swath_figure(omi_date, \
             dtype = omi_dtype, only_sea_ice = False, minlat = minlat, \
             ax = ax4, skiprows = [52], lat_circles = None, save = False, \
-            zoom = zoom)
+            zoom = zoom, shawn_path = shawn_path)
     
     # Plot the CERES data
     # -------------------

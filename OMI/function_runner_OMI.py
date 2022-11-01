@@ -9,16 +9,83 @@ import OMILib
 from OMILib import *
 import sys
 
+date_str = '200804221841'
+plotOMI_single_multipanel(date_str, only_sea_ice = False, minlat = 65., \
+       quad_panel = True, save = False)
+#plotOMI_single_swath_multiple('22222222', dtype = 'control',  \
+#    only_sea_ice = False, minlat = 65., save = True)
+sys.exit()
+
+plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
+        minlat = 65., save = True)
+sys.exit()
+
+plot_combined_fort_out('20170818', min_lat = 80., vtype = 'areas', save = True)
+plot_combined_fort_out('20190811', min_lat = 70., vtype = 'areas', max_lat = 80., save = True)
+sys.exit()
+
+
+plotOMI_single_swath_multiple_v3(dtype = 'control',  \
+        only_sea_ice = False, minlat = 65., save = True)
+#plotOMI_single_swath_multiple_v4(dtype = 'control',  \
+#        only_sea_ice = False, minlat = 65., save = True)
+
+sys.exit()
+
+#plot_row_bias(dataset = 'normal', save = True)
+#sys.exit()
+
 # ----------------------------------------------------
 # Set up the overall figure
 # ----------------------------------------------------
+minlat = 65.
 
-#plotOMI_Type_Climo_all(trend_type = 'standard', \
-#    minlat=65,save=True)
+OMI_VBS0   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VBS0_2005_2020.nc', minlat = minlat)
+OMI_VJZ211 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VJZ211_2005_2020.nc', minlat = minlat)
+OMI_VSJ4   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VSJ4_2005_2020.nc', minlat = minlat)
+#plotOMI_Compare_ClimoTrend_summer(OMI_VBS0,OMI_VJZ211,OMI_VSJ4,\
+#        trend_type = 'standard', minlat=minlat,save=False)
+plotOMI_Compare_ClimoTrend_all(OMI_VBS0,OMI_VJZ211, OMI_VSJ4,\
+        trend_type = 'standard', minlat=minlat,save = True)
+
+sys.exit()
+
+
+month_idx =  4
+trend_type = 'standard'
+inputfile = '/home/bsorenson/Research/OMI/JZ_analysis/climo_analysis/omi_vsj4_climo_2005_2020.txt'
+OMI_data = readOMI_NCDF('/home/bsorenson/Research/OMI/omi_ai_VSJ4_2005_2020.nc', minlat = minlat)
+
+#trends, pvals = calcOMI_grid_trend(OMI_data, month_idx, trend_type, minlat)
+plotOMI_MonthTrend(OMI_data,month_idx=4,save=False,\
+    trend_type='standard',minlat=65.,return_trend=False, colorbar = True, \
+    title = '', label = '', colorbar_label_size = 14, pax = None)
+
+sys.exit()
+
+plotOMI_Compare_ClimoTrend_all(OMI_data1,OMI_data2,OMI_data3,\
+    trend_type = 'standard', minlat=65,save=False)
+
 plotOMI_Type_Trend_all(trend_type = 'standard', \
     minlat=65,save=True)
 
 sys.exit()
+
+start_date = 200504
+end_date = 202009
+inputfile = '/home/bsorenson/Research/OMI/JZ_analysis/climo_analysis/omi_jz211_climo_2005_2020.txt'
+OMI_data = readOMI(inputfile,start_date,end_date,key=None)
+filename = '/home/bsorenson/Research/OMI/sorenson_et_al_data/omi_ai_screened_2005_2020.nc'
+writeOMI_toNCDF(OMI_data,filename, minlat = 65.)
+
+inputfile = '/home/bsorenson/Research/OMI/shawn_analysis/climo_analysis/omi_vsj4_climo_2005_2020.txt'
+OMI_data = readOMI(inputfile,start_date,end_date,key=None)
+filename = '/home/bsorenson/Research/OMI/sorenson_et_al_data/omi_ai_perturbed_2005_2020.nc'
+writeOMI_toNCDF(OMI_data,filename, minlat = 65.)
+sys.exit()
+
+#plotOMI_Type_Climo_all(trend_type = 'standard', \
+#    minlat=65,save=True)
 
 #minlat = 65.
 #
@@ -77,10 +144,6 @@ plot_OMI_fort_out_peaks(infile, minlat = 75., vtype = 'areas', save = False)
 
 sys.exit()
 
-#plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
-#        minlat = 65., save = True)
-#sys.exit()
-
 #plot_row_bias(dataset = 'normal', save = True)
 #sys.exit()
 
@@ -102,7 +165,6 @@ sys.exit()
 # pvars = 'glint', 'earthshine', 'sunshine', 'stray'
 #plotOMI_single_flags('201204101833', pvar = 'glint', minlat = 55, zoom = True)
 
-#plot_combined_fort_out('20170818', min_lat = 80., vtype = 'areas', save = False)
 
 
 #date_str = '201807050048'
@@ -350,7 +412,6 @@ plotOMI_NCDF_Climo_SpringSummer(OMI_VBS0,start_idx=0,end_idx=96,minlat=65,\
                    save=True)
 
 sys.exit()
-plot_combined_fort_out('20190811', min_lat = 70., vtype = 'areas', max_lat = 80., save = True)
 
 # NOTE: for plotting the bias between OMI rows, use this line with the
 #       CSCI netCDF data
@@ -366,23 +427,11 @@ plot_combined_fort_out('20190811', min_lat = 70., vtype = 'areas', max_lat = 80.
 
 sys.exit()
 
-OMI_VBS0   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VBS0_2005_2020.nc', minlat = minlat)
-OMI_VJZ211 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VJZ211_2005_2020.nc', minlat = minlat)
-OMI_VSJ4   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VSJ4_2005_2020.nc', minlat = minlat)
-#plotOMI_Compare_ClimoTrend_summer(OMI_VBS0,OMI_VJZ211,OMI_VSJ4,\
-#        trend_type = 'standard', minlat=minlat,save=False)
-plotOMI_Compare_ClimoTrend_all(OMI_VBS0,OMI_VJZ211, OMI_VSJ4,\
-        trend_type = 'standard', minlat=minlat,save = False)
-
-sys.exit()
 
 
 
 #OMI_data, CERES_data = plot_OMI_CERES_trend_compare_summer(minlat=72,\
 #        ceres_type = 'sw', trend_type = 'standard', save=False)
-
-plotOMI_single_swath_multiple(dtype = 'control',  \
-        only_sea_ice = False, minlat = 65., save = True)
 
 
 
@@ -393,12 +442,6 @@ plotOMI_single_swath_multiple(dtype = 'control',  \
 ##        save = False)
 
 sys.exit()
-
-#date_str = '200804222159'
-#plotOMI_single_multipanel(date_str, only_sea_ice = False, minlat = 65., \
-#        quad_panel = True, save = True)
-#plotOMI_single_swath_multiple('22222222', dtype = 'control',  \
-#    only_sea_ice = False, minlat = 65., save = True)
 
 plot_OMI_fort_out_func(infile,\
      min_lat = 70., vtype = 'areas', save = False)

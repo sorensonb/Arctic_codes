@@ -513,7 +513,7 @@ def readOMI(inputfile,start_date,end_date,key=None):
     # Skip the header line
     for line in f:
         templine = line.strip().split()
-        if(len(templine)>1):
+        if((len(templine)>1) & (templine[0] != 'Date')):
             if(len(templine) == 5):
                 loc_key = str(templine[1])+'x'+str(templine[2])
                 avg_idx = 3
@@ -675,6 +675,7 @@ def readOMI_swath_shawn(plot_time, latmin = 65., \
 
     # Open the shawn file
     # -------------------
+    print(shawn_path + plot_time)
     df_shawn = pd.read_csv(shawn_path + plot_time, delim_whitespace = True, \
         header = None)
 
@@ -1074,9 +1075,9 @@ def readOMI_NCDF(infile='/home/bsorenson/Research/OMI/omi_ai_V003_2005_2020.nc',
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
-def writeOMI_toNCDF(OMI_data,file_name,minlat=30):
-    lat_ranges = np.arange(minlat,90.5,1.0)
-    lon_ranges = np.arange(-180,180,1.0)
+def writeOMI_toNCDF(OMI_data,file_name, minlat = 65.):
+    lat_ranges = np.arange(minlat,90.0,1.0)
+    lon_ranges = np.arange(-180.,180.,1.0)
    
     # Create a new netCDF dataset to write to
     # --------------------------------------- 
@@ -1117,22 +1118,22 @@ def writeOMI_toNCDF(OMI_data,file_name,minlat=30):
     # 'dlat', and 'dlon'. Latitude and longitude are each 2-d grids, 
     # so they are given 2 dimensions (dlat, dlon).
     # ----------------------------------------------------------------
-    MONTH=nc.createVariable('MONTH','i2',('nmth'))
-    MONTH.description='Months since January 2005'
-    LAT=nc.createVariable('Latitude','i2',('dlat','dlon'))
-    LAT.description='Latitude'
-    LAT.units='Degrees'
-    LON=nc.createVariable('Longitude','i2',('dlat','dlon'))
-    LON.description='Longitude'
-    LON.units='Degrees'
+    MONTH = nc.createVariable('MONTH','i2',('nmth'))
+    MONTH.description = 'Months since January 2005'
+    LAT = nc.createVariable('Latitude','f4',('dlat','dlon'))
+    LAT.description = 'Latitude (degrees North)'
+    LAT.units = 'Degrees'
+    LON = nc.createVariable('Longitude','f4',('dlat','dlon'))
+    LON.description = 'Longitude (-180 - 180)'
+    LON.units = 'Degrees'
    
     # Create a variable for the AI data, dimensioned using all three
     # dimensions.
     # --------------------------------------------------------------  
     AI = nc.createVariable('AI','f4',('nmth','dlat','dlon'))
-    AI.description='Monthly Averaged Aerosol Index (using JZ method)'
-    OB_COUNT=nc.createVariable('OB_COUNT','i2',('nmth','dlat','dlon'))
-    OB_COUNT.description='# of OMI AI measurements used in each monthly average'
+    AI.description = 'Monthly Averaged Aerosol Index (using JZ method)'
+    OB_COUNT = nc.createVariable('OB_COUNT','i2',('nmth','dlat','dlon'))
+    OB_COUNT.description = '# of OMI AI measurements used in each monthly average'
 
     # Fill in dimension variables one-by-one.
     # NOTE: not sure if you can insert the entire data array into the
@@ -1143,8 +1144,8 @@ def writeOMI_toNCDF(OMI_data,file_name,minlat=30):
         MONTH[i] = times[i]
     for i in range(num_lat):
         for j in range(num_lon):
-            LAT[i,j]=lat_ranges[i]
-            LON[i,j]=lon_ranges[j]
+            LAT[i,j]=lat_ranges[i] + 0.5
+            LON[i,j]=lon_ranges[j] + 0.5
 
     # Fill in actual variables
     # I have a bunch of extra stuff in here for handling the dictionary
@@ -1251,7 +1252,8 @@ def write_shawn_to_HDF5(OMI_base, save_path = './', minlat = 65., \
     if(isinstance(OMI_base, str)):
         # Read the swath
         # --------------
-        OMI_base  = readOMI_swath_shawn(OMI_base, latmin = minlat)
+        OMI_base  = readOMI_swath_shawn(OMI_base, latmin = minlat,\
+            shawn_path = shawn_path)
 
     # Convert the filename object to datetime
     # ---------------------------------------
@@ -1722,7 +1724,10 @@ def calcOMI_grid_trend(OMI_data, month_idx, trend_type, minlat):
     local_mask = np.ma.masked_where(local_counts == 0, local_data)
     local_mask = np.ma.masked_where((local_mask == -999.9) & \
         (OMI_data['LAT'] < minlat), local_mask)
+
     ai_trends = np.zeros(local_data.shape[1:])
+    ai_pvals  = np.zeros(local_data.shape[1:])
+
     print(local_data.shape)
 
     # Loop over all the keys and print the regression slopes 
@@ -1737,17 +1742,19 @@ def calcOMI_grid_trend(OMI_data, month_idx, trend_type, minlat):
                 slope, intercept, r_value, p_value, std_err = \
                     stats.linregress(x_vals,local_mask[:,i,j])
                 ai_trends[i,j] = slope * len(x_vals)
+                ai_pvals[i,j]  = p_value
             else:
                 res = stats.theilslopes(local_mask[:,i,j], x_vals, 0.90)
                 ai_trends[i,j] = res[0]*len(x_vals)
 
     ai_trends = np.ma.masked_where(OMI_data['LAT'] < minlat, ai_trends)
+    ai_pvals  = np.ma.masked_where(OMI_data['LAT'] < minlat, ai_pvals)
 
     print('in trend calc')
     for x, y in zip(OMI_data['LAT'][:,10], ai_trends[:,10]):
         print(x,y)
 
-    return ai_trends
+    return ai_trends, ai_pvals
 
    
 # This function assumes the data is being read from the netCDF file
@@ -2803,7 +2810,7 @@ def plotOMI(OMI_data,start_date,end_date,save=False,trend_type='standard',file_t
 # title is the plot title
 def plotOMI_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
         vmin = None, vmax = None, colorbar_label_size = 14, colorbar = True, \
-        minlat = 65.):
+        minlat = 65., pvals = None):
 
     if(vmin == None):
         vmin = np.nanmin(pdata)
@@ -2819,17 +2826,25 @@ def plotOMI_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
     local_data  = np.copy(pdata)
     # Grid the data, fill in white space
     cyclic_data,cyclic_lons = add_cyclic_point(local_data,plon[0,:])
-    plat,plon = np.meshgrid(plat[:,0],cyclic_lons)   
+    plat2,plon2 = np.meshgrid(plat[:,0],cyclic_lons)   
   
     # Mask any missing values
     mask_AI = np.ma.masked_where(cyclic_data < -998.9, cyclic_data)
-    mask_AI = np.ma.masked_where(plat.T < minlat, mask_AI)
+    mask_AI = np.ma.masked_where(plat2.T < minlat, mask_AI)
 
     #pax.gridlines()
     pax.coastlines(resolution='50m')
-    mesh = pax.pcolormesh(plon, plat,\
+    mesh = pax.pcolormesh(plon2, plat2,\
             mask_AI.T,transform = datacrs,\
             cmap = colormap,vmin=vmin,vmax=vmax, shading = 'auto')
+    if(pvals is not None):
+        cyclic_pvals, cyclic_lons = add_cyclic_point(pvals, plon[0,:])
+        print(pvals.shape, plat.shape, plat2.shape)
+        mask_pvals = np.ma.masked_where((plat < minlat) | \
+            (pvals > 0.05), pvals)
+        pax.pcolor(plon, plat, mask_pvals, hatch = '...', alpha = 0.0, \
+            shading = 'auto', transform = datacrs)
+
     pax.set_extent([-180,180,minlat,90],datacrs)
     pax.set_boundary(circle, transform=pax.transAxes)
     #ax.set_xlim(-3430748.535086173,3430748.438879491)
@@ -2847,7 +2862,8 @@ def plotOMI_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
 # Designed to work with the netCDF data
 def plotOMI_MonthTrend(OMI_data,month_idx=None,save=False,\
         trend_type='standard',minlat=65.,return_trend=False, colorbar = True, \
-        title = '', label = '', colorbar_label_size = 14, pax = None):
+        title = '', label = '', colorbar_label_size = 14, pax = None, \
+        show_pval = False):
     version = OMI_data['VERSION']
     trend_label=''
     if(trend_type=='theil-sen'):
@@ -2872,8 +2888,10 @@ def plotOMI_MonthTrend(OMI_data,month_idx=None,save=False,\
     # Use calcOMI_grid_trend to calculate the trends in the AI data
     #
     # --------------------------------------------------------------
-    ai_trends = calcOMI_grid_trend(OMI_data, month_idx, trend_type, \
+    ai_trends, ai_pvals = calcOMI_grid_trend(OMI_data, month_idx, trend_type, \
         minlat)
+    if(not show_pval):
+        ai_pvals = None
 
     # --------------------------------------------------------------
     #
@@ -2908,7 +2926,7 @@ def plotOMI_MonthTrend(OMI_data,month_idx=None,save=False,\
         plotOMI_spatial(ax, OMI_data['LAT'], OMI_data['LON'], ai_trends, 'trend', \
             ptitle = title, plabel = label, colorbar = colorbar, \
             colorbar_label_size = colorbar_label_size, \
-            vmin = v_min, vmax = v_max, minlat = minlat)
+            vmin = v_min, vmax = v_max, minlat = minlat, pvals = ai_pvals)
 
         fig1.tight_layout()
 
@@ -2927,7 +2945,7 @@ def plotOMI_MonthTrend(OMI_data,month_idx=None,save=False,\
         plotOMI_spatial(pax, OMI_data['LAT'], OMI_data['LON'], ai_trends, 'trend', \
             ptitle = title, plabel = label, colorbar = colorbar, \
             colorbar_label_size = colorbar_label_size, \
-            vmin = v_min, vmax = v_max, minlat = minlat)
+            vmin = v_min, vmax = v_max, minlat = minlat, pvals = ai_pvals)
 
     #if(return_trend == True):
     #    return ai_trends
@@ -3782,12 +3800,12 @@ def plotOMI_Compare_ClimoTrend_all(OMI_data1,OMI_data2,OMI_data3,\
     #ax02.set_title(OMI_data2['VERSION']+ '\n\n')
     plotOMI_MonthTrend(OMI_data2,month_idx=0,trend_type=trend_type,label = ' ',\
         minlat=65.,title = ' ', pax = ax03, colorbar = False, \
-        colorbar_label_size = colorbar_label_size)
+        colorbar_label_size = colorbar_label_size, show_pval = True)
     #ax03.set_title(OMI_data1['VERSION']+ '\n\n')
     plotOMI_MonthTrend(OMI_data3,month_idx=0,trend_type=trend_type,\
         label = 'AI Trend (AI/Study Period)',\
         minlat=65.,title = ' ', pax = ax04, colorbar = False, \
-        colorbar_label_size = colorbar_label_size)
+        colorbar_label_size = colorbar_label_size, show_pval = True)
     # Plot the figures in the first row: May
     # ---------------------------------------
     plotOMI_spatial(ax10, OMI_data1['LAT'], OMI_data1['LON'], mask_AI1_May, \
@@ -3807,12 +3825,12 @@ def plotOMI_Compare_ClimoTrend_all(OMI_data1,OMI_data2,OMI_data3,\
     plotOMI_MonthTrend(OMI_data2,month_idx=1,\
         trend_type=trend_type,label = ' ',\
         minlat=65.,title = ' ', pax = ax13, colorbar = False, \
-        colorbar_label_size = colorbar_label_size)
+        colorbar_label_size = colorbar_label_size, show_pval = True)
     #ax03.set_title(OMI_data1['VERSION']+ '\n\n')
     plotOMI_MonthTrend(OMI_data3,month_idx=1,\
         trend_type=trend_type,label = 'AI Trend (AI/Study Period)',\
         minlat=65.,title = ' ', pax = ax14, colorbar = False, \
-        colorbar_label_size = colorbar_label_size)
+        colorbar_label_size = colorbar_label_size, show_pval = True)
     # Plot the figures in the first row: June
     # ---------------------------------------
     plotOMI_spatial(ax20, OMI_data1['LAT'], OMI_data1['LON'], mask_AI1_Jun, \
@@ -3833,12 +3851,12 @@ def plotOMI_Compare_ClimoTrend_all(OMI_data1,OMI_data2,OMI_data3,\
     plotOMI_MonthTrend(OMI_data2,month_idx=2,\
         trend_type=trend_type,label = ' ',\
         minlat=65.,title = ' ', pax = ax23, colorbar = False, \
-        colorbar_label_size = colorbar_label_size)
+        colorbar_label_size = colorbar_label_size, show_pval = True)
     #ax03.set_title(OMI_data1['VERSION']+ '\n\n')
     plotOMI_MonthTrend(OMI_data3,month_idx=2,\
         trend_type=trend_type,label = 'AI Trend (AI/Study Period)',\
         minlat=65.,title = ' ', pax = ax24, colorbar = False, \
-        colorbar_label_size = colorbar_label_size)
+        colorbar_label_size = colorbar_label_size, show_pval = True)
     #ax04.set_title(OMI_data3['VERSION']+ '\n\n')
 
     # Plot the figures in the second row: July
@@ -3861,12 +3879,12 @@ def plotOMI_Compare_ClimoTrend_all(OMI_data1,OMI_data2,OMI_data3,\
     plotOMI_MonthTrend(OMI_data2,month_idx=3,\
         trend_type=trend_type,label = ' ',colorbar = False, \
         minlat=65.,title = ' ', pax = ax33, \
-        colorbar_label_size = colorbar_label_size)
+        colorbar_label_size = colorbar_label_size, show_pval = True)
     #ax13.set_title(OMI_data2['VERSION']+ '\n\n')
     plotOMI_MonthTrend(OMI_data3,month_idx=3,\
         trend_type=trend_type,label = 'AI Trend (AI/Study Period)',\
         minlat=65.,title = ' ', pax = ax34, colorbar = False, \
-        colorbar_label_size = colorbar_label_size)
+        colorbar_label_size = colorbar_label_size, show_pval = True)
     #ax14.set_title(OMI_data3['VERSION']+ '\n\n')
 
     # Plot the figures in the third row: August
@@ -3889,12 +3907,12 @@ def plotOMI_Compare_ClimoTrend_all(OMI_data1,OMI_data2,OMI_data3,\
     plotOMI_MonthTrend(OMI_data2,month_idx=4,\
         trend_type=trend_type,label = ' ',colorbar = False, \
         minlat=65.,title = ' ', pax = ax43, \
-        colorbar_label_size = colorbar_label_size)
+        colorbar_label_size = colorbar_label_size, show_pval = True)
     #ax23.set_title(OMI_data1['VERSION']+ '\n\n')
     plotOMI_MonthTrend(OMI_data3,month_idx=4,\
         trend_type=trend_type,label = 'AI Trend (AI/Study Period)',\
         minlat=65.,title = ' ', pax = ax44, colorbar = False, \
-        colorbar_label_size = colorbar_label_size)
+        colorbar_label_size = colorbar_label_size, show_pval = True)
     #ax24.set_title(OMI_data3['VERSION']+ '\n\n')
 
     # Plot the figures in the third row: August
@@ -3917,12 +3935,12 @@ def plotOMI_Compare_ClimoTrend_all(OMI_data1,OMI_data2,OMI_data3,\
     plotOMI_MonthTrend(OMI_data2,month_idx=5,\
         trend_type=trend_type,label = ' ',colorbar = False, \
         minlat=65.,title = ' ', pax = ax53, \
-        colorbar_label_size = colorbar_label_size)
+        colorbar_label_size = colorbar_label_size, show_pval = True)
     #ax23.set_title(OMI_data1['VERSION']+ '\n\n')
     plotOMI_MonthTrend(OMI_data3,month_idx=5,\
         trend_type=trend_type,label = 'AI Trend (AI/Study Period)',\
         minlat=65.,title = ' ', pax = ax54, colorbar = False, \
-        colorbar_label_size = colorbar_label_size)
+        colorbar_label_size = colorbar_label_size, show_pval = True)
     #ax24.set_title(OMI_data3['VERSION']+ '\n\n')
 
     #plot_subplot_label(ax00, '(a)')
@@ -3973,7 +3991,7 @@ def plotOMI_Compare_ClimoTrend_all(OMI_data1,OMI_data2,OMI_data3,\
 
     outname = 'omi_ai_comps_all6_'+\
         OMI_data1['VERSION']+'v'+OMI_data2['VERSION']+\
-        'v'+OMI_data3['VERSION']+'.png'
+        'v'+OMI_data3['VERSION']+'_' + trend_type + '_2.png'
     if(save == True):
         plt.savefig(outname,dpi=300)
         print("Saved image",outname)
@@ -4257,7 +4275,7 @@ def plotOMI_Type_Trend_all(trend_type = 'standard', \
 
     #fig.tight_layout()
 
-    outname = 'omi_ai_trend_comps_jz.png'
+    outname = 'omi_ai_trend_comps_' + trend_type + '.png'
     if(save == True):
         plt.savefig(outname,dpi=300)
         print("Saved image",outname)
@@ -4425,8 +4443,11 @@ def plot_OMI_shawn_old(OMI_shawn, ax = None, minlat = 65, labelsize = 12,\
     mask_UVAI = OMI_shawn['AI']
     #plot_lat, plot_lon = np.meshgrid(OMI_shawn['LAT'], OMI_shawn['LON'])
     #mask_UVAI = np.ma.masked_where(OMI_shawn['counts'] == 0, OMI_shawn['AI'])
-    
-    ax.set_title('OMI '+OMI_shawn['date'])
+  
+    print(OMI_shawn['date']) 
+    dt_date_str = datetime.strptime(OMI_shawn['date'], '%Y%m%d') 
+    ax.set_title(dt_date_str.strftime('%d %B %Y\nOMI Daily Average'))
+    plot_lat, plot_lon = np.meshgrid(plot_lat, plot_lon)
     mesh = ax.pcolormesh(plot_lon, plot_lat,mask_UVAI,transform = datacrs,cmap = colormap,\
             vmin = -1.0, vmax = 3.0, shading='auto')
     
@@ -4874,7 +4895,7 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
     if(title == ''):
         title = 'OMI UVAI ' + OMI_hrly['dtype'] + ' ' + OMI_hrly['date']
     pax.set_title(title)
-    if(pvar != 'UVAI'):
+    if((pvar != 'UVAI') & (OMI_hrly['dtype'] != 'shawn')):
         if(pvar == 'ice'): #if(pvar == 'GPQF'):
             # Convert the GPQF flag values to ice flags
             # -----------------------------------------
@@ -5120,8 +5141,9 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
 def plotOMI_single_swath_multiple(dtype = 'control',  \
         only_sea_ice = False, minlat = 65., save = False):
 
+    dates = ['200804221027','200804221920','200804221027']
     #dates = ['201206141245','201206141920','200804221027']
-    dates = ['200704020051','200804020057','200704221519','200804221524']
+    #dates = ['200704020051','200804020057','200704221519','200804221524']
     date_str = dates[0]
 
     dt_dates = [datetime.strptime(ddate,'%Y%m%d%H%M') for ddate in dates]
@@ -5135,13 +5157,14 @@ def plotOMI_single_swath_multiple(dtype = 'control',  \
     # Set up the overall figure
     # ----------------------------------------------------
     plt.close('all')
-    fig1 = plt.figure(figsize = (10,10))
+    fig1 = plt.figure(figsize = (9,3))
     #mapcrs = ccrs.Robinson()
-    #mapcrs2 = ccrs.NorthPolarStereo()
-    ax0 = fig1.add_subplot(2,2,1, projection = mapcrs)
-    ax1 = fig1.add_subplot(2,2,2, projection = mapcrs)
-    ax2 = fig1.add_subplot(2,2,3, projection = mapcrs)
-    ax3 = fig1.add_subplot(2,2,4, projection = mapcrs)
+    #mapcrs = ccrs.LambertConformal()
+    mapcrs  = ccrs.NorthPolarStereo(central_longitude = -40)
+    ax0 = fig1.add_subplot(1,2,1, projection = mapcrs)
+    ax1 = fig1.add_subplot(1,2,2, projection = mapcrs)
+    #ax2 = fig1.add_subplot(2,2,3, projection = mapcrs)
+    #ax3 = fig1.add_subplot(2,2,4, projection = mapcrs)
     #ax2 = fig1.add_subplot(2,2,1, projection = mapcrs2)
     #ax3 = fig1.add_subplot(2,2,2, projection = mapcrs2)
 
@@ -5150,41 +5173,41 @@ def plotOMI_single_swath_multiple(dtype = 'control',  \
     # ----------------------------------------------------
     if(dtype == 'shawn'):
         OMI_base1 = readOMI_swath_shawn(dates[0], latmin = minlat - 5)
-        OMI_base2 = readOMI_swath_shawn(dates[1], latmin = minlat - 5)
-        OMI_base3 = readOMI_swath_shawn(dates[2], latmin = minlat - 5)
-        OMI_base4 = readOMI_swath_shawn(dates[3], latmin = minlat - 5)
+        #OMI_base2 = readOMI_swath_shawn(dates[1], latmin = minlat - 5)
+        #OMI_base3 = readOMI_swath_shawn(dates[2], latmin = minlat - 5)
+        #OMI_base4 = readOMI_swath_shawn(dates[3], latmin = minlat - 5)
     else:
         OMI_base1 = readOMI_swath_hdf(dates[0], dtype, \
             only_sea_ice = only_sea_ice, latmin = minlat - 5)
-        OMI_base2 = readOMI_swath_hdf(dates[1], dtype, \
-            only_sea_ice = only_sea_ice, latmin = minlat - 5)
-        OMI_base3 = readOMI_swath_hdf(dates[2], dtype, \
-            only_sea_ice = only_sea_ice, latmin = minlat - 5)
-        OMI_base4 = readOMI_swath_hdf(dates[3], dtype, \
-            only_sea_ice = only_sea_ice, latmin = minlat - 5)
+        #OMI_base2 = readOMI_swath_hdf(dates[1], dtype, \
+        #    only_sea_ice = only_sea_ice, latmin = minlat - 5)
+        #OMI_base3 = readOMI_swath_hdf(dates[2], dtype, \
+        #    only_sea_ice = only_sea_ice, latmin = minlat - 5)
+        #OMI_base4 = readOMI_swath_hdf(dates[3], dtype, \
+        #    only_sea_ice = only_sea_ice, latmin = minlat - 5)
 
     # ----------------------------------------------------
     # Use the single-swath plotting function to plot each
     # of the 3 data types
     # ----------------------------------------------------
-    plotOMI_single_swath(ax0, OMI_base1, title = dt_dates[0].strftime('%H:%M UTC %m/%d/%Y'), \
-        circle_bound = True, gridlines = False, vmax = 3.0)
+    plotOMI_single_swath(ax0, OMI_base1, title = None, \
+        circle_bound = False, gridlines = False, vmax = 3.0)
     #plotOMI_single_swath(ax1, OMI_base2, title = dates[1], \
-    plotOMI_single_swath(ax1, OMI_base2, title = dt_dates[1].strftime('%H:%M UTC %m/%d/%Y'), \
-        circle_bound = True, gridlines = False, vmax = 3.0)
+    plotOMI_single_swath(ax1, OMI_base1, title = None, \
+        pvar = 'ice', circle_bound = False, gridlines = False)
     #plotOMI_single_swath(ax2, OMI_base3, title = dates[2], \
-    plotOMI_single_swath(ax2, OMI_base3, title = dt_dates[2].strftime('%H:%M UTC %m/%d/%Y'), \
-        circle_bound = True, gridlines = False, vmax = 3.0)
+    #plotOMI_single_swath(ax2, OMI_base3, title = dt_dates[2].strftime('%H:%M UTC %m/%d/%Y'), \
+    #    circle_bound = True, gridlines = False, vmax = 3.0)
     #plotOMI_single_swath(ax3, OMI_base4, title = dates[3], \
-    plotOMI_single_swath(ax3, OMI_base4, title = dt_dates[3].strftime('%H:%M UTC %m/%d/%Y'), \
-        circle_bound = True, gridlines = False, vmax = 3.0)
+    #plotOMI_single_swath(ax3, OMI_base4, title = dt_dates[3].strftime('%H:%M UTC %m/%d/%Y'), \
+    #    circle_bound = True, gridlines = False, vmax = 3.0)
     ##!#plotOMI_single_swath(ax3, OMI_base3, title = dates[2], \
     ##!#    pvar = 'GPQF', circle_bound = False, gridlines = False)
 
-    ax2.set_extent([-180., 180., minlat, 90.], datacrs)
-    ax3.set_extent([-180., 180., minlat, 90.], datacrs)
-    #ax2.set_extent([-70., -10., 65., 87.], datacrs)
-    #ax3.set_extent([-70., -10., 65., 87.], datacrs)
+    #ax2.set_extent([-180., 180., minlat, 90.], datacrs)
+    #ax3.set_extent([-180., 180., minlat, 90.], datacrs)
+    ax0.set_extent([-70., -10., 65., 87.], datacrs)
+    ax1.set_extent([-70., -10., 65., 87.], datacrs)
     #ax2.set_extent([-80., -28., 75., 87.], datacrs)
     #ax3.set_extent([-80., -28., 75., 87.], datacrs)
 
@@ -5208,7 +5231,113 @@ def plotOMI_single_swath_multiple(dtype = 'control',  \
     ##!###!#    edgecolor = 'red', linewidth = 5))
 
 
-    #plt.suptitle(date_str)
+    plt.suptitle(dt_dates[0].strftime('%d %B %Y, %H:%M:%S UTC'))
+    plot_subplot_label(ax0, '(a)', backgroundcolor = 'white')
+    plot_subplot_label(ax1, '(b)', backgroundcolor = 'white')
+
+    fig1.tight_layout()
+
+    if(save):
+        outname = 'omi_single_swath_figure_multiple_v4.png'
+        fig1.savefig(outname, dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
+# Plot four panels: two different single swaths, as well as
+# data zoomed in over Greenland to show the high pixels
+# ---------------------------------------------------------
+def plotOMI_single_swath_multiple_v3(dtype = 'control',  \
+        only_sea_ice = False, minlat = 65., save = False):
+
+    dates = ['200704020051','200804020057','200704221519','200804221524']
+    date_str = dates[0]
+
+    dt_dates = [datetime.strptime(ddate,'%Y%m%d%H%M') for ddate in dates]
+
+    # ----------------------------------------------------
+    # Set up the overall figure
+    # ----------------------------------------------------
+    plt.close('all')
+    fig1 = plt.figure(figsize = (9.5,8))
+    #mapcrs = ccrs.Robinson()
+    #mapcrs = ccrs.LambertConformal()
+    mapcrs  = ccrs.NorthPolarStereo(central_longitude = -40)
+    ax0 = fig1.add_subplot(2,2,1, projection = mapcrs)
+    ax1 = fig1.add_subplot(2,2,2, projection = mapcrs)
+    ax2 = fig1.add_subplot(2,2,3, projection = mapcrs)
+    ax3 = fig1.add_subplot(2,2,4, projection = mapcrs)
+
+    # ----------------------------------------------------
+    # Read in data
+    # ----------------------------------------------------
+    if(dtype == 'shawn'):
+        OMI_base1 = readOMI_swath_shawn(dates[0], latmin = minlat - 5)
+        OMI_base2 = readOMI_swath_shawn(dates[1], latmin = minlat - 5)
+        OMI_base3 = readOMI_swath_shawn(dates[2], latmin = minlat - 5)
+        OMI_base4 = readOMI_swath_shawn(dates[3], latmin = minlat - 5)
+    else:
+        OMI_base1 = readOMI_swath_hdf(dates[0], dtype, \
+            only_sea_ice = only_sea_ice, latmin = minlat - 5)
+        OMI_base2 = readOMI_swath_hdf(dates[1], dtype, \
+            only_sea_ice = only_sea_ice, latmin = minlat - 5)
+        OMI_base3 = readOMI_swath_hdf(dates[2], dtype, \
+            only_sea_ice = only_sea_ice, latmin = minlat - 5)
+        OMI_base4 = readOMI_swath_hdf(dates[3], dtype, \
+            only_sea_ice = only_sea_ice, latmin = minlat - 5)
+
+    # ----------------------------------------------------
+    # Use the single-swath plotting function to plot each
+    # of the 3 data types
+    # ----------------------------------------------------
+    colorbar = True
+    plotOMI_single_swath(ax0, OMI_base1, title = dt_dates[0].strftime('%d %B %Y, %H:%M:%S UTC'), \
+        circle_bound = True, gridlines = False, vmax = 3.0, colorbar = colorbar)
+    plotOMI_single_swath(ax1, OMI_base2, title = dt_dates[1].strftime('%d %B %Y, %H:%M:%S UTC'), \
+        circle_bound = True, gridlines = False, vmax = 3.0, colorbar = colorbar)
+    plotOMI_single_swath(ax2, OMI_base3, title = dt_dates[2].strftime('%d %B %Y, %H:%M:%S UTC'), \
+        circle_bound = True, gridlines = False, vmax = 3.0, colorbar = colorbar)
+    plotOMI_single_swath(ax3, OMI_base4, title = dt_dates[3].strftime('%d %B %Y, %H:%M:%S UTC'), \
+        circle_bound = True, gridlines = False, vmax = 3.0, colorbar = colorbar)
+    ##!#plotOMI_single_swath(ax3, OMI_base3, title = dates[2], \
+    ##!#    pvar = 'GPQF', circle_bound = False, gridlines = False)
+
+    #cmap = mpl.cm.jet
+    #norm = mpl.colors.Normalize(vmin = -2, vmax = 3)
+    #
+    #cbar_ax = fig1.add_axes([0.90, 0.05, 0.05, 0.9])
+    #fig1.colorbar(mpl.cm.ScalarMappable(norm = norm, cmap = cmap), \
+    #    cax = cbar_ax, orientation = 'vertical', label = 'UV Aerosol Index')
+
+    ax0.set_extent([-180., 180., minlat, 90.], datacrs)
+    ax1.set_extent([-180., 180., minlat, 90.], datacrs)
+    ax2.set_extent([-180., 180., minlat, 90.], datacrs)
+    ax3.set_extent([-180., 180., minlat, 90.], datacrs)
+    #ax0.set_extent([-70., -10., 65., 87.], datacrs)
+    #ax1.set_extent([-70., -10., 65., 87.], datacrs)
+    #ax2.set_extent([-80., -28., 75., 87.], datacrs)
+    #ax3.set_extent([-80., -28., 75., 87.], datacrs)
+
+    ##!## ----------------------------------------------------
+    ##!## Draw boxes for the comparison ranges
+    ##!## ----------------------------------------------------
+    ##!#lat_corners = np.array([61, 73, 73, 61]) 
+    ##!#lon_corners = np.array([-140, -140, -160, -160]) 
+    ##!#poly_corners = np.zeros((len(lat_corners), 2), np.float64)
+    ##!#poly_corners[:,0] = lon_corners
+    ##!#poly_corners[:,1] = lat_corners
+    ##!#poly = mpatches.Polygon(poly_corners, closed = True, ec = 'r', \
+    ##!#    fill = False, lw = 5, fc = None, transform = datacrs)
+    ##!#ax0.add_patch(poly)
+    ##!#ax1.add_patch(poly)
+    ##!###!#ax0.add_patch(mpatches.Rectangle(xy = [-120, 67], width = 40, \
+    ##!###!#    height = 12, alpha = 0.9, transform = datacrs, facecolor = 'none',\
+    ##!###!#    edgecolor = 'red', linewidth = 5))
+    ##!###!#ax1.add_patch(mpatches.Rectangle(xy = [-120, 67], width = 40, \
+    ##!###!#    height = 12, alpha = 0.9, transform = datacrs, facecolor = 'none',\
+    ##!###!#    edgecolor = 'red', linewidth = 5))
+
+
     plot_subplot_label(ax0, '(a)')
     plot_subplot_label(ax1, '(b)')
     plot_subplot_label(ax2, '(c)')
@@ -5218,6 +5347,59 @@ def plotOMI_single_swath_multiple(dtype = 'control',  \
 
     if(save):
         outname = 'omi_single_swath_figure_multiple_v3.png'
+        fig1.savefig(outname, dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+# Plot four panels: two different single swaths, as well as
+# data zoomed in over Greenland to show the high pixels
+# ---------------------------------------------------------
+def plotOMI_single_swath_multiple_v4(dtype = 'control',  \
+        only_sea_ice = False, minlat = 65., save = False):
+
+    dates = ['200804221027','200804221920','200804221027']
+    date_str = dates[0]
+
+    dt_dates = [datetime.strptime(ddate,'%Y%m%d%H%M') for ddate in dates]
+
+    # ----------------------------------------------------
+    # Set up the overall figure
+    # ----------------------------------------------------
+    plt.close('all')
+    fig1 = plt.figure(figsize = (9,3))
+    mapcrs  = ccrs.NorthPolarStereo(central_longitude = -40)
+    ax0 = fig1.add_subplot(1,2,1, projection = mapcrs)
+    ax1 = fig1.add_subplot(1,2,2, projection = mapcrs)
+
+    # ----------------------------------------------------
+    # Read in data
+    # ----------------------------------------------------
+    if(dtype == 'shawn'):
+        OMI_base1 = readOMI_swath_shawn(dates[0], latmin = minlat - 5)
+    else:
+        OMI_base1 = readOMI_swath_hdf(dates[0], dtype, \
+            only_sea_ice = only_sea_ice, latmin = minlat - 5)
+
+    # ----------------------------------------------------
+    # Use the single-swath plotting function to plot each
+    # of the 3 data types
+    # ----------------------------------------------------
+    plotOMI_single_swath(ax0, OMI_base1, title = None, \
+        circle_bound = False, gridlines = False, vmax = 3.0)
+    plotOMI_single_swath(ax1, OMI_base1, title = None, \
+        pvar = 'ice', circle_bound = False, gridlines = False)
+
+    ax0.set_extent([-70., -10., 65., 87.], datacrs)
+    ax1.set_extent([-70., -10., 65., 87.], datacrs)
+
+    plt.suptitle(dt_dates[0].strftime('%d %B %Y, %H:%M:%S UTC'))
+    plot_subplot_label(ax0, '(a)', backgroundcolor = 'white')
+    plot_subplot_label(ax1, '(b)', backgroundcolor = 'white')
+
+    fig1.tight_layout()
+
+    if(save):
+        outname = 'omi_single_swath_figure_multiple_v4.png'
         fig1.savefig(outname, dpi=300)
         print("Saved image",outname)
     else:
@@ -5303,6 +5485,8 @@ def plotOMI_single_flags(date_str, pvar = 'ice', \
 def plotOMI_single_multipanel(date_str, only_sea_ice = False, minlat = 65., \
         quad_panel = False, save = False):
 
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+
     # ----------------------------------------------------
     # Read in each of the 3 data types
     # ----------------------------------------------------
@@ -5310,7 +5494,8 @@ def plotOMI_single_multipanel(date_str, only_sea_ice = False, minlat = 65., \
         only_sea_ice = only_sea_ice, latmin = minlat)
     OMI_JZ    = readOMI_swath_hdf(date_str, 'JZ', \
         only_sea_ice = only_sea_ice, latmin = minlat)
-    OMI_shawn = readOMI_swath_shawn(date_str, latmin = minlat)
+    OMI_shawn = readOMI_swath_shawn(date_str, latmin = minlat, \
+        shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
 
     # ----------------------------------------------------
     # Set up the overall figure
@@ -5332,15 +5517,15 @@ def plotOMI_single_multipanel(date_str, only_sea_ice = False, minlat = 65., \
     # Use the single-swath plotting function to plot each
     # of the 3 data types
     # ----------------------------------------------------
-    plotOMI_single_swath(ax0, OMI_base, title = 'Original')
-    plotOMI_single_swath(ax1, OMI_JZ, title = 'Screened')
+    plotOMI_single_swath(ax0, OMI_base, title = 'Original', gridlines = False)
+    plotOMI_single_swath(ax1, OMI_JZ, title = 'Screened', gridlines = False)
     plotOMI_single_swath(ax2, OMI_shawn, pvar = 'UVAI_pert',\
-        title = 'Perturbed')
+        title = 'Perturbed', gridlines = False)
     if(quad_panel):
         plotOMI_single_swath(ax3, OMI_shawn, pvar = 'UVAI_climo',\
-            title = 'Climatology', label = 'UVAI Climatology')
+            title = 'Climatology', label = 'UVAI Climatology', gridlines = False)
 
-    plt.suptitle(date_str)
+    plt.suptitle(dt_date_str.strftime('%d %B %Y, %H:%M:%S UTC'))
     plot_subplot_label(ax0, '(a)')
     plot_subplot_label(ax1, '(b)')
     if(quad_panel):
@@ -6119,17 +6304,17 @@ def plot_row_bias(minlat = 65., dataset = 'equator', save = False):
     ax0.yaxis.label.set_color('tab:blue')
     ax02.yaxis.label.set_color('tab:orange')
     ax0.grid()
-    ax0.set_title('Average AI and Relative Azimuth Angle\n1 April 2006 - 30 September 2006')
+    ax0.set_title('Average AI and Relative Azimuth Angle\n01 April 2006 - 30 September 2006')
 
     if(dataset != 'equator'):
         # Plot single-swath data
         # ----------------------
         plotOMI_single_swath(ax1, OMI_base1, title = 'Raw OMI UVAI\n' + \
-            dt_dates[0].strftime('%H:%M UTC %m/%d/%Y'), circle_bound = True, \
+            dt_dates[0].strftime('%d %B %Y, %H:%M:%S UTC'), circle_bound = True, \
             gridlines = False, vmax = 3.0, colorbar = False)
         #plotOMI_single_swath(ax1, OMI_base2, title = dates[1], \
         plotOMI_single_swath(ax2, OMI_base2, title = 'Raw OMI UVAI\n' + \
-            dt_dates[1].strftime('%H:%M UTC %m/%d/%Y'), circle_bound = True, \
+            dt_dates[1].strftime('%d %B %Y, %H:%M:%S UTC'), circle_bound = True, \
             gridlines = False, vmax = 3.0)
 
         plot_subplot_label(ax0, '(a)')
@@ -6783,14 +6968,13 @@ def plot_OMI_fort_out_func(infile, ax = None, min_lat = 70., vtype = 'areas', \
     
     #ax.plot(plot_dates, mask_day_avgs,label='avg',color='black')
     #ax.plot(plot_dates, upper_range,label='+avg σ',linestyle='--',color='black')
-    ax.set_ylabel(omi_fort_dict['axis_label'],weight='bold',fontsize=12)
+    ax.set_ylabel(omi_fort_dict['axis_label'])
     if(max_lat is not None):
-        ax.set_title('AI ' + vtype + ': Threshold of '+str(omi_fort_dict['ai_thresh'])+\
-            '\n' + str(int(min_lat))+'$^{o}$ - ' + str(int(max_lat))+'$^{o}$', \
-        fontsize = 14, weight = 'bold')
+        ax.set_title('High AI ' + vtype + '\nPerturbed AI threshold of '+str(omi_fort_dict['ai_thresh'])+\
+            '\n' + str(int(min_lat))+'$^{o}$N - ' + str(int(max_lat))+'$^{o}$N')
     else: 
-        ax.set_title('AI ' + vtype + ': Threshold of '+str(omi_fort_dict['ai_thresh'])+\
-            '\nNorth of '+str(int(min_lat))+'$^{o}$', fontsize = 14, weight = 'bold')
+        ax.set_title('High AI ' + vtype + '\nPerturbed AI threshold of '+str(omi_fort_dict['ai_thresh'])+\
+            '\nNorth of '+str(int(min_lat))+'$^{o}$N')
     ax.tick_params(axis='both', labelsize = 12)
     ax.grid()
     
@@ -7022,7 +7206,7 @@ def plot_combined_fort_out(plot_time, min_lat = 70., vtype = 'areas', \
 
     # Set up the figure
     # -----------------
-    fig = plt.figure(figsize = (8,7))
+    fig = plt.figure(figsize = (9,8))
     ##!#mosaic = \
     ##!#    """
     ##!#    AA
@@ -7055,6 +7239,10 @@ def plot_combined_fort_out(plot_time, min_lat = 70., vtype = 'areas', \
     pic = plt.imread(img_name)
     ax1.imshow(pic)
     ax1.axis('off')
+    #ax1.set_title('MODIS Aqua True-Color\n' + dt_date_str.strftime('%d %B %Y'))
+    plot_figure_text(ax1, 'MODIS Aqua True Color\n' + dt_date_str.strftime('%d %B %Y'), \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = 11, backgroundcolor = 'white', halign = 'right')
  
     # Read (and plot?) the yearly area time series
     # --------------------------------------------
@@ -7068,6 +7256,8 @@ def plot_combined_fort_out(plot_time, min_lat = 70., vtype = 'areas', \
     plot_subplot_label(ax0, '(a)', backgroundcolor = 'white')
     plot_subplot_label(ax1, '(b)', backgroundcolor = 'white')
     plot_subplot_label(ax2, '(c)')
+
+    #fig.tight_layout()
 
     if(save):
         if(max_lat is not None):
@@ -7248,11 +7438,11 @@ def plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
         circle_bound = True, gridlines = False)
 
     ax1.set_extent([-180,180,minlat,90], datacrs)
-    ax1.set_title(dt_date_str.strftime('Raw OMI UVAI\n%H:%M UTC %d %b %Y'))
+    ax1.set_title(dt_date_str.strftime('Raw OMI UVAI\n%d %b %Y, %H:%M:%S UTC'))
     ax2.set_extent([-180,180,minlat,90], datacrs)
-    ax2.set_title(dt_date_str2.strftime('Raw OMI UVAI\n%H:%M UTC %d %b %Y'))
+    ax2.set_title(dt_date_str2.strftime('Raw OMI UVAI\n%d %b %Y, %H:%M:%S UTC'))
     ax5.set_extent([-180,180,minlat,90], datacrs)
-    ax5.set_title(dt_date_str2.strftime('Raw OMI UVAI\nUnflagged Bad Rows Removed\n%H:%M UTC %d %b %Y'))
+    ax5.set_title(dt_date_str2.strftime('Raw OMI UVAI\nUnflagged Bad Rows Removed\n%d %b %Y, %H:%M:%S UTC'))
 
     # Plot the row averages
     # ---------------------
@@ -7262,7 +7452,7 @@ def plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
     ax4.set_xlim(0, 60)
     ax4.set_xlabel('Row Number', fontsize = 12)
     ax4.set_ylabel('Average AI over Arctic', fontsize = 12)
-    ax4.set_title(dt_date_str2.strftime('Raw OMI UVAI\n%H:%M UTC %d %b %Y'))
+    ax4.set_title(dt_date_str2.strftime('Raw OMI UVAI\n%d %b %Y, %H:%M:%S UTC'))
 
     ##!#ax5.bar(np.arange(OMI_base2['UVAI'].shape[1]), np.average(OMI_base2['UVAI'][1230:1500,:], axis = 0))
     ##!#ax5.axhline(0.0, color = 'black')

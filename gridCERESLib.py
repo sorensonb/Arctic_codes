@@ -287,10 +287,10 @@ def readgridCERES_daily(date_str, end_str = None, satellite = 'Aqua', \
             found_NOAA = True
             CERES_data5 = readgridCERES_daily_file(date_str, end_str = end_str, \
                 satellite = 'NOAA20', minlat = minlat)
-        if( (dt_begin_str > dt_begin_suominpp) & (dt_end_str <= dt_end_suominpp)):
-            found_NPP = True
-            CERES_data3 = readgridCERES_daily_file(date_str, end_str = end_str, \
-                satellite = 'SuomiNPP', minlat = minlat)
+        #if( (dt_begin_str > dt_begin_suominpp) & (dt_end_str <= dt_end_suominpp)):
+        #    found_NPP = True
+        #    CERES_data3 = readgridCERES_daily_file(date_str, end_str = end_str, \
+        #        satellite = 'SuomiNPP', minlat = minlat)
         CERES_data4 = readgridCERES_daily_file(date_str, end_str = end_str, \
             satellite = 'Aqua',minlat = minlat)
 
@@ -385,7 +385,8 @@ def readgridCERES_daily_file(date_str, end_str = None, satellite = 'Aqua', \
         time_idx = np.where( (times >= dt_date_str ) & (times <= dt_end_str))[0] 
 
     lat_idx = np.where(data['lat'][:] >= minlat)[0]
- 
+
+    newlon, newlat = np.meshgrid(data['lon'], data['lat'][lat_idx])
     dt_dates = times[time_idx]
     CERES_data['dt_dates'] = dt_dates
     CERES_data['alb_all']  = data['toa_alb_all_daily'][time_idx,lat_idx,:].squeeze()
@@ -394,8 +395,10 @@ def readgridCERES_daily_file(date_str, end_str = None, satellite = 'Aqua', \
     CERES_data['swf_clr']  = data['toa_sw_clr_daily'][time_idx,lat_idx,:].squeeze()
     CERES_data['cld']      = data['cldarea_total_day_daily'][time_idx,lat_idx,:].squeeze()
     CERES_data['ice_conc'] = data['aux_snow_daily'][time_idx,lat_idx,:].squeeze()
-    CERES_data['lat'] = data['lat'][lat_idx]
-    CERES_data['lon'] = data['lon'][:]
+    CERES_data['lat'] = newlat
+    CERES_data['lon'] = newlon
+    #CERES_data['lat'] = data['lat'][lat_idx]
+    #CERES_data['lon'] = data['lon'][:]
     #CERES_data['lon'][CERES_data['lon'] > 179.99] = -360. + \
     #    CERES_data['lon'][CERES_data['lon'] > 179.99]
     CERES_data['satellite'] = satellite

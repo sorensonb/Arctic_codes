@@ -45,6 +45,10 @@ event_dict = {
         'start': '2008042100',
         'end':   '2008042500'
     },
+    '20120615': {
+        'start': '2012061400',
+        'end':   '2012061900'
+    },
     '20170816': {
         'start': '2017081600',
         'end':   '2017082200'
@@ -234,7 +238,7 @@ def plot_NAAPS_figure(date_str, var, minlat = 65., vmin = None, vmax = None, \
     # ------------------------------
     plot_NAAPS(NAAPS_data, var, ax = ax, zoom = zoom, \
             vmin = vmin, vmax = vmax, plot_log = plot_log, \
-            circle_bound = circle_bound)
+            circle_bound = circle_bound, minlat = minlat)
 
     ax.set_title('NAAPS-RA ' + var + '\n' + NAAPS_data['date'])
  
@@ -263,7 +267,7 @@ def plot_NAAPS_event(date_str, var, minlat = 65., vmin = None, vmax = None, \
     # ------------------------------
     plot_NAAPS(NAAPS_data, var, ax = ax, zoom = zoom, \
             vmin = vmin, vmax = vmax, plot_log = plot_log, \
-            circle_bound = circle_bound)
+            circle_bound = circle_bound, minlat = minlat)
 
     ax.set_title('NAAPS-RA ' + var + '\n' + \
         NAAPS_data['dt_begin_date'].strftime('%Y-%m-%d') + ' - ' + \
@@ -281,7 +285,8 @@ def plot_NAAPS_event(date_str, var, minlat = 65., vmin = None, vmax = None, \
 def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
         minlat = 70.5, vmin = None, vmax = None, vmin2 = None, vmax2 = None, \
         min_ice = 80., min_smoke = 0, max_smoke = 2e5, plot_log = True, \
-        satellite = 'Aqua', ptitle = '', zoom = True, save = False):
+        satellite = 'Aqua', ptitle = '', lat_bounds = [-90, 90], lon_bounds = [-180, 180], \
+        zoom = True, save = False):
 
     plt.close('all')
     fig = plt.figure(figsize = (12,10))
@@ -301,6 +306,16 @@ def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
         cdate_end_str1   = '20170815'
         cdate_begin_str2 = '20170820'
         cdate_end_str2   = '20170831'
+    elif(date_str[:6] == '201206'):
+        cdate_begin_str1 = '20120601'
+        cdate_end_str1   = '20120613'
+        cdate_begin_str2 = '20120620'
+        cdate_end_str2   = '20120630'
+    elif(date_str[:6] == '200804'):
+        cdate_begin_str1 = '20080407'
+        cdate_end_str1   = '20080420'
+        cdate_begin_str2 = '20080426'
+        cdate_end_str2   = '20080510'
 
     dt_begin_str1 = datetime.strptime(cdate_begin_str1, '%Y%m%d')
     dt_end_str1   = datetime.strptime(cdate_end_str1, '%Y%m%d')
@@ -309,12 +324,12 @@ def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
 
     CERES_data1 = readgridCERES_daily(cdate_begin_str1,end_str = cdate_end_str1, \
         satellite = satellite, minlat = minlat)
-    CERES_data12 = readgridCERES_daily('20160804',end_str = '20160815', \
-        satellite = satellite, minlat = minlat)
+    #CERES_data12 = readgridCERES_daily('20160804',end_str = '20160815', \
+    #    satellite = satellite, minlat = minlat)
     CERES_data2 = readgridCERES_daily(cdate_begin_str2,end_str = cdate_end_str2, \
         satellite = satellite, minlat = minlat)
-    CERES_data22 = readgridCERES_daily('20160820',end_str = '20160831', \
-        satellite = satellite, minlat = minlat)
+    #CERES_data22 = readgridCERES_daily('20160820',end_str = '20160831', \
+    #    satellite = satellite, minlat = minlat)
 
     # Test masking the data
     # ---------------------
@@ -328,25 +343,51 @@ def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
     # Test pulling out the data that only exists in both zones
     # --------------------------------------------------------
     #avg_CERES1 = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
-    CERES_data1[ceres_var] = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
-        (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
-        (NAAPS_data['smoke_conc_sfc'] > max_smoke), avg_CERES1)  
-    CERES_data2[ceres_var] = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
-        (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
-        (NAAPS_data['smoke_conc_sfc'] > max_smoke), avg_CERES2)  
-    #CERES_data12[ceres_var] = np.ma.masked_where((avg_CERES12_ice <= min_ice) | \
-    #    (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
-    #    (NAAPS_data['smoke_conc_sfc'] > max_smoke), avg_CERES12)  
-    #CERES_data22[ceres_var] = np.ma.masked_where((avg_CERES12_ice <= min_ice) | \
-    #    (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
-    #    (NAAPS_data['smoke_conc_sfc'] > max_smoke), avg_CERES22)  
+    if(lon_bounds[0] < lon_bounds[1]):
+        CERES_data1[ceres_var] = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
+            (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
+            (NAAPS_data['smoke_conc_sfc'] > max_smoke), avg_CERES1)
+        CERES_data1[ceres_var] = np.ma.masked_where(~ ((CERES_data1['lon'] >= lon_bounds[0]) & \
+            (CERES_data1['lon'] <= lon_bounds[1]) & (CERES_data1['lat'] >= lat_bounds[0]) & \
+            (CERES_data1['lat'] <= lat_bounds[1])) , CERES_data1[ceres_var])
+        CERES_data2[ceres_var] = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
+            (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
+            (NAAPS_data['smoke_conc_sfc'] > max_smoke), avg_CERES2)
+        CERES_data2[ceres_var] = np.ma.masked_where(~ ((CERES_data2['lon'] >= lon_bounds[0]) & \
+            (CERES_data2['lon'] <= lon_bounds[1]) & (CERES_data2['lat'] >= lat_bounds[0]) & \
+            (CERES_data2['lat'] <= lat_bounds[1])) , CERES_data2[ceres_var])
 
-    NAAPS_data['smoke_conc_sfc'] = np.ma.masked_where(\
-        (avg_CERES1_ice <= min_ice) | \
-        (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
-        (NAAPS_data['smoke_conc_sfc'] > max_smoke), \
-        NAAPS_data['smoke_conc_sfc'])
-    
+        NAAPS_data['smoke_conc_sfc'] = np.ma.masked_where(\
+            (avg_CERES1_ice <= min_ice) | \
+            (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
+            (NAAPS_data['smoke_conc_sfc'] > max_smoke), \
+            NAAPS_data['smoke_conc_sfc'])
+        NAAPS_data['smoke_conc_sfc'] = np.ma.masked_where(~ ((CERES_data1['lon'] >= lon_bounds[0]) & \
+            (CERES_data1['lon'] <= lon_bounds[1]) & (CERES_data1['lat'] >= lat_bounds[0]) & \
+            (CERES_data1['lat'] <= lat_bounds[1])) , NAAPS_data['smoke_conc_sfc'])
+    else:
+        CERES_data1[ceres_var] = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
+            (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
+            (NAAPS_data['smoke_conc_sfc'] > max_smoke), avg_CERES1)
+        CERES_data1[ceres_var] = np.ma.masked_where(~ (((CERES_data1['lon'] >= lon_bounds[0]) | \
+            (CERES_data1['lon'] <= lon_bounds[1])) & (CERES_data1['lat'] >= lat_bounds[0]) & \
+            (CERES_data1['lat'] <= lat_bounds[1])) , CERES_data1[ceres_var])
+        CERES_data2[ceres_var] = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
+            (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
+            (NAAPS_data['smoke_conc_sfc'] > max_smoke), avg_CERES2)
+        CERES_data2[ceres_var] = np.ma.masked_where(~ (((CERES_data2['lon'] >= lon_bounds[0]) | \
+            (CERES_data2['lon'] <= lon_bounds[1])) & (CERES_data2['lat'] >= lat_bounds[0]) & \
+            (CERES_data2['lat'] <= lat_bounds[1])) , CERES_data2[ceres_var])
+
+        NAAPS_data['smoke_conc_sfc'] = np.ma.masked_where(\
+            (avg_CERES1_ice <= min_ice) | \
+            (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
+            (NAAPS_data['smoke_conc_sfc'] > max_smoke), \
+            NAAPS_data['smoke_conc_sfc'])
+        NAAPS_data['smoke_conc_sfc'] = np.ma.masked_where(~ (((CERES_data1['lon'] >= lon_bounds[0]) | \
+            (CERES_data1['lon'] <= lon_bounds[1])) & (CERES_data1['lat'] >= lat_bounds[0]) & \
+            (CERES_data1['lat'] <= lat_bounds[1])), NAAPS_data['smoke_conc_sfc'])
+
 
     # Plot the data for this granule
     # ------------------------------
@@ -379,8 +420,10 @@ def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
         dt_begin_local2 = dt_begin_str2 + relativedelta(years = ii)
         dt_end_local2   = dt_end_str2 + relativedelta(years = ii)
 
+
         combined_data[dt_begin_local1.strftime('%Y')] = {}
 
+        print(dt_begin_local1, dt_end_local1, dt_begin_local2, dt_end_local2)
         CERES_data1 = readgridCERES_daily(dt_begin_local1.strftime('%Y%m%d'),\
             end_str = dt_end_local1.strftime('%Y%m%d'), \
             satellite = satellite, minlat = minlat)
@@ -392,12 +435,32 @@ def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
         avg_CERES2 = np.nanmean(CERES_data2[ceres_var], axis = 0)
         avg_CERES1_ice = np.nanmean(CERES_data1['ice_conc'], axis = 0)
 
-        CERES_data1[ceres_var] = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
-            (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
-            (NAAPS_data['smoke_conc_sfc'] > max_smoke), avg_CERES1)  
-        CERES_data2[ceres_var] = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
-            (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
-            (NAAPS_data['smoke_conc_sfc'] > max_smoke), avg_CERES2)  
+        if(lon_bounds[0] < lon_bounds[1]):
+            CERES_data1[ceres_var] = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
+                (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
+                (NAAPS_data['smoke_conc_sfc'] > max_smoke), avg_CERES1)  
+            CERES_data1[ceres_var] = np.ma.masked_where(~ ((CERES_data1['lon'] >= lon_bounds[0]) & \
+                (CERES_data1['lon'] <= lon_bounds[1]) & (CERES_data1['lat'] >= lat_bounds[0]) & \
+                (CERES_data1['lat'] <= lat_bounds[1])) , CERES_data1[ceres_var])
+            CERES_data2[ceres_var] = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
+                (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
+                (NAAPS_data['smoke_conc_sfc'] > max_smoke), avg_CERES2)  
+            CERES_data2[ceres_var] = np.ma.masked_where(~ ((CERES_data2['lon'] >= lon_bounds[0]) & \
+                (CERES_data2['lon'] <= lon_bounds[1]) & (CERES_data2['lat'] >= lat_bounds[0]) & \
+                (CERES_data2['lat'] <= lat_bounds[1])) , CERES_data2[ceres_var])
+        else:
+            CERES_data1[ceres_var] = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
+                (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
+                (NAAPS_data['smoke_conc_sfc'] > max_smoke), avg_CERES1)
+            CERES_data1[ceres_var] = np.ma.masked_where(~ (((CERES_data1['lon'] >= lon_bounds[0]) | \
+                (CERES_data1['lon'] <= lon_bounds[1])) & (CERES_data1['lat'] >= lat_bounds[0]) & \
+                (CERES_data1['lat'] <= lat_bounds[1])) , CERES_data1[ceres_var])
+            CERES_data2[ceres_var] = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
+                (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
+                (NAAPS_data['smoke_conc_sfc'] > max_smoke), avg_CERES2)
+            CERES_data2[ceres_var] = np.ma.masked_where(~ (((CERES_data1['lon'] >= lon_bounds[0]) | \
+                (CERES_data1['lon'] <= lon_bounds[1])) & (CERES_data1['lat'] >= lat_bounds[0]) & \
+                (CERES_data1['lat'] <= lat_bounds[1])) , CERES_data2[ceres_var])
 
         bdata1 = CERES_data1[ceres_var].flatten().compressed()
         bdata2 = CERES_data2[ceres_var].flatten().compressed()
@@ -478,7 +541,7 @@ def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
         axs[jj,ii%3].legend()
 
 
-    fig2.tight_layout()
+    #fig2.tight_layout()
 
     if(save):
         outname = 'naaps_ceres_event_' + var + '_' + date_str + '.png'
