@@ -7,14 +7,53 @@ import os
 import sys
 from datetime import datetime
 
-base_dir = "/home/bsorenson/Research/"
-dest_dir = "/home/bsorenson/Arctic_codes/"
+
+home_dir = os.environ['HOME']
+
+base_dir = home_dir + "/Research/"
+dest_dir = home_dir + "/Arctic_codes/"
 
 # ---------------------------------------------------------------------------- 
 # Backup the backup script
 # ---------------------------------------------------------------------------- 
-print("code_backup.py")
-cmnd = "cp /home/bsorenson/code_backup.py "+dest_dir
+print("Home directory python codes")
+final_dir = dest_dir 
+cmnd = "ls "+ home_dir + "/*.py | xargs cp -t "+final_dir
+print(cmnd)
+os.system(cmnd)
+
+#print("code_backup.py")
+#cmnd = "cp home_dir + /code_backup.py "+dest_dir
+#print("python_lib.py")
+#cmnd = "cp home_dir + /python_lib.py "+dest_dir
+#print("bracketology.py")
+#cmnd = "cp home_dir + /bracketology.py "+dest_dir
+#print(cmnd)
+#os.system(cmnd)
+
+# ---------------------------------------------------------------------------- 
+# Backup CSCI final project stuff
+# ---------------------------------------------------------------------------- 
+print("CSCI")
+final_dir = dest_dir + 'CSCI/'
+cmnd = "find "+"home_dir + /CSCI/ -type f -name \"*.py\" | xargs cp -t "+final_dir
+print(cmnd)
+os.system(cmnd)
+# ---------------------------------------------------------------------------- 
+# Backup USIP stuff
+# ---------------------------------------------------------------------------- 
+print("USIP")
+final_dir = dest_dir + 'USIP/'
+cmnd = "find "+base_dir+"thermosonde/ -type f -name \"*.py\" | xargs cp -t "+final_dir
+print(cmnd)
+os.system(cmnd)
+# ---------------------------------------------------------------------------- 
+# OMI Codes
+# ---------------------------------------------------------------------------- 
+print("Arctic_compares")
+final_dir = dest_dir + 'Arctic_compares/'
+cmnd = "find "+base_dir+"Arctic_compares/ -type f -name \"*.py\" | xargs cp -t "+final_dir
+#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
 print(cmnd)
 os.system(cmnd)
 ## ---------------------------------------------------------------------------- 
@@ -71,6 +110,15 @@ os.system(cmnd)
 #print(cmnd)
 #os.system(cmnd)
 # ---------------------------------------------------------------------------- 
+# CRIS analysis
+# ---------------------------------------------------------------------------- 
+print("CrIS")
+final_dir = dest_dir + 'CrIS/'
+cmnd = "find "+base_dir+"CrIS/ -type f -name \"*.py\" | xargs cp -t "+final_dir
+#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
+# ---------------------------------------------------------------------------- 
 # OMI Codes
 # ---------------------------------------------------------------------------- 
 print("OMI")
@@ -82,6 +130,7 @@ os.system(cmnd)
 #cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
 #print(cmnd)
 #os.system(cmnd)
+
 # Get codes from Raindrop
 # -----------------------
 rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/OMI/"
@@ -144,6 +193,17 @@ cmnd = "scp "+rain_dir+"/fort_lib/*.f90 "+final_dir
 print(cmnd)
 os.system(cmnd)
 
+final_dir = dest_dir + 'Arctic_compares/'
+cmnd = "scp "+rain_dir+"/arctic_comp/*.f90 "+final_dir
+print(cmnd)
+os.system(cmnd)
+cmnd = "scp "+rain_dir+"/arctic_comp/Make* "+final_dir
+print(cmnd)
+os.system(cmnd)
+cmnd = "scp "+rain_dir+"/arctic_comp/auto_process.sh "+final_dir
+print(cmnd)
+os.system(cmnd)
+
 #cmnd = "cp "+base_dir+"OMI/OMI_simulation/*.py "+dest_dir
 #print(cmnd)
 #os.system(cmnd)
@@ -182,6 +242,15 @@ os.system(cmnd)
 #os.system(cmnd)
 
 # ---------------------------------------------------------------------------- 
+# FuLiou analysis
+# ---------------------------------------------------------------------------- 
+print("FuLiou")
+final_dir = dest_dir + 'FuLiou/'
+cmnd = "find "+base_dir+"FuLiou/ -type f -name \"*.py\" | xargs cp -t "+final_dir
+#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
+# ---------------------------------------------------------------------------- 
 # GOES analysis
 # ---------------------------------------------------------------------------- 
 print("GOES")
@@ -201,6 +270,34 @@ cmnd = "find "+base_dir+"MODIS/ -type f -name \"*.py\" | xargs cp -t "+final_dir
 print(cmnd)
 os.system(cmnd)
 # ---------------------------------------------------------------------------- 
+# NAAPS analysis
+# ---------------------------------------------------------------------------- 
+print("NAAPS")
+final_dir = dest_dir + 'NAAPS/'
+cmnd = "find "+base_dir+"NAAPS/ -type f -name \"*.py\" | xargs cp -t "+final_dir
+#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
+# ---------------------------------------------------------------------------- 
+# NEXRAD analysis
+# ---------------------------------------------------------------------------- 
+print("NEXRAD")
+final_dir = dest_dir + 'NEXRAD/'
+cmnd = "find "+base_dir+"NEXRAD/ -type f -name \"*.py\" | xargs cp -t "+final_dir
+#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
+# ---------------------------------------------------------------------------- 
+# NSIDC analysis
+# ---------------------------------------------------------------------------- 
+print("NSIDC")
+final_dir = dest_dir + 'NSIDC/'
+cmnd = "find "+base_dir+"NSIDC/ -type f -name \"*.py\" | xargs cp -t "+final_dir
+#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
+
+# ---------------------------------------------------------------------------- 
 # AIRS analysis
 # ---------------------------------------------------------------------------- 
 print("AIRS")
@@ -210,7 +307,17 @@ cmnd = "find "+base_dir+"AIRS/ -type f -name \"*.py\" | xargs cp -t "+final_dir
 print(cmnd)
 os.system(cmnd)
 
-cmnd = "find /home/bsorenson/data/AIRS/ -type f -name \"*.py\" | xargs cp -t "+final_dir
+cmnd = "find " + base_dir + "/data/AIRS/ -type f -name \"*.py\" | xargs cp -t "+final_dir
+#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
+
+# ---------------------------------------------------------------------------- 
+# VIIRS analysis
+# ---------------------------------------------------------------------------- 
+print("VIIRS")
+final_dir = dest_dir + 'VIIRS/'
+cmnd = "find "+base_dir+"VIIRS/ -type f -name \"*.py\" | xargs cp -t "+final_dir
 #cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
 print(cmnd)
 os.system(cmnd)
@@ -228,19 +335,19 @@ cmnd = "find "+base_dir+ work_dir + \
 print(cmnd)
 os.system(cmnd)
 
-## ---------------------------------------------------------------------------- 
-## Siphon/Metpy Codes
-## ---------------------------------------------------------------------------- 
-#print("Siphon/Metpy")
-#smcodes = '/home/bsorenson/Programs/Python/auto_weather_codes/'
-#cmnd = "cp "+smcodes+"*.py "+dest_dir
-#print(cmnd)
-#os.system(cmnd)
+# ---------------------------------------------------------------------------- 
+# Siphon/Metpy Codes
+# ---------------------------------------------------------------------------- 
+print("Siphon/Metpy")
+smcodes = home_dir + '/programs/'
+cmnd = "cp "+smcodes+"*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
 ### ---------------------------------------------------------------------------- 
 ### Jianglong/Jeff's Mie stuff
 ### ---------------------------------------------------------------------------- 
 ##print("Mie stuff")
-##smcodes = '/home/bsorenson/Research/Jianglong_stuff/'
+##smcodes = 'home_dir + /Research/Jianglong_stuff/'
 ##cmnd = "cp "+smcodes+"*.pro "+dest_dir
 ##cmnd = "cp "+smcodes+"run_mie_code "+dest_dir
 ##print(cmnd)
@@ -251,7 +358,7 @@ os.system(cmnd)
 
 # Change to Arctic codes directory
 os.chdir(dest_dir)
-#os.chdir('/home/bsorenson/Arctic_codes/')
+#os.chdir('home_dir + /Arctic_codes/')
 
 # Add new stuff
 os.system('git add .')

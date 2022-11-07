@@ -42,16 +42,18 @@ from satpy.writers import get_enhanced_image
 from glob import glob
 import os
 
-sys.path.append('/home/bsorenson/')
+home_dir = os.environ['HOME']
+
+sys.path.append(home_dir)
 from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
-    nearest_gridpoint, aerosol_event_dict, init_proj, \
-    convert_radiance_to_temp, format_coord, circle, listFD, \
-    laads_daac_key
+    nearest_gridpoint, aerosol_event_dict, init_proj
+#    convert_radiance_to_temp, format_coord, circle, listFD, \
+#    laads_daac_key
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 # Set up global variables
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-data_dir = '/home/bsorenson/data/MODIS/Aqua/'
+data_dir = home_dir + '/data/MODIS/Aqua/'
 datacrs = ccrs.PlateCarree()
 debug = False
 
@@ -556,10 +558,10 @@ def getCorners(centers):
 # Using a CERES swath as a base, download the matching MODIS granules
 # -------------------------------------------------------------------
 def download_MODIS_swath(CERES_date_str, \
-        dest_dir = '/home/bsorenson/data/MODIS/Aqua/', download = True):
+        dest_dir = home_dir + '/data/MODIS/Aqua/', download = True):
 
-    if('/home/bsorenson/Research/CERES/' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/CERES/')
+    if(home_dir + '/Research/CERES/' not in sys.path):
+        sys.path.append(home_dir + '/Research/CERES/')
     from gridCERESLib import readgridCERES_hrly_grid
     
     dt_date_str = datetime.strptime(CERES_date_str, '%Y%m%d%H')
@@ -622,7 +624,7 @@ def download_MODIS_swath(CERES_date_str, \
 # This downloads the MODIS l1b HDF5 file that is closest to the passed
 # date string from the LAADS DAAC archive. 
 # --------------------------------------------------------------------
-def download_MODIS_file(date_str, dest_dir = '/home/bsorenson/data/MODIS/Aqua/'):
+def download_MODIS_file(date_str, dest_dir = home_dir + '/data/MODIS/Aqua/'):
 
     base_url = 'https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/61/MYD021KM'
 
@@ -870,7 +872,7 @@ def read_MODIS(variable,start_date,latmin = 60):
         print("ERROR: variable must be CHL or PIC")
         return
     #cmnd = "ls /home/bsorenson/data/MODIS/CHL/A*.nc"
-    cmnd = "ls /home/bsorenson/data/MODIS/"+variable+"/A*.nc"
+    cmnd = "ls " + home_dir + "/data/MODIS/"+variable+"/A*.nc"
     
     
     file_initial = subprocess.check_output(cmnd,shell=True).decode('utf-8').strip().split('\n')
@@ -4577,8 +4579,8 @@ def plot_scatter_select(composite = True, avg_pixel = True, \
 def plot_spatial_scatter(date_str, zoom=True,save=False,composite=True,\
         avg_pixel=False,plume_only=False):
 
-    if('/home/bsorenson/Research/CERES' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/CERES')
+    if(home_dir + '/Research/CERES' not in sys.path):
+        sys.path.append(home_dir + '/Research/CERES')
     from gridCERESLib import readgridCERES_hrly_grid, plotCERES_hrly
     
     plt.close('all')
@@ -4762,8 +4764,8 @@ def plot_spatial_scatter(date_str, zoom=True,save=False,composite=True,\
 def plot_ceres_scatter(date_str, zoom=True,save=False,composite=True,\
         avg_pixel=False,plume_only=False):
 
-    if('/home/bsorenson/Research/CERES' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/CERES')
+    if(home_dir + '/Research/CERES' not in sys.path):
+        sys.path.append(home_dir + '/Research/CERES')
     from gridCERESLib import readgridCERES_hrly_grid, plotCERES_hrly
     
     plt.close('all')
@@ -4834,8 +4836,8 @@ def plot_ceres_scatter(date_str, zoom=True,save=False,composite=True,\
 def plot_spatial_scatter_wAI(date_str, zoom=True,save=False,composite=True,\
         avg_pixel=False,plume_only=False):
 
-    if('/home/bsorenson/Research/CERES' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/CERES')
+    if(home_dir + '/Research/CERES' not in sys.path):
+        sys.path.append(home_dir + '/Research/CERES')
     from gridCERESLib import readgridCERES_hrly_grid, plotCERES_hrly
     
     plt.close('all')
@@ -5027,8 +5029,8 @@ def plot_spatial_scatter_wAI(date_str, zoom=True,save=False,composite=True,\
 def plot_combined_figure1(date_str = '202107222110', zoom = True, show_smoke = True, composite = True, \
         save=False):
 
-    if('/home/bsorenson/Research/CERES' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/CERES')
+    if(home_dir + '/Research/CERES' not in sys.path):
+        sys.path.append(home_dir + '/Research/CERES')
     from gridCERESLib import readgridCERES_hrly_grid, plotCERES_hrly
 
     #date_str = '202107202125'
@@ -5262,8 +5264,8 @@ def plot_combined_figure1(date_str = '202107222110', zoom = True, show_smoke = T
 def plot_figure2(save=False, composite = True, calc_radiance = True, \
         satellite = 'modis_ch31'):
 
-    if('/home/bsorenson/Research/SBDART' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/SBDART')
+    if(home_dir + '/Research/SBDART' not in sys.path):
+        sys.path.append(home_dir + '/Research/SBDART')
     from SBDART_Lib import run_sbdart, plot_bright_vza
 
     # Run SBDART for the different channel
@@ -5392,8 +5394,8 @@ def plot_figure2(save=False, composite = True, calc_radiance = True, \
 
 def plot_MODIS_GOES_SBDART(save=False, composite = True, calc_radiance = True):
 
-    if('/home/bsorenson/Research/SBDART' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/SBDART')
+    if(home_dir + '/Research/SBDART' not in sys.path):
+        sys.path.append(home_dir + '/Research/SBDART')
     from SBDART_Lib import run_sbdart, plot_bright_vza, read_atmos_profile
 
     # Run SBDART for the different channel
@@ -5466,8 +5468,8 @@ def plot_MODIS_GOES_SBDART(save=False, composite = True, calc_radiance = True):
 
 def plot_MODIS_VIIRS_SBDART(save=False, composite = True, calc_radiance = True):
 
-    if('/home/bsorenson/Research/SBDART' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/SBDART')
+    if(home_dir + '/Research/SBDART' not in sys.path):
+        sys.path.append(home_dir + '/Research/SBDART')
     from SBDART_Lib import run_sbdart, plot_bright_vza
 
     # Run SBDART for the different channel
@@ -5506,8 +5508,8 @@ def plot_MODIS_VIIRS_SBDART(save=False, composite = True, calc_radiance = True):
 def plot_combined_figure3(zoom = True, show_smoke = False, composite = True, \
         plume_only = False, avg_pixel = True, save=False):
 
-    if('/home/bsorenson/Research/CERES' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/CERES')
+    if(home_dir + '/Research/CERES' not in sys.path):
+        sys.path.append(home_dir + '/Research/CERES')
     from gridCERESLib import readgridCERES_hrly_grid, plotCERES_hrly
 
     date_str = '202108062025'
@@ -7214,8 +7216,8 @@ def plot_MODIS_temporary(date_str, zoom = True, save = False):
 def plot_MODIS_CERES_3panel(zoom = True, show_smoke = True, composite = True, \
         save=False):
 
-    if('/home/bsorenson/Research/CERES' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/CERES')
+    if(home_dir + '/Research/CERES' not in sys.path):
+        sys.path.append(home_dir + '/Research/CERES')
     from gridCERESLib import readgridCERES_hrly_grid, plotCERES_hrly
     
     date_str = '202108062025'
@@ -7474,11 +7476,11 @@ def plot_scatter_OMI_CERES_figure(zoom = True, show_smoke = False, composite = T
 def plot_combined_figure1_v2(date_str = '202107202125', zoom = True, show_smoke = True, composite = True, \
         save=False):
 
-    if('/home/bsorenson/Research/CERES' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/CERES')
+    if(home_dir + '/Research/CERES' not in sys.path):
+        sys.path.append(home_dir + '/Research/CERES')
     from gridCERESLib import readgridCERES_hrly_grid, plotCERES_hrly
-    if('/home/bsorenson/Research/GOES' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/GOES')
+    if(home_dir + '/Research/GOES' not in sys.path):
+        sys.path.append(home_dir + '/Research/GOES')
     from GOESLib import read_GOES_satpy, plot_GOES_satpy
 
     #date_str = '202107202125'
@@ -7815,8 +7817,8 @@ def plot_combined_figure1_v3(date_str = '202107222110', zoom = True, show_smoke 
     #date_str = '202107222110'
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
 
-    if('/home/bsorenson/Research/GOES' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/GOES')
+    if(home_dir + '/Research/GOES' not in sys.path):
+        sys.path.append(home_dir + '/Research/GOES')
     from GOESLib import read_GOES_satpy, plot_GOES_satpy
 
     # ----------------------------------------------------------------------
@@ -8033,8 +8035,8 @@ def plot_combined_figure1_v4(date_str = '202107222110', \
     date_str2 = '202107210000'
     dt_date_str2 = datetime.strptime(date_str,"%Y%m%d%H%M")
 
-    if('/home/bsorenson/Research/GOES' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/GOES')
+    if(home_dir + '/Research/GOES' not in sys.path):
+        sys.path.append(home_dir + '/Research/GOES')
     from GOESLib import read_GOES_satpy, plot_GOES_satpy,\
         goes_channel_dict
 
@@ -8288,8 +8290,8 @@ def plot_combined_figure1_v5(date_str = '202107222110', \
     date_str2 = '202107210000'
     dt_date_str2 = datetime.strptime(date_str,"%Y%m%d%H%M")
 
-    if('/home/bsorenson/Research/GOES' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/GOES')
+    if(home_dir + '/Research/GOES' not in sys.path):
+        sys.path.append(home_dir + '/Research/GOES')
     from GOESLib import read_GOES_satpy, plot_GOES_satpy,\
         goes_channel_dict, read_GOES_time_series_NCDF
 
@@ -8337,9 +8339,9 @@ def plot_combined_figure1_v5(date_str = '202107222110', \
 
     # Read the GOES time series data
     # ------------------------------
-    file_name1 = '/home/bsorenson/Research/GOES/goes_cross_data_' + \
+    file_name1 = home_dir + '/Research/GOES/goes_cross_data_' + \
         ttype1 + '_202107201201_202107210231.nc'
-    file_name2 = '/home/bsorenson/Research/GOES/goes_cross_data_' + \
+    file_name2 = home_dir + '/Research/GOES/goes_cross_data_' + \
         ttype2 + '_202107201201_202107210231.nc'
     GOES_dict  = read_GOES_time_series_NCDF(file_name1)
     GOES_dict2 = read_GOES_time_series_NCDF(file_name2)
@@ -8677,8 +8679,8 @@ def plot_combined_figure1_v6(date_str = '202107222110', \
         show_smoke = False, composite = True, \
         zoom = True, save=False):
 
-    if('/home/bsorenson/Research/CERES' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/CERES')
+    if(home_dir + '/Research/CERES' not in sys.path):
+        sys.path.append(home_dir + '/Research/CERES')
     from gridCERESLib import readgridCERES_hrly_grid, plotCERES_hrly
 
     date_str = '202107222110'
@@ -9055,7 +9057,7 @@ def plot_viewing_geometry(date_str = '202107222110', zoom = True, show_smoke = F
     print("     - ", MODIS_data_ch7['vza'][c_idx])
 
     # Calculate the GOES viewing geometry as well
-    sys.path.append('/home/bsorenson/Research/GOES')
+    sys.path.append(home_dir + '/Research/GOES')
     from GOESLib import calc_zenith_angle
     goes_vza = calc_zenith_angle(lat_stn, lon_stn)
     print("")

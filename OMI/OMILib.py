@@ -56,11 +56,14 @@ from glob import glob
 import os
 import importlib
 
-sys.path.append('/home/bsorenson')
-from python_lib import circle, plot_subplot_label, plot_lat_circles
+home_dir = os.environ['HOME']
+
+sys.path.append(home_dir)
+#from python_lib import circle, plot_subplot_label, plot_lat_circles
 from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
     nearest_gridpoint, aerosol_event_dict, init_proj, \
-    convert_radiance_to_temp, format_coord, circle
+    convert_radiance_to_temp, circle
+    #convert_radiance_to_temp, format_coord, circle
 
 # Bits 
 #  0 - Missing
@@ -565,7 +568,7 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
     OMI_swath['date'] = plot_time
     OMI_swath['dtype'] = dtype
 
-    base_path = '/home/bsorenson/data/OMI/H5_files/'
+    base_path = home_dir + '/data/OMI/H5_files/'
     total_list = subprocess.check_output('ls '+base_path+'OMI-Aura_L2-OMAERUV_'+\
         year+'m'+date+'t'+time+'*.he5',shell=True).decode('utf-8').strip().split('\n')
 
@@ -662,7 +665,7 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
     return OMI_swath
 
 def readOMI_swath_shawn(plot_time, latmin = 65., \
-        shawn_path = '/home/bsorenson/data/OMI/shawn_files/'):
+        shawn_path = home_dir + '/data/OMI/shawn_files/'):
 
     # Convert the year, month, and day of the base date to
     # datetime
@@ -771,7 +774,7 @@ def readOMI_swath_shawn_old(plot_time, latmin = 65., resolution = 0.25):
 
     # This is the path that points to the HDF5 OMI files. This must be changed
     # if running on a new system.
-    base_path = '/home/bsorenson/data/OMI/shawn_files/'
+    base_path = home_dir + '/data/OMI/shawn_files/'
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
     #
@@ -901,7 +904,7 @@ def readOMI_single_swath(plot_time,row_max, row_min = 0, only_sea_ice = True,\
         time = plot_time[8:]
     else:
         time = ''
-    base_path = '/home/bsorenson/data/OMI/H5_files/'
+    base_path = home_dir + '/data/OMI/H5_files/'
     total_list = subprocess.check_output('ls '+base_path+'OMI-Aura_L2-OMAERUV_'+year+'m'+date+'t'+time+'*.he5',\
               shell=True).decode('utf-8').strip().split('\n')
 
@@ -1018,7 +1021,7 @@ def readOMI_single_swath(plot_time,row_max, row_min = 0, only_sea_ice = True,\
 
     return OMI_single_dict
 
-def readOMI_NCDF(infile='/home/bsorenson/Research/OMI/omi_ai_V003_2005_2020.nc',\
+def readOMI_NCDF(infile=home_dir + '/Research/OMI/omi_ai_V003_2005_2020.nc',\
                  start_date = 200504, end_date = 202009, calc_month = True, \
                  minlat=50):
     # Read in data to netCDF object
@@ -1183,7 +1186,7 @@ def write_da_to_NCDF(avgAI,counts,latmin,da_time):
 
     # Create a new netCDF dataset to write to
     # --------------------------------------- 
-    outfile = '/home/bsorenson/Research/OMI/omi_ai_da_'+da_time.strftime("%Y%m%d%H") + '.nc'
+    outfile = home_dir + '/Research/OMI/omi_ai_da_'+da_time.strftime("%Y%m%d%H") + '.nc'
     nc = Dataset(outfile,'w',format='NETCDF4')
   
     # Dimensions = lon, lat
@@ -1247,7 +1250,7 @@ def write_da_to_NCDF(avgAI,counts,latmin,da_time):
 
 # Writes a single Shawn file to HDF5. 
 def write_shawn_to_HDF5(OMI_base, save_path = './', minlat = 65., \
-        shawn_path = '/home/bsorenson/data/OMI/shawn_files/'):
+        shawn_path = home_dir + '/data/OMI/shawn_files/'):
 
     if(isinstance(OMI_base, str)):
         # Read the swath
@@ -1283,9 +1286,9 @@ def write_shawn_to_HDF5(OMI_base, save_path = './', minlat = 65., \
     print("Saved file ",outfile)  
 
 # Writes a single Shawn file to netCDF. The file must be on the local
-# computer under /home/bsorenson/data/OMI/shawn_files/
+# computer under home_dir + /data/OMI/shawn_files/
 def write_shawn_to_NCDF(filename,latmin, save_path = './', shawn_path = \
-        '/home/bsorenson/data/OMI/shawn_files/'):
+        home_dir + '/data/OMI/shawn_files/'):
 
     # Convert the filename object to datetime
     # ---------------------------------------
@@ -1406,7 +1409,7 @@ def auto_shawn_convert(start_year = 2005, end_year = 2020, latmin = 65., run = F
 
     # This is the path that points to the HDF5 OMI files. This must be changed
     # if running on a new system.
-    data_path = '/home/bsorenson/data/OMI/'
+    data_path = home_dir + '/data/OMI/'
     #data_path = '/data/OMI/'
     hdf_path = data_path + 'H5_files/'
     shawn_path = data_path + 'shawn_files/'
@@ -1656,7 +1659,7 @@ def calcOMI_row_area_reduce(date_str):
 
     # Read in OMI swath
     # -----------------
-    base_path = '/home/bsorenson/data/OMI/H5_files/'
+    base_path = home_dir + '/data/OMI/H5_files/'
     filename = glob(base_path + dt_date_str.strftime('OMI-*%Ym%m%dt%H%M*.he5'))
     ##!#total_list = subprocess.check_output('ls '+base_path+'OMI-Aura_L2-OMAERUV_'+\
     ##!#    year+'m'+date+'t'+time+'*.he5',shell=True).decode('utf-8').strip().split('\n')
@@ -1809,7 +1812,7 @@ def omi_da_gen(start_date,end_date):
     dtime_start = datetime.strptime(start_date,"%Y%m%d%H")
     dtime_end   = datetime.strptime(end_date,"%Y%m%d%H")
 
-    base_path = '/home/bsorenson/data/OMI/H5_files/'
+    base_path = home_dir + '/data/OMI/H5_files/'
     total_list = np.array(subprocess.check_output('ls '+base_path+'OMI-Aura_L2-OMAERUV_*.he5',\
               shell=True).decode('utf-8').strip().split('\n'))
 
@@ -4001,7 +4004,7 @@ def plotOMI_Compare_ClimoTrend_all(OMI_data1,OMI_data2,OMI_data3,\
 # Generate a 15-panel figure comparing the climatology and trend between 3
 # versions of the OMI data for all months
 def plotOMI_Type_MonthClimo_all(minlat=65, save = False, \
-        save_dir = '/home/bsorenson/Research/OMI/monthly_images/combined_climo/'):
+        save_dir = home_dir + '/Research/OMI/monthly_images/combined_climo/'):
 
     colormap = plt.cm.jet
 
@@ -4015,19 +4018,19 @@ def plotOMI_Type_MonthClimo_all(minlat=65, save = False, \
     data_types = ['VBS1','VJZ2','VJZ28','VJZ29','VJZ211','VSJ2','VSJ4']    
 
     # Read in all the data
-    OMI_VBS1 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+    OMI_VBS1 = readOMI_NCDF(infile = home_dir + '/Research/OMI/' + \
         'omi_ai_' + data_types[0] + '_2005_2019.nc', minlat = minlat)
-    OMI_VJZ2 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+    OMI_VJZ2 = readOMI_NCDF(infile = home_dir + '/Research/OMI/' + \
         'omi_ai_' + data_types[1] + '_2005_2019.nc', minlat = minlat)
-    OMI_VJZ28= readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+    OMI_VJZ28= readOMI_NCDF(infile = home_dir + '/Research/OMI/' + \
         'omi_ai_' + data_types[2] + '_2005_2019.nc', minlat = minlat)
-    OMI_VJZ29= readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+    OMI_VJZ29= readOMI_NCDF(infile = home_dir + '/Research/OMI/' + \
         'omi_ai_' + data_types[3] + '_2005_2019.nc', minlat = minlat)
-    OMI_VJZ211 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+    OMI_VJZ211 = readOMI_NCDF(infile = home_dir + '/Research/OMI/' + \
         'omi_ai_' + data_types[4] + '_2005_2019.nc', minlat = minlat)
-    OMI_VSJ2 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+    OMI_VSJ2 = readOMI_NCDF(infile = home_dir + '/Research/OMI/' + \
         'omi_ai_' + data_types[5] + '_2005_2019.nc', minlat = minlat)
-    OMI_VSJ4 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+    OMI_VSJ4 = readOMI_NCDF(infile = home_dir + '/Research/OMI/' + \
         'omi_ai_' + data_types[6] + '_2005_2020.nc', minlat = minlat)
    
     OMI_VBS1['AI']   = np.ma.masked_where((OMI_VBS1['OB_COUNT'] == 0)  | (OMI_VBS1['OB_COUNT'] == -99)  , OMI_VBS1['AI'])
@@ -4114,7 +4117,7 @@ def plotOMI_Type_Climo_all(trend_type = 'standard', \
 
         # Read the data
         
-        OMI_data = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+        OMI_data = readOMI_NCDF(infile = home_dir + '/Research/OMI/' + \
             'omi_ai_' + data_types[ii] + '_2005_2019.nc', minlat = minlat)
         
         # Plot trend
@@ -4210,10 +4213,10 @@ def plotOMI_Type_Trend_all(trend_type = 'standard', \
         # Read the data
        
         if(data_types[ii] == 'VSJ4'):
-            OMI_data = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+            OMI_data = readOMI_NCDF(infile = home_dir + '/Research/OMI/' + \
                 'omi_ai_' + data_types[ii] + '_2005_2020.nc', minlat = minlat)
         else:
-            OMI_data = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+            OMI_data = readOMI_NCDF(infile = home_dir + '/Research/OMI/' + \
                 'omi_ai_' + data_types[ii] + '_2005_2019.nc', minlat = minlat)
 
         # Plot trend
@@ -4745,8 +4748,8 @@ def plot_compare_OMI_CERES_grid(OMI_data, CERES_data, midx, minlat=65, \
         max_AI = -200., only_sea_ice = False, save=False):
 #def plot_compare_OMI_CERES_hrly(OMI_hrly,CERES_hrly,minlat=65,save=False):
 
-    if('/home/bsorenson/Research/CERES/' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/CERES/')
+    if(home_dir + '/Research/CERES/' not in sys.path):
+        sys.path.append(home_dir + '/Research/CERES/')
 
     from gridCERESLib import plotCERES_Month
 
@@ -5056,7 +5059,7 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
         only_sea_ice = False, minlat = 65., skiprows = None, \
         lat_circles = None, save = False, zoom = False, \
         circle_bound = True, ax = None, \
-        shawn_path = '/home/bsorenson/data/OMI/shawn_files/'):
+        shawn_path = home_dir + '/data/OMI/shawn_files/'):
 
 
     # ----------------------------------------------------
@@ -5495,7 +5498,7 @@ def plotOMI_single_multipanel(date_str, only_sea_ice = False, minlat = 65., \
     OMI_JZ    = readOMI_swath_hdf(date_str, 'JZ', \
         only_sea_ice = only_sea_ice, latmin = minlat)
     OMI_shawn = readOMI_swath_shawn(date_str, latmin = minlat, \
-        shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
+        shawn_path = home_dir + '/data/OMI/shawn_files/')
 
     # ----------------------------------------------------
     # Set up the overall figure
@@ -5595,7 +5598,7 @@ def plotOMI_daily(date_str, dtype = 'control',  \
         only_sea_ice = False, minlat = 65., skiprows = None, \
         lat_circles = None, ax = None, save = False, resolution = 0.25, \
         row_max = 60, row_min = 0, circle_bound = True, colorbar = True, \
-        shawn_path = '/home/bsorenson/data/OMI/shawn_files/'):
+        shawn_path = home_dir + '/data/OMI/shawn_files/'):
 
     # ----------------------------------------------------
     # Read in data
@@ -5692,11 +5695,11 @@ def plotOMI_daily(date_str, dtype = 'control',  \
 def plotOMI_daily_control_shawn(date_str, only_sea_ice = False, minlat = 65.,\
         lat_circles = None, ax = None, save = False, resolution = 0.25, \
         row_max = 60, row_min = 0, circle_bound = True, colorbar = True, \
-        shawn_path = '/home/bsorenson/data/OMI/shawn_files/', \
-        save_dir = '/home/bsorenson/Research/OMI/OMI_CERES_compares/'):
+        shawn_path = home_dir + '/data/OMI/shawn_files/', \
+        save_dir = home_dir + '/Research/OMI/OMI_CERES_compares/'):
 
-    if('/home/bsorenson/Research/CERES' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/CERES')
+    if(home_dir + '/Research/CERES' not in sys.path):
+        sys.path.append(home_dir + '/Research/CERES')
     import gridCERESLib
     importlib.reload(gridCERESLib) 
     from gridCERESLib import plotCERES_daily_figure
@@ -5723,13 +5726,13 @@ def plotOMI_daily_control_shawn(date_str, only_sea_ice = False, minlat = 65.,\
         only_sea_ice = False, minlat = minlat, skiprows = None, \
         lat_circles = None, ax = ax0, save = False, resolution = resolution, \
         row_max = 60, row_min = row_min, circle_bound = True, colorbar = False, \
-        shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
+        shawn_path = home_dir + '/data/OMI/shawn_files/')
 
     plotOMI_daily(date_str, dtype = 'shawn',  \
         only_sea_ice = False, minlat = minlat, skiprows = None, \
         lat_circles = None, ax = ax1, save = False, resolution = resolution, \
         row_max = 60, row_min = row_min, circle_bound = True, colorbar = True, \
-        shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
+        shawn_path = home_dir + '/data/OMI/shawn_files/')
 
     plotCERES_daily_figure(date_str, param = 'SWF',  \
         only_sea_ice = False, minlat = minlat, \
@@ -5818,7 +5821,7 @@ def plot_Arctic_row_coverage_compare(date_str = '20180726', minlat = 65., \
 ##!#    
 ##!#    lat_ranges = np.arange(latmin,90.1,0.25)
 ##!#    lon_ranges = np.arange(-180,180.1,0.25)
-##!#    base_path = '/home/bsorenson/data/OMI/H5_files/'
+##!#    base_path = 'home_dir + /data/OMI/H5_files/'
 ##!#    year = swath_date[:4]
 ##!#    date = swath_date[4:8]
 ##!#    if(len(swath_date)==13):
@@ -6000,8 +6003,8 @@ def plot_Arctic_row_coverage_compare(date_str = '20180726', minlat = 65., \
 ##!#    
 ##!#    lat_ranges = np.arange(latmin,90.1,0.25)
 ##!#    lon_ranges = np.arange(-180,180.1,0.25)
-##!#    climo_base_path = '/home/bsorenson/data/OMI/swath_anomaly_files/'
-##!#    single_base_path = '/home/bsorenson/data/OMI/H5_files/'
+##!#    climo_base_path = 'home_dir + /data/OMI/swath_anomaly_files/'
+##!#    single_base_path = 'home_dir + /data/OMI/H5_files/'
 ##!#
 ##!#    # Grab the path date/time for finding the swath climatology files
 ##!#    year = single_swath[0:4]
@@ -6214,9 +6217,9 @@ def plot_row_bias(minlat = 65., dataset = 'equator', save = False):
 
     # Open the 2006 CSCI training dataset
     # -----------------------------------
-    net_data = Dataset('/home/bsorenson/CSCI/CSCI_543/final_project/train_dataset_2006.nc','r')
+    net_data = Dataset(home_dir + '/CSCI/CSCI_543/final_project/train_dataset_2006.nc','r')
     if(dataset == 'equator'):
-        net_data2 = Dataset('/home/bsorenson/Research/OMI/'+\
+        net_data2 = Dataset(home_dir + '/Research/OMI/'+\
             'train_dataset_2006_equator.nc','r')
    
     # Read in OMI data from the two single swaths
@@ -6232,7 +6235,7 @@ def plot_row_bias(minlat = 65., dataset = 'equator', save = False):
 
     ##!## Open a sample OMI swath
     ##!## -----------------------
-    ##!#data = h5py.File('/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2006m0629t0036-o10394_v003-2017m0720t195132.he5','r')
+    ##!#data = h5py.File('home_dir + /data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2006m0629t0036-o10394_v003-2017m0720t195132.he5','r')
 
     # Calculate the average of the OMI AI data along the rows
     # for the climatology. The first "axis = 0" averages along
@@ -6359,8 +6362,8 @@ def plot_OMI_CERES_trend_compare(OMI_data, CERES_data,month,ax0 = None, \
         trend_type = 'standard', titles = True, region_avgs = True, \
         save=False):
 
-    if('/home/bsorenson/Research/CERES' not in sys.path):
-        sys.path.append('/home/bsorenson/Reserach/CERES')
+    if(home_dir + '/Research/CERES' not in sys.path):
+        sys.path.append(home_dir + '/Reserach/CERES')
     #importlib.reload(gridCERESLib) 
     from gridCERESLib import calcCERES_grid_trend, plotCERES_spatial, \
         plotCERES_MonthTrend
@@ -6579,9 +6582,9 @@ def plot_OMI_CERES_trend_compare_summer(minlat=72,\
         ceres_type = 'sw', trend_type = 'standard', titles = False, \
         region_avgs = True, save=False):
 
-    if('/home/bsorenson/Research/CERES' not in sys.path):
+    if(home_dir + '/Research/CERES' not in sys.path):
         print("Appending CERES path")
-        sys.path.append('/home/bsorenson/Research/CERES')
+        sys.path.append(home_dir + '/Research/CERES')
 
     #importlib.reload(gridCERESLib) 
     from gridCERESLib import readgridCERES
@@ -6589,7 +6592,7 @@ def plot_OMI_CERES_trend_compare_summer(minlat=72,\
     # Read in the OMI and CERES data
     # ------------------------------
     OMI_data = readOMI_NCDF(infile = \
-        '/home/bsorenson/Research/OMI/omi_ai_VJZ211_2005_2020.nc',\
+        home_dir + '/Research/OMI/omi_ai_VJZ211_2005_2020.nc',\
         start_date = 200504, end_date = 202010, minlat = minlat)
     CERES_data =  readgridCERES(200504,202010,'toa_'+ceres_type+\
         '_all_mon', minlat = minlat + 0.5, season = 'sunlight')
@@ -6638,12 +6641,12 @@ def plot_OMI_CERES_trend_compare_summer(minlat=72,\
 def plot_compare_OMI_CERES_MODIS_NSIDC(modis_date_str, ch1, \
         omi_dtype = 'shawn', minlat = 65., zoom = False, save = False):
 
-    if('/home/bsorenson/Research/CERES/' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/CERES/')
-    if('/home/bsorenson/Research/MODIS/obs_smoke_forcing/' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/MODIS/obs_smoke_forcing/')
-    if('/home/bsorenson/Research/NSIDC/' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/NSIDC/')
+    if(home_dir + '/Research/CERES/' not in sys.path):
+        sys.path.append(home_dir + '/Research/CERES/')
+    if(home_dir + '/Research/MODIS/obs_smoke_forcing/' not in sys.path):
+        sys.path.append(home_dir + '/Research/MODIS/obs_smoke_forcing/')
+    if(home_dir + '/Research/NSIDC/' not in sys.path):
+        sys.path.append(home_dir + '/Research/NSIDC/')
     from gridCERESLib import plotCERES_hrly_figure
     from MODISLib import plot_MODIS_channel
     from NSIDCLib import plotNSIDC_daily_figure
@@ -7232,7 +7235,7 @@ def plot_combined_fort_out(plot_time, min_lat = 70., vtype = 'areas', \
 
     # Read in the matching Worldview image
     # ------------------------------------
-    base_path = '/home/bsorenson/Research/OMI/'
+    base_path = home_dir + '/Research/OMI/'
     img_name = dt_date_str.strftime(base_path + 'snapshot-%Y-%m-%dT00_00_00Z.jpg') 
     print("Looking for ",img_name)
 
@@ -7246,7 +7249,7 @@ def plot_combined_fort_out(plot_time, min_lat = 70., vtype = 'areas', \
  
     # Read (and plot?) the yearly area time series
     # --------------------------------------------
-    infile = '/home/bsorenson/Research/OMI/shawn_analysis/count_analysis/' + \
+    infile = home_dir + '/Research/OMI/shawn_analysis/count_analysis/' + \
         'omi_vsj4_areas_2005_2020_100.txt'
     plot_OMI_fort_out_func(infile, ax = ax0, min_lat = fort_minlat, vtype = 'areas', \
         max_lat = max_lat, save = False)

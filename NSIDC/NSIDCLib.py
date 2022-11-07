@@ -25,12 +25,14 @@ from datetime import datetime, timedelta
 from netCDF4 import Dataset
 import h5py
 
-sys.path.append('/home/bsorenson')
+home_dir = os.environ['HOME']
+
+sys.path.append(home_dir)
 from python_lib import circle, plot_trend_line, nearest_gridpoint, \
     aerosol_event_dict, init_proj, plot_lat_circles, plot_figure_text, \
     plot_subplot_label
 
-data_dir = '/home/bsorenson/data/NSIDC/'
+data_dir = home_dir + '/data/NSIDC/'
 datacrs = ccrs.PlateCarree()
 mapcrs = ccrs.NorthPolarStereo()
 
@@ -118,7 +120,7 @@ def read_ice(season,pre2001=False):
     #file_names = glob.glob(data_loc+'*.bin')
     # Using this syntax, ignores 2000
     #cmnd = "ls /data/NSIDC/nt_*.bin"
-    cmnd = "ls /home/bsorenson/data/NSIDC/nt_*.bin"
+    cmnd = "ls " + home_dir + "/data/NSIDC/nt_*.bin"
     #status,output = commands.getstatusoutput(cmnd)
     #file_initial = output.strip().split('\n')
     #
@@ -132,7 +134,7 @@ def read_ice(season,pre2001=False):
     file_names = []
 
     if(pre2001==True):
-        cmnd = "ls /home/bsorenson/data/NSIDC/pre_2001/nt_*.bin"
+        cmnd = "ls " + home_dir + "/data/NSIDC/pre_2001/nt_*.bin"
         pre_file_initial = subprocess.check_output(cmnd,shell=True).decode('utf-8').strip().split('\n')
         for fname in pre_file_initial:
             if(fname[-17:-14] in ls_check):
@@ -143,13 +145,13 @@ def read_ice(season,pre2001=False):
             file_names.append(fname)
     
     # Read in the latitude, longitude, and area data
-    latfileo = open('/home/bsorenson/data/NSIDC/psn25lats_v3.dat','r')
+    latfileo = open(home_dir + '/data/NSIDC/psn25lats_v3.dat','r')
     lats = np.reshape(np.fromfile(latfileo,dtype=np.uint32)/100000.,(448,304))
-    lonfileo = open('/home/bsorenson/data/NSIDC/psn25lons_v3.dat','r')
+    lonfileo = open(home_dir + '/data/NSIDC/psn25lons_v3.dat','r')
     tlons = np.fromfile(lonfileo,dtype=np.uint32)/100000.
     tlons[tlons>180.] = tlons[tlons>180.]-42949.67296
     lons = np.reshape(tlons,(448,304))
-    areafileo = open('/home/bsorenson/data/NSIDC/psn25area_v3.dat','r')
+    areafileo = open(home_dir + '/data/NSIDC/psn25area_v3.dat','r')
     areas = np.reshape(np.fromfile(areafileo,dtype=np.uint32)/1000.,(448,304))
     
     #lons = np.reshape(np.fromfile(lonfileo,dtype=np.uint32)/100000.,(448,304))
@@ -253,13 +255,13 @@ def readNSIDC_daily(date_str, grid_data = False):
   
     # Read in the latitude, longitude, area and ice data
     # --------------------------------------------------
-    latfileo = open('/home/bsorenson/data/NSIDC/psn25lats_v3.dat','r')
+    latfileo = open(home_dir + '/data/NSIDC/psn25lats_v3.dat','r')
     lats = np.reshape(np.fromfile(latfileo,dtype=np.uint32)/100000.,(448,304))
-    lonfileo = open('/home/bsorenson/data/NSIDC/psn25lons_v3.dat','r')
+    lonfileo = open(home_dir + '/data/NSIDC/psn25lons_v3.dat','r')
     tlons = np.fromfile(lonfileo,dtype=np.uint32)/100000.
     tlons[tlons>180.] = tlons[tlons>180.]-42949.67296
     lons = np.reshape(tlons,(448,304))
-    areafileo = open('/home/bsorenson/data/NSIDC/psn25area_v3.dat','r')
+    areafileo = open(home_dir + '/data/NSIDC/psn25area_v3.dat','r')
     areas = np.reshape(np.fromfile(areafileo,dtype=np.uint32)/1000.,(448,304))
 
     # Look for both the binary file and the netCDF file.

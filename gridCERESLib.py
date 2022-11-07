@@ -41,7 +41,7 @@ import cartopy
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.util import add_cyclic_point
-from os import system
+import os
 import glob
 from scipy.stats import pearsonr,spearmanr
 from sklearn.linear_model import HuberRegressor
@@ -51,7 +51,9 @@ import h5py
 # The commands module was discontinued for Python 3, so if the user
 # is using python 2, import commands instead
 
-sys.path.append('/home/bsorenson')
+home_dir = os.environ['HOME']
+
+sys.path.append(home_dir)
 from python_lib import circle, plot_trend_line, nearest_gridpoint, \
     aerosol_event_dict, init_proj, plot_lat_circles, plot_figure_text, \
     plot_subplot_label
@@ -179,9 +181,9 @@ def readgridCERES(start_date,end_date,param,satellite = 'Aqua',minlat=60.5,\
 
     # Grab all the files
     if(satellite == 'Terra'):
-        base_path = '/home/bsorenson/data/CERES/SSF_1Deg/monthly/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
+        base_path = home_dir + 'data/CERES/SSF_1Deg/monthly/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
     else:
-        base_path = '/home/bsorenson/data/CERES/SSF_1Deg/monthly/Aqua/CERES_SSF1deg-Month_Aqua-MODIS_Ed4.1_Subset_'
+        base_path = home_dir + '/data/CERES/SSF_1Deg/monthly/Aqua/CERES_SSF1deg-Month_Aqua-MODIS_Ed4.1_Subset_'
     #base_path = '/data/CERES/SSF_1Deg/monthly/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
     #base_path = '/home/bsorenson/data/CERES/SSF_1Deg/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
     total_list = sorted(glob.glob(base_path+'*.nc')) 
@@ -335,13 +337,13 @@ def readgridCERES_daily_file(date_str, end_str = None, satellite = 'Aqua', \
 
     # Grab all the files
     if(satellite == 'Terra'):
-        base_path = '/home/bsorenson/data/CERES/SSF_1Deg/daily/Terra/CERES_SSF1deg-Day_Terra-MODIS_Ed4.1_Subset_'
+        base_path = home_dir + '/data/CERES/SSF_1Deg/daily/Terra/CERES_SSF1deg-Day_Terra-MODIS_Ed4.1_Subset_'
     elif(satellite == 'Aqua'):
-        base_path = '/home/bsorenson/data/CERES/SSF_1Deg/daily/Aqua/CERES_SSF1deg-Day_Aqua-MODIS_Ed4.1_Subset_'
+        base_path = home_dir + '/data/CERES/SSF_1Deg/daily/Aqua/CERES_SSF1deg-Day_Aqua-MODIS_Ed4.1_Subset_'
     elif(satellite == 'SuomiNPP'):
-        base_path = '/home/bsorenson/data/CERES/SSF_1Deg/daily/SuomiNPP/CERES_SSF1deg-Day_NPP-VIIRS_Ed2A_Subset_'
+        base_path = home_dir + '/data/CERES/SSF_1Deg/daily/SuomiNPP/CERES_SSF1deg-Day_NPP-VIIRS_Ed2A_Subset_'
     elif(satellite == 'NOAA20'):
-        base_path = '/home/bsorenson/data/CERES/SSF_1Deg/daily/NOAA20/CERES_SSF1deg-Day_NOAA20-VIIRS_Ed1B_Subset_'
+        base_path = home_dir + '/data/CERES/SSF_1Deg/daily/NOAA20/CERES_SSF1deg-Day_NOAA20-VIIRS_Ed1B_Subset_'
     #base_path = '/data/CERES/SSF_1Deg/monthly/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
     #base_path = '/home/bsorenson/data/CERES/SSF_1Deg/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
     total_list = sorted(glob.glob(base_path+'*.nc'))
@@ -431,9 +433,9 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
 
     # Grab all the files
     if(satellite == 'Terra'):
-        base_path = '/home/bsorenson/data/CERES/SSF_Level2/Terra/'
+        base_path = home_dir + '/data/CERES/SSF_Level2/Terra/'
     else:
-        base_path = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/'
+        base_path = home_dir + '/data/CERES/SSF_Level2/Aqua/'
         #base_path = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/modis_comp/'
     total_list = sorted(glob.glob(base_path+'CERES_SSF_*.nc'))
 
@@ -776,9 +778,9 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,\
 
     # Grab all the files
     if(satellite == 'Terra'):
-        base_path = '/home/bsorenson/data/CERES/SSF_Level2/Terra/'
+        base_path = home_dir + '/data/CERES/SSF_Level2/Terra/'
     else:
-        base_path = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/'
+        base_path = home_dir + '/data/CERES/SSF_Level2/Aqua/'
     total_list = sorted(glob.glob(base_path+'CERES_SSF_*.nc'))
 
     # Convert the desired dt to a datetime object to use for finding the file

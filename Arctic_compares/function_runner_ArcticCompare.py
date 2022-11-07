@@ -21,18 +21,18 @@ date_str = '201807052305'
 #date_str = '201908110125'
 #date_str = '201908110440'
 
-##date_strs = ['200607240029', # GOOD
-##             #'200607240208', # GOOD / CERES mismatch
-##             '200607240347', # GOOD
-##             '200607240526', # GOOD
-##             '200607240844', # GOOD
-##             '200607242155', # GOOD
-##             '200607242334', # GOOD
-##             '200607250112', # GOOD
-##             '200607250251', # GOOD
-##             '200607250748', # GOOD?
-##             '200607252238', # GOOD
-date_strs = ['200607260017', # GOOD
+date_strs = ['200607240029', # GOOD
+             #'200607240208', # GOOD / CERES mismatch
+             '200607240347', # GOOD
+             '200607240526', # GOOD
+             '200607240844', # GOOD
+             '200607242155', # GOOD
+             '200607242334', # GOOD
+             '200607250112', # GOOD
+             '200607250251', # GOOD
+             '200607250748', # GOOD?
+             '200607252238', # GOOD
+             '200607260017', # GOOD
              '200607260156', # GOOD
              '200607260335', # GOOD
              '200607260513', # GOOD?
@@ -84,9 +84,9 @@ date_strs = ['200607260017', # GOOD
 ##            ]
 
 #auto_all_download(date_strs, download = False, rewrite_json = True)
-automate_all_preprocess(date_strs, download = False, images = True, process = True,\
-    omi_dtype = 'ltc3')
-sys.exit()
+#automate_all_preprocess(date_strs, download = False, images = False, process = True,\
+#    omi_dtype = 'ltc3')
+#sys.exit()
 
 #date_str = '201908110033'
 #date_str = '201708171547'
@@ -104,14 +104,15 @@ sys.exit()
 #sys.exit()
 #date_str = '201708161504'
 ##!#date_str = '201807052034'
+date_strs = ['200607260513'] # GOOD?
 for date_str in date_strs:  
  
 ##!#data = read_colocated_combined('20180705', zoom = True)
     plot_compare_combined_category(date_str, var1 = 'OMI', \
         var2 = 'CERES_SWF', var3 = None, cat = "ALL", minlat = 65., \
-        xmin = None, xmax = None, ymin = None, ymax = None, ax = None, \
+        xmin = 1.0, xmax = None, ymin = None, ymax = None, ax = None, \
         colorbar = True, trend = False, zoom = True, color = None, \
-        save = True)
+        save = False)
 sys.exit()
 
 #date_str = '201908110351'

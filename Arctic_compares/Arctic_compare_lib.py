@@ -5,29 +5,31 @@
 
 
 """
+import os
+home_dir = os.environ['HOME']
 import sys
 import json
-sys.path.append('/home/bsorenson')
+sys.path.append(home_dir)
 from python_lib import circle, plot_trend_line, nearest_gridpoint, \
     aerosol_event_dict, init_proj, plot_lat_circles, plot_figure_text, \
     plot_subplot_label
-sys.path.append('/home/bsorenson/Research/OMI')
+sys.path.append(home_dir + '/Research/OMI')
 from OMILib import *
-sys.path.append('/home/bsorenson/Research/CERES')
+sys.path.append(home_dir + '/Research/CERES')
 from gridCERESLib import *
-sys.path.append('/home/bsorenson/Research/MODIS/obs_smoke_forcing')
+sys.path.append(home_dir + '/Research/MODIS/obs_smoke_forcing')
 from MODISLib import *
-sys.path.append('/home/bsorenson/Research/NSIDC')
+sys.path.append(home_dir + '/Research/NSIDC')
 from NSIDCLib import *
-sys.path.append('/home/bsorenson/Research/FuLiou')
+sys.path.append(home_dir + '/Research/FuLiou')
 from FuLiouLib import *
 
-data_dir = '/home/bsorenson/Research/Arctic_compares/comp_data/'
+data_dir = home_dir + '/Research/Arctic_compares/comp_data/'
 datacrs = ccrs.PlateCarree()
 mapcrs = ccrs.NorthPolarStereo()
 
-json_time_database = '/home/bsorenson/Research/Arctic_compares/json_comp_times.txt'
-json_file_database = '/home/bsorenson/Research/Arctic_compares/json_comp_files.txt'
+json_time_database = home_dir + '/Research/Arctic_compares/json_comp_times.txt'
+json_file_database = home_dir + '/Research/Arctic_compares/json_comp_files.txt'
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
@@ -50,11 +52,11 @@ def automate_all_preprocess(date_str, download = True, images = True, \
 
     if(omi_dtype == 'shawn'):
         omi_dtype2 = 'shawn'
-        shawn_path = '/home/bsorenson/data/OMI/shawn_files/'
+        shawn_path = home_dir + '/data/OMI/shawn_files/'
     elif(omi_dtype == 'ltc3'):
         omi_dtype = 'shawn'
         omi_dtype2 = 'ltc3'
-        shawn_path = '/home/bsorenson/data/OMI/shawn_files/ltc3/'
+        shawn_path = home_dir+ '/data/OMI/shawn_files/ltc3/'
 
     # Load in the JSON file string relations
     # --------------------------------------
@@ -157,15 +159,15 @@ def auto_all_download(date_str, download = True, rewrite_json = False):
         print(dstr)
         if(dstr not in out_time_dict.keys() or rewrite_json):
             OMI_base = readOMI_swath_shawn(dstr, latmin = 65., \
-                shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
+                shawn_path = home_dir + '/data/OMI/shawn_files/')
 
             omi_file = subprocess.check_output('ls ' + \
-                '/home/bsorenson/data/OMI/H5_files/' + \
+                home_dir + '/data/OMI/H5_files/' + \
                 'OMI-*_' + OMI_base['date'][:4] + 'm' + OMI_base['date'][4:8] + 't' + \
                     OMI_base['date'][8:] + '*.he5', shell = True).decode(\
                 'utf-8').strip().split('\n')[0]
 
-            omi_shawn = '/home/bsorenson/data/OMI/shawn_files/' + OMI_base['date']
+            omi_shawn = home_dir + '/data/OMI/shawn_files/' + OMI_base['date']
 
             if(dstr == '200607270100'):
                 min_time = np.min(OMI_base['TIME'][~OMI_base['UVAI_raw'].mask]) - timedelta(minutes = 5)
@@ -177,7 +179,7 @@ def auto_all_download(date_str, download = True, rewrite_json = False):
             # -----------------------
             try:
                 ceres_file = subprocess.check_output('ls ' + \
-                    '/home/bsorenson/data/CERES/SSF_Level2/Aqua/' + \
+                    home_dir + '/data/CERES/SSF_Level2/Aqua/' + \
                     'CERES_SSF_Aqua-XTRK_Edition4A_Subset_' + \
                     CERES_date_str[:8] + '*', shell = True).decode(\
                     'utf-8').strip().split('\n')[0]
@@ -188,13 +190,13 @@ def auto_all_download(date_str, download = True, rewrite_json = False):
                 continue
 
             modis_date_list, file_list = download_MODIS_swath(CERES_date_str, \
-                    dest_dir = '/home/bsorenson/data/MODIS/Aqua/', download = download)
+                    dest_dir = home_dir + '/data/MODIS/Aqua/', download = download)
    
             if(download): 
                 download_NSIDC_daily(CERES_date_str[:8])
 
             nsidc_file = \
-                '/home/bsorenson/data/NSIDC/NSIDC0051_SEAICE_PS_N25km_' + \
+                home_dir + '/data/NSIDC/NSIDC0051_SEAICE_PS_N25km_' + \
                 CERES_date_str[:8] + '_v2.0.nc'
     
             ##!#print(date_str)
@@ -453,14 +455,14 @@ def select_category(coloc_data, var, cat):
 def plot_compare_OMI_CERES_MODIS_NSIDC(date_str, ch1, \
         omi_dtype = 'shawn', minlat = 65., zoom = False, save = False):
 
-    if('/home/bsorenson/Research/OMI/' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/OMI/')
-    if('/home/bsorenson/Research/CERES/' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/CERES/')
-    if('/home/bsorenson/Research/MODIS/obs_smoke_forcing/' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/MODIS/obs_smoke_forcing/')
-    if('/home/bsorenson/Research/NSIDC/' not in sys.path):
-        sys.path.append('/home/bsorenson/Research/NSIDC/')
+    if(home_dir + '/Research/OMI/' not in sys.path):
+        sys.path.append(home_dir + '/Research/OMI/')
+    if(home_dir + '/Research/CERES/' not in sys.path):
+        sys.path.append(home_dir + '/Research/CERES/')
+    if(home_dir + '/Research/MODIS/obs_smoke_forcing/' not in sys.path):
+        sys.path.append(home_dir + '/Research/MODIS/obs_smoke_forcing/')
+    if(home_dir + '/Research/NSIDC/' not in sys.path):
+        sys.path.append(home_dir + '/Research/NSIDC/')
 
     from OMILib import plotOMI_single_swath_figure
     from gridCERESLib import plotCERES_hrly_figure
@@ -468,10 +470,10 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(date_str, ch1, \
     from NSIDCLib import plotNSIDC_daily_figure
 
     if(omi_dtype == 'shawn'):
-        shawn_path = '/home/bsorenson/data/OMI/shawn_files/'
+        shawn_path = home_dir + '/data/OMI/shawn_files/'
     elif(omi_dtype == 'ltc3'):
         omi_dtype = 'shawn'
-        shawn_path = '/home/bsorenson/data/OMI/shawn_files/ltc3/'
+        shawn_path = home_dir + '/data/OMI/shawn_files/ltc3/'
         print('In plotter, looking for ltc3')
 
     # Load in the JSON file string relations
