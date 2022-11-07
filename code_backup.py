@@ -36,7 +36,7 @@ os.system(cmnd)
 # ---------------------------------------------------------------------------- 
 print("CSCI")
 final_dir = dest_dir + 'CSCI/'
-cmnd = "find "+"home_dir + /CSCI/ -type f -name \"*.py\" | xargs cp -t "+final_dir
+cmnd = "find "+ home_dir + "/CSCI/ -type f -name \"*.py\" | xargs cp -t "+final_dir
 print(cmnd)
 os.system(cmnd)
 # ---------------------------------------------------------------------------- 
@@ -53,7 +53,9 @@ os.system(cmnd)
 print("Arctic_compares")
 final_dir = dest_dir + 'Arctic_compares/'
 cmnd = "find "+base_dir+"Arctic_compares/ -type f -name \"*.py\" | xargs cp -t "+final_dir
-#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
+cmnd = "find "+base_dir+"Arctic_compares/ -type f -name \"*.txt\" | xargs cp -t "+final_dir
 print(cmnd)
 os.system(cmnd)
 ## ---------------------------------------------------------------------------- 
