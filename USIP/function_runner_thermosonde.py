@@ -14,6 +14,25 @@ from python_lib import *
 from cn2_lib import *
 from compare_cn2 import *
 
+date_str = '201805 12'
+plot_synthetic_figure(date_str, save = True)
+
+sys.exit()
+
+date_str = '2018050505'
+date_str = '2019050403'
+
+plot_combined_figure(date_str, save = False)
+
+sys.exit()
+
+#read_synthetic_data('201805 00', 'BIS')
+synth_data = '201905 12'
+pvar = 'tempdiff'
+plot_synthetic(synth_data, pvar, location = 'BIS', ax = None, save = False)
+
+sys.exit()
+
 #in_data = ['2018050505/2018050505/180505_051104_CKN_GRAW.txt',\
 #    '2018050505/2018050505/HRRR_2018050505_ANALYSIS_CKN_ARL']
 
@@ -35,12 +54,6 @@ plot_calibration_curves_both(save = True)
 
 sys.exit()
 
-date_str = '2018050505'
-#date_str = '2019050403'
-
-plot_combined_figure(date_str, save = False)
-
-sys.exit()
 date_strs = ['2018050505', '2019050403']
 
 for date_str in date_strs:

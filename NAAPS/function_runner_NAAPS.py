@@ -8,33 +8,38 @@
 from NAAPSLib import *
 
 date_str = '20080422'
-#date_str = '20120615'
+date_str = '20120615'
 var = 'smoke_conc_sfc'
 #date_str = '20080422'
-date_str = '20170816'
+#date_str = '20170816'
 
 if(date_str == '20170816'):
     minlat = 78.
-    min_smoke = 60
-    lat_bounds = [78, 90]
-    lon_bounds = [180, 350]
+    min_smoke = 80
+    max_smoke = 300
+    vmax = 300
+    lat_bounds = [78, 85]
+    lon_bounds = [180, 360]
 elif(date_str == '20080422'):
     minlat = 60.
     min_smoke = 40
-    lat_bounds = [60, 75]
-    lon_bounds = [150, 220]
+    max_smoke = 2e5
+    lat_bounds = [60, 70]
+    lon_bounds = [150, 210]
 elif(date_str == '20120615'):
     minlat = 60.
-    min_smoke = 40
+    min_smoke = 20
+    max_smoke = 50
+    vmax = 50
     lat_bounds = [60, 75]
-    lon_bounds = [150, 220]
+    lon_bounds = [305, 345]
 
 second_arrays, second_labels = plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
 #ceres = plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
-    satellite = 'All', minlat = minlat, vmin = None, vmax = 300, \
+    satellite = 'All', minlat = minlat, vmin = None, vmax = vmax, \
     #satellite = 'All', minlat = 60., vmin = None, vmax = 300, \
     vmin2 = 0.2, vmax2 = 0.7, \
-    plot_log = False, min_ice = 80., min_smoke = min_smoke, max_smoke = 2e5, \
+    plot_log = False, min_ice = 0., min_smoke = min_smoke, max_smoke = max_smoke, \
     ptitle = '', zoom = True, lat_bounds = lat_bounds, lon_bounds = lon_bounds, \
     save = False)
 sys.exit()
