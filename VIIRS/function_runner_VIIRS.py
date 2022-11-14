@@ -18,10 +18,10 @@ from VIIRSLib import *
 #filename = glob('/home/bsorenson/data/VIIRS/DNB/JPSS/VJ102MOD.A2021204.2012*.nc')
 #filename = glob('/home/bsorenson/data/VIIRS/DNB/JPSS/VJ102MOD.A2021204.1030*.nc')
 #filename = glob('/home/bsorenson/data/VIIRS/DNB/JPSS/VJ102MOD.A2021204.0848*.nc')
-filename = glob('/home/bsorenson/data/VIIRS/DNB/JPSS/VJ102DNB.A2021204.1030*.nc')
+filename = glob(home_dir + '/data/VIIRS/DNB/JPSS/VJ102DNB.A2021204.1030*.nc')
 #filename = glob('/home/bsorenson/data/VIIRS/DNB/JPSS/VJ102MOD.A2021204.2154*.nc')
-plot_VIIRS_figure(filename, band = 'DNB', zoom = True)
-#plot_VIIRS_sixpanel(satellite = 'JPSS', save = True)
+#plot_VIIRS_figure(filename, band = 'DNB', zoom = True)
+plot_VIIRS_sixpanel(satellite = 'SNPP', save = True)
 sys.exit()
 #plot_VIIRS_ninepanel(save = False)
 

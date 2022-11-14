@@ -9,6 +9,16 @@ import importlib, SBDART_Lib
 from SBDART_Lib import *
 import sys
 
+atms_file = home_dir + '/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
+process_SBDART_multi_sat_vza_wv(atms_file = atms_file, save = True)
+#process_SBDART_multi_sat_vza_co2(atms_file = atms_file, save = True)
+#process_SBDART_multi_sat_vza_ch4(atms_file = atms_file, save = True)
+#process_SBDART_multi_sat_vza_no2(atms_file = atms_file, save = True)
+#process_SBDART_multi_sat_vza_co(atms_file = atms_file, save = True)
+#process_SBDART_multi_sat_vza_nh3(atms_file = atms_file, save = True)
+
+sys.exit()
+
 satellite = 'modis_ch31'
 atms_file = ''
 atms_file = '/home/bsorenson/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'

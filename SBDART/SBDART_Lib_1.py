@@ -15,15 +15,13 @@ import metpy.calc as mpcalc
 from metpy.units import units
 import scipy
 
-home_dir = os.environ['HOME']
-
-sys.path.append(home_dir + '/')
+sys.path.append('/home/bsorenson/')
 from python_lib import *
 
 h_const = 6.626e-34 #J*s
 k_const = 1.3806e-23 #J/K
 c_const = 3e8 # m/s
-sb_path = home_dir + '/Research/SBDART/'
+sb_path = '/home/bsorenson/Research/SBDART/'
 
 # wavel in microns
 # radiance in (W/(m2*μm*Sr))
@@ -43,7 +41,7 @@ def radiance(wavelength,tmp):
 
 # Reads the SBDART model profile. If infile is '', the default
 # profile will be used. If not, a model profile from 
-# home_dir + /Research/SBDART/model/ and reformats into the 
+# /home/bsorenson/Research/SBDART/model/ and reformats into the 
 # right format.
 def read_atmos_profile(infile = ''):
     atms_file = sb_path + 'src/atms_mdlat_sum.dat'
@@ -190,12 +188,7 @@ def prep_filter_function(satellite):
     ff_data.to_csv('filter.dat', \
             index = False, sep = ' ', header = None)
 
-def prep_sbdart_input(isat = -1, iout = 5, nzen = None, uzen = [0, 60],\
-        set_co2_mix = None, add_co2_mix = None, \
-        set_ch4_mix = None, add_ch4_mix = None, \
-        set_no2_mix = None, add_no2_mix = None, \
-        set_co_mix = None,  add_co_mix = None, \
-        set_nh3_mix = None, add_nh3_mix = None):
+def prep_sbdart_input(isat = -1, iout = 5, nzen = None, uzen = [0, 60]):
  
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     #
@@ -207,85 +200,17 @@ def prep_sbdart_input(isat = -1, iout = 5, nzen = None, uzen = [0, 60],\
  
     #iout = 20
     #iout = 0
-
-    # Prep the CO2 mixing ratio
-    # -------------------------
-    if((set_co2_mix is not None) & (add_co2_mix is None)):
-        xco2 = set_co2_mix
-    elif((set_co2_mix is None) & (add_co2_mix is not None)):
-        xco2 = 360 + add_co2_mix
-    elif((set_co2_mix is None) & (add_co2_mix is None)):
-        xco2 = -1
-    else:
-        print("WARNING: Invalid co2 options. Setting to default")
-        xco2 = -1
-
-    # Prep the CH4 mixing ratio
-    # -------------------------
-    if((set_ch4_mix is not None) & (add_ch4_mix is None)):
-        xch4 = set_ch4_mix
-    elif((set_ch4_mix is None) & (add_ch4_mix is not None)):
-        xch4 = 1.74 + add_ch4_mix
-    elif((set_ch4_mix is None) & (add_ch4_mix is None)):
-        xch4 = -1
-    else:
-        print("WARNING: Invalid ch4 options. Setting to default")
-        xch4 = -1
-
-    # Prep the NO2 mixing ratio
-    # -------------------------
-    if((set_no2_mix is not None) & (add_no2_mix is None)):
-        xno2 = set_no2_mix
-    elif((set_no2_mix is None) & (add_no2_mix is not None)):
-        xno2 = 2.3e-5 + add_no2_mix
-    elif((set_no2_mix is None) & (add_no2_mix is None)):
-        xno2 = -1
-    else:
-        print("WARNING: Invalid no2 options. Setting to default")
-        xno2 = -1
-
-    # Prep the CO mixing ratio
-    # -------------------------
-    if((set_co_mix is not None) & (add_co_mix is None)):
-        xco = set_co_mix
-    elif((set_co_mix is None) & (add_co_mix is not None)):
-        xco = 0.15 + add_co_mix
-    elif((set_co_mix is None) & (add_co_mix is None)):
-        xco = -1
-    else:
-        print("WARNING: Invalid co options. Setting to default")
-        xco = -1
-
-    # Prep the NH3 mixing ratio
-    # -------------------------
-    if((set_nh3_mix is not None) & (add_nh3_mix is None)):
-        xnh3 = set_nh3_mix
-    elif((set_nh3_mix is None) & (add_nh3_mix is not None)):
-        xnh3 = 5.0e-4 + add_nh3_mix
-    elif((set_nh3_mix is None) & (add_nh3_mix is None)):
-        xnh3 = -1
-    else:
-        print("WARNING: Invalid nh3 options. Setting to default")
-        xnh3 = -1
-
-
- 
+    
     with open('./INPUT','w') as fout:
         #fout.write(" &INPUT\n" + \
         out_str = " &INPUT\n" + \
             "   idatm=0\n" + \
             "   isat={0}\n".format(isat) + \
             "   wlinc=0.01\n" + \
-            "   iout={0}\n".format(iout) + \
-            "   xco2={0}\n".format(xco2) + \
-            "   xch4={0}\n".format(xch4) + \
-            "   xno2={0}\n".format(xno2) + \
-            "   xco={0}\n".format(xco) + \
-            "   xnh3={0}\n".format(xnh3)
+            "   iout={0}\n".format(iout)
             #"   wlinf=8.00\n" + \
             #"   wlsup=12.00\n" + \
             #"   nzen={0}\n".format(nzen) + \
-        print(out_str)
         if(uzen is not None):
             if(isinstance(uzen, list)):
                 if(nzen is not None):
@@ -524,11 +449,6 @@ def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
         nzen = None, atms_file = '', z_mins = None, z_maxs = None, \
         set_tmp = None, add_tmp = None, add_tmp_sfc = None, \
         set_wv_mix = None, add_wv_mix = None, \
-        set_co2_mix = None, add_co2_mix = None, \
-        set_ch4_mix = None, add_ch4_mix = None, \
-        set_no2_mix = None, add_no2_mix = None, \
-        set_co_mix = None,  add_co_mix = None, \
-        set_nh3_mix = None, add_nh3_mix = None, \
         set_rh = None):
     if(calc_radiance):
         file_adder = '_rad.dat'
@@ -562,6 +482,11 @@ def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
         # ------------------------------------------------
         prep_filter_function(satellite)
 
+        # Prep the INPUT namelist file
+        # ----------------------------
+        prep_sbdart_input(nzen = nzen, uzen = uzen)
+        #prep_sbdart_input(uzen = uzen)
+        
         # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
         #
         # SBDART runs
@@ -607,36 +532,6 @@ def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
         elif(add_tmp is not None):
             data_dict['info']['met_var_name'] = 'add_tmp'
             data_dict['info']['met_var_vals'] = add_tmp
-        elif(set_co2_mix is not None):
-            data_dict['info']['met_var_name'] = 'set_co2_mix'
-            data_dict['info']['met_var_vals'] = set_co2_mix
-        elif(add_co2_mix is not None):
-            data_dict['info']['met_var_name'] = 'add_co2_mix'
-            data_dict['info']['met_var_vals'] = add_co2_mix
-        elif(set_ch4_mix is not None):
-            data_dict['info']['met_var_name'] = 'set_ch4_mix'
-            data_dict['info']['met_var_vals'] = set_ch4_mix
-        elif(add_ch4_mix is not None):
-            data_dict['info']['met_var_name'] = 'add_ch4_mix'
-            data_dict['info']['met_var_vals'] = add_ch4_mix
-        elif(set_no2_mix is not None):
-            data_dict['info']['met_var_name'] = 'set_no2_mix'
-            data_dict['info']['met_var_vals'] = set_no2_mix
-        elif(add_no2_mix is not None):
-            data_dict['info']['met_var_name'] = 'add_no2_mix'
-            data_dict['info']['met_var_vals'] = add_no2_mix
-        elif(set_co_mix is not None):
-            data_dict['info']['met_var_name'] = 'set_co_mix'
-            data_dict['info']['met_var_vals'] = set_co_mix
-        elif(add_co_mix is not None):
-            data_dict['info']['met_var_name'] = 'add_co_mix'
-            data_dict['info']['met_var_vals'] = add_co_mix
-        elif(set_nh3_mix is not None):
-            data_dict['info']['met_var_name'] = 'set_nh3_mix'
-            data_dict['info']['met_var_vals'] = set_nh3_mix
-        elif(add_nh3_mix is not None):
-            data_dict['info']['met_var_name'] = 'add_nh3_mix'
-            data_dict['info']['met_var_vals'] = add_nh3_mix
         elif(set_rh  is not None):
             data_dict['info']['met_var_name'] = 'set_rh'
             data_dict['info']['met_var_vals'] = set_rh
@@ -699,43 +594,7 @@ def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
             data_dict['output'][r1_key] = {}
             for ii in range(z_mins.shape[1]): 
             #for adr in adders:
-
-                # Prep the INPUT namelist file
-                # ----------------------------
-                if(set_co2_mix is not None):
-                    prep_sbdart_input(nzen = nzen, uzen = uzen, \
-                        set_co2_mix = set_co2_mix[kk,ii])
-                elif(add_co2_mix is not None):
-                    prep_sbdart_input(nzen = nzen, uzen = uzen, \
-                        add_co2_mix = add_co2_mix[kk,ii])
-                elif(set_ch4_mix is not None):
-                    prep_sbdart_input(nzen = nzen, uzen = uzen, \
-                        set_ch4_mix = set_ch4_mix[kk,ii])
-                elif(add_ch4_mix is not None):
-                    prep_sbdart_input(nzen = nzen, uzen = uzen, \
-                        add_ch4_mix = add_ch4_mix[kk,ii])
-                elif(set_no2_mix is not None):
-                    prep_sbdart_input(nzen = nzen, uzen = uzen, \
-                        set_no2_mix = set_no2_mix[kk,ii])
-                elif(add_no2_mix is not None):
-                    prep_sbdart_input(nzen = nzen, uzen = uzen, \
-                        add_no2_mix = add_n2o_mix[kk,ii])
-                elif(set_co_mix is not None):
-                    prep_sbdart_input(nzen = nzen, uzen = uzen, \
-                        set_co_mix = set_co_mix[kk,ii])
-                elif(add_co_mix is not None):
-                    prep_sbdart_input(nzen = nzen, uzen = uzen, \
-                        add_co_mix = add_co_mix[kk,ii])
-                elif(set_nh3_mix is not None):
-                    prep_sbdart_input(nzen = nzen, uzen = uzen, \
-                        set_nh3_mix = set_nh3_mix[kk,ii])
-                elif(add_nh3_mix is not None):
-                    prep_sbdart_input(nzen = nzen, uzen = uzen, \
-                        add_nh3_mix = add_nh3_mix[kk,ii])
-                else:
-                    prep_sbdart_input(nzen = nzen, uzen = uzen)
-                #prep_sbdart_input(uzen = uzen)
-        
+                tmp_saver = 'nothing'
                 # Prep the atmosphere file 
                 # NOTE: for now, only allow one meteorological variable to change
                 # ---------------------------------------------------------------
@@ -769,87 +628,6 @@ def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
                     run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
                                 'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
                                 'addtmp'+str(data_dict['info']['met_var_vals'][kk,ii])
-
-                elif(set_co2_mix is not None):
-                    new_data = data
-                    #new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
-                    #    zmax = z_maxs[kk,ii], set_co2_mix = data_dict['info']['met_var_vals'][kk,ii])
-                        #set_wv_mix = adr)
-                    run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
-                                'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
-                                'setco2mix'+str(data_dict['info']['met_var_vals'][kk,ii])
-                elif(add_co2_mix is not None):
-                    new_data = data
-                    #new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
-                    #    zmax = z_maxs[kk,ii], add_co2_mix = data_dict['info']['met_var_vals'][kk,ii])
-                    #    #set_wv_mix = adr)
-                    run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
-                                'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
-                                'addco2mix'+str(data_dict['info']['met_var_vals'][kk,ii])
-                elif(set_ch4_mix is not None):
-                    new_data = data
-                    #new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
-                    #    zmax = z_maxs[kk,ii], set_ch4_mix = data_dict['info']['met_var_vals'][kk,ii])
-                        #set_wv_mix = adr)
-                    run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
-                                'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
-                                'setch4mix'+str(data_dict['info']['met_var_vals'][kk,ii])
-                elif(add_ch4_mix is not None):
-                    new_data = data
-                    #new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
-                    #    zmax = z_maxs[kk,ii], add_ch4_mix = data_dict['info']['met_var_vals'][kk,ii])
-                    #    #set_wv_mix = adr)
-                    run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
-                                'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
-                                'addch4mix'+str(data_dict['info']['met_var_vals'][kk,ii])
-                elif(set_no2_mix is not None):
-                    new_data = data
-                    #new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
-                    #    zmax = z_maxs[kk,ii], set_no2_mix = data_dict['info']['met_var_vals'][kk,ii])
-                        #set_wv_mix = adr)
-                    run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
-                                'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
-                                'setno2mix'+str(data_dict['info']['met_var_vals'][kk,ii])
-                elif(add_no2_mix is not None):
-                    new_data = data
-                    #new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
-                    #    zmax = z_maxs[kk,ii], add_no2_mix = data_dict['info']['met_var_vals'][kk,ii])
-                    #    #set_wv_mix = adr)
-                    run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
-                                'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
-                                'addno2mix'+str(data_dict['info']['met_var_vals'][kk,ii])
-                elif(set_co_mix is not None):
-                    new_data = data
-                    #new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
-                    #    zmax = z_maxs[kk,ii], set_co_mix = data_dict['info']['met_var_vals'][kk,ii])
-                        #set_wv_mix = adr)
-                    run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
-                                'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
-                                'setcomix'+str(data_dict['info']['met_var_vals'][kk,ii])
-                elif(add_co_mix is not None):
-                    new_data = data
-                    #new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
-                    #    zmax = z_maxs[kk,ii], add_co_mix = data_dict['info']['met_var_vals'][kk,ii])
-                    #    #set_wv_mix = adr)
-                    run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
-                                'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
-                                'addcomix'+str(data_dict['info']['met_var_vals'][kk,ii])
-                elif(set_nh3_mix is not None):
-                    new_data = data
-                    #new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
-                    #    zmax = z_maxs[kk,ii], set_nh3_mix = data_dict['info']['met_var_vals'][kk,ii])
-                        #set_wv_mix = adr)
-                    run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
-                                'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
-                                'setnh3mix'+str(data_dict['info']['met_var_vals'][kk,ii])
-                elif(add_nh3_mix is not None):
-                    new_data = data
-                    #new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
-                    #    zmax = z_maxs[kk,ii], add_nh3_mix = data_dict['info']['met_var_vals'][kk,ii])
-                    #    #set_wv_mix = adr)
-                    run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
-                                'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
-                                'addnh3mix'+str(data_dict['info']['met_var_vals'][kk,ii])
 
                 # Allows the user to modify the surface temperature in 
                 # addition to other variables
@@ -1183,16 +961,6 @@ add_label_dict = {
     'add_wv_mix': 'w = w$_{{o}}$ + {0} g/kg',\
     'set_tmp':    'T = {0} K',\
     'add_tmp':    'T = T$_{{o}}$ + {0}  K',
-    'set_co2_mix': 'CO$_2$ = {0} PPM', \
-    'add_co2_mix': 'CO$_2$ = CO$_2$ + {0} PPM',\
-    'set_ch4_mix': 'CH$_4$ = {0} PPM', \
-    'add_ch4_mix': 'CH$_4$ = CH$_4$ + {0} PPM',\
-    'set_no2_mix': 'NO$_2$ = {0} PPM', \
-    'add_no2_mix': 'NO$_2$ = NO$_2$ + {0} PPM',\
-    'set_co_mix': 'CO = {0} PPM', \
-    'add_co_mix': 'CO = CO + {0} PPM',\
-    'set_nh3_mix': 'NH$_3$ = {0} PPM',\
-    'add_nh3_mix': 'NH$_3$ = NH$_3$ + {0} PPM',\
     'set_rh':     'RH = {0}%',\
 }
 
@@ -1625,30 +1393,10 @@ def process_SBDART_multi_lower_tmps(atms_file = '', save = False, multi_sat = Tr
 
 # This makes a re-creation of the SBDART GOES/MODIS figure from the paper
 def process_SBDART_multi_sat_vza(atms_file = '', save = False):
-    #atms_file = 'home_dir + /Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
+    #atms_file = '/home/bsorenson/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
     # Run num 1
     z_maxs = np.array([5.])
     z_mins = np.array([0.])
-    #set_nh3_mix = np.full((3, len(z_maxs)), np.nan)
-    #set_nh3_mix[0,:] = 5.0e-4
-    #set_nh3_mix[1,:] = 1.0e-3
-    #set_nh3_mix[2,:] = 1.5e-3
-    #set_co_mix = np.full((3, len(z_maxs)), np.nan)
-    #set_co_mix[0,:] = 0.15 
-    #set_co_mix[1,:] = 0.30
-    #set_co_mix[2,:] = 0.45
-    #set_no2_mix = np.full((3, len(z_maxs)), np.nan)
-    #set_no2_mix[0,:] = 2.3e-5
-    #set_no2_mix[1,:] = 4.6e-5
-    #set_no2_mix[2,:] = 6.9e-5
-    #set_ch4_mix = np.full((3, len(z_maxs)), np.nan)
-    #set_ch4_mix[0,:] = 1.74 
-    #set_ch4_mix[1,:] = 2.74
-    #set_ch4_mix[2,:] = 3.74
-    #set_co2_mix = np.full((3, len(z_maxs)), np.nan)
-    #set_co2_mix[0,:] = 360. 
-    #set_co2_mix[1,:] = 500.
-    #set_co2_mix[2,:] = 1000.
     add_wv_mix = np.full((3, len(z_maxs)), np.nan)
     add_wv_mix[0,:] = 0. 
     add_wv_mix[1,:] = 2. 
@@ -1698,337 +1446,15 @@ def process_SBDART_multi_sat_vza(atms_file = '', save = False):
             atms_add = 'mdlat_sum'
         else:
             atms_add = 'atms_file'
-        outname = 'modis_goes_sbdart_comps_' + atms_add + '_wv.png'
+        outname = 'modis_goes_sbdart_comps_' + atms_add + '.png'
         fig.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else:
         plt.show()
-
-# This makes a re-creation of the SBDART GOES/MODIS figure from the paper
-def process_SBDART_multi_sat_vza_co2(atms_file = '', save = False):
-    #atms_file = 'home_dir + /Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
-    # Run num 1
-    z_maxs = np.array([5.])
-    z_mins = np.array([0.])
-    set_co2_mix = np.full((3, len(z_maxs)), np.nan)
-    set_co2_mix[0,:] = 360. 
-    set_co2_mix[1,:] = 500.
-    set_co2_mix[2,:] = 1000.
-    #add_wv_mix = np.full((3, len(z_maxs)), np.nan)
-    #add_wv_mix[0,:] = 0. 
-    #add_wv_mix[1,:] = 2. 
-    #add_wv_mix[2,:] = 4. 
-    
-    data1 = run_sbdart('goes17_ch08', calc_radiance = True, \
-        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        set_co2_mix = set_co2_mix, nzen = 9, vza = [0, 60])
-    data2 = run_sbdart('goes17_ch09', calc_radiance = True, \
-        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        set_co2_mix = set_co2_mix, nzen = 9, vza = [0, 60])
-    data3 = run_sbdart('goes17_ch10', calc_radiance = True, \
-        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        set_co2_mix = set_co2_mix, nzen = 9, vza = [0, 60])
-    data4 = run_sbdart('modis_ch31', calc_radiance = True, \
-        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        set_co2_mix = set_co2_mix, nzen = 9, vza = [0, 60])
-    
-    plt.close('all')
-    fig = plt.figure(figsize = (9, 7))
-    ax1 = fig.add_subplot(2,2,1)
-    ax2 = fig.add_subplot(2,2,2)
-    ax3 = fig.add_subplot(2,2,3)
-    ax4 = fig.add_subplot(2,2,4)
-    
-    plot_bright_vza(data1, pax = ax1, plabelsize = 10)
-    plot_bright_vza(data2, pax = ax2, plabelsize = 10)
-    plot_bright_vza(data3, pax = ax3, plabelsize = 10)
-    plot_bright_vza(data4, pax = ax4, plabelsize = 10)
-
-    # Add dashed lines at the correct VZAs
-    # ------------------------------------
-    ax1.axvline(49.61378, linestyle = '--', color = 'black')
-    ax2.axvline(49.61378, linestyle = '--', color = 'black')
-    ax3.axvline(49.61378, linestyle = '--', color = 'black')
-    ax4.axvline(3.15, linestyle = '--', color = 'black')
-
-    plot_subplot_label(ax1, '(a)', location = 'upper_right', fontsize = 11)
-    plot_subplot_label(ax2, '(b)', location = 'upper_right', fontsize = 11)
-    plot_subplot_label(ax3, '(c)', location = 'upper_right', fontsize = 11)
-    plot_subplot_label(ax4, '(d)', location = 'upper_right', fontsize = 11)
-
-    fig.tight_layout()
-
-    if(save):
-        if(atms_file == ''):
-            atms_add = 'mdlat_sum'
-        else:
-            atms_add = 'atms_file'
-        outname = 'modis_goes_sbdart_comps_' + atms_add + '_co2.png'
-        fig.savefig(outname, dpi = 300)
-        print("Saved image", outname)
-    else:
-        plt.show()
-
-# This makes a re-creation of the SBDART GOES/MODIS figure from the paper
-def process_SBDART_multi_sat_vza_ch4(atms_file = '', save = False):
-    #atms_file = 'home_dir + /Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
-    # Run num 1
-    z_maxs = np.array([5.])
-    z_mins = np.array([0.])
-    set_ch4_mix = np.full((3, len(z_maxs)), np.nan)
-    set_ch4_mix[0,:] = 1.74 
-    set_ch4_mix[1,:] = 2.74
-    set_ch4_mix[2,:] = 3.74
-    
-    data1 = run_sbdart('goes17_ch08', calc_radiance = True, \
-        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        set_ch4_mix = set_ch4_mix, nzen = 9, vza = [0, 60])
-    data2 = run_sbdart('goes17_ch09', calc_radiance = True, \
-        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        set_ch4_mix = set_ch4_mix, nzen = 9, vza = [0, 60])
-    data3 = run_sbdart('goes17_ch10', calc_radiance = True, \
-        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        set_ch4_mix = set_ch4_mix, nzen = 9, vza = [0, 60])
-    data4 = run_sbdart('modis_ch31', calc_radiance = True, \
-        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        set_ch4_mix = set_ch4_mix, nzen = 9, vza = [0, 60])
-    
-    plt.close('all')
-    fig = plt.figure(figsize = (9, 7))
-    ax1 = fig.add_subplot(2,2,1)
-    ax2 = fig.add_subplot(2,2,2)
-    ax3 = fig.add_subplot(2,2,3)
-    ax4 = fig.add_subplot(2,2,4)
-    
-    plot_bright_vza(data1, pax = ax1, plabelsize = 10)
-    plot_bright_vza(data2, pax = ax2, plabelsize = 10)
-    plot_bright_vza(data3, pax = ax3, plabelsize = 10)
-    plot_bright_vza(data4, pax = ax4, plabelsize = 10)
-
-    # Add dashed lines at the correct VZAs
-    # ------------------------------------
-    ax1.axvline(49.61378, linestyle = '--', color = 'black')
-    ax2.axvline(49.61378, linestyle = '--', color = 'black')
-    ax3.axvline(49.61378, linestyle = '--', color = 'black')
-    ax4.axvline(3.15, linestyle = '--', color = 'black')
-
-    plot_subplot_label(ax1, '(a)', location = 'upper_right', fontsize = 11)
-    plot_subplot_label(ax2, '(b)', location = 'upper_right', fontsize = 11)
-    plot_subplot_label(ax3, '(c)', location = 'upper_right', fontsize = 11)
-    plot_subplot_label(ax4, '(d)', location = 'upper_right', fontsize = 11)
-
-    fig.tight_layout()
-
-    if(save):
-        if(atms_file == ''):
-            atms_add = 'mdlat_sum'
-        else:
-            atms_add = 'atms_file'
-        outname = 'modis_goes_sbdart_comps_' + atms_add + '_ch4.png'
-        fig.savefig(outname, dpi = 300)
-        print("Saved image", outname)
-    else:
-        plt.show()
-
-# This makes a re-creation of the SBDART GOES/MODIS figure from the paper
-def process_SBDART_multi_sat_vza_no2(atms_file = '', save = False):
-    #atms_file = 'home_dir + /Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
-    # Run num 1
-    z_maxs = np.array([5.])
-    z_mins = np.array([0.])
-    set_no2_mix = np.full((3, len(z_maxs)), np.nan)
-    set_no2_mix[0,:] = 2.3e-5
-    set_no2_mix[1,:] = 4.6e-5
-    set_no2_mix[2,:] = 6.9e-5
-    #add_wv_mix = np.full((3, len(z_maxs)), np.nan)
-    #add_wv_mix[0,:] = 0. 
-    #add_wv_mix[1,:] = 2. 
-    #add_wv_mix[2,:] = 4. 
-    
-    data1 = run_sbdart('goes17_ch08', calc_radiance = True, \
-        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        set_no2_mix = set_no2_mix, nzen = 9, vza = [0, 60])
-    data2 = run_sbdart('goes17_ch09', calc_radiance = True, \
-        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        set_no2_mix = set_no2_mix, nzen = 9, vza = [0, 60])
-    data3 = run_sbdart('goes17_ch10', calc_radiance = True, \
-        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        set_no2_mix = set_no2_mix, nzen = 9, vza = [0, 60])
-    data4 = run_sbdart('modis_ch31', calc_radiance = True, \
-        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        set_no2_mix = set_no2_mix, nzen = 9, vza = [0, 60])
-    
-    plt.close('all')
-    fig = plt.figure(figsize = (9, 7))
-    ax1 = fig.add_subplot(2,2,1)
-    ax2 = fig.add_subplot(2,2,2)
-    ax3 = fig.add_subplot(2,2,3)
-    ax4 = fig.add_subplot(2,2,4)
-    
-    plot_bright_vza(data1, pax = ax1, plabelsize = 10)
-    plot_bright_vza(data2, pax = ax2, plabelsize = 10)
-    plot_bright_vza(data3, pax = ax3, plabelsize = 10)
-    plot_bright_vza(data4, pax = ax4, plabelsize = 10)
-
-    # Add dashed lines at the correct VZAs
-    # ------------------------------------
-    ax1.axvline(49.61378, linestyle = '--', color = 'black')
-    ax2.axvline(49.61378, linestyle = '--', color = 'black')
-    ax3.axvline(49.61378, linestyle = '--', color = 'black')
-    ax4.axvline(3.15, linestyle = '--', color = 'black')
-
-    plot_subplot_label(ax1, '(a)', location = 'upper_right', fontsize = 11)
-    plot_subplot_label(ax2, '(b)', location = 'upper_right', fontsize = 11)
-    plot_subplot_label(ax3, '(c)', location = 'upper_right', fontsize = 11)
-    plot_subplot_label(ax4, '(d)', location = 'upper_right', fontsize = 11)
-
-    fig.tight_layout()
-
-    if(save):
-        if(atms_file == ''):
-            atms_add = 'mdlat_sum'
-        else:
-            atms_add = 'atms_file'
-        outname = 'modis_goes_sbdart_comps_' + atms_add + '_no2.png'
-        fig.savefig(outname, dpi = 300)
-        print("Saved image", outname)
-    else:
-        plt.show()
-
-# This makes a re-creation of the SBDART GOES/MODIS figure from the paper
-def process_SBDART_multi_sat_vza_co(atms_file = '', save = False):
-    #atms_file = 'home_dir + /Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
-    # Run num 1
-    z_maxs = np.array([5.])
-    z_mins = np.array([0.])
-    set_co_mix = np.full((3, len(z_maxs)), np.nan)
-    set_co_mix[0,:] = 0.15 
-    set_co_mix[1,:] = 0.30
-    set_co_mix[2,:] = 0.45
-    #add_wv_mix = np.full((3, len(z_maxs)), np.nan)
-    #add_wv_mix[0,:] = 0. 
-    #add_wv_mix[1,:] = 2. 
-    #add_wv_mix[2,:] = 4. 
-    
-    data1 = run_sbdart('goes17_ch08', calc_radiance = True, \
-        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        set_co_mix = set_co_mix, nzen = 9, vza = [0, 60])
-    data2 = run_sbdart('goes17_ch09', calc_radiance = True, \
-        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        set_co_mix = set_co_mix, nzen = 9, vza = [0, 60])
-    data3 = run_sbdart('goes17_ch10', calc_radiance = True, \
-        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        set_co_mix = set_co_mix, nzen = 9, vza = [0, 60])
-    data4 = run_sbdart('modis_ch31', calc_radiance = True, \
-        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        set_co_mix = set_co_mix, nzen = 9, vza = [0, 60])
-    
-    plt.close('all')
-    fig = plt.figure(figsize = (9, 7))
-    ax1 = fig.add_subplot(2,2,1)
-    ax2 = fig.add_subplot(2,2,2)
-    ax3 = fig.add_subplot(2,2,3)
-    ax4 = fig.add_subplot(2,2,4)
-    
-    plot_bright_vza(data1, pax = ax1, plabelsize = 10)
-    plot_bright_vza(data2, pax = ax2, plabelsize = 10)
-    plot_bright_vza(data3, pax = ax3, plabelsize = 10)
-    plot_bright_vza(data4, pax = ax4, plabelsize = 10)
-
-    # Add dashed lines at the correct VZAs
-    # ------------------------------------
-    ax1.axvline(49.61378, linestyle = '--', color = 'black')
-    ax2.axvline(49.61378, linestyle = '--', color = 'black')
-    ax3.axvline(49.61378, linestyle = '--', color = 'black')
-    ax4.axvline(3.15, linestyle = '--', color = 'black')
-
-    plot_subplot_label(ax1, '(a)', location = 'upper_right', fontsize = 11)
-    plot_subplot_label(ax2, '(b)', location = 'upper_right', fontsize = 11)
-    plot_subplot_label(ax3, '(c)', location = 'upper_right', fontsize = 11)
-    plot_subplot_label(ax4, '(d)', location = 'upper_right', fontsize = 11)
-
-    fig.tight_layout()
-
-    if(save):
-        if(atms_file == ''):
-            atms_add = 'mdlat_sum'
-        else:
-            atms_add = 'atms_file'
-        outname = 'modis_goes_sbdart_comps_' + atms_add + '_co.png'
-        fig.savefig(outname, dpi = 300)
-        print("Saved image", outname)
-    else:
-        plt.show()
-
-# This makes a re-creation of the SBDART GOES/MODIS figure from the paper
-def process_SBDART_multi_sat_vza_nh3(atms_file = '', save = False):
-    #atms_file = 'home_dir + /Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
-    # Run num 1
-    z_maxs = np.array([5.])
-    z_mins = np.array([0.])
-    set_nh3_mix = np.full((3, len(z_maxs)), np.nan)
-    set_nh3_mix[0,:] = 5.0e-4
-    set_nh3_mix[1,:] = 1.0e-3
-    set_nh3_mix[2,:] = 1.5e-3
-    #add_wv_mix = np.full((3, len(z_maxs)), np.nan)
-    #add_wv_mix[0,:] = 0. 
-    #add_wv_mix[1,:] = 2. 
-    #add_wv_mix[2,:] = 4. 
-    
-    data1 = run_sbdart('goes17_ch08', calc_radiance = True, \
-        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        set_nh3_mix = set_nh3_mix, nzen = 9, vza = [0, 60])
-    data2 = run_sbdart('goes17_ch09', calc_radiance = True, \
-        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        set_nh3_mix = set_nh3_mix, nzen = 9, vza = [0, 60])
-    data3 = run_sbdart('goes17_ch10', calc_radiance = True, \
-        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        set_nh3_mix = set_nh3_mix, nzen = 9, vza = [0, 60])
-    data4 = run_sbdart('modis_ch31', calc_radiance = True, \
-        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        set_nh3_mix = set_nh3_mix, nzen = 9, vza = [0, 60])
-    
-    plt.close('all')
-    fig = plt.figure(figsize = (9, 7))
-    ax1 = fig.add_subplot(2,2,1)
-    ax2 = fig.add_subplot(2,2,2)
-    ax3 = fig.add_subplot(2,2,3)
-    ax4 = fig.add_subplot(2,2,4)
-    
-    plot_bright_vza(data1, pax = ax1, plabelsize = 10)
-    plot_bright_vza(data2, pax = ax2, plabelsize = 10)
-    plot_bright_vza(data3, pax = ax3, plabelsize = 10)
-    plot_bright_vza(data4, pax = ax4, plabelsize = 10)
-
-    # Add dashed lines at the correct VZAs
-    # ------------------------------------
-    ax1.axvline(49.61378, linestyle = '--', color = 'black')
-    ax2.axvline(49.61378, linestyle = '--', color = 'black')
-    ax3.axvline(49.61378, linestyle = '--', color = 'black')
-    ax4.axvline(3.15, linestyle = '--', color = 'black')
-
-    plot_subplot_label(ax1, '(a)', location = 'upper_right', fontsize = 11)
-    plot_subplot_label(ax2, '(b)', location = 'upper_right', fontsize = 11)
-    plot_subplot_label(ax3, '(c)', location = 'upper_right', fontsize = 11)
-    plot_subplot_label(ax4, '(d)', location = 'upper_right', fontsize = 11)
-
-    fig.tight_layout()
-
-    if(save):
-        if(atms_file == ''):
-            atms_add = 'mdlat_sum'
-        else:
-            atms_add = 'atms_file'
-        outname = 'modis_goes_sbdart_comps_' + atms_add + '_nh3.png'
-        fig.savefig(outname, dpi = 300)
-        print("Saved image", outname)
-    else:
-        plt.show()
-
     
 def process_SBDART_single_sat_wv_tmp_vza(satellite = 'modis_ch31',\
         atms_file = '', save = False):
-    #atms_file = 'home_dir + /Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
+    #atms_file = '/home/bsorenson/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
     # Run num 1
     z_maxs = np.array([5.])
     z_mins = np.array([0.])

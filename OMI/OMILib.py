@@ -59,11 +59,10 @@ import importlib
 home_dir = os.environ['HOME']
 
 sys.path.append(home_dir)
-#from python_lib import circle, plot_subplot_label, plot_lat_circles
+from python_lib import circle, plot_subplot_label, plot_lat_circles
 from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
     nearest_gridpoint, aerosol_event_dict, init_proj, \
-    convert_radiance_to_temp, circle
-    #convert_radiance_to_temp, format_coord, circle
+    convert_radiance_to_temp, format_coord, circle
 
 # Bits 
 #  0 - Missing

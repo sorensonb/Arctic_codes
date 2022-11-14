@@ -12,25 +12,21 @@ import sys
 from netCDF4 import Dataset
 from datetime import datetime,timedelta
 from dateutil.relativedelta import relativedelta
-from scipy.stats import pearsonr,spearmanr
 import subprocess
 from scipy import stats
 from pyhdf import SD
 import pandas as pd
 import h5py
-import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.colors as cm
-from matplotlib.dates import DateFormatter
 import cartopy
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
-from satpy import find_files_and_readers
-from satpy.scene import Scene
-from satpy.writers import get_enhanced_image
 from glob import glob
+import os
 
-sys.path.append('/home/bsorenson/')
+home_dir = os.environ['HOME']
+
+sys.path.append(home_dir + '/')
 #from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
 #    nearest_gridpoint, aerosol_event_dict, init_proj, \
 #    convert_radiance_to_temp
@@ -554,21 +550,21 @@ def plot_VIIRS_sixpanel(satellite = 'SNPP', save = False):
 
     # Read the VIIRS data for each time
     # ---------------------------------
-    #filename_n0722_dnb = glob('/home/bsorenson/data/VIIRS/DNB/VNP02DNB.A2021203.1000*.nc')
-    #filename_n0722_dat = glob('/home/bsorenson/data/VIIRS/DNB/VNP02MOD.A2021203.1000*.nc')
-    #filename_n0722_dnb = glob('/home/bsorenson/data/VIIRS/DNB/VNP02DNB.A2021203.1000*.nc')
-    #filename_n0722_dat = glob('/home/bsorenson/data/VIIRS/DNB/VNP02MOD.A2021203.1000*.nc')
+    #filename_n0722_dnb = glob('home_dir + /data/VIIRS/DNB/VNP02DNB.A2021203.1000*.nc')
+    #filename_n0722_dat = glob('home_dir + /data/VIIRS/DNB/VNP02MOD.A2021203.1000*.nc')
+    #filename_n0722_dnb = glob('home_dir + /data/VIIRS/DNB/VNP02DNB.A2021203.1000*.nc')
+    #filename_n0722_dat = glob('home_dir + /data/VIIRS/DNB/VNP02MOD.A2021203.1000*.nc')
     filename_d0722_dat = glob(dt_date_str1.strftime(\
-        '/home/bsorenson/data/VIIRS/DNB/'+satellite+'/V'+file_adder + \
+        home_dir + '/data/VIIRS/DNB/'+satellite+'/V'+file_adder + \
         '2MOD.A%Y%j.%H%M*.nc'))
     filename_n0723_dnb = glob(dt_date_str2.strftime(\
-        '/home/bsorenson/data/VIIRS/DNB/'+satellite+'/V'+file_adder + \
+        home_dir + '/data/VIIRS/DNB/'+satellite+'/V'+file_adder + \
         '2DNB.A%Y%j.%H%M*.nc'))
     filename_n0723_dat = glob(dt_date_str2.strftime(\
-        '/home/bsorenson/data/VIIRS/DNB/'+satellite+'/V' + file_adder + \
+        home_dir + '/data/VIIRS/DNB/'+satellite+'/V' + file_adder + \
         '2MOD.A%Y%j.%H%M*.nc'))
     filename_d0723_dat = glob(dt_date_str3.strftime(\
-        '/home/bsorenson/data/VIIRS/DNB/'+satellite+'/V'+file_adder + \
+        home_dir + '/data/VIIRS/DNB/'+satellite+'/V'+file_adder + \
         '2MOD.A%Y%j.%H%M*.nc'))
 
     print(filename_d0722_dat)
@@ -576,13 +572,13 @@ def plot_VIIRS_sixpanel(satellite = 'SNPP', save = False):
     print(filename_n0723_dat)
     print(filename_d0723_dat)
 
-    ##!#filename_d0722_dat = glob('/home/bsorenson/data/VIIRS/DNB/V'+file_adder + \
+    ##!#filename_d0722_dat = glob('home_dir + /data/VIIRS/DNB/V'+file_adder + \
     ##!#    '2MOD.A2021203.2124*.nc')
-    ##!#filename_n0723_dnb = glob('/home/bsorenson/data/VIIRS/DNB/V'+file_adder + \
+    ##!#filename_n0723_dnb = glob('home_dir + /data/VIIRS/DNB/V'+file_adder + \
     ##!#    '2DNB.A2021204.0942*.nc')
-    ##!#filename_n0723_dat = glob('/home/bsorenson/data/VIIRS/DNB/V'+file_adder + \
+    ##!#filename_n0723_dat = glob('home_dir + /data/VIIRS/DNB/V'+file_adder + \
     ##!#    '2MOD.A2021204.0942*.nc')
-    ##!#filename_d0723_dat = glob('/home/bsorenson/data/VIIRS/DNB/V'+file_adder + \
+    ##!#filename_d0723_dat = glob('home_dir + /data/VIIRS/DNB/V'+file_adder + \
     ##!#    '2MOD.A2021204.2100*.nc')
 
     namesplit = filename_d0722_dat[0].split('/')[-1].split('.')
@@ -606,7 +602,7 @@ def plot_VIIRS_sixpanel(satellite = 'SNPP', save = False):
     plot_VIIRS_figure(filename_d0722_dat, band = 'M15', ax = ax4, \
         zoom = True, vmin = 260, vmax = 330)
     plot_VIIRS_figure(filename_n0723_dat, band = 'M15', ax = ax5, \
-        zoom = True, vmin = 260, vmax = 330)
+        zoom = True, vmin = 270, vmax = 290)
     plot_VIIRS_figure(filename_d0723_dat, band = 'M15', ax = ax6, \
         zoom = True, vmin = 260, vmax = 330)
 
@@ -665,15 +661,15 @@ def plot_VIIRS_ninepanel(save = False):
 
     # Read the VIIRS data for each time
     # ---------------------------------
-    filename_n0722_dnb = glob('/home/bsorenson/data/VIIRS/DNB/V' + \
+    filename_n0722_dnb = glob(home_dir + '/data/VIIRS/DNB/V' + \
         file_adder + '2DNB.A2021203.1000*.nc')
-    filename_n0722_dat = glob('/home/bsorenson/data/VIIRS/DNB/V' + \
+    filename_n0722_dat = glob(home_dir + '/data/VIIRS/DNB/V' + \
         file_adder + '2MOD.A2021203.1000*.nc')
-    filename_d0722_dat = glob('/home/bsorenson/data/VIIRS/DNB/V' + \
+    filename_d0722_dat = glob(home_dir + '/data/VIIRS/DNB/V' + \
         file_adder + '2MOD.A2021203.2124*.nc')
-    filename_n0723_dnb = glob('/home/bsorenson/data/VIIRS/DNB/V' + \
+    filename_n0723_dnb = glob(home_dir + '/data/VIIRS/DNB/V' + \
         file_adder + '2DNB.A2021204.0942*.nc')
-    filename_n0723_dat = glob('/home/bsorenson/data/VIIRS/DNB/V' + \
+    filename_n0723_dat = glob(home_dir + '/data/VIIRS/DNB/V' + \
         file_adder + '2MOD.A2021204.0942*.nc')
 
     ##!#plot_VIIRS_figure(filename_n0722_dnb, band = 'DNB', ax = ax1, zoom = True)
