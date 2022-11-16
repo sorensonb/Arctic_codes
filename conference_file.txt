@@ -1,0 +1,367 @@
+{
+    "American Athletic Conference": [
+        "Cincinnati",
+        "East Carolina",
+        "Navy",
+        "SMU",
+        "South Florida",
+        "Temple",
+        "Tulane",
+        "Tulsa",
+        "UCF"
+    ],
+    "Atlantic Coast Conference": [
+        "Boston College",
+        "Clemson",
+        "Duke",
+        "Florida State",
+        "Georgia Tech",
+        "Miami",
+        "NC State",
+        "North Carolina",
+        "Pittsburgh",
+        "Syracuse",
+        "Virginia",
+        "Virginia Tech",
+        "Wake Forest"
+    ],
+    "Atlantic Sun Conference": [
+        "Austin Peay",
+        "Central Arkansas",
+        "Eastern Kentucky",
+        "Jacksonville State",
+        "Kennesaw State",
+        "North Alabama"
+    ],
+    "Big 12 Conference": [
+        "Baylor",
+        "Iowa State",
+        "Kansas",
+        "Kansas State",
+        "Oklahoma State",
+        "TCU",
+        "Texas Tech",
+        "West Virginia"
+    ],
+    "Big Sky Conference": [
+        "Cal Poly",
+        "Eastern Washington",
+        "Idaho",
+        "Idaho State",
+        "Montana",
+        "Montana State",
+        "Northern Arizona",
+        "Northern Colorado",
+        "Portland State",
+        "Sacramento State",
+        "UC Davis",
+        "Weber State"
+    ],
+    "Big South Conference": [
+        "Bryant",
+        "Campbell",
+        "Charleston Southern",
+        "Gardner-Webb",
+        "North Carolina A&T",
+        "Robert Morris"
+    ],
+    "Big Ten Conference": [
+        "Illinois",
+        "Indiana",
+        "Iowa",
+        "Minnesota",
+        "Nebraska",
+        "Northwestern",
+        "Purdue",
+        "Rutgers",
+        "Wisconsin"
+    ],
+    "CIAA": [
+        "Lincoln (PA)",
+        "Winston-Salem"
+    ],
+    "Colonial Athletic Association": [
+        "Albany",
+        "Delaware",
+        "Elon",
+        "Hampton",
+        "Maine",
+        "Monmouth",
+        "New Hampshire",
+        "Rhode Island",
+        "Richmond",
+        "Stony Brook",
+        "Towson",
+        "Villanova",
+        "William & Mary"
+    ],
+    "Conference USA": [
+        "Charlotte",
+        "Florida Atlantic",
+        "Florida International",
+        "Louisiana Tech",
+        "Middle Tennessee",
+        "North Texas",
+        "Rice",
+        "UAB",
+        "UTSA",
+        "Western Kentucky"
+    ],
+    "FBS Independents": [
+        "Army",
+        "Liberty",
+        "New Mexico State",
+        "UConn",
+        "UMass"
+    ],
+    "GLIAC": [
+        "Michigan Tech"
+    ],
+    "Great Lakes": [
+        "Missouri S&T",
+        "Southwest Baptist",
+        "William Jewell College"
+    ],
+    "Gulf South": [
+        "Delta State",
+        "Mississippi College",
+        "North Greenville"
+    ],
+    "II/III": [
+        "Concordia College (MI)",
+        "Faulkner",
+        "Kentucky Christian",
+        "Louisiana Christian University",
+        "Taylor",
+        "Thomas More College",
+        "Warner"
+    ],
+    "Ivy League": [
+        "Brown",
+        "Columbia",
+        "Cornell",
+        "Dartmouth",
+        "Harvard",
+        "Pennsylvania",
+        "Princeton",
+        "Yale"
+    ],
+    "Lone Star": [
+        "Eastern New Mexico",
+        "Western New Mexico",
+        "Western Oregon"
+    ],
+    "Mid-American Conference": [
+        "Akron",
+        "Ball State",
+        "Bowling Green",
+        "Buffalo",
+        "Central Michigan",
+        "Eastern Michigan",
+        "Kent State",
+        "Miami (OH)",
+        "Northern Illinois",
+        "Ohio",
+        "Toledo",
+        "Western Michigan"
+    ],
+    "Mid-Eastern Athletic Conference": [
+        "Delaware State",
+        "Howard",
+        "Morgan State",
+        "Norfolk State",
+        "North Carolina Central",
+        "South Carolina State"
+    ],
+    "Missouri Valley Football Conference": [
+        "Illinois State",
+        "Indiana State",
+        "Missouri State",
+        "North Dakota",
+        "North Dakota State",
+        "Northern Iowa",
+        "South Dakota",
+        "South Dakota State",
+        "Southern Illinois",
+        "Western Illinois",
+        "Youngstown State"
+    ],
+    "Mountain West Conference": [
+        "Air Force",
+        "Boise State",
+        "Colorado State",
+        "Fresno State",
+        "Hawai\\'i",
+        "Nevada",
+        "New Mexico",
+        "San Diego State",
+        "San Jos\\xc3\\xa9 State",
+        "UNLV",
+        "Utah State",
+        "Wyoming"
+    ],
+    "NONE": [
+        "Barton College",
+        "Edward Waters",
+        "Florida Memorial University",
+        "Indiana Wesleyan",
+        "Keiser University",
+        "Lincoln University (CA)",
+        "McKendree",
+        "North American University",
+        "Post University",
+        "St. Andrews",
+        "St. Thomas University (Fl)",
+        "Virginia Lynchburg"
+    ],
+    "Northeast 10": [
+        "Assumption",
+        "Southern Connecticut State"
+    ],
+    "Northeast Conference": [
+        "Central Connecticut",
+        "Duquesne",
+        "Long Island University",
+        "Merrimack",
+        "Sacred Heart",
+        "St. Francis (PA)",
+        "Stonehill",
+        "Wagner"
+    ],
+    "Ohio Valley Conference": [
+        "Eastern Illinois",
+        "Lindenwood",
+        "Murray State",
+        "Southeast Missouri State",
+        "Tennessee State",
+        "Tennessee Tech",
+        "UT Martin"
+    ],
+    "Pac-12 Conference": [
+        "Arizona",
+        "Arizona State",
+        "California",
+        "Oregon",
+        "Oregon State",
+        "Stanford",
+        "UCLA",
+        "Utah",
+        "Washington",
+        "Washington State"
+    ],
+    "Patriot League": [
+        "Bucknell",
+        "Colgate",
+        "Fordham",
+        "Georgetown",
+        "Holy Cross",
+        "Lafayette",
+        "Lehigh"
+    ],
+    "Pennsylvania State Athletic Conference": [
+        "Bloomsburg"
+    ],
+    "Pioneer Football League": [
+        "Butler",
+        "Davidson",
+        "Dayton",
+        "Drake",
+        "Marist",
+        "Morehead State",
+        "Presbyterian",
+        "San Diego",
+        "St. Thomas - Minnesota",
+        "Stetson",
+        "Valparaiso"
+    ],
+    "Rocky Mountain": [
+        "Chadron State"
+    ],
+    "SIAC": [
+        "Albany State",
+        "Kentucky State",
+        "Lane",
+        "Miles College",
+        "Morehouse College",
+        "Tuskegee"
+    ],
+    "So. Cal.": [
+        "La Verne"
+    ],
+    "South Atlantic": [
+        "Limestone",
+        "Mars Hill",
+        "UVA Wise"
+    ],
+    "Southeastern Conference": [
+        "Arkansas",
+        "Auburn",
+        "Florida",
+        "Georgia",
+        "Kentucky",
+        "LSU",
+        "Missouri",
+        "Ole Miss",
+        "South Carolina",
+        "Tennessee",
+        "Texas A&M",
+        "Vanderbilt"
+    ],
+    "Southern Conference": [
+        "Chattanooga",
+        "East Tennessee State",
+        "Furman",
+        "Mercer",
+        "Samford",
+        "The Citadel",
+        "VMI",
+        "Western Carolina",
+        "Wofford"
+    ],
+    "Southland Conference": [
+        "Houston Christian",
+        "Incarnate Word",
+        "Lamar",
+        "McNeese",
+        "Nicholls",
+        "Northwestern State",
+        "SE Louisiana",
+        "Texas A&M-Commerce"
+    ],
+    "Southwestern Athletic Conference": [
+        "Alabama A&M",
+        "Alabama State",
+        "Alcorn State",
+        "Arkansas-Pine Bluff",
+        "Bethune-Cookman",
+        "Florida A&M",
+        "Grambling",
+        "Jackson State",
+        "Mississippi Valley State",
+        "Prairie View A&M",
+        "Southern",
+        "Texas Southern"
+    ],
+    "Sun Belt Conference": [
+        "Appalachian State",
+        "Arkansas State",
+        "Coastal Carolina",
+        "Georgia Southern",
+        "James Madison",
+        "Louisiana",
+        "Marshall",
+        "South Alabama",
+        "Southern Miss",
+        "Texas State",
+        "Troy",
+        "UL Monroe"
+    ],
+    "Western Athletic Conference": [
+        "Abilene Christian",
+        "Sam Houston",
+        "Southern Utah",
+        "Stephen F. Austin",
+        "Tarleton",
+        "Utah Tech"
+    ]
+}
