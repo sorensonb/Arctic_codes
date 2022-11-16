@@ -31,46 +31,46 @@ date_strs = ['200607240029', # GOOD
              '200607250112', # GOOD
              '200607250251', # GOOD
              '200607250748', # GOOD?
-             '200607252238', # GOOD
-             '200607260017', # GOOD
-             '200607260156', # GOOD
-             '200607260335', # GOOD
-             '200607260513', # GOOD?
-             '200607260831', # GOOD
-             '200607262142', # GOOD
-             '200607270100', # GOOD
-             '200607270239', # GOOD?
-             '200607270418', # GOOD?
-             '200607270557', # GOOD?
-             '200607270736', # GOOD?
-             '200607272226', # GOOD
-             '200804221841',  # GOOD
-             '200804222020',  # GOOD
-             '200804222159',  # GOOD
-             '201708161504',  # GOOD
-             '201708161643',  # GOOD
-             '201708161821',  # GOOD
-             '201708171408',  # GOOD
-             '201708171547',  # GOOD
-             '201708171726',  # GOOD
-             '201708171905',  # GOOD
-             '201708172043',  # GOOD
-             '201708181312',  # GOOD
-             '201708181451',  # GOOD
-             '201708181630',  # GOOD
-             '201708181809',  # GOOD
-             '201708181948',  # GOOD
-             '201708191355',  # GOOD
-             '201708191534',  # GOOD
-             '201708191713',  # GOOD
-             '201807051856',  # GOOD
-             '201807052034',  # GOOD
-             '201807052213',  # GOOD
-             '201908102115',  # GOOD
-             '201908102254',  # GOOD
-             '201908110033',  # GOOD
-             '201908110351',  # GOOD
-            ]
+             '200607252238'] # GOOD
+##             '200607260017', # GOOD
+##             '200607260156', # GOOD
+##             '200607260335', # GOOD
+##             '200607260513', # GOOD?
+##             '200607260831', # GOOD
+##             '200607262142', # GOOD
+##             '200607270100', # GOOD
+##             '200607270239', # GOOD?
+##             '200607270418', # GOOD?
+##             '200607270557', # GOOD?
+##             '200607270736', # GOOD?
+##             '200607272226', # GOOD
+##             '200804221841',  # GOOD
+##             '200804222020',  # GOOD
+##             '200804222159',  # GOOD
+##             '201708161504',  # GOOD
+##             '201708161643',  # GOOD
+##             '201708161821',  # GOOD
+##             '201708171408',  # GOOD
+##             '201708171547',  # GOOD
+##             '201708171726',  # GOOD
+##             '201708171905',  # GOOD
+##             '201708172043',  # GOOD
+##             '201708181312',  # GOOD
+##             '201708181451',  # GOOD
+##             '201708181630',  # GOOD
+##             '201708181809',  # GOOD
+##             '201708181948',  # GOOD
+##             '201708191355',  # GOOD
+##             '201708191534',  # GOOD
+##             '201708191713',  # GOOD
+##             '201807051856',  # GOOD
+##             '201807052034',  # GOOD
+##             '201807052213',  # GOOD
+##             '201908102115',  # GOOD
+##             '201908102254',  # GOOD
+##             '201908110033',  # GOOD
+##             '201908110351',  # GOOD
+##            ]
 ##             ##!#'201605151925',  # MEDIOCRE
 ##             ##!#'201605152104',  # MEDIOCRE
 ##             ##!#'201605152243',  # MEDIOCRE
@@ -84,9 +84,9 @@ date_strs = ['200607240029', # GOOD
 ##            ]
 
 #auto_all_download(date_strs, download = False, rewrite_json = True)
-#automate_all_preprocess(date_strs, download = False, images = False, process = True,\
-#    omi_dtype = 'ltc3')
-#sys.exit()
+automate_all_preprocess(date_strs, download = False, images = False, process = True,\
+    omi_dtype = 'ltc3')
+sys.exit()
 
 #date_str = '201908110033'
 #date_str = '201708171547'
@@ -104,7 +104,6 @@ date_strs = ['200607240029', # GOOD
 #sys.exit()
 #date_str = '201708161504'
 ##!#date_str = '201807052034'
-date_strs = ['200607260513'] # GOOD?
 for date_str in date_strs:  
  
 ##!#data = read_colocated_combined('20180705', zoom = True)
@@ -112,7 +111,7 @@ for date_str in date_strs:
         var2 = 'CERES_SWF', var3 = None, cat = "ALL", minlat = 65., \
         xmin = 1.0, xmax = None, ymin = None, ymax = None, ax = None, \
         colorbar = True, trend = False, zoom = True, color = None, \
-        save = False)
+        save = True)
 sys.exit()
 
 #date_str = '201908110351'
