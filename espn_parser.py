@@ -684,7 +684,7 @@ def read_conference_file():
 
 
 def write_json_stats(gdict):
-    with open(json_file_database,'w') as fout:
+    with open(ncaa_file_name,'w') as fout:
         json.dump(gdict, fout, indent = 4, sort_keys = True)
 
 def load_json_stats():
