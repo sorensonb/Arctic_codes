@@ -285,7 +285,7 @@ def prep_sbdart_input(isat = -1, iout = 5, nzen = None, uzen = [0, 60],\
             #"   wlinf=8.00\n" + \
             #"   wlsup=12.00\n" + \
             #"   nzen={0}\n".format(nzen) + \
-        print(out_str)
+        #print(out_str)
         if(uzen is not None):
             if(isinstance(uzen, list)):
                 if(nzen is not None):
@@ -607,6 +607,9 @@ def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
         elif(add_tmp is not None):
             data_dict['info']['met_var_name'] = 'add_tmp'
             data_dict['info']['met_var_vals'] = add_tmp
+        elif(add_tmp_sfc is not None):
+            data_dict['info']['met_var_name'] = 'add_tmp_sfc'
+            data_dict['info']['met_var_vals'] = add_tmp_sfc
         elif(set_co2_mix is not None):
             data_dict['info']['met_var_name'] = 'set_co2_mix'
             data_dict['info']['met_var_vals'] = set_co2_mix
@@ -857,11 +860,11 @@ def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
                 if(add_tmp_sfc is not None):
                     if(new_data is None):
                         new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
-                            zmax = z_maxs[kk,ii], add_tmp = data_dict['info']['met_var_vals'][kk,ii])
+                            zmax = z_maxs[kk,ii], add_tmp_sfc = data_dict['info']['met_var_vals'][kk,ii])
                             #set_wv_mix = adr)
                         run_adder = 'zmin'+str(int(z_mins[kk,ii])) + '_' + \
                                     'zmax'+str(int(z_maxs[kk,ii])) + '_' + \
-                                    'addtmp'+str(data_dict['info']['met_var_vals'][kk,ii])
+                                    'addtmpssfc'+str(data_dict['info']['met_var_vals'][kk,ii])
                     else:
                         new_data = prep_atmos_file(new_data, zmin = z_mins[kk,ii], \
                             zmax = z_maxs[kk,ii], add_tmp_sfc = add_tmp_sfc)
@@ -1183,6 +1186,7 @@ add_label_dict = {
     'add_wv_mix': 'w = w$_{{o}}$ + {0} g/kg',\
     'set_tmp':    'T = {0} K',\
     'add_tmp':    'T = T$_{{o}}$ + {0}  K',
+    'add_tmp_sfc':    'T$_{{sfc}}$ = T$_{{sfc_o}}$ + {0}  K',
     'set_co2_mix': 'CO$_2$ = {0} PPM', \
     'add_co2_mix': 'CO$_2$ = CO$_2$ + {0} PPM',\
     'set_ch4_mix': 'CH$_4$ = {0} PPM', \
@@ -1618,6 +1622,129 @@ def process_SBDART_multi_lower_tmps(atms_file = '', save = False, multi_sat = Tr
         if(multi_sat):
             mult_add = '_multisat' 
         outname = 'sbdart_multi_sfc_cool'+rel_add+mult_add+'.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+# This makes a re-creation of the SBDART GOES/MODIS figure from the paper
+def process_SBDART_multi_sat_vza_tsfc(atms_file = '', save = False):
+    #atms_file = 'home_dir + /Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
+    # Run num 1
+    z_maxs = np.array([5.])
+    z_mins = np.array([0.])
+    add_tmp_sfc = np.full((3, len(z_maxs)), np.nan)
+    add_tmp_sfc[0,:] = 0. 
+    add_tmp_sfc[1,:] = -10. 
+    add_tmp_sfc[2,:] = -20. 
+    
+    data1 = run_sbdart('goes17_ch08', calc_radiance = True, \
+        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
+        add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
+    data2 = run_sbdart('goes17_ch09', calc_radiance = True, \
+        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
+        add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
+    data3 = run_sbdart('goes17_ch10', calc_radiance = True, \
+        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
+        add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
+    data4 = run_sbdart('modis_ch31', calc_radiance = True, \
+        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
+        add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
+    
+    plt.close('all')
+    fig = plt.figure(figsize = (9, 7))
+    ax1 = fig.add_subplot(2,2,1)
+    ax2 = fig.add_subplot(2,2,2)
+    ax3 = fig.add_subplot(2,2,3)
+    ax4 = fig.add_subplot(2,2,4)
+    
+    plot_bright_vza(data1, pax = ax1, plabelsize = 10)
+    plot_bright_vza(data2, pax = ax2, plabelsize = 10)
+    plot_bright_vza(data3, pax = ax3, plabelsize = 10)
+    plot_bright_vza(data4, pax = ax4, plabelsize = 10)
+
+    # Add dashed lines at the correct VZAs
+    # ------------------------------------
+    ax1.axvline(49.61378, linestyle = '--', color = 'black')
+    ax2.axvline(49.61378, linestyle = '--', color = 'black')
+    ax3.axvline(49.61378, linestyle = '--', color = 'black')
+    ax4.axvline(3.15, linestyle = '--', color = 'black')
+
+    plot_subplot_label(ax1, '(a)', location = 'upper_right', fontsize = 11)
+    plot_subplot_label(ax2, '(b)', location = 'upper_right', fontsize = 11)
+    plot_subplot_label(ax3, '(c)', location = 'upper_right', fontsize = 11)
+    plot_subplot_label(ax4, '(d)', location = 'upper_right', fontsize = 11)
+
+    fig.tight_layout()
+
+    if(save):
+        if(atms_file == ''):
+            atms_add = 'mdlat_sum'
+        else:
+            atms_add = 'atms_file'
+        outname = 'modis_goes_sbdart_comps_' + atms_add + '_tsfc.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+
+# This makes a re-creation of the SBDART GOES/MODIS figure from the paper
+def process_SBDART_multi_sat_vza_wv(atms_file = '', save = False):
+    #atms_file = 'home_dir + /Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
+    # Run num 1
+    z_maxs = np.array([5.])
+    z_mins = np.array([0.])
+    add_wv_mix = np.full((3, len(z_maxs)), np.nan)
+    add_wv_mix[0,:] = 0. 
+    add_wv_mix[1,:] = 2. 
+    add_wv_mix[2,:] = 4. 
+    
+    data1 = run_sbdart('goes17_ch08', calc_radiance = True, \
+        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
+        add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60])
+    data2 = run_sbdart('goes17_ch09', calc_radiance = True, \
+        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
+        add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60])
+    data3 = run_sbdart('goes17_ch10', calc_radiance = True, \
+        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
+        add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60])
+    data4 = run_sbdart('modis_ch31', calc_radiance = True, \
+        atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
+        add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60])
+    
+    plt.close('all')
+    fig = plt.figure(figsize = (9, 7))
+    ax1 = fig.add_subplot(2,2,1)
+    ax2 = fig.add_subplot(2,2,2)
+    ax3 = fig.add_subplot(2,2,3)
+    ax4 = fig.add_subplot(2,2,4)
+    
+    plot_bright_vza(data1, pax = ax1, plabelsize = 10)
+    plot_bright_vza(data2, pax = ax2, plabelsize = 10)
+    plot_bright_vza(data3, pax = ax3, plabelsize = 10)
+    plot_bright_vza(data4, pax = ax4, plabelsize = 10)
+
+    # Add dashed lines at the correct VZAs
+    # ------------------------------------
+    ax1.axvline(49.61378, linestyle = '--', color = 'black')
+    ax2.axvline(49.61378, linestyle = '--', color = 'black')
+    ax3.axvline(49.61378, linestyle = '--', color = 'black')
+    ax4.axvline(3.15, linestyle = '--', color = 'black')
+
+    plot_subplot_label(ax1, '(a)', location = 'upper_right', fontsize = 11)
+    plot_subplot_label(ax2, '(b)', location = 'upper_right', fontsize = 11)
+    plot_subplot_label(ax3, '(c)', location = 'upper_right', fontsize = 11)
+    plot_subplot_label(ax4, '(d)', location = 'upper_right', fontsize = 11)
+
+    fig.tight_layout()
+
+    if(save):
+        if(atms_file == ''):
+            atms_add = 'mdlat_sum'
+        else:
+            atms_add = 'atms_file'
+        outname = 'modis_goes_sbdart_comps_' + atms_add + '_wv.png'
         fig.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else:

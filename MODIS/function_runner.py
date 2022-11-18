@@ -7,10 +7,6 @@
 
 from MODISLib import *
 
-plot_MODIS_GOES_SBDART(save=False, composite = True, calc_radiance = True)
-
-sys.exit()
-
 #date_str = '202107202125'
 #date_str = '202107222110'
 #date_str = '202108062025'
@@ -71,6 +67,7 @@ sys.exit()
 
 #plot_combined_figure1_v3(date_str = '202107202125', zoom = True, show_smoke = True, composite = True, \
 #        save=False)
+plot_MODIS_GOES_SBDART(save=True, composite = True, calc_radiance = True)
 #plot_combined_figure1_v2(date_str = '202107202125', zoom = True, show_smoke = False, composite = True, \
 #    save=True)
 #plot_true_color_satpy(date_str, ax = None, zoom = True, save = False, composite = False)
