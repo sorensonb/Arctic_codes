@@ -28,16 +28,20 @@ from satpy.writers import get_enhanced_image
 from glob import glob
 import os
 
-sys.path.append(os.environ['RESEARCH_PATH'] + '/CERES')
+home_dir = os.environ['HOME']
+sys.path.append(home_dir)
+if(home_dir + '/Research/CERES' not in sys.path):
+    sys.path.append(home_dir + '/Research/CERES')
+
+#sys.path.append(os.environ['RESEARCH_PATH'] + '/CERES')
 from gridCERESLib import *
-sys.path.append(os.environ['HOME'])
 #sys.path.append('/home/bsorenson/')
 #from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
 #    nearest_gridpoint, aerosol_event_dict, init_proj, \
 #    convert_radiance_to_temp
 from python_lib import *
 
-data_dir = os.environ['HOME'] + '/data/NAAPS/'
+data_dir = home_dir + '/data/NAAPS/'
 
 datacrs = ccrs.PlateCarree()
 mapcrs = ccrs.NorthPolarStereo()

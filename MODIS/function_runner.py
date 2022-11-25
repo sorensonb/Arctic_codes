@@ -7,6 +7,10 @@
 
 from MODISLib import *
 
+#plot_combined_figure1_v6(save = False)
+plot_CERES_swaths(date_str = '202107222110', save = False)
+sys.exit()
+
 #date_str = '202107202125'
 #date_str = '202107222110'
 #date_str = '202108062025'
@@ -44,7 +48,6 @@ plot_MODIS_satpy(date_str, '7', ax = None, var = None, crs = None, \
 sys.exit()
 
 #plot_MODIS_asos_sites(date_str, sites = None, save = False)
-#plot_combined_figure1_v6(save = False)
 plot_ceres_scatter(date_str, zoom=True,save=True,composite=True,\
     avg_pixel=True,plume_only=False)
 

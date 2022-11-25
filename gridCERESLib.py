@@ -426,7 +426,8 @@ def readgridCERES_daily_file(date_str, end_str = None, satellite = 'Aqua', \
     return CERES_data
 
 # Data period is of format YYYYMMDDHH
-def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season='all'):
+def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
+        season='all', modis_comp = False):
     print(data_dt)
     lat_ranges = np.arange(minlat,90.0,0.25)
     lon_ranges = np.arange(-180.0,180.0,0.25)
@@ -436,6 +437,8 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,season=
         base_path = home_dir + '/data/CERES/SSF_Level2/Terra/'
     else:
         base_path = home_dir + '/data/CERES/SSF_Level2/Aqua/'
+        if(modis_comp):
+            base_path = base_path + 'modis_comp/'
         #base_path = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/modis_comp/'
     total_list = sorted(glob.glob(base_path+'CERES_SSF_*.nc'))
 

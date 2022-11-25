@@ -8,31 +8,41 @@
 from GOESLib import *
 import sys
 
-plot_GOES_ASOS_comp(date_str = '202107210000', \
+plot_GOES_figure2_v2(date_str = '202107210000', \
     goes_ch1 = 'true_color', goes_ch2 = 6, goes_ch3 = 13, \
     goes_ch4 = 8, goes_ch5 = 9, goes_ch6 = 10, \
     ch_idx1 = 0, ch_idx2 = 1, ch_idx3 = 2,\
-    ttype1 = 'asos', ttype2 = 'ml', \
-    idx1 = 0, idx2 = 1, idx3 = 5, idx4 = 15, idx5 = 20,\
+    ttype1 = 'low', ttype2 = 'ml', \
     date_idx = 25, 
     show_smoke = False, composite = True, double_fig = False, \
-    zoom = True, save=False)
+    zoom = True, save = True)
 
 sys.exit()
 
-#work_data = '/home/bsorenson/Research/MODIS/obs_smoke_forcing/asos_data_20210722_4.csv'
-#df = pd.read_csv(work_data)
+#!#begin_date = '202107131200'
+#!#end_date   = '202107140300'
+#begin_date = '202107202100'
+#end_date   = '202107210330'
+#auto_GOES_download(begin_date, end_date, 5, channels = [2, 6, 13, 8, 9, 10])
 #
 #sys.exit()
 
-#plot_GOES_figure2_v2(date_str = '202107210000', \
+
+#
+#plot_GOES_ASOS_comp(date_str = '202107202100', \
 #    goes_ch1 = 'true_color', goes_ch2 = 6, goes_ch3 = 13, \
 #    goes_ch4 = 8, goes_ch5 = 9, goes_ch6 = 10, \
 #    ch_idx1 = 0, ch_idx2 = 1, ch_idx3 = 2,\
-#    ttype1 = 'low', ttype2 = 'ml', \
+#    ttype1 = 'asos', ttype2 = 'asos', \
+#    idx1 = 0, idx2 = 1, \
 #    date_idx = 25, 
 #    show_smoke = False, composite = True, double_fig = False, \
-#    zoom = True, save= True)
+#    zoom = True, save=False)
+#
+#sys.exit()
+
+#work_data = '/home/bsorenson/Research/MODIS/obs_smoke_forcing/asos_data_20210722_4.csv'
+#df = pd.read_csv(work_data)
 #
 #sys.exit()
 
@@ -109,16 +119,17 @@ lats_asos = np.array([40.2824, 41.4914])
 lons_asos = np.array([-121.2412, -120.5644])
 
 GOES_dict1_low = read_GOES_time_series_auto(begin_date, end_date, \
-    channels = [2, 6, 13, 8, 9, 10], dlat = list(lats_asos), \
-    dlon = list(lons_asos))
-    #channels = [2, 6, 13, 8, 9, 10], dlat = list(interp_lats_low), \
-    #dlon = list(interp_lons_low))
+    #channels = [2, 6, 13, 8, 9, 10], dlat = list(lats_asos), \
+    #dlon = list(lons_asos))
+    channels = [2, 6, 13, 8, 9, 10], dlat = list(interp_lats_low), \
+    dlon = list(interp_lons_low))
+
 ##!#GOES_dict2_low = read_GOES_time_series_auto(begin_date2, end_date2, \
 ##!#    channels = [2, 6, 13], dlat = list(interp_lats_low), \
 ##!#    dlon = list(interp_lons_low))
-#GOES_dict1_ml = read_GOES_time_series_auto(begin_date, end_date, \
-#    channels = [2, 6, 13, 8, 9, 10], dlat = list(interp_lats_ml), \
-#    dlon = list(interp_lons_ml))
+GOES_dict1_ml = read_GOES_time_series_auto(begin_date, end_date, \
+    channels = [2, 6, 13, 8, 9, 10], dlat = list(interp_lats_ml), \
+    dlon = list(interp_lons_ml))
 ##!#GOES_dict2_ml = read_GOES_time_series_auto(begin_date2, end_date2, \
 ##!#    channels = [2, 6, 13], dlat = list(interp_lats_ml), \
 ##!#    dlon = list(interp_lons_ml))
@@ -135,9 +146,9 @@ GOES_dict1_low = read_GOES_time_series_auto(begin_date, end_date, \
 ##!#    channels = [2, 6, 13], dlat = list(interp_lats_up), \
 ##!#    dlon = list(interp_lons_up))
 
-GOES_dict1_low['ptype'] = 'asos'
+GOES_dict1_low['ptype'] = 'low'
 ##!#GOES_dict2_low['ptype'] = 'low'
-#GOES_dict1_ml['ptype'] = 'ml'
+GOES_dict1_ml['ptype'] = 'ml'
 ##!#GOES_dict2_ml['ptype'] = 'ml'
 ##!#GOES_dict1_mid['ptype'] = 'mid'
 ##!#GOES_dict2_mid['ptype'] = 'mid'
@@ -170,7 +181,7 @@ base_dir = '/home/bsorenson/Research/GOES/'
 
 write_GOES_time_series_NCDF(GOES_dict1_low, save_dir = './')
 ##!#write_GOES_time_series_NCDF(GOES_dict2_low, save_dir = './')
-#write_GOES_time_series_NCDF(GOES_dict1_ml,  save_dir = './')
+write_GOES_time_series_NCDF(GOES_dict1_ml,  save_dir = './')
 ##!#write_GOES_time_series_NCDF(GOES_dict2_ml,  save_dir = './')
 ##!#write_GOES_time_series_NCDF(GOES_dict1_mid, save_dir = './')
 ##!#write_GOES_time_series_NCDF(GOES_dict2_mid, save_dir = './')
@@ -191,14 +202,6 @@ write_GOES_time_series_NCDF(GOES_dict1_low, save_dir = './')
 ##!#        save_dir = save_dir + 'ch10/')
 sys.exit()
 
-
-##!#begin_date = '202107131200'
-##!#end_date   = '202107140300'
-#begin_date = '202107202115'
-#end_date   = '202107210245'
-#auto_GOES_download(begin_date, end_date, 30, channels = [2, 6, 13, 8, 9, 10])
-#
-#sys.exit()
 
 plot_GOES_figure2(save=True, add_wv_time = False)
 sys.exit()

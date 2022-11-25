@@ -8718,10 +8718,10 @@ def plot_combined_figure1_v6(date_str = '202107222110', \
 
     # Read the true color data
     # ------------------------
-    ##var1, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel = \
-    ##    read_MODIS_satpy(date_str,'true_color',\
-    ###var1, crs1, lat_lims1, lon_lims1 = read_true_color(date_str,\
-    ##    composite=composite)
+    var1, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel = \
+        read_MODIS_satpy(date_str,'true_color',\
+    #var1, crs1, lat_lims1, lon_lims1 = read_true_color(date_str,\
+        composite=composite)
 
     # ----------------------------------------------------------------------
     #
@@ -8935,6 +8935,106 @@ def plot_combined_figure1_v6(date_str = '202107222110', \
 
     if(save):
             outname = 'modis_total_combined_' + date_str + '_fig1_v6.png'
+            fig.savefig(outname, dpi=300)
+            print("Saved",outname)
+    else:
+        plt.show()
+
+def plot_CERES_swaths(date_str = '202107222110', \
+        show_smoke = False, composite = True, \
+        zoom = True, save=False):
+
+    if(home_dir + '/Research/CERES' not in sys.path):
+        sys.path.append(home_dir + '/Research/CERES')
+    from gridCERESLib import readgridCERES_hrly_grid, plotCERES_hrly
+
+    date_str = '202107222110'
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    # ----------------------------------------------------------------------
+    #
+    # Read the CERES data
+    #
+    # ----------------------------------------------------------------------
+    CERES_data_hrly_swf = readgridCERES_hrly_grid(date_str[:10], 'SWF', \
+        minlat = 20., modis_comp = True)
+
+    var1, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel = \
+        read_MODIS_satpy(date_str,'true_color',\
+    #var1, crs1, lat_lims1, lon_lims1 = read_true_color(date_str,\
+        composite=True)
+
+    # ----------------------------------------------------------------------
+    #
+    #  Set up the 6-panel figure
+    #
+    # ----------------------------------------------------------------------
+
+    mapcrs = init_proj(date_str)
+    plt.close('all')
+    fig = plt.figure(figsize=(9.0,3.3))
+    gs = fig.add_gridspec(nrows = 1, ncols = 3)
+    ax1  = fig.add_subplot(gs[0,0], projection = mapcrs) # true color    
+    ax2  = fig.add_subplot(gs[0,1], projection = mapcrs) # MODIS Ch 6
+    ax3  = fig.add_subplot(gs[0,2], projection = mapcrs) # MODIS Ch 7
+
+    # Plot the CERES  data
+    # --------------------
+    if(date_str == '202107222110'):
+        sw_vmax = 250
+        sw_vmin = 130
+        lw_vmax = 370
+        lw_vmin = 300
+        tot_vmax = 580
+        tot_vmin = 460
+    elif(date_str == '202108062025'):
+        sw_vmax = 330
+        sw_vmin = 190
+        lw_vmax = 370
+        lw_vmin = 300
+  
+    plotCERES_hrly(ax1, CERES_data_hrly_swf, 'swf', \
+        vmin = sw_vmin, vmax = sw_vmax, title = '', label = 'TOA Flux [W/m$^{2}$]', \
+        circle_bound = False, gridlines = False, grid_data = True, \
+        zoom = True)
+    plotCERES_hrly(ax2, CERES_data_hrly_swf, 'lwf', \
+        vmin = lw_vmin, vmax = lw_vmax, title = '', label = 'TOA Flux [W/m$^{2}$]', \
+        circle_bound = False, gridlines = False, grid_data = True, \
+        zoom = True)
+    plotCERES_hrly(ax3, CERES_data_hrly_swf, 'total', \
+        vmin = tot_vmin, vmax = tot_vmax, title = '', label = 'TOA Flux [W/m$^{2}$]', \
+        circle_bound = False, gridlines = False, grid_data = True, \
+        zoom = True)
+    if(zoom):
+        ax1.set_extent([lon_lims1[0],lon_lims1[1],lat_lims1[0],lat_lims1[1]],\
+                       datacrs)
+        ax2.set_extent([lon_lims1[0],lon_lims1[1],lat_lims1[0],lat_lims1[1]],\
+                       datacrs)
+        ax3.set_extent([lon_lims1[0],lon_lims1[1],lat_lims1[0],lat_lims1[1]],\
+                       datacrs)
+
+    # Add subplot labels
+    # ------------------
+    font_size = 10
+    plot_subplot_label(ax1, '(a)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax2, '(b)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax3, '(c)', backgroundcolor = 'white', fontsize = font_size)
+
+    # Add plot text
+    # -------------
+    plot_figure_text(ax1, 'CERES SW', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax2, 'CERES LW', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax3, 'CERES Total', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+
+    fig.suptitle(dt_date_str.strftime('Aqua CERES imagery of the Dixie Fire\n%Y/%m/%d %H:%M UTC'))
+
+    fig.tight_layout()
+
+    if(save):
+            outname = 'ceres_' + date_str + '_fig1.png'
             fig.savefig(outname, dpi=300)
             print("Saved",outname)
     else:

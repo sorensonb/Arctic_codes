@@ -969,7 +969,7 @@ def plot_compare_scatter_category(coloc_data, var1, var2, var3 = None, \
     print(plot_var, len(mask_xdata), len(mask_ydata), np.nanmax(mask_xdata), np.nanmax(mask_ydata))
 
     if(var3 is None):
-        ax.scatter(mask_xdata, mask_ydata, s = 6, color = pcolor)
+        ax.scatter(mask_xdata, mask_ydata, s = 6, color = pcolor, label = cat)
     else: 
         zdata = select_category(coloc_data, var3, cat)
         mask_zdata = np.ma.masked_where((xdata < xmin) | \
@@ -1106,3 +1106,67 @@ def plot_compare_combined_category(coloc_data, var1 = 'OMI', \
         print("Saved image", outname)
     else:
         plt.show()
+
+def plot_compare_combined_category_event(coloc_data, var1 = 'OMI', \
+        var2 = 'CERES_SWF', cat = "ALL", minlat = 65., \
+        xmin = 1.0, xmax = None, ymin = None, ymax = None, ax = None, \
+        colorbar = True, trend = True, zoom = False, color = None, \
+        save = False):
+
+    if(isinstance(coloc_data, str)):
+        dt_date_str = datetime.strptime(coloc_data, '%Y%m%d')
+        coloc_data = read_colocated_combined(coloc_data)
+    else:
+        dt_date_str = datetime.strptime(coloc_data['date_str'], '%Y%m%d')
+
+    fig = plt.figure(figsize = (12,4))
+    ax1 = fig.add_subplot(1,3,1)
+    ax2 = fig.add_subplot(1,3,2)
+    ax3 = fig.add_subplot(1,3,3)
+    ##ax1 = fig.add_subplot(2,3,1)
+    ##ax2 = fig.add_subplot(2,3,4)
+    ##ax3 = fig.add_subplot(2,3,2)
+    ##ax4 = fig.add_subplot(2,3,5)
+    ##ax5 = fig.add_subplot(2,3,3)
+    ##ax6 = fig.add_subplot(2,3,6)
+    
+    plot_compare_scatter_category(coloc_data, var1, var2, var3 = None, \
+        cat = 'ICE_CLOUD', minlat = 65., xmin = xmin, xmax = None, ymin = None, ymax = None, \
+        ax = ax1, colorbar = True, trend = trend, zoom = False, save = False,\
+        color = 'tab:blue')
+    plot_compare_scatter_category(coloc_data, var1, var2, var3 = None, \
+        cat = 'ICE_CLEAR', minlat = 65., xmin = xmin, xmax = None, ymin = None, ymax = None, \
+        ax = ax1, colorbar = True, trend = trend, zoom = False, save = False,\
+        color = 'tab:orange')
+    plot_compare_scatter_category(coloc_data, var1, var2, var3 = None, \
+        cat = 'OCEAN_CLOUD', minlat = 65., xmin = xmin, xmax = None, ymin = None, ymax = None, \
+        ax = ax2, colorbar = True, trend = trend, zoom = False, save = False, \
+        color = 'tab:blue')
+    plot_compare_scatter_category(coloc_data, var1, var2, var3 = None, \
+        cat = 'OCEAN_CLEAR', minlat = 65., xmin = xmin, xmax = None, ymin = None, ymax = None, \
+        ax = ax2, colorbar = True, trend = trend, zoom = False, save = False, \
+        color = 'tab:orange')
+    plot_compare_scatter_category(coloc_data, var1, var2, var3 = None, \
+        cat = 'LAND_CLOUD', minlat = 65., xmin = xmin, xmax = None, ymin = None, ymax = None, \
+        ax = ax3, colorbar = True, trend = trend, zoom = False, save = False, \
+        color = 'tab:blue')
+    plot_compare_scatter_category(coloc_data, var1, var2, var3 = None, \
+        cat = 'LAND_CLEAR', minlat = 65., xmin = xmin, xmax = None, ymin = None, ymax = None, \
+        ax = ax3, colorbar = True, trend = trend, zoom = False, save = False, \
+        color = 'tab:orange')
+    ax1.legend()
+    ax2.legend()
+    ax3.legend()
+    #plt.suptitle(coloc_data['date_str'])
+    #plt.suptitle(coloc_data)
+    fig.tight_layout()
+
+    if(save):    
+        date_str = dt_date_str.strftime('%Y%m%d')
+        outname = 'arctic_daily_scatter_' + date_str + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:    
+        plt.show()
+    
+

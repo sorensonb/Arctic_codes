@@ -7,8 +7,9 @@
 
 from NAAPSLib import *
 
-date_str = '20080422'
+#date_str = '20080422'
 date_str = '20120615'
+#date_str = '20170816'
 var = 'smoke_conc_sfc'
 #date_str = '20080422'
 #date_str = '20170816'
@@ -24,7 +25,8 @@ elif(date_str == '20080422'):
     minlat = 60.
     min_smoke = 40
     max_smoke = 2e5
-    lat_bounds = [60, 70]
+    vmax = 300
+    lat_bounds = [65, 75]
     lon_bounds = [150, 210]
 elif(date_str == '20120615'):
     minlat = 60.

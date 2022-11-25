@@ -77,14 +77,16 @@ from satpy.writers import get_enhanced_image
 from glob import glob
 import os
 
-sys.path.append('/home/bsorenson/')
+home_dir = os.environ['HOME']
+
+sys.path.append(home_dir + '/')
 from python_lib import *
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 # Set up global variables
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 datacrs = ccrs.PlateCarree()
-data_dir = '/home/bsorenson/data/GOES/goes17_abi/'
+data_dir = home_dir + '/data/GOES/goes17_abi/'
 debug = False
 
 zoom_dict = {
@@ -219,10 +221,10 @@ goes_area_dict = {
     "2021-07-13": {
         ##!#'2110': {
         'asos': 'asos_data_20210713.csv',
-        #'goes': '/home/bsorenson/data/GOES/Aqua/MYD021KM.A2021203.2110.061.2021204155922.hdf',
-        #'mdswv': '/home/bsorenson/data/GOES/Aqua/MYD05_L2.A2021203.2110.061.2021204163638.hdf',
-        #'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072210-2021072221.nc',
-        #'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.22.212.L2.SUBS2RET.v6.0.32.0.G21204140844.hdf'],
+        #'goes': home_dir + '/data/GOES/Aqua/MYD021KM.A2021203.2110.061.2021204155922.hdf',
+        #'mdswv': home_dir + '/data/GOES/Aqua/MYD05_L2.A2021203.2110.061.2021204163638.hdf',
+        #'ceres': home_dir + '/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072210-2021072221.nc',
+        #'airs': [home_dir + '/data/AIRS/Aqua/AIRS.2021.07.22.212.L2.SUBS2RET.v6.0.32.0.G21204140844.hdf'],
         'Lat': [39.5, 42.0],
         'Lon': [-122.0, -119.5],
         ##!#'goes_Lat': [39.0, 42.5],
@@ -234,10 +236,10 @@ goes_area_dict = {
     "2021-07-14": {
         ##!#'2110': {
         'asos': 'asos_data_20210713.csv',
-        #'goes': '/home/bsorenson/data/GOES/Aqua/MYD021KM.A2021203.2110.061.2021204155922.hdf',
-        #'mdswv': '/home/bsorenson/data/GOES/Aqua/MYD05_L2.A2021203.2110.061.2021204163638.hdf',
-        #'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072210-2021072221.nc',
-        #'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.22.212.L2.SUBS2RET.v6.0.32.0.G21204140844.hdf'],
+        #'goes': home_dir + '/data/GOES/Aqua/MYD021KM.A2021203.2110.061.2021204155922.hdf',
+        #'mdswv': home_dir + '/data/GOES/Aqua/MYD05_L2.A2021203.2110.061.2021204163638.hdf',
+        #'ceres': home_dir + '/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072210-2021072221.nc',
+        #'airs': [home_dir + '/data/AIRS/Aqua/AIRS.2021.07.22.212.L2.SUBS2RET.v6.0.32.0.G21204140844.hdf'],
         'Lat': [39.5, 42.0],
         'Lon': [-122.0, -119.5],
         ##!#'goes_Lat': [39.0, 42.5],
@@ -248,9 +250,9 @@ goes_area_dict = {
     },
     "2021-07-20": {
         'asos': 'asos_data_20210720.csv',
-        #'goes': '/home/bsorenson/data/GOES/Aqua/MYD021KM.A2021201.2125.061.2021202154814.hdf',
-        #'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072010-2021072021.nc',
-        #'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.20.214.L2.SUBS2RET.v6.0.32.0.G21202153435.hdf'],
+        #'goes': home_dir + '/data/GOES/Aqua/MYD021KM.A2021201.2125.061.2021202154814.hdf',
+        #'ceres': home_dir + '/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072010-2021072021.nc',
+        #'airs': [home_dir + '/data/AIRS/Aqua/AIRS.2021.07.20.214.L2.SUBS2RET.v6.0.32.0.G21202153435.hdf'],
         'Lat': [39.5, 42.0],
         'Lon': [-122.0, -119.5],
         'data_lim': {
@@ -262,9 +264,9 @@ goes_area_dict = {
     },
     "2021-07-21": {
         'asos': 'asos_data_20210722_4.csv',
-        #'goes': '/home/bsorenson/data/GOES/Aqua/MYD021KM.A2021202.2030.061.2021203174050.hdf',
-        #'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072109-2021072122.nc',
-        #'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.21.205.L2.SUBS2RET.v6.0.32.0.G21203185004.hdf'],
+        #'goes': home_dir + '/data/GOES/Aqua/MYD021KM.A2021202.2030.061.2021203174050.hdf',
+        #'ceres': home_dir + '/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072109-2021072122.nc',
+        #'airs': [home_dir + '/data/AIRS/Aqua/AIRS.2021.07.21.205.L2.SUBS2RET.v6.0.32.0.G21203185004.hdf'],
         'Lat': [39.5, 42.0],
         'Lon': [-122.0, -119.5],
         'Lat': [39.5, 42.0],
@@ -278,10 +280,10 @@ goes_area_dict = {
     },
     "2021-07-22": {
         'asos': 'asos_data_20210722_4.csv',
-        #'goes': '/home/bsorenson/data/GOES/Aqua/MYD021KM.A2021203.2110.061.2021204155922.hdf',
-        #'mdswv': '/home/bsorenson/data/GOES/Aqua/MYD05_L2.A2021203.2110.061.2021204163638.hdf',
-        #'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072210-2021072221.nc',
-        'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.22.212.L2.SUBS2RET.v6.0.32.0.G21204140844.hdf'],
+        #'goes': home_dir + '/data/GOES/Aqua/MYD021KM.A2021203.2110.061.2021204155922.hdf',
+        #'mdswv': home_dir + '/data/GOES/Aqua/MYD05_L2.A2021203.2110.061.2021204163638.hdf',
+        #'ceres': home_dir + '/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072210-2021072221.nc',
+        'airs': [home_dir + '/data/AIRS/Aqua/AIRS.2021.07.22.212.L2.SUBS2RET.v6.0.32.0.G21204140844.hdf'],
         'Lat': [39.5, 42.0],
         'Lon': [-122.0, -119.5],
         #'Lat': [39.5, 42.0],
@@ -300,10 +302,10 @@ goes_area_dict = {
     },
     "2021-07-23": {
         'asos': 'asos_data_20210722_2.csv',
-        'goes': '/home/bsorenson/data/GOES/Aqua/MYD021KM.A2021204.2155.061.2021205153516.hdf',
-        #'mdswv': '/home/bsorenson/data/GOES/Aqua/MYD05_L2.A2021203.2110.061.2021204163638.hdf',
-        #'ceres': '/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072210-2021072221.nc',
-        #'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.07.22.212.L2.SUBS2RET.v6.0.32.0.G21204140844.hdf'],
+        'goes': home_dir + '/data/GOES/Aqua/MYD021KM.A2021204.2155.061.2021205153516.hdf',
+        #'mdswv': home_dir + '/data/GOES/Aqua/MYD05_L2.A2021203.2110.061.2021204163638.hdf',
+        #'ceres': home_dir + '/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072210-2021072221.nc',
+        #'airs': [home_dir + '/data/AIRS/Aqua/AIRS.2021.07.22.212.L2.SUBS2RET.v6.0.32.0.G21204140844.hdf'],
         'Lat': [39.5, 42.0],
         'Lon': [-122.0, -119.5],
         #'Lat': [39.5, 42.0],
@@ -320,11 +322,11 @@ goes_area_dict = {
     "2021-08-04": {
         'asos': 'asos_data_20210806.csv',
         #'asos': 'asos_nevada_20210806.csv',
-        #'goes': '/home/bsorenson/data/GOES/Aqua/MYD021KM.A2021218.2025.061.2021219151802.hdf',
-        #'mdswv': '/home/bsorenson/data/GOES/Aqua/MYD05_L2.A2021218.2025.061.2021219152751.hdf',
-        'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.04.206.L2.SUBS2RET.v6.0.32.0.G21217152448.hdf',\
-                 '/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.04.207.L2.SUBS2RET.v6.0.32.0.G21217152904.hdf'],\
-        #'omi': '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0806t1943-o90747_v003-2021m0808t031152.he5',
+        #'goes': home_dir + '/data/GOES/Aqua/MYD021KM.A2021218.2025.061.2021219151802.hdf',
+        #'mdswv': home_dir + '/data/GOES/Aqua/MYD05_L2.A2021218.2025.061.2021219152751.hdf',
+        'airs': [home_dir + '/data/AIRS/Aqua/AIRS.2021.08.04.206.L2.SUBS2RET.v6.0.32.0.G21217152448.hdf',\
+                 home_dir + '/data/AIRS/Aqua/AIRS.2021.08.04.207.L2.SUBS2RET.v6.0.32.0.G21217152904.hdf'],\
+        #'omi': home_dir + '/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0806t1943-o90747_v003-2021m0808t031152.he5',
         'Lat': [36.0, 39.0],
         'Lon': [-118.0, -114.0],
         'goes_Lat': [35.0, 40.0],
@@ -333,11 +335,11 @@ goes_area_dict = {
     "2021-08-05": {
         '2120': {
             'asos': 'asos_data_20210805.csv',
-            'goes': '/home/bsorenson/data/GOES/Aqua/MYD021KM.A2021217.2120.061.2021218164201.hdf',
-            'mdswv': '/home/bsorenson/data/GOES/Aqua/MYD05_L2.A2021217.2120.061.2021218165546.hdf',
-            'ceres': '/home/bsorenson/data/CERES/FLASHFlux/Aqua/FLASH_SSF_Aqua_Version4A_Subset_2021080508-2021080521.nc',
-            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.05.214.L2.SUBS2RET.v6.0.32.0.G21218175548.hdf'],
-            'omi': '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0805t2038-o90733_v003-2021m0807t014855.he5',
+            'goes': home_dir + '/data/GOES/Aqua/MYD021KM.A2021217.2120.061.2021218164201.hdf',
+            'mdswv': home_dir + '/data/GOES/Aqua/MYD05_L2.A2021217.2120.061.2021218165546.hdf',
+            'ceres': home_dir + '/data/CERES/FLASHFlux/Aqua/FLASH_SSF_Aqua_Version4A_Subset_2021080508-2021080521.nc',
+            'airs': [home_dir + '/data/AIRS/Aqua/AIRS.2021.08.05.214.L2.SUBS2RET.v6.0.32.0.G21218175548.hdf'],
+            'omi': home_dir + '/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0805t2038-o90733_v003-2021m0807t014855.he5',
             'Lat': [36.5, 39.0],
             'Lon': [-118.0, -114.0],
             'goes_Lat': [36.0, 39.0],
@@ -345,9 +347,9 @@ goes_area_dict = {
         },
         '2125': {
             'asos': 'asos_california_20210805.csv',
-            'goes': '/home/bsorenson/data/GOES/Aqua/MYD021KM.A2021217.2125.061.2021218161010.hdf',
-            'ceres': '/home/bsorenson/data/CERES/FLASHFlux/Aqua/FLASH_SSF_Aqua_Version4A_Subset_2021080508-2021080521.nc',
-            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.05.214.L2.SUBS2RET.v6.0.32.0.G21218175548.hdf'],
+            'goes': home_dir + '/data/GOES/Aqua/MYD021KM.A2021217.2125.061.2021218161010.hdf',
+            'ceres': home_dir + '/data/CERES/FLASHFlux/Aqua/FLASH_SSF_Aqua_Version4A_Subset_2021080508-2021080521.nc',
+            'airs': [home_dir + '/data/AIRS/Aqua/AIRS.2021.08.05.214.L2.SUBS2RET.v6.0.32.0.G21218175548.hdf'],
             'Lat': [39.5, 42.0],
             'Lon': [-122.0, -119.0],
             'goes_Lat': [39.5, 42.0],
@@ -358,12 +360,12 @@ goes_area_dict = {
         '2025': {
             'asos': 'asos_data_20210806.csv',
             #'asos': 'asos_nevada_20210806.csv',
-            'goes': '/home/bsorenson/data/GOES/Aqua/MYD021KM.A2021218.2025.061.2021219151802.hdf',
-            'mdswv': '/home/bsorenson/data/GOES/Aqua/MYD05_L2.A2021218.2025.061.2021219152751.hdf',
-            'ceres': '/home/bsorenson/data/CERES/FLASHFlux/Aqua/FLASH_SSF_Aqua_Version4A_Subset_2021080609-2021080620.nc',
-            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.06.204.L2.SUBS2RET.v6.0.32.0.G21219130523.hdf',\
-                     '/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.06.205.L2.SUBS2RET.v6.0.32.0.G21219130455.hdf'],
-            'omi': '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0806t1943-o90747_v003-2021m0808t031152.he5',
+            'goes': home_dir + '/data/GOES/Aqua/MYD021KM.A2021218.2025.061.2021219151802.hdf',
+            'mdswv': home_dir + '/data/GOES/Aqua/MYD05_L2.A2021218.2025.061.2021219152751.hdf',
+            'ceres': home_dir + '/data/CERES/FLASHFlux/Aqua/FLASH_SSF_Aqua_Version4A_Subset_2021080609-2021080620.nc',
+            'airs': [home_dir + '/data/AIRS/Aqua/AIRS.2021.08.06.204.L2.SUBS2RET.v6.0.32.0.G21219130523.hdf',\
+                     home_dir + '/data/AIRS/Aqua/AIRS.2021.08.06.205.L2.SUBS2RET.v6.0.32.0.G21219130455.hdf'],
+            'omi': home_dir + '/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0806t1943-o90747_v003-2021m0808t031152.he5',
             'Lat': [36.0, 39.0],
             'Lon': [-118.0, -114.0],
             'goes_Lat': [36.0, 39.0],
@@ -374,10 +376,10 @@ goes_area_dict = {
         '2110': {
             'asos': 'asos_data_20210806.csv',
             #'asos': 'asos_nevada_20210806.csv',
-            'goes': '/home/bsorenson/data/GOES/Aqua/MYD021KM.A2021219.2110.061.2021220151612.hdf',
-            #'mdswv': '/home/bsorenson/data/GOES/Aqua/MYD05_L2.A2021218.2025.061.2021219152751.hdf',
-            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.07.212.L2.SUBS2RET.v6.0.32.0.G21220123225.hdf'],\
-            #'omi': '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0806t1943-o90747_v003-2021m0808t031152.he5',
+            'goes': home_dir + '/data/GOES/Aqua/MYD021KM.A2021219.2110.061.2021220151612.hdf',
+            #'mdswv': home_dir + '/data/GOES/Aqua/MYD05_L2.A2021218.2025.061.2021219152751.hdf',
+            'airs': [home_dir + '/data/AIRS/Aqua/AIRS.2021.08.07.212.L2.SUBS2RET.v6.0.32.0.G21220123225.hdf'],\
+            #'omi': home_dir + '/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0806t1943-o90747_v003-2021m0808t031152.he5',
             'Lat': [36.0, 39.0],
             'Lon': [-118.0, -114.0],
             'goes_Lat': [35.0, 40.0],
@@ -388,11 +390,11 @@ goes_area_dict = {
         '2110': {
             'asos': 'asos_data_20210806.csv',
             #'asos': 'asos_nevada_20210806.csv',
-            #'goes': '/home/bsorenson/data/GOES/Aqua/MYD021KM.A2021218.2025.061.2021219151802.hdf',
-            #'mdswv': '/home/bsorenson/data/GOES/Aqua/MYD05_L2.A2021218.2025.061.2021219152751.hdf',
-            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.08.202.L2.SUBS2RET.v6.0.32.0.G21221124420.hdf',\
-                     '/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.08.203.L2.SUBS2RET.v6.0.32.0.G21221185932.hdf'],\
-            #'omi': '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0806t1943-o90747_v003-2021m0808t031152.he5',
+            #'goes': home_dir + '/data/GOES/Aqua/MYD021KM.A2021218.2025.061.2021219151802.hdf',
+            #'mdswv': home_dir + '/data/GOES/Aqua/MYD05_L2.A2021218.2025.061.2021219152751.hdf',
+            'airs': [home_dir + '/data/AIRS/Aqua/AIRS.2021.08.08.202.L2.SUBS2RET.v6.0.32.0.G21221124420.hdf',\
+                     home_dir + '/data/AIRS/Aqua/AIRS.2021.08.08.203.L2.SUBS2RET.v6.0.32.0.G21221185932.hdf'],\
+            #'omi': home_dir + '/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2021m0806t1943-o90747_v003-2021m0808t031152.he5',
             'Lat': [36.0, 39.0],
             'Lon': [-118.0, -114.0],
             'goes_Lat': [35.0, 40.0],
@@ -409,8 +411,8 @@ goes_area_dict = {
     "2021-08-30": {
         '2115': {
             'asos': 'asos_data_20210830.csv',
-            'goes': '/home/bsorenson/data/GOES/Aqua/MYD021KM.A2021242.2115.061.2021243183953.hdf',
-            'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.30.213.L2.SUBS2RET.v6.0.32.0.G21243151114.hdf'],
+            'goes': home_dir + '/data/GOES/Aqua/MYD021KM.A2021242.2115.061.2021243183953.hdf',
+            'airs': [home_dir + '/data/AIRS/Aqua/AIRS.2021.08.30.213.L2.SUBS2RET.v6.0.32.0.G21243151114.hdf'],
             'Lat': [38.0, 40.0],
             'Lon': [-121.0, -118.5]
         }
@@ -418,8 +420,8 @@ goes_area_dict = {
     "2021-09-01": {
         '2105': {
             'asos': 'asos_data_20210830.csv',
-            'goes': '/home/bsorenson/data/GOES/Aqua/MYD021KM.A2021244.2105.061.2021245152256.hdf',
-            #'airs': ['/home/bsorenson/data/AIRS/Aqua/AIRS.2021.08.30.213.L2.SUBS2RET.v6.0.32.0.G21243151114.hdf'],
+            'goes': home_dir + '/data/GOES/Aqua/MYD021KM.A2021244.2105.061.2021245152256.hdf',
+            #'airs': [home_dir + '/data/AIRS/Aqua/AIRS.2021.08.30.213.L2.SUBS2RET.v6.0.32.0.G21243151114.hdf'],
             'Lat': [38.0, 42.0],
             'Lon': [-121.5, -118.0],
             'goes_Lat': [38.0, 42.0],
@@ -557,7 +559,7 @@ max_dict = {
 # channels is a list containing the numbers of the desired channels
 def download_GOES_bucket(date_str, sat = 'goes17', \
         channels = [2,6,8,9,10,13], dest_dir = \
-        '/home/bsorenson/data/GOES/goes17_abi/'):
+        home_dir + '/data/GOES/goes17_abi/'):
 
     # Convert the input date_str to datetime
     # --------------------------------------
@@ -612,14 +614,22 @@ def download_GOES_bucket(date_str, sat = 'goes17', \
     # Loop over the selected files and download them
     # ----------------------------------------------
     for gf in good_files:
-        request_add = dt_date_str.strftime('s3://noaa-'+sat+\
-            '/ABI-L1b-RadC/%Y/%j/%H/' + gf)
-        #print(request_add)
-        cmnd_list = ['aws','s3','cp','--no-sign-request',\
-            request_add, dest_dir]
-        print(' '.join(cmnd_list))
-        subprocess.run(cmnd_list, check=True, \
-            capture_output=False)
+        # Determine if the file is already downloaded
+        # -------------------------------------------
+        total_fname = dest_dir + gf
+        if(os.path.exists(total_fname)):
+            print("File",gf,"already exists. Not downloading")
+        else:
+            print("File",gf,"not found. Downloading")
+
+            request_add = dt_date_str.strftime('s3://noaa-'+sat+\
+                '/ABI-L1b-RadC/%Y/%j/%H/' + gf)
+            #print(request_add)
+            cmnd_list = ['aws','s3','cp','--no-sign-request',\
+                request_add, dest_dir]
+            print(' '.join(cmnd_list))
+            subprocess.run(cmnd_list, check=True, \
+                capture_output=False)
 
 # begin_date : YYYYMMDDHHMM
 # end_date   : YYYYMMDDHHMM
@@ -636,7 +646,7 @@ def download_GOES_bucket(date_str, sat = 'goes17', \
 #              that does not belong to bsorenson.
 def auto_GOES_download(begin_date, end_date, interval, sat = 'goes17', \
         channels = [2,6,8,9,10,13], dest_dir = \
-        '/home/bsorenson/data/GOES/goes17_abi/'):
+        home_dir + '/data/GOES/goes17_abi/'):
 
     # Convert the input date_str to datetime
     # --------------------------------------
@@ -1095,7 +1105,7 @@ def read_GOES_satpy(date_str, channel, scene_date = None, \
     # Determine the correct GOES files associated with the date
     # ---------------------------------------------------------
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
-    dt_date_str_end = dt_date_str + timedelta(minutes = 10)
+    dt_date_str_end = dt_date_str + timedelta(minutes = 3)
 
     try:
         # Use the Satpy find_files_and_readers to grab the files
@@ -1133,6 +1143,7 @@ def read_GOES_satpy(date_str, channel, scene_date = None, \
             except NotImplementedError:
                 print("WARNING: zoom didn't work for dtg",date_str,\
                     " and channel", channel)
+                scn = scn
 
     else:
         scn.load([0.47, 0.64, 0.86])
@@ -1450,6 +1461,7 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
             xval = None, yval = None, transform = None, \
             color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
             location = 'upper_right', halign = 'right')
+
     # 2nd channel
     # -----------
     plot_figure_text(ax1, \
@@ -1632,7 +1644,7 @@ def plot_GOES_6panel_auto(begin_date, end_date, ch1 = 2, ch2 = 6, \
     # Find all downloaded GOES filenames that are between these
     # two dates
     # ---------------------------------------------------------
-    all_files = glob('/home/bsorenson/data/GOES/goes17_abi/*.nc')
+    all_files = glob(home_dir + '/data/GOES/goes17_abi/*.nc')
     all_dates = [datetime.strptime(ffile.strip().split('/')[-1][27:40],\
         '%Y%j%H%M%S') for ffile in all_files]
    
@@ -1729,10 +1741,10 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
 
     # Read the GOES time series data
     # ------------------------------
-    file_name1 = '/home/bsorenson/Research/GOES/goes_cross_data_' + \
-        ttype1 + '_202107201201_202107210231.nc'
-    file_name2 = '/home/bsorenson/Research/GOES/goes_cross_data_' + \
-        ttype2 + '_202107201201_202107210231.nc'
+    file_name1 = home_dir + '/Research/GOES/goes_cross_data_' + \
+        ttype1 + '_202107201201_202107210331_v3.nc'
+    file_name2 = home_dir + '/Research/GOES/goes_cross_data_' + \
+        ttype2 + '_202107201201_202107210331_v3.nc'
     GOES_dict  = read_GOES_time_series_NCDF(file_name1)
     GOES_dict2 = read_GOES_time_series_NCDF(file_name2)
 
@@ -1870,18 +1882,18 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
     ax6.plot(GOES_dict2['plon'][idx3], GOES_dict2['plat'][idx3], \
             linewidth=2, markersize = point_size, marker='.',
             transform=datacrs)
-    ax6.plot(GOES_dict['plon'][idx4], GOES_dict['plat'][idx4], \
-            linewidth=2, markersize = point_size + 2, marker='.',
-            color = 'black', transform=datacrs)
-    ax6.plot(GOES_dict['plon'][idx4], GOES_dict['plat'][idx4], \
-            linewidth=2, markersize = point_size, marker='.',
-            transform=datacrs)
-    ax6.plot(GOES_dict['plon'][idx5], GOES_dict['plat'][idx5], \
-            linewidth=2, markersize = point_size + 2, marker='.',
-            color = 'black', transform=datacrs)
-    ax6.plot(GOES_dict['plon'][idx5], GOES_dict['plat'][idx5], \
-            linewidth=2, markersize = point_size, marker='.',
-            transform=datacrs)
+    #ax6.plot(GOES_dict['plon'][idx4], GOES_dict['plat'][idx4], \
+    #        linewidth=2, markersize = point_size + 2, marker='.',
+    #        color = 'black', transform=datacrs)
+    #ax6.plot(GOES_dict['plon'][idx4], GOES_dict['plat'][idx4], \
+    #        linewidth=2, markersize = point_size, marker='.',
+    #        transform=datacrs)
+    #ax6.plot(GOES_dict['plon'][idx5], GOES_dict['plat'][idx5], \
+    #        linewidth=2, markersize = point_size + 2, marker='.',
+    #        color = 'black', transform=datacrs)
+    #ax6.plot(GOES_dict['plon'][idx5], GOES_dict['plat'][idx5], \
+    #        linewidth=2, markersize = point_size, marker='.',
+    #        transform=datacrs)
     print("Upper WV")
     print("     Blue   - ", np.array(var5)[lw_idx_b])
     print("     Orange - ", np.array(var5)[lw_idx_o])
@@ -1905,18 +1917,18 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
     ax7.plot(GOES_dict2['plon'][idx3], GOES_dict2['plat'][idx3], \
             linewidth=2, markersize = point_size, marker='.',
             transform=datacrs)
-    ax7.plot(GOES_dict['plon'][idx4], GOES_dict['plat'][idx4], \
-            linewidth=2, markersize = point_size + 2, marker='.',
-            color = 'black', transform=datacrs)
-    ax7.plot(GOES_dict['plon'][idx4], GOES_dict['plat'][idx4], \
-            linewidth=2, markersize = point_size, marker='.',
-            transform=datacrs)
-    ax7.plot(GOES_dict['plon'][idx5], GOES_dict['plat'][idx5], \
-            linewidth=2, markersize = point_size + 2, marker='.',
-            color = 'black', transform=datacrs)
-    ax7.plot(GOES_dict['plon'][idx5], GOES_dict['plat'][idx5], \
-            linewidth=2, markersize = point_size, marker='.',
-            transform=datacrs)
+    #ax7.plot(GOES_dict['plon'][idx4], GOES_dict['plat'][idx4], \
+    #        linewidth=2, markersize = point_size + 2, marker='.',
+    #        color = 'black', transform=datacrs)
+    #ax7.plot(GOES_dict['plon'][idx4], GOES_dict['plat'][idx4], \
+    #        linewidth=2, markersize = point_size, marker='.',
+    #        transform=datacrs)
+    #ax7.plot(GOES_dict['plon'][idx5], GOES_dict['plat'][idx5], \
+    #        linewidth=2, markersize = point_size + 2, marker='.',
+    #        color = 'black', transform=datacrs)
+    #ax7.plot(GOES_dict['plon'][idx5], GOES_dict['plat'][idx5], \
+    #        linewidth=2, markersize = point_size, marker='.',
+    #        transform=datacrs)
     print("Mid WV")
     print("     Blue   - ", np.array(var6)[lw_idx_b])
     print("     Orange - ", np.array(var6)[lw_idx_o])
@@ -1940,18 +1952,18 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
     ax8.plot(GOES_dict2['plon'][idx3], GOES_dict2['plat'][idx3], \
             linewidth=2, markersize = point_size, marker='.',
             transform=datacrs)
-    ax8.plot(GOES_dict['plon'][idx4], GOES_dict['plat'][idx4], \
-            linewidth=2, markersize = point_size + 2, marker='.',
-            color = 'black', transform=datacrs)
-    ax8.plot(GOES_dict['plon'][idx4], GOES_dict['plat'][idx4], \
-            linewidth=2, markersize = point_size, marker='.',
-            transform=datacrs)
-    ax8.plot(GOES_dict['plon'][idx5], GOES_dict['plat'][idx5], \
-            linewidth=2, markersize = point_size + 2, marker='.',
-            color = 'black', transform=datacrs)
-    ax8.plot(GOES_dict['plon'][idx5], GOES_dict['plat'][idx5], \
-            linewidth=2, markersize = point_size, marker='.',
-            transform=datacrs)
+    #ax8.plot(GOES_dict['plon'][idx4], GOES_dict['plat'][idx4], \
+    #        linewidth=2, markersize = point_size + 2, marker='.',
+    #        color = 'black', transform=datacrs)
+    #ax8.plot(GOES_dict['plon'][idx4], GOES_dict['plat'][idx4], \
+    #        linewidth=2, markersize = point_size, marker='.',
+    #        transform=datacrs)
+    #ax8.plot(GOES_dict['plon'][idx5], GOES_dict['plat'][idx5], \
+    #        linewidth=2, markersize = point_size + 2, marker='.',
+    #        color = 'black', transform=datacrs)
+    #ax8.plot(GOES_dict['plon'][idx5], GOES_dict['plat'][idx5], \
+    #        linewidth=2, markersize = point_size, marker='.',
+    #        transform=datacrs)
     print("Lower WV")
     print("     Blue   - ", np.array(var7)[lw_idx_b])
     print("     Orange - ", np.array(var7)[lw_idx_o])
@@ -1975,18 +1987,18 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
     ax9.plot(GOES_dict2['plon'][idx3], GOES_dict2['plat'][idx3], \
             linewidth=2, markersize = point_size, marker='.',
             transform=datacrs)
-    ax9.plot(GOES_dict['plon'][idx4], GOES_dict['plat'][idx4], \
-            linewidth=2, markersize = point_size + 2, marker='.',
-            color = 'black', transform=datacrs)
-    ax9.plot(GOES_dict['plon'][idx4], GOES_dict['plat'][idx4], \
-            linewidth=2, markersize = point_size, marker='.',
-            transform=datacrs)
-    ax9.plot(GOES_dict['plon'][idx5], GOES_dict['plat'][idx5], \
-            linewidth=2, markersize = point_size + 2, marker='.',
-            color = 'black', transform=datacrs)
-    ax9.plot(GOES_dict['plon'][idx5], GOES_dict['plat'][idx5], \
-            linewidth=2, markersize = point_size, marker='.',
-            transform=datacrs)
+    #ax9.plot(GOES_dict['plon'][idx4], GOES_dict['plat'][idx4], \
+    #        linewidth=2, markersize = point_size + 2, marker='.',
+    #        color = 'black', transform=datacrs)
+    #ax9.plot(GOES_dict['plon'][idx4], GOES_dict['plat'][idx4], \
+    #        linewidth=2, markersize = point_size, marker='.',
+    #        transform=datacrs)
+    #ax9.plot(GOES_dict['plon'][idx5], GOES_dict['plat'][idx5], \
+    #        linewidth=2, markersize = point_size + 2, marker='.',
+    #        color = 'black', transform=datacrs)
+    #ax9.plot(GOES_dict['plon'][idx5], GOES_dict['plat'][idx5], \
+    #        linewidth=2, markersize = point_size, marker='.',
+    #        transform=datacrs)
 
     # Plot the two channel data for the first point
     # ---------------------------------------------
@@ -2055,7 +2067,331 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
                     Line2D([0], [0], color='k', linestyle = '--'),
                     Line2D([0], [0], color='k', linestyle = ':')]
 
-    ax10.legend(custom_lines, ['0.64 μm', '2.25 μm', '10.35 μm'],\
+    ax10.legend(custom_lines, ['0.64 μm Refl.', '2.25 μm Refl.', '10.35 μm Bright. Temp.'],\
+        fontsize = font_size, loc = 2)
+    #ax10.legend(lns, labs, fontsize = font_size)
+
+    # Add subplot labels
+    # ------------------
+    font_size = 10
+    plabels = ['(a)','(b)','(c)','(d)','(e)','(f)','(g)']
+    plot_subplot_label(ax4, plabels[0], backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax5, plabels[1], backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax6, plabels[2], backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax7, plabels[3], backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax8, plabels[4], backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax9, plabels[5], backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax10, plabels[6], backgroundcolor = 'white', fontsize = font_size, location = 'upper_right')
+
+    # Add plot text
+    # -------------
+    plot_figure_text(ax4, 'True Color' , color = 'red', \
+        fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax5, \
+        str(goes_channel_dict[str(goes_ch2)]['wavelength']) \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    #plot_figure_text(ax5, 'GOES-17 2.25 μm', xval = None, yval = None, transform = None, \
+    #    color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax6, \
+        str(goes_channel_dict[str(goes_ch3)]['wavelength']) \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax7, \
+        str(goes_channel_dict[str(goes_ch4)]['wavelength']) \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax8, \
+        str(goes_channel_dict[str(goes_ch5)]['wavelength']) \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax9, \
+        str(goes_channel_dict[str(goes_ch6)]['wavelength']) \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+
+    # Add text labels to the GOES-17 imagery
+    # --------------------------------------
+    plot_figure_text(ax5, \
+        str(goes_channel_dict[str(goes_ch2)]['short_name']), \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
+        location = 'upper_right', halign = 'right')
+    plot_figure_text(ax6, \
+        str(goes_channel_dict[str(goes_ch3)]['short_name']), \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
+        location = 'upper_right', halign = 'right')
+    plot_figure_text(ax7, \
+        str(goes_channel_dict[str(goes_ch4)]['short_name']), \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
+        location = 'upper_right', halign = 'right')
+    plot_figure_text(ax8, \
+        str(goes_channel_dict[str(goes_ch5)]['short_name']), \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
+        location = 'upper_right', halign = 'right')
+    plot_figure_text(ax9, \
+        str(goes_channel_dict[str(goes_ch6)]['short_name']), \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
+        location = 'upper_right', halign = 'right')
+
+    fig.suptitle('GOES-17 Imagery of the Dixie Fire\n00:00 UTC 21 July 2021')
+    #fig.suptitle('GOES-17\n00:00 UTC 21 July 2021')
+    fig.tight_layout()
+
+    if(save):
+        outname = 'goes_combined_fig2_' + date_str + '_v2.png'
+        fig.savefig(outname, dpi=300)
+        print("Saved",outname)
+    else:
+        plt.show()
+
+def plot_GOES_ASOS_comp(date_str = '202107210000', \
+        goes_ch1 = 'true_color', goes_ch2 = 6, goes_ch3 = 13, \
+        goes_ch4 = 8, goes_ch5 = 9, goes_ch6 = 10, \
+        ch_idx1 = 0, ch_idx2 = 1, ch_idx3 = 2,\
+        ttype1 = 'asos', ttype2 = 'ml', \
+        idx1 = 3, idx2 = 8, idx3 = 5, idx4 = 15, idx5 = 20,\
+        date_idx = 25, 
+        show_smoke = False, composite = True, double_fig = False, \
+        zoom = True, save=False):
+
+    date_str2 = '202107202100'
+    dt_date_str2 = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    # Read the GOES data
+    # ------------------------
+    var2, crs0, lons, lats, lat_lims2, lon_lims2, plabel2   = \
+        read_GOES_satpy(date_str2, goes_ch1)
+    var3, crs0, lons3, lats3, lat_lims3, lon_lims3, plabel3 = \
+        read_GOES_satpy(date_str2, goes_ch2)
+    #var3, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel3 = read_GOES_satpy(date_str2, 6)
+    var4, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel4 = \
+        read_GOES_satpy(date_str2, goes_ch3)
+    var5, crs0, lons2, lats2, lat_lims0, lon_lims2, plabel5 = \
+        read_GOES_satpy(date_str2, goes_ch4)
+    var6, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel6 = \
+        read_GOES_satpy(date_str2, goes_ch5)
+    var7, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel7 = \
+        read_GOES_satpy(date_str2, goes_ch6)
+
+    # Read the GOES time series data
+    # ------------------------------
+    file_name1 = home_dir + '/Research/GOES/goes_cross_data_' + \
+        ttype1 + '_202107201201_202107210331.nc'
+    GOES_dict  = read_GOES_time_series_NCDF(file_name1)
+
+    # ----------------------------------------------------------------------
+    #
+    #  Set up the 6-panel figure
+    #
+    # ----------------------------------------------------------------------
+
+    plt.close('all')
+    fig   = plt.figure(figsize=(9.5,9))
+    gs    = fig.add_gridspec(nrows = 3, ncols = 3)
+    ax4   = fig.add_subplot(gs[0,0],  projection = crs0)   # GOES True color
+    ax5   = fig.add_subplot(gs[0,1],  projection = crs0)   # GOES SWIR
+    ax6   = fig.add_subplot(gs[0,2],  projection = crs0)   # GOES TIR 
+    ax7   = fig.add_subplot(gs[1,0],  projection = crs0)   # GOES upper WV
+    ax8   = fig.add_subplot(gs[1,1],  projection = crs0)   # GOES midle WV
+    ax9   = fig.add_subplot(gs[1,2],  projection = crs0)   # GOES lower WV
+    ax10  = fig.add_subplot(gs[2,:])                       # GOES time series
+    
+    labelsize = 10
+    plot_GOES_satpy(date_str, goes_ch1, ax = ax4, var = var2, crs = crs0, \
+        lons = lons, lats = lats, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+        ptitle = '', plabel = plabel2, \
+        colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+
+    ##!## Plot channel 1, 5, 31, and WV data spatial data
+    ##!## -----------------------------------------------
+    ##!#plot_GOES_satpy(date_str, 2, ax = ax4, var = var2, crs = crs0, \
+    ##!#    lons = lons, lats = lats, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+    ##!#    vmin = None, vmax = 60, \
+    ##!#    ptitle = '', plabel = plabel2, colorbar = True, labelsize = labelsize, \
+    ##!#    zoom=True,save=False)
+    plot_GOES_satpy(date_str, 6, ax = ax5, var = var3, crs = crs0, \
+        lons = lons3, lats = lats3, lat_lims = lat_lims3, lon_lims = lon_lims3, \
+        vmin = None, vmax = 40, \
+        ptitle = '', plabel = plabel3, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
+    plot_GOES_satpy(date_str, 13, ax = ax6, var = var4, crs = crs0, \
+        lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+        vmin = None, vmax = None, \
+        ptitle = '', plabel = plabel4, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
+    plot_GOES_satpy(date_str, 8, ax = ax7, var = var5, crs = crs0, \
+        lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+        vmin = None, vmax = None, \
+        ptitle = '', plabel = plabel5, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
+    plot_GOES_satpy(date_str, 9, ax = ax8, var = var6, crs = crs0, \
+        lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+        vmin = None, vmax = None, \
+        ptitle = '', plabel = plabel6, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
+    plot_GOES_satpy(date_str, 10, ax = ax9, var = var7, crs = crs0, \
+        lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+        vmin = None, vmax = None, \
+        ptitle = '', plabel = plabel7, colorbar = True, labelsize = labelsize, \
+        zoom=True,save=False)
+
+    point_size = 5
+    ax4.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax4.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs)
+    ax4.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax4.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs)
+    sw_idx_b = nearest_gridpoint(GOES_dict['plat'][idx1], GOES_dict['plon'][idx1],\
+        lats3, lons3)
+    sw_idx_o = nearest_gridpoint(GOES_dict['plat'][idx2], GOES_dict['plon'][idx2],\
+        lats3, lons3)
+    print("SWIR")
+    print("     Blue   - ", np.array(var3)[sw_idx_b])
+    print("     Orange - ", np.array(var3)[sw_idx_o])
+    ax5.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax5.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs)
+    ax5.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax5.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs)
+    lw_idx_b = nearest_gridpoint(GOES_dict['plat'][idx1], GOES_dict['plon'][idx1],\
+        lats2, lons2)
+    lw_idx_o = nearest_gridpoint(GOES_dict['plat'][idx2], GOES_dict['plon'][idx2],\
+        lats2, lons2)
+    print("TIR")
+    print("     Blue   - ", np.array(var4)[lw_idx_b])
+    print("     Orange - ", np.array(var4)[lw_idx_o])
+    ax6.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax6.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs)
+    ax6.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax6.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs)
+    print("Upper WV")
+    print("     Blue   - ", np.array(var5)[lw_idx_b])
+    print("     Orange - ", np.array(var5)[lw_idx_o])
+    ax7.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax7.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs)
+    ax7.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax7.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs)
+    print("Mid WV")
+    print("     Blue   - ", np.array(var6)[lw_idx_b])
+    print("     Orange - ", np.array(var6)[lw_idx_o])
+    ax8.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax8.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs)
+    ax8.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax8.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs)
+    print("Lower WV")
+    print("     Blue   - ", np.array(var7)[lw_idx_b])
+    print("     Orange - ", np.array(var7)[lw_idx_o])
+    ax9.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax9.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs)
+    ax9.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+            linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax9.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+            linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs)
+
+    # Plot the two channel data for the first point
+    # ---------------------------------------------
+    ln11 = ax10.plot(GOES_dict['dt_dates'], GOES_dict['data'][:,ch_idx1,idx1], \
+        label = str(goes_channel_dict[\
+        str(GOES_dict['channels'][ch_idx1])]['wavelength']) + \
+        ' μm', color = 'tab:blue')
+    ln21 = ax10.plot(GOES_dict['dt_dates'], GOES_dict['data'][:,ch_idx1,idx2], \
+        label = str(goes_channel_dict[\
+        str(GOES_dict['channels'][ch_idx1])]['wavelength']) + \
+        ' μm', color = 'tab:orange')
+
+    # Plot the two channel data for the second point
+    # ----------------------------------------------
+    ln12 = ax10.plot(GOES_dict['dt_dates'], GOES_dict['data'][:,ch_idx2,idx1], \
+        label = str(goes_channel_dict[\
+        str(GOES_dict['channels'][ch_idx2])]['wavelength']) + \
+        ' μm', linestyle = '--', color = 'tab:blue')
+    ln22 = ax10.plot(GOES_dict['dt_dates'], GOES_dict['data'][:,ch_idx2,idx2], \
+        label = str(goes_channel_dict[\
+        str(GOES_dict['channels'][ch_idx2])]['wavelength']) + \
+        ' μm', linestyle = '--', color = 'tab:orange')
+    #ax10.axvline(GOES_dict['dt_dates'][date_idx], color = 'black',\
+    #    linestyle = ':')
+
+    ##!#lns = ln11 + ln21 + ln41 + ln12 + ln22 + ln42
+
+    if(ch_idx3 is not None):
+        ax102 = ax10.twinx()
+        ln31 = ax102.plot(GOES_dict['dt_dates'], GOES_dict['data'][:,ch_idx3,idx1], \
+            label = str(goes_channel_dict[\
+            str(GOES_dict['channels'][ch_idx3])]['wavelength']) + \
+            ' μm', linestyle = ':', color = 'tab:blue')
+        ln32 = ax102.plot(GOES_dict['dt_dates'], GOES_dict['data'][:,ch_idx3,idx2], \
+            label = str(goes_channel_dict[\
+            str(GOES_dict['channels'][ch_idx3])]['wavelength']) + \
+            ' μm', linestyle = ':', color = 'tab:orange')
+        ax102.set_ylabel('Brightness Temperature [K]')
+
+        ##!#lns = lns + ln31 + ln32 
+
+    labelsize = 10
+    font_size = 10
+    ax10.set_ylabel('Reflectance [%]', weight = 'bold')
+    ax102.set_ylabel('Brightness Temperature [K]', weight = 'bold')
+    ax10.grid()
+    ax10.xaxis.set_major_formatter(DateFormatter('%m/%d\n%H:%MZ'))
+    ax10.tick_params(axis="x", labelsize = font_size + 1)
+
+    ##!#labs = [l.get_label() for l in lns]
+
+    custom_lines = [Line2D([0], [0], color='k'),
+                    Line2D([0], [0], color='k', linestyle = '--'),
+                    Line2D([0], [0], color='k', linestyle = ':')]
+
+    ax10.legend(custom_lines, ['0.64 μm Refl.', '2.25 μm Refl.', '10.35 μm Bright. Temp.'],\
         fontsize = font_size, loc = 2)
     #ax10.legend(lns, labs, fontsize = font_size)
 
@@ -2102,12 +2438,11 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
     fig.tight_layout()
 
     if(save):
-        outname = 'goes_combined_fig2_' + date_str + '_v2.png'
+        outname = 'goes_combined_asos_comp_' + date_str + '_v2.png'
         fig.savefig(outname, dpi=300)
         print("Saved",outname)
     else:
         plt.show()
-
 ##for a in ax:
 ##    a.set_xticklabels([])
 ##    a.set_yticklabels([])
@@ -2153,9 +2488,9 @@ def plot_GOES_figure2(date_str1 = '202107201330', date_str2 = '202107201830',\
 
     # Read the GOES time series data
     # ------------------------------
-    file_name1 = '/home/bsorenson/Research/GOES/goes_cross_data_' + \
+    file_name1 = home_dir + '/Research/GOES/goes_cross_data_' + \
         ttype1 + '_202107201201_202107210331.nc'
-    file_name2 = '/home/bsorenson/Research/GOES/goes_cross_data_' + \
+    file_name2 = home_dir + '/Research/GOES/goes_cross_data_' + \
         ttype2 + '_202107201201_202107210331.nc'
     GOES_dict  = read_GOES_time_series_NCDF(file_name1)
     GOES_dict2 = read_GOES_time_series_NCDF(file_name2)
@@ -3926,7 +4261,7 @@ def read_GOES_time_series_auto(begin_date, end_date, \
     # Find all downloaded GOES filenames that are between these
     # two dates
     # ---------------------------------------------------------
-    all_files = np.array(glob('/home/bsorenson/data/GOES/goes17_abi/*.nc'))
+    all_files = np.array(glob(home_dir + '/data/GOES/goes17_abi/*.nc'))
     all_dates = np.array([datetime.strptime(ffile.strip().split('/')[-1][27:40],\
         '%Y%j%H%M%S') for ffile in all_files])
     all_date_strs = np.array([tdate.strftime('%Y%m%d%H%M') for tdate in \
