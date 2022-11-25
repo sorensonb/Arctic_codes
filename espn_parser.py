@@ -127,64 +127,6 @@ conference_divisions = {
 ##    'Montana State': 'BSC',
 ##}
 
-def update_scores(gdict, opponents, week, op1_points, op2_points):
-    gdict[opponents[0]]['Scores'][int(week)]['Team']['Offense']['Points'] = float(op1_points[-1])
-    gdict[opponents[1]]['Scores'][int(week)]['Team']['Offense']['Points'] = float(op2_points[-1])
-    
-    gdict[opponents[1]]['Scores'][int(week)]['Team']['Defense']['Points'] = float(op1_points[-1])
-    gdict[opponents[0]]['Scores'][int(week)]['Team']['Defense']['Points'] = float(op2_points[-1])
-    
-    # Use these to update the win and loss columns for each team
-    # ----------------------------------------------------------
-    if(float(op1_points[-1]) > float(op2_points[-1])):
-        # Team 1 won, Team 2 lost
-        gdict[opponents[0]]['Stats']['Season']['Record']['Overall']['W'] += 1
-        gdict[opponents[1]]['Stats']['Season']['Record']['Overall']['L'] += 1
-    
-        gdict[opponents[0]]['Stats']['Season']['Beat'].append(opponents[1])
-        gdict[opponents[1]]['Stats']['Season']['Lost to'].append(opponents[0])
-    
-        # Update D1 win counter
-        # ---------------------
-        if(gdict[opponents[0]]['Conference'] in conference_divisions['FBS'] or
-           gdict[opponents[0]]['Conference'] in conference_divisions['FCS']):
-            gdict[opponents[0]]['Stats']['Season']['Record']['D1']['W'] += 1
-    
-        if(gdict[opponents[1]]['Conference'] in conference_divisions['FBS'] or
-           gdict[opponents[1]]['Conference'] in conference_divisions['FCS']):
-        
-            gdict[opponents[1]]['Stats']['Season']['Record']['D1']['L'] += 1
-    
-        # Update conference w/l
-        # ---------------------
-        if(gdict[opponents[0]]['Conference'] == gdict[opponents[1]]['Conference']):
-            gdict[opponents[0]]['Stats']['Season']['Record']['Conference']['W'] += 1
-            gdict[opponents[1]]['Stats']['Season']['Record']['Conference']['L'] += 1
-    
-    else:
-        # Team 2 won, Team 1 lost
-        gdict[opponents[1]]['Stats']['Season']['Record']['Overall']['W'] += 1
-        gdict[opponents[0]]['Stats']['Season']['Record']['Overall']['L'] += 1
-    
-        gdict[opponents[1]]['Stats']['Season']['Beat'].append(opponents[0])
-        gdict[opponents[0]]['Stats']['Season']['Lost to'].append(opponents[1])
-    
-        # Update D1 win counter
-        # ---------------------
-        if(gdict[opponents[1]]['Conference'] in conference_divisions['FBS'] or
-           gdict[opponents[1]]['Conference'] in conference_divisions['FCS']):
-            gdict[opponents[1]]['Stats']['Season']['Record']['D1']['W'] += 1
-    
-        if(gdict[opponents[0]]['Conference'] in conference_divisions['FBS'] or
-           gdict[opponents[0]]['Conference'] in conference_divisions['FCS']):
-            gdict[opponents[0]]['Stats']['Season']['Record']['D1']['L'] += 1
-    
-        # Update conference w/l
-        # ---------------------
-        if(gdict[opponents[0]]['Conference'] == gdict[opponents[1]]['Conference']):
-            gdict[opponents[1]]['Stats']['Season']['Record']['Conference']['W'] += 1
-            gdict[opponents[0]]['Stats']['Season']['Record']['Conference']['L'] += 1
-
 # Extract the conferences
 def parse_conferences(gdict, data, ops):
 
@@ -508,22 +450,22 @@ def calc_team_stats(gdict, weekly = False):
         for tkey in gdict.keys():
             w2key = list(gdict[tkey]['Scores'].keys())[-1]
             gdict[tkey]['Stats']['Weekly'][w2key]['scoring_offense'] =  \
-                np.nanmean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Offense']['Points']) \
+                np.mean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Offense']['Points']) \
                 for wkey in gdict[tkey]['Scores'].keys()]))
             gdict[tkey]['Stats']['Weekly'][w2key]['rushing_offense'] =  \
-                np.nanmean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Offense']['Rushing']) \
+                np.mean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Offense']['Rushing']) \
                 for wkey in gdict[tkey]['Scores'].keys()]))
             gdict[tkey]['Stats']['Weekly'][w2key]['passing_offense'] =  \
-                np.nanmean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Offense']['Pass_yards']) \
+                np.mean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Offense']['Pass_yards']) \
                 for wkey in gdict[tkey]['Scores'].keys()]))
             gdict[tkey]['Stats']['Weekly'][w2key]['scoring_defense'] =  \
-                np.nanmean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Defense']['Points']) \
+                np.mean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Defense']['Points']) \
                 for wkey in gdict[tkey]['Scores'].keys()]))
             gdict[tkey]['Stats']['Weekly'][w2key]['rushing_defense'] =  \
-                np.nanmean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Defense']['Rushing']) \
+                np.mean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Defense']['Rushing']) \
                 for wkey in gdict[tkey]['Scores'].keys()]))
             gdict[tkey]['Stats']['Weekly'][w2key]['passing_defense'] =  \
-                np.nanmean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Defense']['Pass_yards']) \
+                np.mean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Defense']['Pass_yards']) \
                 for wkey in gdict[tkey]['Scores'].keys()]))
             gdict[tkey]['Stats']['Weekly'][w2key]['total_offense'] = \
                 gdict[tkey]['Stats']['Weekly'][w2key]['passing_offense'] + \
@@ -535,22 +477,22 @@ def calc_team_stats(gdict, weekly = False):
         for tkey in gdict.keys():
             #gdict[tkey]['Stats']['Season'] = {}
             gdict[tkey]['Stats']['Season']['scoring_offense'] =  \
-                np.nanmean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Offense']['Points']) \
+                np.mean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Offense']['Points']) \
                 for wkey in gdict[tkey]['Scores'].keys()]))
             gdict[tkey]['Stats']['Season']['rushing_offense'] =  \
-                np.nanmean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Offense']['Rushing']) \
+                np.mean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Offense']['Rushing']) \
                 for wkey in gdict[tkey]['Scores'].keys()]))
             gdict[tkey]['Stats']['Season']['passing_offense'] =  \
-                np.nanmean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Offense']['Pass_yards']) \
+                np.mean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Offense']['Pass_yards']) \
                 for wkey in gdict[tkey]['Scores'].keys()]))
             gdict[tkey]['Stats']['Season']['scoring_defense'] =  \
-                np.nanmean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Defense']['Points']) \
+                np.mean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Defense']['Points']) \
                 for wkey in gdict[tkey]['Scores'].keys()]))
             gdict[tkey]['Stats']['Season']['rushing_defense'] =  \
-                np.nanmean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Defense']['Rushing']) \
+                np.mean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Defense']['Rushing']) \
                 for wkey in gdict[tkey]['Scores'].keys()]))
             gdict[tkey]['Stats']['Season']['passing_defense'] =  \
-                np.nanmean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Defense']['Pass_yards']) \
+                np.mean(np.array([float(gdict[tkey]['Scores'][wkey]['Team']['Defense']['Pass_yards']) \
                 for wkey in gdict[tkey]['Scores'].keys()]))
             gdict[tkey]['Stats']['Season']['total_offense'] = \
                 gdict[tkey]['Stats']['Season']['passing_offense'] + \
@@ -579,49 +521,15 @@ def calc_team_rankings(gdict, lkeys, division):
         for ii in range(len(values)):
             gdict[values[ii][1]]['Rankings'][division][var] = ii + 1
 
-def calc_game_quality(gdict, team, week, base_week = None):
-
-    if(base_week == None):
-        base_week = week - 1
-
-    print("Ranking game for",team," for week",week)
-
+def calc_game_quality(gdict, team, week):
 
     opponent = gdict[team]['Scores'][week]['Opponent']
 
-    print('\t',team,' vs. ',opponent)
-
     team_dict = gdict[team]['Scores'][week]
-    if(base_week not in gdict[opponent]['Stats']['Weekly'].keys()):
-        base_week = base_week - 1
-    oppt_dict = gdict[opponent]['Stats']['Weekly'][base_week]
-
-    # Opponent record factor
-    # ----------------------
-    team_win_pcnt = gdict[team]['Stats']['Weekly'][week]['Record']['Overall']['W'] / \
-                    (gdict[team]['Stats']['Weekly'][week]['Record']['Overall']['W']  + 
-                    gdict[team]['Stats']['Weekly'][week]['Record']['Overall']['L'])
-    oppt_win_pcnt = oppt_dict['Record']['Overall']['W'] / \
-                    (oppt_dict['Record']['Overall']['W']  + 
-                     oppt_dict['Record']['Overall']['L'])
-
-    if(oppt_win_pcnt == 0.):
-        record_factor = 0.10
-    else:
-        record_factor = oppt_win_pcnt * 2
-    print("Team record:", \
-        str(gdict[team]['Stats']['Weekly'][week]['Record']['Overall']['W']) + '-'+\
-        str(gdict[team]['Stats']['Weekly'][week]['Record']['Overall']['L']) + \
-        '  ' + str(team_win_pcnt))
-    print("Oppt record:", \
-        str(oppt_dict['Record']['Overall']['W']) + '-'+\
-        str(oppt_dict['Record']['Overall']['L']) + \
-        '  ' + str(oppt_win_pcnt) )
-    #record_factor = oppt_dict['Record']['W']
+    oppt_dict = gdict[opponent]['Stats']['Weekly'][week-1]
 
     # Team rankings factor
     # --------------------
-
 
     # Win size factor
     # ---------------
@@ -641,10 +549,6 @@ def calc_game_quality(gdict, team, week, base_week = None):
         else:
             loc_factor = 0.75
         
-    # Division factor
-    # ---------------
-    #if(opponent
-
 
     # -----------------------
     # Calculate team factors
@@ -654,54 +558,30 @@ def calc_game_quality(gdict, team, week, base_week = None):
     # ---------------
     off_scoring_factor = team_dict['Team']['Offense']['Points'] / \
                          oppt_dict['scoring_defense']
-    print('\t',team_dict['Team']['Offense']['Points'], oppt_dict['scoring_defense'])
-    def_scoring_factor = oppt_dict['scoring_offense'] / \
-                         team_dict['Team']['Defense']['Points']
-    print('\t',team_dict['Team']['Defense']['Points'], oppt_dict['scoring_offense'])
+    def_scoring_factor = team_dict['Team']['Defense']['Points'] / \
+                         oppt_dict['scoring_offense']
 
     # Team rush yards factor
     # -----------------
     off_rush_factor = team_dict['Team']['Offense']['Rushing'] / \
                       oppt_dict['rushing_defense']
-    print('\t',team_dict['Team']['Offense']['Rushing'], oppt_dict['rushing_defense'])
-    def_rush_factor = oppt_dict['rushing_offense'] / \
-                      team_dict['Team']['Defense']['Rushing']
-                      
-    print('\t',team_dict['Team']['Defense']['Rushing'], oppt_dict['rushing_offense'])
+    def_rush_factor = team_dict['Team']['Defense']['Rushing'] / \
+                      oppt_dict['rushing_offense']
 
     # Team pass yards factor
     # -----------------
     off_pass_factor = team_dict['Team']['Offense']['Pass_yards'] / \
                       oppt_dict['passing_defense']
-    print('\t',team_dict['Team']['Offense']['Pass_yards'], oppt_dict['passing_defense'])
-    def_pass_factor = oppt_dict['passing_offense'] / \
-                      team_dict['Team']['Defense']['Pass_yards']
-                      
-    print('\t',oppt_dict['passing_offense'], team_dict['Team']['Defense']['Pass_yards'])
- 
-    stats_factor = (off_rush_factor + def_rush_factor + \
-                    off_pass_factor + def_pass_factor + \
-                    off_scoring_factor + def_scoring_factor)
- 
-    game_quality = \
-        record_factor * \
-        loc_factor * \
-        stats_factor
-        #off_scoring_factor * \
-        #def_scoring_factor * \
-        #off_rush_factor * \
-        #def_rush_factor * \
-        #off_pass_factor * \
-        #def_pass_factor
- 
-    print(record_factor, loc_factor, off_scoring_factor, def_scoring_factor, \
+    def_pass_factor = team_dict['Team']['Defense']['Pass_yards'] / \
+                      oppt_dict['passing_offense']
+   
+    print(win_size_factor, loc_factor, off_scoring_factor, def_scoring_factor, \
         off_rush_factor, def_rush_factor, off_pass_factor, \
         def_pass_factor)
 
-    print(game_quality)
-    #print(record_factor *  loc_factor * off_scoring_factor * def_scoring_factor * \
-    #    off_rush_factor * def_rush_factor * off_pass_factor * \
-    #    def_pass_factor)
+    print(win_size_factor * loc_factor * off_scoring_factor * def_scoring_factor * \
+        off_rush_factor * def_rush_factor * off_pass_factor * \
+        def_pass_factor)
 
 # For a specified week, calculate
 #def calc_weekly_stats(gdict, division = 'All', week = None):
@@ -771,41 +651,46 @@ def pull_ESPN_data(url):
     parser = MyHTMLParser()
     parser.feed(str(html))
     return parser.Myrawdata.strip().split('\n')
+       
+def load_ESPN_data(start_week, end_week):
 
-def check_missing_games(gdict, espn_url, week, \
-        this_week_teams):
-
-    # Read in the base ESPN url data using the parser
-    # -----------------------------------------------
-    parse_espn = pull_ESPN_data(espn_url)
-
-    # Look through the list and pull out the team names
-    # -------------------------------------------------
-    missed_teams = []
-    for ii in range(len(parse_espn)):      
-        if(parse_espn[ii] == '('):
-            team_name = parse_espn[ii - 1]
-
-            # Check if the team has data for this week
-            if(team_name not in this_week_teams):
+    gdict = {}
+    espn_url = "https://www.espn.com/college-football/scoreboard/_/week/{0}/year/2022/seasontype/2/group/81"
+    weeks = np.arange(start_week,end_week + 1)
     
-                # Team missed 
-                missed_teams.append(team_name)
+    # Loop over all the weeks and add the data
+    # ----------------------------------------
+    for week in weeks:
+        url = espn_url.format(week)
+        print(url)
+    
+    #sys.exit()
+    
+        #url = "https://www.espn.com/college-football/scoreboard/_/week/11/year/2022/seasontype/2/group/81"
+        uf = urllib.request.urlopen(url)
+        html = uf.read()
+        #parser.feed(html)
+        
+        urls = []
+        
+        for match in re.finditer("college-football/boxscore/_/gameId/", str(html)):
+            urls.append(str(html)[match.start() : match.end() + 9])
+        
+        final_urls = np.unique(np.array(urls))
+        base_url = 'https://www.espn.com/'
+        parser = MyHTMLParser()
+        
+        
+        
+        for furl in final_urls:
+            local_url = base_url + furl
+            data = pull_ESPN_data(local_url)
 
-    if(len(missed_teams) != 0):
-
-        print(missed_teams)
-        if(len(missed_teams) % 2 == 1):
-            missed_teams = missed_teams[:-1]
-        # Assume that the missed teams will be in pairs
-        missed_pairs = [(missed_teams[ii], missed_teams[ii+1]) \
-            for ii in np.arange(0, len(missed_teams), 2)]
-
-        for ii in range(len(missed_pairs)):
-
-            opponents = missed_pairs[ii]
-            # Check if the team is even in the dictionary?
-            # --------------------------------------------
+            # Parse the opponents
+            # -------------------
+            matchup = data[1].split(' - Box Score - ')[0]
+            print(matchup)
+            opponents = matchup.split(' vs. ')
             for op in opponents:
                 if(op not in gdict.keys()):
                     gdict[op] = {}
@@ -829,23 +714,21 @@ def check_missing_games(gdict, espn_url, week, \
                     gdict[op]['Rankings']['All'] = {}
                     gdict[op]['Rankings']['Division'] = {}
                     gdict[op]['Rankings']['Conference'] = {}
-                    gdict[op]['Conference'] = 'NONE' 
-            
+    
                 gdict[op]['Stats']['Weekly'][int(week)] = {}
-                gdict[op]['Stats']['Weekly'][int(week)]['Record'] = {}
-                gdict[op]['Stats']['Weekly'][int(week)]['Record']['Overall'] = {}
-                gdict[op]['Stats']['Weekly'][int(week)]['Record']['D1'] = {}
-                gdict[op]['Stats']['Weekly'][int(week)]['Record']['Conference'] = {}
-                gdict[op]['Stats']['Weekly'][int(week)]['Record']['Overall']['W'] = 0
-                gdict[op]['Stats']['Weekly'][int(week)]['Record']['Overall']['L'] = 0
-                gdict[op]['Stats']['Weekly'][int(week)]['Record']['D1']['W'] = 0
-                gdict[op]['Stats']['Weekly'][int(week)]['Record']['D1']['L'] = 0
-                gdict[op]['Stats']['Weekly'][int(week)]['Record']['Conference']['W'] = 0
-                gdict[op]['Stats']['Weekly'][int(week)]['Record']['Conference']['L'] = 0
                 gdict[op]['Scores'][int(week)] = {}
                 gdict[op]['Scores'][int(week)]['Team'] = {}
                 gdict[op]['Scores'][int(week)]['Team']['Offense'] = {}
+                #gdict[op][int(week)]['Scores']['Team']['Offense']['Points'] = {}
+                #gdict[op][int(week)]['Scores']['Team']['Offense']['Passing'] = {}
+                #gdict[op][int(week)]['Scores']['Team']['Offense']['Rushing'] = {}
+                #gdict[op][int(week)]['Team']['Offense']['Receiving'] = {}
+    
                 gdict[op]['Scores'][int(week)]['Team']['Defense'] = {}
+                #gdict[op][int(week)]['Scores']['Team']['Defense']['Points'] = {}
+                #gdict[op][int(week)]['Scores']['Team']['Defense']['Passing'] = {}
+                #gdict[op][int(week)]['Scores']['Team']['Defense']['Rushing'] = {}
+                #gdict[op][int(week)]['Team']['Defense']['Receiving'] = {}
 
                 gdict[op]['Scores'][int(week)]['Individual'] = {}
                 gdict[op]['Scores'][int(week)]['Individual']['Offense'] = {}
@@ -853,9 +736,9 @@ def check_missing_games(gdict, espn_url, week, \
                 gdict[op]['Scores'][int(week)]['Individual']['Offense']['Passing'] = {}
                 gdict[op]['Scores'][int(week)]['Individual']['Offense']['Receiving'] = {}
                 gdict[op]['Scores'][int(week)]['Individual']['Defense'] = {}
-            
-            ## Probably don't need to have run each time, but can fix later 
-            #parse_conferences(gdict, data, opponents)
+      
+            # Probably don't need to have run each time, but can fix later 
+            parse_conferences(gdict, data, opponents)
 
             # Set the home / away locations
             # -----------------------------
@@ -864,340 +747,77 @@ def check_missing_games(gdict, espn_url, week, \
             
             gdict[opponents[1]]['Scores'][int(week)]['Opponent'] = opponents[0] 
             gdict[opponents[1]]['Scores'][int(week)]['Location'] = 'Home' 
-            
+     
             # Parse the score 
             # NOTE: contains the quarterly score info also
             # ---------------------------------------------
-            team1_idx = parse_espn.index(opponents[0])
-            team2_idx = parse_espn.index(opponents[1])
-            if(team2_idx < team1_idx):
-                team2_idx = team1_idx + 11
-            elif(team2_idx - team1_idx < 7):
-                print("Game cancelled")
-            else:
-                op1_points = parse_espn[team1_idx + 6 : team1_idx + 11]
-                op2_points = parse_espn[team2_idx + 6 : team2_idx + 11]
-
-                print(opponents)
-                update_scores(gdict, opponents, week, op1_points, op2_points)
-
-            ##!#gdict[opponents[0]]['Scores'][int(week)]['Team']['Offense']['Points'] = float(op1_points[-1])
-            ##!#gdict[opponents[1]]['Scores'][int(week)]['Team']['Offense']['Points'] = float(op2_points[-1])
-            ##!#
-            ##!#gdict[opponents[1]]['Scores'][int(week)]['Team']['Defense']['Points'] = float(op1_points[-1])
-            ##!#gdict[opponents[0]]['Scores'][int(week)]['Team']['Defense']['Points'] = float(op2_points[-1])
-            ##!#
-            ##!## Use these to update the win and loss columns for each team
-            ##!## ----------------------------------------------------------
-            ##!#if(float(op1_points[-1]) > float(op2_points[-1])):
-            ##!#    # Team 1 won, Team 2 lost
-            ##!#    gdict[opponents[0]]['Stats']['Season']['Record']['Overall']['W'] += 1
-            ##!#    gdict[opponents[1]]['Stats']['Season']['Record']['Overall']['L'] += 1
-
-            ##!#    gdict[opponents[0]]['Stats']['Season']['Beat'].append(opponents[1])
-            ##!#    gdict[opponents[1]]['Stats']['Season']['Lost to'].append(opponents[0])
-
-            ##!#    # Update D1 win counter
-            ##!#    # ---------------------
-            ##!#    if(gdict[opponents[0]]['Conference'] in conference_divisions['FBS'] or
-            ##!#       gdict[opponents[0]]['Conference'] in conference_divisions['FCS']):
-            ##!#        gdict[opponents[0]]['Stats']['Season']['Record']['D1']['W'] += 1
-
-            ##!#    if(gdict[opponents[1]]['Conference'] in conference_divisions['FBS'] or
-            ##!#       gdict[opponents[1]]['Conference'] in conference_divisions['FCS']):
-            ##!#    
-            ##!#        gdict[opponents[1]]['Stats']['Season']['Record']['D1']['L'] += 1
-
-            ##!#    # Update conference w/l
-            ##!#    # ---------------------
-            ##!#    if(gdict[opponents[0]]['Conference'] == gdict[opponents[1]]['Conference']):
-            ##!#        gdict[opponents[0]]['Stats']['Season']['Record']['Conference']['W'] += 1
-            ##!#        gdict[opponents[1]]['Stats']['Season']['Record']['Conference']['L'] += 1
-
-            ##!#else:
-            ##!#    # Team 2 won, Team 1 lost
-            ##!#    gdict[opponents[1]]['Stats']['Season']['Record']['Overall']['W'] += 1
-            ##!#    gdict[opponents[0]]['Stats']['Season']['Record']['Overall']['L'] += 1
-
-            ##!#    gdict[opponents[1]]['Stats']['Season']['Beat'].append(opponents[0])
-            ##!#    gdict[opponents[0]]['Stats']['Season']['Lost to'].append(opponents[1])
-
-            ##!#    # Update D1 win counter
-            ##!#    # ---------------------
-            ##!#    if(gdict[opponents[1]]['Conference'] in conference_divisions['FBS'] or
-            ##!#       gdict[opponents[1]]['Conference'] in conference_divisions['FCS']):
-            ##!#        gdict[opponents[1]]['Stats']['Season']['Record']['D1']['W'] += 1
-
-            ##!#    if(gdict[opponents[0]]['Conference'] in conference_divisions['FBS'] or
-            ##!#       gdict[opponents[0]]['Conference'] in conference_divisions['FCS']):
-            ##!#        gdict[opponents[0]]['Stats']['Season']['Record']['D1']['L'] += 1
-
-            ##!#    # Update conference w/l
-            ##!#    # ---------------------
-            ##!#    if(gdict[opponents[0]]['Conference'] == gdict[opponents[1]]['Conference']):
-            ##!#        gdict[opponents[1]]['Stats']['Season']['Record']['Conference']['W'] += 1
-            ##!#        gdict[opponents[0]]['Stats']['Season']['Record']['Conference']['L'] += 1
-
-            # Set the weekly record values
-            # ----------------------------
-            gdict[opponents[0]]['Stats']['Weekly'][int(week)]['Record']['Overall']['W'] =  \
-                gdict[opponents[0]]['Stats']['Season']['Record']['Overall']['W']
-            gdict[opponents[0]]['Stats']['Weekly'][int(week)]['Record']['Overall']['L'] =  \
-                gdict[opponents[0]]['Stats']['Season']['Record']['Overall']['L']
-            gdict[opponents[0]]['Stats']['Weekly'][int(week)]['Record']['D1']['W'] =  \
-                gdict[opponents[0]]['Stats']['Season']['Record']['D1']['W']
-            gdict[opponents[0]]['Stats']['Weekly'][int(week)]['Record']['D1']['L'] =  \
-                gdict[opponents[0]]['Stats']['Season']['Record']['D1']['L']
-            gdict[opponents[0]]['Stats']['Weekly'][int(week)]['Record']['Conference']['W'] =  \
-                gdict[opponents[0]]['Stats']['Season']['Record']['Conference']['W']
-            gdict[opponents[0]]['Stats']['Weekly'][int(week)]['Record']['Conference']['L'] =  \
-                gdict[opponents[0]]['Stats']['Season']['Record']['Conference']['L']
-
-            gdict[opponents[1]]['Stats']['Weekly'][int(week)]['Record']['Overall']['W'] =  \
-                gdict[opponents[1]]['Stats']['Season']['Record']['Overall']['W']
-            gdict[opponents[1]]['Stats']['Weekly'][int(week)]['Record']['Overall']['L'] =  \
-                gdict[opponents[1]]['Stats']['Season']['Record']['Overall']['L']
-            gdict[opponents[1]]['Stats']['Weekly'][int(week)]['Record']['D1']['W'] =  \
-                gdict[opponents[1]]['Stats']['Season']['Record']['D1']['W']
-            gdict[opponents[1]]['Stats']['Weekly'][int(week)]['Record']['D1']['L'] =  \
-                gdict[opponents[1]]['Stats']['Season']['Record']['D1']['L']
-            gdict[opponents[1]]['Stats']['Weekly'][int(week)]['Record']['Conference']['W'] =  \
-                gdict[opponents[1]]['Stats']['Season']['Record']['Conference']['W']
-            gdict[opponents[1]]['Stats']['Weekly'][int(week)]['Record']['Conference']['L'] =  \
-                gdict[opponents[1]]['Stats']['Season']['Record']['Conference']['L']
-
-            # Set the stats for these teams to nan
-            gdict[opponents[0]]['Scores'][int(week)]['Team']['Offense']['Pass_completions'] = np.nan
-            gdict[opponents[0]]['Scores'][int(week)]['Team']['Offense']['Pass_attempts']    = np.nan
-            gdict[opponents[0]]['Scores'][int(week)]['Team']['Offense']['Pass_yards']       = np.nan
-            gdict[opponents[1]]['Scores'][int(week)]['Team']['Offense']['Pass_completions'] = np.nan
-            gdict[opponents[1]]['Scores'][int(week)]['Team']['Offense']['Pass_attempts']    = np.nan
-            gdict[opponents[1]]['Scores'][int(week)]['Team']['Offense']['Pass_yards']       = np.nan
-                                                                                              
-            gdict[opponents[1]]['Scores'][int(week)]['Team']['Defense']['Pass_completions'] = np.nan
-            gdict[opponents[1]]['Scores'][int(week)]['Team']['Defense']['Pass_attempts']    = np.nan
-            gdict[opponents[1]]['Scores'][int(week)]['Team']['Defense']['Pass_yards']       = np.nan
-            gdict[opponents[0]]['Scores'][int(week)]['Team']['Defense']['Pass_completions'] = np.nan
-            gdict[opponents[0]]['Scores'][int(week)]['Team']['Defense']['Pass_attempts']    = np.nan
-            gdict[opponents[0]]['Scores'][int(week)]['Team']['Defense']['Pass_yards']       = np.nan
-
-            gdict[opponents[0]]['Scores'][int(week)]['Team']['Offense']['Rushing'] = np.nan
-            gdict[opponents[1]]['Scores'][int(week)]['Team']['Offense']['Rushing'] = np.nan
-                                                                                     
-            gdict[opponents[1]]['Scores'][int(week)]['Team']['Defense']['Rushing'] = np.nan
-            gdict[opponents[0]]['Scores'][int(week)]['Team']['Defense']['Rushing'] = np.nan
-
-def load_ESPN_data(start_week, end_week):
-
-    gdict = {}
-    weeks = np.arange(start_week,end_week + 1)
-    espn_urls = ["https://www.espn.com/college-football/scoreboard/_/week/{0}/year/2022/seasontype/2/group/81"]
-    #             "https://www.espn.com/college-football/scoreboard/_/week/{0}/year/2022/seasontype/2/group/80"]
-
-    # Loop over all the weeks and add the data
-    # ----------------------------------------
-    for week in weeks:
-        this_week_teams = []
-        for espn_url in espn_urls:    
-            url = espn_url.format(week)
-            print(url)
-        
-        #sys.exit()
-        
-            #url = "https://www.espn.com/college-football/scoreboard/_/week/11/year/2022/seasontype/2/group/81"
-            uf = urllib.request.urlopen(url)
-            html = uf.read()
-            #parser.feed(html)
+            op1_points, op2_points = parse_scores(data, opponents)
+            gdict[opponents[0]]['Scores'][int(week)]['Team']['Offense']['Points'] = float(op1_points[-1])
+            gdict[opponents[1]]['Scores'][int(week)]['Team']['Offense']['Points'] = float(op2_points[-1])
+    
+            gdict[opponents[1]]['Scores'][int(week)]['Team']['Defense']['Points'] = float(op1_points[-1])
+            gdict[opponents[0]]['Scores'][int(week)]['Team']['Defense']['Points'] = float(op2_points[-1])
             
-            urls = []
-            
-            for match in re.finditer("college-football/boxscore/_/gameId/", str(html)):
-                urls.append(str(html)[match.start() : match.end() + 9])
-            
-            final_urls = np.unique(np.array(urls))
-            base_url = 'https://www.espn.com/'
-            parser = MyHTMLParser()
-            
-            
-            
-            for furl in final_urls:
-                local_url = base_url + furl
-                data = pull_ESPN_data(local_url)
+            # Use these to update the win and loss columns for each team
+            # ----------------------------------------------------------
+            if(float(op1_points[-1]) > float(op2_points[-1])):
+                # Team 1 won, Team 2 lost
+                gdict[opponents[0]]['Stats']['Season']['Record']['Overall']['W'] += 1
+                gdict[opponents[1]]['Stats']['Season']['Record']['Overall']['L'] += 1
 
-                # Parse the opponents
-                # -------------------
-                matchup = data[1].split(' - Box Score - ')[0]
-                print(matchup)
-                opponents = matchup.split(' vs. ')
-                this_week_teams.append(opponents[0])
-                this_week_teams.append(opponents[1])
-                for op in opponents:
-                    if(op not in gdict.keys()):
-                        gdict[op] = {}
-                        gdict[op]['Stats'] = {}
-                        gdict[op]['Stats']['Season'] = {}
-                        gdict[op]['Stats']['Season']['Record'] = {}
-                        gdict[op]['Stats']['Season']['Beat']    = []
-                        gdict[op]['Stats']['Season']['Lost to'] = []
-                        gdict[op]['Stats']['Season']['Record']['Overall'] = {}
-                        gdict[op]['Stats']['Season']['Record']['D1'] = {}
-                        gdict[op]['Stats']['Season']['Record']['Conference'] = {}
-                        gdict[op]['Stats']['Season']['Record']['Overall']['W'] = 0
-                        gdict[op]['Stats']['Season']['Record']['Overall']['L'] = 0
-                        gdict[op]['Stats']['Season']['Record']['D1']['W'] = 0
-                        gdict[op]['Stats']['Season']['Record']['D1']['L'] = 0
-                        gdict[op]['Stats']['Season']['Record']['Conference']['W'] = 0
-                        gdict[op]['Stats']['Season']['Record']['Conference']['L'] = 0
-                        gdict[op]['Stats']['Weekly'] = {}
-                        gdict[op]['Scores'] = {}
-                        gdict[op]['Rankings'] = {}
-                        gdict[op]['Rankings']['All'] = {}
-                        gdict[op]['Rankings']['Division'] = {}
-                        gdict[op]['Rankings']['Conference'] = {}
-        
-                    gdict[op]['Stats']['Weekly'][int(week)] = {}
-                    gdict[op]['Stats']['Weekly'][int(week)]['Record'] = {}
-                    gdict[op]['Stats']['Weekly'][int(week)]['Record']['Overall'] = {}
-                    gdict[op]['Stats']['Weekly'][int(week)]['Record']['D1'] = {}
-                    gdict[op]['Stats']['Weekly'][int(week)]['Record']['Conference'] = {}
-                    gdict[op]['Stats']['Weekly'][int(week)]['Record']['Overall']['W'] = 0
-                    gdict[op]['Stats']['Weekly'][int(week)]['Record']['Overall']['L'] = 0
-                    gdict[op]['Stats']['Weekly'][int(week)]['Record']['D1']['W'] = 0
-                    gdict[op]['Stats']['Weekly'][int(week)]['Record']['D1']['L'] = 0
-                    gdict[op]['Stats']['Weekly'][int(week)]['Record']['Conference']['W'] = 0
-                    gdict[op]['Stats']['Weekly'][int(week)]['Record']['Conference']['L'] = 0
-                    gdict[op]['Scores'][int(week)] = {}
-                    gdict[op]['Scores'][int(week)]['Team'] = {}
-                    gdict[op]['Scores'][int(week)]['Team']['Offense'] = {}
-                    gdict[op]['Scores'][int(week)]['Team']['Defense'] = {}
+                gdict[opponents[0]]['Stats']['Season']['Beat'].append(opponents[1])
+                gdict[opponents[1]]['Stats']['Season']['Lost to'].append(opponents[0])
 
-                    gdict[op]['Scores'][int(week)]['Individual'] = {}
-                    gdict[op]['Scores'][int(week)]['Individual']['Offense'] = {}
-                    gdict[op]['Scores'][int(week)]['Individual']['Offense']['Rushing'] = {}
-                    gdict[op]['Scores'][int(week)]['Individual']['Offense']['Passing'] = {}
-                    gdict[op]['Scores'][int(week)]['Individual']['Offense']['Receiving'] = {}
-                    gdict[op]['Scores'][int(week)]['Individual']['Defense'] = {}
-          
-                # Probably don't need to have run each time, but can fix later 
-                parse_conferences(gdict, data, opponents)
+                # Update D1 win counter
+                # ---------------------
+                if(gdict[opponents[0]]['Conference'] in conference_divisions['FBS'] or
+                   gdict[opponents[0]]['Conference'] in conference_divisions['FCS']):
+                    gdict[opponents[0]]['Stats']['Season']['Record']['D1']['W'] += 1
 
-                # Set the home / away locations
-                # -----------------------------
-                gdict[opponents[0]]['Scores'][int(week)]['Opponent'] = opponents[1] 
-                gdict[opponents[0]]['Scores'][int(week)]['Location'] = 'Away' 
+                if(gdict[opponents[1]]['Conference'] in conference_divisions['FBS'] or
+                   gdict[opponents[1]]['Conference'] in conference_divisions['FCS']):
                 
-                gdict[opponents[1]]['Scores'][int(week)]['Opponent'] = opponents[0] 
-                gdict[opponents[1]]['Scores'][int(week)]['Location'] = 'Home' 
+                    gdict[opponents[1]]['Stats']['Season']['Record']['D1']['L'] += 1
+
+                # Update conference w/l
+                # ---------------------
+                if(gdict[opponents[0]]['Conference'] == gdict[opponents[1]]['Conference']):
+                    gdict[opponents[0]]['Stats']['Season']['Record']['Overall']['W'] += 1
+                    gdict[opponents[1]]['Stats']['Season']['Record']['Overall']['L'] += 1
+
+            else:
+                # Team 2 won, Team 1 lost
+                gdict[opponents[1]]['Stats']['Season']['Record']['Overall']['W'] += 1
+                gdict[opponents[0]]['Stats']['Season']['Record']['Overall']['L'] += 1
+
+                gdict[opponents[1]]['Stats']['Season']['Beat'].append(opponents[0])
+                gdict[opponents[0]]['Stats']['Season']['Lost to'].append(opponents[1])
+
+                # Update D1 win counter
+                # ---------------------
+                if(gdict[opponents[1]]['Conference'] in conference_divisions['FBS'] or
+                   gdict[opponents[1]]['Conference'] in conference_divisions['FCS']):
+                    gdict[opponents[1]]['Stats']['Season']['Record']['D1']['W'] += 1
+
+                if(gdict[opponents[0]]['Conference'] in conference_divisions['FBS'] or
+                   gdict[opponents[0]]['Conference'] in conference_divisions['FCS']):
+                    gdict[opponents[0]]['Stats']['Season']['Record']['D1']['L'] += 1
+
+                # Update conference w/l
+                # ---------------------
+                if(gdict[opponents[0]]['Conference'] == gdict[opponents[1]]['Conference']):
+                    gdict[opponents[1]]['Stats']['Season']['Record']['Overall']['W'] += 1
+                    gdict[opponents[0]]['Stats']['Season']['Record']['Overall']['L'] += 1
+
+            # Parse the total passing yards 
+            parse_total_pass_yards(gdict, week, data, opponents)
          
-                # Parse the score 
-                # NOTE: contains the quarterly score info also
-                # ---------------------------------------------
-                op1_points, op2_points = parse_scores(data, opponents)
+            # Parse the total rushing yards 
+            parse_total_rush_yards(gdict, week, data, opponents)
 
-                update_scores(gdict, opponents, week, op1_points, op2_points)
-
-                ##!#gdict[opponents[0]]['Scores'][int(week)]['Team']['Offense']['Points'] = float(op1_points[-1])
-                ##!#gdict[opponents[1]]['Scores'][int(week)]['Team']['Offense']['Points'] = float(op2_points[-1])
-        
-                ##!#gdict[opponents[1]]['Scores'][int(week)]['Team']['Defense']['Points'] = float(op1_points[-1])
-                ##!#gdict[opponents[0]]['Scores'][int(week)]['Team']['Defense']['Points'] = float(op2_points[-1])
-                ##!#
-                ##!## Use these to update the win and loss columns for each team
-                ##!## ----------------------------------------------------------
-                ##!#if(float(op1_points[-1]) > float(op2_points[-1])):
-                ##!#    # Team 1 won, Team 2 lost
-                ##!#    gdict[opponents[0]]['Stats']['Season']['Record']['Overall']['W'] += 1
-                ##!#    gdict[opponents[1]]['Stats']['Season']['Record']['Overall']['L'] += 1
-
-                ##!#    gdict[opponents[0]]['Stats']['Season']['Beat'].append(opponents[1])
-                ##!#    gdict[opponents[1]]['Stats']['Season']['Lost to'].append(opponents[0])
-
-                ##!#    # Update D1 win counter
-                ##!#    # ---------------------
-                ##!#    if(gdict[opponents[0]]['Conference'] in conference_divisions['FBS'] or
-                ##!#       gdict[opponents[0]]['Conference'] in conference_divisions['FCS']):
-                ##!#        gdict[opponents[0]]['Stats']['Season']['Record']['D1']['W'] += 1
-
-                ##!#    if(gdict[opponents[1]]['Conference'] in conference_divisions['FBS'] or
-                ##!#       gdict[opponents[1]]['Conference'] in conference_divisions['FCS']):
-                ##!#    
-                ##!#        gdict[opponents[1]]['Stats']['Season']['Record']['D1']['L'] += 1
-
-                ##!#    # Update conference w/l
-                ##!#    # ---------------------
-                ##!#    if(gdict[opponents[0]]['Conference'] == gdict[opponents[1]]['Conference']):
-                ##!#        gdict[opponents[0]]['Stats']['Season']['Record']['Conference']['W'] += 1
-                ##!#        gdict[opponents[1]]['Stats']['Season']['Record']['Conference']['L'] += 1
-
-                ##!#else:
-                ##!#    # Team 2 won, Team 1 lost
-                ##!#    gdict[opponents[1]]['Stats']['Season']['Record']['Overall']['W'] += 1
-                ##!#    gdict[opponents[0]]['Stats']['Season']['Record']['Overall']['L'] += 1
-
-                ##!#    gdict[opponents[1]]['Stats']['Season']['Beat'].append(opponents[0])
-                ##!#    gdict[opponents[0]]['Stats']['Season']['Lost to'].append(opponents[1])
-
-                ##!#    # Update D1 win counter
-                ##!#    # ---------------------
-                ##!#    if(gdict[opponents[1]]['Conference'] in conference_divisions['FBS'] or
-                ##!#       gdict[opponents[1]]['Conference'] in conference_divisions['FCS']):
-                ##!#        gdict[opponents[1]]['Stats']['Season']['Record']['D1']['W'] += 1
-
-                ##!#    if(gdict[opponents[0]]['Conference'] in conference_divisions['FBS'] or
-                ##!#       gdict[opponents[0]]['Conference'] in conference_divisions['FCS']):
-                ##!#        gdict[opponents[0]]['Stats']['Season']['Record']['D1']['L'] += 1
-
-                ##!#    # Update conference w/l
-                ##!#    # ---------------------
-                ##!#    if(gdict[opponents[0]]['Conference'] == gdict[opponents[1]]['Conference']):
-                ##!#        gdict[opponents[1]]['Stats']['Season']['Record']['Conference']['W'] += 1
-                ##!#        gdict[opponents[0]]['Stats']['Season']['Record']['Conference']['L'] += 1
-
-                # Set the weekly record values
-                # ----------------------------
-                gdict[opponents[0]]['Stats']['Weekly'][int(week)]['Record']['Overall']['W'] =  \
-                    gdict[opponents[0]]['Stats']['Season']['Record']['Overall']['W']
-                gdict[opponents[0]]['Stats']['Weekly'][int(week)]['Record']['Overall']['L'] =  \
-                    gdict[opponents[0]]['Stats']['Season']['Record']['Overall']['L']
-                gdict[opponents[0]]['Stats']['Weekly'][int(week)]['Record']['D1']['W'] =  \
-                    gdict[opponents[0]]['Stats']['Season']['Record']['D1']['W']
-                gdict[opponents[0]]['Stats']['Weekly'][int(week)]['Record']['D1']['L'] =  \
-                    gdict[opponents[0]]['Stats']['Season']['Record']['D1']['L']
-                gdict[opponents[0]]['Stats']['Weekly'][int(week)]['Record']['Conference']['W'] =  \
-                    gdict[opponents[0]]['Stats']['Season']['Record']['Conference']['W']
-                gdict[opponents[0]]['Stats']['Weekly'][int(week)]['Record']['Conference']['L'] =  \
-                    gdict[opponents[0]]['Stats']['Season']['Record']['Conference']['L']
-
-                gdict[opponents[1]]['Stats']['Weekly'][int(week)]['Record']['Overall']['W'] =  \
-                    gdict[opponents[1]]['Stats']['Season']['Record']['Overall']['W']
-                gdict[opponents[1]]['Stats']['Weekly'][int(week)]['Record']['Overall']['L'] =  \
-                    gdict[opponents[1]]['Stats']['Season']['Record']['Overall']['L']
-                gdict[opponents[1]]['Stats']['Weekly'][int(week)]['Record']['D1']['W'] =  \
-                    gdict[opponents[1]]['Stats']['Season']['Record']['D1']['W']
-                gdict[opponents[1]]['Stats']['Weekly'][int(week)]['Record']['D1']['L'] =  \
-                    gdict[opponents[1]]['Stats']['Season']['Record']['D1']['L']
-                gdict[opponents[1]]['Stats']['Weekly'][int(week)]['Record']['Conference']['W'] =  \
-                    gdict[opponents[1]]['Stats']['Season']['Record']['Conference']['W']
-                gdict[opponents[1]]['Stats']['Weekly'][int(week)]['Record']['Conference']['L'] =  \
-                    gdict[opponents[1]]['Stats']['Season']['Record']['Conference']['L']
-
-
-                # Parse the total passing yards 
-                parse_total_pass_yards(gdict, week, data, opponents)
-             
-                # Parse the total rushing yards 
-                parse_total_rush_yards(gdict, week, data, opponents)
-
-                # Parse the total receiving yards
-                parse_total_receiving_yards(gdict, week, data, opponents)
-
-            # Check for games that did not have a box score
-            # ---------------------------------------------
-            check_missing_games(gdict, url, week, this_week_teams)
+            # Parse the total receiving yards
+            parse_total_receiving_yards(gdict, week, data, opponents)
  
-            # If here, calculates after each division (FBS/FCS)
-            #calc_team_stats(gdict, weekly = True)
-
         # If here, calculates stats after each week
         calc_team_stats(gdict, weekly = True)
 
