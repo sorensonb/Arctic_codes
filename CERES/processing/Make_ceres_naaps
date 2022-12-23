@@ -1,0 +1,84 @@
+# Comment line
+
+EXEC = ceres_grid_exec 
+COMP = h5fc
+#COMP = gfortran
+LIB_PATH = ./
+#LIB_PATH = ../JZ_lib/
+#FORT_LIB_PATH = ../../fort_lib/
+OBJECTS = ceres_vars.o \
+			read_CERES_LAT.o \
+			read_CERES_LON.o \
+			read_CERES_SWF.o \
+			read_CERES_LWF.o \
+			read_CERES_SZA.o \
+			read_CERES_ALB.o \
+			ceres_grid.o
+			#read_CERES_TIM.o \
+			#read_CERES_ALB.o \
+			#read_CERES_SZA.o \
+			#read_CERES_CLS.o \
+			#read_CERES_CLW.o \
+
+FFLAGS = -g -O2 -Wall -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
+LDFLAGS = -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
+
+$(EXEC): $(OBJECTS)
+	$(COMP) $(LDFLAGS) $(OBJECTS) -o $(EXEC)
+
+ceres_vars.o: $(LIB_PATH)ceres_vars.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)ceres_vars.f90
+
+#check_bad_rows.o: $(LIB_PATH)check_bad_rows.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)check_bad_rows.f90
+#
+#grid_raw_data_climo.o: grid_raw_data_climo.f90
+#	$(COMP) $(FFLAGS) -c grid_raw_data_climo.f90
+#
+#read_h5_AI.o: $(LIB_PATH)read_h5_AI.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_AI.f90
+#
+#read_h5_AZM.o: $(LIB_PATH)read_h5_AZM.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_AZM.f90
+#
+#read_h5_GPQF.o: $(LIB_PATH)read_h5_GPQF.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_GPQF.f90
+#
+read_CERES_LAT.o: $(LIB_PATH)read_CERES_LAT.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_CERES_LAT.f90
+
+read_CERES_LON.o: $(LIB_PATH)read_CERES_LON.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_CERES_LON.f90
+
+read_CERES_SWF.o: $(LIB_PATH)read_CERES_SWF.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_CERES_SWF.f90
+
+read_CERES_LWF.o: $(LIB_PATH)read_CERES_LWF.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_CERES_LWF.f90
+
+read_CERES_SZA.o: $(LIB_PATH)read_CERES_SZA.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_CERES_SZA.f90
+
+read_CERES_ALB.o: $(LIB_PATH)read_CERES_ALB.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_CERES_ALB.f90
+
+#read_CERES_TIM.o: $(LIB_PATH)read_CERES_TIM.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_CERES_TIM.f90
+#
+#read_CERES_ALB.o: $(LIB_PATH)read_CERES_ALB.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_CERES_ALB.f90
+#
+#read_CERES_SZA.o: $(LIB_PATH)read_CERES_SZA.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_CERES_SZA.f90
+#
+#read_CERES_CLS.o: $(LIB_PATH)read_CERES_CLS.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_CERES_CLS.f90
+#
+#read_CERES_CLW.o: $(LIB_PATH)read_CERES_CLW.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_CERES_CLW.f90
+
+ceres_grid.o: ceres_grid.f90 $(LIB_PATH)ceres_vars.f90
+	$(COMP) $(FFLAGS) -c ceres_grid.f90
+
+clean:
+	rm $(EXEC) $(OBJECTS) *.mod

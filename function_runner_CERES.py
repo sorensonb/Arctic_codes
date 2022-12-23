@@ -13,6 +13,17 @@ import sys
 # Set up the overall figure
 # ----------------------------------------------------
 
+write_CERES_L2_to_HDF5('20170816', 'Aqua', save_path = './')
+
+sys.exit()
+
+date_str = '2017081421'
+plotCERES_hrly_figure(date_str, 'cld',  \
+    only_sea_ice = False, minlat = 60., \
+    lat_circles = None, grid_data = True, zoom = False, \
+    vmax = None, vmin = None, save = False)
+    #vmax = 450, vmin = None, save = False)
+sys.exit()
 
 ###minlat = 65
 ###plt.close('all')

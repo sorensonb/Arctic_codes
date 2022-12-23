@@ -206,6 +206,16 @@ cmnd = "scp "+rain_dir+"/arctic_comp/auto_process.sh "+final_dir
 print(cmnd)
 os.system(cmnd)
 
+rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/CERES/"
+
+final_dir = dest_dir + 'CERES/processing/'
+cmnd = "scp "+rain_dir+"*.f90 "+final_dir
+print(cmnd)
+os.system(cmnd)
+cmnd = "scp "+rain_dir+"Make* "+final_dir
+print(cmnd)
+os.system(cmnd)
+
 #cmnd = "cp "+base_dir+"OMI/OMI_simulation/*.py "+dest_dir
 #print(cmnd)
 #os.system(cmnd)
@@ -252,12 +262,23 @@ cmnd = "find "+base_dir+"FuLiou/ -type f -name \"*.py\" | xargs cp -t "+final_di
 #cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
 print(cmnd)
 os.system(cmnd)
+
 # ---------------------------------------------------------------------------- 
 # GOES analysis
 # ---------------------------------------------------------------------------- 
 print("GOES")
 final_dir = dest_dir + 'GOES/'
 cmnd = "find "+base_dir+"GOES/ -type f -name \"*.py\" | xargs cp -t "+final_dir
+#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
+
+# ---------------------------------------------------------------------------- 
+# GISSTEMP analysis
+# ---------------------------------------------------------------------------- 
+print("GISSTEMP")
+final_dir = dest_dir + 'GISSTEMP/'
+cmnd = "find "+base_dir+"GISSTEMP/ -type f -name \"*.py\" | xargs cp -t "+final_dir
 #cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
 print(cmnd)
 os.system(cmnd)

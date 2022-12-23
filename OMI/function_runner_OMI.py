@@ -5,9 +5,63 @@
 
 """
 
+from matplotlib.lines import Line2D
 import OMILib
 from OMILib import *
 import sys
+
+min_lat = 70.
+infile = home_dir + '/Research/OMI/shawn_analysis/count_analysis/' + \
+    'omi_vsj4_areas_2005_2020_100.txt'
+
+#calc_aerosol_event_dates(infile, minlat = min_lat, vtype = 'areas', \
+#    max_lat = None)
+#
+#sys.exit()
+
+vtype = 'areas'
+omi_fort_dict = read_OMI_fort_out(infile, min_lat, vtype = vtype)
+#omi_fort_dict_80 = read_OMI_fort_out(infile, min_lat, vtype = vtype)
+
+fig1 = plt.figure(figsize = (8,5)) 
+ax1 = fig1.add_subplot(1,1,1)
+#ax2 = fig1.add_subplot(1,2,2)
+
+loop_dates = omi_fort_dict['daily_dt_dates'][np.where( \
+    (omi_fort_dict['daily_dt_dates'] >= datetime(2019,4,1)) & \
+    (omi_fort_dict['daily_dt_dates'] <= datetime(2019,9,30)))]
+
+plot_dates = datetime(year = 2000, month = 4, day = 1) + \
+    (loop_dates - datetime(year = 2019, month = 4, day = 1))
+year = 2019
+ax1.plot(plot_dates,\
+    omi_fort_dict['daily_data'][np.where( \
+    (omi_fort_dict['daily_dt_dates'] >= datetime(year,4,1)) & \
+    (omi_fort_dict['daily_dt_dates'] <= datetime(year,9,30)))], label = '2019')
+
+
+# Plot the time series with the peaks as 'x's
+# -------------------------------------------
+#plot_OMI_fort_out_time_series(omi_fort_dict, ax1, minlat = min_lat)
+#custom_lines = [Line2D([0], [0])]
+
+print(ax1.get_xlim())
+
+ax1.legend()
+ax1.grid()
+#ax1.legend(custom_lines, ['2019'], loc = 2)
+
+exponent = 5
+label_str = 'Area of high AI [10$^{' + \
+    str(exponent) + '}$ km$^{2}$]'
+ax1.set_ylabel(label_str, weight = 'bold')
+
+ax1.xaxis.set_major_formatter(mdates.DateFormatter('%b'))
+ax1.set_title('High AI ' + vtype + '\nPerturbed AI threshold of '+str(omi_fort_dict['ai_thresh'])+\
+    '\nNorth of '+str(int(min_lat))+'$^{o}$N')
+fig1.savefig('omi_daily_areas_minlat70_2019.png', dpi = 300)
+plt.show()
+sys.exit()
 
 date_str = '200804221841'
 plotOMI_single_multipanel(date_str, only_sea_ice = False, minlat = 65., \

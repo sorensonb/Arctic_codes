@@ -6880,7 +6880,31 @@ def read_OMI_fort_out(file_name, min_lat, vtype = 'areas', max_lat = None, \
     omi_fort_dict['end_year']   = end_year
 
     return omi_fort_dict   
- 
+
+def calc_aerosol_event_dates(infile, minlat = 70., vtype = 'areas', \
+        max_lat = None):
+
+    # Read the daily data
+    # -------------------
+    omi_fort_dict = read_OMI_fort_out(infile, minlat, vtype = vtype, \
+        max_lat = max_lat)
+
+    outname = 'omi_area_event_dates_minlat' + str(int(minlat)) + '.txt'
+   
+    with open(outname, 'w') as fout: 
+        # Loop over the dates and figure out which ones have area over the
+        # threshold
+        # ----------------------------------------------------------------
+        for ii in range(len(omi_fort_dict['daily_data'])):
+            local_date = omi_fort_dict['daily_dt_dates'][ii]
+            local_area = omi_fort_dict['daily_data'][ii]
+    
+            if(local_area > omi_fort_dict['h_val']):
+                fout.write("{0} {1:.3f}\n".format(\
+                    local_date.strftime('%Y%m%d'), local_area))
+
+                print(local_date.strftime('%Y%m%d'), omi_fort_dict['daily_data'][ii])
+
 
 def plot_OMI_fort_out_func(infile, ax = None, min_lat = 70., vtype = 'areas', \
         max_lat = None, save = False):

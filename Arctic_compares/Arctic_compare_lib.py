@@ -886,11 +886,113 @@ def plot_compare_colocate_spatial_category(coloc_data, cat = 'ALL', minlat = 65.
     else:
         plt.show()
 
+def event_category_slopes_all(coloc_data, var1, var2, var3 = None, \
+    cat = "ALL", minlat = 65., xmin = None, xmax = None, ymin = None, \
+    ymax = None, trend = False, zoom = False, \
+    restrict_sza = False, color = None, save = False):
+
+    if(isinstance(coloc_data, str)):
+        dt_date_str = datetime.strptime(coloc_data, '%Y%m%d%H%M')
+        coloc_data = read_colocated(coloc_data)
+    else:
+        if(len(coloc_data['date_str']) == 6):
+            fmt = '%Y%m'
+        elif(len(coloc_data['date_str']) == 8):
+            fmt = '%Y%m%d'
+        elif(len(coloc_data['date_str']) == 12):
+            fmt = '%Y%m%d%H%M'
+        dt_date_str = datetime.strptime(coloc_data['date_str'], fmt)
+
+    cat = 'ICE_CLOUD'
+    cat = 'ICE_CLEAR'
+    cat = 'OCEAN_CLOUD'
+    cat = 'OCEAN_CLEAR'
+    cat = 'LAND_CLOUD'
+    cat = 'LAND_CLEAR'
+    begin_cats = ['ICE','OCEAN','LAND']
+    end_cats   = ['CLOUD','CLEAR']
+
+    return_dict = {}
+    for bc in begin_cats:
+        for ec in end_cats:
+            total_cat = bc + '_' + ec
+            return_dict[total_cat] = {}
+            thiel_slope, lin_slope, numx, numy, lin_pval = \
+                calc_category_slopes(coloc_data, var1, \
+                var2, cat = total_cat, xmin = xmin, xmax = xmax, \
+                ymin = ymin, ymax = ymax)
+
+            return_dict[total_cat]['Thiel'] = thiel_slope
+            return_dict[total_cat]['Linear'] = lin_slope
+            return_dict[total_cat]['num-x'] = numx
+            return_dict[total_cat]['num-y'] = numy
+            return_dict[total_cat]['lin_pval'] = lin_pval
+
+    return return_dict 
+
+def calc_category_slopes(coloc_data, var1, var2, var3 = None, \
+        cat = "ALL", minlat = 65., xmin = None, xmax = None, ymin = None, \
+        ymax = None, restrict_sza = False):
+
+    if(isinstance(coloc_data, str)):
+        dt_date_str = datetime.strptime(coloc_data, '%Y%m%d%H%M')
+        coloc_data = read_colocated(coloc_data)
+    else:
+        if(len(coloc_data['date_str']) == 6):
+            fmt = '%Y%m'
+        elif(len(coloc_data['date_str']) == 8):
+            fmt = '%Y%m%d'
+        elif(len(coloc_data['date_str']) == 12):
+            fmt = '%Y%m%d%H%M'
+        dt_date_str = datetime.strptime(coloc_data['date_str'], fmt)
+
+    # Pull out the category data for each variable
+    # --------------------------------------------
+    xdata = select_category(coloc_data, var1, cat)
+    ydata = select_category(coloc_data, var2, cat)
+
+    if(xmin is None):
+        xmin = np.nanmin(xdata)
+    if(xmax is None):
+        xmax = np.nanmax(xdata)
+    if(ymin is None):
+        ymin = np.nanmin(ydata)
+    if(ymax is None):
+        ymax = np.nanmax(ydata)
+
+    mask_xdata = np.ma.masked_where((xdata < xmin) | \
+        (xdata > xmax) | (ydata < ymin) |
+        (ydata > ymax), xdata).compressed()
+    mask_ydata = np.ma.masked_where((xdata < xmin) | \
+        (xdata > xmax) | (ydata < ymin) |
+        (ydata > ymax), ydata).compressed()
+
+    #print(cat, len(mask_xdata), len(mask_ydata))
+
+    #plot_trend_line(ax, mask_xdata.compressed(), mask_ydata.compressed(), color=trend_color, linestyle = '-', \
+    #    slope = 'thiel-sen')
+
+    if((len(mask_xdata) < 2) | (len(mask_ydata) < 2)):
+        return np.nan, np.nan, len(mask_xdata), len(mask_ydata), np.nan
+    
+    else:
+        res = stats.theilslopes(mask_ydata, mask_xdata, 0.90)
+        #print("\tTheil-Sen: {0}x + {1}".format(res[0], res[1]))
+
+        #zdata = np.polyfit(mask_xdata, mask_ydata, 1)
+        slope,intercept,r_value,p_value,std_err = \
+            stats.linregress(mask_xdata,mask_ydata)
+        #print("\tLin Regress: {0}x + {1}".format(*zdata))
+
+        # Thiel slope, Lin regress slope
+        return res[0], slope, len(mask_xdata), len(mask_ydata), p_value
+        #return res[0], zdata[0], len(mask_xdata), len(mask_ydata), p_value
+
 
 # cat is either "LAND", "ICE", "OCEAN", or "ALL"
 def plot_compare_scatter_category(coloc_data, var1, var2, var3 = None, \
         cat = "ALL", minlat = 65., xmin = None, xmax = None, ymin = None, \
-        ymax = None, ax = None, colorbar = True, trend = False, zoom = False, \
+        ymax = None, ax = None, colorbar = True, trend = None, zoom = False, \
         restrict_sza = False, color = None, save = False):
 
     if(isinstance(coloc_data, str)):
@@ -940,6 +1042,8 @@ def plot_compare_scatter_category(coloc_data, var1, var2, var3 = None, \
         (xdata > xmax) | (ydata < ymin) |
         (ydata > ymax), ydata)
 
+    print("Here:", cat, np.nanmax(mask_xdata), np.nanmax(mask_ydata))
+
     ## Now mask using the surface type
     ## -------------------------------
     #xdata = np.ma.masked_where(coloc_data[plot_var].mask, xdata)
@@ -985,10 +1089,10 @@ def plot_compare_scatter_category(coloc_data, var1, var2, var3 = None, \
                 extend = 'both')
             cbar.set_label(var3)
 
-    if(trend):
-        print(cat)
+    if(trend is not None):
+        print(cat, len(mask_xdata.compressed()), len(mask_ydata.compressed()))
         plot_trend_line(ax, mask_xdata.compressed(), mask_ydata.compressed(), color=trend_color, linestyle = '-', \
-            slope = 'thiel-sen')
+            slope = trend)
 
     ax.set_title(coloc_data['date_str'] + '\n' + plot_var)
  

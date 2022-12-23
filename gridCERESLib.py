@@ -82,8 +82,8 @@ max_dict = {
     'SWF': 250.,
     'LWF': 370.,
     'TOTAL': 560.,
-    'clr': 100.,
-    'cld': 100.,
+    'CLR': 100.,
+    'CLD': 100.,
     'ALB': 1.
 }
 
@@ -91,8 +91,8 @@ min_dict = {
     'SWF': 120.,
     'LWF': 300.,
     'TOTAL': 450.,
-    'clr': 0.,
-    'cld': 0.,
+    'CLR': 0.,
+    'CLD': 0.,
     'ALB': 0.
 }
 
@@ -435,11 +435,16 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
     # Grab all the files
     if(satellite == 'Terra'):
         base_path = home_dir + '/data/CERES/SSF_Level2/Terra/'
-    else:
+    elif(satellite == 'Aqua'):
         base_path = home_dir + '/data/CERES/SSF_Level2/Aqua/'
         if(modis_comp):
             base_path = base_path + 'modis_comp/'
         #base_path = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/modis_comp/'
+    elif(satellite == 'SuomiNPP'):
+        base_path = home_dir + '/data/CERES/SSF_Level2/SuomiNPP/'
+    elif(satellite == 'NOAA20'):
+        base_path = home_dir + '/data/CERES/SSF_Level2/NOAA20/'
+
     total_list = sorted(glob.glob(base_path+'CERES_SSF_*.nc'))
 
     # Convert the desired dt to a datetime object to use for finding the file
@@ -507,6 +512,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
     vza   = data.variables['CERES_viewing_zenith_at_surface'][:]
     azm   = data.variables['CERES_relative_azimuth_at_surface'][:]
     alb   = data.variables['CERES_broadband_surface_albedo'][:]
+    cld   = data.variables['Cloud_mask_clear_weak_percent_coverage'][:]
     lon[lon>179.99] = -360.+lon[lon>179.99]
     ##!#if(param == 'clr'):
     ##!#    # clear layer overlap indices:
@@ -553,6 +559,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
     test_vza  = vza[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
     test_azm  = azm[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
     test_alb  = alb[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
+    test_cld  = cld[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
 
     # Determine where the LAT peaks are located and separated by 181
     # --------------------------------------------------------------
@@ -599,6 +606,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
     test_vza  = test_vza[begin_idx: end_idx]
     test_azm  = test_azm[begin_idx: end_idx]
     test_alb  = test_alb[begin_idx: end_idx]
+    test_cld  = test_cld[begin_idx: end_idx]
 
     # Make grid arrays for the data
     # -----------------------------
@@ -610,6 +618,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
     grid_vza  = np.full((300, 181), np.nan)
     grid_azm  = np.full((300, 181), np.nan)
     grid_alb  = np.full((300, 181), np.nan)
+    grid_cld  = np.full((300, 181), np.nan)
     grid_time = np.full((300, 181), np.nan)
 
     # Loop over the data and insert into the grids
@@ -626,6 +635,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
             grid_vza[ii, :len(test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
             grid_azm[ii, :len(test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
             grid_alb[ii, :len(test_alb[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_alb[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
+            grid_cld[ii, :len(test_cld[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_cld[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
             grid_time[ii,:len(test_ftim[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_ftim[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
         ##!#elif(idx_diff > 181):
         ##!#    print(idx_diff, test_time[keep_lat_peaks[ii]], np.nanmean(test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]), 'over estimate')
@@ -669,6 +679,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
                         grid_vza[ii,m_idx[0][0]:len(test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
                         grid_azm[ii,m_idx[0][0]:len(test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
                         grid_alb[ii,m_idx[0][0]:len(test_alb[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_alb[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                        grid_cld[ii,m_idx[0][0]:len(test_cld[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_cld[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
                         grid_time[ii,m_idx[0][0]:len(test_ftim[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_ftim[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
 
     # Remove any rows in the grid arrays with any nans
@@ -703,6 +714,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
     grid_sza  = grid_sza[finders]
     grid_azm  = grid_azm[finders]
     grid_alb  = grid_alb[finders]
+    grid_cld  = grid_cld[finders]
     grid_time = grid_time[finders]
 
     # Convert the day timedelta to actual datetimes
@@ -725,6 +737,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
     CERES_grid_hrly['sza']       = grid_sza  
     CERES_grid_hrly['azm']       = grid_azm
     CERES_grid_hrly['alb']       = grid_alb
+    CERES_grid_hrly['cld']       = grid_cld
     CERES_grid_hrly['time']      = grid_time
     CERES_grid_hrly['time_dt']   = grid_time_dt
     CERES_grid_hrly['base_date'] = '197001010000'
@@ -745,6 +758,8 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
     ##!#plt.show()
 
 # Writes a MODIS channel dictionary to HDF5 for Fortran colocation
+# NOTE: used for writing gridded SSF_Level2 to an HDF5 file for a
+#       single hour.
 # ----------------------------------------------------------------
 def write_CERES_hrly_grid_to_HDF5(CERES_grid_hrly, save_path = './'):
 
@@ -773,6 +788,156 @@ def write_CERES_hrly_grid_to_HDF5(CERES_grid_hrly, save_path = './'):
     dset.close()
 
     print("Saved file ",outfile)  
+
+# For a given large CERES SSF_Level2 file containing, split out the data and 
+# write each time period for each case. 
+# NOTE: Used in the NAAPS/CERES comparisons
+# ----------------------------------------------------------------------------
+def write_CERES_L2_to_HDF5(case_date, satellite, save_path = './'):
+
+    if(home_dir + '/Research/NAAPS/' not in sys.path):
+        sys.path.append(home_dir + '/Research/NAAPS/')
+    from NAAPSLib import event_dict
+
+    # Use the case date to pick the time periods
+    # ------------------------------------------
+    before_start = event_dict[case_date]['before_start']
+    before_end   = event_dict[case_date]['before_end']
+    event_start  = event_dict[case_date]['start']
+    event_end    = event_dict[case_date]['end']
+    end_start    = event_dict[case_date]['end_start']
+    end_end      = event_dict[case_date]['end_end']
+
+    # Select and read the matching CERES file
+    # ---------------------------------------
+
+    data_dir = home_dir + '/data/CERES/SSF_Level2/' + satellite + '/'
+
+    ## Grab all the files
+    #if(satellite == 'Terra'):
+    #    base_path = home_dir + '/data/CERES/SSF_Level2/Terra/'
+    #elif(satellite == 'Aqua'):
+    #    base_path = home_dir + '/data/CERES/SSF_Level2/Aqua/'
+    #elif(satellite == 'SuomiNPP'):
+    #    base_path = home_dir + '/data/CERES/SSF_Level2/SuomiNPP/'
+    #elif(satellite == 'NOAA20'):
+    #    base_path = home_dir + '/data/CERES/SSF_Level2/NOAA20/'
+
+    total_list = sorted(glob.glob(data_dir + 'CERES_SSF_*.nc'))
+
+    # Set up the before and after datetime objects
+    # --------------------------------------------
+    dt_begin_start = datetime.strptime(before_start, '%Y%m%d')
+    dt_begin_end   = datetime.strptime(before_end,   '%Y%m%d')
+    dt_event_start = datetime.strptime(event_start, '%Y%m%d%H')
+    dt_event_end   = datetime.strptime(event_end,   '%Y%m%d%H')
+    dt_end_start   = datetime.strptime(end_start, '%Y%m%d')
+    dt_end_end     = datetime.strptime(end_end,   '%Y%m%d')
+
+    # Loop over the list of current CERES data files and find the one that  
+    # corresponds to the desired datetime
+    # --------------------------------------------------------------------
+    good_list = []
+    for tfile in total_list:
+        split_file = tfile.strip().split('/')[-1].split('_')
+        begin_date = datetime.strptime(split_file[-1][:10],"%Y%m%d%H")
+        end_date   = datetime.strptime(split_file[-1][11:21],"%Y%m%d%H")
+        if((dt_begin_start >= begin_date) & (dt_end_end <= end_date)): # | \
+           #(dt_data_begin == end_date) | \
+           #((day == True) & (begin_date >= dt_data_begin) & \
+           #(end_date <= dt_data_end))):
+            print("Found matching file",tfile)
+            good_list.append(tfile)
+            #work_file = tfile
+    if(len(good_list) == 0):
+        print("ERROR: could not find matching files. Returning")
+        return -1
+
+    # Read in the CERES data from the file
+    # ------------------------------------
+    base_date = datetime(year=1970,month=1,day=1)
+
+    # Assume that only one file will match up
+    # --------------------------------------- 
+    #for fileI in range(len(good_list)):
+    data = Dataset(good_list[0],'r')
+    time      = data.variables['time'][:]
+    lat       = 90. - data.variables['Colatitude_of_CERES_FOV_at_surface'][:]
+    lon       = data.variables['Longitude_of_CERES_FOV_at_surface'][:]
+    sza       = data.variables['CERES_solar_zenith_at_surface'][:]
+    vza       = data.variables['CERES_viewing_zenith_at_surface'][:]
+    azm       = data.variables['CERES_relative_azimuth_at_surface'][:]
+    alb       = data.variables['CERES_broadband_surface_albedo'][:]
+    lwf       = data.variables['CERES_LW_TOA_flux___upwards'][:]
+    swf       = data.variables['CERES_SW_TOA_flux___upwards'][:]
+    clr_str   = data.variables['Cloud_mask_clear_strong_percent_coverage'][:]
+    clr_wek   = data.variables['Cloud_mask_clear_weak_percent_coverage'][:]
+    lon[lon>179.99] = -360.+lon[lon>179.99]
+
+    # Using the datetimes, split out the three time periods:
+    # before, during, and after the event
+    # ------------------------------------------------------
+    print("Extracting times")
+    total_times = np.array([base_date + relativedelta(days = ttime) for ttime in time])
+    before_event = np.where((total_times >= dt_begin_start) & (total_times <= dt_begin_end))
+    during_event = np.where((total_times >= dt_event_start) & (total_times <= dt_event_end))
+    after_event  = np.where((total_times >= dt_end_start) & (total_times <= dt_end_end))
+
+    # Create the HDF5 file and write the data
+    # ---------------------------------------
+    before_file = save_path + 'ceres_subset_' + case_date + '_before.hdf5'
+    during_file = save_path + 'ceres_subset_' + case_date + '_during.hdf5'
+    after_file  = save_path + 'ceres_subset_' + case_date + '_after.hdf5'
+
+    before_dset = h5py.File(before_file,'w')
+    during_dset = h5py.File(during_file,'w')
+    after_dset  = h5py.File(after_file,'w')
+
+    # Write the before data 
+    print("Writing to out files")
+    before_dset.create_dataset('time',        data = time[before_event])
+    before_dset.create_dataset('latitude',    data = lat[before_event])
+    before_dset.create_dataset('longitude',   data = lon[before_event])
+    before_dset.create_dataset('swf',         data = swf[before_event])
+    before_dset.create_dataset('lwf',         data = lwf[before_event])
+    before_dset.create_dataset('sza',         data = sza[before_event])
+    before_dset.create_dataset('alb',         data = alb[before_event])
+    before_dset.create_dataset('clr_strong',  data = clr_str[before_event])
+    before_dset.create_dataset('clr_weak',    data = clr_wek[before_event])
+
+    # Write the during data 
+    during_dset.create_dataset('time',        data = time[during_event])
+    during_dset.create_dataset('latitude',    data = lat[during_event])
+    during_dset.create_dataset('longitude',   data = lon[during_event])
+    during_dset.create_dataset('swf',         data = swf[during_event])
+    during_dset.create_dataset('lwf',         data = lwf[during_event])
+    during_dset.create_dataset('sza',         data = sza[during_event])
+    during_dset.create_dataset('alb',         data = alb[during_event])
+    during_dset.create_dataset('clr_strong',  data = clr_str[during_event])
+    during_dset.create_dataset('clr_weak',    data = clr_wek[during_event])
+
+    # Write the after data 
+    after_dset.create_dataset('time',        data = time[after_event])
+    after_dset.create_dataset('latitude',    data = lat[after_event])
+    after_dset.create_dataset('longitude',   data = lon[after_event])
+    after_dset.create_dataset('swf',         data = swf[after_event])
+    after_dset.create_dataset('lwf',         data = lwf[after_event])
+    after_dset.create_dataset('sza',         data = sza[after_event])
+    after_dset.create_dataset('alb',         data = alb[after_event])
+    after_dset.create_dataset('clr_strong',  data = clr_str[after_event])
+    after_dset.create_dataset('clr_weak',    data = clr_wek[after_event])
+
+    data.close()
+    
+    # Save, write, and close the HDF5 file
+    # --------------------------------------
+    before_dset.close()
+    during_dset.close()
+    after_dset.close()
+
+    print("Saved file", before_file)
+    print("Saved file", during_file)
+    print("Saved file", after_file)
 
 # Data period is of format YYYYMMDDHH
 def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,\
