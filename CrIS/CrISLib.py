@@ -12,6 +12,7 @@ import sys
 from netCDF4 import Dataset
 from datetime import datetime,timedelta
 from dateutil.relativedelta import relativedelta
+import scipy.io
 from scipy.stats import pearsonr,spearmanr
 import subprocess
 from scipy import stats
@@ -253,28 +254,37 @@ def plot_CrIS_granule_test(CrIS_data, zoom = True, save = False):
 unit_dict = {
     'air_temp': 'K',\
     'dew_point': 'K',\
-    'surf_air_temp': 'K',\
+    'sfc_temp': 'K',\
     'spec_hum': 'g / kg', \
     'rel_hum': '%', \
-    'gp_hgt': 'm'
+    'gp_hgt': 'm',
+    'wv': 'g/kg',
+    'temp': 'K',
+    'rh': '%'
 }
 
 label_dict = {
     'air_temp': 'Temperature',\
     'dew_point': 'Dew Point Temperature',\
-    'surf_air_temp': 'Temperature',\
+    'sfc_temp': 'Temperature',\
     'spec_hum': 'Specific Humidity', \
     'rel_hum': 'Relative Humidity', \
-    'gp_hgt': 'Geopotential Height'
+    'gp_hgt': 'Geopotential Height',
+    'wv': 'Mixing Ratio',
+    'temp': 'Air Temperature', 
+    'rh': 'Relative Humidity'
 }
 
 title_dict = {
     'air_temp': 'Air Temperature',\
     'dew_point': 'Dew Point Temperature',\
-    'surf_air_temp': 'Surface Air Temperature',\
+    'sfc_temp': 'Surface Skin Temperature',\
     'spec_hum': 'Specific Humidity', \
     'rel_hum': 'Relative Humidity', \
-    'gp_hgt': 'Geopotential Height'
+    'gp_hgt': 'Geopotential Height',
+    'wv': 'Mixing Ratio',
+    'temp': 'Air temperature',
+    'rh': 'Relative humidity'
 }
 
 def plotCrIS_layer(CrIS_volume, variable, layer_idx, pax = None, zoom = True, \
@@ -462,6 +472,75 @@ def plotCrIS_profile_3panel(date_str, variable, layer_idx, slat, slon, \
     else:
         plt.show()
 
+# Reads one of Bill Smith Sr.'s CrIS retrieval files at a press level
+# -------------------------------------------------------------------
+def readCrIS_retrieval_level(date_str, press):
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M%S')
+
+    # Read in the file
+    # ----------------
+    data = scipy.io.loadmat(dt_date_str.strftime('PHSS_npp_%Y%m%d_%H%M%S_rtv_m3F.mat'))
+    #data = scipy.io.loadmat(dt_date_str.strftime('PHSS_npp_20210723_093719_rtv_m3F.mat')
+
+    # To access all lat/lon
+    lats  = np.squeeze(data['iovars']['plat'][0][0])
+    lons  = np.squeeze(data['iovars']['plon'][0][0])
+    plev  = np.squeeze(data['iovars']['plevs'][0][0])
+    spres = np.squeeze(data['iovars']['spres'][0][0])
+
+    # Find the pressure index closest to the desired level
+    # ----------------------------------------------------
+    p_idx = np.argmin(abs(plev - press)) 
+
+    CrIS_data = {}
+    CrIS_data['lat']       = lats
+    CrIS_data['lon']       = lons
+    CrIS_data['press']     = press
+    CrIS_data['sfc_press'] = spres
+    CrIS_data['temp']      = np.squeeze(data['rtvdat']['temp'][0][0])[:,p_idx]
+    CrIS_data['sfc_temp']  = np.squeeze(data['rtvdat']['sfct'][0][0])[:]
+    CrIS_data['wv']        = np.squeeze(data['rtvdat']['wv'][0][0])[:,p_idx]
+    CrIS_data['rh']        = np.squeeze(data['rtvdat']['rh'][0][0])[:,p_idx]
+   
+    return CrIS_data
+
+# Reads one of Bill Smith Sr.'s CrIS retrieval files at a press level
+# -------------------------------------------------------------------
+def readCrIS_retrieval_profile(date_str, plat, plon):
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M%S')
+
+    # Read in the file
+    # ----------------
+    data = scipy.io.loadmat(dt_date_str.strftime('PHSS_npp_%Y%m%d_%H%M%S_rtv_m3F.mat'))
+    #data = scipy.io.loadmat(dt_date_str.strftime('PHSS_npp_20210723_093719_rtv_m3F.mat')
+
+    # To access all lat/lon
+    lats  = np.squeeze(data['iovars']['plat'][0][0])
+    lons  = np.squeeze(data['iovars']['plon'][0][0])
+    plev  = np.squeeze(data['iovars']['plevs'][0][0])
+    spres = np.squeeze(data['iovars']['spres'][0][0])
+
+    # Find the pressure index closest to the desired level
+    # ----------------------------------------------------
+    loc_idx = nearest_gridpoint(plat, plon, lats, lons)
+    #p_idx = np.argmin(abs(plev - press)) 
+
+    CrIS_data = {}
+    CrIS_data['plat']      = plat
+    CrIS_data['plon']      = plon
+    CrIS_data['lat']       = lats[loc_idx][0]
+    CrIS_data['lon']       = lons[loc_idx][0]
+    CrIS_data['sfc_press'] = spres[loc_idx][0]
+    CrIS_data['press']     = plev
+    CrIS_data['temp']      = np.squeeze(data['rtvdat']['temp'][0][0][loc_idx,:])
+    CrIS_data['sfc_temp']  = np.squeeze(data['rtvdat']['sfct'][0][0])[loc_idx]
+    CrIS_data['wv']        = np.squeeze(data['rtvdat']['wv'][0][0][loc_idx,:])
+    CrIS_data['rh']        = np.squeeze(data['rtvdat']['rh'][0][0][loc_idx,:])
+ 
+    return CrIS_data
+ 
 def readCrIS_volume(date_str, zoom = True):
 
     data_dir = '/home/bsorenson/data/CrIS/CRIMSS/'
@@ -478,7 +557,7 @@ def readCrIS_volume(date_str, zoom = True):
 
     CrIS_data = {}
     CrIS_data['air_temp']      = data['air_temp'][:,:,:]
-    CrIS_data['surf_air_temp'] = data['surf_air_temp'][:,:]
+    CrIS_data['sfc_temp']      = data['surf_air_temp'][:,:]
     CrIS_data['spec_hum']      = data['spec_hum'][:,:,:] * 1000.
     CrIS_data['rel_hum']       = data['rel_hum'][:,:,:] * 100.
     CrIS_data['gp_hgt']        = data['gp_hgt'][:,:,:]
@@ -559,150 +638,83 @@ def readCrIS_granule(date_str, satellite = 'SNPP', resolution = 'NSR', \
     return CrIS_data
 
  
-    CrIS_data = {}
-    CrIS_data['filename'] = filename
-    CrIS_data['band']     = band
- 
-    ##!## Read the filename to determine the file type
-    ##!## --------------------------------------------
-    ##!#total_split = filename.split('/')
-    ##!#name_split = total_split[-1].split('.')
-    ##!#dataset_name = name_split[0]
-    ##!#if(dataset_name == 'VNP46A1'):
-    ##!#    cmap = 'cividis'
-    ##!#    dtype = 'DNB'        
+    #CrIS_data = {}
+    #CrIS_data['filename'] = filename
+    #CrIS_data['band']     = band
 
-    ##!#    viirs_ds = h5py.File(filename, 'r')
-    ##!#    lat_max = viirs_ds['HDFEOS/GRIDS/VNP_Grid_DNB/'].attrs['NorthBoundingCoord']
-    ##!#    lat_min = viirs_ds['HDFEOS/GRIDS/VNP_Grid_DNB/'].attrs['SouthBoundingCoord']
-    ##!#    lon_max = viirs_ds['HDFEOS/GRIDS/VNP_Grid_DNB/'].attrs['EastBoundingCoord']
-    ##!#    lon_min = viirs_ds['HDFEOS/GRIDS/VNP_Grid_DNB/'].attrs['WestBoundingCoord']
-    ##!#    dnb = viirs_ds['HDFEOS/GRIDS/VNP_Grid_DNB/Data Fields/DNB_At_Sensor_Radiance_500m']
+    #return CrIS_data
 
-    ##!#    # NOTE: Need to convert these values to actual radiance using the 
-    ##!#    # scale factor
-    ##!#    dnb_scale  = viirs_ds['HDFEOS/GRIDS/VNP_Grid_DNB/Data Fields/DNB_At_Sensor_Radiance_500m'].attrs['scale_factor']
-    ##!#    dnb_offset = viirs_ds['HDFEOS/GRIDS/VNP_Grid_DNB/Data Fields/DNB_At_Sensor_Radiance_500m'].attrs['add_offset']
+def plot_CrIS_retrieval_level(CrIS_data, pvar, ax = None, labelsize = 12, \
+        labelticksize = 10, markersize = 500, zoom = True, \
+        show_smoke = False, vmin = None, vmax = None, save = False):
 
-    ##!#    dnb = (dnb - dnb_offset) * dnb_scale
+    in_ax = True
+    if(ax is None):
+        in_ax = False
+        plt.close('all')
+        mapcrs = init_proj('202107232155')
+        fig = plt.figure(figsize=(6,6))
+        ax = fig.add_subplot(1,1,1, projection = mapcrs)
 
-    ##!#    lats = np.linspace(lat_max[0], lat_min[0], dnb.shape[1])
-    ##!#    lons = np.linspace(lon_min[0], lon_max[0], dnb.shape[0])
-    ##!#    x, y = np.meshgrid(lons, lats)
+    #if(vmax is None):
+    #    vmax = CrIS_data['vmax']
 
-    ##!#    viirs_ds.close()
+    plot_data = np.ma.masked_invalid(CrIS_data[pvar])
 
-    ##!#elif(dataset_name[:5] == 'VNP02'):
+    scat = ax.scatter(CrIS_data['lon'], CrIS_data['lat'], s = markersize, \
+        c = plot_data, transform = ccrs.PlateCarree(), cmap = 'jet', \
+        vmin = vmin, vmax = vmax)
+    cbar = plt.colorbar(scat, ax = ax, orientation='vertical',\
+        pad=0.03, extend = 'both')
+    cbar.set_label(pvar, weight = 'bold', fontsize = 14)
 
-    ##!#    # Extract whether DNB or MOD
-    ##!#    # --------------------------
-    ##!#    data_type = dataset_name[5:]
+    ax.coastlines()
+    ax.add_feature(cfeature.STATES)
 
-    ##!#    # Determine if geolocation data is present in same path
-    ##!#    # -----------------------------------------------------
-    ##!#    print("Searching for geolocation data for",'/'.join(total_split[:-1]) \
-    ##!#        + '/VNP03' + data_type + '.' + '.'.join(name_split[1:4]))
-    ##!#    geoloc_list = glob('/'.join(total_split[:-1]) + '/VNP03' + data_type + \
-    ##!#        '.' + '.'.join(name_split[1:4]) + '*') 
-    ##!#    if(len(geoloc_list) == 0):
-    ##!#        print("ERROR: no geolocation found for file",filename)
-    ##!#        return
-    ##!#    else:
-    ##!#        viirs_ds   = h5py.File(filename, 'r')
-    ##!#        viirs_ds_g = h5py.File(geoloc_list[0], 'r')
+    if(pvar == 'sfc_temp'):
+        ax.set_title('SNPP CrIS Surface Skin Temperature (K)')
+    else:
+        ax.set_title('SNPP CrIS ' + str(int(CrIS_data['press'])) + ' hPa ' + \
+            label_dict[pvar] + ' (' + unit_dict[pvar] + ')')
 
-    ##!#        # Extract the DNB values
-    ##!#        # ----------------------
-    ##!#        if(data_type == 'DNB'):
-    ##!#            dtype = 'DNB'
-    ##!#            label = 'Radiance [nW cm$^{-2}$ Sr$^{-1}$]'
-    ##!#            cmap = 'Greys_r'
-    ##!#            dnb = viirs_ds['observation_data/DNB_observations'][:]
+    #if(show_smoke):    
+    #    hash_data, nohash_data = find_plume_CrIS(CrIS_data['filename'])
+    #    #plt.rcParams.update({'hatch.color': 'r'})
+    #    hatch_shape = '\\\\'
+    #    #hash0 = ax2.pcolor(MODIS_data_ch1['lon'],MODIS_data_ch1['lat'],\
+    #    #    hash_data[:MODIS_data_ch1['lat'].shape[0], :MODIS_data_ch1['lat'].shape[1]], hatch = hatch_shape, alpha=0., transform = datacrs)
+    #    ax.pcolor(CrIS_data['lon'],CrIS_data['lat'],\
+    #        hash_data, hatch = hatch_shape, alpha=0.40, transform = datacrs)
+     
 
-    ##!#            dnb = np.ma.masked_where(dnb < 0, dnb)
-    ##!#            dnb = dnb * 1e9
-    ##!#            #dnb = np.log10(dnb)
-    ##!#            #vmax = np.log10(38.2)
-    ##!#            vmax = 10.0
+    if(zoom):
+        ax.set_extent([-122.0,-119.5,39.5,42.0],\
+                       ccrs.PlateCarree())
+    if(not in_ax):
+        plt.show()
 
-    ##!#        else:
-    ##!#            dtype = band
-    ##!#        
-    ##!#            dnb = viirs_ds['observation_data/' + band][:]
-    ##!#            dnb_scale = viirs_ds['observation_data/' + band].attrs['scale_factor']
-    ##!#            dnb_offset = viirs_ds['observation_data/' + band].attrs['add_offset']
+def plot_CrIS_retrieval_profile(CrIS_data, pvar, lat, lon, ax = None, \
+        labelsize = 12, labelticksize = 10, zoom = True, vmin = None, \
+        vmax = None, save = False):
 
-    ##!#            dnb = np.ma.masked_where(dnb < 0, dnb)
-    ##!#            dnb = (dnb - dnb_offset) * dnb_scale
-    ##!#            print(np.min(dnb), np.max(dnb))
+    in_ax = True
+    if(ax is None):
+        in_ax = False
+        plt.close('all')
+        fig = plt.figure(figsize=(6,6))
+        ax = fig.add_subplot(1,1,1)
 
-    ##!#            # Use the band number to determine the colormap
-    ##!#            # ---------------------------------------------
-    ##!#            if(int(band[1:]) > 11):
-    ##!#                cmap = 'plasma'
+    ax.plot(np.ma.masked_invalid(CrIS_data[pvar]), CrIS_data['press'])
+    ax.invert_yaxis()
+    ax.set_ylim(1000, 100)
+    ax.set_yscale('log')
+    
+    ax.set_title('CrIS ' + title_dict[pvar] + ' profile\n' + \
+        str(CrIS_data['plat']) + '$^{o}$N, ' + 
+        str(abs(CrIS_data['plon'])) + '$^{o}$W')
 
-    ##!#                dnb = convert_radiance_to_temp(\
-    ##!#                    (np.average(channel_dict[band]['Bandwidth'])), dnb)
-
-    ##!#                print('wavelength avg = ', np.average(channel_dict[band]['Bandwidth']))
-    ##!#                print('Radiances  ', np.min(dnb), np.max(dnb))
-    ##!#                label = 'Brightness temperature [K]'
-    ##!#                #label = 'Radiance [W m$^{-2}$ μm$^{-1}$ Sr$^{-1}$]'
-    ##!#
-    ##!#                if(np.max(dnb) > 330):
-    ##!#                    vmax = 330
-    ##!#                else:
-    ##!#                    vmax = None
-    ##!#            else:
-    ##!#                cmap = 'Greys_r'
-    ##!#                label = 'Reflectance'
-    ##!#                if(np.max(dnb) > 1.0):
-    ##!#                    vmax = 1.0
-    ##!#                else:
-    ##!#                    vmax = None
-    ##!#                
-
-
-    ##!#        # Extract the lat and lons
-    ##!#        # ------------------------
-    ##!#        x = viirs_ds_g['geolocation_data']['longitude'][:]
-    ##!#        y = viirs_ds_g['geolocation_data']['latitude'][:]
-
-    ##!#        viirs_ds.close()
-    ##!#        viirs_ds_g.close() 
-
-    ##!#if(zoom):
-    ##!#    # Mask MODIS_data['data'] that are outside the desired range
-    ##!#    # --------------------------------------------
-    ##!#    dnb[(((y < 39.5 - 0.1) | \
-    ##!#          (y > 42.0 + 0.1)) | \
-    ##!#         ((x < -122.0 - 0.1) | \
-    ##!#          (x > -119.5 + 0.1)))] = np.nan
-    ##!#    ##!#MODIS_data['lat'][ (((MODIS_data['lat'] < aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0]) | \
-    ##!#    ##!#                     (MODIS_data['lat'] > aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1])) | \
-    ##!#    ##!#                    ((MODIS_data['lon'] < aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][0]) | \
-    ##!#    ##!#                     (MODIS_data['lon'] > aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][1])))] = -999.
-    ##!#    ##!#MODIS_data['lon'][ (((MODIS_data['lat'] < aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0]) | \
-    ##!#    ##!#                     (MODIS_data['lat'] > aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1])) | \
-    ##!#    ##!#                    ((MODIS_data['lon'] < aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][0]) | \
-    ##!#    ##!#                     (MODIS_data['lon'] > aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][1])))] = -999.
-
-    ##!#    dnb = np.ma.masked_invalid(dnb)
-    ##!#    #dnb = np.ma.masked_where(dnb == -999., dnb)
-    ##!#    ##!#MODIS_data['lat'] = np.ma.masked_where(MODIS_data['lat'] == -999., MODIS_data['lat'])
-    ##!#    ##!#MODIS_data['lon'] = np.ma.masked_where(MODIS_data['lon'] == -999., MODIS_data['lon'])
-    ##!#    
-
-    ##!#CrIS_data['filename'] = filename
-    ##!#CrIS_data['dtype']    = dtype
-    ##!#CrIS_data['label']    = label
-    ##!#CrIS_data['lon']      = x
-    ##!#CrIS_data['lat']      = y
-    ##!#CrIS_data['data']     = dnb
-    ##!#CrIS_data['vmax']     = vmax
-    ##!#CrIS_data['cmap']     = cmap
-
-    return CrIS_data
+    if(not in_ax):
+        plt.show()
 
 def plot_CrIS_granule(CrIS_data, ax = None, labelsize = 12, \
         labelticksize = 10, zoom = True, show_smoke = False, vmin = None, \
