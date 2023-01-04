@@ -672,9 +672,9 @@ def plot_CrIS_retrieval_level(CrIS_data, pvar, ax = None, labelsize = 12, \
     ax.add_feature(cfeature.STATES)
 
     if(pvar == 'sfc_temp'):
-        ax.set_title('SNPP CrIS Surface Skin Temperature (K)')
+        ax.set_title('SNPP CrIS\nSkin Temperature (K)')
     else:
-        ax.set_title('SNPP CrIS ' + str(int(CrIS_data['press'])) + ' hPa ' + \
+        ax.set_title('SNPP CrIS\n' + str(int(CrIS_data['press'])) + ' hPa ' + \
             label_dict[pvar] + ' (' + unit_dict[pvar] + ')')
 
     #if(show_smoke):    
@@ -695,7 +695,7 @@ def plot_CrIS_retrieval_level(CrIS_data, pvar, ax = None, labelsize = 12, \
 
 def plot_CrIS_retrieval_profile(CrIS_data, pvar, lat, lon, ax = None, \
         labelsize = 12, labelticksize = 10, zoom = True, vmin = None, \
-        vmax = None, save = False):
+        vmax = None, ymin = 1000, ymax = 100, save = False):
 
     in_ax = True
     if(ax is None):
@@ -706,7 +706,8 @@ def plot_CrIS_retrieval_profile(CrIS_data, pvar, lat, lon, ax = None, \
 
     ax.plot(np.ma.masked_invalid(CrIS_data[pvar]), CrIS_data['press'])
     ax.invert_yaxis()
-    ax.set_ylim(1000, 100)
+    ax.set_ylim(ymax, ymin)
+    #ax.set_xlim(vmin, vmax)
     ax.set_yscale('log')
     
     ax.set_title('CrIS ' + title_dict[pvar] + ' profile\n' + \
@@ -715,6 +716,159 @@ def plot_CrIS_retrieval_profile(CrIS_data, pvar, lat, lon, ax = None, \
 
     if(not in_ax):
         plt.show()
+
+def plot_CrIS_retrieval_combined(date_str, press = 500., pvar = 'wv',\
+        row_str = 'md', plot_skin_temp = False, save = False):
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M%S')
+
+    if(row_str == 'mu'):
+        # Middle Up
+        smoke_lat = 41.2328
+        smoke_lon = -120.1568
+        clear_lat1 = 41.4879
+        clear_lon1 = -120.5508
+        clear_lat2 = 40.9871
+        clear_lon2 = -119.7220
+    elif(row_str == 'md'):
+        # Middle
+        smoke_lat = 41.0000
+        smoke_lon = -120.4676
+        clear_lat1 = 41.3951
+        clear_lon1 = -121.0405
+        clear_lat2 = 40.6634
+        clear_lon2 = -120.1207
+    elif(row_str == 'ml'):    
+        # Middle Low
+        smoke_lat = 40.5672
+        smoke_lon = -120.9731
+        clear_lat1 = 40.9128
+        clear_lon1 = -121.3236
+        clear_lat2 = 40.4173
+        clear_lon2 = -120.5538
+    elif(row_str == 'low'): 
+        # Low
+        #smoke_lat = 40.1929
+        #smoke_lon = -121.2456
+        smoke_lat = 40.3261
+        smoke_lon = -121.0302
+        clear_lat1 = 40.6438
+        clear_lon1 = -121.5822
+        clear_lat2 = 39.9617
+        clear_lon2 = -120.4403
+
+    wv_max = 1.4
+    wv_min = 0.0
+    sfc_tmp_max = 330
+    sfc_tmp_min = 280
+    #pvar = 'sfc_temp'
+    
+    CrIS_level_day   = readCrIS_retrieval_level(date_str,   press)
+    
+    # Read the daytime profiles
+    CrIS_data_day_smoke  =  readCrIS_retrieval_profile(date_str, smoke_lat, smoke_lon)
+    CrIS_data_day_clear1 =  readCrIS_retrieval_profile(date_str, clear_lat1, clear_lon1)
+    CrIS_data_day_clear2 =  readCrIS_retrieval_profile(date_str, clear_lat2, clear_lon2)
+   
+    plt.close('all') 
+    fig = plt.figure(figsize = (12, 3.5))
+    mapcrs = init_proj('202107232155')
+    ax1 = fig.add_subplot(1,4,1, projection = mapcrs)
+    ax2 = fig.add_subplot(1,4,2, projection = mapcrs)
+    ax3 = fig.add_subplot(1,4,3)
+    ax4 = fig.add_subplot(1,4,4)
+    
+    # Plot the spatial data
+    # ---------------------
+    msize = 150
+    point_size = 15
+    #spatial_var = 'temp'
+    spatial_var = pvar
+    plot_CrIS_retrieval_level(CrIS_level_day, 'sfc_temp', ax = ax1, labelsize = 12, \
+        labelticksize = 10, zoom = True, show_smoke = False, vmin = sfc_tmp_min, \
+        vmax = sfc_tmp_max, save = False, markersize = msize)
+    plot_CrIS_retrieval_level(CrIS_level_day, spatial_var, ax = ax2, labelsize = 12, \
+        labelticksize = 10, zoom = True, show_smoke = False, vmin = wv_min, \
+        vmax = wv_max, save = False, markersize = msize)
+    
+    ax1.plot(smoke_lon, smoke_lat, linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax1.plot(smoke_lon, smoke_lat, linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs, color = 'tab:blue')
+    ax1.plot(clear_lon1, clear_lat1, linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax1.plot(clear_lon1, clear_lat1, linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs, color = 'tab:orange')
+    ax1.plot(clear_lon2, clear_lat2, linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax1.plot(clear_lon2, clear_lat2, linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs, color = 'tab:green')
+    
+    ax2.plot(smoke_lon, smoke_lat, linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax2.plot(smoke_lon, smoke_lat, linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs, color = 'tab:blue')
+    ax2.plot(clear_lon1, clear_lat1, linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax2.plot(clear_lon1, clear_lat1, linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs, color = 'tab:orange')
+    ax2.plot(clear_lon2, clear_lat2, linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax2.plot(clear_lon2, clear_lat2, linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs, color = 'tab:green')
+    
+    # Plot CrIS mixing ratio / relative humidity
+    prof_var = 'wv'
+    plot_CrIS_retrieval_profile(CrIS_data_day_smoke, prof_var, smoke_lat, smoke_lon, ax = ax3)
+    plot_CrIS_retrieval_profile(CrIS_data_day_clear1, prof_var, clear_lat1, clear_lon1, ax = ax3)
+    plot_CrIS_retrieval_profile(CrIS_data_day_clear2, prof_var, clear_lat2, clear_lon2, ax = ax3)
+    
+    prof_var = 'temp'
+    plot_CrIS_retrieval_profile(CrIS_data_day_smoke, prof_var, smoke_lat, smoke_lon, ax = ax4)
+    plot_CrIS_retrieval_profile(CrIS_data_day_clear1, prof_var, clear_lat1, clear_lon1, ax = ax4)
+    plot_CrIS_retrieval_profile(CrIS_data_day_clear2, prof_var, clear_lat2, clear_lon2, ax = ax4)
+   
+    if(plot_skin_temp): 
+        ax4.scatter(CrIS_data_day_smoke['sfc_temp'],CrIS_data_day_smoke['sfc_press'],  color = 'tab:blue')
+        ax4.scatter(CrIS_data_day_clear1['sfc_temp'],CrIS_data_day_clear1['sfc_press'],  color = 'tab:orange')
+        ax4.scatter(CrIS_data_day_clear2['sfc_temp'],CrIS_data_day_clear2['sfc_press'],  color = 'tab:green')
+    
+    ax3.axhline(press, linestyle = '--', color = 'k')
+    ax4.axhline(press, linestyle = '--', color = 'k')
+    
+    # Highlight regions where blue wv is higher than green wv with cyan
+    # Highlight regions where blue tp is lower than green tp with purple
+    higher_wv = np.where((CrIS_data_day_smoke['wv'] - CrIS_data_day_clear2['wv']) > 0.1)
+    lower_tmp = np.where((CrIS_data_day_clear2['temp'] - CrIS_data_day_smoke['temp']) > 0.5)
+    
+    tmp_idxs = np.split(lower_tmp[0],np.where(np.squeeze(np.diff(lower_tmp)) != 1)[0]+1)
+   
+    try: 
+        ax3.axhspan(CrIS_data_day_smoke['press'][higher_wv[0][0]], CrIS_data_day_smoke['press'][higher_wv[0][-1]], color = 'cyan', alpha = 0.5)
+        ax4.axhspan(CrIS_data_day_smoke['press'][higher_wv[0][0]], CrIS_data_day_smoke['press'][higher_wv[0][-1]], color = 'cyan', alpha = 0.5)
+
+        for ii in range(len(tmp_idxs)):
+            ax3.axhspan(CrIS_data_day_smoke['press'][tmp_idxs[ii][0]], CrIS_data_day_smoke['press'][tmp_idxs[ii][-1]], color = 'purple', alpha = 0.5)
+            ax4.axhspan(CrIS_data_day_smoke['press'][tmp_idxs[ii][0]], CrIS_data_day_smoke['press'][tmp_idxs[ii][-1]], color = 'purple', alpha = 0.5)
+    except IndexError:
+        print("ERROR: unable to show shaded regions") 
+    
+    
+    ax3.set_ylim(1000, 350)
+    ax4.set_ylim(1000, 350)
+    
+    #ax3.set_xlim(250, 315)
+    ax4.set_xlim(250, 315)
+    
+    fig.tight_layout()
+   
+    if(save):
+        outname = dt_date_str.strftime('cris_rtv_' + row_str + '_%Y%m%d%H%M%S.png')
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
 
 def plot_CrIS_granule(CrIS_data, ax = None, labelsize = 12, \
         labelticksize = 10, zoom = True, show_smoke = False, vmin = None, \
