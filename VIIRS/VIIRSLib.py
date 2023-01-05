@@ -398,7 +398,7 @@ def plot_VIIRS_figure(filename, satellite = 'SNPP', band = 'M12', \
         ax.set_extent([-122.0,-119.5,39.5,42.0],\
                        ccrs.PlateCarree())
        
-    ax.set_title(ptitle, weight = 'bold')
+    ax.set_title(ptitle)
  
     ax.coastlines()
     ax.add_feature(cfeature.BORDERS)

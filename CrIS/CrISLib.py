@@ -31,14 +31,17 @@ from satpy.scene import Scene
 from satpy.writers import get_enhanced_image
 from glob import glob
 import time
+import os
 
-sys.path.append('/home/bsorenson/')
+home_dir = os.environ['HOME']
+
+sys.path.append(home_dir + '/')
 #from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
 #    nearest_gridpoint, aerosol_event_dict, init_proj, \
 #    convert_radiance_to_temp
 from python_lib import *
 
-data_dir = '/home/bsorenson/data/CrIS/'
+data_dir = home_dir + '/data/CrIS/'
 datacrs = ccrs.PlateCarree()
 mapcrs = ccrs.LambertConformal()
 #mapcrs = ccrs.LambertConformal(central_longitude = -110, central_latitude = 40)
@@ -646,7 +649,8 @@ def readCrIS_granule(date_str, satellite = 'SNPP', resolution = 'NSR', \
 
 def plot_CrIS_retrieval_level(CrIS_data, pvar, ax = None, labelsize = 12, \
         labelticksize = 10, markersize = 500, zoom = True, \
-        show_smoke = False, vmin = None, vmax = None, save = False):
+        show_smoke = False, vmin = None, vmax = None, alpha = 1.0, \
+        save = False):
 
     in_ax = True
     if(ax is None):
@@ -663,7 +667,7 @@ def plot_CrIS_retrieval_level(CrIS_data, pvar, ax = None, labelsize = 12, \
 
     scat = ax.scatter(CrIS_data['lon'], CrIS_data['lat'], s = markersize, \
         c = plot_data, transform = ccrs.PlateCarree(), cmap = 'jet', \
-        vmin = vmin, vmax = vmax)
+        vmin = vmin, vmax = vmax, alpha = alpha)
     cbar = plt.colorbar(scat, ax = ax, orientation='vertical',\
         pad=0.03, extend = 'both')
     cbar.set_label(pvar, weight = 'bold', fontsize = 14)
@@ -710,16 +714,20 @@ def plot_CrIS_retrieval_profile(CrIS_data, pvar, lat, lon, ax = None, \
     #ax.set_xlim(vmin, vmax)
     ax.set_yscale('log')
     
-    ax.set_title('CrIS ' + title_dict[pvar] + ' profile\n' + \
-        str(CrIS_data['plat']) + '$^{o}$N, ' + 
-        str(abs(CrIS_data['plon'])) + '$^{o}$W')
+    ax.set_title('CrIS ' + title_dict[pvar] + ' profile')
 
     if(not in_ax):
         plt.show()
 
 def plot_CrIS_retrieval_combined(date_str, press = 500., pvar = 'wv',\
-        row_str = 'md', plot_skin_temp = False, save = False):
+        file_adder = 'NP0', satellite = 'SNPP', row_str = 'md', \
+        plot_skin_temp = False, alpha = 1.0, dot_size = 150, \
+        save = False):
 
+    if('/home/bsorenson/Research/VIIRS' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/VIIRS')
+    from VIIRSLib import plot_VIIRS_figure
+    
     dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M%S')
 
     if(row_str == 'mu'):
@@ -762,7 +770,17 @@ def plot_CrIS_retrieval_combined(date_str, press = 500., pvar = 'wv',\
     sfc_tmp_max = 330
     sfc_tmp_min = 280
     #pvar = 'sfc_temp'
-    
+  
+    # Read the VIIRS data
+    local_dt_date = dt_date_str + timedelta(minutes = 3)
+    filename_d0722_dat = glob(local_dt_date.strftime(\
+        home_dir + '/data/VIIRS/DNB/'+satellite+'/V'+file_adder + \
+        '2MOD.A%Y%j.%H%M*.nc'))
+    print(local_dt_date.strftime(home_dir + '/data/VIIRS/DNB/'+satellite+'/V'+file_adder +'2MOD.A%Y%j.%H%M*.nc'))
+    namesplit = filename_d0722_dat[0].split('/')[-1].split('.')
+    date1 = datetime.strptime('.'.join(namesplit[1:3])[1:], '%Y%j.%H%M')
+ 
+    # Read the level data 
     CrIS_level_day   = readCrIS_retrieval_level(date_str,   press)
     
     # Read the daytime profiles
@@ -771,25 +789,29 @@ def plot_CrIS_retrieval_combined(date_str, press = 500., pvar = 'wv',\
     CrIS_data_day_clear2 =  readCrIS_retrieval_profile(date_str, clear_lat2, clear_lon2)
    
     plt.close('all') 
-    fig = plt.figure(figsize = (12, 3.5))
+    fig = plt.figure(figsize = (8, 8))
     mapcrs = init_proj('202107232155')
-    ax1 = fig.add_subplot(1,4,1, projection = mapcrs)
-    ax2 = fig.add_subplot(1,4,2, projection = mapcrs)
-    ax3 = fig.add_subplot(1,4,3)
-    ax4 = fig.add_subplot(1,4,4)
+    ax1 = fig.add_subplot(2,2,1, projection = mapcrs)
+    ax2 = fig.add_subplot(2,2,2, projection = mapcrs)
+    ax3 = fig.add_subplot(2,2,3)
+    ax4 = fig.add_subplot(2,2,4)
     
     # Plot the spatial data
     # ---------------------
-    msize = 150
+    plot_VIIRS_figure(filename_d0722_dat, band = 'M05', ax = ax1, \
+        ptitle = 'SNPP VIIRS\n0.67 μm Reflectance', zoom = True, vmax = 0.7)
+    #plot_VIIRS_figure(filename_d0722_dat, band = 'M05', ax = ax2, \
+    #    ptitle = date1.strftime('%Y-%m-%d %H:%M'), zoom = True, vmax = 0.7)
+
     point_size = 15
     #spatial_var = 'temp'
     spatial_var = pvar
-    plot_CrIS_retrieval_level(CrIS_level_day, 'sfc_temp', ax = ax1, labelsize = 12, \
-        labelticksize = 10, zoom = True, show_smoke = False, vmin = sfc_tmp_min, \
-        vmax = sfc_tmp_max, save = False, markersize = msize)
+    #plot_CrIS_retrieval_level(CrIS_level_day, 'sfc_temp', ax = ax1, labelsize = 12, \
+    #    labelticksize = 10, zoom = True, show_smoke = False, vmin = sfc_tmp_min, \
+    #    vmax = sfc_tmp_max, save = False, markersize = msize, alpha = alpha)
     plot_CrIS_retrieval_level(CrIS_level_day, spatial_var, ax = ax2, labelsize = 12, \
         labelticksize = 10, zoom = True, show_smoke = False, vmin = wv_min, \
-        vmax = wv_max, save = False, markersize = msize)
+        vmax = wv_max, save = False, markersize = dot_size, alpha = alpha)
     
     ax1.plot(smoke_lon, smoke_lat, linewidth=2, markersize = point_size + 2, marker='.',
             color = 'black', transform=datacrs)
@@ -854,16 +876,28 @@ def plot_CrIS_retrieval_combined(date_str, press = 500., pvar = 'wv',\
         print("ERROR: unable to show shaded regions") 
     
     
+    ax3.set_xlabel('Mixing Ratio (g/kg)')
+    ax4.set_xlabel('Air Temperature (K)')
+    ax3.set_ylabel('Pressure (hPa)')
+    ax4.set_ylabel('Pressure (hPa)')
+
     ax3.set_ylim(1000, 350)
     ax4.set_ylim(1000, 350)
-    
+     
     #ax3.set_xlim(250, 315)
     ax4.set_xlim(250, 315)
-    
+
+    plot_subplot_label(ax1, '(a)', backgroundcolor = 'white', location = 'upper_right', fontsize = 12)
+    plot_subplot_label(ax2, '(b)', backgroundcolor = 'white', location = 'upper_right', fontsize = 12)
+    plot_subplot_label(ax3, '(c)', backgroundcolor = 'white', location = 'upper_right', fontsize = 12)
+    plot_subplot_label(ax4, '(d)', backgroundcolor = 'white', location = 'upper_right', fontsize = 12)
+   
+    plt.suptitle(dt_date_str.strftime('%Y%m%d %H:%M:%S'))
+ 
     fig.tight_layout()
    
     if(save):
-        outname = dt_date_str.strftime('cris_rtv_' + row_str + '_%Y%m%d%H%M%S.png')
+        outname = dt_date_str.strftime('cris_rtv_' + row_str + '_%Y%m%d%H%M%S_v2.png')
         fig.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else:
