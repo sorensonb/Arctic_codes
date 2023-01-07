@@ -10,13 +10,17 @@ from SBDART_Lib import *
 import sys
 
 atms_file = home_dir + '/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
-process_SBDART_multi_sat_vza_tsfc(atms_file = atms_file, save = True)
+#process_SBDART_multi_sat_vza_tsfc(atms_file = atms_file, save = True)
 #process_SBDART_multi_sat_vza_wv(atms_file = atms_file, save = True)
 #process_SBDART_multi_sat_vza_co2(atms_file = atms_file, save = True)
 #process_SBDART_multi_sat_vza_ch4(atms_file = atms_file, save = True)
 #process_SBDART_multi_sat_vza_no2(atms_file = atms_file, save = True)
 #process_SBDART_multi_sat_vza_co(atms_file = atms_file, save = True)
 #process_SBDART_multi_sat_vza_nh3(atms_file = atms_file, save = True)
+
+date_str = '20210722212119'
+process_SBDART_multi_sat_vza_CrIS(date_str = date_str, row_str = 'ml', \
+        save = False)
 
 sys.exit()
 

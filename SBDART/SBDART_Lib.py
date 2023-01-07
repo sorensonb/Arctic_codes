@@ -14,6 +14,8 @@ import sys
 import metpy.calc as mpcalc
 from metpy.units import units
 import scipy
+from copy import deepcopy
+from matplotlib.lines import Line2D
 
 home_dir = os.environ['HOME']
 
@@ -40,6 +42,57 @@ def radiance(wavelength,tmp):
            ((wavelength**5.)*(np.exp((h_const*c_const)/\
             (wavelength*k_const*tmp)) - 1.))) * \
            1e-6
+
+# NOTE: modify to use actual CrIS ozone profile?
+def prep_cris_profile(CrIS_prof):
+    
+    # Read in the default data for oxygen data
+    # ----------------------------------------
+    atms_file = sb_path + 'src/atms_mdlat_sum.dat'
+    temp_data = pd.read_csv(atms_file, names = \
+        ['z','p','t','wv','o3'], delim_whitespace = True)
+
+    # Mask any data that have nan temps (indicating below-sfc data)
+    # -------------------------------------------------------------
+    bottom_idx = np.where(np.isnan(CrIS_prof['temp']))[0][0]
+    local_temp  = CrIS_prof['temp'][:bottom_idx]
+    local_wv    = CrIS_prof['wv'][:bottom_idx]
+    local_rh    = CrIS_prof['rh'][:bottom_idx]
+    local_press = CrIS_prof['press'][:bottom_idx]
+
+    # Convert the CrIS pressures to heights using standard atmosphere
+    # ---------------------------------------------------------------
+    calc_hgt = np.array(mpcalc.pressure_to_height_std(local_press * units('hPa'))) 
+
+    # Convert the mixing ratio to water vapor density (g/m3)
+    # ------------------------------------------------------
+    vap_press = mpcalc.vapor_pressure(local_press * units('hPa'),\
+        local_wv * units('g/kg'))
+    abs_hum = (np.array(vap_press.to('Pa')) / \
+        (461.5 * local_temp)) * 1e3
+
+    # Interpolate the ozone values from the default profile
+    # to match the new pressures here
+    # -----------------------------------------------------
+    def_o3 = pd.to_numeric(temp_data['o3']).values
+    def_p  = pd.to_numeric(temp_data['p']).values
+
+    o3_interp1d = scipy.interpolate.interp1d(def_p, def_o3,\
+        kind = 'linear')
+    new_o3 = o3_interp1d(local_press) 
+ 
+    # Insert the wanted variables into a pandas dataframe
+    # ---------------------------------------------------
+    data = pd.DataFrame()
+    data['z'] = calc_hgt
+    data['p'] = local_press
+    data['t'] = local_temp
+    data['wv'] = abs_hum
+    data['mix_rat'] = local_wv
+    data['o2'] = new_o3
+    data['rhum'] = local_rh
+
+    return data
 
 # Reads the SBDART model profile. If infile is '', the default
 # profile will be used. If not, a model profile from 
@@ -195,7 +248,8 @@ def prep_sbdart_input(isat = -1, iout = 5, nzen = None, uzen = [0, 60],\
         set_ch4_mix = None, add_ch4_mix = None, \
         set_no2_mix = None, add_no2_mix = None, \
         set_co_mix = None,  add_co_mix = None, \
-        set_nh3_mix = None, add_nh3_mix = None):
+        set_nh3_mix = None, add_nh3_mix = None, \
+        btemp = None):
  
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     #
@@ -299,6 +353,9 @@ def prep_sbdart_input(isat = -1, iout = 5, nzen = None, uzen = [0, 60],\
                 out_str = out_str + \
                    "   uzen={0}\n".format(uzen)
             #"   vzen=180\n" + \
+        if(btemp is not None):
+            out_str = out_str + \
+                "   btemp={0}\n".format(int(btemp))
         out_str = out_str + \
             "   phi=0\n" + \
             "/\n"
@@ -521,7 +578,8 @@ def prep_atmos_file(data, \
     return new_data
 
 def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
-        nzen = None, atms_file = '', z_mins = None, z_maxs = None, \
+        nzen = None, atms_file = '', cris_profile = None, \
+        z_mins = None, z_maxs = None, \
         set_tmp = None, add_tmp = None, add_tmp_sfc = None, \
         set_wv_mix = None, add_wv_mix = None, \
         set_co2_mix = None, add_co2_mix = None, \
@@ -529,7 +587,7 @@ def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
         set_no2_mix = None, add_no2_mix = None, \
         set_co_mix = None,  add_co_mix = None, \
         set_nh3_mix = None, add_nh3_mix = None, \
-        set_rh = None):
+        set_rh = None, btemp = None):
     if(calc_radiance):
         file_adder = '_rad.dat'
     else:
@@ -572,7 +630,12 @@ def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
         # -------------------
         # NOTE: If reading in a model profile for the atmosphere, 
         #       read it in here.
-        data = read_atmos_profile(infile = atms_file)
+        if(cris_profile is None):
+            data = read_atmos_profile(infile = atms_file)
+        else:
+            print("Converting CrIS profile to SBDART format")
+            data = prep_cris_profile(cris_profile)
+            btemp = cris_profile['sfc_temp']
         ##!#data = pd.read_csv(infile,skiprows = 0, names = \
         ##!#    ['z','p','t','wv','o2'], delim_whitespace = True)
         
@@ -707,36 +770,36 @@ def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
                 # ----------------------------
                 if(set_co2_mix is not None):
                     prep_sbdart_input(nzen = nzen, uzen = uzen, \
-                        set_co2_mix = set_co2_mix[kk,ii])
+                        set_co2_mix = set_co2_mix[kk,ii], btemp = btemp)
                 elif(add_co2_mix is not None):
                     prep_sbdart_input(nzen = nzen, uzen = uzen, \
-                        add_co2_mix = add_co2_mix[kk,ii])
+                        add_co2_mix = add_co2_mix[kk,ii], btemp = btemp)
                 elif(set_ch4_mix is not None):
                     prep_sbdart_input(nzen = nzen, uzen = uzen, \
-                        set_ch4_mix = set_ch4_mix[kk,ii])
+                        set_ch4_mix = set_ch4_mix[kk,ii], btemp = btemp)
                 elif(add_ch4_mix is not None):
                     prep_sbdart_input(nzen = nzen, uzen = uzen, \
-                        add_ch4_mix = add_ch4_mix[kk,ii])
+                        add_ch4_mix = add_ch4_mix[kk,ii], btemp = btemp)
                 elif(set_no2_mix is not None):
                     prep_sbdart_input(nzen = nzen, uzen = uzen, \
-                        set_no2_mix = set_no2_mix[kk,ii])
+                        set_no2_mix = set_no2_mix[kk,ii], btemp = btemp)
                 elif(add_no2_mix is not None):
                     prep_sbdart_input(nzen = nzen, uzen = uzen, \
-                        add_no2_mix = add_n2o_mix[kk,ii])
+                        add_no2_mix = add_n2o_mix[kk,ii], btemp = btemp)
                 elif(set_co_mix is not None):
                     prep_sbdart_input(nzen = nzen, uzen = uzen, \
-                        set_co_mix = set_co_mix[kk,ii])
+                        set_co_mix = set_co_mix[kk,ii], btemp = btemp)
                 elif(add_co_mix is not None):
                     prep_sbdart_input(nzen = nzen, uzen = uzen, \
-                        add_co_mix = add_co_mix[kk,ii])
+                        add_co_mix = add_co_mix[kk,ii], btemp = btemp)
                 elif(set_nh3_mix is not None):
                     prep_sbdart_input(nzen = nzen, uzen = uzen, \
-                        set_nh3_mix = set_nh3_mix[kk,ii])
+                        set_nh3_mix = set_nh3_mix[kk,ii], btemp = btemp)
                 elif(add_nh3_mix is not None):
                     prep_sbdart_input(nzen = nzen, uzen = uzen, \
-                        add_nh3_mix = add_nh3_mix[kk,ii])
+                        add_nh3_mix = add_nh3_mix[kk,ii], btemp = btemp)
                 else:
-                    prep_sbdart_input(nzen = nzen, uzen = uzen)
+                    prep_sbdart_input(nzen = nzen, uzen = uzen, btemp = btemp)
                 #prep_sbdart_input(uzen = uzen)
         
                 # Prep the atmosphere file 
@@ -885,6 +948,7 @@ def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
                     new_data = prep_atmos_file(data, zmin = z_mins[kk,ii], \
                         zmax = z_maxs[kk,ii], set_rh = local_rh)
                         #set_wv_mix = adr)
+
                 print(run_adder) 
                 #prep_atmos_file(data, zmin = 0., zmax = 5., \
                 #    add_wv_mix = adr)
@@ -1448,8 +1512,8 @@ def plot_SBDART_atmos(sbout, r1_key = '1', ptype = 'met', close_plots = True, sa
         tmp_fig = False
     else:
         ncols = 2
-        plot_vars = ['t','rhum']
-        plot_names = ['Temperature [K]', 'Relative Humidity [%]']
+        plot_vars = ['t','mix_rat']
+        plot_names = ['Temperature [K]', 'Mixing Ratio [g/kg]']
         tmp_fig = True 
 
     # Set up axis
@@ -1627,6 +1691,200 @@ def process_SBDART_multi_lower_tmps(atms_file = '', save = False, multi_sat = Tr
     else:
         plt.show()
 
+# This runs the SBDART simulations for several CrIS profiles
+def process_SBDART_multi_sat_vza_CrIS(date_str, row_str = 'ml', \
+        save = False):
+
+    if('/home/bsorenson/Research/CrIS' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/CrIS')
+    from CrISLib import cris_loc_dict, readCrIS_retrieval_profile
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M%S')
+
+    z_maxs = np.array([7.])
+    z_mins = np.array([0.])
+    add_wv_mix = np.full((3, len(z_maxs)), np.nan)
+    add_wv_mix[0,:] = 0. 
+    add_wv_mix[1,:] = 2. 
+    add_wv_mix[2,:] = 4. 
+
+    # Get the lat/lon pairs for the CrIS data
+    # ---------------------------------------    
+    smoke_lat = cris_loc_dict[row_str]['smoke_lat']
+    smoke_lon = cris_loc_dict[row_str]['smoke_lon']
+    clear_lat1 = cris_loc_dict[row_str]['clear_lat1']
+    clear_lon1 = cris_loc_dict[row_str]['clear_lon1']
+    clear_lat2 = cris_loc_dict[row_str]['clear_lat2']
+    clear_lon2 = cris_loc_dict[row_str]['clear_lon2']
+
+    # Read in CrIS profiles for the clear and smoky points
+    # ----------------------------------------------------
+    CrIS_smoke  =  readCrIS_retrieval_profile(date_str, smoke_lat, smoke_lon)
+    CrIS_clear1 =  readCrIS_retrieval_profile(date_str, clear_lat1, clear_lon1)
+    CrIS_clear2 =  readCrIS_retrieval_profile(date_str, clear_lat2, clear_lon2)
+
+    # Modify the clear 1 profile to contain the smoky moisture amounts
+    # ----------------------------------------------------------------
+    CrIS_clear1_wv = deepcopy(CrIS_clear1)
+    bottom_idx = np.where(np.isnan(CrIS_smoke['temp']))[0][0]
+    CrIS_clear1_wv['wv'][:bottom_idx] = CrIS_smoke['wv'][:bottom_idx] 
+
+    # Modify the modified profile to now include the smoky temperatures
+    # -----------------------------------------------------------------
+    CrIS_clear1_both = deepcopy(CrIS_clear1_wv)
+    CrIS_clear1_both['temp'][:bottom_idx] = CrIS_smoke['temp'][:bottom_idx] 
+ 
+
+    channels = ['goes17_ch08','goes17_ch09','goes17_ch10','modis_ch31']
+
+    plt.close('all')
+    fig = plt.figure(figsize = (14, 7))
+    ax1 = fig.add_subplot(2,2,1)
+    ax2 = fig.add_subplot(2,2,2)
+    ax3 = fig.add_subplot(2,2,3)
+    ax4 = fig.add_subplot(2,2,4)
+   
+    axs = [ax1, ax2, ax3, ax4]
+    plabelsize = 10
+    
+    # Run SBDART for one of the clear points, but using the water vapor
+    # profile from the smoky point. Does the altered water vapor profile
+    # explain the changes observed in the GOES WV channels or MODIS/CrIS
+    # skin temperatures?
+    # -----------------------------------------------------------------
+    for chl, tax in zip(channels, axs):
+        data1_smoke = run_sbdart(chl, calc_radiance = True, \
+            cris_profile = CrIS_smoke, z_mins = z_mins, z_maxs = z_maxs, \
+            add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60])
+        data1_clear1 = run_sbdart(chl, calc_radiance = True, \
+            cris_profile = CrIS_clear1, z_mins = z_mins, z_maxs = z_maxs, \
+            add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60])
+        #data1_clear2 = run_sbdart(chl, calc_radiance = True, \
+        #    cris_profile = CrIS_clear2, z_mins = z_mins, z_maxs = z_maxs, \
+        #    add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
+        data1_clear1_wv = run_sbdart(chl, calc_radiance = True, \
+            cris_profile = CrIS_clear1_wv, z_mins = z_mins, z_maxs = z_maxs, \
+            add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60])
+        data1_clear1_both = run_sbdart(chl, calc_radiance = True, \
+            cris_profile = CrIS_clear1_both, z_mins = z_mins, z_maxs = z_maxs, \
+            add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60])
+
+        # Plot the data
+        # -------------
+        tax.plot(data1_smoke['output']['1']['1']['vza'], \
+            data1_smoke['output']['1']['1']['bght_tmp'], \
+            label = 'Smoky (Blue)')
+        tax.plot(data1_clear1['output']['1']['1']['vza'], \
+            data1_clear1['output']['1']['1']['bght_tmp'], \
+            label = 'Clear 1 (Orange)')
+        tax.plot(data1_clear1_wv['output']['1']['1']['vza'], \
+            data1_clear1_wv['output']['1']['1']['bght_tmp'], \
+            label = 'Clear 1 (Orange) w/Blue wv')
+        tax.plot(data1_clear1_both['output']['1']['1']['vza'], \
+            data1_clear1_both['output']['1']['1']['bght_tmp'], \
+            label = 'Clear 1 (Orange) w/Blue wv and temps')
+        tax.plot(data1_clear1['output']['2']['1']['vza'], \
+            data1_clear1['output']['2']['1']['bght_tmp'], \
+            label = 'Clear 1 (Orange) + 2 g/kg')
+        tax.plot(data1_clear1['output']['3']['1']['vza'], \
+            data1_clear1['output']['3']['1']['bght_tmp'], \
+            label = 'Clear 1 (Orange) + 4 g/kg')
+        #tax.plot(data1_clear1_wv['output']['1']['1']['vza'], \
+        #    data1_clear1_wv['output']['1']['1']['bght_tmp'], \
+        #    label = 'Clear 1 (Orange) w/Blue wv')
+        #tax.plot(data1_clear2['output']['1']['1']['vza'], \
+        #    data1_clear2['output']['1']['1']['bght_tmp'], \
+        #    label = 'Clear 2 (Green)')
+
+        tax.set_xlabel('Viewing Zenith Angle [$^{o}$]', fontsize = plabelsize, \
+            weight = 'bold')
+        tax.set_ylabel('Brightness temperature [K]',    fontsize = plabelsize, \
+            weight = 'bold')
+        wavel = np.round(data1_smoke['output']['1']['1']['avg_wavel'],2)
+        ptitle = data1_smoke['info']['satellite'].upper() + \
+        ' Channel ' + data1_smoke['info']['channel'] + ' (' + str(wavel) + ' μm)'
+        tax.set_title(ptitle)
+
+
+    #data2_smoke = run_sbdart('goes17_ch09', calc_radiance = True, \
+    #    cris_profile = CrIS_smoke, z_mins = z_mins, z_maxs = z_maxs, \
+    #    add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
+    #data3_smoke = run_sbdart('goes17_ch10', calc_radiance = True, \
+    #    cris_profile = CrIS_smoke, z_mins = z_mins, z_maxs = z_maxs, \
+    #    add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
+    #data4_smoke = run_sbdart('modis_ch31', calc_radiance = True, \
+    #    cris_profile = CrIS_smoke, z_mins = z_mins, z_maxs = z_maxs, \
+    #    add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
+
+    #data2_clear1 = run_sbdart('goes17_ch09', calc_radiance = True, \
+    #    cris_profile = CrIS_clear1, z_mins = z_mins, z_maxs = z_maxs, \
+    #    add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
+    #data3_clear1 = run_sbdart('goes17_ch10', calc_radiance = True, \
+    #    cris_profile = CrIS_clear1, z_mins = z_mins, z_maxs = z_maxs, \
+    #    add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
+    #data4_clear1 = run_sbdart('modis_ch31', calc_radiance = True, \
+    #    cris_profile = CrIS_clear1, z_mins = z_mins, z_maxs = z_maxs, \
+    #    add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
+
+    #data2_clear2 = run_sbdart('goes17_ch09', calc_radiance = True, \
+    #    cris_profile = CrIS_clear2, z_mins = z_mins, z_maxs = z_maxs, \
+    #    add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
+    #data3_clear2 = run_sbdart('goes17_ch10', calc_radiance = True, \
+    #    cris_profile = CrIS_clear2, z_mins = z_mins, z_maxs = z_maxs, \
+    #    add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
+    #data4_clear2 = run_sbdart('modis_ch31', calc_radiance = True, \
+    #    cris_profile = CrIS_clear2, z_mins = z_mins, z_maxs = z_maxs, \
+    #    add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
+
+    # Set up the figure
+    
+    #plot_bright_vza(data1_smoke, pax = ax1, plabelsize = 10)
+    #plot_bright_vza(data2_smoke, pax = ax2, plabelsize = 10)
+    #plot_bright_vza(data3_smoke, pax = ax3, plabelsize = 10)
+    #plot_bright_vza(data4_smoke, pax = ax4, plabelsize = 10)
+
+    # Add dashed lines at the correct VZAs
+    # ------------------------------------
+    ax1.axvline(49.61378, linestyle = '--', color = 'black')
+    ax2.axvline(49.61378, linestyle = '--', color = 'black')
+    ax3.axvline(49.61378, linestyle = '--', color = 'black')
+    ax4.axvline(3.15, linestyle = '--', color = 'black')
+
+    plot_subplot_label(ax1, '(a)', location = 'upper_upper_right', fontsize = 11)
+    plot_subplot_label(ax2, '(b)', location = 'upper_upper_right', fontsize = 11)
+    plot_subplot_label(ax3, '(c)', location = 'upper_upper_right', fontsize = 11)
+    plot_subplot_label(ax4, '(d)', location = 'upper_upper_right', fontsize = 11)
+
+
+    #ax1.legend()
+    #ax2.legend()
+    #ax3.legend()
+    #ax4.legend()
+    custom_lines = [Line2D([0], [0], color='tab:blue'),
+                    Line2D([0], [0], color='tab:orange'),
+                    Line2D([0], [0], color='tab:green'), 
+                    Line2D([0], [0], color='tab:red'), 
+                    Line2D([0], [0], color='tab:purple'), 
+                    Line2D([0], [0], color='tab:brown')] 
+
+    font_size = 10
+    plt.legend(custom_lines, ['Smoky', 'Clear', \
+            'Clear w/smoky mixing ratio', \
+            'Clear w/smoky mixing ratio + temperature', \
+            'Clear + 2 g/kg', \
+            'Clear + 4 g/kg'],\
+        fontsize = font_size, bbox_to_anchor = (2.01, 1.0), \
+        ncol = 1, loc = 'upper right')
+
+    fig.tight_layout()
+
+    if(save):
+        outname = 'modis_goes_sbdart_comps_' + row_str + '_' + date_str + '_cris.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
 # This makes a re-creation of the SBDART GOES/MODIS figure from the paper
 def process_SBDART_multi_sat_vza_tsfc(atms_file = '', save = False):
     #atms_file = 'home_dir + /Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
@@ -1690,7 +1948,7 @@ def process_SBDART_multi_sat_vza_tsfc(atms_file = '', save = False):
 
 
 # This makes a re-creation of the SBDART GOES/MODIS figure from the paper
-def process_SBDART_multi_sat_vza_wv(atms_file = '', save = False):
+def process_SBDART_multi_sat_vza_wv(atms_file = '', btemp = 315., save = False):
     #atms_file = 'home_dir + /Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
     # Run num 1
     z_maxs = np.array([5.])
@@ -1702,16 +1960,20 @@ def process_SBDART_multi_sat_vza_wv(atms_file = '', save = False):
     
     data1 = run_sbdart('goes17_ch08', calc_radiance = True, \
         atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60])
+        add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60], \
+        btemp = btemp)
     data2 = run_sbdart('goes17_ch09', calc_radiance = True, \
         atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60])
+        add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60], \
+        btemp = btemp)
     data3 = run_sbdart('goes17_ch10', calc_radiance = True, \
         atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60])
+        add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60], \
+        btemp = btemp)
     data4 = run_sbdart('modis_ch31', calc_radiance = True, \
         atms_file = atms_file, z_mins = z_mins, z_maxs = z_maxs, \
-        add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60])
+        add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 60], \
+        btemp = btemp)
     
     plt.close('all')
     fig = plt.figure(figsize = (9, 7))

@@ -46,76 +46,78 @@ datacrs = ccrs.PlateCarree()
 mapcrs = ccrs.LambertConformal()
 #mapcrs = ccrs.LambertConformal(central_longitude = -110, central_latitude = 40)
 
-##!#channel_dict = {
-##!#    'I1': {
-##!#        'Bandwidth': [0.6, 0.68]
-##!#    },\
-##!#    'I2': {
-##!#        'Bandwidth': [0.85, 0.88]
-##!#    },\
-##!#    'I3': {
-##!#        'Bandwidth': [1.58, 1.64]
-##!#    },\
-##!#    'I4': {
-##!#        'Bandwidth': [3.55, 3.93]
-##!#    },\
-##!#    'I5': {
-##!#        'Bandwidth': [10.5, 12.4]
-##!#    },\
-##!#    'M1': {
-##!#        'Bandwidth': [0.402, 0.422]
-##!#    },\
-##!#    'M2': {
-##!#        'Bandwidth': [0.436, 0.454]
-##!#    },\
-##!#    'M3': {
-##!#        'Bandwidth': [0.478, 0.488]
-##!#    },\
-##!#    'M4': {
-##!#        'Bandwidth': [0.545, 0.565]
-##!#    },\
-##!#    'M5': {
-##!#        'Bandwidth': [0.662, 0.682]
-##!#    },\
-##!#    'M6': {
-##!#        'Bandwidth': [0.739, 0.754]
-##!#    },\
-##!#    'M7': {
-##!#        'Bandwidth': [0.846, 0.885]
-##!#    },\
-##!#    'M8': {
-##!#        'Bandwidth': [1.23, 1.25]
-##!#    },\
-##!#    'M9': {
-##!#        'Bandwidth': [1.371, 1.386]
-##!#    },\
-##!#    'M10': {
-##!#        'Bandwidth': [1.58, 1.64]
-##!#    },\
-##!#    'M11': {
-##!#        'Bandwidth': [2.23, 2.28]
-##!#    },\
-##!#    'M12': {
-##!#        'Bandwidth': [3.61, 3.79]
-##!#    },\
-##!#    'M13': {
-##!#        'Bandwidth': [3.97, 4.13]
-##!#    },\
-##!#    'M14': {
-##!#        'Bandwidth': [8.4, 8.7]
-##!#    },\
-##!#    'M15': {
-##!#        'Bandwidth': [10.26, 11.26]
-##!#    },\
-##!#    'M16': {
-##!#        'Bandwidth': [11.54, 12.49]
-##!#    },\
-##!#    'DNB': {
-##!#        #'Name': 'EV_1KM_Emissive',\
-##!#        #'Index': 0,\
-##!#        'Bandwidth': [0.5, 0.9]
-##!#    }
-##!#}
+unit_dict = {
+    'air_temp': 'K',\
+    'dew_point': 'K',\
+    'sfc_temp': 'K',\
+    'spec_hum': 'g / kg', \
+    'rel_hum': '%', \
+    'gp_hgt': 'm',
+    'wv': 'g/kg',
+    'temp': 'K',
+    'rh': '%'
+}
+
+label_dict = {
+    'air_temp': 'Temperature',\
+    'dew_point': 'Dew Point Temperature',\
+    'sfc_temp': 'Temperature',\
+    'spec_hum': 'Specific Humidity', \
+    'rel_hum': 'Relative Humidity', \
+    'gp_hgt': 'Geopotential Height',
+    'wv': 'Mixing Ratio',
+    'temp': 'Air Temperature', 
+    'rh': 'Relative Humidity'
+}
+
+title_dict = {
+    'air_temp': 'Air Temperature',\
+    'dew_point': 'Dew Point Temperature',\
+    'sfc_temp': 'Surface Skin Temperature',\
+    'spec_hum': 'Specific Humidity', \
+    'rel_hum': 'Relative Humidity', \
+    'gp_hgt': 'Geopotential Height',
+    'wv': 'Mixing Ratio',
+    'temp': 'Air Temperature',
+    'rh': 'Relative Humidity'
+}
+
+cris_loc_dict = {
+    'mu': {
+        'smoke_lat': 41.2328,
+        'smoke_lon': -120.1568,
+        'clear_lat1': 41.4879,
+        'clear_lon1': -120.5508,
+        'clear_lat2': 40.9871,
+        'clear_lon2': -119.7220,
+    },
+    'md': {
+        'smoke_lat': 41.0000,
+        'smoke_lon': -120.4676,
+        'clear_lat1': 41.3951,
+        'clear_lon1': -121.0405,
+        'clear_lat2': 40.6634,
+        'clear_lon2': -120.1207,
+    },
+    'ml': {    
+        'smoke_lat': 40.5672,
+        'smoke_lon': -120.9731,
+        'clear_lat1': 40.9128,
+        'clear_lon1': -121.3236,
+        'clear_lat2': 40.4173,
+        'clear_lon2': -120.5538,
+    },
+    'low': {
+        #smoke_lat = 40.1929
+        #smoke_lon = -121.2456
+        'smoke_lat': 40.3261,
+        'smoke_lon': -121.0302,
+        'clear_lat1': 40.6438,
+        'clear_lon1': -121.5822,
+        'clear_lat2': 39.9617,
+        'clear_lon2': -120.4403,
+    },
+}
 
 def find_plume_CrIS(filename):
     CrIS_data5  = readCrIS_granule(filename, band = 'M05', zoom = True)
@@ -253,42 +255,6 @@ def plot_CrIS_granule_test(CrIS_data, zoom = True, save = False):
     plt.suptitle(CrIS_data['date'])
 
     plt.show()
-
-unit_dict = {
-    'air_temp': 'K',\
-    'dew_point': 'K',\
-    'sfc_temp': 'K',\
-    'spec_hum': 'g / kg', \
-    'rel_hum': '%', \
-    'gp_hgt': 'm',
-    'wv': 'g/kg',
-    'temp': 'K',
-    'rh': '%'
-}
-
-label_dict = {
-    'air_temp': 'Temperature',\
-    'dew_point': 'Dew Point Temperature',\
-    'sfc_temp': 'Temperature',\
-    'spec_hum': 'Specific Humidity', \
-    'rel_hum': 'Relative Humidity', \
-    'gp_hgt': 'Geopotential Height',
-    'wv': 'Mixing Ratio',
-    'temp': 'Air Temperature', 
-    'rh': 'Relative Humidity'
-}
-
-title_dict = {
-    'air_temp': 'Air Temperature',\
-    'dew_point': 'Dew Point Temperature',\
-    'sfc_temp': 'Surface Skin Temperature',\
-    'spec_hum': 'Specific Humidity', \
-    'rel_hum': 'Relative Humidity', \
-    'gp_hgt': 'Geopotential Height',
-    'wv': 'Mixing Ratio',
-    'temp': 'Air temperature',
-    'rh': 'Relative humidity'
-}
 
 def plotCrIS_layer(CrIS_volume, variable, layer_idx, pax = None, zoom = True, \
         save = False):
@@ -483,7 +449,7 @@ def readCrIS_retrieval_level(date_str, press):
 
     # Read in the file
     # ----------------
-    data = scipy.io.loadmat(dt_date_str.strftime('PHSS_npp_%Y%m%d_%H%M%S_rtv_m3F.mat'))
+    data = scipy.io.loadmat(dt_date_str.strftime(home_dir + '/Research/CrIS/PHSS_npp_%Y%m%d_%H%M%S_rtv_m3F.mat'))
     #data = scipy.io.loadmat(dt_date_str.strftime('PHSS_npp_20210723_093719_rtv_m3F.mat')
 
     # To access all lat/lon
@@ -516,7 +482,7 @@ def readCrIS_retrieval_profile(date_str, plat, plon):
 
     # Read in the file
     # ----------------
-    data = scipy.io.loadmat(dt_date_str.strftime('PHSS_npp_%Y%m%d_%H%M%S_rtv_m3F.mat'))
+    data = scipy.io.loadmat(dt_date_str.strftime(home_dir + '/Research/CrIS/PHSS_npp_%Y%m%d_%H%M%S_rtv_m3F.mat'))
     #data = scipy.io.loadmat(dt_date_str.strftime('PHSS_npp_20210723_093719_rtv_m3F.mat')
 
     # To access all lat/lon
@@ -650,7 +616,7 @@ def readCrIS_granule(date_str, satellite = 'SNPP', resolution = 'NSR', \
 def plot_CrIS_retrieval_level(CrIS_data, pvar, ax = None, labelsize = 12, \
         labelticksize = 10, markersize = 500, zoom = True, \
         show_smoke = False, vmin = None, vmax = None, alpha = 1.0, \
-        save = False):
+        plabel = '', save = False):
 
     in_ax = True
     if(ax is None):
@@ -670,7 +636,10 @@ def plot_CrIS_retrieval_level(CrIS_data, pvar, ax = None, labelsize = 12, \
         vmin = vmin, vmax = vmax, alpha = alpha)
     cbar = plt.colorbar(scat, ax = ax, orientation='vertical',\
         pad=0.03, extend = 'both')
-    cbar.set_label(pvar, weight = 'bold', fontsize = 14)
+    if(plabel == None):
+        elabel = pvar
+        
+    cbar.set_label(plabel, fontsize = 12)
 
     ax.coastlines()
     ax.add_feature(cfeature.STATES)
@@ -679,7 +648,7 @@ def plot_CrIS_retrieval_level(CrIS_data, pvar, ax = None, labelsize = 12, \
         ax.set_title('SNPP CrIS\nSkin Temperature (K)')
     else:
         ax.set_title('SNPP CrIS\n' + str(int(CrIS_data['press'])) + ' hPa ' + \
-            label_dict[pvar] + ' (' + unit_dict[pvar] + ')')
+            label_dict[pvar])
 
     #if(show_smoke):    
     #    hash_data, nohash_data = find_plume_CrIS(CrIS_data['filename'])
@@ -714,7 +683,7 @@ def plot_CrIS_retrieval_profile(CrIS_data, pvar, lat, lon, ax = None, \
     #ax.set_xlim(vmin, vmax)
     ax.set_yscale('log')
     
-    ax.set_title('CrIS ' + title_dict[pvar] + ' profile')
+    ax.set_title('SNPP CrIS\n' + title_dict[pvar] + ' Profile')
 
     if(not in_ax):
         plt.show()
@@ -730,45 +699,19 @@ def plot_CrIS_retrieval_combined(date_str, press = 500., pvar = 'wv',\
     
     dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M%S')
 
-    if(row_str == 'mu'):
-        # Middle Up
-        smoke_lat = 41.2328
-        smoke_lon = -120.1568
-        clear_lat1 = 41.4879
-        clear_lon1 = -120.5508
-        clear_lat2 = 40.9871
-        clear_lon2 = -119.7220
-    elif(row_str == 'md'):
-        # Middle
-        smoke_lat = 41.0000
-        smoke_lon = -120.4676
-        clear_lat1 = 41.3951
-        clear_lon1 = -121.0405
-        clear_lat2 = 40.6634
-        clear_lon2 = -120.1207
-    elif(row_str == 'ml'):    
-        # Middle Low
-        smoke_lat = 40.5672
-        smoke_lon = -120.9731
-        clear_lat1 = 40.9128
-        clear_lon1 = -121.3236
-        clear_lat2 = 40.4173
-        clear_lon2 = -120.5538
-    elif(row_str == 'low'): 
-        # Low
-        #smoke_lat = 40.1929
-        #smoke_lon = -121.2456
-        smoke_lat = 40.3261
-        smoke_lon = -121.0302
-        clear_lat1 = 40.6438
-        clear_lon1 = -121.5822
-        clear_lat2 = 39.9617
-        clear_lon2 = -120.4403
+    smoke_lat = cris_loc_dict[row_str]['smoke_lat']
+    smoke_lon = cris_loc_dict[row_str]['smoke_lon']
+    clear_lat1 = cris_loc_dict[row_str]['clear_lat1']
+    clear_lon1 = cris_loc_dict[row_str]['clear_lon1']
+    clear_lat2 = cris_loc_dict[row_str]['clear_lat2']
+    clear_lon2 = cris_loc_dict[row_str]['clear_lon2']
 
     wv_max = 1.4
     wv_min = 0.0
     sfc_tmp_max = 330
     sfc_tmp_min = 280
+    air_tmp_max = 305
+    air_tmp_min = 285
     #pvar = 'sfc_temp'
   
     # Read the VIIRS data
@@ -782,6 +725,7 @@ def plot_CrIS_retrieval_combined(date_str, press = 500., pvar = 'wv',\
  
     # Read the level data 
     CrIS_level_day   = readCrIS_retrieval_level(date_str,   press)
+    CrIS_level_day2  = readCrIS_retrieval_level(date_str,   800.)
     
     # Read the daytime profiles
     CrIS_data_day_smoke  =  readCrIS_retrieval_profile(date_str, smoke_lat, smoke_lon)
@@ -789,12 +733,14 @@ def plot_CrIS_retrieval_combined(date_str, press = 500., pvar = 'wv',\
     CrIS_data_day_clear2 =  readCrIS_retrieval_profile(date_str, clear_lat2, clear_lon2)
    
     plt.close('all') 
-    fig = plt.figure(figsize = (8, 8))
+    fig = plt.figure(figsize = (8, 12)) 
     mapcrs = init_proj('202107232155')
-    ax1 = fig.add_subplot(2,2,1, projection = mapcrs)
-    ax2 = fig.add_subplot(2,2,2, projection = mapcrs)
-    ax3 = fig.add_subplot(2,2,3)
-    ax4 = fig.add_subplot(2,2,4)
+    ax1 = fig.add_subplot(3,2,1, projection = mapcrs)
+    ax2 = fig.add_subplot(3,2,2, projection = mapcrs)
+    ax3 = fig.add_subplot(3,2,3, projection = mapcrs)
+    ax4 = fig.add_subplot(3,2,4, projection = mapcrs)
+    ax5 = fig.add_subplot(3,2,5)
+    ax6 = fig.add_subplot(3,2,6)
     
     # Plot the spatial data
     # ---------------------
@@ -806,12 +752,18 @@ def plot_CrIS_retrieval_combined(date_str, press = 500., pvar = 'wv',\
     point_size = 15
     #spatial_var = 'temp'
     spatial_var = pvar
-    #plot_CrIS_retrieval_level(CrIS_level_day, 'sfc_temp', ax = ax1, labelsize = 12, \
-    #    labelticksize = 10, zoom = True, show_smoke = False, vmin = sfc_tmp_min, \
-    #    vmax = sfc_tmp_max, save = False, markersize = msize, alpha = alpha)
-    plot_CrIS_retrieval_level(CrIS_level_day, spatial_var, ax = ax2, labelsize = 12, \
+    plot_CrIS_retrieval_level(CrIS_level_day, 'sfc_temp', ax = ax2, labelsize = 12, \
+        labelticksize = 10, zoom = True, show_smoke = False, vmin = sfc_tmp_min, \
+        vmax = sfc_tmp_max, save = False, markersize = dot_size, alpha = alpha, \
+        plabel = 'Temperature (K)')
+    plot_CrIS_retrieval_level(CrIS_level_day, spatial_var, ax = ax3, labelsize = 12, \
         labelticksize = 10, zoom = True, show_smoke = False, vmin = wv_min, \
-        vmax = wv_max, save = False, markersize = dot_size, alpha = alpha)
+        vmax = wv_max, save = False, markersize = dot_size, alpha = alpha, \
+        plabel = 'Mixing Ratio (g/kg)')
+    plot_CrIS_retrieval_level(CrIS_level_day2, 'temp', ax = ax4, labelsize = 12, \
+        labelticksize = 10, zoom = True, show_smoke = False, vmin = air_tmp_min, \
+        vmax = air_tmp_max, save = False, markersize = dot_size, alpha = alpha, \
+        plabel = 'Temperature (K)')
     
     ax1.plot(smoke_lon, smoke_lat, linewidth=2, markersize = point_size + 2, marker='.',
             color = 'black', transform=datacrs)
@@ -838,61 +790,91 @@ def plot_CrIS_retrieval_combined(date_str, press = 500., pvar = 'wv',\
             color = 'black', transform=datacrs)
     ax2.plot(clear_lon2, clear_lat2, linewidth=2, markersize = point_size, marker='.',
             transform=datacrs, color = 'tab:green')
+
+    ax3.plot(smoke_lon, smoke_lat, linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax3.plot(smoke_lon, smoke_lat, linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs, color = 'tab:blue')
+    ax3.plot(clear_lon1, clear_lat1, linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax3.plot(clear_lon1, clear_lat1, linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs, color = 'tab:orange')
+    ax3.plot(clear_lon2, clear_lat2, linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax3.plot(clear_lon2, clear_lat2, linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs, color = 'tab:green')
+
+    ax4.plot(smoke_lon, smoke_lat, linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax4.plot(smoke_lon, smoke_lat, linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs, color = 'tab:blue')
+    ax4.plot(clear_lon1, clear_lat1, linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax4.plot(clear_lon1, clear_lat1, linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs, color = 'tab:orange')
+    ax4.plot(clear_lon2, clear_lat2, linewidth=2, markersize = point_size + 2, marker='.',
+            color = 'black', transform=datacrs)
+    ax4.plot(clear_lon2, clear_lat2, linewidth=2, markersize = point_size, marker='.',
+            transform=datacrs, color = 'tab:green')
     
     # Plot CrIS mixing ratio / relative humidity
     prof_var = 'wv'
-    plot_CrIS_retrieval_profile(CrIS_data_day_smoke, prof_var, smoke_lat, smoke_lon, ax = ax3)
-    plot_CrIS_retrieval_profile(CrIS_data_day_clear1, prof_var, clear_lat1, clear_lon1, ax = ax3)
-    plot_CrIS_retrieval_profile(CrIS_data_day_clear2, prof_var, clear_lat2, clear_lon2, ax = ax3)
+    plot_CrIS_retrieval_profile(CrIS_data_day_smoke, prof_var, smoke_lat, smoke_lon, ax = ax5)
+    plot_CrIS_retrieval_profile(CrIS_data_day_clear1, prof_var, clear_lat1, clear_lon1, ax = ax5)
+    plot_CrIS_retrieval_profile(CrIS_data_day_clear2, prof_var, clear_lat2, clear_lon2, ax = ax5)
     
     prof_var = 'temp'
-    plot_CrIS_retrieval_profile(CrIS_data_day_smoke, prof_var, smoke_lat, smoke_lon, ax = ax4)
-    plot_CrIS_retrieval_profile(CrIS_data_day_clear1, prof_var, clear_lat1, clear_lon1, ax = ax4)
-    plot_CrIS_retrieval_profile(CrIS_data_day_clear2, prof_var, clear_lat2, clear_lon2, ax = ax4)
+    plot_CrIS_retrieval_profile(CrIS_data_day_smoke, prof_var, smoke_lat, smoke_lon, ax = ax6)
+    plot_CrIS_retrieval_profile(CrIS_data_day_clear1, prof_var, clear_lat1, clear_lon1, ax = ax6)
+    plot_CrIS_retrieval_profile(CrIS_data_day_clear2, prof_var, clear_lat2, clear_lon2, ax = ax6)
    
     if(plot_skin_temp): 
-        ax4.scatter(CrIS_data_day_smoke['sfc_temp'],CrIS_data_day_smoke['sfc_press'],  color = 'tab:blue')
-        ax4.scatter(CrIS_data_day_clear1['sfc_temp'],CrIS_data_day_clear1['sfc_press'],  color = 'tab:orange')
-        ax4.scatter(CrIS_data_day_clear2['sfc_temp'],CrIS_data_day_clear2['sfc_press'],  color = 'tab:green')
+        ax6.scatter(CrIS_data_day_smoke['sfc_temp'],CrIS_data_day_smoke['sfc_press'],  color = 'tab:blue')
+        ax6.scatter(CrIS_data_day_clear1['sfc_temp'],CrIS_data_day_clear1['sfc_press'],  color = 'tab:orange')
+        ax6.scatter(CrIS_data_day_clear2['sfc_temp'],CrIS_data_day_clear2['sfc_press'],  color = 'tab:green')
     
-    ax3.axhline(press, linestyle = '--', color = 'k')
-    ax4.axhline(press, linestyle = '--', color = 'k')
+    ax5.axhline(press, linestyle = '--', color = 'k')
+    ax6.axhline(press, linestyle = '--', color = 'k')
     
     # Highlight regions where blue wv is higher than green wv with cyan
     # Highlight regions where blue tp is lower than green tp with purple
-    higher_wv = np.where((CrIS_data_day_smoke['wv'] - CrIS_data_day_clear2['wv']) > 0.1)
-    lower_tmp = np.where((CrIS_data_day_clear2['temp'] - CrIS_data_day_smoke['temp']) > 0.5)
+    higher_wv = np.where(((CrIS_data_day_smoke['wv'] - CrIS_data_day_clear1['wv']) > 0.1) & \
+                         ((CrIS_data_day_smoke['wv'] - CrIS_data_day_clear2['wv']) > 0.1))
+    lower_tmp = np.where(((CrIS_data_day_clear1['temp'] - CrIS_data_day_smoke['temp']) > 0.1) & \
+                         ((CrIS_data_day_clear2['temp'] - CrIS_data_day_smoke['temp']) > 0.1))
     
     tmp_idxs = np.split(lower_tmp[0],np.where(np.squeeze(np.diff(lower_tmp)) != 1)[0]+1)
    
     try: 
-        ax3.axhspan(CrIS_data_day_smoke['press'][higher_wv[0][0]], CrIS_data_day_smoke['press'][higher_wv[0][-1]], color = 'cyan', alpha = 0.5)
-        ax4.axhspan(CrIS_data_day_smoke['press'][higher_wv[0][0]], CrIS_data_day_smoke['press'][higher_wv[0][-1]], color = 'cyan', alpha = 0.5)
+        ax5.axhspan(CrIS_data_day_smoke['press'][higher_wv[0][0]], CrIS_data_day_smoke['press'][higher_wv[0][-1]], color = 'cyan', alpha = 0.5)
+        ax6.axhspan(CrIS_data_day_smoke['press'][higher_wv[0][0]], CrIS_data_day_smoke['press'][higher_wv[0][-1]], color = 'cyan', alpha = 0.5)
 
         for ii in range(len(tmp_idxs)):
-            ax3.axhspan(CrIS_data_day_smoke['press'][tmp_idxs[ii][0]], CrIS_data_day_smoke['press'][tmp_idxs[ii][-1]], color = 'purple', alpha = 0.5)
-            ax4.axhspan(CrIS_data_day_smoke['press'][tmp_idxs[ii][0]], CrIS_data_day_smoke['press'][tmp_idxs[ii][-1]], color = 'purple', alpha = 0.5)
+            ax5.axhspan(CrIS_data_day_smoke['press'][tmp_idxs[ii][0]], CrIS_data_day_smoke['press'][tmp_idxs[ii][-1]], color = 'purple', alpha = 0.5)
+            ax6.axhspan(CrIS_data_day_smoke['press'][tmp_idxs[ii][0]], CrIS_data_day_smoke['press'][tmp_idxs[ii][-1]], color = 'purple', alpha = 0.5)
     except IndexError:
         print("ERROR: unable to show shaded regions") 
     
     
-    ax3.set_xlabel('Mixing Ratio (g/kg)')
-    ax4.set_xlabel('Air Temperature (K)')
-    ax3.set_ylabel('Pressure (hPa)')
-    ax4.set_ylabel('Pressure (hPa)')
+    ax5.set_xlabel('Mixing Ratio (g/kg)')
+    ax6.set_xlabel('Air Temperature (K)')
+    ax5.set_ylabel('Pressure (hPa)')
+    #ax6.set_ylabel('Pressure (hPa)')
 
-    ax3.set_ylim(1000, 350)
-    ax4.set_ylim(1000, 350)
+    ax5.set_ylim(1000, 350)
+    ax6.set_ylim(1000, 350)
      
     #ax3.set_xlim(250, 315)
-    ax4.set_xlim(250, 315)
+    ax6.set_xlim(250, 315)
 
     plot_subplot_label(ax1, '(a)', backgroundcolor = 'white', location = 'upper_right', fontsize = 12)
     plot_subplot_label(ax2, '(b)', backgroundcolor = 'white', location = 'upper_right', fontsize = 12)
     plot_subplot_label(ax3, '(c)', backgroundcolor = 'white', location = 'upper_right', fontsize = 12)
     plot_subplot_label(ax4, '(d)', backgroundcolor = 'white', location = 'upper_right', fontsize = 12)
+    plot_subplot_label(ax5, '(e)', backgroundcolor = 'white', location = 'upper_right', fontsize = 12)
+    plot_subplot_label(ax6, '(f)', backgroundcolor = 'white', location = 'upper_right', fontsize = 12)
    
-    plt.suptitle(dt_date_str.strftime('%Y%m%d %H:%M:%S'))
+    plt.suptitle(dt_date_str.strftime('%H:%M UTC,  %d-%b-%Y'))
  
     fig.tight_layout()
    

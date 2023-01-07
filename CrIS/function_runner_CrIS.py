@@ -12,15 +12,21 @@ from CrISLib import *
 date_strs = ['20210720201735','20210722212119','20210723093719']
 #row_str = 'mu'
 row_strs = ['low','ml','md','mu']
+
+#smoke_lat = 40.5672
+#smoke_lon = -120.9731
+#CrIS_prof = readCrIS_retrieval_profile(date_strs[1], smoke_lat, smoke_lon)
+#sys.exit()
+
+
 plot_CrIS_retrieval_combined(date_strs[1], press = 500., pvar = 'wv',\
     row_str = row_strs[1], plot_skin_temp = False, alpha = 1.0, dot_size = 300, save = True)
 sys.exit()
+
 for date_str in date_strs:
     for row_str in row_strs:
         plot_CrIS_retrieval_combined(date_str, press = 500., pvar = 'wv',\
-            row_str = row_str, plot_skin_temp = False, save = True)
-        plot_CrIS_retrieval_combined(date_str, press = 500., pvar = 'wv',\
-            row_str = row_str, plot_skin_temp = False, alpha = 1.0, dot_size = 500, save = True)
+            row_str = row_str, plot_skin_temp = False, alpha = 1.0, dot_size = 300, save = True)
 
 sys.exit()
 
