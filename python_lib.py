@@ -208,6 +208,12 @@ def init_proj(date_str):
 
     return mapcrs
 
+def plot_point_on_map(pax, plat, plon, markersize = 10):
+    pax.plot(plon, plat, linewidth=2, markersize = markersize + 2, marker='.',
+            color = 'black', transform=datacrs)
+    pax.plot(plon, plat, linewidth=2, markersize = markersize, marker='.',
+            transform=datacrs)
+
 def plot_theil_sen_trend(pax, xdata, ydata, color, linestyle, linewidth):
     res = stats.theilslopes(ydata, xdata, 0.90)
     print("Theil-Sen: {0}x + {1}".format(res[0], res[1]))

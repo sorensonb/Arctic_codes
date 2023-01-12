@@ -8,24 +8,32 @@
 from GOESLib import *
 import sys
 
-plot_GOES_figure2_v2(date_str = '202107210000', \
+
+date_str = '202107210000'
+plot_GOES_satpy_6panel(date_str, 'true_color', 6, 13, 8, 9, 10, \
+    zoom = True, save_dir = './', sat = 'goes17', save = True)
+
+sys.exit()
+
+plot_GOES_figure2_v2(date_str = '202107202120', \
     goes_ch1 = 'true_color', goes_ch2 = 6, goes_ch3 = 13, \
     goes_ch4 = 8, goes_ch5 = 9, goes_ch6 = 10, \
     ch_idx1 = 0, ch_idx2 = 1, ch_idx3 = 2,\
     ttype1 = 'low', ttype2 = 'ml', \
     date_idx = 25, 
     show_smoke = False, composite = True, double_fig = False, \
-    zoom = True, save = True)
+    zoom = True, save = False)
 
 sys.exit()
 
+begin_date = '202107210000'
+end_date   = '202107210005'
+auto_GOES_download(begin_date, end_date, 5, sat = 'goes16', \
+    channels = [1, 2, 3, 6, 13, 8, 9, 10])
+
+sys.exit()
 #!#begin_date = '202107131200'
 #!#end_date   = '202107140300'
-#begin_date = '202107202100'
-#end_date   = '202107210330'
-#auto_GOES_download(begin_date, end_date, 5, channels = [2, 6, 13, 8, 9, 10])
-#
-#sys.exit()
 
 
 #
