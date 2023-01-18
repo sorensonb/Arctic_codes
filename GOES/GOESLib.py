@@ -1384,6 +1384,206 @@ def plot_GOES_scatter(date_str):
     ax.boxplot(data)
     plt.show()
 
+def plot_GOES_satpy_5panel(date_str, ch1, ch2, ch3, ch4, ch5, \
+        zoom = True, save_dir = './', sat = 'goes17', row_str = 'ml', save = False):
+
+    if('/home/bsorenson/Research/CrIS' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/CrIS')
+    from CrISLib import cris_loc_dict
+
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    plt.close('all')
+    fig1 = plt.figure(figsize = (10,6))
+    var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel0 = read_GOES_satpy(date_str, ch1, sat = sat)
+    var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel1 = read_GOES_satpy(date_str, ch2, sat = sat)
+    var2, crs2, lons2, lats2, lat_lims, lon_lims, plabel2 = read_GOES_satpy(date_str, ch3, sat = sat)
+    var3, crs3, lons3, lats3, lat_lims, lon_lims, plabel3 = read_GOES_satpy(date_str, ch4, sat = sat)
+    var4, crs4, lons4, lats4, lat_lims, lon_lims, plabel4 = read_GOES_satpy(date_str, ch5, sat = sat)
+
+    # Set up the gridspec
+    gs    = fig1.add_gridspec(nrows = 8, ncols = 12)
+    ax0   = fig1.add_subplot(gs[0:4,2:6],  projection = crs0)   # GOES True color
+    ax1   = fig1.add_subplot(gs[0:4,6:10], projection = crs1)   # GOES TIR
+    ax2   = fig1.add_subplot(gs[4:8,0:4],  projection = crs2)   # GOES UP WV
+    ax3   = fig1.add_subplot(gs[4:8,4:8],  projection = crs3)   # GOES MD WV
+    ax4   = fig1.add_subplot(gs[4:8,8:12], projection = crs4)   # GOES LL WV
+
+    min_dict = {
+        2: 5,
+        6: 0,
+        8: 240, 
+        9: 248, 
+        10: 255, 
+        13: 270,
+    }
+    max_dict = {
+        2: 80,
+        6: 40, 
+        8: 245, 
+        9: 255, 
+        10: 265, 
+        13: 330,
+    }
+
+    ##!#ax1.set_title('GOES-17 Band ' + str(ch2) + '\n' + \
+    ##!#    goes_channel_dict[str(ch2)]['name'] + '\n' + \
+    labelsize = 11
+    font_size = 10
+    if(ch1 == 'true_color'):
+        plot_GOES_satpy(date_str, ch1, ax = ax0, var = var0, crs = crs0, \
+            lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
+            ptitle = '', plabel = plabel0, \
+            colorbar = True, labelsize = labelsize, zoom=True,save=False)
+    else:
+        plot_GOES_satpy(date_str, ch1, ax = ax0, var = var0, crs = crs0, \
+            lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
+            vmin = min_dict[ch1], vmax = max_dict[ch1], ptitle = '', plabel = plabel0, \
+            colorbar = True, labelsize = labelsize, zoom=True,save=False)
+    plot_GOES_satpy(date_str, ch2, ax = ax1, var = var1, crs = crs0, \
+        lons = lons1, lats = lats1, lat_lims = lat_lims, lon_lims = lon_lims, \
+        vmin = min_dict[ch2], vmax = max_dict[ch2], ptitle = '', plabel = plabel1, \
+        colorbar = True, labelsize = labelsize , zoom=True,save=False)
+    plot_GOES_satpy(date_str, ch3, ax = ax2, var = var2, crs = crs0, \
+        lons = lons2, lats = lats2, lat_lims = lat_lims, lon_lims = lon_lims, \
+        vmin = min_dict[ch3], vmax = max_dict[ch3], ptitle = '', plabel = plabel2, \
+        colorbar = True, labelsize = labelsize, zoom=True,save=False)
+    plot_GOES_satpy(date_str, ch4, ax = ax3, var = var3, crs = crs0, \
+        lons = lons3, lats = lats3, lat_lims = lat_lims, lon_lims = lon_lims, \
+        vmin = min_dict[ch4], vmax = max_dict[ch4], ptitle = '', plabel = plabel3, \
+        colorbar = True, labelsize = labelsize, zoom=True,save=False)
+    plot_GOES_satpy(date_str, ch5, ax = ax4, var = var4, crs = crs0, \
+        lons = lons4, lats = lats4, lat_lims = lat_lims, lon_lims = lon_lims, \
+        vmin = min_dict[ch5], vmax = max_dict[ch5], ptitle = '', plabel = plabel4, \
+        colorbar = True, labelsize = labelsize, zoom=True,save=False)
+
+    smoke_lat = cris_loc_dict[row_str]['smoke_lat']
+    smoke_lon = cris_loc_dict[row_str]['smoke_lon']
+    clear_lat1 = cris_loc_dict[row_str]['clear_lat1']
+    clear_lon1 = cris_loc_dict[row_str]['clear_lon1']
+
+    point_size = 7
+    plot_point_on_map(ax1, smoke_lat, smoke_lon, markersize = point_size)
+    plot_point_on_map(ax1, clear_lat1, clear_lon1, markersize = point_size)
+    sw_idx_s = nearest_gridpoint(smoke_lat, smoke_lon, lats1, lons1)
+    sw_idx_c = nearest_gridpoint(clear_lat1, clear_lon1, lats1, lons1)
+    print("TIR")
+    print("     Smoky  - ", np.array(var1)[sw_idx_s])
+    print("     Clear1 - ", np.array(var1)[sw_idx_c])
+
+    plot_point_on_map(ax2, smoke_lat, smoke_lon, markersize = point_size)
+    plot_point_on_map(ax2, clear_lat1, clear_lon1, markersize = point_size)
+    sw_idx_s = nearest_gridpoint(smoke_lat, smoke_lon, lats2, lons2)
+    sw_idx_c = nearest_gridpoint(clear_lat1, clear_lon1, lats2, lons2)
+    print("Upper WV")
+    print("     Smoky  - ", np.array(var2)[sw_idx_s])
+    print("     Clear1 - ", np.array(var2)[sw_idx_c])
+
+    plot_point_on_map(ax3, smoke_lat, smoke_lon, markersize = point_size)
+    plot_point_on_map(ax3, clear_lat1, clear_lon1, markersize = point_size)
+    sw_idx_s = nearest_gridpoint(smoke_lat, smoke_lon, lats3, lons3)
+    sw_idx_c = nearest_gridpoint(clear_lat1, clear_lon1, lats3, lons3)
+    print("Mid WV")
+    print("     Smoky  - ", np.array(var3)[sw_idx_s])
+    print("     Clear1 - ", np.array(var3)[sw_idx_c])
+
+    plot_point_on_map(ax4, smoke_lat, smoke_lon, markersize = point_size)
+    plot_point_on_map(ax4, clear_lat1, clear_lon1, markersize = point_size)
+    sw_idx_s = nearest_gridpoint(smoke_lat, smoke_lon, lats4, lons4)
+    sw_idx_c = nearest_gridpoint(clear_lat1, clear_lon1, lats4, lons4)
+    print("Lower WV")
+    print("     Smoky  - ", np.array(var4)[sw_idx_s])
+    print("     Clear1 - ", np.array(var4)[sw_idx_c])
+
+    if(ch1 == 'true_color'):
+        plot_figure_text(ax0, 'True Color', \
+            xval = None, yval = None, transform = None, \
+            color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+            halign = 'right')
+    else: 
+        plot_figure_text(ax0, \
+            str(goes_channel_dict[str(ch1)]['wavelength']) + ' μm', \
+            xval = None, yval = None, transform = None, \
+            color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+            halign = 'right')
+        plot_figure_text(ax0, \
+            str(goes_channel_dict[str(ch1)]['short_name']), \
+            xval = None, yval = None, transform = None, \
+            color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
+            location = 'upper_right', halign = 'right')
+
+    # 2nd channel
+    # -----------
+    plot_figure_text(ax1, \
+        str(goes_channel_dict[str(ch2)]['wavelength']) + ' μm', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+    plot_figure_text(ax1, \
+        str(goes_channel_dict[str(ch2)]['short_name']), \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
+        location = 'upper_right', halign = 'right')
+    # 3rd channel
+    # -----------
+    plot_figure_text(ax2, \
+        str(goes_channel_dict[str(ch3)]['wavelength']) + ' μm', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+    plot_figure_text(ax2, \
+        str(goes_channel_dict[str(ch3)]['short_name']), \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
+        location = 'upper_right', halign = 'right')
+    # 4th channel
+    # -----------
+    plot_figure_text(ax3, \
+        str(goes_channel_dict[str(ch4)]['wavelength']) + ' μm', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+    plot_figure_text(ax3, \
+        str(goes_channel_dict[str(ch4)]['short_name']), \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
+        location = 'upper_right', halign = 'right')
+    # 5th channel
+    # -----------
+    plot_figure_text(ax4, \
+        str(goes_channel_dict[str(ch5)]['wavelength']) + ' μm', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+    plot_figure_text(ax4, \
+        str(goes_channel_dict[str(ch5)]['short_name']), \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
+        location = 'upper_right', halign = 'right')
+
+    plot_subplot_label(ax0,  '(a)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax1,  '(b)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax2,  '(c)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax3,  '(d)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax4,  '(e)', backgroundcolor = 'white', fontsize = font_size)
+
+    if(sat == 'goes17'):
+        title_str = 'GOES-17\n'
+    else:
+        title_str = 'GOES-16\n'
+
+    fig1.suptitle(title_str + \
+        dt_date_str.strftime('%Y/%m/%d %H:%M UTC'))
+
+    fig1.tight_layout()
+
+    if(save):
+        outname = save_dir + sat + '_'+date_str+'_5panel.png'
+        fig1.savefig(outname, dpi = 300)
+        print('Saved image', outname)
+    else:
+        plt.show()
+
 def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
         zoom = True, save_dir = './', sat = 'goes17', save = False):
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
@@ -1461,15 +1661,20 @@ def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
     smoke_lon = -120.9731
     clear_lat1 = 40.9128
     clear_lon1 = -121.3236
+    test_lat  = 40.9177
+    test_lon  = -121.1037
 
     point_size = 5
     plot_point_on_map(ax2, smoke_lat, smoke_lon, markersize = point_size)
     plot_point_on_map(ax2, clear_lat1, clear_lon1, markersize = point_size)
+    plot_point_on_map(ax2, test_lat, test_lon, markersize = point_size)
     sw_idx_s = nearest_gridpoint(smoke_lat, smoke_lon, lats2, lons2)
     sw_idx_c = nearest_gridpoint(clear_lat1, clear_lon1, lats2, lons2)
+    sw_idx_t = nearest_gridpoint(test_lat, test_lon, lats2, lons2)
     print("TIR")
     print("     Smoky  - ", np.array(var2)[sw_idx_s])
     print("     Clear1 - ", np.array(var2)[sw_idx_c])
+    print("     Test   - ", np.array(var2)[sw_idx_t])
 
     plot_point_on_map(ax3, smoke_lat, smoke_lon, markersize = point_size)
     plot_point_on_map(ax3, clear_lat1, clear_lon1, markersize = point_size)

@@ -18,10 +18,11 @@ atms_file = home_dir + '/Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
 #process_SBDART_multi_sat_vza_co(atms_file = atms_file, save = True)
 #process_SBDART_multi_sat_vza_nh3(atms_file = atms_file, save = True)
 
+
 date_str = '20210722212119'
 data1_smoke, data1_clear1, data1_clear1_wv, data1_clear1_wv2, data1_clear1_sktp = \
     process_SBDART_multi_sat_vza_CrIS(date_str = date_str, row_str = 'ml', \
-        save = True)
+        goes_sat = 'goes16', plot_obs = False, save = False)
 
 sys.exit()
 

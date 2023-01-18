@@ -9,7 +9,12 @@ from GOESLib import *
 import sys
 
 
-date_str = '202107210000'
+date_str = '202107222120'
+plot_GOES_satpy_5panel(date_str, 'true_color', 13, 8, 9, 10, \
+    zoom = True, save_dir = './', sat = 'goes16', save = True)
+
+sys.exit()
+
 plot_GOES_satpy_6panel(date_str, 'true_color', 6, 13, 8, 9, 10, \
     zoom = True, save_dir = './', sat = 'goes17', save = True)
 

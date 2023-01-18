@@ -1732,7 +1732,7 @@ def process_SBDART_multi_lower_tmps(atms_file = '', save = False, multi_sat = Tr
 
 # This runs the SBDART simulations for several CrIS profiles
 def process_SBDART_multi_sat_vza_CrIS(date_str, row_str = 'ml', \
-        save = False):
+        goes_sat = 'goes17', plot_obs = False, save = False):
 
     if('/home/bsorenson/Research/CrIS' not in sys.path):
         sys.path.append('/home/bsorenson/Research/CrIS')
@@ -1768,40 +1768,94 @@ def process_SBDART_multi_sat_vza_CrIS(date_str, row_str = 'ml', \
     CrIS_clear1_sktp  = deepcopy(CrIS_clear1)
 
     bottom_idx = np.where(np.isnan(CrIS_smoke['temp']))[0][0]
+    # NOTE: set max to 8 km
+    top_idx    = np.where(np.isnan(CrIS_smoke['temp']))[0][0] 
+
     CrIS_clear1_wv['wv'][:bottom_idx]  = CrIS_smoke['wv'][:bottom_idx] 
     CrIS_clear1_wv2['wv'][:bottom_idx] = CrIS_smoke['wv'][:bottom_idx] * 2
     #CrIS_clear1_wv2['wv']              = CrIS_clear1_wv2['wv'] * 2
     CrIS_clear1_sktp['sfc_temp']       = CrIS_smoke['sfc_temp']
+    CrIS_clear1_btp   = deepcopy(CrIS_clear1_sktp)
+    #CrIS_clear1_btp['temp'][:bottom_idx] = CrIS_smoke['temp'][:bottom_idx]
 
     ## Modify the modified profile to now include the smoky temperatures
     ## -----------------------------------------------------------------
     #CrIS_clear1_both = deepcopy(CrIS_clear1_wv)
     #CrIS_clear1_both['temp'][:bottom_idx] = CrIS_smoke['temp'][:bottom_idx] 
+
+    # Read in the GOES data
+    if('/home/bsorenson/Research/MODIS/obs_smoke_forcing/' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/MODIS/obs_smoke_forcing/')
+    from MODISLib import read_MODIS_satpy
+    if('/home/bsorenson/Research/GOES/' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/GOES/')
+    from GOESLib import read_GOES_satpy, plot_GOES_satpy, min_dict, max_dict
+
+    ob_adder = '_obs' 
+
+    # If desired, plot the associated satellite obs for the given time
+    # ----------------------------------------------------------------
+
+    # Use the passed date_str to grab the GOES data
+    goes_date_str = date_str[:12]
+    var4, crs4, lons4, lats4, lat_lims, lon_lims, plabel4 = read_GOES_satpy(goes_date_str, 'true_color', sat = goes_sat)
+    var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel0 = read_GOES_satpy(goes_date_str, 8, sat = goes_sat)
+    var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel1 = read_GOES_satpy(goes_date_str, 9, sat = goes_sat)
+    var2, crs2, lons2, lats2, lat_lims, lon_lims, plabel2 = read_GOES_satpy(goes_date_str, 10, sat = goes_sat)
+
+    ##!## Assume that the MODIS time is 202107222110
+    ##!#var3, crs3, lons3, lats3, lat_lims3, lon_lims3, plabel3 = \
+    ##!#    read_MODIS_satpy('202107222110', 31)
+
  
     #channels = ['goes16_ch08','goes16_ch09','goes16_ch10','goes16_ch13']
-    channels = ['goes16_ch08','goes16_ch09','goes16_ch10','modis_ch31']
+    channels = [goes_sat + '_ch08', goes_sat + '_ch09', goes_sat + '_ch10',goes_sat + '_ch13', 'modis_ch31']
     #channels = ['goes17_ch08','goes17_ch09','goes17_ch10','modis_ch31']
 
     plt.close('all')
-    rows = 7
-    start1 = 0
-    end1 = int((rows - 1)/2)
-    start2 = end1
-    end2 = int(rows - 1)
+    fig, axs = plt.subplot_mosaic(
+        """
+        FFGG
+        HHII
+        .JJ.
+        """, figsize = (8.9, 9))
+    ##!#rows = 9 
+    ##!#start1 = 2
+    ##!#end1 = int((rows - 1)/3)
+    ##!#start2 = end1
+    ##!#end2 = int(rows - 1)
 
-    fig = plt.figure(figsize = (10, 7))
-    gspec = gridspec.GridSpec(ncols = 4, nrows = rows)
-    axs = []
-    axs.append(fig.add_subplot(gspec[start1:end1, 0:2]))
-    axs.append(fig.add_subplot(gspec[start1:end1, 2:4]))
-    axs.append(fig.add_subplot(gspec[start2:end2, 0:2]))
-    axs.append(fig.add_subplot(gspec[start2:end2, 2:4]))
-    axs.append(fig.add_subplot(gspec[end2, 0:4]))
-    #ax1 = fig.add_subplot(2,2,1)
-    #ax2 = fig.add_subplot(2,2,2)
-    #ax3 = fig.add_subplot(2,2,3)
-    #ax4 = fig.add_subplot(2,2,4)
-   
+    ##!#fig = plt.figure(figsize = (10, 11))
+    ##!#gspec = gridspec.GridSpec(ncols = 4, nrows = rows)
+    ##!#axs = []
+    ##!#axs.append(fig.add_subplot(gspec[0:2, 0], projection = crs4))
+    ##!#axs.append(fig.add_subplot(gspec[0:2, 1], projection = crs0))
+    ##!#axs.append(fig.add_subplot(gspec[0:2, 2], projection = crs1))
+    ##!#axs.append(fig.add_subplot(gspec[0:2, 3], projection = crs2))
+
+    ##!#axs.append(fig.add_subplot(gspec[2:5, 0:2]))
+    ##!#axs.append(fig.add_subplot(gspec[2:5, 2:4]))
+    ##!#axs.append(fig.add_subplot(gspec[5:8, 0:2]))
+    ##!#axs.append(fig.add_subplot(gspec[5:8, 2:4]))
+    ##!#axs.append(fig.add_subplot(gspec[8, 0:4]))
+
+    ##!#plot_GOES_satpy(goes_date_str, 'true_color', ax = axs[0], var = var4, crs = crs4, \
+    ##!#    lons = lons4, lats = lats4, lat_lims = lat_lims, lon_lims = lon_lims, \
+    ##!#    ptitle = '', plabel = plabel4, \
+    ##!#    colorbar = False, labelsize = 8 + 1, zoom=True,save=False)
+    ##!#plot_GOES_satpy(goes_date_str, 8, ax = axs[1], var = var0, crs = crs0, \
+    ##!#    lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
+    ##!#    vmin = min_dict[8], vmax = max_dict[8], ptitle = '', plabel = plabel0, \
+    ##!#    colorbar = True, labelsize = 8+ 1, zoom=True,save=False)
+    ##!#plot_GOES_satpy(goes_date_str, 9, ax = axs[2], var = var1, crs = crs1, \
+    ##!#    lons = lons1, lats = lats1, lat_lims = lat_lims, lon_lims = lon_lims, \
+    ##!#    vmin = min_dict[9], vmax = max_dict[9], ptitle = '', plabel = plabel1, \
+    ##!#    colorbar = True, labelsize = 8, zoom=True,save=False)
+    ##!#plot_GOES_satpy(goes_date_str, 10, ax = axs[3], var = var2, crs = crs2, \
+    ##!#    lons = lons2, lats = lats2, lat_lims = lat_lims, lon_lims = lon_lims, \
+    ##!#    vmin = min_dict[10], vmax = max_dict[10], ptitle = '', plabel = plabel2, \
+    ##!#    colorbar = True, labelsize = 8, zoom=True,save=False)
+ 
     #axs = [ax1, ax2, ax3, ax4]
     plabelsize = 10
     
@@ -1810,52 +1864,57 @@ def process_SBDART_multi_sat_vza_CrIS(date_str, row_str = 'ml', \
     # explain the changes observed in the GOES WV channels or MODIS/CrIS
     # skin temperatures?
     # -----------------------------------------------------------------
-    for chl, tax in zip(channels, axs[:-1]):
+    for chl, tax in zip(channels, axs.items()):
+    #for chl, tax in zip(channels, axs[4:-1]):
 #def run_sbdart(satellite, calc_radiance, run = True, vza = None, \
 #        nzen = None, utc_time = None, alat = None, alon = None, \
         data1_smoke = run_sbdart(chl, calc_radiance = True, \
             cris_profile = CrIS_smoke, z_mins = z_mins, z_maxs = z_maxs, \
-            add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 80], \
+            add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 70], \
             dt_date_str = dt_date_str, alat = smoke_lat, alon = smoke_lon)
         data1_clear1 = run_sbdart(chl, calc_radiance = True, \
             cris_profile = CrIS_clear1, z_mins = z_mins, z_maxs = z_maxs, \
-            add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 80], \
+            add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 70], \
             dt_date_str = dt_date_str, alat = clear_lat1, alon = clear_lon1)
         data1_clear1_wv = run_sbdart(chl, calc_radiance = True, \
             cris_profile = CrIS_clear1_wv, z_mins = z_mins, z_maxs = z_maxs, \
-            add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 80], \
+            add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 70], \
             dt_date_str = dt_date_str, alat = clear_lat1, alon = clear_lon1)
         data1_clear1_wv2 = run_sbdart(chl, calc_radiance = True, \
             cris_profile = CrIS_clear1_wv2, z_mins = z_mins, z_maxs = z_maxs, \
-            add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 80], \
+            add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 70], \
             dt_date_str = dt_date_str, alat = clear_lat1, alon = clear_lon1)
         data1_clear1_sktp = run_sbdart(chl, calc_radiance = True, \
             cris_profile = CrIS_clear1_sktp, z_mins = z_mins, z_maxs = z_maxs, \
-            add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 80], \
+            add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 70], \
             dt_date_str = dt_date_str, alat = clear_lat1, alon = clear_lon1)
-        #data1_clear1_both = run_sbdart(chl, calc_radiance = True, \
-        #    cris_profile = CrIS_clear1_both, z_mins = z_mins, z_maxs = z_maxs, \
-        #    add_wv_mix = add_wv_mix, nzen = 9, vza = [20, 80], \
-        #    dt_date_str = dt_date_str, alat = smoke_lat, alon = smoke_lon)
+        ##!#data1_clear1_btp = run_sbdart(chl, calc_radiance = True, \
+        ##!#    cris_profile = CrIS_clear1_btp, z_mins = z_mins, z_maxs = z_maxs, \
+        ##!#    add_wv_mix = add_wv_mix, nzen = 9, vza = [0, 70], \
+        ##!#    dt_date_str = dt_date_str, alat = clear_lat1, alon = clear_lon1)
 
         # Plot the data
         # -------------
-        tax.plot(data1_clear1['output']['1']['1']['vza'], \
+        axs[tax[0]].plot(data1_clear1['output']['1']['1']['vza'], \
             data1_clear1['output']['1']['1']['bght_tmp'], \
             label = 'Clear', color = 'tab:orange')
-        tax.plot(data1_clear1_wv['output']['1']['1']['vza'], \
+        axs[tax[0]].plot(data1_clear1_wv['output']['1']['1']['vza'], \
             data1_clear1_wv['output']['1']['1']['bght_tmp'], \
-            label = 'Clear w/Blue wv', color = 'tab:green')
-        tax.plot(data1_clear1_wv2['output']['1']['1']['vza'], \
+            label = 'Clear w/smoky mixing ratio', color = 'tab:green')
+        axs[tax[0]].plot(data1_clear1_wv2['output']['1']['1']['vza'], \
             data1_clear1_wv2['output']['1']['1']['bght_tmp'], \
-            label = 'Clear w/Blue wv * 2', color = 'tab:red')
-        tax.plot(data1_smoke['output']['1']['1']['vza'], \
+            label = 'Clear w/2x smoky mixing ratio', color = 'tab:red')
+        axs[tax[0]].plot(data1_smoke['output']['1']['1']['vza'], \
             data1_smoke['output']['1']['1']['bght_tmp'], \
             label = 'Smoky', linestyle = '--', color = 'tab:blue')
-        tax.plot(data1_clear1_sktp['output']['1']['1']['vza'], \
+        axs[tax[0]].plot(data1_clear1_sktp['output']['1']['1']['vza'], \
             data1_clear1_sktp['output']['1']['1']['bght_tmp'], \
-            label = 'Clear w/Smoky skin temp.', \
+            label = 'Clear w/smoky sfc temp', \
             linestyle = '--', color = 'tab:purple')
+        axs[tax[0]].plot(data1_clear1_sktp['output']['1']['1']['vza'], \
+            data1_clear1_sktp['output']['1']['1']['bght_tmp'], \
+            label = 'Clear w/smoky skin/air temp', \
+            linestyle = '--', color = 'tab:cyan')
         #tax.plot(data1_clear1_wv['output']['2']['1']['vza'], \
         #    data1_clear1_wv['output']['2']['1']['bght_tmp'], \
         #    label = 'Clear w/Smoky wv + 2 g/kg', \
@@ -1865,119 +1924,106 @@ def process_SBDART_multi_sat_vza_CrIS(date_str, row_str = 'ml', \
         #    label = 'Clear w/Smoky wv + 4 g/kg', \
         #    color = 'tab:cyan')
 
-
-        #tax.plot(data1_clear1_both['output']['1']['1']['vza'], \
-        #    data1_clear1_both['output']['1']['1']['bght_tmp'], \
-        #    label = 'Clear 1 (Orange) w/Blue wv and temps')
-        #tax.plot(data1_clear1['output']['2']['1']['vza'], \
-        #    data1_clear1['output']['2']['1']['bght_tmp'], \
-        #    label = 'Clear 1 (Orange) + 2 g/kg')
-        #tax.plot(data1_clear1['output']['3']['1']['vza'], \
-        #    data1_clear1['output']['3']['1']['bght_tmp'], \
-        #    label = 'Clear 1 (Orange) + 4 g/kg')
-        #tax.plot(data1_clear1_wv['output']['1']['1']['vza'], \
-        #    data1_clear1_wv['output']['1']['1']['bght_tmp'], \
-        #    label = 'Clear 1 (Orange) w/Blue wv')
-        #tax.plot(data1_clear2['output']['1']['1']['vza'], \
-        #    data1_clear2['output']['1']['1']['bght_tmp'], \
-        #    label = 'Clear 2 (Green)')
-
-        tax.set_xlabel('Viewing Zenith Angle [$^{o}$]', fontsize = plabelsize, \
+        axs[tax[0]].set_xlabel('Viewing Zenith Angle [$^{o}$]', fontsize = plabelsize, \
             weight = 'bold')
-        tax.set_ylabel('Brightness temperature [K]',    fontsize = plabelsize, \
+        axs[tax[0]].set_ylabel('Brightness temperature [K]',    fontsize = plabelsize, \
             weight = 'bold')
         wavel = np.round(data1_smoke['output']['1']['1']['avg_wavel'],2)
         ptitle = data1_smoke['info']['satellite'].upper() + \
         ' Channel ' + data1_smoke['info']['channel'] + ' (' + str(wavel) + ' μm)'
-        tax.set_title(ptitle)
+        axs[tax[0]].set_title(ptitle)
 
-
-    #data2_smoke = run_sbdart('goes17_ch09', calc_radiance = True, \
-    #    cris_profile = CrIS_smoke, z_mins = z_mins, z_maxs = z_maxs, \
-    #    add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
-    #data3_smoke = run_sbdart('goes17_ch10', calc_radiance = True, \
-    #    cris_profile = CrIS_smoke, z_mins = z_mins, z_maxs = z_maxs, \
-    #    add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
-    #data4_smoke = run_sbdart('modis_ch31', calc_radiance = True, \
-    #    cris_profile = CrIS_smoke, z_mins = z_mins, z_maxs = z_maxs, \
-    #    add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
-
-    #data2_clear1 = run_sbdart('goes17_ch09', calc_radiance = True, \
-    #    cris_profile = CrIS_clear1, z_mins = z_mins, z_maxs = z_maxs, \
-    #    add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
-    #data3_clear1 = run_sbdart('goes17_ch10', calc_radiance = True, \
-    #    cris_profile = CrIS_clear1, z_mins = z_mins, z_maxs = z_maxs, \
-    #    add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
-    #data4_clear1 = run_sbdart('modis_ch31', calc_radiance = True, \
-    #    cris_profile = CrIS_clear1, z_mins = z_mins, z_maxs = z_maxs, \
-    #    add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
-
-    #data2_clear2 = run_sbdart('goes17_ch09', calc_radiance = True, \
-    #    cris_profile = CrIS_clear2, z_mins = z_mins, z_maxs = z_maxs, \
-    #    add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
-    #data3_clear2 = run_sbdart('goes17_ch10', calc_radiance = True, \
-    #    cris_profile = CrIS_clear2, z_mins = z_mins, z_maxs = z_maxs, \
-    #    add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
-    #data4_clear2 = run_sbdart('modis_ch31', calc_radiance = True, \
-    #    cris_profile = CrIS_clear2, z_mins = z_mins, z_maxs = z_maxs, \
-    #    add_tmp_sfc = add_tmp_sfc, nzen = 9, vza = [0, 60])
 
     # Set up the figure
     
-    #plot_bright_vza(data1_smoke, pax = ax1, plabelsize = 10)
-    #plot_bright_vza(data2_smoke, pax = ax2, plabelsize = 10)
-    #plot_bright_vza(data3_smoke, pax = ax3, plabelsize = 10)
-    #plot_bright_vza(data4_smoke, pax = ax4, plabelsize = 10)
-
     # Add dashed lines at the correct VZAs
     # ------------------------------------
     if(channels[0][:6] == 'goes17'):
-        axs[0].axvline(49.61378, linestyle = '--', color = 'black')
-        axs[1].axvline(49.61378, linestyle = '--', color = 'black')
-        axs[2].axvline(49.61378, linestyle = '--', color = 'black')
+        goes_vza = 49.61378
     elif(channels[0][:6] == 'goes16'):
-        axs[0].axvline(65.93612, linestyle = '--', color = 'black')
-        axs[1].axvline(65.93612, linestyle = '--', color = 'black')
-        axs[2].axvline(65.93612, linestyle = '--', color = 'black')
-    axs[3].axvline(3.15, linestyle = '--', color = 'black')
+        goes_vza = 65.93612
+    modis_vza = 3.15
+    axs['F'].axvline(goes_vza, linestyle = '--', color = 'black')
+    axs['G'].axvline(goes_vza, linestyle = '--', color = 'black')
+    axs['H'].axvline(goes_vza, linestyle = '--', color = 'black')
+    axs['I'].axvline(goes_vza, linestyle = '--', color = 'black')
+    axs['J'].axvline(modis_vza, linestyle = '--', color = 'black')
 
-    plot_subplot_label(axs[0], '(a)', location = 'upper_upper_right', fontsize = 11)
-    plot_subplot_label(axs[1], '(b)', location = 'upper_upper_right', fontsize = 11)
-    plot_subplot_label(axs[2], '(c)', location = 'upper_upper_right', fontsize = 11)
-    plot_subplot_label(axs[3], '(d)', location = 'upper_upper_right', fontsize = 11)
+    #axs['J'].legend(loc = 'upper left', bbox_to_anchor = (1, 0.5), fontsize = 8)
+
+    plot_subplot_label(axs['F'], '(f)', location = 'upper_upper_right', fontsize = 11)
+    plot_subplot_label(axs['G'], '(g)', location = 'upper_upper_right', fontsize = 11)
+    plot_subplot_label(axs['H'], '(h)', location = 'upper_upper_right', fontsize = 11)
+    plot_subplot_label(axs['I'], '(i)', location = 'upper_upper_right', fontsize = 11)
+    plot_subplot_label(axs['J'], '(j)', location = 'upper_upper_right', fontsize = 11)
 
 
-    #ax1.legend()
-    #ax2.legend()
-    #ax3.legend()
-    #ax4.legend()
-    custom_lines = [\
-                    Line2D([0], [0], color='tab:orange', label = 'Clear'),
-                    Line2D([0], [0], color='tab:blue', linestyle = '--', label = 'Smoky'),
-                    Line2D([0], [0], color='tab:green', label = 'Clear w/smoky mixing ratio'), \
-                    Line2D([0], [0], color='tab:purple', linestyle = '--', label = 'Clear w/smoky skin temp'),
-                    Line2D([0], [0], color='tab:red', label = 'Clear w/double smoky mixing ratio'),\
-                    #Line2D([0], [0], color='tab:olive', label = 'Clear w/smoky mixing ratio + 2 g/kg'),\
-                    #Line2D([0], [0], color='tab:cyan', label = 'Clear w/smoky mixing ratio + 4 g/kg'),\
-                    ] 
-    labels = [l.get_label() for l in custom_lines]
-    #labels = ['Clear', \
-    #        'Smoky', \
-    #        'Clear w/smoky mixing ratio', \
-    #        'Smoky w/smoky skin temp.', \
-    #        'Clear w/double smoky mixing ratio', \
-    #        ]
+    ob_adder = ''
+    if(plot_obs):
+        #goes_date_str = date_str[:12]
+        #var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel0 = read_GOES_satpy(goes_date_str, 8, sat = goes_sat)
+        #var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel1 = read_GOES_satpy(goes_date_str, 9, sat = goes_sat)
+        #var2, crs2, lons2, lats2, lat_lims, lon_lims, plabel2 = read_GOES_satpy(goes_date_str, 10, sat = goes_sat)
 
-    font_size = 10
-    axs[-1].legend(custom_lines, labels, loc = 'center', ncol = 3)
-    axs[-1].set_axis_off()
-    #fig.legend(custom_lines, labels,\
-    #    fontsize = font_size, \
-    #    ncol = 3, loc = 'upper center', \
-    #    bbox_to_anchor = (0.5, 0), \
-    #    bbox_transform = plt.gcf().transFigure)
+        # Assume that the MODIS time is 202107222110
+        var3, crs3, lons3, lats3, lat_lims3, lon_lims3, plabel3 = \
+            read_MODIS_satpy('202107222110', 31)
 
-    fig.tight_layout()
+        # Extract the pixel values at each point from each dataset
+        # --------------------------------------------------------        
+        s_idx_8  = nearest_gridpoint(smoke_lat, smoke_lon, lats0, lons0)
+        s_idx_9  = nearest_gridpoint(smoke_lat, smoke_lon, lats1, lons1)
+        s_idx_10 = nearest_gridpoint(smoke_lat, smoke_lon, lats2, lons2)
+        #s_idx_31 = nearest_gridpoint(smoke_lat, smoke_lon, lats3, lons3)
+
+        c_idx_8  = nearest_gridpoint(clear_lat1, clear_lon1, lats0, lons0)
+        c_idx_9  = nearest_gridpoint(clear_lat1, clear_lon1, lats1, lons1)
+        c_idx_10 = nearest_gridpoint(clear_lat1, clear_lon1, lats2, lons2)
+        #c_idx_31 = nearest_gridpoint(clear_lat, clear_lon, lats3, lons3)
+
+        # Plot the data
+        #axs[0].plotnp.array(var2)[sw_idx_s]    
+        print("8", goes_vza, np.array(var0)[s_idx_8])
+        print("8", goes_vza, np.array(var0)[c_idx_8])
+        print("9", goes_vza, np.array(var1)[s_idx_9])
+        print("9", goes_vza, np.array(var1)[c_idx_9])
+        print("10", goes_vza, np.array(var2)[s_idx_10])
+        print("10", goes_vza, np.array(var2)[c_idx_10])
+        #print("31", goes_vza, np.array(var3)[s_idx_31])
+        #print("31", goes_vza, np.array(var3)[c_idx_31])
+        axs['F'].plot(goes_vza, np.array(var0)[s_idx_8], linewidth = 4, marker='.',
+                color = 'tab:blue')
+        axs['F'].plot(goes_vza, np.array(var0)[c_idx_8], linewidth = 4, marker='.',
+                color = 'tab:orange')
+        axs['G'].plot(goes_vza, np.array(var1)[s_idx_9], linewidth = 4, marker='.',
+                color = 'tab:blue')
+        axs['G'].plot(goes_vza, np.array(var1)[c_idx_9], linewidth = 4, marker='.',
+                color = 'tab:orange')
+        axs['H'].plot(goes_vza, np.array(var2)[s_idx_10], linewidth = 4, marker='.',
+                color = 'tab:blue')
+        axs['H'].plot(goes_vza, np.array(var2)[c_idx_10], linewidth = 4, marker='.',
+                color = 'tab:orange')
+        #axs[3].plot(modis_vza, np.array(var3)[s_idx_31], linewidth = 4, marker='.',
+        #        color = 'tab:blue')
+        #axs[3].plot(modis_vza, np.array(var3)[c_idx_31], linewidth = 4, marker='.',
+        #        color = 'tab:orange')
+    
+    ##!#custom_lines = [\
+    ##!#                Line2D([0], [0], color='tab:orange', label = 'Clear'),
+    ##!#                Line2D([0], [0], color='tab:blue', linestyle = '--', label = 'Smoky'),
+    ##!#                Line2D([0], [0], color='tab:green', label = 'Clear w/smoky mixing ratio'), \
+    ##!#                Line2D([0], [0], color='tab:purple', linestyle = '--', label = 'Clear w/smoky skin temp'),
+    ##!#                Line2D([0], [0], color='tab:red', label = 'Clear w/double smoky mixing ratio'),\
+    ##!#                #Line2D([0], [0], color='tab:olive', label = 'Clear w/smoky mixing ratio + 2 g/kg'),\
+    ##!#                #Line2D([0], [0], color='tab:cyan', label = 'Clear w/smoky mixing ratio + 4 g/kg'),\
+    ##!#                ] 
+    ##!#labels = [l.get_label() for l in custom_lines]
+
+    ##!#font_size = 10
+    ##!#axs[-1].legend(custom_lines, labels, loc = 'center', ncol = 3)
+    ##!#axs[-1].set_axis_off()
+
+    fig.tight_layout(w_pad = 0.3, h_pad = 0.4)
 
     # Make another figure to show the atmosphere
     # ------------------------------------------
@@ -2055,7 +2101,7 @@ def process_SBDART_multi_sat_vza_CrIS(date_str, row_str = 'ml', \
     fig2.tight_layout()
 
     if(save):
-        outname = 'modis_' + channels[0][:6] + '_sbdart_comps_' + row_str + '_' + date_str + '_cris.png'
+        outname = 'modis_' + channels[0][:6] + '_sbdart_comps_' + row_str + '_' + date_str + '_cris' + ob_adder + '.png'
         fig.savefig(outname, dpi = 300)
         print("Saved image", outname)
         outname = 'sbdart_atmos_' + row_str + '_' + date_str + '_cris.png'
@@ -2278,7 +2324,7 @@ def process_SBDART_multi_sat_vza(atms_file = '', save = False):
 def process_SBDART_multi_sat_vza_co2(atms_file = '', save = False):
     #atms_file = 'home_dir + /Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
     # Run num 1
-    z_maxs = np.array([5.])
+    z_maxs = np.array([8.])
     z_mins = np.array([0.])
     set_co2_mix = np.full((3, len(z_maxs)), np.nan)
     set_co2_mix[0,:] = 360. 
@@ -2343,7 +2389,7 @@ def process_SBDART_multi_sat_vza_co2(atms_file = '', save = False):
 def process_SBDART_multi_sat_vza_ch4(atms_file = '', save = False):
     #atms_file = 'home_dir + /Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
     # Run num 1
-    z_maxs = np.array([5.])
+    z_maxs = np.array([8.])
     z_mins = np.array([0.])
     set_ch4_mix = np.full((3, len(z_maxs)), np.nan)
     set_ch4_mix[0,:] = 1.74 
@@ -2404,7 +2450,7 @@ def process_SBDART_multi_sat_vza_ch4(atms_file = '', save = False):
 def process_SBDART_multi_sat_vza_no2(atms_file = '', save = False):
     #atms_file = 'home_dir + /Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
     # Run num 1
-    z_maxs = np.array([5.])
+    z_maxs = np.array([8.])
     z_mins = np.array([0.])
     set_no2_mix = np.full((3, len(z_maxs)), np.nan)
     set_no2_mix[0,:] = 2.3e-5
@@ -2469,7 +2515,7 @@ def process_SBDART_multi_sat_vza_no2(atms_file = '', save = False):
 def process_SBDART_multi_sat_vza_co(atms_file = '', save = False):
     #atms_file = 'home_dir + /Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
     # Run num 1
-    z_maxs = np.array([5.])
+    z_maxs = np.array([8.])
     z_mins = np.array([0.])
     set_co_mix = np.full((3, len(z_maxs)), np.nan)
     set_co_mix[0,:] = 0.15 
@@ -2534,7 +2580,7 @@ def process_SBDART_multi_sat_vza_co(atms_file = '', save = False):
 def process_SBDART_multi_sat_vza_nh3(atms_file = '', save = False):
     #atms_file = 'home_dir + /Research/SBDART/data/model/210722_220000_XXX_HRRR.txt'
     # Run num 1
-    z_maxs = np.array([5.])
+    z_maxs = np.array([8.])
     z_mins = np.array([0.])
     set_nh3_mix = np.full((3, len(z_maxs)), np.nan)
     set_nh3_mix[0,:] = 5.0e-4
