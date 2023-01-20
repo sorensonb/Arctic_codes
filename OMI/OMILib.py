@@ -30,9 +30,11 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mc
 import matplotlib.cm as cm
 import matplotlib.dates as mdates
+import matplotlib.ticker as mticker
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.util import add_cyclic_point
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 #from mpl_toolkits.basemap import Basemap
 from matplotlib.patches import Polygon
 import matplotlib.path as mpath
@@ -2834,7 +2836,25 @@ def plotOMI_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
     mask_AI = np.ma.masked_where(cyclic_data < -998.9, cyclic_data)
     mask_AI = np.ma.masked_where(plat2.T < minlat, mask_AI)
 
+    # Plot lat/lon lines
+    gl = pax.gridlines(crs = ccrs.PlateCarree(), draw_labels = False, \
+        linewidth = 1, color = 'gray', alpha = 0.5, linestyle = '-',\
+        y_inline = True, xlocs = range(-180, 180, 30), ylocs = range(70, 90, 10))
+    #gl.top_labels = False
+    #gl.bottom_labels = False
+    #gl.left_labels = False
+    #gl.right_labels = False
+    #gl.xlines = False
+    #gl.xlocator = mticker.FixedLocator(np.arange(-180, 180, 30))
+    #gl.ylocator = mticker.FixedLocator(np.arange(70, 90, 10))
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    #gl.xlabel_style = {'size': 5, 'color': 'gray'}
+    gl.xlabel_style = {'color': 'gray', 'weight': 'bold'}
+    gl.ylabel_style = {'size': 15, 'color': 'gray'}
+    gl.ylabel_style = {'color': 'black', 'weight': 'bold'}
     #pax.gridlines()
+
     pax.coastlines(resolution='50m')
     mesh = pax.pcolormesh(plon2, plat2,\
             mask_AI.T,transform = datacrs,\
@@ -3211,7 +3231,7 @@ def plotOMI_NCDF_Climo_SpringSummer(OMI_data,start_idx=0,end_idx=96,minlat=65,\
     # ----------------
     #ax0 = plt.subplot(gs[0,0],projection=mapcrs)
     plotOMI_NCDF_Climo(OMI_data,start_idx=0,end_idx=None,season = 'spring',\
-        title = 'April + May', minlat=minlat,pax = ax0, save=False)
+        title = 'April and May', minlat=minlat,pax = ax0, save=False)
 
     ##!#ax0.set_extent([-180,180,60,90],ccrs.PlateCarree())
     ##!#ax0.gridlines()
@@ -3229,7 +3249,7 @@ def plotOMI_NCDF_Climo_SpringSummer(OMI_data,start_idx=0,end_idx=96,minlat=65,\
     # ----------------
     #ax1 = plt.subplot(gs[0,1],projection=mapcrs)
     plotOMI_NCDF_Climo(OMI_data,start_idx=0,end_idx=None,season = 'summer',\
-        title = 'JJA', minlat=minlat, pax = ax1, save=False)
+        title = 'June, July, August', minlat=minlat, pax = ax1, save=False)
     ##!#ax1 = plt.subplot(gs[0,1],projection=mapcrs)
     ##!#ax1.set_extent([-180,180,60,90],ccrs.PlateCarree())
     ##!#ax1.gridlines()
@@ -4434,7 +4454,7 @@ def plot_OMI_shawn_old(OMI_shawn, ax = None, minlat = 65, labelsize = 12,\
             ax = plt.axes(projection = ccrs.Miller())
         else:
             ax = plt.axes(projection = ccrs.NorthPolarStereo(central_longitude = 300.))
-    ax.gridlines()
+    #ax.gridlines()
     ax.coastlines(resolution = '50m')
     
     
@@ -4452,6 +4472,10 @@ def plot_OMI_shawn_old(OMI_shawn, ax = None, minlat = 65, labelsize = 12,\
     plot_lat, plot_lon = np.meshgrid(plot_lat, plot_lon)
     mesh = ax.pcolormesh(plot_lon, plot_lat,mask_UVAI,transform = datacrs,cmap = colormap,\
             vmin = -1.0, vmax = 3.0, shading='auto')
+
+    gl = ax.gridlines(crs = ccrs.PlateCarree(), draw_labels = False, \
+        linewidth = 1, color = 'gray', alpha = 1.0, linestyle = '-',\
+        y_inline = True, xlocs = range(-180, 180, 30), ylocs = range(70, 90, 10))
     
     # Center the figure over the Arctic
     ax.set_extent([-180,180,minlat,90],datacrs)
@@ -4989,6 +5013,9 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
                 vmin = np.nanmin(mask_GPQF) - 0.5, \
                 vmax = np.nanmax(mask_GPQF) + 0.5,\
                 shading='auto')
+        gl = pax.gridlines(crs = ccrs.PlateCarree(), draw_labels = False, \
+            linewidth = 1, color = 'gray', alpha = 0.5, linestyle = '-',\
+            y_inline = True, xlocs = range(-180, 180, 30), ylocs = range(70, 90, 10))
 
         if(colorbar):
                 #cbar = plt.colorbar(mesh,ax = pax, orientation='horizontal',pad=0,\
@@ -5011,6 +5038,9 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
                 transform = datacrs, cmap = colormap,\
                 vmin = vmin, vmax = vmax,\
                 shading='auto')
+        gl = pax.gridlines(crs = ccrs.PlateCarree(), draw_labels = False, \
+            linewidth = 1, color = 'gray', alpha = 0.5, linestyle = '-',\
+            y_inline = True, xlocs = range(-180, 180, 30), ylocs = range(70, 90, 10))
 
         if(label == ''):
             if(OMI_hrly['dtype'] == 'shawn'):
@@ -5497,7 +5527,7 @@ def plotOMI_single_multipanel(date_str, only_sea_ice = False, minlat = 65., \
     OMI_JZ    = readOMI_swath_hdf(date_str, 'JZ', \
         only_sea_ice = only_sea_ice, latmin = minlat)
     OMI_shawn = readOMI_swath_shawn(date_str, latmin = minlat, \
-        shawn_path = home_dir + '/data/OMI/shawn_files/')
+        shawn_path = home_dir + '/data/OMI/shawn_files/ltc3/')
 
     # ----------------------------------------------------
     # Set up the overall figure
@@ -6742,8 +6772,8 @@ def read_OMI_fort_out(file_name, min_lat, vtype = 'areas', max_lat = None, \
         
     if(vtype == 'areas'):
         data_str = 'Area'
-        divider = 1e5
-        axis_label = 'Area of high AI [10$^{5}$ km$^{2}$]'
+        #divider = 1e5
+        #axis_label = 'Area of high AI [10$^{5}$ km$^{2}$]'
     elif(vtype == 'counts'):
         data_str = 'Cnt'
         divider = 1
@@ -6757,10 +6787,15 @@ def read_OMI_fort_out(file_name, min_lat, vtype = 'areas', max_lat = None, \
         h_val = 1
     elif(int(min_lat) > 75):
         interval = 0.2
-        h_val = 0.1
+        h_val = 1
+        #h_val = 0.1
+        divider = 1e4
+        axis_label = 'Area of high AI [10$^{4}$ km$^{2}$]'
     else:
         interval = 2
         h_val = 1
+        divider = 1e5
+        axis_label = 'Area of high AI [10$^{5}$ km$^{2}$]'
     
     print(ai_thresh)
     
@@ -6919,7 +6954,12 @@ def plot_OMI_fort_out_func(infile, ax = None, min_lat = 70., vtype = 'areas', \
     if(max_lat is not None):
         print("Reading max lat data now")
         omi_fort_dict_max = read_OMI_fort_out(infile, max_lat, vtype = vtype)
-       
+
+        if(max_lat > 75):
+            # Handle the case where the very small data north of 80 has been
+            # multiplied by 10.
+            omi_fort_dict_max['daily_data'] = omi_fort_dict_max['daily_data'] / 10.      
+ 
         omi_fort_dict['daily_data'] = omi_fort_dict['daily_data'] - \
             omi_fort_dict_max['daily_data'] 
 
@@ -6979,28 +7019,37 @@ def plot_OMI_fort_out_func(infile, ax = None, min_lat = 70., vtype = 'areas', \
     
         plot_dates = datetime(year = 2000, month = 4, day = 1) + \
             (loop_dates - datetime(year = year, month = 4, day = 1))
-    
+   
         ax.plot(plot_dates,\
             omi_fort_dict['daily_data'][np.where( \
             (omi_fort_dict['daily_dt_dates'] >= datetime(year,4,1)) & \
             (omi_fort_dict['daily_dt_dates'] <= datetime(year,9,30)))], c = plot_c[ii])
     
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%b'))
-    norm = mc.Normalize(vmin=np.min(omi_fort_dict['years']), vmax=np.max(omi_fort_dict['years']))
-    
+    norm = mc.Normalize(vmin=np.min(omi_fort_dict['years']), \
+        vmax = np.max(omi_fort_dict['years']))
+   
+    bounds = np.arange(np.min(omi_fort_dict['years']) - 0.5, \
+        np.max(omi_fort_dict['years']) + 1.5) 
+    ticks = np.arange(np.min(omi_fort_dict['years']), \
+        np.max(omi_fort_dict['years']) + 1) 
+
     cmap = cm.turbo
     cbar = plt.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap),
-                 ax=ax, orientation='vertical', label='Year')
+                 ax=ax, orientation='vertical', ticks = ticks[::3], \
+                 boundaries = bounds, label='Year')
     
     #ax.plot(plot_dates, mask_day_avgs,label='avg',color='black')
     #ax.plot(plot_dates, upper_range,label='+avg σ',linestyle='--',color='black')
     ax.set_ylabel(omi_fort_dict['axis_label'])
     if(max_lat is not None):
-        ax.set_title('High AI ' + vtype + '\nPerturbed AI threshold of '+str(omi_fort_dict['ai_thresh'])+\
-            '\n' + str(int(min_lat))+'$^{o}$N - ' + str(int(max_lat))+'$^{o}$N')
+        ax.set_title('High AI ' + vtype + '\nPerturbed AI threshold of '+\
+            str(omi_fort_dict['ai_thresh']) + '\n' + str(int(min_lat)) + \
+            '$^{o}$N - ' + str(int(max_lat))+'$^{o}$N')
     else: 
-        ax.set_title('High AI ' + vtype + '\nPerturbed AI threshold of '+str(omi_fort_dict['ai_thresh'])+\
-            '\nNorth of '+str(int(min_lat))+'$^{o}$N')
+        ax.set_title('High AI ' + vtype + '\nPerturbed AI threshold of ' + \
+            str(omi_fort_dict['ai_thresh']) + '\nNorth of ' + \
+            str(int(min_lat)) + '$^{o}$N')
     ax.tick_params(axis='both', labelsize = 12)
     ax.grid()
     
@@ -7411,8 +7460,7 @@ def plot_bad_row_table(bad_row_file, xtrack_file = None, ax = None, \
             print("Saved image",outname)
         plt.show()
 
-def plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
-        minlat = 65., save = False):
+def plot_row_anomaly_combined(dtype = 'control', minlat = 65., save = False):
    
     date_str  = '201204102151'
     date_str2 = '201204102330'

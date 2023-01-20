@@ -10,6 +10,51 @@ import OMILib
 from OMILib import *
 import sys
 
+plot_combined_fort_out('20190811', min_lat = 70., vtype = 'areas', max_lat = 80., save = True)
+plot_combined_fort_out('20170818', min_lat = 80., vtype = 'areas', save = True)
+sys.exit()
+
+# ----------------------------------------------------
+# Set up the overall figure
+# ----------------------------------------------------
+minlat = 65.
+
+OMI_VBS0   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VBS0_2005_2020.nc', minlat = minlat)
+OMI_VJZ211 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VJZ211_2005_2020.nc', minlat = minlat)
+OMI_VSJ4   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VSJ4_2005_2020.nc', minlat = minlat)
+#plotOMI_Compare_ClimoTrend_summer(OMI_VBS0,OMI_VJZ211,OMI_VSJ4,\
+#        trend_type = 'standard', minlat=minlat,save=False)
+plotOMI_Compare_ClimoTrend_all(OMI_VBS0,OMI_VJZ211, OMI_VSJ4,\
+        trend_type = 'standard', minlat=minlat,save = True)
+
+sys.exit()
+
+date_str = '200804222159'
+plotOMI_single_multipanel(date_str, only_sea_ice = False, minlat = 65., \
+       quad_panel = True, save = True)
+#plotOMI_single_swath_multiple('22222222', dtype = 'control',  \
+#    only_sea_ice = False, minlat = 65., save = True)
+sys.exit()
+
+plot_row_bias(dataset = 'normal', save = True)
+sys.exit()
+
+plotOMI_single_swath_multiple_v3(dtype = 'control',  \
+        only_sea_ice = False, minlat = 65., save = True)
+#plotOMI_single_swath_multiple_v4(dtype = 'control',  \
+#        only_sea_ice = False, minlat = 65., save = True)
+
+sys.exit()
+
+plot_row_anomaly_combined(dtype = 'control', minlat = 65., save = True)
+sys.exit()
+
+minlat = 65.
+OMI_VBS0   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VBS0_2005_2020.nc', minlat = minlat)
+plotOMI_NCDF_Climo_SpringSummer(OMI_VBS0,start_idx=0,end_idx=96,minlat=65,\
+                   save = True)
+sys.exit()
+
 min_lat = 70.
 infile = home_dir + '/Research/OMI/shawn_analysis/count_analysis/' + \
     'omi_vsj4_areas_2005_2020_100.txt'
@@ -63,46 +108,10 @@ fig1.savefig('omi_daily_areas_minlat70_2019.png', dpi = 300)
 plt.show()
 sys.exit()
 
-date_str = '200804221841'
-plotOMI_single_multipanel(date_str, only_sea_ice = False, minlat = 65., \
-       quad_panel = True, save = False)
-#plotOMI_single_swath_multiple('22222222', dtype = 'control',  \
-#    only_sea_ice = False, minlat = 65., save = True)
-sys.exit()
-
-plot_row_anomaly_combined(date_str = '201807260244', dtype = 'control', \
-        minlat = 65., save = True)
-sys.exit()
-
-plot_combined_fort_out('20170818', min_lat = 80., vtype = 'areas', save = True)
-plot_combined_fort_out('20190811', min_lat = 70., vtype = 'areas', max_lat = 80., save = True)
-sys.exit()
 
 
-plotOMI_single_swath_multiple_v3(dtype = 'control',  \
-        only_sea_ice = False, minlat = 65., save = True)
-#plotOMI_single_swath_multiple_v4(dtype = 'control',  \
-#        only_sea_ice = False, minlat = 65., save = True)
 
-sys.exit()
 
-#plot_row_bias(dataset = 'normal', save = True)
-#sys.exit()
-
-# ----------------------------------------------------
-# Set up the overall figure
-# ----------------------------------------------------
-minlat = 65.
-
-OMI_VBS0   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VBS0_2005_2020.nc', minlat = minlat)
-OMI_VJZ211 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VJZ211_2005_2020.nc', minlat = minlat)
-OMI_VSJ4   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VSJ4_2005_2020.nc', minlat = minlat)
-#plotOMI_Compare_ClimoTrend_summer(OMI_VBS0,OMI_VJZ211,OMI_VSJ4,\
-#        trend_type = 'standard', minlat=minlat,save=False)
-plotOMI_Compare_ClimoTrend_all(OMI_VBS0,OMI_VJZ211, OMI_VSJ4,\
-        trend_type = 'standard', minlat=minlat,save = True)
-
-sys.exit()
 
 
 month_idx =  4
@@ -460,12 +469,6 @@ sys.exit()
 
 plot_Arctic_row_coverage_compare(date_str = '20180726', save = False)
 
-minlat = 65.
-OMI_VBS0   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VBS0_2005_2020.nc', minlat = minlat)
-plotOMI_NCDF_Climo_SpringSummer(OMI_VBS0,start_idx=0,end_idx=96,minlat=65,\
-                   save=True)
-
-sys.exit()
 
 # NOTE: for plotting the bias between OMI rows, use this line with the
 #       CSCI netCDF data

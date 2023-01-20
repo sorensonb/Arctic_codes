@@ -888,7 +888,7 @@ def plot_compare_colocate_spatial_category(coloc_data, cat = 'ALL', minlat = 65.
 
 def event_category_slopes_all(coloc_data, var1, var2, var3 = None, \
     cat = "ALL", minlat = 65., xmin = None, xmax = None, ymin = None, \
-    ymax = None, trend = False, zoom = False, \
+    ymax = None, trend = False, num_points = 10, \
     restrict_sza = False, color = None, save = False):
 
     if(isinstance(coloc_data, str)):
@@ -920,7 +920,7 @@ def event_category_slopes_all(coloc_data, var1, var2, var3 = None, \
             thiel_slope, lin_slope, numx, numy, lin_pval = \
                 calc_category_slopes(coloc_data, var1, \
                 var2, cat = total_cat, xmin = xmin, xmax = xmax, \
-                ymin = ymin, ymax = ymax)
+                ymin = ymin, ymax = ymax, num_points = num_points)
 
             return_dict[total_cat]['Thiel'] = thiel_slope
             return_dict[total_cat]['Linear'] = lin_slope
@@ -932,7 +932,7 @@ def event_category_slopes_all(coloc_data, var1, var2, var3 = None, \
 
 def calc_category_slopes(coloc_data, var1, var2, var3 = None, \
         cat = "ALL", minlat = 65., xmin = None, xmax = None, ymin = None, \
-        ymax = None, restrict_sza = False):
+        ymax = None, num_points = 10, restrict_sza = False):
 
     if(isinstance(coloc_data, str)):
         dt_date_str = datetime.strptime(coloc_data, '%Y%m%d%H%M')
@@ -972,11 +972,11 @@ def calc_category_slopes(coloc_data, var1, var2, var3 = None, \
     #plot_trend_line(ax, mask_xdata.compressed(), mask_ydata.compressed(), color=trend_color, linestyle = '-', \
     #    slope = 'thiel-sen')
 
-    if((len(mask_xdata) < 2) | (len(mask_ydata) < 2)):
+    if((len(mask_xdata) < num_points) | (len(mask_ydata) < num_points)):
         return np.nan, np.nan, len(mask_xdata), len(mask_ydata), np.nan
     
     else:
-        res = stats.theilslopes(mask_ydata, mask_xdata, 0.90)
+        res = stats.theilslopes(mask_ydata, mask_xdata, 0.95)
         #print("\tTheil-Sen: {0}x + {1}".format(res[0], res[1]))
 
         #zdata = np.polyfit(mask_xdata, mask_ydata, 1)

@@ -111,11 +111,12 @@ date_strs = ['200607240029', # GOOD
 slope_dict = {}
 
 #coloc_data = '201708161504'
+num_points = 2
 for date_str in date_strs:
     print(date_str)
     slope_dict[date_str] = event_category_slopes_all(date_str, 'OMI', 'CERES_SWF', var3 = None, \
         cat = "ALL", minlat = 65., xmin = 1.0, xmax = None, ymin = None, \
-        ymax = None, trend = False, zoom = False, \
+        ymax = None, trend = False, num_points = num_points, \
         restrict_sza = False, color = None, save = False)
 
 
@@ -131,7 +132,8 @@ for dkey in dkeys:
     lin_pvals     = np.ma.masked_invalid(np.array([slope_dict[tkey][dkey]['lin_pval'] for tkey in slope_dict.keys()]))
     thiel_slopes  = np.ma.masked_invalid(np.array([slope_dict[tkey][dkey]['Thiel'] for tkey in slope_dict.keys()]))
 
-    extract_dict[dkey]['Linear']   = np.ma.masked_where(lin_slopes > 500, lin_slopes)
+    extract_dict[dkey]['Linear']   = np.ma.masked_where((lin_slopes > 500) | (lin_pvals > 0.1), lin_slopes)
+    #extract_dict[dkey]['Linear']   = np.ma.masked_where((lin_slopes > 500), lin_slopes)
     extract_dict[dkey]['Thiel']    = np.ma.masked_where(thiel_slopes > 500, thiel_slopes)
     extract_dict[dkey]['lin_pval'] = lin_pvals
 
@@ -144,33 +146,34 @@ ax4 = fig.add_subplot(3,2,4)
 ax5 = fig.add_subplot(3,2,5)
 ax6 = fig.add_subplot(3,2,6)
 
-ax1.hist(np.ma.masked_invalid(extract_dict['ICE_CLOUD']['Linear']), bins = 35, alpha = 0.5, label = 'Linear')
-ax1.hist(np.ma.masked_invalid(extract_dict['ICE_CLOUD']['Thiel']), bins = 35, alpha = 0.5, label = 'Thiel')
+num_bins = 20
+ax1.hist(np.ma.masked_invalid(extract_dict['ICE_CLOUD']['Linear']), bins = num_bins, alpha = 0.5, label = 'Linear')
+ax1.hist(np.ma.masked_invalid(extract_dict['ICE_CLOUD']['Thiel']), bins = num_bins, alpha = 0.5, label = 'Thiel')
 print('ICE_CLOUD')
 print('\tLinear:',np.nanmean(extract_dict['ICE_CLOUD']['Linear']), np.nanstd(extract_dict['ICE_CLOUD']['Linear']))
 print('\tThiel: ',np.nanmean(extract_dict['ICE_CLOUD']['Thiel']), np.nanstd(extract_dict['ICE_CLOUD']['Thiel']))
-ax2.hist(extract_dict['ICE_CLEAR']['Linear'], bins = 35, alpha = 0.5, label = 'Linear')
-ax2.hist(extract_dict['ICE_CLEAR']['Thiel'], bins = 35, alpha = 0.5, label = 'Thiel')
+ax2.hist(extract_dict['ICE_CLEAR']['Linear'], bins = num_bins, alpha = 0.5, label = 'Linear')
+ax2.hist(extract_dict['ICE_CLEAR']['Thiel'], bins = num_bins, alpha = 0.5, label = 'Thiel')
 print('ICE_CLEAR')
 print('\tLinear:',np.nanmean(extract_dict['ICE_CLEAR']['Linear']), np.nanstd(extract_dict['ICE_CLEAR']['Linear']))
 print('\tThiel: ',np.nanmean(extract_dict['ICE_CLEAR']['Thiel']), np.nanstd(extract_dict['ICE_CLEAR']['Thiel']))
-ax3.hist(extract_dict['OCEAN_CLOUD']['Linear'], bins = 35, alpha = 0.5, label = 'Linear')
-ax3.hist(extract_dict['OCEAN_CLOUD']['Thiel'], bins = 35, alpha = 0.5, label = 'Thiel')
+ax3.hist(extract_dict['OCEAN_CLOUD']['Linear'], bins = num_bins, alpha = 0.5, label = 'Linear')
+ax3.hist(extract_dict['OCEAN_CLOUD']['Thiel'], bins = num_bins, alpha = 0.5, label = 'Thiel')
 print('OCEAN_CLOUD')
 print('\tLinear:',np.nanmean(extract_dict['OCEAN_CLOUD']['Linear']), np.nanstd(extract_dict['ICE_CLOUD']['Linear']))
 print('\tThiel: ',np.nanmean(extract_dict['OCEAN_CLOUD']['Thiel']), np.nanstd(extract_dict['ICE_CLOUD']['Thiel']))
-ax4.hist(extract_dict['OCEAN_CLEAR']['Linear'], bins = 35, alpha = 0.5, label = 'Linear')
-ax4.hist(extract_dict['OCEAN_CLEAR']['Thiel'], bins = 35, alpha = 0.5, label = 'Thiel')
+ax4.hist(extract_dict['OCEAN_CLEAR']['Linear'], bins = num_bins, alpha = 0.5, label = 'Linear')
+ax4.hist(extract_dict['OCEAN_CLEAR']['Thiel'], bins = num_bins, alpha = 0.5, label = 'Thiel')
 print('OCEAN_CLEAR')
 print('\tLinear:',np.nanmean(extract_dict['OCEAN_CLEAR']['Linear']), np.nanstd(extract_dict['OCEAN_CLEAR']['Linear']))
 print('\tThiel: ',np.nanmean(extract_dict['OCEAN_CLEAR']['Thiel']), np.nanstd(extract_dict['OCEAN_CLEAR']['Thiel']))
-ax5.hist(extract_dict['LAND_CLOUD']['Linear'], bins = 35, alpha = 0.5, label = 'Linear')
-ax5.hist(extract_dict['LAND_CLOUD']['Thiel'], bins = 35, alpha = 0.5, label = 'Thiel')
+ax5.hist(extract_dict['LAND_CLOUD']['Linear'], bins = num_bins, alpha = 0.5, label = 'Linear')
+ax5.hist(extract_dict['LAND_CLOUD']['Thiel'], bins = num_bins, alpha = 0.5, label = 'Thiel')
 print('LAND_CLOUD')
 print('\tLinear:',np.nanmean(extract_dict['LAND_CLOUD']['Linear']), np.nanstd(extract_dict['ICE_CLOUD']['Linear']))
 print('\tThiel: ',np.nanmean(extract_dict['LAND_CLOUD']['Thiel']), np.nanstd(extract_dict['ICE_CLOUD']['Thiel']))
-ax6.hist(extract_dict['LAND_CLEAR']['Linear'], bins = 35, alpha = 0.5, label = 'Linear')
-ax6.hist(extract_dict['LAND_CLEAR']['Thiel'], bins = 35, alpha = 0.5, label = 'Thiel')
+ax6.hist(extract_dict['LAND_CLEAR']['Linear'], bins = num_bins, alpha = 0.5, label = 'Linear')
+ax6.hist(extract_dict['LAND_CLEAR']['Thiel'], bins = num_bins, alpha = 0.5, label = 'Thiel')
 print('LAND_CLEAR')
 print('\tLinear:',np.nanmean(extract_dict['LAND_CLEAR']['Linear']), np.nanstd(extract_dict['ICE_CLEAR']['Linear']))
 print('\tThiel: ',np.nanmean(extract_dict['LAND_CLEAR']['Thiel']), np.nanstd(extract_dict['ICE_CLEAR']['Thiel']))
