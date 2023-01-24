@@ -39,9 +39,9 @@ json_file_database = home_dir + '/Research/Arctic_compares/json_comp_files.txt'
 
 # This function automates everything for a single OMI date string:
 # the data downloading/matching, the first-look comparison-making, the 
-# HDF5 file-making, and the data copying to Raindrop.
+# hdf5 file-making, and the data copying to raindrop.
 def automate_all_preprocess(date_str, download = True, images = True, \
-        process = True, omi_dtype = 'shawn'):
+        process = True, omi_dtype = 'ltc3'):
     if(isinstance(date_str, str)):
         date_str = [date_str]
 
@@ -123,13 +123,162 @@ def automate_all_preprocess(date_str, download = True, images = True, \
             print(cmnd)
             os.system(cmnd)
 
+def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
+        download = True, images = False, process = False):
+
+    # See which of the good list files are in the json database
+    # ---------------------------------------------------------
+    with open(json_time_database,'r') as fin:
+        out_time_dict = json.load(fin)
+
+    # Open the omi event list
+    # -----------------------
+    omi_event_file = home_dir + '/Research/OMI/omi_area_event_dates_minlat70.txt'
+    fin = open(omi_event_file, 'r')
+    flines = fin.readlines()
+    fin.close()
+
+
+    final_good_list = []
+    for fline in flines[:]:
+        date_str = fline.strip().split()[0]
+        ai_val   = fline.strip().split()[1]
+
+        if(date_str == '20140811'):
+
+            print(date_str, ai_val)
+
+            good_list = download_OMI_files(date_str, remove_bad = True)
+
+            final_good_list = final_good_list + good_list
+
+            for ttime in good_list:
+                if(new_only and (ttime not in out_time_dict.keys())):
+                #if(ttime not in out_time_dict.keys()):
+                    print("NEW TIME: " + ttime + " not in json database. Run preprocessor")
+                    automate_all_preprocess(ttime, download = download, \
+                        images = images, process = process, omi_dtype = 'ltc3')
+                elif(not new_only):
+                    print(ttime + " in json database. Reprocessing")
+                    automate_all_preprocess(ttime, download = download, \
+                        images = images, process = process, omi_dtype = 'ltc3')
+                else:
+                    print(ttime + ' in json, but not reprocessing. Continuing')
+
+
+    #return final_good_list
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
 # Downloading functions
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-def auto_all_download(date_str, download = True, rewrite_json = False):
+def download_OMI_files(date_str, omi_dtype = 'ltc3', minlat = 70., \
+        min_AI = 1.0, remove_bad = False):
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d')
+
+    h5_path = home_dir + '/data/OMI/H5_files/'
+    if(omi_dtype == 'shawn'):
+        omi_dtype2 = 'shawn'
+        shawn_path = home_dir + '/data/OMI/shawn_files/'
+    elif(omi_dtype == 'ltc3'):
+        omi_dtype = 'shawn'
+        omi_dtype2 = 'ltc3'
+        shawn_path = home_dir+ '/data/OMI/shawn_files/ltc3/'
+
+    # For a date string, determine if H5 and shawn OMI files are downloaded
+    # ---------------------------------------------------------------------
+    h5_files    = glob(dt_date_str.strftime(h5_path + 'OMI*_%Ym%m%dt*.he5')) 
+    shawn_files = glob(dt_date_str.strftime(shawn_path + '%Y%m%d*')) 
+
+    # = = = = = = = = = = = = = = = = = = 
+    # 
+    # Download files for each day
+    #
+    # = = = = = = = = = = = = = = = = = = 
+
+    # if not, download here
+    if(len(h5_files) == 0):
+        # download H5 files
+        cmnd = dt_date_str.strftime(\
+            'scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/H5_files/OMI*_%Ym%m%dt*.he5 ') + h5_path
+        print(cmnd)
+        os.system(cmnd)
+
+        h5_files    = glob(dt_date_str.strftime(h5_path + 'OMI*_%Ym%m%dt*.he5')) 
+    
+    if(len(shawn_files) == 0):
+        # download shawn files
+        cmnd = dt_date_str.strftime(\
+            'scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/out_files-ltc3/%Y%m%d* ') + shawn_path
+        print(cmnd)
+        os.system(cmnd)
+
+        shawn_files = glob(dt_date_str.strftime(shawn_path + '%Y%m%d*')) 
+
+    # Loop over each of the files, reading in each file
+    file_times = [tfile.strip().split('/')[-1] for tfile in shawn_files]
+    
+    # = = = = = = = = = = = = = = = = = = = = = = = 
+    # 
+    # Determine which ones have significant aerosol
+    #
+    # = = = = = = = = = = = = = = = = = = = = = = = 
+    good_list = []
+    bad_list  = []
+    for ttime in file_times:
+        print(ttime)
+
+        OMI_base = readOMI_swath_shawn(ttime, latmin = minlat, \
+            shawn_path = shawn_path)
+
+        ##!## (Plot the file here?)
+        ##!#plt.close('all')
+        ##!#fig = plt.figure()
+        ##!#ax = fig.add_subplot(1,1,1, projection = mapcrs)
+        ##!#plotOMI_single_swath(ax, OMI_base, title = None, \
+        ##!#    circle_bound = False, gridlines = False, vmax = 3.0)
+        ##!##filename = 'omi_single_swath_' + ttime + '.png'
+        ##!#plt.show()
+
+        OMI_base['UVAI_pert'] = np.ma.masked_where(OMI_base['UVAI_pert'] < min_AI, OMI_base['UVAI_pert'])
+        OMI_base['UVAI_pert'] = np.ma.masked_invalid(OMI_base['UVAI_pert'])
+        num_above_threshold = len(OMI_base['UVAI_pert'].compressed())
+        print(num_above_threshold)
+
+
+        # Determine if the max AI pert. value north of 65 N
+        # is greater than 1 (or some threshold)
+        #if(np.nanmax(OMI_base['UVAI_pert']) >= min_AI):
+        if(num_above_threshold >= 100):
+            # If the value is over the threshold, add the YYYYMMDDHHMM
+            # date string to a keep list
+            good_list.append(ttime)
+        else:
+            # If not, add the date string to a throw away list
+            bad_list.append(ttime)
+
+    if(remove_bad):
+        # At the end, loop over the throw away list and delete those files.
+        for tstr in bad_list:
+            local_dstr = datetime.strptime(tstr, '%Y%m%d%H%M')
+            cmnd1 = local_dstr.strftime('rm ' + shawn_path + '%Y%m%d%H%M')
+            cmnd2 = local_dstr.strftime('rm ' + h5_path + 'OMI*_%Ym%m%dt%H%M*.he5')
+        
+            print(cmnd1)
+            print(cmnd2)
+            os.system(cmnd1)
+            os.system(cmnd2)
+
+    # Return or print the keep list.
+    return good_list
+    
+    # Then here, loop over the keep list and run the preprocessor?
+    
+def auto_all_download(date_str, download = True, rewrite_json = False, \
+        omi_dtype = 'ltc3'):
     if(isinstance(date_str, str)):
         date_str = [date_str]
 
@@ -155,11 +304,20 @@ def auto_all_download(date_str, download = True, rewrite_json = False):
         with open(json_file_database,'r') as fin:
             out_file_dict = json.load(fin)
 
+    if(omi_dtype == 'shawn'):
+        omi_dtype2 = 'shawn'
+        shawn_path = home_dir + '/data/OMI/shawn_files/'
+    elif(omi_dtype == 'ltc3'):
+        omi_dtype = 'shawn'
+        omi_dtype2 = 'ltc3'
+        shawn_path = home_dir+ '/data/OMI/shawn_files/ltc3/'
+
     for dstr in date_str:
         print(dstr)
         if(dstr not in out_time_dict.keys() or rewrite_json):
+
             OMI_base = readOMI_swath_shawn(dstr, latmin = 65., \
-                shawn_path = home_dir + '/data/OMI/shawn_files/')
+                shawn_path = shawn_path)
 
             omi_file = subprocess.check_output('ls ' + \
                 home_dir + '/data/OMI/H5_files/' + \
@@ -167,7 +325,9 @@ def auto_all_download(date_str, download = True, rewrite_json = False):
                     OMI_base['date'][8:] + '*.he5', shell = True).decode(\
                 'utf-8').strip().split('\n')[0]
 
-            omi_shawn = home_dir + '/data/OMI/shawn_files/' + OMI_base['date']
+
+            omi_shawn = shawn_path + OMI_base['date']
+            #omi_shawn = home_dir + '/data/OMI/shawn_files/' + OMI_base['date']
 
             if(dstr == '200607270100'):
                 min_time = np.min(OMI_base['TIME'][~OMI_base['UVAI_raw'].mask]) - timedelta(minutes = 5)

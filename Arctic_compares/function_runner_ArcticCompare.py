@@ -13,6 +13,57 @@ from Arctic_compare_lib import *
 # Set up the overall figure
 # ----------------------------------------------------
 
+#def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
+#        download = True, images = False, process = False):
+final_list = entire_wrapper(min_AI = 1.0, minlat = 70., download = False, images = True, process = True)
+
+sys.exit()
+#print(final_list)
+#        for ttime in good_list:
+#            if(new_only and (ttime not in out_time_dict.keys())):
+
+with open('new_found_swaths.txt','r') as fin:
+    total_time_dict = json.load(fin)
+
+just_days = [ttime[:8] for ttime in list(total_time_dict.keys())]
+need_data = {}
+for ii in range(len(just_days)):
+    need_data[just_days[ii]] = True
+#need_data = [True for ii in range(len(just_days))]
+
+for ttime in total_time_dict.keys():
+    if(total_time_dict[ttime] == True):
+        print(ttime, 'is True. Don\'t need data for today')
+        need_data[ttime[:8]] = False
+
+# bad days
+# 20060728 19-20
+# 20120724
+# 20120725
+# 20120727
+
+# good days:
+# 20100629
+# 20100731
+# 20100801
+# 20130803
+# 20140811 GOOD
+# 20140812 GOOD
+# 20140814 GOOD
+# 20140816
+# 20150627 GOOD
+# 20150706
+
+# other good days
+#
+
+
+sys.exit()
+
+date_str = '20140811'
+download_OMI_files(date_str, omi_dtype = 'ltc3')
+sys.exit()
+
 #date_str = '200804221935'
 #date_str = '200804222110'
 #date_str = '200804222250'
