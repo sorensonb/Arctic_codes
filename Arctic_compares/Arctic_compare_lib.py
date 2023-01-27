@@ -10,6 +10,8 @@ home_dir = os.environ['HOME']
 import sys
 import json
 sys.path.append(home_dir)
+import python_lib
+import importlib
 from python_lib import circle, plot_trend_line, nearest_gridpoint, \
     aerosol_event_dict, init_proj, plot_lat_circles, plot_figure_text, \
     plot_subplot_label
@@ -49,6 +51,10 @@ def automate_all_preprocess(date_str, download = True, images = True, \
         # If desired, download all data and/or match up the files in the JSON
         # -------------------------------------------------------------------
         auto_all_download(date_str, download = download, rewrite_json = True)
+
+        # Reload the json file here
+        with open(json_file_database, 'r') as fin:
+            aerosol_event_dict = json.load(fin)
 
     if(omi_dtype == 'shawn'):
         omi_dtype2 = 'shawn'
@@ -124,7 +130,7 @@ def automate_all_preprocess(date_str, download = True, images = True, \
             os.system(cmnd)
 
 def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
-        download = True, images = False, process = False):
+        download = True, images = False, process = False, run_list = None):
 
     # See which of the good list files are in the json database
     # ---------------------------------------------------------
@@ -138,13 +144,26 @@ def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
     flines = fin.readlines()
     fin.close()
 
+    # Prep the run list variables
+    # ---------------------------
+    no_run_list = False
+    if(run_list is None):
+        no_run_list = True
 
     final_good_list = []
     for fline in flines[:]:
         date_str = fline.strip().split()[0]
         ai_val   = fline.strip().split()[1]
 
-        if(date_str == '20140811'):
+        if(no_run_list):
+            run_list = [date_str]
+
+        if((no_run_list) | \
+           ((not no_run_list) & (date_str in run_list))):
+
+        #if((date_str == '20140812') | \
+        #   (date_str == '20140814') | \
+        #   (date_str == '20140816')):
 
             print(date_str, ai_val)
 
@@ -158,12 +177,10 @@ def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
                     print("NEW TIME: " + ttime + " not in json database. Run preprocessor")
                     automate_all_preprocess(ttime, download = download, \
                         images = images, process = process, omi_dtype = 'ltc3')
-                elif(not new_only):
+                else:
                     print(ttime + " in json database. Reprocessing")
                     automate_all_preprocess(ttime, download = download, \
                         images = images, process = process, omi_dtype = 'ltc3')
-                else:
-                    print(ttime + ' in json, but not reprocessing. Continuing')
 
 
     #return final_good_list
@@ -397,6 +414,11 @@ def auto_all_download(date_str, download = True, rewrite_json = False, \
 
                 if(local_time not in out_file_dict[local_date].keys()):
                     out_file_dict[local_date][local_time] = {}
+
+                # Make sure the MODIS files have the path attached
+                # ------------------------------------------------
+                if(len(tfile.split('/')) == 1):
+                    tfile = '/home/bsorenson/data/MODIS/Aqua/' + tfile
 
                 out_file_dict[local_date][local_time]['omi']   = omi_file
                 out_file_dict[local_date][local_time]['ceres'] = ceres_file
@@ -772,6 +794,8 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(date_str, ch1, \
     plotCERES_hrly_figure(ceres_date, 'ALB',  \
         minlat = minlat, lat_circles = None, ax = ax6, title = 'ALB',\
         grid_data = True, zoom = zoom, vmax = None, vmin = None, save = False)
+
+    fig1.tight_layout()
 
     if(save):
         outname = 'omi_ceres_modis_nsidc_compare_' + omi_date + '.png'
@@ -1249,7 +1273,9 @@ def plot_compare_scatter_category(coloc_data, var1, var2, var3 = None, \
                 extend = 'both')
             cbar.set_label(var3)
 
-    if(trend is not None):
+    if((trend is not None) & \
+       (len(mask_xdata.compressed()) != 0) & \
+       (len(mask_ydata.compressed()) != 0)):
         print(cat, len(mask_xdata.compressed()), len(mask_ydata.compressed()))
         plot_trend_line(ax, mask_xdata.compressed(), mask_ydata.compressed(), color=trend_color, linestyle = '-', \
             slope = trend)
@@ -1433,4 +1459,238 @@ def plot_compare_combined_category_event(coloc_data, var1 = 'OMI', \
     else:    
         plt.show()
     
+def plot_compare_all_slopes(date_strs = None, save = False, \
+        return_slope_dict = False, return_slope_means = False):
 
+    if(date_strs is None):
+        date_strs = ['200607240029', # GOOD
+                     #'200607240208', # GOOD / CERES mismatch
+                     '200607240347', # GOOD
+                     '200607240526', # GOOD
+                     '200607240844', # GOOD
+                     '200607242155', # GOOD
+                     '200607242334', # GOOD
+                     '200607250112', # GOOD
+                     '200607250251', # GOOD
+                     '200607250748', # GOOD?
+                     '200607252238', # GOOD
+                     '200607260017', # GOOD
+                     '200607260156', # GOOD
+                     '200607260335', # GOOD
+                     '200607260513', # GOOD?
+                     '200607260831', # GOOD
+                     '200607262142', # GOOD
+                     '200607270100', # GOOD
+                     '200607270239', # GOOD?
+                     '200607270418', # GOOD?
+                     '200607270557', # GOOD?
+                     '200607270736', # GOOD?
+                     '200607272226', # GOOD
+                     '200804221841',  # GOOD
+                     '200804222020',  # GOOD
+                     '200804222159',  # GOOD
+                     '201408110046',
+                     '201408110404',
+                     '201408112032',
+                     '201408112211',
+                     '201408112350',
+                     #'201408120129',
+                     #'201408120308',
+                     #'201408122115',
+                     #'201408122254',
+                     '201506271538',
+                     '201506271717',
+                     '201506271856',
+                     '201708161504',  # GOOD
+                     '201708161643',  # GOOD
+                     '201708161821',  # GOOD
+                     '201708171408',  # GOOD
+                     '201708171547',  # GOOD
+                     '201708171726',  # GOOD
+                     '201708171905',  # GOOD
+                     '201708172043',  # GOOD
+                     '201708181312',  # GOOD
+                     '201708181451',  # GOOD
+                     '201708181630',  # GOOD
+                     '201708181809',  # GOOD
+                     '201708181948',  # GOOD
+                     '201708191355',  # GOOD
+                     '201708191534',  # GOOD
+                     '201708191713',  # GOOD
+                     '201807051856',  # GOOD
+                     '201807052034',  # GOOD
+                     '201807052213',  # GOOD
+                     '201908102115',  # GOOD
+                     '201908102254',  # GOOD
+                     '201908110033',  # GOOD
+                     '201908110351',  # GOOD
+                    ]
+    ##             ##!#'201605151925',  # MEDIOCRE
+    ##             ##!#'201605152104',  # MEDIOCRE
+    ##             ##!#'201605152243',  # MEDIOCRE
+    ##             ##!#'201605162148',  # MEDIOCRE
+    ##             ##!#'200607260017',  # GOOD
+    ##             ##!#'200607252238',  # GOOD
+    ##             ##!#'200607260156',  # GOOD
+    ##             ##!#'200607260335',  # GOOD
+    ##             ##!#'200607260513',  # GOOD
+    ##             '201808241343',
+    ##            ]
+    
+    slope_dict = {}
+    
+    #coloc_data = '201708161504'
+    num_points = 2
+    for date_str in date_strs:
+        print(date_str)
+        slope_dict[date_str] = event_category_slopes_all(date_str, 'OMI', 'CERES_SWF', var3 = None, \
+            cat = "ALL", minlat = 65., xmin = 1.0, xmax = None, ymin = None, \
+            ymax = None, trend = False, num_points = num_points, \
+            restrict_sza = False, color = None, save = False)
+    
+    
+    # Extract just the lin regress slopes
+    # -----------------------------------
+    extract_dict = {}
+    dkeys = slope_dict['201708181451'].keys()
+    
+    for dkey in dkeys:
+        extract_dict[dkey] = {}
+    
+        lin_slopes    = np.ma.masked_invalid(np.array([slope_dict[tkey][dkey]['Linear'] for tkey in slope_dict.keys()]))
+        lin_pvals     = np.ma.masked_invalid(np.array([slope_dict[tkey][dkey]['lin_pval'] for tkey in slope_dict.keys()]))
+        thiel_slopes  = np.ma.masked_invalid(np.array([slope_dict[tkey][dkey]['Thiel'] for tkey in slope_dict.keys()]))
+    
+        extract_dict[dkey]['Linear']   = np.ma.masked_where((lin_slopes > 200) | (lin_slopes < -200) | (lin_pvals > 0.1), lin_slopes)
+        #extract_dict[dkey]['Linear']   = np.ma.masked_where((lin_slopes > 500), lin_slopes)
+        extract_dict[dkey]['Thiel']    = np.ma.masked_where((thiel_slopes > 200) | (thiel_slopes < -200), thiel_slopes)
+        extract_dict[dkey]['lin_pval'] = lin_pvals
+    
+    
+    fig = plt.figure(figsize = (9, 11))
+    ax1 = fig.add_subplot(3,2,1)
+    ax2 = fig.add_subplot(3,2,2)
+    ax3 = fig.add_subplot(3,2,3)
+    ax4 = fig.add_subplot(3,2,4)
+    ax5 = fig.add_subplot(3,2,5)
+    ax6 = fig.add_subplot(3,2,6)
+    
+    num_bins = 20
+    ax1.hist(np.ma.masked_invalid(extract_dict['ICE_CLOUD']['Linear']), bins = num_bins, alpha = 0.5, label = 'Linear')
+    ax1.hist(np.ma.masked_invalid(extract_dict['ICE_CLOUD']['Thiel']), bins = num_bins, alpha = 0.5, label = 'Thiel')
+    print('ICE_CLOUD')
+    print('\tLinear:',np.nanmean(extract_dict['ICE_CLOUD']['Linear']), np.nanstd(extract_dict['ICE_CLOUD']['Linear']))
+    print('\tThiel: ',np.nanmean(extract_dict['ICE_CLOUD']['Thiel']), np.nanstd(extract_dict['ICE_CLOUD']['Thiel']))
+    ax2.hist(extract_dict['ICE_CLEAR']['Linear'], bins = num_bins, alpha = 0.5, label = 'Linear')
+    ax2.hist(extract_dict['ICE_CLEAR']['Thiel'], bins = num_bins, alpha = 0.5, label = 'Thiel')
+    print('ICE_CLEAR')
+    print('\tLinear:',np.nanmean(extract_dict['ICE_CLEAR']['Linear']), np.nanstd(extract_dict['ICE_CLEAR']['Linear']))
+    print('\tThiel: ',np.nanmean(extract_dict['ICE_CLEAR']['Thiel']), np.nanstd(extract_dict['ICE_CLEAR']['Thiel']))
+    ax3.hist(extract_dict['OCEAN_CLOUD']['Linear'], bins = num_bins, alpha = 0.5, label = 'Linear')
+    ax3.hist(extract_dict['OCEAN_CLOUD']['Thiel'], bins = num_bins, alpha = 0.5, label = 'Thiel')
+    print('OCEAN_CLOUD')
+    print('\tLinear:',np.nanmean(extract_dict['OCEAN_CLOUD']['Linear']), np.nanstd(extract_dict['ICE_CLOUD']['Linear']))
+    print('\tThiel: ',np.nanmean(extract_dict['OCEAN_CLOUD']['Thiel']), np.nanstd(extract_dict['ICE_CLOUD']['Thiel']))
+    ax4.hist(extract_dict['OCEAN_CLEAR']['Linear'], bins = num_bins, alpha = 0.5, label = 'Linear')
+    ax4.hist(extract_dict['OCEAN_CLEAR']['Thiel'], bins = num_bins, alpha = 0.5, label = 'Thiel')
+    print('OCEAN_CLEAR')
+    print('\tLinear:',np.nanmean(extract_dict['OCEAN_CLEAR']['Linear']), np.nanstd(extract_dict['OCEAN_CLEAR']['Linear']))
+    print('\tThiel: ',np.nanmean(extract_dict['OCEAN_CLEAR']['Thiel']), np.nanstd(extract_dict['OCEAN_CLEAR']['Thiel']))
+    ax5.hist(extract_dict['LAND_CLOUD']['Linear'], bins = num_bins, alpha = 0.5, label = 'Linear')
+    ax5.hist(extract_dict['LAND_CLOUD']['Thiel'], bins = num_bins, alpha = 0.5, label = 'Thiel')
+    print('LAND_CLOUD')
+    print('\tLinear:',np.nanmean(extract_dict['LAND_CLOUD']['Linear']), np.nanstd(extract_dict['ICE_CLOUD']['Linear']))
+    print('\tThiel: ',np.nanmean(extract_dict['LAND_CLOUD']['Thiel']), np.nanstd(extract_dict['ICE_CLOUD']['Thiel']))
+    ax6.hist(extract_dict['LAND_CLEAR']['Linear'], bins = num_bins, alpha = 0.5, label = 'Linear')
+    ax6.hist(extract_dict['LAND_CLEAR']['Thiel'], bins = num_bins, alpha = 0.5, label = 'Thiel')
+    print('LAND_CLEAR')
+    print('\tLinear:',np.nanmean(extract_dict['LAND_CLEAR']['Linear']), np.nanstd(extract_dict['ICE_CLEAR']['Linear']))
+    print('\tThiel: ',np.nanmean(extract_dict['LAND_CLEAR']['Thiel']), np.nanstd(extract_dict['ICE_CLEAR']['Thiel']))
+    #ax2.scatter(np.ma.masked_invalid(extract_dict[var]['Linear']), np.ma.masked_invalid(extract_dict['ICE_CLOUD']['Thiel']))
+    
+    ax1.set_title('ICE_CLOUD')
+    ax2.set_title('ICE_CLEAR')
+    ax3.set_title('OCEAN_CLOUD')
+    ax4.set_title('OCEAN_CLEAR')
+    ax5.set_title('LAND_CLOUD')
+    ax6.set_title('LAND_CLEAR')
+   
+    ax1.set_xlabel('SWF-AI slope (Wm-2/AI)')
+    ax2.set_xlabel('SWF-AI slope (Wm-2/AI)')
+    ax3.set_xlabel('SWF-AI slope (Wm-2/AI)')
+    ax4.set_xlabel('SWF-AI slope (Wm-2/AI)')
+    ax5.set_xlabel('SWF-AI slope (Wm-2/AI)')
+    ax6.set_xlabel('SWF-AI slope (Wm-2/AI)')
+
+    ax1.set_xlabel('Counts')
+    ax2.set_xlabel('Counts')
+    ax3.set_xlabel('Counts')
+    ax4.set_xlabel('Counts')
+    ax5.set_xlabel('Counts')
+    ax6.set_xlabel('Counts')
+ 
+    ax1.legend()
+    ax2.legend()
+    ax3.legend()
+    ax4.legend()
+    ax5.legend()
+    ax6.legend()
+
+    fig.tight_layout()
+
+    if(save):
+        outname = 'omi_ceres_slope_histogram.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+    if(return_slope_dict):   
+        return slope_dict, extract_dict
+    elif(return_slope_means):
+        return_dict = {}
+        return_dict['ICE_CLOUD']    = np.nanmean(extract_dict['ICE_CLOUD']['Linear'])
+        return_dict['ICE_CLEAR']    = np.nanmean(extract_dict['ICE_CLEAR']['Linear'])
+        return_dict['OCEAN_CLOUD']  = np.nanmean(extract_dict['OCEAN_CLOUD']['Linear'])
+        return_dict['OCEAN_CLEAR']  = np.nanmean(extract_dict['OCEAN_CLEAR']['Linear'])
+        return_dict['LAND_CLOUD']   = np.nanmean(extract_dict['LAND_CLOUD']['Linear'])
+        return_dict['LAND_CLEAR']   = np.nanmean(extract_dict['LAND_CLEAR']['Linear'])
+        
+        return return_dict
+
+     
+def calculate_type_forcing(month_idx, trend_type = 'linear', minlat = 65.):
+
+    # Calculate gridded OMI trends
+    OMI_data   = readOMI_NCDF(infile = \
+        '/home/bsorenson/Research/OMI/omi_ai_VSJ4_2005_2020.nc', \
+        minlat = minlat)
+
+    ai_trends, ai_pvals = calcOMI_grid_trend(OMI_data, month_idx, trend_type, \
+        minlat)
+
+    ##!#local_data3_Apr  = np.copy(OMI_data3['MONTH_CLIMO'][0,:,:])
+    ##!##local_data3_May  = np.copy(OMI_data3['MONTH_CLIMO'][1,:,:])
+    ##!##local_data3_Jun  = np.copy(OMI_data3['MONTH_CLIMO'][2,:,:])
+    ##!##local_data3_Jul  = np.copy(OMI_data3['MONTH_CLIMO'][3,:,:])
+    ##!##local_data3_Aug  = np.copy(OMI_data3['MONTH_CLIMO'][4,:,:])
+    ##!##local_data3_Sep  = np.copy(OMI_data3['MONTH_CLIMO'][5,:,:])
+
+    ##!#mask_AI3_Apr = np.ma.masked_where(local_data3_Apr == -999.9, local_data3_Apr)
+    ##!##mask_AI3_May = np.ma.masked_where(local_data3_May == -999.9, local_data3_May)
+    ##!##mask_AI3_Jun = np.ma.masked_where(local_data3_Jun == -999.9, local_data3_Jun)
+    ##!##mask_AI3_Jul = np.ma.masked_where(local_data3_Jul == -999.9, local_data3_Jul)
+    ##!##mask_AI3_Aug = np.ma.masked_where(local_data3_Aug == -999.9, local_data3_Aug)
+    ##!##mask_AI3_Sep = np.ma.masked_where(local_data3_Sep == -999.9, local_data3_Sep)
+
+    # Calculate the SWF/AI relationships
+    relat_dict = plot_compare_all_slopes(date_strs = None, save = True, \
+        return_slope_dict = False, return_slope_means = True)
+
+    print(relat_dict)
+    print(np.nanmax(ai_trends))
+
+    # Multiply the AI trends by the type trends
+    test_trend = 0.5
+    for tkey in relat_dict.keys():
+        print(tkey, test_trend * relat_dict[tkey]) 

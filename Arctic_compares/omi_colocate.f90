@@ -286,7 +286,11 @@ program omi_colocate
   match_data2 = -999.
 
   omi_loop1: do ii=1,OMI_LAT_dims(2)
-    write(*,*) ii
+
+    if(mod(ii, 50) == 0) then
+      write(*,*) ii
+    endif
+
     omi_loop2: do jj=1,OMI_LAT_dims(1) 
 
       ! Check if the current pixel is missing

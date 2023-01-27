@@ -13,28 +13,49 @@ from Arctic_compare_lib import *
 # Set up the overall figure
 # ----------------------------------------------------
 
-#def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
-#        download = True, images = False, process = False):
-final_list = entire_wrapper(min_AI = 1.0, minlat = 70., download = False, images = True, process = True)
+#run_list = ['20140812']
+#final_list = entire_wrapper(min_AI = 1.0, minlat = 70., download = False, \
+#    images = True, process = True, run_list = run_list)
+#
+#sys.exit()
+calculate_type_forcing(4, trend_type = 'linear', minlat = 65.)
 
 sys.exit()
-#print(final_list)
-#        for ttime in good_list:
-#            if(new_only and (ttime not in out_time_dict.keys())):
 
-with open('new_found_swaths.txt','r') as fin:
-    total_time_dict = json.load(fin)
+slope_dict, extract_dict = plot_compare_all_slopes(date_strs = None, save = True, return_slopes = True)
 
-just_days = [ttime[:8] for ttime in list(total_time_dict.keys())]
-need_data = {}
-for ii in range(len(just_days)):
-    need_data[just_days[ii]] = True
-#need_data = [True for ii in range(len(just_days))]
+sys.exit()
 
-for ttime in total_time_dict.keys():
-    if(total_time_dict[ttime] == True):
-        print(ttime, 'is True. Don\'t need data for today')
-        need_data[ttime[:8]] = False
+##!#
+##!#date_strs = ['201506271856']  # GOOD
+##!#for date_str in date_strs:  
+##!# 
+##!#    plot_compare_OMI_CERES_MODIS_NSIDC(date_str, 7, \
+##!#        omi_dtype = 'ltc3', minlat = 65., zoom = True, save = False)
+##!#
+##!#    #plot_compare_combined_category(date_str, var1 = 'OMI', \
+##!#    #    var2 = 'CERES_SWF', var3 = None, cat = "ALL", minlat = 65., \
+##!#    #    xmin = 1.0, xmax = None, ymin = None, ymax = None, ax = None, \
+##!#    #    colorbar = True, trend = 'lin_regress', zoom = True, color = None, \
+##!#    #    save = False)
+##!#sys.exit()
+##!##print(final_list)
+##!##        for ttime in good_list:
+##!##            if(new_only and (ttime not in out_time_dict.keys())):
+##!#
+##!#with open('new_found_swaths.txt','r') as fin:
+##!#    total_time_dict = json.load(fin)
+##!#
+##!#just_days = [ttime[:8] for ttime in list(total_time_dict.keys())]
+##!#need_data = {}
+##!#for ii in range(len(just_days)):
+##!#    need_data[just_days[ii]] = True
+##!##need_data = [True for ii in range(len(just_days))]
+##!#
+##!#for ttime in total_time_dict.keys():
+##!#    if(total_time_dict[ttime] == True):
+##!#        print(ttime, 'is True. Don\'t need data for today')
+##!#        need_data[ttime[:8]] = False
 
 # bad days
 # 20060728 19-20
@@ -99,6 +120,18 @@ date_strs = ['200607240029', # GOOD
              '200804221841',  # GOOD
              '200804222020',  # GOOD
              '200804222159',  # GOOD
+             '201408110046',
+             '201408110404',
+             '201408112032',
+             '201408112211',
+             '201408112350',
+             '201408120129',
+             '201408120308',
+             '201408122115',
+             '201408122254',
+             '201506271538',
+             '201506271717',
+             '201506271856',
              '201708161504',  # GOOD
              '201708161643',  # GOOD
              '201708161821',  # GOOD
@@ -247,16 +280,6 @@ plt.show()
 
 sys.exit()
 
-date_strs = ['201708161504']  # GOOD
-for date_str in date_strs:  
- 
-##!#data = read_colocated_combined('20180705', zoom = True)
-    plot_compare_combined_category(date_str, var1 = 'OMI', \
-        var2 = 'CERES_SWF', var3 = None, cat = "ALL", minlat = 65., \
-        xmin = 1.0, xmax = None, ymin = None, ymax = None, ax = None, \
-        colorbar = True, trend = 'lin_regress', zoom = True, color = None, \
-        save = False)
-sys.exit()
 
 #date_str = '20060726'
 date_str = '20170817'

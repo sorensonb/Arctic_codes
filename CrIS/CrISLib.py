@@ -462,16 +462,26 @@ def readCrIS_retrieval_level(date_str, press):
     # ----------------------------------------------------
     p_idx = np.argmin(abs(plev - press)) 
 
+    # Mask cloud-contaminated pixels (pixels with  no sfc temp)
+    # ---------------------------------------------------------
+    sfc_temp = np.squeeze(data['rtvdat']['sfct'][0][0])[:] 
+    temps    = np.ma.masked_where(np.isnan(sfc_temp), \
+        np.squeeze(data['rtvdat']['temp'][0][0])[:,p_idx])
+    wv       = np.ma.masked_where(np.isnan(sfc_temp), \
+        np.squeeze(data['rtvdat']['wv'][0][0])[:,p_idx])
+    rh       = np.ma.masked_where(np.isnan(sfc_temp), \
+        np.squeeze(data['rtvdat']['rh'][0][0])[:,p_idx])
+
     CrIS_data = {}
     CrIS_data['lat']       = lats
     CrIS_data['lon']       = lons
     CrIS_data['press']     = press
     CrIS_data['sfc_press'] = spres
-    CrIS_data['temp']      = np.squeeze(data['rtvdat']['temp'][0][0])[:,p_idx]
-    CrIS_data['sfc_temp']  = np.squeeze(data['rtvdat']['sfct'][0][0])[:]
-    CrIS_data['wv']        = np.squeeze(data['rtvdat']['wv'][0][0])[:,p_idx]
-    CrIS_data['rh']        = np.squeeze(data['rtvdat']['rh'][0][0])[:,p_idx]
-   
+    CrIS_data['sfc_temp']  = sfc_temp
+    CrIS_data['temp']      = temps
+    CrIS_data['wv']        = wv
+    CrIS_data['rh']        = rh
+  
     return CrIS_data
 
 # Reads one of Bill Smith Sr.'s CrIS retrieval files at a press level
@@ -706,7 +716,7 @@ def plot_CrIS_retrieval_combined(date_str, press = 500., pvar = 'wv',\
     clear_lat2 = cris_loc_dict[row_str]['clear_lat2']
     clear_lon2 = cris_loc_dict[row_str]['clear_lon2']
 
-    wv_max = 1.4
+    wv_max = 0.8
     wv_min = 0.0
     sfc_tmp_max = 330
     sfc_tmp_min = 280
@@ -874,7 +884,7 @@ def plot_CrIS_retrieval_combined(date_str, press = 500., pvar = 'wv',\
     plot_subplot_label(ax5, '(e)', backgroundcolor = 'white', location = 'upper_right', fontsize = 12)
     plot_subplot_label(ax6, '(f)', backgroundcolor = 'white', location = 'upper_right', fontsize = 12)
    
-    plt.suptitle(dt_date_str.strftime('%H:%M UTC,  %d-%b-%Y'))
+    plt.suptitle(dt_date_str.strftime('%H:%M UTC %d %B %Y'))
  
     fig.tight_layout()
    
