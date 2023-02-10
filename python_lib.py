@@ -286,7 +286,7 @@ def plot_subplot_label(ax, label, xval = None, yval = None, transform = None, \
         #y_lim = 1.03
         x_lim = 0.05
     if(location == 'upper_upper_left'):
-        y_lim = 1.03
+        y_lim = 1.05
         x_lim = 0.05
     elif(location == 'lower_left'):
         y_lim = 0.05

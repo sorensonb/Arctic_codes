@@ -332,7 +332,7 @@ def plot_VIIRS_granule(VIIRS_data, ax = None, labelsize = 12, \
         cmap = VIIRS_data['cmap'], vmin = vmin, vmax = vmax, \
         transform = ccrs.PlateCarree(), shading = 'auto')
     cbar = plt.colorbar(mesh, ax = ax, orientation='vertical',\
-        pad=0.03, extend = 'both')
+        pad=0.03, shrink = 0.85, extend = 'both')
 
     cbar.set_label(VIIRS_data['label'], size = labelsize, weight = 'bold')
     cbar.ax.tick_params(labelsize = labelticksize)
@@ -593,11 +593,11 @@ def plot_VIIRS_sixpanel(satellite = 'SNPP', save = False):
     print(date3.strftime('%Y-%m-%d %H:%M'))
 
     plot_VIIRS_figure(filename_d0722_dat, band = 'M05', ax = ax1, \
-        ptitle = date1.strftime('%Y-%m-%d %H:%M'), zoom = True)
+        ptitle = date1.strftime('%d %B %Y %H:%M UTC'), vmax = 0.7, zoom = True)
     plot_VIIRS_figure(filename_n0723_dnb, band = 'DNB', ax = ax2, \
-        ptitle = date2.strftime('%Y-%m-%d %H:%M'), zoom = True)
+        ptitle = date2.strftime('%d %B %Y %H:%M UTC'), zoom = True)
     plot_VIIRS_figure(filename_d0723_dat, band = 'M05', ax = ax3,\
-        ptitle = date3.strftime('%Y-%m-%d %H:%M'), zoom = True)
+        ptitle = date3.strftime('%d %B %Y %H:%M UTC'), vmax = 0.7, zoom = True)
 
     plot_VIIRS_figure(filename_d0722_dat, band = 'M15', ax = ax4, \
         zoom = True, vmin = 260, vmax = 330)

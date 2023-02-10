@@ -1460,7 +1460,8 @@ def plot_compare_combined_category_event(coloc_data, var1 = 'OMI', \
         plt.show()
     
 def plot_compare_all_slopes(date_strs = None, save = False, \
-        return_slope_dict = False, return_slope_means = False):
+        return_slope_dict = False, return_slope_means = False, \
+        plot_comp_figs = True):
 
     if(date_strs is None):
         date_strs = ['200607240029', # GOOD
@@ -1501,6 +1502,35 @@ def plot_compare_all_slopes(date_strs = None, save = False, \
                      '201506271538',
                      '201506271717',
                      '201506271856',
+                     #'201507061353',  # shadowed?
+                     #'201507061532',  # shadowed?
+                     '201507061711',        
+                     '201507061850',
+                     '201507062028',
+                     '201507062207',
+                     '201507062346',
+                     '201507070125',
+                     #'201507071436',  # shadowed?
+                     '201507071615',
+                     '201507071754',
+                     '201507071933',
+                     '201507072112',
+                     '201507080347',
+                     '201507080526',
+                     '201507082016',
+                     #'201507082115', # doesn't work, don't know why
+                     '201507090113',
+                     '201507090252',
+                     '201507090430',
+                     '201507090609',
+                     '201507090748',
+                     '201507091424',
+                     '201507100017',
+                     '201507100156',
+                     '201507100335',
+                     '201507100514',
+                     '201507100653',
+                     '201507101010',
                      '201708161504',  # GOOD
                      '201708161643',  # GOOD
                      '201708161821',  # GOOD
@@ -1565,7 +1595,36 @@ def plot_compare_all_slopes(date_strs = None, save = False, \
         #extract_dict[dkey]['Linear']   = np.ma.masked_where((lin_slopes > 500), lin_slopes)
         extract_dict[dkey]['Thiel']    = np.ma.masked_where((thiel_slopes > 200) | (thiel_slopes < -200), thiel_slopes)
         extract_dict[dkey]['lin_pval'] = lin_pvals
-    
+
+    # Calculate statistics
+    # --------------------   
+    mean_lin_ICD = np.nanmean(np.ma.masked_invalid(extract_dict['ICE_CLOUD']['Linear']))
+    mean_lin_ICR = np.nanmean(np.ma.masked_invalid(extract_dict['ICE_CLEAR']['Linear']))
+    mean_lin_OCD = np.nanmean(np.ma.masked_invalid(extract_dict['OCEAN_CLOUD']['Linear']))
+    mean_lin_OCR = np.nanmean(np.ma.masked_invalid(extract_dict['OCEAN_CLEAR']['Linear']))
+    mean_lin_LCD = np.nanmean(np.ma.masked_invalid(extract_dict['LAND_CLOUD']['Linear']))
+    mean_lin_LCR = np.nanmean(np.ma.masked_invalid(extract_dict['LAND_CLEAR']['Linear']))
+
+    mean_thl_ICD = np.nanmean(np.ma.masked_invalid(extract_dict['ICE_CLOUD']['Thiel']))
+    mean_thl_ICR = np.nanmean(np.ma.masked_invalid(extract_dict['ICE_CLEAR']['Thiel']))
+    mean_thl_OCD = np.nanmean(np.ma.masked_invalid(extract_dict['OCEAN_CLOUD']['Thiel']))
+    mean_thl_OCR = np.nanmean(np.ma.masked_invalid(extract_dict['OCEAN_CLEAR']['Thiel']))
+    mean_thl_LCD = np.nanmean(np.ma.masked_invalid(extract_dict['LAND_CLOUD']['Thiel']))
+    mean_thl_LCR = np.nanmean(np.ma.masked_invalid(extract_dict['LAND_CLEAR']['Thiel']))
+
+    std_lin_ICD = np.nanstd(np.ma.masked_invalid(extract_dict['ICE_CLOUD']['Linear']))
+    std_lin_ICR = np.nanstd(np.ma.masked_invalid(extract_dict['ICE_CLEAR']['Linear']))
+    std_lin_OCD = np.nanstd(np.ma.masked_invalid(extract_dict['OCEAN_CLOUD']['Linear']))
+    std_lin_OCR = np.nanstd(np.ma.masked_invalid(extract_dict['OCEAN_CLEAR']['Linear']))
+    std_lin_LCD = np.nanstd(np.ma.masked_invalid(extract_dict['LAND_CLOUD']['Linear']))
+    std_lin_LCR = np.nanstd(np.ma.masked_invalid(extract_dict['LAND_CLEAR']['Linear']))
+
+    std_thl_ICD = np.nanstd(np.ma.masked_invalid(extract_dict['ICE_CLOUD']['Thiel']))
+    std_thl_ICR = np.nanstd(np.ma.masked_invalid(extract_dict['ICE_CLEAR']['Thiel']))
+    std_thl_OCD = np.nanstd(np.ma.masked_invalid(extract_dict['OCEAN_CLOUD']['Thiel']))
+    std_thl_OCR = np.nanstd(np.ma.masked_invalid(extract_dict['OCEAN_CLEAR']['Thiel']))
+    std_thl_LCD = np.nanstd(np.ma.masked_invalid(extract_dict['LAND_CLOUD']['Thiel']))
+    std_thl_LCR = np.nanstd(np.ma.masked_invalid(extract_dict['LAND_CLEAR']['Thiel']))
     
     fig = plt.figure(figsize = (9, 11))
     ax1 = fig.add_subplot(3,2,1)
@@ -1579,41 +1638,74 @@ def plot_compare_all_slopes(date_strs = None, save = False, \
     ax1.hist(np.ma.masked_invalid(extract_dict['ICE_CLOUD']['Linear']), bins = num_bins, alpha = 0.5, label = 'Linear')
     ax1.hist(np.ma.masked_invalid(extract_dict['ICE_CLOUD']['Thiel']), bins = num_bins, alpha = 0.5, label = 'Thiel')
     print('ICE_CLOUD')
-    print('\tLinear:',np.nanmean(extract_dict['ICE_CLOUD']['Linear']), np.nanstd(extract_dict['ICE_CLOUD']['Linear']))
-    print('\tThiel: ',np.nanmean(extract_dict['ICE_CLOUD']['Thiel']), np.nanstd(extract_dict['ICE_CLOUD']['Thiel']))
+    print('\tLinear:', mean_lin_ICD, std_lin_ICD)
+    print('\tThiel: ', mean_thl_ICD, std_thl_ICD)
     ax2.hist(extract_dict['ICE_CLEAR']['Linear'], bins = num_bins, alpha = 0.5, label = 'Linear')
     ax2.hist(extract_dict['ICE_CLEAR']['Thiel'], bins = num_bins, alpha = 0.5, label = 'Thiel')
     print('ICE_CLEAR')
-    print('\tLinear:',np.nanmean(extract_dict['ICE_CLEAR']['Linear']), np.nanstd(extract_dict['ICE_CLEAR']['Linear']))
-    print('\tThiel: ',np.nanmean(extract_dict['ICE_CLEAR']['Thiel']), np.nanstd(extract_dict['ICE_CLEAR']['Thiel']))
+    print('\tLinear:', mean_lin_ICR, std_lin_ICR)
+    print('\tThiel: ', mean_thl_ICR, std_thl_ICR)
     ax3.hist(extract_dict['OCEAN_CLOUD']['Linear'], bins = num_bins, alpha = 0.5, label = 'Linear')
     ax3.hist(extract_dict['OCEAN_CLOUD']['Thiel'], bins = num_bins, alpha = 0.5, label = 'Thiel')
     print('OCEAN_CLOUD')
-    print('\tLinear:',np.nanmean(extract_dict['OCEAN_CLOUD']['Linear']), np.nanstd(extract_dict['ICE_CLOUD']['Linear']))
-    print('\tThiel: ',np.nanmean(extract_dict['OCEAN_CLOUD']['Thiel']), np.nanstd(extract_dict['ICE_CLOUD']['Thiel']))
+    print('\tLinear:', mean_lin_OCD, std_lin_OCD)
+    print('\tThiel: ', mean_thl_OCD, std_thl_OCD)
     ax4.hist(extract_dict['OCEAN_CLEAR']['Linear'], bins = num_bins, alpha = 0.5, label = 'Linear')
     ax4.hist(extract_dict['OCEAN_CLEAR']['Thiel'], bins = num_bins, alpha = 0.5, label = 'Thiel')
     print('OCEAN_CLEAR')
-    print('\tLinear:',np.nanmean(extract_dict['OCEAN_CLEAR']['Linear']), np.nanstd(extract_dict['OCEAN_CLEAR']['Linear']))
-    print('\tThiel: ',np.nanmean(extract_dict['OCEAN_CLEAR']['Thiel']), np.nanstd(extract_dict['OCEAN_CLEAR']['Thiel']))
+    print('\tLinear:', mean_lin_OCR, std_lin_OCR)
+    print('\tThiel: ', mean_thl_OCR, std_thl_OCR)
     ax5.hist(extract_dict['LAND_CLOUD']['Linear'], bins = num_bins, alpha = 0.5, label = 'Linear')
     ax5.hist(extract_dict['LAND_CLOUD']['Thiel'], bins = num_bins, alpha = 0.5, label = 'Thiel')
     print('LAND_CLOUD')
-    print('\tLinear:',np.nanmean(extract_dict['LAND_CLOUD']['Linear']), np.nanstd(extract_dict['ICE_CLOUD']['Linear']))
-    print('\tThiel: ',np.nanmean(extract_dict['LAND_CLOUD']['Thiel']), np.nanstd(extract_dict['ICE_CLOUD']['Thiel']))
+    print('\tLinear:', mean_lin_LCD, std_lin_LCD)
+    print('\tThiel: ', mean_thl_LCD, std_thl_LCD)
     ax6.hist(extract_dict['LAND_CLEAR']['Linear'], bins = num_bins, alpha = 0.5, label = 'Linear')
     ax6.hist(extract_dict['LAND_CLEAR']['Thiel'], bins = num_bins, alpha = 0.5, label = 'Thiel')
     print('LAND_CLEAR')
-    print('\tLinear:',np.nanmean(extract_dict['LAND_CLEAR']['Linear']), np.nanstd(extract_dict['ICE_CLEAR']['Linear']))
-    print('\tThiel: ',np.nanmean(extract_dict['LAND_CLEAR']['Thiel']), np.nanstd(extract_dict['ICE_CLEAR']['Thiel']))
+    print('\tLinear:', mean_lin_LCR, std_lin_LCR)
+    print('\tThiel: ', mean_thl_LCR, std_thl_LCR)
     #ax2.scatter(np.ma.masked_invalid(extract_dict[var]['Linear']), np.ma.masked_invalid(extract_dict['ICE_CLOUD']['Thiel']))
-    
-    ax1.set_title('ICE_CLOUD')
-    ax2.set_title('ICE_CLEAR')
-    ax3.set_title('OCEAN_CLOUD')
-    ax4.set_title('OCEAN_CLEAR')
-    ax5.set_title('LAND_CLOUD')
-    ax6.set_title('LAND_CLEAR')
+   
+    # Calculate max bin center values
+    # -------------------------------
+    counts, hist = np.histogram(np.ma.masked_invalid(extract_dict['ICE_CLOUD']['Linear']).compressed(), bins = num_bins)
+    max_bin_lin_ICD = 0.5*(hist[np.argmax(counts)] + hist[np.argmax(counts)+1])
+    counts, hist = np.histogram(np.ma.masked_invalid(extract_dict['ICE_CLEAR']['Linear']).compressed(), bins = num_bins)
+    max_bin_lin_ICR = 0.5*(hist[np.argmax(counts)] + hist[np.argmax(counts)+1])
+    counts, hist = np.histogram(np.ma.masked_invalid(extract_dict['OCEAN_CLOUD']['Linear']).compressed(), bins = num_bins)
+    max_bin_lin_OCD = 0.5*(hist[np.argmax(counts)] + hist[np.argmax(counts)+1])
+    counts, hist = np.histogram(np.ma.masked_invalid(extract_dict['OCEAN_CLEAR']['Linear']).compressed(), bins = num_bins)
+    max_bin_lin_OCR = 0.5*(hist[np.argmax(counts)] + hist[np.argmax(counts)+1])
+    counts, hist = np.histogram(np.ma.masked_invalid(extract_dict['LAND_CLOUD']['Linear']).compressed(), bins = num_bins)
+    max_bin_lin_LCD = 0.5*(hist[np.argmax(counts)] + hist[np.argmax(counts)+1])
+    counts, hist = np.histogram(np.ma.masked_invalid(extract_dict['LAND_CLEAR']['Linear']).compressed(), bins = num_bins)
+    max_bin_lin_LCR = 0.5*(hist[np.argmax(counts)] + hist[np.argmax(counts)+1])
+ 
+    ax1.set_title('ICE_CLOUD\nLinear Max Bin Value: {0}\nLinear: SWF = {1}*AI +/- {2}\nThiel:  SWF = {3}*AI +/- {4}'.format(\
+        np.round(max_bin_lin_ICD,2), \
+        np.round(mean_lin_ICD,2), np.round(std_lin_ICD,2), \
+        np.round(mean_thl_ICD,2), np.round(std_thl_ICD,2)))
+    ax2.set_title('ICE_CLEAR\nLinear Max Bin Value: {0}\nLinear: SWF = {1}*AI +/- {2}\nThiel:  SWF = {3}*AI +/- {4}'.format(\
+        np.round(max_bin_lin_ICR,2), \
+        np.round(mean_lin_ICR,2), np.round(std_lin_ICR,2), \
+        np.round(mean_thl_ICR,2), np.round(std_thl_ICR,2)))
+    ax3.set_title('OCEAN_CLOUD\nLinear Max Bin Value: {0}\nLinear: SWF = {1}*AI +/- {2}\nThiel:  SWF = {3}*AI +/- {4}'.format(\
+        np.round(max_bin_lin_OCD,2), \
+        np.round(mean_lin_OCD,2), np.round(std_lin_OCD,2), \
+        np.round(mean_thl_OCD,2), np.round(std_thl_OCD,2)))
+    ax4.set_title('OCEAN_CLEAR\nLinear Max Bin Value: {0}\nLinear: SWF = {1}*AI +/- {2}\nThiel:  SWF = {3}*AI +/- {4}'.format(\
+        np.round(max_bin_lin_OCR,2), \
+        np.round(mean_lin_OCR,2), np.round(std_lin_OCR,2), \
+        np.round(mean_thl_OCR,2), np.round(std_thl_OCR,2)))
+    ax5.set_title('LAND_CLOUD\nLinear Max Bin Value: {0}\nLinear: SWF = {1}*AI +/- {2}\nThiel:  SWF = {3}*AI +/- {4}'.format(\
+        np.round(max_bin_lin_LCD,2), \
+        np.round(mean_lin_LCD,2), np.round(std_lin_LCD,2), \
+        np.round(mean_thl_LCD,2), np.round(std_thl_LCD,2)))
+    ax6.set_title('LAND_CLEAR\nLinear Max Bin Value: {0}\nLinear: SWF = {1}*AI +/- {2}\nThiel:  SWF = {3}*AI +/- {4}'.format(\
+        np.round(max_bin_lin_LCR,2), \
+        np.round(mean_lin_LCR,2), np.round(std_lin_LCR,2), \
+        np.round(mean_thl_LCR,2), np.round(std_thl_LCR,2)))
    
     ax1.set_xlabel('SWF-AI slope (Wm-2/AI)')
     ax2.set_xlabel('SWF-AI slope (Wm-2/AI)')
@@ -1622,12 +1714,12 @@ def plot_compare_all_slopes(date_strs = None, save = False, \
     ax5.set_xlabel('SWF-AI slope (Wm-2/AI)')
     ax6.set_xlabel('SWF-AI slope (Wm-2/AI)')
 
-    ax1.set_xlabel('Counts')
-    ax2.set_xlabel('Counts')
-    ax3.set_xlabel('Counts')
-    ax4.set_xlabel('Counts')
-    ax5.set_xlabel('Counts')
-    ax6.set_xlabel('Counts')
+    ax1.set_ylabel('Counts')
+    ax2.set_ylabel('Counts')
+    ax3.set_ylabel('Counts')
+    ax4.set_ylabel('Counts')
+    ax5.set_ylabel('Counts')
+    ax6.set_ylabel('Counts')
  
     ax1.legend()
     ax2.legend()

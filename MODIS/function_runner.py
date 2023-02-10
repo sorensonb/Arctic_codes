@@ -7,7 +7,35 @@
 
 from MODISLib import *
 
-#plot_combined_figure1_v6(save = False)
+plot_figure2(save=False, composite = True)
+#plot_combined_figure1_v6(save = True)
+
+sys.exit()
+
+date_str = '202107222110'
+plot_ceres_scatter(date_str, zoom=True,save=True,composite=True,\
+    avg_pixel=True,plume_only=False)
+
+sys.exit()
+
+
+date1 = '202107222110'
+channel = 31
+dt_date_str1 = datetime.strptime(date1,"%Y%m%d%H%M")
+#dt_date_str2 = datetime.strptime(date2,"%Y%m%d%H%M")
+filename1 = aerosol_event_dict[dt_date_str1.strftime('%Y-%m-%d')][dt_date_str1.strftime('%H%M')]['modis']
+#filename2 = aerosol_event_dict[dt_date_str2.strftime('%Y-%m-%d')][dt_date_str2.strftime('%H%M')]['modis']
+
+MODIS_data1 = read_MODIS_channel(dt_date_str1.strftime('%Y%m%d%H%M'), channel, zoom = True)
+
+compare_data1 = nearest_grid_values(MODIS_data1)
+
+sys.exit()
+
+#colocate_comparison(date1, date2, channel = 31)
+
+sys.exit()
+
 plot_CERES_swaths(date_str = '202107222110', save = False)
 sys.exit()
 
@@ -48,10 +76,6 @@ plot_MODIS_satpy(date_str, '7', ax = None, var = None, crs = None, \
 sys.exit()
 
 #plot_MODIS_asos_sites(date_str, sites = None, save = False)
-plot_ceres_scatter(date_str, zoom=True,save=True,composite=True,\
-    avg_pixel=True,plume_only=False)
-
-sys.exit()
 
 #plot_combined_figure1_v4(date_str = '202107222110', zoom = True, show_smoke = False, composite = True, \
 #        double_fig = True, save = True)
@@ -77,8 +101,6 @@ plot_MODIS_GOES_SBDART(save=True, composite = True, calc_radiance = True)
 #plot_combined_figure1(date_str = date_str, zoom = True, show_smoke = True, composite = True, \
 #        save=True)
 
-#plot_figure2(save=True, composite = True, calc_radiance = True, \
-#        satellite = 'modis_ch31')
 #plot_scatter_OMI_CERES_figure(zoom = True, show_smoke = False, composite = True, \
 #        plume_only = False, avg_pixel = True, save=True)
 #plot_MODIS_detection(date_str, zoom = True, save = False)

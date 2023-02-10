@@ -4813,7 +4813,8 @@ def plot_ceres_scatter(date_str, zoom=True,save=False,composite=True,\
     plot_subplot_label(ax4, '(b)')
     plot_subplot_label(ax5, '(c)')
 
-    plt.suptitle(dt_date_str.strftime('%Y/%m/%d %H:%M UTC'))
+    plt.suptitle(dt_date_str.strftime(\
+        'Aqua CERES vs. MODIS 11 μm Brightness Temperature\n%d %B %Y %H:%M UTC'))
 
     fig.tight_layout()
 
@@ -5261,41 +5262,22 @@ def plot_combined_figure1(date_str = '202107222110', zoom = True, show_smoke = T
     else:
         plt.show()
   
-def plot_figure2(save=False, composite = True, calc_radiance = True, \
-        satellite = 'modis_ch31'):
+def plot_figure2(modis_ch1 = 'true_color', save=False, composite = True):
+        
 
-    if(home_dir + '/Research/SBDART' not in sys.path):
-        sys.path.append(home_dir + '/Research/SBDART')
-    from SBDART_Lib import run_sbdart, plot_bright_vza
-
-    # Run SBDART for the different channel
-    # ------------------------------------
-    modis31 = run_sbdart(satellite, calc_radiance, run = True)
-
-    ##!## Read true color data for the date
-    ##!## ---------------------------------
-    date_str22 = '202107222110'
-    dt_date_str22 = datetime.strptime(date_str22,"%Y%m%d%H%M")
-    ##!#var3, crs3, lat_lims3, lon_lims3 = read_true_color(date_str22,\
-    ##!#    composite=composite)
-
-    # Read the 0.64 and 11 micron data for the date
-    # ---------------------------------------------
-    MODIS_data_ch1  = read_MODIS_channel(date_str22, 1, zoom = True)
-    MODIS_data_ch31 = read_MODIS_channel(date_str22, 31, zoom = True)
+    # Read true color data for the date
+    # ---------------------------------
+    date_str = '202107222110'
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+    var1, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel = \
+        read_MODIS_satpy(date_str,'true_color', composite=composite)
 
     # Set up the figure
     # -----------------
-    fig = plt.figure(figsize=(7,12))
-    mapcrs = init_proj(date_str22)
-    gs1 = fig.add_gridspec(nrows = 3, ncols = 2, wspace = 0.10, hspace = 0.40)
-    #ax1 = fig.add_subplot(gs1[0,0], projection = crs3) # true color 7/22
-    ax1 = fig.add_subplot(gs1[0,0], projection = mapcrs) # vis
-    ax4 = fig.add_subplot(gs1[0,1], projection = mapcrs) # IR
-    ax2 = fig.add_subplot(gs1[1,:]) # meteo 7/22
-    ax3 = fig.add_subplot(gs1[2,:])
-    #ax1 = fig.add_subplot(1,2,1,projection = crs3) # true color 7/22
-    #ax2 = fig.add_subplot(1,2,2) # meteo 7/22
+    fig = plt.figure(figsize=(10.5,4.5))
+    mapcrs = init_proj(date_str)
+    ax1 = fig.add_subplot(1,2,1,projection = crs1) # true color 7/22
+    ax2 = fig.add_subplot(1,2,2) # meteo 7/22
 
     # ----------------------------------------------------------------------
     #
@@ -5305,37 +5287,32 @@ def plot_figure2(save=False, composite = True, calc_radiance = True, \
 
     # Plot channel 31 spatial data
     # -----------------------------------------------
-    plot_MODIS_spatial(MODIS_data_ch1, ax1, zoom = True, ptitle = '')
+    plot_MODIS_satpy(date_str, modis_ch1, ax = ax1, var = var1, crs = crs1, \
+        lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+        ptitle = '', plabel = plabel, \
+        labelsize = 10, zoom=True, save=False)
 
-    ##!## Plot the true-color data for the case date
-    ##!## ------------------------------------------
-    ##!#ax1.imshow(var3.data, transform = crs3, extent=(var3.x[0], var3.x[-1], \
-    ##!#    var3.y[-1], var3.y[0]), origin='upper')
+    font_size = 10
+    plot_figure_text(ax1, 'MODIS True Color', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
 
     ##!#ax1.set_extent([lon_lims3[0],lon_lims3[1],lat_lims3[0],\
     ##!#    lat_lims3[1]],crs = datacrs)
 
     # Plot the ASOS locations on the map
     # ----------------------------------
-    plot_ASOS_locs(ax1,date_str22,color='lime', sites = ['O05','AAT'])
+    plot_ASOS_locs(ax1, date_str, color='tab:blue', sites = ['AAT'])
+    plot_ASOS_locs(ax1, date_str, color='tab:orange', sites = ['O05'])
 
-    # ----------------------------------------------------------------------
-    #
-    # Panel 4: 11 micron image
-    #
-    # ----------------------------------------------------------------------
-
-    # Plot channel 31 spatial data
-    # -----------------------------------------------
-    plot_MODIS_spatial(MODIS_data_ch31, ax4, zoom = True, ptitle = '')
-    plot_ASOS_locs(ax4,date_str22,color='lime', sites = ['O05','AAT'], no_text = True)
 
     # ----------------------------------------------------------------------
     #
     # Panel 2: Meteogram
     #
     # ----------------------------------------------------------------------
-    plot_asos_diurnal(ax2, date_str22, 'O05', 'AAT')
+    plot_asos_diurnal(ax2, date_str, 'O05', 'AAT')
 
     def plot_modis_line(dt_date, pax):
         local_modis_time = dt_date - timedelta(hours = 7)
@@ -5343,22 +5320,14 @@ def plot_figure2(save=False, composite = True, calc_radiance = True, \
             day=22,hour=0,minute=0)).seconds
         print(local_modis_time, modis_diff)
         pax.axvline(modis_diff,color='black',linestyle = '--', lw=2,alpha=0.75,\
-            label='MODIS')
+            )
 
-    plot_modis_line(dt_date_str22, ax2)
+    plot_modis_line(dt_date_str, ax2)
     ax2.legend() 
-
-    # ----------------------------------------------------------------------
-    #
-    # Panel 3: SBDART stuff
-    #
-    # ----------------------------------------------------------------------
-    plot_bright_vza(modis31, pax = ax3)
-    
    
     # Add subplot labels
     # ------------------
-    dt_date_str = dt_date_str22
+    dt_date_str = dt_date_str
     ##!#xval = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
     ##!#    [dt_date_str.strftime('%H%M')]['Lon'][0] + \
     ##!#    (aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')]\
@@ -5374,19 +5343,12 @@ def plot_figure2(save=False, composite = True, calc_radiance = True, \
     #plot_subplot_label(ax1, '(a)', xval = xval, yval = yval, \
     #    transform = datacrs, backgroundcolor = 'white')
     plot_subplot_label(ax1, '(a)', backgroundcolor = 'white', location = 'upper_left')
-    plot_subplot_label(ax4, '(b)', backgroundcolor = 'white', location = 'upper_left')
-    #plot_subplot_label(ax2, '(c)', xval = 1200, yval = 5)
-    plot_subplot_label(ax3, '(d)', xval = 20, location = 'lower_left')
-
-    plot_figure_text(ax1, 'MODIS 0.64 μm', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax4, 'MODIS 11 μm', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
+    plot_subplot_label(ax2, '(b)', backgroundcolor = 'white', location = 'upper_upper_left')
 
     fig.tight_layout()
  
     if(save):
-        outname = 'modis_asos_meteo_combined_20210722_fig2_v2.png'
+        outname = 'modis_asos_meteo_combined_20210722_fig2.png'
         fig.savefig(outname, dpi=300)
         print("Saved image",outname)
     else: 
@@ -6600,10 +6562,10 @@ def plot_asos_diurnal(pax, date_str, work_stn, base_stn, plot_map = False, \
     pax.plot(mask_time_times, mask_time_data, color = 'tab:orange', linestyle = '--', label = 'T$_{ ' + work_stn + '}$')
     pax.set_xticks(diff_local_times[::6])
     pax.set_xticklabels(test_strtimes[::6], fontsize = 12)
-    pax.set_ylabel('2-m Temperature [$^{o}$C]', fontsize = 14, weight = 'bold')
+    pax.set_ylabel('2-m Temperature [$^{o}$C]', fontsize = 12, weight = 'bold')
     pax.tick_params(axis='y', labelsize = 12)
-    pax.set_xlabel('Local time [PDT]', fontsize = 14, weight = 'bold')
-    pax.set_title(dt_date_str.strftime('%Y-%m-%d'), fontsize = 14)
+    pax.set_xlabel('Local time [PDT]', fontsize = 12, weight = 'bold')
+    pax.set_title(dt_date_str.strftime('ASOS 2-m Temperatures\n%d %B %Y'), fontsize = 12)
     pax.grid()
     pax.legend()
     #ax.plot(mask_climo_times, mask_climo, color = 'r', label = 'μ$_{T ' + work_stn + '}$')
@@ -6774,19 +6736,19 @@ def colocate_comparison(date1, date2, channel = 31):
     # Read in MODIS data for both cases
     # ---------------------------------
     dt_date_str1 = datetime.strptime(date1,"%Y%m%d%H%M")
-    dt_date_str2 = datetime.strptime(date2,"%Y%m%d%H%M")
+    #dt_date_str2 = datetime.strptime(date2,"%Y%m%d%H%M")
     filename1 = aerosol_event_dict[dt_date_str1.strftime('%Y-%m-%d')][dt_date_str1.strftime('%H%M')]['modis']
-    filename2 = aerosol_event_dict[dt_date_str2.strftime('%Y-%m-%d')][dt_date_str2.strftime('%H%M')]['modis']
+    #filename2 = aerosol_event_dict[dt_date_str2.strftime('%Y-%m-%d')][dt_date_str2.strftime('%H%M')]['modis']
 
     MODIS_data1 = read_MODIS_channel(dt_date_str1.strftime('%Y%m%d%H%M'), channel, zoom = True)
-    MODIS_data2 = read_MODIS_channel(dt_date_str2.strftime('%Y%m%d%H%M'), channel, zoom = True)
+    #MODIS_data2 = read_MODIS_channel(dt_date_str2.strftime('%Y%m%d%H%M'), channel, zoom = True)
 
     #print(MODIS_data1,MODIS_data2)
 
     # Use the colocation code to extract matching data
     # ------------------------------------------------
     compare_data1 = nearest_grid_values(MODIS_data1)
-    compare_data2 = nearest_grid_values(MODIS_data2)
+    #compare_data2 = nearest_grid_values(MODIS_data2)
 
     # Loop over the data and print statistics
     # ---------------------------------------
@@ -8714,7 +8676,7 @@ def plot_combined_figure1_v6(date_str = '202107222110', \
     #
     # ----------------------------------------------------------------------
     CERES_data_hrly_swf = readgridCERES_hrly_grid(date_str[:10], 'SWF', \
-        minlat = 20.)
+        minlat = 20., modis_comp = True)
 
     # Read the true color data
     # ------------------------
@@ -8731,7 +8693,7 @@ def plot_combined_figure1_v6(date_str = '202107222110', \
 
     mapcrs = init_proj(date_str)
     plt.close('all')
-    fig = plt.figure(figsize=(10.0,9.5))
+    fig = plt.figure(figsize=(10.5,9.5))
     gs = fig.add_gridspec(nrows = 3, ncols = 3)
     ax1  = fig.add_subplot(gs[0,0], projection = crs1) # true color    
     ax2  = fig.add_subplot(gs[0,1], projection = crs2) # MODIS Ch 6
@@ -8929,7 +8891,7 @@ def plot_combined_figure1_v6(date_str = '202107222110', \
     plot_figure_text(ax9, 'CERES Total', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
 
-    fig.suptitle(dt_date_str.strftime('%Y/%m/%d %H:%M UTC'))
+    fig.suptitle(dt_date_str.strftime('Aqua MODIS and CERES Imagery of the Dixie Fire\n%d %B %Y %H:%M UTC'))
 
     fig.tight_layout()
 

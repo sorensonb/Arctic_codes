@@ -359,6 +359,15 @@ print(cmnd)
 os.system(cmnd)
 
 # ---------------------------------------------------------------------------- 
+# TROPOMI analysis
+# ---------------------------------------------------------------------------- 
+print("TROPOMI")
+final_dir = dest_dir + 'TROPOMI/'
+cmnd = "find "+base_dir+"TROPOMI/ -type f -name \"*.py\" | xargs cp -t "+final_dir
+print(cmnd)
+os.system(cmnd)
+
+# ---------------------------------------------------------------------------- 
 # Siphon/Metpy Codes
 # ---------------------------------------------------------------------------- 
 print("Siphon/Metpy")

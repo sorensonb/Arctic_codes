@@ -5,6 +5,7 @@ cd $base_dir
 
 make -f Make_omi_colocate
 
+REDO_ALL=false
 EXTRACT=true
 REPROCESS=false
 
@@ -13,20 +14,30 @@ REPROCESS=false
 
 data_dir=${base_dir}comp_data/
 
-#echo $data_dir
-
 cd $data_dir
-
-#echo $(pwd)
-
 
 if $EXTRACT; then
   filelist=(${data_dir}*.gz)
   #echo $filelist
 
   for ((i=0;i < ${#filelist[@]}; i++)); do
-    echo "${filelist[$i]}"
-    tar -xvzf ${filelist[$i]}
+    #colocate_file=${data_dir}colocated_subset_${part2}.hdf5
+   
+    if ($REDO_ALL) ; then
+      echo "Extracting ${filelist[$i]}"
+      tar -xvzf ${filelist[$i]}
+    else
+      tester="${filelist[$i]##*_}"
+      file_time="${tester%.tar*}"
+      just_date=$(echo $file_time | head -c 8)
+      check_file=${data_dir}${just_date}/${file_time}/omi_shawn_${file_time}.hdf5
+      if !(test -f "$check_file") ; then
+        echo "Extracting ${filelist[$i]}"
+        tar -xvzf ${filelist[$i]}
+      fi
+    fi
+    #fi
+
   done
 fi 
 

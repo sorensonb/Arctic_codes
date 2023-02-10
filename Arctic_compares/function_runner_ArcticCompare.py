@@ -8,37 +8,60 @@
 import Arctic_compare_lib
 from Arctic_compare_lib import *
 
+slope_dict, extract_dict = plot_compare_all_slopes(date_strs = None, save = False, return_slope_dict = True)
+
+sys.exit()
+
+date_strs = [\
+                     '201507100017',
+                     '201507100156',
+                     '201507100335',
+                     '201507100514',
+                     '201507100653',
+                     '201507101010',
+            ]
+
+##!#
+##!#date_strs = ['201506271856']  # GOOD
+for date_str in date_strs:  
+ 
+    #plot_compare_OMI_CERES_MODIS_NSIDC(date_str, 7, \
+    #    omi_dtype = 'ltc3', minlat = 65., zoom = True, save = False)
+
+    plot_compare_combined_category(date_str, var1 = 'OMI', \
+        var2 = 'CERES_SWF', var3 = None, cat = "ALL", minlat = 65., \
+        xmin = 1.0, xmax = None, ymin = None, ymax = None, ax = None, \
+        colorbar = True, trend = 'lin_regress', zoom = True, color = None, \
+        save = True)
+sys.exit()
+
+run_list = ['20180721','20170814','20100731','20100801']
+final_list = entire_wrapper(min_AI = 1.0, minlat = 70., download = True, \
+    images = False, process = False, run_list = run_list)
+#final_list = entire_wrapper(min_AI = 1.0, minlat = 70., download = False, \
+#    images = True, process = True, run_list = run_list)
+
+sys.exit()
+
+
+
+calculate_type_forcing(4, trend_type = 'linear', minlat = 65.)
+
+sys.exit()
+
+date_str = '20150707'
+plot_compare_combined_category_event(date_str, var1 = 'OMI', \
+        var2 = 'CERES_SWF', cat = "ALL", minlat = 65., \
+        xmin = 1.0, xmax = None, ymin = None, ymax = None, ax = None, \
+        colorbar = True, trend = True, zoom = False, color = None, \
+        save = False)
+sys.exit()
 
 # ----------------------------------------------------
 # Set up the overall figure
 # ----------------------------------------------------
 
-#run_list = ['20140812']
-#final_list = entire_wrapper(min_AI = 1.0, minlat = 70., download = False, \
-#    images = True, process = True, run_list = run_list)
-#
-#sys.exit()
-calculate_type_forcing(4, trend_type = 'linear', minlat = 65.)
 
-sys.exit()
-
-slope_dict, extract_dict = plot_compare_all_slopes(date_strs = None, save = True, return_slopes = True)
-
-sys.exit()
-
-##!#
-##!#date_strs = ['201506271856']  # GOOD
-##!#for date_str in date_strs:  
-##!# 
-##!#    plot_compare_OMI_CERES_MODIS_NSIDC(date_str, 7, \
-##!#        omi_dtype = 'ltc3', minlat = 65., zoom = True, save = False)
-##!#
-##!#    #plot_compare_combined_category(date_str, var1 = 'OMI', \
-##!#    #    var2 = 'CERES_SWF', var3 = None, cat = "ALL", minlat = 65., \
-##!#    #    xmin = 1.0, xmax = None, ymin = None, ymax = None, ax = None, \
-##!#    #    colorbar = True, trend = 'lin_regress', zoom = True, color = None, \
-##!#    #    save = False)
-##!#sys.exit()
 ##!##print(final_list)
 ##!##        for ttime in good_list:
 ##!##            if(new_only and (ttime not in out_time_dict.keys())):
@@ -282,12 +305,6 @@ sys.exit()
 
 
 #date_str = '20060726'
-date_str = '20170817'
-plot_compare_combined_category_event(date_str, var1 = 'OMI', \
-        var2 = 'CERES_SWF', cat = "ALL", minlat = 65., \
-        xmin = 1.0, xmax = None, ymin = None, ymax = None, ax = None, \
-        colorbar = True, trend = True, zoom = False, color = None, \
-        save = True)
 
 ####var1 = 'OMI'
 ####var2 = 'CERES_SWF'

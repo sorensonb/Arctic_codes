@@ -1457,10 +1457,15 @@ def plot_GOES_satpy_5panel(date_str, ch1, ch2, ch3, ch4, ch5, \
         vmin = min_dict[ch5], vmax = max_dict[ch5], ptitle = '', plabel = plabel4, \
         colorbar = True, labelsize = labelsize, zoom=True,save=False)
 
-    smoke_lat = cris_loc_dict[row_str]['smoke_lat']
-    smoke_lon = cris_loc_dict[row_str]['smoke_lon']
-    clear_lat1 = cris_loc_dict[row_str]['clear_lat1']
-    clear_lon1 = cris_loc_dict[row_str]['clear_lon1']
+    #smoke_lat = cris_loc_dict[row_str]['smoke_lat']
+    #smoke_lon = cris_loc_dict[row_str]['smoke_lon']
+    #clear_lat1 = cris_loc_dict[row_str]['clear_lat1']
+    #clear_lon1 = cris_loc_dict[row_str]['clear_lon1']
+
+    smoke_lat = 40.2824
+    smoke_lon = -121.2412
+    clear_lat1 = 41.4914
+    clear_lon1 = -120.5644
 
     point_size = 7
     plot_point_on_map(ax1, smoke_lat, smoke_lon, markersize = point_size)
@@ -1980,7 +1985,8 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
         show_smoke = False, composite = True, double_fig = False, \
         zoom = True, save=False):
 
-    date_str2 = '202107210000'
+    #date_str2 = '202107210000'
+    date_str2 = date_str
     dt_date_str2 = datetime.strptime(date_str,"%Y%m%d%H%M")
 
     # Read the GOES data
@@ -2282,7 +2288,8 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
         color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
         location = 'upper_right', halign = 'right')
 
-    fig.suptitle('GOES-17 Imagery of the Dixie Fire\n00:00 UTC 21 July 2021')
+    fig.suptitle(dt_date_str2.strftime(\
+        'GOES-17 Imagery of the Dixie Fire\n%d %B %Y %H:%M UTC'))
     #fig.suptitle('GOES-17\n00:00 UTC 21 July 2021')
     fig.tight_layout()
 
@@ -2300,6 +2307,7 @@ def plot_GOES_ASOS_comp(date_str = '202107210000', \
         ttype1 = 'asos', ttype2 = 'ml', \
         idx1 = 3, idx2 = 8, idx3 = 5, idx4 = 15, idx5 = 20,\
         date_idx = 25, 
+        satellite = 'goes17', 
         show_smoke = False, composite = True, double_fig = False, \
         zoom = True, save=False):
 
@@ -2310,18 +2318,18 @@ def plot_GOES_ASOS_comp(date_str = '202107210000', \
     # Read the GOES data
     # ------------------------
     var2, crs0, lons, lats, lat_lims2, lon_lims2, plabel2   = \
-        read_GOES_satpy(date_str2, goes_ch1)
+        read_GOES_satpy(date_str2, goes_ch1, sat = satellite)
     var3, crs0, lons3, lats3, lat_lims3, lon_lims3, plabel3 = \
-        read_GOES_satpy(date_str2, goes_ch2)
+        read_GOES_satpy(date_str2, goes_ch2, sat = satellite)
     #var3, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel3 = read_GOES_satpy(date_str2, 6)
     var4, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel4 = \
-        read_GOES_satpy(date_str2, goes_ch3)
+        read_GOES_satpy(date_str2, goes_ch3, sat = satellite)
     var5, crs0, lons2, lats2, lat_lims0, lon_lims2, plabel5 = \
-        read_GOES_satpy(date_str2, goes_ch4)
+        read_GOES_satpy(date_str2, goes_ch4, sat = satellite)
     var6, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel6 = \
-        read_GOES_satpy(date_str2, goes_ch5)
+        read_GOES_satpy(date_str2, goes_ch5, sat = satellite)
     var7, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel7 = \
-        read_GOES_satpy(date_str2, goes_ch6)
+        read_GOES_satpy(date_str2, goes_ch6, sat = satellite)
 
     # Read the GOES time series data
     # ------------------------------

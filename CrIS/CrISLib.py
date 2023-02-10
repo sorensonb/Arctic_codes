@@ -884,7 +884,7 @@ def plot_CrIS_retrieval_combined(date_str, press = 500., pvar = 'wv',\
     plot_subplot_label(ax5, '(e)', backgroundcolor = 'white', location = 'upper_right', fontsize = 12)
     plot_subplot_label(ax6, '(f)', backgroundcolor = 'white', location = 'upper_right', fontsize = 12)
    
-    plt.suptitle(dt_date_str.strftime('%H:%M UTC %d %B %Y'))
+    plt.suptitle(dt_date_str.strftime('%d %B %Y %H:%M UTC'))
  
     fig.tight_layout()
    
