@@ -18,11 +18,19 @@
 
 from TROPOMI_Lib import *
 
-date_str = '201908110044'
+
+date_str = '201807052142'
+plot_compare_OMI_TROPOMI(date_str, minlat = 65., save = False)
+#plot_TROPOMI_figure(date_str, minlat = 65., vmin = None, vmax = None, \
+#        circle_bound = True, ptitle = '', zoom = True, \
+#        save = False)
+#date_str = '201908110044'
+#convert_TROPOMI_to_HDF5(date_str, save_path = home_dir + '/Research/TROPOMI/')
+#trop_data = read_TROPOMI(date_str)
+sys.exit()
 #date_str = '201807051819'
-plot_TROPOMI_figure(date_str, minlat = 65., vmin = -2, vmax = 3, \
-        circle_bound = True, ptitle = '', zoom = True, \
-        save = False)
+#download_TROPOMI_file(date_str)
+convert_TROPOMI_to_HDF5(date_str)
+#
 
 #filename = 'S5P_OFFL_L2__AER_AI_20190811T224359_20190812T002529_09471_01_010302_20190817T221032.nc'
-#trop_data = read_TROPOMI(filename)
