@@ -229,15 +229,22 @@ def plot_theil_sen_trend(pax, xdata, ydata, color, linestyle, linewidth):
  
 def plot_lin_regress_trend(pax, xdata, ydata, color, linestyle, linewidth):
     # First, calculate the trend
-    zdata = np.polyfit(xdata, ydata, 1)
+    zdata = stats.linregress(xdata, ydata)
+    #slope, intercept, r_value, p_value, std_err = stats.linregress(x_vals,avgs)
+    regress_y = xdata * zdata.slope + zdata.intercept
+    #zdata = np.polyfit(xdata, ydata, 1)
 
     print("Lin Regress: {0}x + {1}".format(*zdata))
 
     # Then, plot the trend line on the figure
-    pax.plot(np.unique(xdata), np.poly1d(zdata)(np.unique(xdata)), \
+    pax.plot(xdata, regress_y, \
         color='k', linewidth = linewidth + 2.0, linestyle = linestyle)
-    pax.plot(np.unique(xdata), np.poly1d(zdata)(np.unique(xdata)), \
+    pax.plot(xdata, regress_y, \
         color=color, linestyle = linestyle)
+    #pax.plot(np.unique(xdata), np.poly1d(zdata)(np.unique(xdata)), \
+    #    color='k', linewidth = linewidth + 2.0, linestyle = linestyle)
+    #pax.plot(np.unique(xdata), np.poly1d(zdata)(np.unique(xdata)), \
+    #    color=color, linestyle = linestyle)
 
     return zdata
 

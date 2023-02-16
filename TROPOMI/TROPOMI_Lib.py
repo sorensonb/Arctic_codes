@@ -16,6 +16,7 @@ import sys
 from glob import glob
 import numpy as np
 import subprocess
+from scipy import stats
 import netCDF4 as nc4
 from netCDF4 import Dataset
 from datetime import datetime, timedelta
@@ -31,6 +32,12 @@ sys.path.append(home_dir)
 from python_lib import *
 
 data_dir = home_dir + '/data/TROPOMI/'
+
+trop_to_omi_dict = {
+    '201807051819': '201807051856',
+    '201807052142': '201807052213',
+    '201908110044': '201908110033'
+}
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
@@ -207,6 +214,9 @@ def read_TROPOMI_coloc(date_str, minlat = 60.):
     for key in data.keys():
         TROP_coloc[key] = data[key][:,:]
 
+    TROP_coloc['trop_ai'] = np.ma.masked_where(\
+        TROP_coloc['trop_ai'] == -999.0, TROP_coloc['trop_ai'])
+
     data.close()
     
     return TROP_coloc
@@ -360,7 +370,23 @@ def plot_TROPOMI_coloc_figure(date_str, var, minlat = 65., vmin = None, vmax = N
     else:
         plt.show()
 
-def plot_compare_OMI_TROPOMI(date_str, minlat = 65., save = False):
+# slope: linear or thiel-sen
+def plot_compare_OMI_TROPOMI(date_str, minlat = 65., slope = 'linear', \
+        vmin = None, vmax = None, save = False):
+
+    
+    if(home_dir + '/Research/OMI/' not in sys.path):
+        sys.path.append(home_dir + '/Research/OMI/')
+
+    from OMILib import readOMI_swath_shawn, plotOMI_single_swath
+
+    # Read shawn (and raw) OMI data
+    # -----------------------------
+    omi_date = trop_to_omi_dict[date_str]
+    OMI_base = readOMI_swath_shawn(omi_date, latmin = minlat, \
+        shawn_path = home_dir + '/data/OMI/shawn_files/ltc3/')
+    #OMI_base = readOMI_swath_hdf(plot_time, 'control', latmin = minlat, \
+    #    skiprows = 53)
 
     # Read high-res TROPOMI data
     # --------------------------
@@ -377,36 +403,121 @@ def plot_compare_OMI_TROPOMI(date_str, minlat = 65., save = False):
     # Set up figure
     # -------------
     plt.close('all')
-    fig = plt.figure(figsize = (9,9))
-    ax1 = fig.add_subplot(2,2,1, projection = mapcrs)
-    ax2 = fig.add_subplot(2,2,2, projection = mapcrs)
-    ax3 = fig.add_subplot(2,2,3, projection = mapcrs)
-    ax4 = fig.add_subplot(2,2,4)
+    fig = plt.figure(figsize = (11,7))
+    ax1 = fig.add_subplot(2,3,1, projection = mapcrs) # Raw TROPOMI
+    ax2 = fig.add_subplot(2,3,2, projection = mapcrs) # OMI raw
+    ax3 = fig.add_subplot(2,3,3, projection = mapcrs) # OMI pert
+    ax4 = fig.add_subplot(2,3,4, projection = mapcrs) # binned TROPOMI
+    ax5 = fig.add_subplot(2,3,5)                      # TROP vs OMI raw
+    ax6 = fig.add_subplot(2,3,6)                      # TROP vs OMI pert
 
     # Plot spatial OMI and TROPOMI data
     # ---------------------------------
+    # Plot 1: raw TROPOMI
+    plot_TROPOMI(TROP_full, ax = ax1, minlat = minlat, vmin = vmin, \
+        vmax = vmax, circle_bound = True, zoom = True, save = False)
+    ax1.set_title('TROPOMI UVAI')
+    
+    # Plot 2: raw OMI
+    plotOMI_single_swath(ax2, OMI_base, pvar = 'UVAI_raw', \
+        title = 'OMI UVAI Raw', circle_bound = True, gridlines = False, \
+        label = 'UVAI', vmin = vmin, vmax = vmax)
+
+    # Plot 3: perturbed OMI
     labelsize = 10
-    mesh = ax1.pcolormesh(TROP_coloc['trop_lon'], TROP_coloc['trop_lat'], \
+    mesh = ax3.pcolormesh(TROP_coloc['trop_lon'], TROP_coloc['trop_lat'], \
         TROP_coloc['omi_uvai_pert'], transform = datacrs, shading = 'auto', \
-        cmap = 'jet', vmin = -2, vmax = 3)
-    cbar = plt.colorbar(mesh, ax = ax1, orientation='vertical',\
+        cmap = 'jet', vmin = vmin, vmax = vmax)
+    cbar = plt.colorbar(mesh, ax = ax3, orientation='vertical',\
         pad=0.04, fraction = 0.040, extend = 'both')
     cbar.set_label('UV Aerosol Index', size = labelsize, weight = 'bold')
-    ax1.coastlines()
-    ax1.set_extent([-180, 180, minlat, 90], datacrs)
-    ax1.set_boundary(circle, transform = ax1.transAxes)
+    ax3.coastlines()
+    ax3.set_extent([-180, 180, minlat, 90], datacrs)
+    ax3.set_boundary(circle, transform = ax3.transAxes)
+    ax3.set_title('OMI UVAI Perturbation')
 
-    plot_TROPOMI(TROP_full, ax = ax2, minlat = minlat, vmin = -2, vmax = 3, \
-        circle_bound = True, zoom = True, save = False)
-
-    plot_TROPOMI_coloc(TROP_coloc, 'trop_ai', ax = ax3, minlat = minlat, \
-        vmin = -2, vmax = 3, circle_bound = True, zoom = True, save = False)
+    # Plot 4: Plot binned TROPOMI
+    plot_TROPOMI_coloc(TROP_coloc, 'trop_ai', ax = ax4, minlat = minlat, \
+        vmin = vmin, vmax = vmax, circle_bound = True, zoom = True, \
+        save = False)
+    ax4.set_title('TROPOMI UVAI\nBinned to OMI Grid')
  
     # Plot scatter of OMI vs TROPOMI
     # ------------------------------
+    # Plot 5: TROPOMI vs raw OMI   
+    mask_OMI_raw  = np.ma.masked_invalid(OMI_base['UVAI_raw'])
+    match_TROP    = TROP_coloc['trop_ai'][~mask_OMI_raw.mask]
+    mask_OMI_raw  = mask_OMI_raw.compressed()
+ 
+    # Get rid of missing TROPOMI pixels
+    mask_OMI_raw   = np.ma.masked_where(match_TROP == -999.0, mask_OMI_raw)
+    mask_TROP      = np.ma.masked_where(match_TROP == -999.0, match_TROP)
+    final_OMI_raw  = mask_OMI_raw.compressed()
+    final_TROP     = mask_TROP.compressed()
+
+    xy = np.vstack([final_OMI_raw,final_TROP])
+    z = stats.gaussian_kde(xy)(xy)
+    ax5.scatter(final_OMI_raw, final_TROP, c = z, s = 6)
+    zdata = plot_trend_line(ax5, final_OMI_raw, final_TROP, color='red', linestyle = '-', \
+        linewidth = 1.5, slope = slope)
+    ax5.set_title('TROPOMI = ' + str(np.round(zdata.slope,3)) + ' * OMI + ' + \
+        str(np.round(zdata.intercept,3)) + '\n$r^{2}$ = ' + \
+        str(np.round(zdata.rvalue**2., 3)))
+
+    # Plot one to one line
+    xlim = ax5.get_xlim()
+    ylim = ax5.get_ylim()
+    xvals = np.arange(xlim[0] - 1, xlim[-1] + 1)
+    ax5.plot(xvals, xvals, '-', color = 'tab:cyan', linewidth = 1.5)
+    ax5.set_xlim(xlim)   
+    ax5.set_ylim(ylim)   
+    ax5.grid()
+    ax5.set_xlabel('OMI UVAI Raw')
+    ax5.set_ylabel('TROPOMI UVAI')
     
+    # Plot 6: TROPOMI vs OMI pert
+    mask_OMI = np.ma.masked_invalid(TROP_coloc['omi_uvai_pert'])
+    match_TROP = TROP_coloc['trop_ai'][~mask_OMI.mask]
+    mask_OMI   = mask_OMI.compressed()
+
+    # Get rid of missing TROPOMI pixels
+    mask_OMI  = np.ma.masked_where(match_TROP == -999.0, mask_OMI)
+    mask_TROP = np.ma.masked_where(match_TROP == -999.0, match_TROP)
+    final_OMI  = mask_OMI.compressed()
+    final_TROP = mask_TROP.compressed()
+
+    xy = np.vstack([final_OMI,final_TROP])
+    z = stats.gaussian_kde(xy)(xy)
+    ax6.scatter(final_OMI, final_TROP, c = z, s = 6)
+    zdata = plot_trend_line(ax6, final_OMI, final_TROP, color='red', linestyle = '-', \
+        linewidth = 1.5, slope = slope)
+    ax6.set_title('TROPOMI = ' + str(np.round(zdata.slope,3)) + ' * OMI + ' + \
+        str(np.round(zdata.intercept,3)) + '\n$r^{2}$ = ' + \
+        str(np.round(zdata.rvalue**2., 3)))
+
+    # Plot one to one line
+    xlim = ax6.get_xlim()
+    ylim = ax6.get_ylim()
+    xvals = np.arange(xlim[0] - 1, xlim[-1] + 1)
+    ax6.plot(xvals, xvals, '-', color = 'tab:cyan', linewidth = 1.5)
+    ax6.set_xlim(xlim)   
+    ax6.set_ylim(ylim)   
+    ax6.grid()
+    ax6.set_xlabel('OMI UVAI Perturbed')
+    ax6.set_ylabel('TROPOMI UVAI')
+
+    plt.suptitle(date_str)
+ 
+    # Polish the figure
+    # ----------------- 
     fig.tight_layout()
-    plt.show()
+
+    if(save):
+        outname = 'tropomi_omi_combined_' + date_str + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
 
 ##!## This function takes in a TROPOMI filename and returns a dictionary containing
 ##!## the data from the file. Assume that each TROPOMI file contains a single 

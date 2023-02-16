@@ -367,6 +367,18 @@ cmnd = "find "+base_dir+"TROPOMI/ -type f -name \"*.py\" | xargs cp -t "+final_d
 print(cmnd)
 os.system(cmnd)
 
+# Get codes from Raindrop
+# -----------------------
+rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/OMI/tropomi_colocate/"
+
+final_dir = dest_dir + 'TROPOMI/processing/'
+cmnd = "scp "+rain_dir+"*.f90 "+final_dir
+print(cmnd)
+os.system(cmnd)
+cmnd = "scp "+rain_dir+"Make* "+final_dir
+print(cmnd)
+os.system(cmnd)
+
 # ---------------------------------------------------------------------------- 
 # Siphon/Metpy Codes
 # ---------------------------------------------------------------------------- 

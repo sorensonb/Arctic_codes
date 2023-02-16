@@ -4904,10 +4904,10 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
 
     variable = 'UVAerosolIndex'
 
-    if(vmin is None):
-        vmin = var_dict[variable]['min']
-    if(vmax is None):
-        vmax = var_dict[variable]['max']
+    #if(vmin is None):
+    #    vmin = var_dict[variable]['min']
+    #if(vmax is None):
+    #    vmax = var_dict[variable]['max']
 
     in_ax = True 
     if(pax is None): 
@@ -5050,8 +5050,8 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
 
         if(colorbar):
             #cbar.set_label(variable,fontsize=16,weight='bold')
-            tickvals = np.arange(-2.0,4.1,1.0)
-            cbar = plt.colorbar(mesh,ax = pax, ticks = tickvals,\
+            #tickvals = np.arange(vmin,vmax,1.0)
+            cbar = plt.colorbar(mesh,ax = pax, \
                 orientation='vertical', extend = 'both', fraction = 0.046,\
                 pad = 0.04)
             cbar.set_label(label,fontsize = labelsize, weight='bold')

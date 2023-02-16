@@ -10,6 +10,64 @@ import OMILib
 from OMILib import *
 import sys
 
+date_strs = [
+             '201904290123',
+             '201904290302',
+             '201904290440',
+             '201904290619',
+             '201904290758',
+             '201904290937',
+             '201904291116',
+             '201904291255',
+             '201904291434',
+             '201904291613',
+             '201904291752',
+             '201904291930',
+             '201904292109',
+             '201904292248',
+             #'201907170041',
+             #'201907170220',
+             #'201907170359',
+             #'201907170537',
+             #'201907170716',
+             #'201907170855',
+             #'201907171034',
+             #'201907171213',
+             #'201907171352',
+             #'201907171531',
+             #'201907171710',
+             #'201907171848',
+             #'201907172027',
+             #'201907172206',
+             #'201907172345',
+            ]
+
+num_files = len(date_strs)
+
+swath_averages = np.full((num_files, 2000, 60), np.nan)
+
+for ii, date_str in enumerate(date_strs):
+
+    OMI_data = readOMI_swath_hdf(date_str, 'control', latmin = 65, \
+        skiprows = [52])
+
+    swath_averages[ii, :OMI_data['UVAI'].shape[0], :] = OMI_data['UVAI'][:,:]
+
+    #plotOMI_single_swath_figure(date_str, dtype = 'control',  \
+    #        only_sea_ice = False, minlat = 65., skiprows = [52], \
+    #        lat_circles = None, save = False, zoom = False, \
+    #        circle_bound = True, ax = None, \
+    #        shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
+
+# Clean the data
+swath_averages = np.ma.masked_where(swath_averages < -50, swath_averages)
+swath_averages = np.ma.masked_invalid(swath_averages)
+
+row_avgs = np.nanmean(swath_averages, axis = 0)
+row_avgs = np.nanmean(row_avgs, axis = 0)
+
+sys.exit()
+
 plot_combined_fort_out('20190811', min_lat = 70., vtype = 'areas', max_lat = 80., save = True)
 plot_combined_fort_out('20170818', min_lat = 80., vtype = 'areas', save = True)
 sys.exit()
