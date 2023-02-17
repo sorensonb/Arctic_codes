@@ -46,7 +46,7 @@ trop_to_omi_dict = {
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 # This downloads the TROPOMI l1b HDF5 file that is closest to the passed
-# date string from the LAADS DAAC archive. 
+# date string from the GES DISC archive. 
 # --------------------------------------------------------------------
 def download_TROPOMI_file(date_str, dest_dir = data_dir):
 
@@ -107,6 +107,42 @@ def download_TROPOMI_file(date_str, dest_dir = data_dir):
         os.system(cmnd)
 
     return found_file
+
+def download_TROPOMI_match_OMI(date_str, \
+        save_path = home_dir + '/Research/TROPOMI'):
+
+    if(len(date_str) == 4):
+        str_fmt = '%Y'
+        out_fmt = '%Ym'
+    elif(len(date_str) == 6):
+        str_fmt = '%Y%m'
+        out_fmt = '%Ym%m'
+    elif(len(date_str) == 8):
+        str_fmt = '%Y%m%d'
+        out_fmt = '%Ym%m%d'
+    elif(len(date_str) == 10):
+        str_fmt = '%Y%m%d%H'
+        out_fmt = '%Ym%m%dt%H'
+    else:
+        print("INVALID DATE STRING. RETURNING")
+        sys.exit()
+    
+    dt_date_str = datetime.strptime(date_str, str_fmt)
+    
+    files = glob(dt_date_str.strftime(\
+        '/home/bsorenson/data/OMI/H5_files/OMI-A*_' + out_fmt + '*.he5'))
+
+    for ii, fname in enumerate(files):
+        dt_name = datetime.strptime(fname.strip().split('/')[-1][20:34],\
+            '%Ym%m%dt%H%M')
+
+        local_date_str = dt_name.strftime('%Y%m%d%H%M')
+        #print(dt_name.strftime('%Y%m%d%H%M'))
+        found_file = download_TROPOMI_file(local_date_str, \
+            dest_dir = '/home/bsorenson/data/TROPOMI/')
+        trop_time = found_file.strip().split('/')[-1][33:49]
+        print(trop_time)
+        #convert_TROPOMI_to_HDF5(local_date_str)
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
@@ -286,6 +322,9 @@ def plot_TROPOMI_figure(date_str, minlat = 65., vmin = None, vmax = None, \
         circle_bound = True, zoom = True, save = False)
 
     ax.set_title('TROPOMI UVAI\n' + TROP_data['date_str'])
+    gl = ax.gridlines(crs = ccrs.PlateCarree(), draw_labels = False, \
+        linewidth = 1, color = 'gray', alpha = 0.5, linestyle = '-',\
+        y_inline = True, xlocs = range(-180, 180, 30), ylocs = range(70, 90, 10))
  
     ax.coastlines()
 
@@ -518,6 +557,86 @@ def plot_compare_OMI_TROPOMI(date_str, minlat = 65., slope = 'linear', \
         print("Saved image", outname)
     else:
         plt.show()
+
+def plot_TROPOMI_row_avg(date_str, plot_swath = False, minlat = 65., \
+        save = True):
+    
+    if(len(date_str) == 4):
+        str_fmt = '%Y'
+        out_fmt = '%Ym'
+    elif(len(date_str) == 6):
+        str_fmt = '%Y%m'
+        out_fmt = '%Ym%m'
+    elif(len(date_str) == 8):
+        str_fmt = '%Y%m%d'
+        out_fmt = '%Ym%m%d'
+    elif(len(date_str) == 10):
+        str_fmt = '%Y%m%d%H'
+        out_fmt = '%Ym%m%dt%H'
+    else:
+        print("INVALID DATE STRING. RETURNING")
+        sys.exit()
+    
+    dt_date_str = datetime.strptime(date_str, str_fmt)
+    
+    files = glob(dt_date_str.strftime(\
+        '/home/bsorenson/data/TROPOMI/TROPOMI-S*TROPOMAER_' + out_fmt + \
+        '*.nc'))
+    
+    num_files = len(files)
+    
+    swath_ais = np.full((num_files, 4000, 450), np.nan)
+    swath_lat = np.full((num_files, 4000, 450), np.nan)
+    
+    latmin = minlat
+    for ii, fname in enumerate(files):
+        print(fname.strip().split('/')[-1][33:47])
+        dt_name = datetime.strptime(fname.strip().split('/')[-1][33:47],\
+            '%Ym%m%dt%H%M')
+
+        #if(download_match_TROP):    
+        #    download_TROPOMI_file(dt_name.strftime('%Y%m%d%H%M'), \
+        #        dest_dir = '/home/bsorenson/data/TROPOMI/')
+
+        # Read and resample each file
+        # ---------------------------
+        local_date_str = dt_name.strftime('%Y%m%d%H%M')
+        TROP_data = read_TROPOMI(local_date_str, minlat = minlat)
+   
+        if(plot_swath): 
+            # Plot this swath
+            # ---------------
+            plot_TROPOMI_figure(local_date_str, minlat = 65., \
+                vmin = -2, vmax = 4, circle_bound = True, \
+                ptitle = '', zoom = True, save = True)
+    
+        swath_ais[ii, :TROP_data['uvai'].shape[0], :] = TROP_data['uvai'][:,:]
+        swath_lat[ii, :TROP_data['lat'].shape[0], :]  = TROP_data['lat'][:,:]
+    
+    # Clean the data
+    swath_ais = np.ma.masked_where(swath_ais < -50, swath_ais)
+    swath_ais = np.ma.masked_invalid(swath_ais)
+    swath_ais = np.ma.masked_where(swath_lat < latmin, swath_ais)
+    
+    # Average all the data for each day along each row, so there
+    # is one set of row averages per day
+    day_avgs = np.nanmean(swath_ais, axis = 1)
+    # Average all the daily row averages
+    row_avgs = np.nanmean(day_avgs, axis = 0)
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.plot(row_avgs)
+    ax.set_xlabel('Row #')
+    ax.set_ylabel('Daily average AI')
+    ax.set_title('TROPOMI daily average UVAI by row\nNorth of 65\n' + date_str)
+    ax.grid()
+    fig.tight_layout()
+    
+    outname = 'tropomi_row_avgs_' + date_str + '.png'
+    fig.savefig(outname, dpi = 300)
+    print("Saved image", outname)
+    
 
 ##!## This function takes in a TROPOMI filename and returns a dictionary containing
 ##!## the data from the file. Assume that each TROPOMI file contains a single 

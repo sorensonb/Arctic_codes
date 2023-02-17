@@ -18,6 +18,14 @@
 
 from TROPOMI_Lib import *
 
+date_str = '20190506'
+#date_str = '20190625'
+#download_TROPOMI_match_OMI(date_str, \
+#    save_path = home_dir + '/Research/TROPOMI')
+plot_TROPOMI_row_avg(date_str, plot_swath = False, minlat = 65., \
+    save = True)
+
+sys.exit()
 
 date_str = '201807051819'
 #date_str = '201807052142'

@@ -608,7 +608,6 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
     # to -9e5 to ensure they are removed
     # ---------------------------------------------------------------------
     if(skiprows is not None):
-        print('got here')
         UVAI[:,skiprows] = -9e5  
 
     # Mask the AI data where the values are either missing or the Xtrack flags
@@ -646,6 +645,7 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
     OMI_swath['GPQF']   = GPQF_decode
     OMI_swath['PXQF']   = PXQF_decode
     OMI_swath['XTRACK'] = XTRK_decode
+    OMI_swath['XTRACK_raw'] = XTRACK
     OMI_swath['LATcrnr']    = LATcrnr
     OMI_swath['LONcrnr']    = LONcrnr
     OMI_swath['TIME']   = np.repeat(TIME, 60).reshape(TIME.shape[0], 60)
@@ -5087,20 +5087,24 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
 def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
         only_sea_ice = False, minlat = 65., skiprows = None, \
         lat_circles = None, save = False, zoom = False, \
-        circle_bound = True, ax = None, \
+        vmin = None, vmax = None, circle_bound = True, ax = None, \
         shawn_path = home_dir + '/data/OMI/shawn_files/'):
 
 
     # ----------------------------------------------------
     # Read in data
     # ----------------------------------------------------
-    if(dtype == 'shawn'):
-        OMI_base  = readOMI_swath_shawn(date_str, latmin = minlat,\
-            shawn_path = shawn_path)
+    if(isinstance(date_str, str)):
+        if(dtype == 'shawn'):
+            OMI_base  = readOMI_swath_shawn(date_str, latmin = minlat,\
+                shawn_path = shawn_path)
+        else:
+            OMI_base  = readOMI_swath_hdf(date_str, dtype, \
+                only_sea_ice = only_sea_ice, latmin = minlat, \
+                skiprows = skiprows)
     else:
-        OMI_base  = readOMI_swath_hdf(date_str, dtype, \
-            only_sea_ice = only_sea_ice, latmin = minlat, \
-            skiprows = skiprows)
+        OMI_base = date_str
+        date_str = OMI_base['date']
 
     #print(OMI_base['UVAI'][1300,:])
 
@@ -5125,6 +5129,7 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
     plotOMI_single_swath(ax, OMI_base, title = dtype.title(), \
     #plotOMI_single_swath(ax0, OMI_base, title = 'No row 53', \
         #circle_bound = False, gridlines = False)
+        vmin = vmin, vmax = vmax, 
         circle_bound = circle_bound, gridlines = False)
 
     #ax0.set_extent([-180., , -40., 0.], datacrs)
@@ -7557,4 +7562,78 @@ def plot_row_anomaly_combined(dtype = 'control', minlat = 65., save = False):
     else:
         plt.show()
 
+def plot_OMI_row_avg(date_str, plot_swath = False, minlat = 65., \
+        save = True):
+    
+    if(len(date_str) == 4):
+        str_fmt = '%Y'
+        out_fmt = '%Ym'
+    elif(len(date_str) == 6):
+        str_fmt = '%Y%m'
+        out_fmt = '%Ym%m'
+    elif(len(date_str) == 8):
+        str_fmt = '%Y%m%d'
+        out_fmt = '%Ym%m%d'
+    else:
+        print("INVALID DATE STRING. RETURNING")
+        sys.exit()
+    
+    dt_date_str = datetime.strptime(date_str, str_fmt)
+    
+    files = glob(dt_date_str.strftime(\
+        '/home/bsorenson/data/OMI/H5_files/OMI-A*_' + out_fmt + '*.he5'))
+    
+    num_files = len(files)
+    
+    swath_ais = np.full((num_files, 2000, 60), np.nan)
+    swath_lat = np.full((num_files, 2000, 60), np.nan)
+    swath_xtk = np.full((num_files, 2000, 60, 6), np.nan)
+    swath_xrw = np.full((num_files, 2000, 60), np.nan)
+    
+    latmin = 65
+    for ii, fname in enumerate(files):
+        dt_name = datetime.strptime(fname.strip().split('/')[-1][20:34],\
+            '%Ym%m%dt%H%M')
 
+        # Read and resample each file
+        # ---------------------------
+        OMI_data = readOMI_swath_hdf(dt_name.strftime('%Y%m%d%H%M'), 'control', \
+            latmin = latmin, \
+            skiprows = [52])
+   
+        if(plot_swath): 
+            # Plot this swath
+            # ---------------
+            plotOMI_single_swath_figure(OMI_data, dtype = 'control', skiprows = [52], \
+                vmin = -2, vmax = 4, minlat = minlat, save = True)
+    
+        swath_ais[ii, :OMI_data['UVAI'].shape[0], :]      = OMI_data['UVAI'][:,:]
+        swath_lat[ii, :OMI_data['LAT'].shape[0], :]       = OMI_data['LAT'][:,:]
+        swath_xtk[ii, :OMI_data['XTRACK'].shape[0], :,:]  = OMI_data['XTRACK'][:,:,:]
+        swath_xrw[ii, :OMI_data['XTRACK'].shape[0], :]    = OMI_data['XTRACK_raw'][:,:]
+    
+    # Clean the data
+    swath_ais = np.ma.masked_where(swath_ais < -50, swath_ais)
+    swath_ais = np.ma.masked_invalid(swath_ais)
+    swath_ais = np.ma.masked_where(swath_xrw != 0, swath_ais)
+    swath_ais = np.ma.masked_where(swath_lat < latmin, swath_ais)
+    
+    # Average all the data for each day along each row, so there
+    # is one set of row averages per day
+    day_avgs = np.nanmean(swath_ais, axis = 1)
+    # Average all the daily row averages
+    row_avgs = np.nanmean(day_avgs, axis = 0)
+   
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.plot(row_avgs)
+    ax.set_xlabel('Row #')
+    ax.set_ylabel('Daily average AI')
+    ax.set_title('OMI daily average UVAI by row\nNorth of 65\n' + date_str)
+    ax.grid()
+    fig.tight_layout()
+    
+    outname = 'omi_row_avgs_' + date_str + '.png'
+    fig.savefig(outname, dpi = 300)
+    print("Saved image", outname)
+    
