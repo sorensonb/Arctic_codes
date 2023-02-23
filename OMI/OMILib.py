@@ -64,7 +64,7 @@ sys.path.append(home_dir)
 from python_lib import circle, plot_subplot_label, plot_lat_circles
 from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
     nearest_gridpoint, aerosol_event_dict, init_proj, \
-    convert_radiance_to_temp, format_coord, circle
+    convert_radiance_to_temp, format_coord, circle, plot_point_on_map
 
 # Bits 
 #  0 - Missing
@@ -187,13 +187,15 @@ label_dict = {
     'VJZ282': 'No Snow-free Land, Only Pure Good Rows',
     'VJZ29': 'Include Snow-free Land\n49, 50, 56 - 60', #49, 50, 56 - 60, snow-free land
     'VJZ211': 'Include Snow-free Land\n56 - 60', # 55 - 60, snow-free land
+    'VJZ212': 'Include Snow-free Land\n56 - 60, CLD < 0.2', # 55 - 60, snow-free land
     'VJZ4': 'XTrack == 0, not 4',
     'VJZ5': 'AI >= 0',
     'VBS0': 'No Bad Row Screening',
     'VBS1': 'Bad Row Screening Only',
     'VBS2': 'Only Rows 1-22',
     'VSJ2': 'Perturbation Version 2',
-    'VSJ4': 'Perturbation Version 4'
+    'VSJ4': 'Perturbation Version 4',
+    'VSJ42': 'Perturbation Version 4, CLD < 0.2'
 }
 
 var_dict = {
@@ -1722,15 +1724,17 @@ def calcOMI_grid_trend(OMI_data, month_idx, trend_type, minlat):
     lon_ranges = np.arange(-180,180,1.0)
 
     # Make copy of OMI_data array
-    print(OMI_data['DATES'][month_idx::index_jumper])
+    print('HERE:',OMI_data['DATES'][month_idx::index_jumper])
     local_data   = np.copy(OMI_data['AI'][month_idx::index_jumper,:,:])
     local_counts = np.copy(OMI_data['OB_COUNT'][month_idx::index_jumper,:,:])
     local_mask = np.ma.masked_where(local_counts == 0, local_data)
     local_mask = np.ma.masked_where((local_mask == -999.9) & \
         (OMI_data['LAT'] < minlat), local_mask)
 
-    ai_trends = np.zeros(local_data.shape[1:])
-    ai_pvals  = np.zeros(local_data.shape[1:])
+    ai_trends = np.full(local_data.shape[1:], np.nan)
+    ai_pvals  = np.full(local_data.shape[1:], np.nan)
+    ai_uncert = np.full(local_data.shape[1:], np.nan)
+    # Add uncertainty here?
 
     print(local_data.shape)
 
@@ -1743,22 +1747,24 @@ def calcOMI_grid_trend(OMI_data, month_idx, trend_type, minlat):
             # Find the slope of the line of best fit for the time series of
             # average data
             if(trend_type=='standard'): 
-                slope, intercept, r_value, p_value, std_err = \
-                    stats.linregress(x_vals,local_mask[:,i,j])
-                ai_trends[i,j] = slope * len(x_vals)
-                ai_pvals[i,j]  = p_value
+                #slope, intercept, r_value, p_value, std_err, intcpt_stderr = \
+                result = stats.linregress(x_vals,local_mask[:,i,j])
+                ai_trends[i,j] = result.slope * len(x_vals)
+                ai_pvals[i,j]  = result.pvalue
+                ai_uncert[i,j] = result.stderr * len(x_vals)
             else:
                 res = stats.theilslopes(local_mask[:,i,j], x_vals, 0.90)
                 ai_trends[i,j] = res[0]*len(x_vals)
 
     ai_trends = np.ma.masked_where(OMI_data['LAT'] < minlat, ai_trends)
     ai_pvals  = np.ma.masked_where(OMI_data['LAT'] < minlat, ai_pvals)
+    ai_uncert = np.ma.masked_where(OMI_data['LAT'] < minlat, ai_uncert)
 
     print('in trend calc')
     for x, y in zip(OMI_data['LAT'][:,10], ai_trends[:,10]):
         print(x,y)
 
-    return ai_trends, ai_pvals
+    return ai_trends, ai_pvals, ai_uncert
 
    
 # This function assumes the data is being read from the netCDF file
@@ -1766,7 +1772,7 @@ def calcOMI_grid_trend(OMI_data, month_idx, trend_type, minlat):
 def calcOMI_MonthClimo(OMI_data):
 
     # Set up arrays to hold monthly climatologies
-    month_climo = np.zeros((12,OMI_data['AI'].shape[1],OMI_data['AI'].shape[2]))
+    month_climo = np.zeros((6,OMI_data['AI'].shape[1],OMI_data['AI'].shape[2]))
 
     # Mask the monthly averages
     local_data   = np.copy(OMI_data['AI'][:,:,:])
@@ -1775,9 +1781,11 @@ def calcOMI_MonthClimo(OMI_data):
     local_mask = np.ma.masked_where(local_mask == -999.9, local_mask)
  
     # Calculate monthly climatologies
-    for m_i in range(12):
-        month_climo[m_i,:,:] = np.nanmean(local_mask[m_i::12,:,:],axis=0)
+    for m_i in range(6):
+        month_climo[m_i,:,:] = np.nanmean(local_mask[m_i::6,:,:],axis=0)
         print("Month: ",OMI_data['DATES'][m_i][4:]) 
+        ##!#month_climo[m_i,:,:] = np.nanmean(local_mask[m_i::12,:,:],axis=0)
+        ##!#print("Month: ",OMI_data['DATES'][m_i][4:], OMI_data['DATES'][::12]) 
     #month_climo[0,:,:]  = np.nanmean(local_mask[0::12,:,:],axis=0)  # January 
     #month_climo[1,:,:]  = np.nanmean(local_mask[1::12,:,:],axis=0)  # February
     #month_climo[2,:,:]  = np.nanmean(local_mask[2::12,:,:],axis=0)  # March 
@@ -2822,7 +2830,11 @@ def plotOMI_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
         vmax = np.nanmax(pdata)
 
     if(ptype == 'trend'):
-        colormap = plt.cm.bwr
+        #colormap = plt.cm.bwr
+        colormap = plt.cm.get_cmap('bwr', 5)
+    elif(ptype == 'uncert'):
+        #colormap = plt.cm.plasma
+        colormap = plt.cm.get_cmap('jet', 6)
     else:
         colormap = plt.cm.jet
 
@@ -2885,7 +2897,7 @@ def plotOMI_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
 def plotOMI_MonthTrend(OMI_data,month_idx=None,save=False,\
         trend_type='standard',minlat=65.,return_trend=False, colorbar = True, \
         title = '', label = '', colorbar_label_size = 14, pax = None, \
-        show_pval = False):
+        show_pval = False, uncert_ax = None):
     version = OMI_data['VERSION']
     trend_label=''
     if(trend_type=='theil-sen'):
@@ -2910,11 +2922,16 @@ def plotOMI_MonthTrend(OMI_data,month_idx=None,save=False,\
     # Use calcOMI_grid_trend to calculate the trends in the AI data
     #
     # --------------------------------------------------------------
-    ai_trends, ai_pvals = calcOMI_grid_trend(OMI_data, month_idx, trend_type, \
+    ai_trends, ai_pvals, ai_uncert = calcOMI_grid_trend(OMI_data, month_idx, trend_type, \
+    #ai_trends, ai_pvals = calcOMI_grid_trend(OMI_data, month_idx, trend_type, \
         minlat)
     if(not show_pval):
         ai_pvals = None
+    else:
+        print('month_idx = ',month_idx,' PVAL nanmean = ', np.nanmean(ai_pvals))
 
+    if(uncert_ax is None):
+        ai_uncert = None
     # --------------------------------------------------------------
     #
     # Plot the calculated trends on a figure
@@ -2968,6 +2985,12 @@ def plotOMI_MonthTrend(OMI_data,month_idx=None,save=False,\
             ptitle = title, plabel = label, colorbar = colorbar, \
             colorbar_label_size = colorbar_label_size, \
             vmin = v_min, vmax = v_max, minlat = minlat, pvals = ai_pvals)
+
+    if(uncert_ax is not None):
+        plotOMI_spatial(uncert_ax, OMI_data['LAT'], OMI_data['LON'], ai_uncert, 'uncert', \
+            ptitle = title, plabel = label, colorbar = colorbar, \
+            colorbar_label_size = colorbar_label_size, \
+            vmin = 0, vmax = 0.3, minlat = minlat)
 
     #if(return_trend == True):
     #    return ai_trends
@@ -3802,11 +3825,11 @@ def plotOMI_Compare_ClimoTrend_all(OMI_data1,OMI_data2,OMI_data3,\
     ax42 = plt.subplot(gs[4,2], projection=mapcrs)   # August trend original
     ax43 = plt.subplot(gs[4,3], projection=mapcrs)   # August trend screened
     ax44 = plt.subplot(gs[4,4], projection=mapcrs)   # August trend perturbed
-    ax50 = plt.subplot(gs[5,0], projection=mapcrs)   # August climo original
-    ax51 = plt.subplot(gs[5,1], projection=mapcrs)   # August climo screened
-    ax52 = plt.subplot(gs[5,2], projection=mapcrs)   # August trend original
-    ax53 = plt.subplot(gs[5,3], projection=mapcrs)   # August trend screened
-    ax54 = plt.subplot(gs[5,4], projection=mapcrs)   # August trend perturbed
+    ax50 = plt.subplot(gs[5,0], projection=mapcrs)   # September climo original
+    ax51 = plt.subplot(gs[5,1], projection=mapcrs)   # September climo screened
+    ax52 = plt.subplot(gs[5,2], projection=mapcrs)   # September trend original
+    ax53 = plt.subplot(gs[5,3], projection=mapcrs)   # September trend screened
+    ax54 = plt.subplot(gs[5,4], projection=mapcrs)   # September trend perturbed
 
     # Plot the figures in the first row: April
     # ---------------------------------------
@@ -4014,6 +4037,254 @@ def plotOMI_Compare_ClimoTrend_all(OMI_data1,OMI_data2,OMI_data3,\
     outname = 'omi_ai_comps_all6_'+\
         OMI_data1['VERSION']+'v'+OMI_data2['VERSION']+\
         'v'+OMI_data3['VERSION']+'_' + trend_type + '_2.png'
+    if(save == True):
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
+# Compare trends and single monthly averages, and time series of
+# monthly averages for two given lat/lon points.
+def plotOMI_TrendUncertainty_SingleMonth(dtype1, dtype2, month_idx,\
+         minlat = 65., save = False):
+
+    #minlat = 65.
+    OMI_data1 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+        'omi_ai_' + dtype1 + '_2005_2020.nc', minlat = minlat)
+    OMI_data2   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+        'omi_ai_' + dtype2 + '_2005_2020.nc', minlat = minlat)
+    
+    # Determine the month being plotted 
+    # ---------------------------------
+    plt.close('all')
+    fig1 = plt.figure(figsize = (9.5, 6))
+    ax1 = fig1.add_subplot(2,3,1, projection = mapcrs) # JZ211 trend plot
+    ax2 = fig1.add_subplot(2,3,4, projection = mapcrs) # VSJ4 trend plot
+    ax5 = fig1.add_subplot(2,3,2, projection = mapcrs) # JZ211 uncert plot
+    ax6 = fig1.add_subplot(2,3,5, projection = mapcrs) # VSJ4 uncert plot
+    ax3 = fig1.add_subplot(2,3,3)                      # JZ211 scatter
+    ax4 = fig1.add_subplot(2,3,6)                      # VSJ4 scatter
+
+    # Plot the spatial trends
+    plotOMI_MonthTrend(OMI_data1,month_idx=month_idx,trend_type='standard',label = ' ',\
+        minlat=65.,title = dtype1, pax = ax1, colorbar = True, \
+        colorbar_label_size = 10, show_pval = True, uncert_ax = ax5)
+    plotOMI_MonthTrend(OMI_data2,month_idx=month_idx,trend_type='standard',label = ' ',\
+        minlat=65.,title = dtype2, pax = ax2, colorbar = True, \
+        colorbar_label_size = 10, show_pval = True, uncert_ax = ax6)
+
+    ai_trends, ai_pvals, ai_uncert = \
+        calcOMI_grid_trend(OMI_data1, month_idx, 'standard', minlat)
+    mask_trends = np.ma.masked_invalid(ai_trends).compressed()
+    mask_uncert = np.ma.masked_invalid(ai_uncert).compressed()
+    xy = np.vstack([mask_trends, mask_uncert])
+    z = stats.gaussian_kde(xy)(xy)       
+    ax3.scatter(mask_trends, mask_uncert, c = z, s = 6) 
+    ax3.set_xlabel('AI Trend')
+    ax3.set_ylabel('AI Trend Uncertainty')
+
+    # Plot one to one line
+    xlim = ax3.get_xlim()
+    ylim = ax3.get_ylim()
+    xvals = np.arange(xlim[0] - 1, xlim[-1] + 1)
+    ax3.plot(xvals, xvals, '-', color = 'tab:cyan', linewidth = 1.5)
+    ax3.set_xlim(xlim)   
+    ax3.set_ylim([0, xlim[1]])   
+    ax3.grid()
+
+    ai_trends, ai_pvals, ai_uncert = \
+        calcOMI_grid_trend(OMI_data2, month_idx, 'standard', minlat)
+    mask_trends = np.ma.masked_invalid(ai_trends).compressed()
+    mask_uncert = np.ma.masked_invalid(ai_uncert).compressed()
+    xy = np.vstack([mask_trends, mask_uncert])
+    z = stats.gaussian_kde(xy)(xy)       
+    ax4.scatter(mask_trends, mask_uncert, c = z, s = 6) 
+    ax4.set_xlabel('AI Trend')
+    ax4.set_ylabel('AI Trend Uncertainty')
+
+    # Plot one to one line
+    xlim = ax4.get_xlim()
+    ylim = ax4.get_ylim()
+    xvals = np.arange(xlim[0] - 1, xlim[-1] + 1, 0.01)
+    ax4.plot(xvals, xvals, '-', color = 'tab:cyan', linewidth = 1.5)
+    ax4.set_xlim(xlim)   
+    ax4.set_ylim([0, xlim[1]])   
+    ax4.grid()
+
+    month_dict = {
+        0: 'April',
+        1: 'May',
+        2: 'June',
+        3: 'July',
+        4: 'August',
+        5: 'September',
+
+    }
+
+    plt.suptitle(month_dict[month_idx])
+    
+    fig1.tight_layout()
+
+    outname = 'omi_ai_trend_uncert_month'+str(month_idx) + '_' + \
+        OMI_data1['VERSION']+'v'+OMI_data2['VERSION']+'.png'
+    if(save == True):
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
+# Compare the trends and trend uncertanties
+def plotOMI_Compare_TrendUncertainty_all(dtype1, dtype2,\
+        trend_type = 'standard', minlat=65,save=False):
+
+    colormap = plt.cm.jet
+
+    lat_ranges = np.arange(minlat,90,1.0)
+    lon_ranges = np.arange(-180,180,1.0)
+
+    OMI_data1 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+        'omi_ai_' + dtype1 + '_2005_2020.nc', minlat = minlat)
+    OMI_data2   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+        'omi_ai_' + dtype2 + '_2005_2020.nc', minlat = minlat)
+
+    colorbar_label_size = 7
+    axis_title_size = 8
+    row_label_size = 10 
+    #colorbar_label_size = 13
+    #axis_title_size = 14.5
+    #row_label_size = 14.5
+
+    #fig = plt.figure()
+    plt.close('all')
+    fig = plt.figure(figsize=(11,13))
+    #plt.suptitle('OMI Comparisons: '+start_date.strftime("%B"),y=0.95,\
+    #    fontsize=18,fontweight=4,weight='bold')
+    gs = gridspec.GridSpec(nrows=6, ncols=4, hspace = 0.001, wspace = 0.15)
+
+    # - - - - - - - - - - - - - - - - - - - - -
+    # Plot the climatologies along the top row
+    # - - - - - - - - - - - - - - - - - - - - -
+    # Mask any missing values
+    #mask_AI = np.ma.masked_where(plat.T < minlat, mask_AI)
+    ax00 = plt.subplot(gs[0,0], projection=mapcrs)   # April trend type1
+    ax01 = plt.subplot(gs[0,1], projection=mapcrs)   # April uncert type1
+    ax02 = plt.subplot(gs[0,2], projection=mapcrs)   # April trend type2
+    ax03 = plt.subplot(gs[0,3], projection=mapcrs)   # April uncert type2
+    ax10 = plt.subplot(gs[1,0], projection=mapcrs)   # May trend type1
+    ax11 = plt.subplot(gs[1,1], projection=mapcrs)   # May uncert type1
+    ax12 = plt.subplot(gs[1,2], projection=mapcrs)   # May trend type2
+    ax13 = plt.subplot(gs[1,3], projection=mapcrs)   # May uncert type2
+    ax20 = plt.subplot(gs[2,0], projection=mapcrs)   # June trend type1
+    ax21 = plt.subplot(gs[2,1], projection=mapcrs)   # June uncert type1
+    ax22 = plt.subplot(gs[2,2], projection=mapcrs)   # June trend type2
+    ax23 = plt.subplot(gs[2,3], projection=mapcrs)   # June uncert type2
+    ax30 = plt.subplot(gs[3,0], projection=mapcrs)   # July trend type1
+    ax31 = plt.subplot(gs[3,1], projection=mapcrs)   # July uncert type1
+    ax32 = plt.subplot(gs[3,2], projection=mapcrs)   # July trend type2
+    ax33 = plt.subplot(gs[3,3], projection=mapcrs)   # July uncert type2
+    ax40 = plt.subplot(gs[4,0], projection=mapcrs)   # August trend type1
+    ax41 = plt.subplot(gs[4,1], projection=mapcrs)   # August uncert type1
+    ax42 = plt.subplot(gs[4,2], projection=mapcrs)   # August trend type2
+    ax43 = plt.subplot(gs[4,3], projection=mapcrs)   # August uncert type2
+    ax50 = plt.subplot(gs[5,0], projection=mapcrs)   # September trend type1
+    ax51 = plt.subplot(gs[5,1], projection=mapcrs)   # September uncert type1
+    ax52 = plt.subplot(gs[5,2], projection=mapcrs)   # September trend type2
+    ax53 = plt.subplot(gs[5,3], projection=mapcrs)   # September uncert type2
+
+    # Plot the figures in the first row: April
+    # ---------------------------------------
+    plotOMI_MonthTrend(OMI_data1,month_idx=0,trend_type=trend_type,label = ' ',\
+        minlat=65.,title = ' ', pax = ax00, colorbar = False, \
+        colorbar_label_size = colorbar_label_size, uncert_ax = ax01)
+    plotOMI_MonthTrend(OMI_data2,month_idx=0,trend_type=trend_type,label = ' ',\
+        minlat=65.,title = ' ', pax = ax02, colorbar = False, \
+        colorbar_label_size = colorbar_label_size, uncert_ax = ax03)
+
+    # Plot the figures in the first row: May
+    # ---------------------------------------
+    plotOMI_MonthTrend(OMI_data1,month_idx=1,trend_type=trend_type,label = ' ',\
+        minlat=65.,title = ' ', pax = ax10, colorbar = False, \
+        colorbar_label_size = colorbar_label_size, uncert_ax = ax11)
+    plotOMI_MonthTrend(OMI_data2,month_idx=1,trend_type=trend_type,label = ' ',\
+        minlat=65.,title = ' ', pax = ax12, colorbar = False, \
+        colorbar_label_size = colorbar_label_size, uncert_ax = ax13)
+
+    # Plot the figures in the first row: June
+    # ---------------------------------------
+    plotOMI_MonthTrend(OMI_data1,month_idx=2,trend_type=trend_type,label = ' ',\
+        minlat=65.,title = ' ', pax = ax20, colorbar = False, \
+        colorbar_label_size = colorbar_label_size, uncert_ax = ax21)
+    plotOMI_MonthTrend(OMI_data2,month_idx=2,trend_type=trend_type,label = ' ',\
+        minlat=65.,title = ' ', pax = ax22, colorbar = False, \
+        colorbar_label_size = colorbar_label_size, uncert_ax = ax23)
+
+    # Plot the figures in the second row: July
+    # ----------------------------------------
+    plotOMI_MonthTrend(OMI_data1,month_idx=3,trend_type=trend_type,label = ' ',\
+        minlat=65.,title = ' ', pax = ax30, colorbar = False, \
+        colorbar_label_size = colorbar_label_size, uncert_ax = ax31)
+    plotOMI_MonthTrend(OMI_data2,month_idx=3,trend_type=trend_type,label = ' ',\
+        minlat=65.,title = ' ', pax = ax32, colorbar = False, \
+        colorbar_label_size = colorbar_label_size, uncert_ax = ax33)
+
+    # Plot the figures in the third row: August
+    # -----------------------------------------
+    plotOMI_MonthTrend(OMI_data1,month_idx=4,trend_type=trend_type,label = ' ',\
+        minlat=65.,title = ' ', pax = ax40, colorbar = False, \
+        colorbar_label_size = colorbar_label_size, uncert_ax = ax41)
+    plotOMI_MonthTrend(OMI_data2,month_idx=4,trend_type=trend_type,label = ' ',\
+        minlat=65.,title = ' ', pax = ax42, colorbar = False, \
+        colorbar_label_size = colorbar_label_size, uncert_ax = ax43)
+
+    # Plot the figures in the third row: September
+    # -----------------------------------------
+    plotOMI_MonthTrend(OMI_data1,month_idx=5,trend_type=trend_type,label = ' ',\
+        minlat=65.,title = ' ', pax = ax50, colorbar = False, \
+        colorbar_label_size = colorbar_label_size, uncert_ax = ax51)
+    plotOMI_MonthTrend(OMI_data2,month_idx=5,trend_type=trend_type,label = ' ',\
+        minlat=65.,title = ' ', pax = ax52, colorbar = False, \
+        colorbar_label_size = colorbar_label_size, uncert_ax = ax53)
+
+    fig.text(0.10, 0.82, 'April', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.692, 'May', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.565, 'June', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.435, 'July', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.305, 'August', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.18, 'September', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+
+    fig.text(0.200, 0.90, dtype1 + '\nTrend', ha='center', va='center', \
+        rotation='horizontal',weight='bold',fontsize=row_label_size)
+    fig.text(0.410, 0.90, dtype1 + '\nUncertainty', ha='center', va='center', \
+        rotation='horizontal',weight='bold',fontsize=row_label_size)
+    fig.text(0.62, 0.90, dtype2 + 'Trend', ha='center', va='center', \
+        rotation='horizontal',weight='bold',fontsize=row_label_size)
+    fig.text(0.83, 0.90, dtype2 + '\nUncertainty', ha='center', va='center', \
+        rotation='horizontal',weight='bold',fontsize=row_label_size)
+
+    cax = fig.add_axes([0.13, 0.09, 0.38, 0.01])
+    norm = mpl.colors.Normalize(vmin = -0.5, vmax = 0.5)
+    cb1 = mpl.colorbar.ColorbarBase(cax, cmap = plt.cm.bwr, norm = norm, \
+        orientation = 'horizontal', extend = 'both')
+    cb1.set_label('AI Trend', weight = 'bold')
+
+    cax2 = fig.add_axes([0.522, 0.09, 0.38, 0.01])
+    norm2 = mpl.colors.Normalize(vmin = 0.0, vmax = 0.3)
+    cmap = plt.cm.get_cmap('jet', 6)
+    cb2 = mpl.colorbar.ColorbarBase(cax2, cmap = cmap, norm = norm2, \
+        orientation = 'horizontal', extend = 'both')
+    cb2.set_label('AI Trend Uncertainty', weight = 'bold')
+    #fig.colorbar(norm, cax = cax, orientation = 'horizontal')
+
+    #fig.tight_layout()
+
+    outname = 'omi_ai_trend_uncert_all6_'+\
+        OMI_data1['VERSION']+'v'+OMI_data2['VERSION']+'.png'
     if(save == True):
         plt.savefig(outname,dpi=300)
         print("Saved image",outname)
@@ -4303,6 +4574,88 @@ def plotOMI_Type_Trend_all(trend_type = 'standard', \
         print("Saved image",outname)
     else:
         plt.show()
+
+# Compare trends and single monthly averages, and time series of
+# monthly averages for two given lat/lon points.
+def plotOMI_month_avg_comp(dtype1, dtype2, month_idx, lat1, lon1, \
+        lat2, lon2, minlat = 65.):
+
+    #minlat = 65.
+    OMI_data1 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+        'omi_ai_' + dtype1 + '_2005_2020.nc', minlat = minlat)
+    OMI_data2   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+        'omi_ai_' + dtype2 + '_2005_2020.nc', minlat = minlat)
+    
+    # Determine the month being plotted 
+    # ---------------------------------
+    date_str = OMI_data1['DATES'][month_idx]
+    dt_date_str = datetime.strptime(date_str, '%Y%m')
+    base_date = datetime.strptime(OMI_data1['DATES'][0], '%Y%m')
+    month_offset = dt_date_str.month - base_date.month
+    years = np.array([int(datetime.strptime(tval,"%Y%m").year) \
+        for tval in OMI_data1['DATES'][month_offset::6]])
+ 
+    plt.close('all')
+    fig1 = plt.figure(figsize = (8, 11))
+    ax1 = fig1.add_subplot(3,2,1, projection = mapcrs) # JZ211 plot
+    ax2 = fig1.add_subplot(3,2,2, projection = mapcrs) # VSJ4 plot
+    ax5 = fig1.add_subplot(3,2,3, projection = mapcrs) # JZ211 plot
+    ax6 = fig1.add_subplot(3,2,4, projection = mapcrs) # VSJ4 plot
+    ax3 = fig1.add_subplot(3,2,5)                      # JZ211 line plot
+    ax4 = fig1.add_subplot(3,2,6)                      # VSJ4 line plot
+
+    # Plot the spatial data
+    plotOMI_NCDF_SingleMonth(OMI_data1, month_idx, minlat = 65,\
+        pax = ax1)
+    plotOMI_NCDF_SingleMonth(OMI_data2, month_idx, minlat = 65,\
+        pax = ax2)
+
+    # Plot the spatial trends
+    plotOMI_MonthTrend(OMI_data1,month_idx=month_offset,trend_type='standard',label = ' ',\
+        minlat=65.,title = dtype1, pax = ax5, colorbar = True, \
+        colorbar_label_size = 10, show_pval = True)
+    plotOMI_MonthTrend(OMI_data2,month_idx=month_offset,trend_type='standard',label = ' ',\
+        minlat=65.,title = dtype2, pax = ax6, colorbar = True, \
+        colorbar_label_size = 10, show_pval = True)
+    
+
+    # Plot points on the map at each lat/lon
+    plot_point_on_map(ax1, lat1, lon1, markersize = 10)
+    plot_point_on_map(ax1, lat2, lon2, markersize = 10)
+    plot_point_on_map(ax2, lat1, lon1, markersize = 10)
+    plot_point_on_map(ax2, lat2, lon2, markersize = 10)
+
+    plot_point_on_map(ax5, lat1, lon1, markersize = 10)
+    plot_point_on_map(ax5, lat2, lon2, markersize = 10)
+    plot_point_on_map(ax6, lat1, lon1, markersize = 10)
+    plot_point_on_map(ax6, lat2, lon2, markersize = 10)
+
+    # Plot the time series at each point
+    p1_idxs = nearest_gridpoint(lat1, lon1, OMI_data1['LAT'], OMI_data1['LON'])
+    p2_idxs = nearest_gridpoint(lat2, lon2, OMI_data1['LAT'], OMI_data1['LON'])
+   
+    xvals = years
+    ax3.plot(xvals, OMI_data1['AI'][month_offset::6,p1_idxs[0][0], p1_idxs[1][0]])
+    ax3.plot(xvals, OMI_data2['AI'][month_offset::6,p1_idxs[0][0], p1_idxs[1][0]])
+    ax4.plot(xvals, OMI_data1['AI'][month_offset::6,p2_idxs[0][0], p2_idxs[1][0]])
+    ax4.plot(xvals, OMI_data2['AI'][month_offset::6,p2_idxs[0][0], p2_idxs[1][0]])
+
+    ax3.set_title('Point blue\n'   + str(lat1) + 'N, ' + str(lon1) + 'E')
+    ax4.set_title('Point orange\n' + str(lat2) + 'N, ' + str(lon2) + 'E')
+
+    plot_trend_line(ax3, xvals, OMI_data1['AI'][month_offset::6,p1_idxs[0][0], p1_idxs[1][0]], \
+        color='tab:blue', linestyle = '-', slope = 'linear')
+    plot_trend_line(ax3, xvals, OMI_data2['AI'][month_offset::6,p1_idxs[0][0], p1_idxs[1][0]], \
+        color='tab:orange', linestyle = '-', slope = 'linear')
+    plot_trend_line(ax4, xvals, OMI_data1['AI'][month_offset::6,p2_idxs[0][0], p2_idxs[1][0]], \
+        color='tab:blue', linestyle = '-', slope = 'linear')
+    plot_trend_line(ax4, xvals, OMI_data2['AI'][month_offset::6,p2_idxs[0][0], p2_idxs[1][0]], \
+        color='tab:orange', linestyle = '-', slope = 'linear')
+
+    fig1.tight_layout()
+
+    plt.show()
+
 def plot_omi_da(OMI_da_nc,save=False):
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 

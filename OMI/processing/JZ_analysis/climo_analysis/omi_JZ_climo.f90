@@ -220,6 +220,7 @@ program omi_JZ_climo
         call read_h5_LON(file_id)
         call read_h5_XTRACK(file_id)   
         call read_h5_AZM(file_id) 
+        call read_h5_CLD(file_id) 
         call read_h5_GPQF(file_id)
 
         ! Close file

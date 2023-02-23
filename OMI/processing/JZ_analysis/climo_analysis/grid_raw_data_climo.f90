@@ -16,10 +16,10 @@ subroutine grid_raw_data_climo(grids,i_counts,i_size,lat_gridder,lat_thresh)
 !
 !  ###########################################################################
 
-  use h5_vars, only : AI_dims, AZM_dims, GPQF_dims, LAT_dims, LON_dims, &
-                      XTRACK_dims, &
-                      AI_data, AZM_data, GPQF_data, LAT_data, LON_data, &
-                      XTRACK_data, &
+  use h5_vars, only : AI_dims, AZM_dims, CLD_dims, GPQF_dims, LAT_dims, &
+                      LON_dims, XTRACK_dims, &
+                      AI_data, AZM_data, CLD_data, GPQF_data, LAT_data, &
+                      LON_data, XTRACK_data, &
                       get_ice_flags,i_num_bad,i_bad_list
 
   implicit none
@@ -93,6 +93,9 @@ subroutine grid_raw_data_climo(grids,i_counts,i_size,lat_gridder,lat_thresh)
           ! BS2: use rows 1-21, so must comment out AZM check
           ! -------------------------------------------------
           (AZM_data(jj,ii) > 100) .and. & 
+          ! VJZ212: add cloud fraction max of 0.2
+          ! -------------------------------------
+          (CLD_data(jj,ii) < 0.2) .and. &
           ! VJZ2: no snow-free land either
           ! VJZ29: include snow-free land  
           ( (i_sfc_flag >= 0 .and. i_sfc_flag <= 101) .or. &

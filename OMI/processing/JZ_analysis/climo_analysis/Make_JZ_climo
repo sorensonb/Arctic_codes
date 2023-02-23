@@ -11,6 +11,7 @@ OBJECTS = h5_vars.o \
             print_climo.o \
 			read_h5_AI.o \
 			read_h5_AZM.o \
+			read_h5_CLD.o \
 			read_h5_GPQF.o \
 			read_h5_LAT.o \
 			read_h5_LON.o \
@@ -37,6 +38,9 @@ read_h5_AI.o: $(LIB_PATH)read_h5_AI.f90
 
 read_h5_AZM.o: $(LIB_PATH)read_h5_AZM.f90
 	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_AZM.f90
+
+read_h5_CLD.o: $(LIB_PATH)read_h5_CLD.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_CLD.f90
 
 read_h5_GPQF.o: $(LIB_PATH)read_h5_GPQF.f90
 	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_GPQF.f90

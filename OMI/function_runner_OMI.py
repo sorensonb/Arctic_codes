@@ -10,6 +10,83 @@ import OMILib
 from OMILib import *
 import sys
 
+for ii in range(0, 6):
+    plotOMI_TrendUncertainty_SingleMonth('VJZ211', 'VSJ4', ii,\
+         minlat = 65., save = True)
+
+sys.exit()
+
+plotOMI_Compare_TrendUncertainty_all('VJZ211', 'VSJ4',\
+    trend_type = 'standard', minlat=65,save=True)
+
+sys.exit()
+
+# In the question zone
+lat1 = 78.
+lon1 = 46.
+
+# North of the question zone
+lat2 = 83.
+lon2 = 46.
+
+plotOMI_month_avg_comp('VSJ4', 'VSJ42', 69, lat1, lon1, lat2, lon2)
+#plotOMI_month_avg_comp('VJZ211', 'VSJ4', 70, lat1, lon1, lat2, lon2)
+    
+sys.exit()
+
+
+month_idx = 4
+minlat = 65.
+#OMI_VBS0   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VBS0_2005_2020.nc', minlat = minlat)
+#OMI_VJZ211 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VJZ211_2005_2020.nc', minlat = minlat)
+OMI_VSJ4   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VSJ4_2005_2020.nc', minlat = minlat)
+OMI_VSJ42  = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VSJ42_2005_2020.nc', minlat = minlat)
+
+ai_trends, ai_pvals, ai_uncert = calcOMI_grid_trend(OMI_data, month_idx, trend_type, minlat)
+
+sys.exit()
+
+minlat = 65.
+
+OMI_VBS0   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VBS0_2005_2020.nc', minlat = minlat)
+OMI_VJZ211 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VJZ211_2005_2020.nc', minlat = minlat)
+OMI_VSJ4   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VSJ4_2005_2020.nc', minlat = minlat)
+#    ai_trends, ai_pvals, ai_uncert = calcOMI_grid_trend(OMI_data, month_idx, trend_type, \
+#plotOMI_Compare_ClimoTrend_summer(OMI_VBS0,OMI_VJZ211,OMI_VSJ4,\
+#        trend_type = 'standard', minlat=minlat,save=False)
+plotOMI_Compare_ClimoTrend_all(OMI_VBS0,OMI_VJZ211, OMI_VSJ4,\
+        trend_type = 'standard', minlat=minlat,save = False)
+
+sys.exit()
+
+
+# Read the JZ211 and JZ212 data
+minlat = 65.
+OMI_VJZ211 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+    'omi_ai_VJZ211_2005_2020.nc', minlat = minlat)
+OMI_VJZ212 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
+    'omi_ai_VJZ212_2005_2020.nc', minlat = minlat)
+
+# Compare JZ211 and JZ212 August trends
+fig = plt.figure()
+ax1 = fig.add_subplot(1,2,1, projection = mapcrs)
+ax2 = fig.add_subplot(1,2,2, projection = mapcrs)
+
+month_idx = 5
+trend_type = 'standard'
+colorbar_label_size = 10
+plotOMI_MonthTrend(OMI_VJZ211,month_idx=month_idx,trend_type=trend_type,label = ' ',\
+    minlat=65.,title = 'VJZ211', pax = ax1, colorbar = False, \
+    colorbar_label_size = colorbar_label_size)
+plotOMI_MonthTrend(OMI_VJZ212,month_idx=month_idx,trend_type=trend_type,label = ' ',\
+    minlat=65.,title = 'VJZ212', pax = ax2, colorbar = False, \
+    colorbar_label_size = colorbar_label_size)
+fig.tight_layout()
+plt.show()
+sys.exit()
+
+
+
 #date_str = '20190625'
 date_str = '20190506'
 #swath_ais, swath_lat, swath_xtk, swath_xrw, day_avgs, row_avgs = \
@@ -56,18 +133,6 @@ sys.exit()
 # ----------------------------------------------------
 # Set up the overall figure
 # ----------------------------------------------------
-minlat = 65.
-
-OMI_VBS0   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VBS0_2005_2020.nc', minlat = minlat)
-OMI_VJZ211 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VJZ211_2005_2020.nc', minlat = minlat)
-OMI_VSJ4   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VSJ4_2005_2020.nc', minlat = minlat)
-#plotOMI_Compare_ClimoTrend_summer(OMI_VBS0,OMI_VJZ211,OMI_VSJ4,\
-#        trend_type = 'standard', minlat=minlat,save=False)
-plotOMI_Compare_ClimoTrend_all(OMI_VBS0,OMI_VJZ211, OMI_VSJ4,\
-        trend_type = 'standard', minlat=minlat,save = True)
-
-sys.exit()
-
 date_str = '200804222159'
 plotOMI_single_multipanel(date_str, only_sea_ice = False, minlat = 65., \
        quad_panel = True, save = True)

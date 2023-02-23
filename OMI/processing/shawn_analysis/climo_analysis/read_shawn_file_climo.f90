@@ -32,23 +32,23 @@ subroutine read_shawn_file_climo(io7,errout,c_total_file_name,grids,i_counts,i_s
   integer                :: index2                ! omi file index
 
   ! Variables from each line in Shawn's files
-  real                   :: lat
-  real                   :: lon
-  real                   :: raw_ai
-  real                   :: filter
-  real                   :: clean_ai
-  real                   :: v5
-  real                   :: v6
-  real                   :: v7
-  real                   :: v8
-  real                   :: v9
-  real                   :: v10
-  real                   :: v11
-  real                   :: v12
-  real                   :: v13
-  real                   :: v14
-  real                   :: v15  ! added for SJ5
-
+  real                   :: lat                     ! Latitude
+  real                   :: lon                     ! Longitude
+  real                   :: raw_ai                  ! Original Value                            
+  real                   :: filter                  ! Altered Value   ! WRONG
+  real                   :: clean_ai                ! Climo Value
+  real                   :: v5                      ! Time (of day)
+  real                   :: v6                      ! Szea
+  real                   :: v7                      ! Vzea
+  real                   :: v8                      ! Raza
+  real                   :: v9                      ! Albedo 1 (for bin)
+  real                   :: v10                     ! Albedo 2 (not for bin)
+  real                   :: v11                     ! Normalized Radiance 1
+  real                   :: v12                     ! Normalized Radiance 2
+  real                   :: cld_frc                 ! Cloud (flag?)
+  real                   :: v14                     ! Ground flag
+  real                   :: v15  ! added for SJ5    ! Row number (base 1)                                             
+                                                    
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
   ! Loop over the file
@@ -56,7 +56,7 @@ subroutine read_shawn_file_climo(io7,errout,c_total_file_name,grids,i_counts,i_s
   data_loop: do
     read(io7, *, iostat = istatus)  &
             lat, lon, raw_ai, filter, clean_ai,v5,v6,v7,v8,v9,v10,&
-              v11,v12,v13,v14,v15
+              v11,v12,cld_frc,v14,v15
     if(istatus > 0) then
       write(errout, *) "ERROR: error reading data from ", &
           trim(c_total_file_name)
@@ -70,7 +70,9 @@ subroutine read_shawn_file_climo(io7,errout,c_total_file_name,grids,i_counts,i_s
     if(lat > lat_thresh) then
       ! SJ5: only use values from rows 55 - 60
       ! --------------------------------------
-      if(v15 >= 55.) then
+      !if(v15 >= 55.) then
+      ! SJ42: add max cloud fraction of 0.2
+      if(cld_frc < 0.2) then
         ! Average the data into the grid?
         ! -------------------------------
         index1 = floor(lat - lat_gridder) + 1
@@ -88,6 +90,7 @@ subroutine read_shawn_file_climo(io7,errout,c_total_file_name,grids,i_counts,i_s
            (i_counts(index2,index1)+1)
         i_counts(index2,index1) = i_counts(index2,index1) + 1
       endif
+      !endif
     endif
   enddo data_loop
 
