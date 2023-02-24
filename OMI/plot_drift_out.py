@@ -74,11 +74,12 @@ if(len(sys.argv) == 3):
 # Read data from the first file
 # -----------------------------
 in_data = pd.read_csv(file_name, delim_whitespace=True)
-dates  = in_data['Date'].values
+dates  = in_data['Date'].values[5::6]
+print(dates)
 dt_dates = [datetime.strptime(str(tmpdate),"%Y%m") \
     for tmpdate in dates]
-avg_ai  = in_data['Avg'].values
-counts  = in_data['#_obs'].values
+avg_ai  = in_data['Avg'].values[5::6]
+counts  = in_data['#_obs'].values[5::6]
 #count70  = in_data['Cnt70'].values
 #count75  = in_data['Cnt75'].values
 #count80  = in_data['Cnt80'].values
@@ -141,8 +142,8 @@ else:
     ax1.set_xlabel('Year')
 
 plt.subplots_adjust(left=0.09,right=0.88)
-plt.savefig('omi_'+version+'_v2_drift.png',dpi=300)
-print("Saved image omi_"+version+"_v2_drift.png")
+#plt.savefig('omi_'+version+'_v2_drift.png',dpi=300)
+#print("Saved image omi_"+version+"_v2_drift.png")
 plt.show()
 #fig2 = plt.figure()
 #plt.plot(xrange_00,count_00,label='00Z')

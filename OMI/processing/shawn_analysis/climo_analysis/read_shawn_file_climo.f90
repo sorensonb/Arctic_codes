@@ -72,7 +72,9 @@ subroutine read_shawn_file_climo(io7,errout,c_total_file_name,grids,i_counts,i_s
       ! --------------------------------------
       !if(v15 >= 55.) then
       ! SJ42: add max cloud fraction of 0.2
-      if(cld_frc < 0.2) then
+      !if(cld_frc < 0.2) then
+      ! SJ43: add max cloud fraction of 0.5
+      if(cld_frc < 0.5) then
         ! Average the data into the grid?
         ! -------------------------------
         index1 = floor(lat - lat_gridder) + 1

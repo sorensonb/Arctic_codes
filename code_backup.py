@@ -133,6 +133,10 @@ os.system(cmnd)
 #print(cmnd)
 #os.system(cmnd)
 
+cmnd = "cp "+base_dir+"OMI/README* "+dest_dir
+print(cmnd)
+os.system(cmnd)
+
 # Get codes from Raindrop
 # -----------------------
 rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/OMI/"
@@ -219,10 +223,6 @@ os.system(cmnd)
 #cmnd = "cp "+base_dir+"OMI/OMI_simulation/*.py "+dest_dir
 #print(cmnd)
 #os.system(cmnd)
-#cmnd = "cp "+base_dir+"OMI/README_omi "+dest_dir
-#print(cmnd)
-#os.system(cmnd)
-
 
 ##!#cmnd = "cp "+base_dir+"OMI/*.pro "+dest_dir
 ##!#print(cmnd)

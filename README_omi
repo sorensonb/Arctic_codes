@@ -35,6 +35,63 @@ but may be downloaded separately from the OMI data website, found at
 
 = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+SHAWN VERSION NOTES
+
+out_files-ltc3/     = same as ltc3, but with GPQF flag added at end
+out_files-ltc3/new/ = 
+out_files-ltc3/old/ = same as ltc3, but with no GPQF flag value
+out_files-ltc4      =  
+
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+CLIMATOLOGY GENERATION
+
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+All climatology generation is handled on raindrop using Fortran 90 codes.
+
+003   = XTrack == 0, remove missing AI value
+BS0   = Xtrack == 0; no missing AI values (no bad row screening)
+BS01  = Xtrack == 0; no missing AI values (no bad row screening), CLD < 0.5
+BS1   = Xtrack == 0; bad rows removed; no missing AI values (bad row screening only)
+BS2   = Only Rows 1-22
+JZ2   = azimuth angle greater than 100; Xtrack == 0; only sea ice, 
+        permanent snow, and ocean (no snow-free land or dry snow);
+        bad rows removed; no missing AI values
+JZ28  = azimuth angle greater than 100; Xtrack == 0; 
+        no snow-free land; only 49, 50, 56 - 60. No bad row check
+JZ282 = azimuth angle greater than 100; Xtrack == 0;
+        no snow-free land; only pure good rows
+JZ29  = azimuth angle greater than 100; Xtrack == 0;
+        include snow-free land; 49, 50, 56 - 60. include bad row check
+JZ211 = azimuth angle greater than 100; Xtrack == 0;
+        include snow-free land; 56 - 60
+JZ212 = same as JZ211, but with cloud fraction max of 0.2
+JZ213 = same as JZ211, but with cloud fraction max of 0.5
+JZ4   = XTrack == 0, not 4
+JZ5   = AI >= 0
+SJ3   = only using good rows through the entire analysis:
+        1 - 7, 9 - 22, 55 - 60
+        row 43 removed for July and August 2019. Identical climatology to
+        VSJ2, likely due to the fact that row 43 is already flagged in the
+        data over the Arctic, but not over the south Pacific, where the
+        remote-ocean drift check happens. Adding row 43 to the bad row
+        database for the Arctic doesn't change anything because row 43 is
+        already removed, so the climatology is identical.
+SJ4   = using files from /Research/OMI/out_files-ltc3
+        Use all available rows in Shawn's files. 
+        After Shawn's fix to the 2020 bad dates problem
+SJ42  = Same as SJ4, but with cloud fraction max of 0.2
+SJ43  = Same as SJ4, but with cloud fraction max of 0.5
+SJ5   = using files from /Research/OMI/out_files-ltc4
+        Shawn files values in ltc4 are the same as in ltc3, but with
+          the addition of the row number at the end of each line
+        Use only rows 55 - 60 to compare with JZ11 climo/trends
+
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
 DATA READING AND PROCESSING
 
 = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

@@ -188,14 +188,17 @@ label_dict = {
     'VJZ29': 'Include Snow-free Land\n49, 50, 56 - 60', #49, 50, 56 - 60, snow-free land
     'VJZ211': 'Include Snow-free Land\n56 - 60', # 55 - 60, snow-free land
     'VJZ212': 'Include Snow-free Land\n56 - 60, CLD < 0.2', # 55 - 60, snow-free land
+    'VJZ213': 'Include Snow-free Land\n56 - 60, CLD < 0.5', # 55 - 60, snow-free land
     'VJZ4': 'XTrack == 0, not 4',
     'VJZ5': 'AI >= 0',
     'VBS0': 'No Bad Row Screening',
+    'VBS01': 'No Bad Row Screening\nCLD < 0.5',
     'VBS1': 'Bad Row Screening Only',
     'VBS2': 'Only Rows 1-22',
     'VSJ2': 'Perturbation Version 2',
     'VSJ4': 'Perturbation Version 4',
-    'VSJ42': 'Perturbation Version 4, CLD < 0.2'
+    'VSJ42': 'Perturbation Version 4, CLD < 0.2',
+    'VSJ43': 'Perturbation Version 4, CLD < 0.5',
 }
 
 var_dict = {
@@ -372,16 +375,16 @@ def plot_lin_regress_trend(pax, xdata, ydata, color, linestyle):
     pax.plot(np.unique(xdata), np.poly1d(zdata)(np.unique(xdata)), \
         color=color, linestyle = linestyle)
 
-def plot_trend_line(pax, xdata, ydata, color='black', linestyle = '-', \
-        slope = 'theil-sen'):
-
-    if(slope == 'theil-sen'):
-        plot_theil_sen_trend(pax, xdata, ydata, color, linestyle)
-    elif(slope == 'both'):
-        plot_theil_sen_trend(pax, xdata, ydata, color, linestyle)
-        plot_lin_regress_trend(pax, xdata, ydata, color, linestyle)
-    else:
-        plot_lin_regress_trend(pax, xdata, ydata, color, linestyle)
+#def plot_trend_line(pax, xdata, ydata, color='black', linestyle = '-', \
+#        slope = 'theil-sen'):
+#
+#    if(slope == 'theil-sen'):
+#        plot_theil_sen_trend(pax, xdata, ydata, color, linestyle)
+#    elif(slope == 'both'):
+#        plot_theil_sen_trend(pax, xdata, ydata, color, linestyle)
+#        plot_lin_regress_trend(pax, xdata, ydata, color, linestyle)
+#    else:
+#        plot_lin_regress_trend(pax, xdata, ydata, color, linestyle)
 
 ##!## Plots latitude circles on a given axis
 ##!## --------------------------------------
@@ -2830,8 +2833,8 @@ def plotOMI_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
         vmax = np.nanmax(pdata)
 
     if(ptype == 'trend'):
-        #colormap = plt.cm.bwr
-        colormap = plt.cm.get_cmap('bwr', 5)
+        colormap = plt.cm.bwr
+        #colormap = plt.cm.get_cmap('bwr', 5)
     elif(ptype == 'uncert'):
         #colormap = plt.cm.plasma
         colormap = plt.cm.get_cmap('jet', 6)
@@ -4578,14 +4581,15 @@ def plotOMI_Type_Trend_all(trend_type = 'standard', \
 # Compare trends and single monthly averages, and time series of
 # monthly averages for two given lat/lon points.
 def plotOMI_month_avg_comp(dtype1, dtype2, month_idx, lat1, lon1, \
-        lat2, lon2, minlat = 65.):
+        lat2, lon2, minlat = 65., show_pval = False):
 
     #minlat = 65.
     OMI_data1 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
         'omi_ai_' + dtype1 + '_2005_2020.nc', minlat = minlat)
     OMI_data2   = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/' + \
         'omi_ai_' + dtype2 + '_2005_2020.nc', minlat = minlat)
-    
+   
+     
     # Determine the month being plotted 
     # ---------------------------------
     date_str = OMI_data1['DATES'][month_idx]
@@ -4613,10 +4617,10 @@ def plotOMI_month_avg_comp(dtype1, dtype2, month_idx, lat1, lon1, \
     # Plot the spatial trends
     plotOMI_MonthTrend(OMI_data1,month_idx=month_offset,trend_type='standard',label = ' ',\
         minlat=65.,title = dtype1, pax = ax5, colorbar = True, \
-        colorbar_label_size = 10, show_pval = True)
+        colorbar_label_size = 10, show_pval = show_pval)
     plotOMI_MonthTrend(OMI_data2,month_idx=month_offset,trend_type='standard',label = ' ',\
         minlat=65.,title = dtype2, pax = ax6, colorbar = True, \
-        colorbar_label_size = 10, show_pval = True)
+        colorbar_label_size = 10, show_pval = show_pval)
     
 
     # Plot points on the map at each lat/lon
@@ -4631,26 +4635,54 @@ def plotOMI_month_avg_comp(dtype1, dtype2, month_idx, lat1, lon1, \
     plot_point_on_map(ax6, lat2, lon2, markersize = 10)
 
     # Plot the time series at each point
-    p1_idxs = nearest_gridpoint(lat1, lon1, OMI_data1['LAT'], OMI_data1['LON'])
-    p2_idxs = nearest_gridpoint(lat2, lon2, OMI_data1['LAT'], OMI_data1['LON'])
-   
+    if(OMI_data1['LAT'][0,0] == 65.5):
+        print(lat1 + 0.5, lon1 + 0.5, lat2 + 0.5, lon2 + 0.5)
+        p1_idxs_d1 = nearest_gridpoint(lat1 + 0.5, lon1 + 0.5, OMI_data1['LAT'], OMI_data1['LON'])
+        p2_idxs_d1 = nearest_gridpoint(lat2 + 0.5, lon2 + 0.5, OMI_data1['LAT'], OMI_data1['LON'])
+    else:
+        print(lat1, lon1, lat2, lon2)
+        p1_idxs_d1 = nearest_gridpoint(lat1, lon1, OMI_data1['LAT'], OMI_data1['LON'])
+        p2_idxs_d1 = nearest_gridpoint(lat2, lon2, OMI_data1['LAT'], OMI_data1['LON'])
+    if(OMI_data2['LAT'][0,0] == 65.5):
+        print(lat1 + 0.5, lon1 + 0.5, lat2 + 0.5, lon2 + 0.5)
+        p1_idxs_d2 = nearest_gridpoint(lat1 + 0.5, lon1 + 0.5, OMI_data2['LAT'], OMI_data2['LON'])
+        p2_idxs_d2 = nearest_gridpoint(lat2 + 0.5, lon2 + 0.5, OMI_data2['LAT'], OMI_data2['LON'])
+    else:
+        print(lat1, lon1, lat2, lon2)
+        p1_idxs_d2 = nearest_gridpoint(lat1, lon1, OMI_data2['LAT'], OMI_data2['LON'])
+        p2_idxs_d2 = nearest_gridpoint(lat2, lon2, OMI_data2['LAT'], OMI_data2['LON'])
+  
+    d1_p1_dat = OMI_data1['AI'][month_offset::6,p1_idxs_d1[0][0], p1_idxs_d1[1][0]]
+    d1_p2_dat = OMI_data2['AI'][month_offset::6,p1_idxs_d2[0][0], p1_idxs_d2[1][0]]
+    d2_p1_dat = OMI_data1['AI'][month_offset::6,p2_idxs_d1[0][0], p2_idxs_d1[1][0]]
+    d2_p2_dat = OMI_data2['AI'][month_offset::6,p2_idxs_d2[0][0], p2_idxs_d2[1][0]]
+ 
     xvals = years
-    ax3.plot(xvals, OMI_data1['AI'][month_offset::6,p1_idxs[0][0], p1_idxs[1][0]])
-    ax3.plot(xvals, OMI_data2['AI'][month_offset::6,p1_idxs[0][0], p1_idxs[1][0]])
-    ax4.plot(xvals, OMI_data1['AI'][month_offset::6,p2_idxs[0][0], p2_idxs[1][0]])
-    ax4.plot(xvals, OMI_data2['AI'][month_offset::6,p2_idxs[0][0], p2_idxs[1][0]])
-
+    ax3.plot(xvals, d1_p1_dat, label = dtype1)
+    ax3.plot(xvals, d1_p2_dat, label = dtype2)
+    ax4.plot(xvals, d2_p1_dat, label = dtype1)
+    ax4.plot(xvals, d2_p2_dat, label = dtype2)
+    ax3.axvline(dt_date_str.year, linestyle = '--', color = 'k')
+    ax4.axvline(dt_date_str.year, linestyle = '--', color = 'k')
+    ax3.legend()
+    ax4.legend()
+   
+    print("Blue ",dtype1,":",d1_p1_dat)
+    print("Blue ",dtype2,":",d1_p2_dat)
+    print("Orng ",dtype1,":",d2_p1_dat)
+    print("Orng ",dtype2,":",d2_p2_dat)
+ 
     ax3.set_title('Point blue\n'   + str(lat1) + 'N, ' + str(lon1) + 'E')
     ax4.set_title('Point orange\n' + str(lat2) + 'N, ' + str(lon2) + 'E')
 
-    plot_trend_line(ax3, xvals, OMI_data1['AI'][month_offset::6,p1_idxs[0][0], p1_idxs[1][0]], \
-        color='tab:blue', linestyle = '-', slope = 'linear')
-    plot_trend_line(ax3, xvals, OMI_data2['AI'][month_offset::6,p1_idxs[0][0], p1_idxs[1][0]], \
-        color='tab:orange', linestyle = '-', slope = 'linear')
-    plot_trend_line(ax4, xvals, OMI_data1['AI'][month_offset::6,p2_idxs[0][0], p2_idxs[1][0]], \
-        color='tab:blue', linestyle = '-', slope = 'linear')
-    plot_trend_line(ax4, xvals, OMI_data2['AI'][month_offset::6,p2_idxs[0][0], p2_idxs[1][0]], \
-        color='tab:orange', linestyle = '-', slope = 'linear')
+    plot_trend_line(ax3, xvals, d1_p1_dat, color='tab:blue', \
+        linestyle = '-', slope = 'linear')
+    plot_trend_line(ax3, xvals, d1_p2_dat, color='tab:orange', \
+        linestyle = '-', slope = 'linear')
+    plot_trend_line(ax4, xvals, d2_p1_dat, color='tab:blue', \
+        linestyle = '-', slope = 'linear')
+    plot_trend_line(ax4, xvals, d2_p2_dat, color='tab:orange', \
+        linestyle = '-', slope = 'linear')
 
     fig1.tight_layout()
 
@@ -7990,3 +8022,175 @@ def plot_OMI_row_avg(date_str, plot_swath = False, minlat = 65., \
     fig.savefig(outname, dpi = 300)
     print("Saved image", outname)
     
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#
+# OMI drift stuff
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+
+version_dict = {
+    'jz2': 'Only good rows',
+    'jz27': 'Only rows 49, 50, 53, and 56-60',
+    'jz28': 'Only rows 49, 50, and 56-60',
+    'jz210': 'Only good rows, no 43 for Jul/Aug 2019',
+    'jz211': 'Only OMI rows 56 - 60',
+    'bs2': 'Only rows 1 - 21',
+}
+
+def plotOMI_drift(version, month_idx = None, ax = None, title = None, \
+        plot_trend = False, plot_counts = False, deseasonalize = False,\
+        save = False):
+
+    # Read the data from the file
+    # ---------------------------
+    file_name = home_dir + \
+        '/Research/OMI/JZ_analysis/drift_analysis/omi_drift_' + \
+        version + '_2005_2020.txt'
+
+    title_string = version_dict[version]
+
+    in_data = pd.read_csv(file_name, delim_whitespace=True)
+    dates  = in_data['Date'].values
+    avg_ai  = in_data['Avg'].values
+    counts  = in_data['#_obs'].values
+    if(month_idx is not None):
+        dates   = dates[month_idx::6]
+        avg_ai  = avg_ai[month_idx::6]
+        counts  = counts[month_idx::6]
+
+    if(deseasonalize):
+        avg_ai[0::6] = avg_ai[0::6] - np.nanmean(avg_ai[0::6])
+        avg_ai[1::6] = avg_ai[1::6] - np.nanmean(avg_ai[1::6])
+        avg_ai[2::6] = avg_ai[2::6] - np.nanmean(avg_ai[2::6])
+        avg_ai[3::6] = avg_ai[3::6] - np.nanmean(avg_ai[3::6])
+        avg_ai[4::6] = avg_ai[4::6] - np.nanmean(avg_ai[4::6])
+        avg_ai[5::6] = avg_ai[5::6] - np.nanmean(avg_ai[5::6])
+
+        counts[0::6] = counts[0::6] - np.nanmean(counts[0::6])
+        counts[1::6] = counts[1::6] - np.nanmean(counts[1::6])
+        counts[2::6] = counts[2::6] - np.nanmean(counts[2::6])
+        counts[3::6] = counts[3::6] - np.nanmean(counts[3::6])
+        counts[4::6] = counts[4::6] - np.nanmean(counts[4::6])
+        counts[5::6] = counts[5::6] - np.nanmean(counts[5::6])
+    
+    #print(dates)
+    
+    x_range = np.arange(len(avg_ai))
+    dt_dates = [datetime.strptime(str(tmpdate),"%Y%m") \
+        for tmpdate in dates]
+
+    in_ax = True
+    if(ax is None):
+        in_ax = False
+        fig1 = plt.figure(figsize=(8,8))
+        ax = fig1.add_subplot(1,1,1)
+    
+    years = [dtd.strftime('%Y') for dtd in dt_dates]
+    xvals = np.arange(len(dt_dates))
+    ln11 = ax.plot(xvals,avg_ai,label='AI')
+    #ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+    if(plot_counts and not deseasonalize):
+        ax2 = ax.twinx()
+        ln2 = ax2.plot(xvals,counts,color='tab:orange',label='counts')
+        lns = ln11 + ln2
+        ai_color = 'tab:blue'
+    else:
+        lns = ln11
+        ai_color = 'k'
+    labs1 = [l.get_label() for l in lns]
+    ax.set_ylabel('Average AI',color=ai_color)
+    ax.tick_params(axis = 'y', colors = ai_color)
+    #print(years)
+    #print(ax.get_xticks())
+    print(xvals[::int(len(years)/8)], years[::int(len(years)/8)])
+    ax.set_xticks(xvals[::int(len(years)/8)])
+    ax.set_xticklabels(years[::int(len(years)/8)])
+    if(plot_counts and not deseasonalize):
+        ax2.tick_params(axis = 'y', colors = 'tab:orange')
+        ax2.set_ylabel('Ob counts',color='tab:orange')
+    print('title string = ',title_string)
+    if(plot_trend): 
+        out = plot_trend_line(ax, xvals, avg_ai, color=lns[0].get_color(), \
+               linestyle = '--', slope = 'linear')
+        total_trend = out.slope * len(xvals)
+        print('total_trend = ',total_trend)
+
+    if(not in_ax):
+        ax.grid()
+        if(month_idx is None):
+            ax.set_title(title_string + '\nSouthern Pacific Ocean (0 - 40 $^{o}$S, 180 $^{o}$W - 140 $^{o}$W)')
+        else:
+            ax.set_title(dt_dates[0].strftime('OMI Southern Ocean Drift:\n%B'))
+   
+        plt.show()
+    else:
+        return lns
+
+def plotOMI_drift_figure(version, month_idx, plot_counts = False, \
+        plot_trend = True, deseasonalize = False, save = False):
+
+    # Set up overall figure
+    # ---------------------
+    #fig = plt.figure(figsize = (9, 8))
+    #ax1 = fig.add_subplot(2,1,1)
+    #ax2 = fig.add_subplot(2,1,2, sharex = ax1)
+    if(deseasonalize):
+        fig, axs = plt.subplots(2,1, sharex = True)
+        fig.set_size_inches(7,6)
+
+        lnxx = plotOMI_drift(version, ax = axs[0], plot_counts = plot_counts,\
+            plot_trend = plot_trend)
+
+        axs[0].grid()
+        axs[0].set_ylabel('Aerosol Index')
+        out_add = '_deseason'
+
+        lnx2 = plotOMI_drift(version, ax = axs[1], plot_counts = plot_counts,\
+            plot_trend = plot_trend, deseasonalize = True)
+        axs[1].grid()
+        axs[1].set_ylabel('Deseasonalized Aerosol Index')
+
+        plot_subplot_label(axs[0], '(a)', location = 'lower_left')
+        plot_subplot_label(axs[1], '(b)', location = 'lower_left')
+    else:
+        out_add = ''
+        fig = plt.figure(figsize = (7, 4))
+        ax1 = fig.add_subplot(1,1,1)
+        lnxx = plotOMI_drift(version, ax = ax1, plot_counts = plot_counts,\
+            plot_trend = plot_trend)
+        plot_subplot_label(ax1, '(a)', location = 'lower_left')
+        ax1.grid()
+    
+    title_string = version_dict[version]
+    plt.suptitle('OMI Sensor Drift\n' + title_string + \
+        '\nSouthern Pacific Ocean (0 - 40 $^{o}$S, ' + \
+        '180 $^{o}$W - 140 $^{o}$W)')
+
+    #ln1 = plotOMI_drift(version, month_idx = 0, ax = ax2, \
+    #    plot_counts = plot_counts, plot_trend = plot_trend)
+    #ln2 = plotOMI_drift(version, month_idx = 1, ax = ax2, \
+    #    plot_counts = plot_counts, plot_trend = plot_trend)
+    #ln3 = plotOMI_drift(version, month_idx = 2, ax = ax2, \
+    #    plot_counts = plot_counts, plot_trend = plot_trend)
+    #ln4 = plotOMI_drift(version, month_idx = 3, ax = ax2, \
+    #    plot_counts = plot_counts, plot_trend = plot_trend)
+    #ln5 = plotOMI_drift(version, month_idx = 4, ax = ax2, \
+    #    plot_counts = plot_counts, plot_trend = plot_trend)
+    #ln6 = plotOMI_drift(version, month_idx = 5, ax = ax2, \
+    #    plot_counts = plot_counts, plot_trend = plot_trend)
+
+    #lns = ln1 + ln2 + ln3 + ln4 + ln5 + ln6
+    #labs1 = ['Apr', 'May', 'June', 'July', 'Aug','Sept']
+    #ax2.legend(lns,labs1,loc='upper center',\
+    #    ncol=6)
+    #ax2.set_title('Monthly drift')
+
+
+    fig.tight_layout()
+
+    if(save):
+        outname = 'omi_drift_total_monthly_' + version + out_add + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()

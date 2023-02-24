@@ -51,6 +51,7 @@ subroutine grid_raw_data_climo(grids,i_counts,i_size,lat_gridder,lat_thresh)
     ! For JZ211: only use rows 55 - 60
     ! --------------------------------
     row_loop: do jj=55,AI_dims(1) 
+    ! BS01: use all data
     !row_loop: do jj=1,AI_dims(1) 
 
       ! For JZ2_7, only use the rows with azimuth angle greater than 100
@@ -85,6 +86,8 @@ subroutine grid_raw_data_climo(grids,i_counts,i_size,lat_gridder,lat_thresh)
 
       ! NOTE: BS1: remove the AZM and GPQF checks while retaining the
       !       bad row check.
+      ! NOTE: BS01: only use the XTRACk check, LAT check, missing AI check,
+      !       and cloud frac < 0.5 check
 
       if((XTRACK_data(jj,ii) == 0) .and. &
           (LAT_data(jj,ii) > lat_thresh) .and. &
@@ -93,9 +96,13 @@ subroutine grid_raw_data_climo(grids,i_counts,i_size,lat_gridder,lat_thresh)
           ! BS2: use rows 1-21, so must comment out AZM check
           ! -------------------------------------------------
           (AZM_data(jj,ii) > 100) .and. & 
-          ! VJZ212: add cloud fraction max of 0.2
+          !!#!! VJZ212: add cloud fraction max of 0.2
+          !!#!! -------------------------------------
+          !!#!(CLD_data(jj,ii) < 0.2) .and. &
+          ! VJZ213: add cloud fraction max of 0.5
           ! -------------------------------------
-          (CLD_data(jj,ii) < 0.2) .and. &
+          (CLD_data(jj,ii) < 0.5) .and. &
+          !(CLD_data(jj,ii) < 0.5)) then! .and. &
           ! VJZ2: no snow-free land either
           ! VJZ29: include snow-free land  
           ( (i_sfc_flag >= 0 .and. i_sfc_flag <= 101) .or. &
