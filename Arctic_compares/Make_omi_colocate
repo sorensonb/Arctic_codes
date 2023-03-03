@@ -23,6 +23,7 @@ OBJECTS = comp_vars.o \
 			read_comp_OMI_LON.o \
 			read_comp_OMI_LATCRNR.o \
 			read_comp_OMI_LONCRNR.o \
+			read_comp_OMI_SSA.o \
 			read_comp_OMI_SZA.o \
 			read_comp_OMI_VZA.o \
 			read_comp_OMI_AZM.o \

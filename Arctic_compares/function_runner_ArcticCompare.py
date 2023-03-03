@@ -8,6 +8,103 @@
 import Arctic_compare_lib
 from Arctic_compare_lib import *
 
+#date_strs = [\
+#                     #'200804221841',  # GOOD
+#                     #'200804222020',  # GOOD
+#                     #'200804222159',  # GOOD
+#                     #'201507061711',        
+#                     #'201507061850',
+#                     #'201507062028',
+#                     '201708191713',
+#           #'201908110033',  # GOOD
+#           #'201507062207',
+#           #'201908102254',  # GOOD
+#           #'201807052034',
+#            ]
+
+for date_str in case_dates:
+
+#date_str = date_strs[0]
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+    
+    comp_data = h5py.File('comp_data/colocated_subset_' + date_str + '.hdf5','r')
+    
+    base_path = home_dir + '/data/OMI/H5_files/'
+    total_list = subprocess.check_output('ls '+base_path+\
+        dt_date_str.strftime('OMI-Aura_L2-OMAERUV_%Ym%m%dt%H%M*.he5'),\
+        shell=True).decode('utf-8').strip().split('\n')
+    
+    #print(total_list[0])
+    omi_data = h5py.File(total_list[0],'r')
+    #omi_data  = h5py.File(dt_date_str.strftime(\
+    #    '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_%Ym%m%dt%H%M*'),'r')
+    
+    SSA = omi_data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/FinalAerosolSingleScattAlb'][:,:,:]
+    
+    mask_ssa = np.ma.masked_where(SSA < -2e5, SSA)
+    
+    mask_uvai = comp_data['omi_uvai_pert'][~mask_ssa[:,:,0].mask]
+    mask_uvai = np.ma.masked_invalid(mask_uvai)
+    mask_uvai = np.ma.masked_where(mask_uvai < 1.0, mask_uvai)
+    
+    mask_ssa0  = mask_ssa[:,:,0].compressed()
+    mask_ssa0  = mask_ssa0[~mask_uvai.mask]
+    
+    mask_uvai = mask_uvai.compressed()
+   
+    if(len(mask_ssa0) > 100): 
+        print(date_str, np.nanmean(mask_uvai), np.nanmean(mask_ssa))
+
+        plt.close('all')
+        fig = plt.figure(figsize = (12, 9))
+        ax1 = fig.add_subplot(2,3,1, projection = mapcrs)
+        ax2 = fig.add_subplot(2,3,2, projection = mapcrs)
+        ax3 = fig.add_subplot(2,3,3, projection = mapcrs)
+        ax4 = fig.add_subplot(2,3,4, projection = mapcrs)
+        ax5 = fig.add_subplot(2,3,5)
+        
+        # Plot AI
+        ax1.pcolormesh(comp_data['omi_lon'], comp_data['omi_lat'], comp_data['omi_uvai_pert'], \
+            transform = datacrs, shading = 'auto', cmap = 'jet')
+        ax1.coastlines()
+        ax1.set_extent([-180, 180, 65, 90], datacrs)
+        
+        # Plot SSA
+        ax2.pcolormesh(comp_data['omi_lon'], comp_data['omi_lat'], mask_ssa[:,:,0], \
+            transform = datacrs, shading = 'auto')
+        ax2.coastlines()
+        ax2.set_extent([-180, 180, 65, 90], datacrs)
+        
+        ax3.pcolormesh(comp_data['omi_lon'], comp_data['omi_lat'], mask_ssa[:,:,1], \
+            transform = datacrs, shading = 'auto')
+        ax3.coastlines()
+        ax3.set_extent([-180, 180, 65, 90], datacrs)
+        
+        ax4.pcolormesh(comp_data['omi_lon'], comp_data['omi_lat'], mask_ssa[:,:,2], \
+            transform = datacrs, shading = 'auto')
+        ax4.coastlines()
+        ax4.set_extent([-180, 180, 65, 90], datacrs)
+        
+        # Plot scatter
+        ax5.scatter(mask_ssa0, mask_uvai)
+        ax5.set_xlabel('SSA')
+        ax5.set_ylabel('UVAI')
+  
+        plt.title(date_str)
+
+        outname = 'comp_ssa_' + date_str + '.png' 
+        fig.savefig(outname)
+        print('Saved image', outname)
+ 
+    comp_data.close()
+    omi_data.close()
+
+#plt.show()
+
+
+
+sys.exit()
+
 slope_dict, extract_dict = plot_compare_all_slopes(date_strs = None, save = False, return_slope_dict = True)
 
 sys.exit()
@@ -44,7 +141,9 @@ final_list = entire_wrapper(min_AI = 1.0, minlat = 70., download = True, \
 sys.exit()
 
 
-
+# Uses the slope statistics returned from the other function, 
+# along with the trend values of the month idx passed, to determine
+# the forcing for each type
 calculate_type_forcing(4, trend_type = 'linear', minlat = 65.)
 
 sys.exit()

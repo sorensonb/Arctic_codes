@@ -10,10 +10,28 @@ import OMILib
 from OMILib import *
 import sys
 
+plot_combined_fort_out('20190811', min_lat = 70., vtype = 'areas', max_lat = 80., save = True)
+plot_combined_fort_out('20170818', min_lat = 80., vtype = 'areas', save = True)
+sys.exit()
+
 version = 'jz211'
 month_idx = 4
 plotOMI_drift_figure(version, month_idx, plot_counts = True, \
     plot_trend = False, deseasonalize = True, save = True)
+sys.exit()
+
+plotOMI_Compare_TrendUncertainty_all('VJZ211', 'VSJ4',\
+    trend_type = 'standard', minlat=65,save=True)
+
+sys.exit()
+
+date_str = '200607270100'
+date_str = '201908101301'
+plotOMI_single_swath_figure(date_str, dtype = 'control',  \
+        only_sea_ice = False, minlat = 50., skiprows = None, \
+        lat_circles = None, save = False, zoom = False, \
+        circle_bound = True, ax = None, \
+        shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
 sys.exit()
 
 # For JZ211 vs SJ4
@@ -61,13 +79,6 @@ sys.exit()
 for ii in range(0, 6):
     plotOMI_TrendUncertainty_SingleMonth('VJZ211', 'VSJ4', ii,\
          minlat = 65., save = True)
-
-sys.exit()
-
-plotOMI_Compare_TrendUncertainty_all('VJZ211', 'VSJ4',\
-    trend_type = 'standard', minlat=65,save=True)
-
-sys.exit()
 
 
 month_idx = 4
@@ -148,10 +159,6 @@ sys.exit()
 ##!#             #'201907172206',
 ##!#             #'201907172345',
 ##!#            ]
-
-plot_combined_fort_out('20190811', min_lat = 70., vtype = 'areas', max_lat = 80., save = True)
-plot_combined_fort_out('20170818', min_lat = 80., vtype = 'areas', save = True)
-sys.exit()
 
 # ----------------------------------------------------
 # Set up the overall figure
@@ -532,13 +539,6 @@ date_strs = ['200607240029', # GOOD
 #sys.path.append('/home/bsorenson/Research/MODIS/obs_smoke_forcing/')
 #from MODISLib import *
 
-date_str = '200607270100'
-plotOMI_single_swath_figure(date_str, dtype = 'shawn',  \
-        only_sea_ice = False, minlat = 65., skiprows = None, \
-        lat_circles = None, save = False, zoom = False, \
-        circle_bound = True, ax = None, \
-        shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
-sys.exit()
 #for date_str in date_strs[:5]:
 for date_str in date_strs:
 

@@ -588,6 +588,7 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
     GPQF   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags'][:,:]
     PXQF   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/PixelQualityFlags'][:,:]
     AZM    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/RelativeAzimuthAngle'][:,:]
+    SSA    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/FinalAerosolSingleScattAlb'][:,:,:]
     LATcrnr = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/FoV75CornerLatitude'][:,:,:]
     LONcrnr = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/FoV75CornerLongitude'][:,:,:]
     TIME_O = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Time'][:]
@@ -620,6 +621,7 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
     # ------------------------------------------------------------------------
     mask_UVAI = np.ma.masked_where((XTRACK != 0) | \
         (UVAI < -2e5) | (LAT < latmin), UVAI)
+    mask_SSA  = np.ma.masked_where((SSA < -2e5), SSA)
 
     if(only_sea_ice):
         mask_UVAI = np.ma.masked_where((GPQF_decode[:,:,5] < 1) | \
@@ -664,6 +666,7 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
                       (AZM > 100))] = np.nan
         mask_UVAI = np.ma.masked_invalid(mask_UVAI)
 
+    OMI_swath['SSA']    = mask_SSA
     OMI_swath['UVAI'] = mask_UVAI
 
     data.close()
@@ -765,6 +768,7 @@ def readOMI_swath_shawn(plot_time, latmin = 65., \
     OMI_swath['SZA'] = np.ma.masked_invalid(sfile_SZA)
     OMI_swath['VZA'] = np.ma.masked_invalid(sfile_VZA)
     OMI_swath['RAZ'] = np.ma.masked_invalid(sfile_RAZ)
+    OMI_swath['SSA'] = OMI_data['SSA']
    
     # Mask the data south of the desired latmin
     # -----------------------------------------
@@ -4103,7 +4107,7 @@ def plotOMI_TrendUncertainty_SingleMonth(dtype1, dtype2, month_idx,\
     z = stats.gaussian_kde(xy)(xy)       
     ax4.scatter(mask_trends, mask_uncert, c = z, s = 6) 
     ax4.set_xlabel('AI Trend')
-    ax4.set_ylabel('AI Trend Uncertainty')
+    ax4.set_ylabel('Standard Error of the AI Trend (Slope)')
 
     # Plot one to one line
     xlim = ax4.get_xlim()
@@ -4162,7 +4166,7 @@ def plotOMI_Compare_TrendUncertainty_all(dtype1, dtype2,\
     fig = plt.figure(figsize=(11,13))
     #plt.suptitle('OMI Comparisons: '+start_date.strftime("%B"),y=0.95,\
     #    fontsize=18,fontweight=4,weight='bold')
-    gs = gridspec.GridSpec(nrows=6, ncols=4, hspace = 0.001, wspace = 0.15)
+    gs = gridspec.GridSpec(nrows=6, ncols=4, hspace = 0.1, wspace = 0.05)
 
     # - - - - - - - - - - - - - - - - - - - - -
     # Plot the climatologies along the top row
@@ -4198,54 +4202,66 @@ def plotOMI_Compare_TrendUncertainty_all(dtype1, dtype2,\
     # ---------------------------------------
     plotOMI_MonthTrend(OMI_data1,month_idx=0,trend_type=trend_type,label = ' ',\
         minlat=65.,title = ' ', pax = ax00, colorbar = False, \
-        colorbar_label_size = colorbar_label_size, uncert_ax = ax01)
+        show_pval = True, \
+        colorbar_label_size = colorbar_label_size, uncert_ax = ax02)
     plotOMI_MonthTrend(OMI_data2,month_idx=0,trend_type=trend_type,label = ' ',\
-        minlat=65.,title = ' ', pax = ax02, colorbar = False, \
+        minlat=65.,title = ' ', pax = ax01, colorbar = False, \
+        show_pval = True, \
         colorbar_label_size = colorbar_label_size, uncert_ax = ax03)
 
     # Plot the figures in the first row: May
     # ---------------------------------------
     plotOMI_MonthTrend(OMI_data1,month_idx=1,trend_type=trend_type,label = ' ',\
         minlat=65.,title = ' ', pax = ax10, colorbar = False, \
-        colorbar_label_size = colorbar_label_size, uncert_ax = ax11)
+        show_pval = True, \
+        colorbar_label_size = colorbar_label_size, uncert_ax = ax12)
     plotOMI_MonthTrend(OMI_data2,month_idx=1,trend_type=trend_type,label = ' ',\
-        minlat=65.,title = ' ', pax = ax12, colorbar = False, \
+        minlat=65.,title = ' ', pax = ax11, colorbar = False, \
+        show_pval = True, \
         colorbar_label_size = colorbar_label_size, uncert_ax = ax13)
 
     # Plot the figures in the first row: June
     # ---------------------------------------
     plotOMI_MonthTrend(OMI_data1,month_idx=2,trend_type=trend_type,label = ' ',\
         minlat=65.,title = ' ', pax = ax20, colorbar = False, \
-        colorbar_label_size = colorbar_label_size, uncert_ax = ax21)
+        show_pval = True, \
+        colorbar_label_size = colorbar_label_size, uncert_ax = ax22)
     plotOMI_MonthTrend(OMI_data2,month_idx=2,trend_type=trend_type,label = ' ',\
-        minlat=65.,title = ' ', pax = ax22, colorbar = False, \
+        minlat=65.,title = ' ', pax = ax21, colorbar = False, \
+        show_pval = True, \
         colorbar_label_size = colorbar_label_size, uncert_ax = ax23)
 
     # Plot the figures in the second row: July
     # ----------------------------------------
     plotOMI_MonthTrend(OMI_data1,month_idx=3,trend_type=trend_type,label = ' ',\
         minlat=65.,title = ' ', pax = ax30, colorbar = False, \
-        colorbar_label_size = colorbar_label_size, uncert_ax = ax31)
+        show_pval = True, \
+        colorbar_label_size = colorbar_label_size, uncert_ax = ax32)
     plotOMI_MonthTrend(OMI_data2,month_idx=3,trend_type=trend_type,label = ' ',\
-        minlat=65.,title = ' ', pax = ax32, colorbar = False, \
+        minlat=65.,title = ' ', pax = ax31, colorbar = False, \
+        show_pval = True, \
         colorbar_label_size = colorbar_label_size, uncert_ax = ax33)
 
     # Plot the figures in the third row: August
     # -----------------------------------------
     plotOMI_MonthTrend(OMI_data1,month_idx=4,trend_type=trend_type,label = ' ',\
         minlat=65.,title = ' ', pax = ax40, colorbar = False, \
-        colorbar_label_size = colorbar_label_size, uncert_ax = ax41)
+        show_pval = True, \
+        colorbar_label_size = colorbar_label_size, uncert_ax = ax42)
     plotOMI_MonthTrend(OMI_data2,month_idx=4,trend_type=trend_type,label = ' ',\
-        minlat=65.,title = ' ', pax = ax42, colorbar = False, \
+        minlat=65.,title = ' ', pax = ax41, colorbar = False, \
+        show_pval = True, \
         colorbar_label_size = colorbar_label_size, uncert_ax = ax43)
 
     # Plot the figures in the third row: September
     # -----------------------------------------
     plotOMI_MonthTrend(OMI_data1,month_idx=5,trend_type=trend_type,label = ' ',\
         minlat=65.,title = ' ', pax = ax50, colorbar = False, \
-        colorbar_label_size = colorbar_label_size, uncert_ax = ax51)
+        show_pval = True, \
+        colorbar_label_size = colorbar_label_size, uncert_ax = ax52)
     plotOMI_MonthTrend(OMI_data2,month_idx=5,trend_type=trend_type,label = ' ',\
-        minlat=65.,title = ' ', pax = ax52, colorbar = False, \
+        minlat=65.,title = ' ', pax = ax51, colorbar = False, \
+        show_pval = True, \
         colorbar_label_size = colorbar_label_size, uncert_ax = ax53)
 
     fig.text(0.10, 0.82, 'April', ha='center', va='center', \
@@ -4261,27 +4277,27 @@ def plotOMI_Compare_TrendUncertainty_all(dtype1, dtype2,\
     fig.text(0.10, 0.18, 'September', ha='center', va='center', \
         rotation='vertical',weight='bold',fontsize=row_label_size + 1)
 
-    fig.text(0.200, 0.90, dtype1 + '\nTrend', ha='center', va='center', \
+    fig.text(0.220, 0.90, 'Screened\nTrend', ha='center', va='center', \
         rotation='horizontal',weight='bold',fontsize=row_label_size)
-    fig.text(0.410, 0.90, dtype1 + '\nUncertainty', ha='center', va='center', \
+    fig.text(0.410, 0.90, 'Perturbed Trend', ha='center', va='center', \
         rotation='horizontal',weight='bold',fontsize=row_label_size)
-    fig.text(0.62, 0.90, dtype2 + 'Trend', ha='center', va='center', \
+    fig.text(0.61, 0.90, 'Standard Error of\nScreened Trend (Slope)', ha='center', va='center', \
         rotation='horizontal',weight='bold',fontsize=row_label_size)
-    fig.text(0.83, 0.90, dtype2 + '\nUncertainty', ha='center', va='center', \
+    fig.text(0.805, 0.90, 'Standared Error of\nPerturbed Trend (Slope)', ha='center', va='center', \
         rotation='horizontal',weight='bold',fontsize=row_label_size)
 
-    cax = fig.add_axes([0.13, 0.09, 0.38, 0.01])
+    cax = fig.add_axes([0.15, 0.09, 0.35, 0.01])
     norm = mpl.colors.Normalize(vmin = -0.5, vmax = 0.5)
     cb1 = mpl.colorbar.ColorbarBase(cax, cmap = plt.cm.bwr, norm = norm, \
         orientation = 'horizontal', extend = 'both')
-    cb1.set_label('AI Trend', weight = 'bold')
+    cb1.set_label('AI Trend (AI / Study Period)', weight = 'bold')
 
-    cax2 = fig.add_axes([0.522, 0.09, 0.38, 0.01])
+    cax2 = fig.add_axes([0.530, 0.09, 0.35, 0.01])
     norm2 = mpl.colors.Normalize(vmin = 0.0, vmax = 0.3)
     cmap = plt.cm.get_cmap('jet', 6)
     cb2 = mpl.colorbar.ColorbarBase(cax2, cmap = cmap, norm = norm2, \
         orientation = 'horizontal', extend = 'both')
-    cb2.set_label('AI Trend Uncertainty', weight = 'bold')
+    cb2.set_label('Standard Error of AI Trend (Slope)', weight = 'bold')
     #fig.colorbar(norm, cax = cax, orientation = 'horizontal')
 
     #fig.tight_layout()
@@ -7435,11 +7451,11 @@ def plot_OMI_fort_out_func(infile, ax = None, min_lat = 70., vtype = 'areas', \
     if(max_lat is not None):
         ax.set_title('High AI ' + vtype + '\nPerturbed AI threshold of '+\
             str(omi_fort_dict['ai_thresh']) + '\n' + str(int(min_lat)) + \
-            '$^{o}$N - ' + str(int(max_lat))+'$^{o}$N')
+            '$^{o}$ N - ' + str(int(max_lat))+'$^{o}$ N')
     else: 
         ax.set_title('High AI ' + vtype + '\nPerturbed AI threshold of ' + \
             str(omi_fort_dict['ai_thresh']) + '\nNorth of ' + \
-            str(int(min_lat)) + '$^{o}$N')
+            str(int(min_lat)) + '$^{o}$ N')
     ax.tick_params(axis='both', labelsize = 12)
     ax.grid()
     
@@ -8118,7 +8134,7 @@ def plotOMI_drift(version, month_idx = None, ax = None, title = None, \
     if(not in_ax):
         ax.grid()
         if(month_idx is None):
-            ax.set_title(title_string + '\nSouthern Pacific Ocean (0 - 40 $^{o}$S, 180 $^{o}$W - 140 $^{o}$W)')
+            ax.set_title(title_string + '\nSouthern Pacific Ocean (0 - 40$^{o}$ S, 180 - 140$^{o}$ W)')
         else:
             ax.set_title(dt_dates[0].strftime('OMI Southern Ocean Drift:\n%B'))
    
@@ -8163,8 +8179,8 @@ def plotOMI_drift_figure(version, month_idx, plot_counts = False, \
     
     title_string = version_dict[version]
     plt.suptitle('OMI Sensor Drift\n' + title_string + \
-        '\nSouthern Pacific Ocean (0 - 40 $^{o}$S, ' + \
-        '180 $^{o}$W - 140 $^{o}$W)')
+        '\nSouthern Pacific Ocean (0 - 40$^{o}$ S, ' + \
+        '180 - 140$^{o}$ W)')
 
     #ln1 = plotOMI_drift(version, month_idx = 0, ax = ax2, \
     #    plot_counts = plot_counts, plot_trend = plot_trend)

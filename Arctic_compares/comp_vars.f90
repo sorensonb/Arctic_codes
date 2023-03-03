@@ -30,6 +30,7 @@ module comp_vars
   integer(hsize_t), dimension(:), allocatable       :: OMI_LON_dims
   integer(hsize_t), dimension(:), allocatable       :: OMI_LATCRNR_dims
   integer(hsize_t), dimension(:), allocatable       :: OMI_LONCRNR_dims
+  integer(hsize_t), dimension(:), allocatable       :: OMI_SSA_dims
   integer(hsize_t), dimension(:), allocatable       :: OMI_SZA_dims
   integer(hsize_t), dimension(:), allocatable       :: OMI_VZA_dims
   integer(hsize_t), dimension(:), allocatable       :: OMI_AZM_dims
@@ -68,6 +69,7 @@ module comp_vars
   real(kind=8), dimension(:,:,:), allocatable, target :: OMI_LATCRNR_data
   real(kind=8), dimension(:,:,:), allocatable, target :: OMI_LONCRNR_data
   real(kind=8), dimension(:,:), allocatable, target :: OMI_SZA_data
+  real(kind=8), dimension(:,:), allocatable, target :: OMI_SSA_data
   real(kind=8), dimension(:,:), allocatable, target :: OMI_VZA_data
   real(kind=8), dimension(:,:), allocatable, target :: OMI_AZM_data
   real(kind=8), dimension(:,:), allocatable, target :: MODIS_CH2_data
@@ -160,6 +162,7 @@ module comp_vars
       if(allocated(OMI_LON_dims))     deallocate(OMI_LON_dims)
       if(allocated(OMI_LATCRNR_dims))     deallocate(OMI_LATCRNR_dims)
       if(allocated(OMI_LONCRNR_dims))     deallocate(OMI_LONCRNR_dims)
+      if(allocated(OMI_SSA_dims))     deallocate(OMI_SSA_dims)
       if(allocated(OMI_SZA_dims))     deallocate(OMI_SZA_dims)
       if(allocated(OMI_VZA_dims))     deallocate(OMI_VZA_dims)
       if(allocated(OMI_AZM_dims))     deallocate(OMI_AZM_dims)
@@ -196,6 +199,7 @@ module comp_vars
       if(allocated(OMI_LON_data))     deallocate(OMI_LON_data)
       if(allocated(OMI_LATCRNR_data))     deallocate(OMI_LATCRNR_data)
       if(allocated(OMI_LONCRNR_data))     deallocate(OMI_LONCRNR_data)
+      if(allocated(OMI_SSA_data))     deallocate(OMI_SSA_data)
       if(allocated(OMI_SZA_data))     deallocate(OMI_SZA_data)
       if(allocated(OMI_VZA_data))     deallocate(OMI_VZA_data)
       if(allocated(OMI_AZM_data))     deallocate(OMI_AZM_data)
