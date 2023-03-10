@@ -589,6 +589,22 @@ def read_colocated(date_str, zoom = True):
     coloc_data = {}
     coloc_data['date_str'] = date_str
     coloc_data['OMI'] = np.ma.masked_invalid(data['omi_uvai_pert'][:,:])
+    if('trop_uvai' in data.keys()):
+        coloc_data['TROP_AI'] = np.ma.masked_invalid(data['trop_uvai'][:,:])
+        coloc_data['TROP_AI'] = np.ma.masked_where(\
+            coloc_data['TROP_AI'] == -999., coloc_data['TROP_AI'])
+    if('trop_ssa0' in data.keys()):
+        coloc_data['TROP_SSA0'] = np.ma.masked_invalid(data['trop_ssa0'][:,:])
+        coloc_data['TROP_SSA0'] = np.ma.masked_where(\
+            coloc_data['TROP_SSA0'] == -999., coloc_data['TROP_SSA0'])
+    if('trop_ssa1' in data.keys()):
+        coloc_data['TROP_SSA1'] = np.ma.masked_invalid(data['trop_ssa1'][:,:])
+        coloc_data['TROP_SSA1'] = np.ma.masked_where(\
+            coloc_data['TROP_SSA1'] == -999., coloc_data['TROP_SSA1'])
+    if('trop_ssa2' in data.keys()):
+        coloc_data['TROP_SSA2'] = np.ma.masked_invalid(data['trop_ssa2'][:,:])
+        coloc_data['TROP_SSA2'] = np.ma.masked_where(\
+            coloc_data['TROP_SSA2'] == -999., coloc_data['TROP_SSA2'])
     coloc_data['MODIS_CH2'] = np.ma.masked_where((\
         data['modis_ch2'][:,:] == -999.) | (data['modis_ch2'][:,:] > 1.0), \
         data['modis_ch2'][:,:])
@@ -1437,7 +1453,7 @@ def plot_compare_combined_category(coloc_data, var1 = 'OMI', \
 
     # Plot the OMI coloc_data
     # -----------------
-    plot_spatial(ax4, coloc_data['LON'], coloc_data['LAT'], coloc_data['OMI'], \
+    plot_spatial(ax4, coloc_data['LON'], coloc_data['LAT'], coloc_data['TROP_AI'], \
         pdate, cmap = 'jet', zoom = zoom)
     ax4.set_title('OMI AI Perturb')
     
@@ -1481,6 +1497,14 @@ def plot_compare_combined_category(coloc_data, var1 = 'OMI', \
         cat = 'LAND_CLEAR', minlat = 65., xmin = xmin, xmax = None, ymin = None, ymax = None, \
         ax = ax9, colorbar = True, trend = trend, zoom = zoom, save = False, \
         color = 'tab:orange')
+
+    # Add legend to last box
+    # ----------------------
+    custom_lines = [Line2D([0], [0], color='tab:blue', linestyle = ':'),
+                    Line2D([0], [0], color='tab:orange', linestyle = ':')]
+
+    ax9.legend(custom_lines, ['Cloud', 'Clear'],\
+        fontsize = 10, loc = 1)
 
     fig1.tight_layout()
 

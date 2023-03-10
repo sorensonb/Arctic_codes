@@ -10,6 +10,12 @@ import OMILib
 from OMILib import *
 import sys
 
+OMI_base = '201908110033'
+write_shawn_to_HDF5(OMI_base, save_path = './', minlat = 65., \
+    shawn_path = home_dir + '/data/OMI/shawn_files/')
+
+sys.exit()
+
 plot_combined_fort_out('20190811', min_lat = 70., vtype = 'areas', max_lat = 80., save = True)
 plot_combined_fort_out('20170818', min_lat = 80., vtype = 'areas', save = True)
 sys.exit()

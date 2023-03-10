@@ -3,10 +3,11 @@
 EXEC = omi_comp_exec 
 COMP = h5fc
 #COMP = gfortran
-LIB_PATH = ./
+LIB_PATH = /home/bsorenson/OMI/colocate_lib/
+#TROP_LIB_PATH = /home/bsorenson/OMI/tropomi_colocate/
 #LIB_PATH = ../JZ_lib/
 #FORT_LIB_PATH = ../../fort_lib/
-OBJECTS = comp_vars.o \
+OBJECTS = colocate_vars.o \
 			read_comp_CERES_LWF.o \
 			read_comp_CERES_SWF.o \
 			read_comp_CERES_LAT.o \
@@ -23,10 +24,13 @@ OBJECTS = comp_vars.o \
 			read_comp_OMI_LON.o \
 			read_comp_OMI_LATCRNR.o \
 			read_comp_OMI_LONCRNR.o \
-			read_comp_OMI_SSA.o \
 			read_comp_OMI_SZA.o \
 			read_comp_OMI_VZA.o \
 			read_comp_OMI_AZM.o \
+			read_comp_TROP_AI.o \
+			read_comp_TROP_SSA0.o \
+			read_comp_TROP_SSA1.o \
+			read_comp_TROP_SSA2.o \
 			omi_colocate.o
 
 FFLAGS = -g -O2 -Wall -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
@@ -35,8 +39,8 @@ LDFLAGS = -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
 $(EXEC): $(OBJECTS)
 	$(COMP) $(LDFLAGS) $(OBJECTS) -o $(EXEC)
 
-comp_vars.o: $(LIB_PATH)comp_vars.f90
-	$(COMP) $(FFLAGS) -c $(LIB_PATH)comp_vars.f90
+colocate_vars.o: $(LIB_PATH)colocate_vars.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)colocate_vars.f90
 
 #check_bad_rows.o: $(LIB_PATH)check_bad_rows.f90
 #	$(COMP) $(FFLAGS) -c $(LIB_PATH)check_bad_rows.f90
@@ -110,6 +114,18 @@ read_comp_OMI_VZA.o: $(LIB_PATH)read_comp_OMI_VZA.f90
 read_comp_OMI_AZM.o: $(LIB_PATH)read_comp_OMI_AZM.f90
 	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_AZM.f90
 
+read_comp_TROP_AI.o: $(LIB_PATH)read_comp_TROP_AI.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_TROP_AI.f90
+
+read_comp_TROP_SSA0.o: $(LIB_PATH)read_comp_TROP_SSA0.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_TROP_SSA0.f90
+
+read_comp_TROP_SSA1.o: $(LIB_PATH)read_comp_TROP_SSA1.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_TROP_SSA1.f90
+
+read_comp_TROP_SSA2.o: $(LIB_PATH)read_comp_TROP_SSA2.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_TROP_SSA2.f90
+
 #
 #read_h5_XTRACK.o: $(LIB_PATH)read_h5_XTRACK.f90
 #	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_XTRACK.f90
@@ -117,7 +133,7 @@ read_comp_OMI_AZM.o: $(LIB_PATH)read_comp_OMI_AZM.f90
 #print_climo.o: $(FORT_LIB_PATH)print_climo.f90
 #	$(COMP) $(FFLAGS) -c $(FORT_LIB_PATH)print_climo.f90
 
-omi_colocate.o: omi_colocate.f90 $(LIB_PATH)comp_vars.f90
+omi_colocate.o: omi_colocate.f90 $(LIB_PATH)colocate_vars.f90
 	$(COMP) $(FFLAGS) -c omi_colocate.f90
 
 clean:

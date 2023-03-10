@@ -30,7 +30,8 @@ program omi_colocate
 !  ############################################################################
 
   use hdf5
-  use comp_vars, only : clear_arrays, i_bad_list, &
+  !use comp_vars, only : clear_arrays, i_bad_list, &
+  use colocate_vars, only : clear_arrays, i_bad_list, &
     find_distance_between_points, allocate_out_arrays, &
     pixel_in_box, &
     MODIS_CH2_data, MODIS_CH2_dims, &
@@ -52,6 +53,10 @@ program omi_colocate
     OMI_SZA_data,   OMI_SZA_dims, &
     OMI_VZA_data,   OMI_VZA_dims, &
     OMI_AZM_data,   OMI_AZM_dims, &
+    TROP_AI_data,   TROP_AI_dims, &
+    TROP_SSA0_data, TROP_SSA0_dims, &
+    TROP_SSA1_data, TROP_SSA1_dims, &
+    TROP_SSA2_data, TROP_SSA2_dims, &
     MODIS_out_CH2_data, &
     MODIS_out_CH7_data, &
     !MODIS_out_LAT_data, &
@@ -84,6 +89,7 @@ program omi_colocate
   integer                :: nsidc_file_id       ! id for current HDF5 file
   integer                :: ceres_file_id       ! id for current HDF5 file
   integer                :: omi_file_id         ! id for current HDF5 file
+  integer                :: trop_file_id        ! id for current HDF5 file
   integer                :: out_file_id         ! id for current HDF5 file
 
   integer                :: dspace_id_OLT  ! OMI LAT
@@ -103,6 +109,10 @@ program omi_colocate
   !integer                :: dspace_id_NLT  ! NSIDC LAT
   !integer                :: dspace_id_NLN  ! NSIDC LON
   integer                :: dspace_id_NIC  ! NSIDC ICE
+  integer                :: dspace_id_TAI  ! TROPOMI AI
+  integer                :: dspace_id_TS0  ! TROPOMI SSA0
+  integer                :: dspace_id_TS1  ! TROPOMI SSA1
+  integer                :: dspace_id_TS2  ! TROPOMI SSA2
 
   integer                :: dset_id_OLT  ! OMI LAT
   integer                :: dset_id_OLN  ! OMI LON
@@ -121,6 +131,10 @@ program omi_colocate
   !integer                :: dset_id_NLT  ! NSIDC LAT
   !integer                :: dset_id_NLN  ! NSIDC LON
   integer                :: dset_id_NIC  ! NSIDC ICE
+  integer                :: dset_id_TAI  ! TROPOMI AI
+  integer                :: dset_id_TS0  ! TROPOMI SSA0
+  integer                :: dset_id_TS1  ! TROPOMI SSA1
+  integer                :: dset_id_TS2  ! TROPOMI SSA2
 
   integer                :: rank
   integer(hsize_t), dimension(2)    :: test_dims
@@ -132,6 +146,7 @@ program omi_colocate
   real                   :: match_lon
   real                   :: match_data1
   real                   :: match_data2
+  real                   :: local_trop_ai
 
   real                   :: run_modis_total_ch2
   real                   :: run_modis_total_ch7
@@ -167,7 +182,10 @@ program omi_colocate
   character(len = 255)      :: nsidc_name     ! filename
   character(len = 255)      :: ceres_name     ! filename
   character(len = 255)      :: omi_name       ! filename
+  character(len = 255)      :: trop_name      ! filename
   character(len = 255)      :: out_file_name  ! filename
+
+  logical                   :: l_trop_found
 
   !!#!! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -187,6 +205,18 @@ program omi_colocate
   call get_command_argument(3,nsidc_name)
   call get_command_argument(4,ceres_name)
   call get_command_argument(5,omi_name)
+
+  ! Using the OMI name, determine if a matching TROPOMI colocation file exists
+  ! --------------------------------------------------------------------------
+  l_trop_found = .false.
+  trop_name = '/home/bsorenson/OMI/tropomi_colocate/coloc_data/'//&
+    'colocated_tropomi_'//omi_name(len(trim(omi_name)) - &
+    16:len(trim(omi_name)) - 5)//'.hdf5'
+  
+  write(*,*) trim(trop_name)
+    
+  inquire(FILE=trop_name, EXIST=l_trop_found)
+  write(*,*) 'TROP file exist? :',l_trop_found 
 
   ! Initialize the HDF5 interface
   ! -----------------------------
@@ -235,6 +265,28 @@ program omi_colocate
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not open OMI file'
     return
+  endif
+
+  ! If TROPOMI file exists, open and read from the file
+  ! ---------------------------------------------------
+  if(l_trop_found) then
+
+    ! Open the TROP file
+    ! -----------------
+    call h5fopen_f(trim(trop_name), H5F_ACC_RDWR_F, trop_file_id, error)
+    if(error /= 0) then
+      write(*,*) 'FATAL ERROR: could not open OMI file'
+      return
+    endif
+ 
+
+    write(*,*) "Opened TROPOMI file"
+
+    call read_comp_TROP_AI(trop_file_id)
+    call read_comp_TROP_SSA0(trop_file_id)
+    call read_comp_TROP_SSA1(trop_file_id)
+    call read_comp_TROP_SSA2(trop_file_id)
+
   endif
 
   call read_comp_MODIS_CH2(modis1_file_id)
@@ -293,24 +345,24 @@ program omi_colocate
 
     omi_loop2: do jj=1,OMI_LAT_dims(1) 
 
+      ! If TROPOMI data exists, put value in local variable. If not, set
+      ! local variable equal to -999.
+      if(l_trop_found) then
+        local_trop_ai = TROP_AI_data(jj,ii)
+      else
+        local_trop_ai = -999.
+      endif
+        
+      !!#!  (l_trop_found .and. ((.not.isnan(local_trop_ai) .and. &
+      !!#!  (local_trop_ai /=-999.)) .or. &
+      !!#!    .not.isnan(OMI_AI_data(jj,ii)))),  &
+      !!#!    (.not.l_trop_found .and. .not.isnan(OMI_AI_data(jj,ii)))
       ! Check if the current pixel is missing
       ! -------------------------------------
-      if(isnan(OMI_AI_data(jj,ii))) then
-        !write(*,*) 'NAN VALUE'
-        !NSIDC_out_LAT_data(jj,ii) = -999.
-        !NSIDC_out_LON_data(jj,ii) = -999.
-        NSIDC_out_data(jj,ii)     = -999.
-        !CERES_out_LAT_data(jj,ii) = -999.
-        !CERES_out_LON_data(jj,ii) = -999.
-        CERES_out_LWF_data(jj,ii) = -999.
-        CERES_out_SWF_data(jj,ii) = -999.
-        !MODIS_out_LAT_data(jj,ii) = -999.
-        !MODIS_out_LON_data(jj,ii) = -999.
-        MODIS_out_CH2_data(jj,ii) = -999.
-        MODIS_out_CH7_data(jj,ii) = -999.
-        num_nan = num_nan + 1
-      else
-
+      if( (l_trop_found .and. ((.not.isnan(local_trop_ai) .and. &
+           (local_trop_ai/= -999.)) .or. &
+          .not.isnan(OMI_AI_data(jj,ii)))) .or. &
+          (.not.l_trop_found .and. .not.isnan(OMI_AI_data(jj,ii)))) then
         ! Now, loop over the NSIDC data
         ! -----------------------------
         nsidc_loop1: do nii=1,NSIDC_LAT_dims(2)
@@ -433,6 +485,23 @@ program omi_colocate
         endif
 
         closest_dist = 999999.
+
+      else
+
+        !if(isnan(OMI_AI_data(jj,ii))) then
+        !write(*,*) 'NAN VALUE'
+        !NSIDC_out_LAT_data(jj,ii) = -999.
+        !NSIDC_out_LON_data(jj,ii) = -999.
+        NSIDC_out_data(jj,ii)     = -999.
+        !CERES_out_LAT_data(jj,ii) = -999.
+        !CERES_out_LON_data(jj,ii) = -999.
+        CERES_out_LWF_data(jj,ii) = -999.
+        CERES_out_SWF_data(jj,ii) = -999.
+        !MODIS_out_LAT_data(jj,ii) = -999.
+        !MODIS_out_LON_data(jj,ii) = -999.
+        MODIS_out_CH2_data(jj,ii) = -999.
+        MODIS_out_CH7_data(jj,ii) = -999.
+        num_nan = num_nan + 1
 
       endif
 
@@ -1238,6 +1307,198 @@ program omi_colocate
 
   write(*,*) 'Wrote NSIDC ice'
 
+  if(l_trop_found) then
+    ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
+    ! Write TROPOMI AI data
+    !
+    ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+    ! Create the dataspace
+    ! --------------------
+    call h5screate_simple_f(rank, test_dims, dspace_id_TAI, error)
+    if(error /= 0) then
+      write(*,*) 'FATAL ERROR: could not open dataspace'
+      return
+    endif
+
+    ! Create the dataset
+    ! ------------------
+    call h5dcreate_f(out_file_id, 'trop_uvai', H5T_NATIVE_DOUBLE, &
+                     dspace_id_TAI,  dset_id_TAI, error) 
+    if(error /= 0) then
+      write(*,*) 'FATAL ERROR: could not open dataset '//'trop_uvai'
+      return
+    endif
+
+    ! Write to the dataset
+    ! --------------------
+    call h5dwrite_f(dset_id_TAI, H5T_NATIVE_DOUBLE, TROP_AI_data, TROP_AI_dims, &
+                        error)
+    if(error /= 0) then
+      write(*,*) 'FATAL ERROR: could not write to dataset'
+      return
+    endif
+
+    ! Close the dataset
+    ! -----------------
+    call h5dclose_f(dset_id_TAI, error)
+
+    ! Close access to data space rank
+    call h5sclose_f(dspace_id_TAI, error)
+
+    if(error /= 0) then
+      write(*,*) 'FATAL ERROR: could not write to dataset'
+      return
+    endif
+
+    write(*,*) 'Wrote TROPOMI AI'
+
+    ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
+    ! Write TROPOMI SSA0 data
+    !
+    ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+    ! Create the dataspace
+    ! --------------------
+    call h5screate_simple_f(rank, test_dims, dspace_id_TS0, error)
+    if(error /= 0) then
+      write(*,*) 'FATAL ERROR: could not open dataspace'
+      return
+    endif
+
+    ! Create the dataset
+    ! ------------------
+    call h5dcreate_f(out_file_id, 'trop_ssa0', H5T_NATIVE_DOUBLE, &
+                     dspace_id_TS0,  dset_id_TS0, error) 
+    if(error /= 0) then
+      write(*,*) 'FATAL ERROR: could not open dataset '//'trop_ssa0'
+      return
+    endif
+
+    ! Write to the dataset
+    ! --------------------
+    call h5dwrite_f(dset_id_TS0, H5T_NATIVE_DOUBLE, TROP_SSA0_data, TROP_SSA0_dims, &
+                        error)
+    if(error /= 0) then
+      write(*,*) 'FATAL ERROR: could not write to dataset'
+      return
+    endif
+
+    ! Close the dataset
+    ! -----------------
+    call h5dclose_f(dset_id_TS0, error)
+
+    ! Close access to data space rank
+    call h5sclose_f(dspace_id_TS0, error)
+
+    if(error /= 0) then
+      write(*,*) 'FATAL ERROR: could not write to dataset'
+      return
+    endif
+
+    write(*,*) 'Wrote TROPOMI SSA0'
+
+    ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
+    ! Write TROPOMI SSA1 data
+    !
+    ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+    ! Create the dataspace
+    ! --------------------
+    call h5screate_simple_f(rank, test_dims, dspace_id_TS1, error)
+    if(error /= 0) then
+      write(*,*) 'FATAL ERROR: could not open dataspace'
+      return
+    endif
+
+    ! Create the dataset
+    ! ------------------
+    call h5dcreate_f(out_file_id, 'trop_ssa1', H5T_NATIVE_DOUBLE, &
+                     dspace_id_TS1,  dset_id_TS1, error) 
+    if(error /= 0) then
+      write(*,*) 'FATAL ERROR: could not open dataset '//'trop_ssa1'
+      return
+    endif
+
+    ! Write to the dataset
+    ! --------------------
+    call h5dwrite_f(dset_id_TS1, H5T_NATIVE_DOUBLE, TROP_SSA1_data, TROP_SSA1_dims, &
+                        error)
+    if(error /= 0) then
+      write(*,*) 'FATAL ERROR: could not write to dataset'
+      return
+    endif
+
+    ! Close the dataset
+    ! -----------------
+    call h5dclose_f(dset_id_TS1, error)
+
+    ! Close access to data space rank
+    call h5sclose_f(dspace_id_TS1, error)
+
+    if(error /= 0) then
+      write(*,*) 'FATAL ERROR: could not write to dataset'
+      return
+    endif
+
+    write(*,*) 'Wrote TROPOMI SSA1'
+
+    ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
+    ! Write TROPOMI SSA2 data
+    !
+    ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+    ! Create the dataspace
+    ! --------------------
+    call h5screate_simple_f(rank, test_dims, dspace_id_TS2, error)
+    if(error /= 0) then
+      write(*,*) 'FATAL ERROR: could not open dataspace'
+      return
+    endif
+
+    ! Create the dataset
+    ! ------------------
+    call h5dcreate_f(out_file_id, 'trop_ssa2', H5T_NATIVE_DOUBLE, &
+                     dspace_id_TS2,  dset_id_TS2, error) 
+    if(error /= 0) then
+      write(*,*) 'FATAL ERROR: could not open dataset '//'trop_ssa2'
+      return
+    endif
+
+    ! Write to the dataset
+    ! --------------------
+    call h5dwrite_f(dset_id_TS2, H5T_NATIVE_DOUBLE, TROP_SSA2_data, TROP_SSA2_dims, &
+                        error)
+    if(error /= 0) then
+      write(*,*) 'FATAL ERROR: could not write to dataset'
+      return
+    endif
+
+    ! Close the dataset
+    ! -----------------
+    call h5dclose_f(dset_id_TS2, error)
+
+    ! Close access to data space rank
+    call h5sclose_f(dspace_id_TS2, error)
+
+    if(error /= 0) then
+      write(*,*) 'FATAL ERROR: could not write to dataset'
+      return
+    endif
+
+    write(*,*) 'Wrote TROPOMI SSA2'
+
+  endif
+
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! End Variable Writing
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
   ! Close output file
   ! -----------------
@@ -1247,7 +1508,7 @@ program omi_colocate
     return
   endif
 
-  write(*,*) 'Saved output file'//trim(out_file_name)
+  !!#!write(*,*) 'Saved output file'//trim(out_file_name)
  
   ! Deallocate all the arrays for the next pass
   ! -------------------------------------------
@@ -1283,6 +1544,14 @@ program omi_colocate
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not close OMI file'
     return
+  endif
+
+  if(l_trop_found) then
+    call h5fclose_f(trop_file_id, error)
+    if(error /= 0) then
+      write(*,*) 'FATAL ERROR: could not close TROPOMI file'
+      return
+    endif
   endif
 
   ! Close the HDF5 interface

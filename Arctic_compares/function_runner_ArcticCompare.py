@@ -22,6 +22,18 @@ from Arctic_compare_lib import *
 #           #'201807052034',
 #            ]
 
+#date_str = '201807051856'
+date_str = '201807052213'
+#date_str = '201908110033'
+plot_compare_combined_category(date_str, var1 = 'TROP_AI', \
+    var2 = 'CERES_SWF', var3 = None, cat = "ALL", minlat = 65., \
+    xmin = 1.0, xmax = None, ymin = None, ymax = None, ax = None, \
+    colorbar = True, trend = 'lin_regress', zoom = True, color = None, \
+    save = False)
+
+
+sys.exit()
+
 for date_str in case_dates:
 
 #date_str = date_strs[0]

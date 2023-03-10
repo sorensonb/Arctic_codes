@@ -167,6 +167,9 @@ def convert_TROPOMI_to_HDF5(date_str, save_path = home_dir + '/Research/TROPOMI/
     dset.create_dataset('latitude',  data = TROP_data['lat'][~TROP_data['uvai'].mask])
     dset.create_dataset('longitude', data = TROP_data['lon'][~TROP_data['uvai'].mask])
     dset.create_dataset('uvai',      data = TROP_data['uvai'].compressed())
+    dset.create_dataset('ssa0',      data = TROP_data['ssa0'][~TROP_data['uvai'].mask])
+    dset.create_dataset('ssa1',      data = TROP_data['ssa1'][~TROP_data['uvai'].mask])
+    dset.create_dataset('ssa2',      data = TROP_data['ssa2'][~TROP_data['uvai'].mask])
 
     # Save, write, and close the HDF5 file
     # --------------------------------------
@@ -194,10 +197,13 @@ def read_TROPOMI(date_str, minlat = 60.):
 
     # Mask the data outside of the minlat requirement
     # -----------------------------------------------
-    uvai  = data['SCIDATA/UVAerosolIndex'][:,:]
-    lat   = data['GEODATA/latitude'][:,:]
-    lon   = data['GEODATA/longitude'][:,:]
-    time  = data['GEODATA/delta_time'][:]
+    uvai   = data['SCIDATA/UVAerosolIndex'][:,:]
+    ssa0   = data['SCIDATA/FinalAerosolSingleScattAlb'][:,:,0]
+    ssa1   = data['SCIDATA/FinalAerosolSingleScattAlb'][:,:,1]
+    ssa2   = data['SCIDATA/FinalAerosolSingleScattAlb'][:,:,2]
+    lat    = data['GEODATA/latitude'][:,:]
+    lon    = data['GEODATA/longitude'][:,:]
+    time   = data['GEODATA/delta_time'][:]
 
     # Pull out the base file time
     # ---------------------------
@@ -212,6 +218,9 @@ def read_TROPOMI(date_str, minlat = 60.):
     data.close()
 
     uvai = np.ma.masked_where(lat < minlat, uvai)
+    ssa0 = np.ma.masked_where(lat < minlat, ssa0)
+    ssa1 = np.ma.masked_where(lat < minlat, ssa1)
+    ssa2 = np.ma.masked_where(lat < minlat, ssa2)
 
     # Prep output dictionary
     # ----------------------
@@ -220,6 +229,9 @@ def read_TROPOMI(date_str, minlat = 60.):
     TROP_data['lat']  = lat
     TROP_data['lon']  = lon
     TROP_data['uvai'] = uvai
+    TROP_data['ssa0'] = ssa0
+    TROP_data['ssa1'] = ssa1
+    TROP_data['ssa2'] = ssa2
     TROP_data['times'] = abs_time
     
     return TROP_data
@@ -247,11 +259,18 @@ def read_TROPOMI_coloc(date_str, minlat = 60.):
     # ----------------------
     TROP_coloc = {}
     TROP_coloc['date_str'] = date_str
+    print(data.keys())
     for key in data.keys():
         TROP_coloc[key] = data[key][:,:]
 
     TROP_coloc['trop_ai'] = np.ma.masked_where(\
         TROP_coloc['trop_ai'] == -999.0, TROP_coloc['trop_ai'])
+    TROP_coloc['trop_ssa0'] = np.ma.masked_where(\
+        TROP_coloc['trop_ssa0'] == -999.0, TROP_coloc['trop_ssa0'])
+    TROP_coloc['trop_ssa1'] = np.ma.masked_where(\
+        TROP_coloc['trop_ssa1'] == -999.0, TROP_coloc['trop_ssa1'])
+    TROP_coloc['trop_ssa2'] = np.ma.masked_where(\
+        TROP_coloc['trop_ssa2'] == -999.0, TROP_coloc['trop_ssa2'])
 
     data.close()
     
@@ -353,10 +372,10 @@ def plot_TROPOMI_coloc(TROP_coloc, var, ax = None, minlat = 60, vmin = -2, vmax 
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1, projection = mapcrs)
 
-    plot_data = np.ma.masked_where(TROP_coloc['trop_lat'] < minlat, TROP_coloc[var])
+    plot_data = np.ma.masked_where(TROP_coloc['omi_lat'] < minlat, TROP_coloc[var])
 
     labelsize = 10
-    mesh = ax.pcolormesh(TROP_coloc['trop_lon'], TROP_coloc['trop_lat'], plot_data, \
+    mesh = ax.pcolormesh(TROP_coloc['omi_lon'], TROP_coloc['omi_lat'], plot_data, \
         cmap = 'jet', vmin = vmin, vmax = vmax, \
         transform = ccrs.PlateCarree(), shading = 'auto')
     cbar = plt.colorbar(mesh, ax = ax, orientation='vertical',\
@@ -422,6 +441,7 @@ def plot_compare_OMI_TROPOMI(date_str, minlat = 65., slope = 'linear', \
     # Read shawn (and raw) OMI data
     # -----------------------------
     omi_date = trop_to_omi_dict[date_str]
+    #omi_date = date_str
     OMI_base = readOMI_swath_shawn(omi_date, latmin = minlat, \
         shawn_path = home_dir + '/data/OMI/shawn_files/ltc3/')
     #OMI_base = readOMI_swath_hdf(plot_time, 'control', latmin = minlat, \
@@ -433,7 +453,8 @@ def plot_compare_OMI_TROPOMI(date_str, minlat = 65., slope = 'linear', \
 
     # Read colocated TROPOMI data (contains OMI data)
     # -----------------------------------------------
-    TROP_coloc = read_TROPOMI_coloc(date_str)
+    TROP_coloc = read_TROPOMI_coloc(omi_date)
+    #TROP_coloc = read_TROPOMI_coloc(date_str)
 
     if(TROP_coloc == -1):
         print("NO PLOTTING")
@@ -464,7 +485,7 @@ def plot_compare_OMI_TROPOMI(date_str, minlat = 65., slope = 'linear', \
 
     # Plot 3: perturbed OMI
     labelsize = 10
-    mesh = ax3.pcolormesh(TROP_coloc['trop_lon'], TROP_coloc['trop_lat'], \
+    mesh = ax3.pcolormesh(TROP_coloc['omi_lon'], TROP_coloc['omi_lat'], \
         TROP_coloc['omi_uvai_pert'], transform = datacrs, shading = 'auto', \
         cmap = 'jet', vmin = vmin, vmax = vmax)
     cbar = plt.colorbar(mesh, ax = ax3, orientation='vertical',\

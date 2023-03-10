@@ -199,7 +199,7 @@ cmnd = "scp "+rain_dir+"/fort_lib/*.f90 "+final_dir
 print(cmnd)
 os.system(cmnd)
 
-final_dir = dest_dir + 'Arctic_compares/'
+final_dir = dest_dir + 'Arctic_compares/processing/'
 cmnd = "scp "+rain_dir+"/arctic_comp/*.f90 "+final_dir
 print(cmnd)
 os.system(cmnd)
@@ -207,6 +207,11 @@ cmnd = "scp "+rain_dir+"/arctic_comp/Make* "+final_dir
 print(cmnd)
 os.system(cmnd)
 cmnd = "scp "+rain_dir+"/arctic_comp/auto_process.sh "+final_dir
+print(cmnd)
+os.system(cmnd)
+# Get colocate_vars stuff
+final_dir = dest_dir + 'Arctic_compares/processing/colocate_vars/'
+cmnd = "scp "+rain_dir+"/colocate_vars/*.f90 "+final_dir
 print(cmnd)
 os.system(cmnd)
 
