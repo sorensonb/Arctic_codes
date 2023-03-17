@@ -19,9 +19,11 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colors as cm
 from matplotlib.dates import DateFormatter
+import matplotlib.gridspec as gridspec
 import cartopy
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from satpy import find_files_and_readers
 from satpy.scene import Scene
 from satpy.writers import get_enhanced_image
@@ -59,12 +61,16 @@ event_dict = {
         'end_end':   '20080510',
     },
     '20120615': {
-        'before_start': '20120601',
+        'before_start': '20120609',
         'before_end':   '20120613',
+        #'before_start': '20120601',
+        #'before_end':   '20120613',
         'start': '2012061400',
         'end':   '2012061900',
         'end_start': '20120620',
-        'end_end':   '20120630',
+        'end_end':   '20120624',
+        #'end_start': '20120620',
+        #'end_end':   '20120630',
     },
     '20140801': {
         'before_start': '20120601',
@@ -75,12 +81,16 @@ event_dict = {
         'end_end':   '20120630',
     },
     '20170816': {
-        'before_start': '20170804',
+        'before_start': '20170811',
         'before_end':   '20170815',
+        #'before_start': '20170804',
+        #'before_end':   '20170815',
         'start': '2017081600',
         'end':   '2017082200',
-        'end_start': '20170820',
-        'end_end':   '20170831',
+        'end_start': '20170823',
+        'end_end':   '20170827',
+        #'end_start': '20170820',
+        #'end_end':   '20170831',
     },
     '20200824': {
         'before_start': '20200810',
@@ -118,6 +128,11 @@ event_dict = {
 #    '201908110351'
 }
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#
+# Reading functions
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
 def read_NAAPS(date_str, minlat = 65.):
 
@@ -225,109 +240,6 @@ def read_NAAPS_event(date_str, minlat = 65.):
     NAAPS_data['dt_end_date']   = dt_end_str
     
     return NAAPS_data
-
-
-def plot_NAAPS(NAAPS_data, var, ax = None, labelsize = 12, \
-        plot_log = True, labelticksize = 10, zoom = True, vmin = None, \
-        minlat = 65., circle_bound = True, vmax = None, save = False):
-
-    in_ax = True
-    if(ax is None):
-        in_ax = False
-        plt.close('all')
-        fig = plt.figure()
-        ax = fig.add_subplot(1,1,1, projection = mapcrs)
-
-    min_val = 0.0
-    if(plot_log):
-        plot_data = np.ma.masked_where(NAAPS_data[var] < min_val, NAAPS_data[var])
-        plot_data = np.log10(plot_data)
-    else:
-        plot_data = np.ma.masked_where(NAAPS_data[var] < min_val, NAAPS_data[var])
-        plot_data = plot_data
-
-    mesh = ax.pcolormesh(NAAPS_data['lon'], NAAPS_data['lat'], \
-        plot_data, \
-        cmap = 'viridis', vmin = vmin, vmax = vmax, \
-        transform = ccrs.PlateCarree(), shading = 'auto')
-    cbar = plt.colorbar(mesh, ax = ax, orientation='vertical',\
-        pad=0.04, fraction = 0.040, extend = 'both')
-    cbar.set_label(var, size = labelsize, weight = 'bold')
-    #cbar.ax.tick_params(labelsize = labelticksize)
-    ax.set_title(NAAPS_data['date'])
-
-    if(circle_bound):
-        ax.set_boundary(circle, transform = ax.transAxes)
-
-    if(zoom):
-        ax.set_extent([-180.0,180.0,minlat,90.0],\
-                       ccrs.PlateCarree())
-    else:
-        ax.set_extent([-180.0,180.0,65.0,90.0],\
-                       ccrs.PlateCarree())
-    if(not in_ax):
-        plt.show()
-
-def plot_NAAPS_figure(date_str, var, minlat = 65., vmin = None, vmax = None, \
-        circle_bound = True, plot_log = True, ptitle = '', zoom = True, \
-        save_dir = home_dir + '/Research/NAAPS/single_time_images/', \
-        save = False):
-
-    plt.close('all')
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1, projection = mapcrs)
-
-    # Read the data for this granule
-    # ------------------------------
-    NAAPS_data = read_NAAPS(date_str, minlat = minlat)
-
-    # Plot the data for this granule
-    # ------------------------------
-    plot_NAAPS(NAAPS_data, var, ax = ax, zoom = zoom, \
-            vmin = vmin, vmax = vmax, plot_log = plot_log, \
-            circle_bound = circle_bound, minlat = minlat)
-
-    ax.set_title('NAAPS-RA ' + var + '\n' + NAAPS_data['date'])
- 
-    ax.coastlines()
-
-    if(save):
-        outname = save_dir + 'naaps_' + var + '_' + date_str + '.png'
-        fig.savefig(outname, dpi = 300)
-        print("Saved image", outname)
-    else:
-        plt.show()
-
-def plot_NAAPS_event(date_str, var, minlat = 65., vmin = None, vmax = None, \
-        plot_log = True, ptitle = '', circle_bound = True, zoom = True, \
-        save = False):
-
-    plt.close('all')
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1, projection = mapcrs)
-
-    # Read the data for this granule
-    # ------------------------------
-    NAAPS_data = read_NAAPS_event(date_str, minlat = minlat)
-
-    # Plot the data for this granule
-    # ------------------------------
-    plot_NAAPS(NAAPS_data, var, ax = ax, zoom = zoom, \
-            vmin = vmin, vmax = vmax, plot_log = plot_log, \
-            circle_bound = circle_bound, minlat = minlat)
-
-    ax.set_title('NAAPS-RA ' + var + '\n' + \
-        NAAPS_data['dt_begin_date'].strftime('%Y-%m-%d') + ' - ' + \
-        NAAPS_data['dt_end_date'].strftime('%Y-%m-%d'))
- 
-    ax.coastlines()
-
-    if(save):
-        outname = 'naaps_event_' + var + '_' + date_str + '.png'
-        fig.savefig(outname, dpi = 300)
-        print("Saved image", outname)
-    else:
-        plt.show()
 
 def read_zoom_CERES_data(date1, date2, date3, date4, ceres_var, min_ice, \
         min_smoke, max_smoke, vmin2, NAAPS_data, minlat, lat_bounds, \
@@ -485,8 +397,15 @@ def read_zoom_CERES_data(date1, date2, date3, date4, ceres_var, min_ice, \
 
     return CERES_data1, CERES_data2, NAAPS_data
 
-def read_CERES_historic(dt_begin_str1, dt_end_str1, dt_begin_str2, dt_end_str2,\
-        ceres_var, min_ice, min_smoke, max_smoke, vmin2, satellite, NAAPS_data, minlat, lat_bounds, lon_bounds):
+# plot_daily_data: plots a 5-panel figure showing the total
+# smoke deposition, the daily CERES variable values within
+# the smoky region for the before and after period for that
+# year, and the smoky and non-smoky region values for the
+# before period.
+def read_CERES_historic(dt_begin_str1, dt_end_str1, dt_begin_str2, \
+        dt_end_str2, ceres_var, min_ice, min_smoke, max_smoke, vmin2, \
+        satellite, NAAPS_data, minlat, lat_bounds, lon_bounds, \
+        plot_daily_data = False):
 
     combined_data = {}
     combined_data_nosmoke = {}
@@ -543,64 +462,6 @@ def read_CERES_historic(dt_begin_str1, dt_end_str1, dt_begin_str2, dt_end_str2,\
             CERES_data1[ceres_var].compressed().shape, \
             CERES_data1[ceres_var + '_nosmoke'].compressed().shape)
 
-        # Make a figure of the local data
-        # -------------------------------
-        fig3 = plt.figure(figsize = (9,7))
-        ax10 = fig3.add_subplot(2,3,1, projection = mapcrs)
-        ax11 = fig3.add_subplot(2,3,2, projection = mapcrs)
-        ax12 = fig3.add_subplot(2,3,3, projection = mapcrs)
-        ax21 = fig3.add_subplot(2,3,5, projection = mapcrs)
-        ax22 = fig3.add_subplot(2,3,6, projection = mapcrs)
-
-        plot_NAAPS(NAAPS_data, 'smoke_conc_sfc', ax = ax10, zoom = True, \
-                minlat = minlat, vmin = 0, vmax = 50, plot_log = False)
-
-        # Plot the CERES data
-        #plotCERES_daily(CERES_data1, ceres_var, end_str = dt_end_local1.strftime('%Y%m%d'), \
-        plotCERES_daily(CERES_data12, ceres_var, end_str = dt_end_local1.strftime('%Y%m%d'), \
-            satellite = satellite,  only_sea_ice = False, minlat = minlat, \
-            vmin = vmin2, vmax = 0.7, \
-            avg_data = True, ax = ax11, save = False, min_ice = min_ice, \
-            circle_bound = True, colorbar = True)
-        #plotCERES_daily(CERES_data2, ceres_var, end_str = dt_end_local2.strftime('%Y%m%d'), \
-        plotCERES_daily(CERES_data22, ceres_var, end_str = dt_end_local2.strftime('%Y%m%d'), \
-            satellite = satellite,  only_sea_ice = False, minlat = minlat, \
-            vmin = vmin2, vmax = 0.7, \
-            avg_data = True, ax = ax12, save = False, min_ice = min_ice, \
-            circle_bound = True, colorbar = True)
-        plotCERES_daily(CERES_data1, ceres_var, \
-            end_str = dt_end_local1.strftime('%Y%m%d'), \
-            satellite = satellite,  only_sea_ice = False, minlat = minlat, \
-            vmin = vmin2, vmax = 0.7, \
-            avg_data = True, ax = ax21, save = False, min_ice = min_ice, \
-            circle_bound = True, colorbar = True)
-        #plotCERES_daily(CERES_data2, ceres_var, end_str = dt_end_local2.strftime('%Y%m%d'), \
-        plotCERES_daily(CERES_data1, ceres_var + '_nosmoke', \
-            end_str = dt_end_local1.strftime('%Y%m%d'), \
-            satellite = satellite,  only_sea_ice = False, minlat = minlat, \
-            vmin = vmin2, vmax = 0.7, \
-            avg_data = True, ax = ax22, save = False, min_ice = min_ice, \
-            circle_bound = True, colorbar = True)
-
-        ax10.coastlines()
-        ax10.set_title('NAAPS-RA smoke_conc_sfc\n' + \
-            NAAPS_data['dt_begin_date'].strftime('%Y-%m-%d') + ' - ' + \
-            NAAPS_data['dt_end_date'].strftime('%Y-%m-%d'))
-        ax11.set_title('CERES Average Clear-sky Albedo\n' + dt_begin_local1.strftime('%Y%m%d') + ' - ' + \
-            dt_end_local1.strftime('%Y%m%d'))
-        ax12.set_title('CERES Average Clear-sky Albedo\n' + dt_begin_local2.strftime('%Y%m%d') + ' - ' + \
-            dt_end_local2.strftime('%Y%m%d'))
-        ax21.set_title('CERES Average Clear-sky Albedo\n' + \
-            dt_begin_local1.strftime('%Y%m%d') + ' - ' + \
-            dt_end_local1.strftime('%Y%m%d'))
-        ax22.set_title('CERES Average Clear-sky Albedo\n(No Smoke)\n' + \
-            dt_begin_local1.strftime('%Y%m%d') + ' - ' + \
-            dt_end_local1.strftime('%Y%m%d'))
-        fig3.tight_layout()
-        outname = 'naaps_ceres_historic_' + dt_end_local1.strftime('%Y%m%d') + '.png'
-        fig3.savefig(outname, dpi = 300)
-        print("Saved image", outname)
-
         bdata1 = CERES_data1[ceres_var].flatten().compressed()
         bdata2 = CERES_data2[ceres_var].flatten().compressed()
         bdata3 = CERES_data1[ceres_var+'_nosmoke'].flatten().compressed()
@@ -627,6 +488,66 @@ def read_CERES_historic(dt_begin_str1, dt_end_str1, dt_begin_str2, dt_end_str2,\
 
         cnt += 1
 
+        if(plot_daily_data):
+            # Make a figure of the local data
+            # -------------------------------
+            fig3 = plt.figure(figsize = (9,7))
+            ax10 = fig3.add_subplot(2,3,1, projection = mapcrs)
+            ax11 = fig3.add_subplot(2,3,2, projection = mapcrs)
+            ax12 = fig3.add_subplot(2,3,3, projection = mapcrs)
+            ax21 = fig3.add_subplot(2,3,5, projection = mapcrs)
+            ax22 = fig3.add_subplot(2,3,6, projection = mapcrs)
+
+            plot_NAAPS(NAAPS_data, 'smoke_conc_sfc', ax = ax10, zoom = True, \
+                    minlat = minlat, vmin = 0, vmax = 50, plot_log = False)
+
+            # Plot the CERES data
+            #plotCERES_daily(CERES_data1, ceres_var, end_str = dt_end_local1.strftime('%Y%m%d'), \
+            plotCERES_daily(CERES_data12, ceres_var, end_str = dt_end_local1.strftime('%Y%m%d'), \
+                satellite = satellite,  only_sea_ice = False, minlat = minlat, \
+                vmin = vmin2, vmax = 0.7, \
+                avg_data = True, ax = ax11, save = False, min_ice = min_ice, \
+                circle_bound = True, colorbar = True)
+            #plotCERES_daily(CERES_data2, ceres_var, end_str = dt_end_local2.strftime('%Y%m%d'), \
+            plotCERES_daily(CERES_data22, ceres_var, end_str = dt_end_local2.strftime('%Y%m%d'), \
+                satellite = satellite,  only_sea_ice = False, minlat = minlat, \
+                vmin = vmin2, vmax = 0.7, \
+                avg_data = True, ax = ax12, save = False, min_ice = min_ice, \
+                circle_bound = True, colorbar = True)
+            plotCERES_daily(CERES_data1, ceres_var, \
+                end_str = dt_end_local1.strftime('%Y%m%d'), \
+                satellite = satellite,  only_sea_ice = False, minlat = minlat, \
+                vmin = vmin2, vmax = 0.7, \
+                avg_data = True, ax = ax21, save = False, min_ice = min_ice, \
+                circle_bound = True, colorbar = True)
+            #plotCERES_daily(CERES_data2, ceres_var, end_str = dt_end_local2.strftime('%Y%m%d'), \
+            plotCERES_daily(CERES_data1, ceres_var + '_nosmoke', \
+                end_str = dt_end_local1.strftime('%Y%m%d'), \
+                satellite = satellite,  only_sea_ice = False, minlat = minlat, \
+                vmin = vmin2, vmax = 0.7, \
+                avg_data = True, ax = ax22, save = False, min_ice = min_ice, \
+                circle_bound = True, colorbar = True)
+
+            ax10.coastlines()
+            ax10.set_title('NAAPS-RA smoke_conc_sfc\n' + \
+                NAAPS_data['dt_begin_date'].strftime('%Y-%m-%d') + ' - ' + \
+                NAAPS_data['dt_end_date'].strftime('%Y-%m-%d'))
+            ax11.set_title('CERES Average Clear-sky Albedo\n' + dt_begin_local1.strftime('%Y%m%d') + ' - ' + \
+                dt_end_local1.strftime('%Y%m%d'))
+            ax12.set_title('CERES Average Clear-sky Albedo\n' + dt_begin_local2.strftime('%Y%m%d') + ' - ' + \
+                dt_end_local2.strftime('%Y%m%d'))
+            ax21.set_title('CERES Average Clear-sky Albedo\n' + \
+                dt_begin_local1.strftime('%Y%m%d') + ' - ' + \
+                dt_end_local1.strftime('%Y%m%d'))
+            ax22.set_title('CERES Average Clear-sky Albedo\n(No Smoke)\n' + \
+                dt_begin_local1.strftime('%Y%m%d') + ' - ' + \
+                dt_end_local1.strftime('%Y%m%d'))
+            fig3.tight_layout()
+            outname = 'naaps_ceres_historic_' + dt_end_local1.strftime('%Y%m%d') + '.png'
+            fig3.savefig(outname, dpi = 300)
+            print("Saved image", outname)
+
+
     second_labels = np.array([[bkey for akey in \
         combined_data[bkey].keys()] for bkey in combined_data.keys()])
     labels = second_labels.flatten()
@@ -639,10 +560,816 @@ def read_CERES_historic(dt_begin_str1, dt_end_str1, dt_begin_str2, dt_end_str2,\
 
     return second_labels, second_arrays, average_data, second_arrays_nosmoke
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#
+# Calculation functions
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+
+# Could modify to allow user to calculate either daily or monthly
+# average.
+def calc_NAAPS_month_avg(date_str, minlat = 65., mask_zero = False):
+
+    # Make sure date string is of correct format
+    # ------------------------------------------
+    if(len(date_str) != 6):
+        print("ERROR: invalid date_str value")
+        print("       Must be of format YYYYMM")
+        return -1
+    
+    dt_date_str = datetime.strptime(date_str, '%Y%m')
+
+    # Determine if the associated directory is untarred
+    # -------------------------------------------------
+    if(not os.path.isdir(dt_date_str.strftime(data_dir + '%Y/%Y%m/'))):
+        print("ERROR: data directory for ",date_str," is not untarred")
+        print("       Must untar associated NAAPS gzip tarfile before")
+        print("       continuing")
+        return -2 
+
+    # Find all relevant files in the associated directory
+    # ---------------------------------------------------
+    files = glob(dt_date_str.strftime(data_dir + '%Y/%Y%m/NVA_*%Y%m*.nc'))
+    num_files = len(files)
+
+    # Allocate array to hold all the data north of minlat before averaging
+    # --------------------------------------------------------------------
+    num_lats = int(90 - minlat)
+    test_lats = np.arange(-89.5, 90.5, 1)
+    all_data = np.full((num_files,  num_lats, 360), np.nan)
+
+    # Insert all the data for this month into the array
+    # -------------------------------------------------
+    beg_idx = np.where(test_lats > minlat)[0][0]
+    print(beg_idx)
+    for ii in range(num_files):
+        print(files[ii])
+        data = Dataset(files[ii], 'r')
+ 
+        all_data[ii,:,:] = data['smoke_conc_sfc'][beg_idx:,:]
+
+        data.close()
+
+    # Average the data down into a single monthly average
+    # ---------------------------------------------------
+    if(mask_zero):
+        all_data = np.ma.masked_where(all_data == 0., all_data)
+
+    all_data = np.nanmean(all_data, axis = 0)
+
+    # Return the averaged data
+    return all_data
+
+def calc_NAAPS_all_avgs(begin_date, end_date, minlat = 65., \
+        mask_zero = False):
+
+    begin_date_str = datetime.strptime(begin_date, '%Y%m')
+    end_date_str   = datetime.strptime(end_date, '%Y%m')
+
+    # Find the number of months to analyze
+    # ------------------------------------
+    local_date_str = begin_date_str
+    num_months = 0
+    date_strs = []
+    while(local_date_str <= end_date_str):
+        if((local_date_str.month >= 4 ) & (local_date_str.month <= 9)):
+            num_months += 1
+            date_strs.append(local_date_str.strftime('%Y%m'))
+    
+        local_date_str = local_date_str + relativedelta(months = 1)
+
+    # Prep the data file
+    num_lats = int(90 - minlat)
+    local_lats = np.arange(minlat + 0.5, 90.5, 1)
+    local_lons = np.arange(-179.5, 180.5, 1)
+    all_data = np.full((num_months, num_lats, 360), np.nan)
+
+    for ii, dstr in enumerate(date_strs):
+        print(dstr)
+        all_data[ii,:,:] = calc_NAAPS_month_avg(dstr, minlat = minlat, \
+            mask_zero = mask_zero)
+    
+    grid_lons, grid_lats = np.meshgrid(local_lons, local_lats)
+     
+    NAAPS_avgs = {}
+    NAAPS_avgs['begin_str'] = begin_date
+    NAAPS_avgs['end_str']   = end_date
+    NAAPS_avgs['dates']     = date_strs
+    NAAPS_avgs['data']      = all_data   
+    NAAPS_avgs['lats']      = grid_lats
+    NAAPS_avgs['lons']      = grid_lons
+ 
+    return NAAPS_avgs
+
+def calcNAAPS_grid_trend(NAAPS_data, month_idx, trend_type, minlat):
+
+    if(month_idx == None):
+        month_idx = 0
+        index_jumper = 1
+    else:
+        month_adder = '_month'
+        index_jumper = 6 
+
+    lat_ranges = np.arange(minlat+0.5,90.5,1.0)
+    lon_ranges = np.arange(-179.5,180.5,1.0)
+
+    # Make copy of NAAPS_data array
+    print('HERE:',NAAPS_data['dates'][month_idx::index_jumper])
+    local_data   = np.copy(NAAPS_data['data'][month_idx::index_jumper,:,:])
+    local_mask = np.ma.masked_where((local_data == -999.9) & \
+        (NAAPS_data['lats'] < minlat), local_data)
+
+    smoke_trends = np.full(local_data.shape[1:], np.nan)
+    smoke_pvals  = np.full(local_data.shape[1:], np.nan)
+    smoke_uncert = np.full(local_data.shape[1:], np.nan)
+
+    print(local_data.shape)
+
+    # Loop over all the keys and print the regression slopes 
+    # Grab the averages for the key
+    for i in range(0,len(np.arange(np.min(NAAPS_data['lats']),90))):
+        for j in range(0,len(lon_ranges)):
+            # Check the current max and min
+            x_vals = np.arange(0,len(local_mask[:,i,j]))
+            # Find the slope of the line of best fit for the time series of
+            # average data
+            if(trend_type=='standard'): 
+                #slope, intercept, r_value, p_value, std_err, intcpt_stderr = \
+                result = stats.linregress(x_vals,local_mask[:,i,j])
+                smoke_trends[i,j] = result.slope * len(x_vals)
+                smoke_pvals[i,j]  = result.pvalue
+                smoke_uncert[i,j] = result.stderr * len(x_vals)
+            else:
+                res = stats.theilslopes(local_mask[:,i,j], x_vals, 0.90)
+                smoke_trends[i,j] = res[0]*len(x_vals)
+
+    smoke_trends = np.ma.masked_where(NAAPS_data['lats'] < minlat, smoke_trends)
+    smoke_pvals  = np.ma.masked_where(NAAPS_data['lats'] < minlat, smoke_pvals)
+    smoke_uncert = np.ma.masked_where(NAAPS_data['lats'] < minlat, smoke_uncert)
+
+    print('in trend calc')
+    for x, y in zip(NAAPS_data['lats'][:,10], smoke_trends[:,10]):
+        print(x,y)
+
+    return smoke_trends, smoke_pvals, smoke_uncert
+
+# This function assumes the data is being read from the netCDF file
+# NOTE: Assume user is using new NAAPS climo file which starts in January
+def calcNAAPS_MonthClimo(NAAPS_data):
+
+    # Set up arrays to hold monthly climatologies
+    month_climo = np.zeros((6, NAAPS_data['data'].shape[1], \
+        NAAPS_data['data'].shape[2]))
+
+    # Mask the monthly averages
+    local_data   = np.copy(NAAPS_data['data'][:,:,:])
+    local_mask = np.ma.masked_where(local_data == -999.9, local_data)
+ 
+    # Calculate monthly climatologies
+    for m_i in range(6):
+        month_climo[m_i,:,:] = np.nanmean(local_data[m_i::6,:,:],axis=0)
+        print("Month: ",NAAPS_data['dates'][m_i][4:]) 
+        ##!#month_climo[m_i,:,:] = np.nanmean(local_mask[m_i::12,:,:],axis=0)
+        ##!#print("Month: ",NAAPS_data['DATES'][m_i][4:], NAAPS_data['DATES'][::12]) 
+    #month_climo[0,:,:]  = np.nanmean(local_mask[0::12,:,:],axis=0)  # January 
+    #month_climo[1,:,:]  = np.nanmean(local_mask[1::12,:,:],axis=0)  # February
+    #month_climo[2,:,:]  = np.nanmean(local_mask[2::12,:,:],axis=0)  # March 
+    #month_climo[3,:,:]  = np.nanmean(local_mask[3::12,:,:],axis=0)  # April 
+    #month_climo[4,:,:]  = np.nanmean(local_mask[4::12,:,:],axis=0)  # May 
+    #month_climo[5,:,:]  = np.nanmean(local_mask[5::12,:,:],axis=0)  # June 
+    #month_climo[6,:,:]  = np.nanmean(local_mask[6::12,:,:],axis=0)  # July 
+    #month_climo[7,:,:]  = np.nanmean(local_mask[7::12,:,:],axis=0)  # August 
+    #month_climo[8,:,:]  = np.nanmean(local_mask[8::12,:,:],axis=0)  # September 
+    #month_climo[9,:,:]  = np.nanmean(local_mask[9::12,:,:],axis=0)  # October 
+    #month_climo[10,:,:] = np.nanmean(local_mask[10::12,:,:],axis=0) # November
+    #month_climo[11,:,:] = np.nanmean(local_mask[11::12,:,:],axis=0) # December
+
+    # Insert data into dictionary
+    NAAPS_data['MONTH_CLIMO'] = month_climo
+
+    return NAAPS_data
+
+
+def writeNAAPS_toNCDF(NAAPS_data,file_name, minlat = 65.):
+
+    lat_ranges = np.arange(minlat + 0.5,90.5,1.0)
+    lon_ranges = np.arange(-179.5,180.5,1.0)
+   
+    # Create a new netCDF dataset to write to
+    # --------------------------------------- 
+    nc = Dataset(file_name,'w',format='NETCDF4')
+  
+    # Dimensions = lat, lon, time
+    # Create the sizes of each dimension in the file. In this case,
+    # the dimensions are "# of latitude", "# of longitude", and 
+    # "# of times in the file". 
+    # -------------------------------------------------------------
+    num_lat  = len(lat_ranges)
+    num_lon  = len(lon_ranges)
+    num_time = len(NAAPS_data['dates'])
+    times = np.arange(num_time)
+  
+    # Instead of using a simple 'arange' function to define the 'times'
+    # variable, actually calculate the number of months between each date
+    # variable and a reference date, which is January 2005. This will have
+    # no effect on any total NAAPS processes but will allow compatibility with
+    # testing processes where just a few months between January 2005 and
+    # July 2019 are selected. 
+    base_date = datetime(year=2005,month=1,day=1) 
+    times = np.array([(datetime.strptime(tmpx,'%Y%m').year - base_date.year) \
+        * 12 + datetime.strptime(tmpx,'%Y%m').month - base_date.month \
+        for tmpx in NAAPS_data['dates']])
+   
+    # Use the dimension size variables to actually create dimensions in 
+    # the file.
+    # ----------------------------------------------------------------- 
+    n_time = nc.createDimension('nmth',num_time)
+    n_lat  = nc.createDimension('dlat',num_lat)
+    n_lon  = nc.createDimension('dlon',num_lon)
+
+    # Create variables for the three dimensions. Note that since these
+    # are variables, they are still given 'dimensions' using 'nmth',
+    # 'dlat', and 'dlon'. Latitude and longitude are each 2-d grids, 
+    # so they are given 2 dimensions (dlat, dlon).
+    # ----------------------------------------------------------------
+    MONTH = nc.createVariable('MONTH','i2',('nmth'))
+    MONTH.description = 'Months since January 2005'
+    LAT = nc.createVariable('Latitude','f4',('dlat','dlon'))
+    LAT.description = 'Latitude (degrees North)'
+    LAT.units = 'Degrees'
+    LON = nc.createVariable('Longitude','f4',('dlat','dlon'))
+    LON.description = 'Longitude (-180 - 180)'
+    LON.units = 'Degrees'
+   
+    # Create a variable for the AI data, dimensioned using all three
+    # dimensions.
+    # --------------------------------------------------------------  
+    CONC = nc.createVariable('smoke_conc_sfc','f4',('nmth','dlat','dlon'))
+    CONC.description = 'Monthly averaged NAAPS smoke aerosol concentration '+\
+        'in the lowest NAAPS model layer'
+
+    # Fill in dimension variables one-by-one.
+    # NOTE: not sure if you can insert the entire data array into the
+    # dimension (for example, doing MONTH = times), so this could be
+    # something for you to try. Might make this faster if it works
+    # ---------------------------------------------------------------
+    MONTH[:] = times[:]
+    LAT[:,:] = NAAPS_data['lats']
+    LON[:,:] = NAAPS_data['lons']
+    ##for i in range(num_time):
+    #    MONTH[i] = times[i]
+    #for i in range(num_lat):
+    #    for j in range(num_lon):
+    #        LAT[i,j]=lat_ranges[i]
+    #        LON[i,j]=lon_ranges[j]
+
+    # Fill in actual variables
+    # I have a bunch of extra stuff in here for handling the dictionary
+    # keys, which you will likely not need for your data
+    # ------------------------------------------------------------------
+    CONC[:,:,:] = NAAPS_data['data'][:,:,:]
+    #for ii in range(num_time):
+    ##!#for i in range(num_lat):
+    ##!#    print(lat_ranges[i])
+    ##!#    for j in range(num_lon):
+    ##!#        dictkey = (str(int(lat_ranges[i]))+'x'+str(int(lon_ranges[j])))
+    ##!#        if(dictkey not in NAAPS_data):
+    ##!#            # Insert missing values for AI and count
+    ##!#            AI[:,i,j] = [-999.9 for m in range(num_time)]
+    ##!#            OB_COUNT[:,i,j] = [-99 for m in range(num_time)]
+    ##!#        else:
+    ##!#            for m in range(num_time):
+    ##!#                timekey = testkeys[m]
+    ##!#                if(timekey not in NAAPS_data[dictkey]):
+    ##!#                    AI[m,i,j] = -999.9
+    ##!#                    OB_COUNT[m,i,j] = -99
+    ##!#                else:
+    ##!#                    AI[m,i,j] = NAAPS_data[dictkey][timekey]['avg']
+    ##!#                    OB_COUNT[m,i,j] = NAAPS_data[dictkey][timekey]['#_obs']
+
+    # Close the netCDF file, which actually saves it.
+    # -----------------------------------------------
+    nc.close()
+    print("Saved file", file_name)
+
+def readgridNAAPS_NCDF(infile=home_dir + \
+        '/Research/NAAPS/naaps_grid_smoke_conc_sfc_2005_2020.nc',\
+        start_date = 200504, end_date = 202009, calc_month = True, \
+        minlat = 65):
+
+    # Read in data to netCDF object
+    in_data = Dataset(infile,'r')
+
+    # Set up dictionary to hold data
+    NAAPS_data = {}
+
+    # Set up date strings in the file
+    base_date = datetime(year = 2005, month = 1, day = 1)
+    str_dates = \
+        np.array([(base_date + relativedelta(months=mi)).strftime('%Y%m') for mi in \
+            in_data['MONTH']])
+
+    # Use the file dates to select just the data within the user-specified
+    # timeframe
+    # --------------------------------------------------------------------
+    int_str_dates = np.array([int(tdate) for tdate in str_dates])
+
+    time_indices = np.where((int_str_dates >= start_date) & \
+        (int_str_dates <= end_date))[0]
+
+    NAAPS_data['begin_str'] = str_dates[0]
+    NAAPS_data['end_str']   = str_dates[-1]
+    NAAPS_data['dates']     = str_dates
+    NAAPS_data['data']      = in_data['smoke_conc_sfc'][:,:,:]
+    NAAPS_data['lats']      = in_data['Latitude'][:,:]
+    NAAPS_data['lons']      = in_data['Longitude'][:,:]
+ 
+
+    if(calc_month == True):
+        NAAPS_data = calcNAAPS_MonthClimo(NAAPS_data)
+
+    # to add months to datetime object, do
+    ###from dateutil.relativedelta import relativedelta
+    ###datetime.datetime(year=2004,month=10,day=1) + relativedelta(months=1)
+    
+    in_data.close()
+   
+    return NAAPS_data
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#
+# Plottng functions
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+
+# ptype is either 'trend', 'climo', or 'monthclimo'
+# title is the plot title
+def plotNAAPS_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
+        vmin = None, vmax = None, colorbar_label_size = 14, colorbar = True, \
+        minlat = 65., pvals = None):
+
+    if(vmin == None):
+        vmin = np.nanmin(pdata)
+    if(vmax == None):
+        vmax = np.nanmax(pdata)
+
+    if(ptype == 'trend'):
+        colormap = plt.cm.bwr
+        #colormap = plt.cm.get_cmap('bwr', 5)
+    elif(ptype == 'uncert'):
+        #colormap = plt.cm.plasma
+        colormap = plt.cm.get_cmap('jet', 6)
+    else:
+        colormap = plt.cm.jet
+
+    # Make copy of NAAPS_data array
+    local_data  = np.copy(pdata)
+    # Grid the data, fill in white space
+    cyclic_data,cyclic_lons = add_cyclic_point(local_data,plon[0,:])
+    plat2,plon2 = np.meshgrid(plat[:,0],cyclic_lons)   
+  
+    # Mask any missing values
+    mask_smoke = np.ma.masked_where(cyclic_data < -998.9, cyclic_data)
+    mask_smoke = np.ma.masked_where(plat2.T < minlat, mask_smoke)
+
+    # Plot lat/lon lines
+    gl = pax.gridlines(crs = ccrs.PlateCarree(), draw_labels = False, \
+        linewidth = 1, color = 'gray', alpha = 0.5, linestyle = '-',\
+        y_inline = True, xlocs = range(-180, 180, 30), ylocs = range(70, 90, 10))
+    #gl.top_labels = False
+    #gl.bottom_labels = False
+    #gl.left_labels = False
+    #gl.right_labels = False
+    #gl.xlines = False
+    #gl.xlocator = mticker.FixedLocator(np.arange(-180, 180, 30))
+    #gl.ylocator = mticker.FixedLocator(np.arange(70, 90, 10))
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    #gl.xlabel_style = {'size': 5, 'color': 'gray'}
+    gl.xlabel_style = {'color': 'gray', 'weight': 'bold'}
+    gl.ylabel_style = {'size': 15, 'color': 'gray'}
+    gl.ylabel_style = {'color': 'black', 'weight': 'bold'}
+    #pax.gridlines()
+
+    pax.coastlines(resolution='50m')
+    mesh = pax.pcolormesh(plon2, plat2,\
+            mask_smoke.T,transform = datacrs,\
+            cmap = colormap,vmin=vmin,vmax=vmax, shading = 'auto')
+    if(pvals is not None):
+        cyclic_pvals, cyclic_lons = add_cyclic_point(pvals, plon[0,:])
+        print(pvals.shape, plat.shape, plat2.shape)
+        mask_pvals = np.ma.masked_where((plat < minlat) | \
+            (pvals > 0.05), pvals)
+        pax.pcolor(plon, plat, mask_pvals, hatch = '...', alpha = 0.0, \
+            shading = 'auto', transform = datacrs)
+
+    pax.set_extent([-180,180,minlat,90],datacrs)
+    pax.set_boundary(circle, transform=pax.transAxes)
+    #ax.set_xlim(-3430748.535086173,3430748.438879491)
+    #ax.set_ylim(-3413488.8763307533,3443353.899053069)
+    #cbar = plt.colorbar(mesh,ticks = np.arange(-2.0,4.1,0.2),\
+    if(colorbar):
+        cbar = plt.colorbar(mesh,\
+            ax = pax, orientation='vertical',shrink = 0.8, extend = 'both')
+        #cbar10.set_label('UV Aerosol Index',weight='bold',fontsize=colorbar_label_size)
+        #cbar.ax.tick_params(labelsize=14)
+        cbar.set_label(plabel,fontsize=colorbar_label_size,weight='bold')
+    pax.set_title(ptitle)
+
+# Designed to work with the netCDF data
+def plotNAAPS_MonthTrend(NAAPS_data,month_idx=None,save=False,\
+        trend_type='standard',minlat=65.,return_trend=False, colorbar = True, \
+        title = '', label = '', colorbar_label_size = 14, pax = None, \
+        show_pval = False, uncert_ax = None):
+
+    trend_label=''
+    if(trend_type=='theil-sen'):
+        trend_label='_theilSen'
+
+    max_vals = [0.5, 0.7, 3.0, 7.0, 12.0, 10.0]
+
+    if(month_idx == None):
+        month_adder = ''
+        do_month = False
+        v_max = 0.5
+        v_min = -0.5
+    else:
+        month_adder = '_month'
+        do_month = True
+        index_jumper = 6 
+        v_max = max_vals[month_idx]
+        v_min = -max_vals[month_idx]
+    # --------------------------------------------------------------
+    #
+    # Use calcNAAPS_grid_trend to calculate the trends in the AI data
+    #
+    # --------------------------------------------------------------
+    smoke_trends, smoke_pvals, smoke_uncert = \
+        calcNAAPS_grid_trend(NAAPS_data, month_idx, trend_type, \
+    #ai_trends, ai_pvals = calcNAAPS_grid_trend(NAAPS_data, month_idx, trend_type, \
+        minlat)
+
+    if(not show_pval):
+        smoke_pvals = None
+    else:
+        print('month_idx = ',month_idx,' PVAL nanmean = ', \
+            np.nanmean(smoke_pvals))
+
+    if(uncert_ax is None):
+        smoke_uncert = None
+    # --------------------------------------------------------------
+    #
+    # Plot the calculated trends on a figure
+    #
+    # --------------------------------------------------------------
+    colormap = plt.cm.bwr
+
+    # Pull the beginning and ending dates into datetime objects
+    start_date = datetime.strptime(NAAPS_data['dates'][\
+        month_idx::index_jumper][0],'%Y%m')
+    end_date   = datetime.strptime(NAAPS_data['dates'][\
+        month_idx::index_jumper][-1],'%Y%m')
+    
+    # Make figure title
+    month_string = ''
+    if(do_month == True):
+        month_string = start_date.strftime('%B') + ' '
+
+    if(title == ''):
+        title = 'NAAPS Smoke Conc Sfc ' + month_string + 'Trends\n'+\
+            start_date.strftime('%b. %Y') + ' - ' + \
+            end_date.strftime('%b. %Y')
+    if(label == ''):
+        label = 'NAAPS Smoke Conc Sfc Trend'
+
+    # Call plotNAAPS_spatial to add the data to the figure
+    # Make figure
+    if(pax is None):
+        # Make figure
+        plt.close('all')
+        fig1 = plt.figure(figsize = (8,8))
+        ax = plt.axes(projection = mapcrs)
+
+        plotNAAPS_spatial(ax, NAAPS_data['lats'], NAAPS_data['lons'], \
+            smoke_trends, 'trend', ptitle = title, plabel = label, \
+            colorbar = colorbar, colorbar_label_size = colorbar_label_size, \
+            vmin = v_min, vmax = v_max, minlat = minlat, pvals = smoke_pvals)
+
+        fig1.tight_layout()
+
+        if(save == True):
+            month_adder = ''
+            if(do_month == True):
+                month_adder = '_' + start_date.strftime('%b') 
+            out_name = 'naaps_grid_trend' + month_adder + '_' + \
+                start_date.strftime('%Y%m') + '_' + end_date.strftime('%Y%m') + \
+                '.png'
+            plt.savefig(out_name,dpi=300)
+            print("Saved image",out_name)
+        else:
+            plt.show()
+    else:
+        plotNAAPS_spatial(pax, NAAPS_data['lats'], NAAPS_data['lons'], \
+            smoke_trends, 'trend', ptitle = title, plabel = label, \
+            colorbar = colorbar, colorbar_label_size = colorbar_label_size, \
+            vmin = v_min, vmax = v_max, minlat = minlat, pvals = smoke_pvals)
+
+    if(uncert_ax is not None):
+        plotNAAPS_spatial(uncert_ax, NAAPS_data['lats'], NAAPS_data['lons'], \
+            smoke_uncert, 'uncert', ptitle = title, plabel = label, \
+            colorbar = colorbar, colorbar_label_size = colorbar_label_size, \
+            vmin = 0, vmax = 4.0, minlat = minlat)
+
+    #if(return_trend == True):
+    #    return ai_trends
+
+# Generate a 15-panel figure comparing the climatology and trend between 3
+# versions of the NAAPS data for all months
+def plotNAAPS_ClimoTrend_all(NAAPS_data,\
+        trend_type = 'standard', minlat=65,save=False):
+
+    colormap = plt.cm.jet
+
+    lat_ranges = np.arange(minlat,90,1.0)
+    lon_ranges = np.arange(-180,180,1.0)
+
+    index_jumper = 6 
+
+    colorbar_label_size = 7
+    axis_title_size = 8
+    row_label_size = 10 
+    #colorbar_label_size = 13
+    #axis_title_size = 14.5
+    #row_label_size = 14.5
+
+    #fig = plt.figure()
+    plt.close('all')
+    fig = plt.figure(figsize=(9,13))
+    #plt.suptitle('NAAPS Comparisons: '+start_date.strftime("%B"),y=0.95,\
+    #    fontsize=18,fontweight=4,weight='bold')
+    gs = gridspec.GridSpec(nrows=6, ncols=3, hspace = 0.001, wspace = 0.15)
+
+    # - - - - - - - - - - - - - - - - - - - - -
+    # Plot the climatologies along the top row
+    # - - - - - - - - - - - - - - - - - - - - -
+       
+    # Plot DATA1 climos
+    # -----------------
+    ##!## Make copy of NAAPS_data array
+    local_data1_Apr  = np.copy(NAAPS_data['MONTH_CLIMO'][0,:,:])
+    local_data1_May  = np.copy(NAAPS_data['MONTH_CLIMO'][1,:,:])
+    local_data1_Jun  = np.copy(NAAPS_data['MONTH_CLIMO'][2,:,:])
+    local_data1_Jul  = np.copy(NAAPS_data['MONTH_CLIMO'][3,:,:])
+    local_data1_Aug  = np.copy(NAAPS_data['MONTH_CLIMO'][4,:,:])
+    local_data1_Sep  = np.copy(NAAPS_data['MONTH_CLIMO'][5,:,:])
+
+    mask_AI1_Apr = np.ma.masked_where(local_data1_Apr == -999.9, local_data1_Apr)
+    mask_AI1_May = np.ma.masked_where(local_data1_May == -999.9, local_data1_May)
+    mask_AI1_Jun = np.ma.masked_where(local_data1_Jun == -999.9, local_data1_Jun)
+    mask_AI1_Jul = np.ma.masked_where(local_data1_Jul == -999.9, local_data1_Jul)
+    mask_AI1_Aug = np.ma.masked_where(local_data1_Aug == -999.9, local_data1_Aug)
+    mask_AI1_Sep = np.ma.masked_where(local_data1_Sep == -999.9, local_data1_Sep)
+    ##!## Grid the data, fill in white space
+    ##!#cyclic_data,cyclic_lons = add_cyclic_point(local_data,NAAPS_data1['LON'][0,:])
+    ##!#plat,plon = np.meshgrid(NAAPS_data1['LAT'][:,0],cyclic_lons)   
+  
+    # Mask any missing values
+    #mask_AI = np.ma.masked_where(plat.T < minlat, mask_AI)
+    ax00 = plt.subplot(gs[0,0], projection=mapcrs)   # April climo original
+    ax01 = plt.subplot(gs[0,1], projection=mapcrs)   # April climo screened
+    ax02 = plt.subplot(gs[0,2], projection=mapcrs)   # April trend original
+    ax10 = plt.subplot(gs[1,0], projection=mapcrs)   # May climo original
+    ax11 = plt.subplot(gs[1,1], projection=mapcrs)   # May climo screened
+    ax12 = plt.subplot(gs[1,2], projection=mapcrs)   # May trend original
+    ax20 = plt.subplot(gs[2,0], projection=mapcrs)   # June climo original
+    ax21 = plt.subplot(gs[2,1], projection=mapcrs)   # June climo screened
+    ax22 = plt.subplot(gs[2,2], projection=mapcrs)   # June trend original
+    ax30 = plt.subplot(gs[3,0], projection=mapcrs)   # July climo original
+    ax31 = plt.subplot(gs[3,1], projection=mapcrs)   # July climo screened
+    ax32 = plt.subplot(gs[3,2], projection=mapcrs)   # July trend original
+    ax40 = plt.subplot(gs[4,0], projection=mapcrs)   # August climo original
+    ax41 = plt.subplot(gs[4,1], projection=mapcrs)   # August climo screened
+    ax42 = plt.subplot(gs[4,2], projection=mapcrs)   # August trend original
+    ax50 = plt.subplot(gs[5,0], projection=mapcrs)   # September climo original
+    ax51 = plt.subplot(gs[5,1], projection=mapcrs)   # September climo screened
+    ax52 = plt.subplot(gs[5,2], projection=mapcrs)   # September trend original
+
+    # Plot the figures in the first row: April
+    # ---------------------------------------
+    cbar_switch = True
+    plotNAAPS_spatial(ax00, NAAPS_data['lats'], NAAPS_data['lons'], mask_AI1_Apr, \
+        'climo', ptitle = ' ', plabel = '', vmin = -1.0, vmax = 1.0, \
+        minlat = minlat, colorbar = False)
+    plotNAAPS_MonthTrend(NAAPS_data,month_idx=0,trend_type=trend_type,label = ' ',\
+        minlat=65.,title = ' ', pax = ax01, colorbar = cbar_switch, \
+        colorbar_label_size = colorbar_label_size, show_pval = True, \
+        uncert_ax = ax02)
+
+    # Plot the figures in the first row: May
+    # ---------------------------------------
+    plotNAAPS_spatial(ax10, NAAPS_data['lats'], NAAPS_data['lons'], mask_AI1_May, \
+        'climo', ptitle = ' ', plabel = '', vmin = -1.0, vmax = 1.0, \
+        minlat = minlat, colorbar = False)
+    plotNAAPS_MonthTrend(NAAPS_data,month_idx=1,trend_type=trend_type,label = ' ',\
+        minlat=65.,title = ' ', pax = ax11, colorbar = cbar_switch, \
+        colorbar_label_size = colorbar_label_size, show_pval = True, \
+        uncert_ax = ax12)
+
+    # Plot the figures in the first row: June
+    # ---------------------------------------
+    plotNAAPS_spatial(ax20, NAAPS_data['lats'], NAAPS_data['lons'], mask_AI1_Jun, \
+        'climo', ptitle = ' ', plabel = '', vmin = -1.0, vmax = 1.0, \
+        minlat = minlat, colorbar = False)
+    plotNAAPS_MonthTrend(NAAPS_data,month_idx=2,trend_type=trend_type,label = ' ',\
+        minlat=65.,title = ' ', pax = ax21, colorbar = cbar_switch, \
+        colorbar_label_size = colorbar_label_size, show_pval = True, \
+        uncert_ax = ax22)
+
+    # Plot the figures in the second row: July
+    # ----------------------------------------
+    plotNAAPS_spatial(ax30, NAAPS_data['lats'], NAAPS_data['lons'], mask_AI1_Jul, \
+        'climo', ptitle = ' ', plabel = '', vmin = -1.0, vmax = 1.0, \
+        minlat = minlat, colorbar = False)
+    plotNAAPS_MonthTrend(NAAPS_data,month_idx=3,trend_type=trend_type,label = ' ',\
+        minlat=65.,title = ' ', pax = ax31, colorbar = cbar_switch, \
+        colorbar_label_size = colorbar_label_size, show_pval = True, \
+        uncert_ax = ax32)
+
+    # Plot the figures in the third row: August
+    # -----------------------------------------
+    plotNAAPS_spatial(ax40, NAAPS_data['lats'], NAAPS_data['lons'], mask_AI1_Aug, \
+        'climo', ptitle = ' ', plabel = '', vmin = -1.0, vmax = 1.0, \
+        minlat = minlat, colorbar = False)
+    plotNAAPS_MonthTrend(NAAPS_data,month_idx=4,trend_type=trend_type,label = ' ',\
+        minlat=65.,title = ' ', pax = ax41, colorbar = cbar_switch, \
+        colorbar_label_size = colorbar_label_size, show_pval = True, \
+        uncert_ax = ax42)
+
+    # Plot the figures in the third row: September
+    # --------------------------------------------
+    plotNAAPS_spatial(ax50, NAAPS_data['lats'], NAAPS_data['lons'], mask_AI1_Sep, \
+        'climo', ptitle = ' ', plabel = '', vmin = -1.0, vmax = 1.0, \
+        minlat = minlat, colorbar = False)
+    plotNAAPS_MonthTrend(NAAPS_data,month_idx=5,trend_type=trend_type,label = ' ',\
+        minlat=65.,title = ' ', pax = ax51, colorbar = cbar_switch, \
+        colorbar_label_size = colorbar_label_size, show_pval = True, \
+        uncert_ax = ax52)
+
+    fig.text(0.10, 0.82, 'April', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.692, 'May', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.565, 'June', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.435, 'July', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.305, 'August', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.18, 'September', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+
+    fig.text(0.220, 0.90, 'Climatology', ha='center', va='center', \
+        rotation='horizontal',weight='bold',fontsize=row_label_size)
+    fig.text(0.410, 0.90, 'Trend', ha='center', va='center', \
+        rotation='horizontal',weight='bold',fontsize=row_label_size)
+    fig.text(0.61, 0.90, 'Standard Error of\nScreened Trend (Slope)', \
+        ha='center', va='center', rotation='horizontal',weight='bold',\
+        fontsize=row_label_size)
+
+
+    #cax = fig.add_axes([0.15, 0.09, 0.35, 0.01])
+    #norm = mpl.colors.Normalize(vmin = -0.5, vmax = 0.5)
+    #cb1 = mpl.colorbar.ColorbarBase(cax, cmap = plt.cm.bwr, norm = norm, \
+    #    orientation = 'horizontal', extend = 'both')
+    #cb1.set_label('Sfc Smoke Trend (Smoke / Study Period)', \
+    #    weight = 'bold')
+
+    #cax2 = fig.add_axes([0.530, 0.09, 0.35, 0.01])
+    #norm2 = mpl.colors.Normalize(vmin = 0.0, vmax = 0.3)
+    #cmap = plt.cm.get_cmap('jet', 6)
+    #cb2 = mpl.colorbar.ColorbarBase(cax2, cmap = cmap, norm = norm2, \
+    #    orientation = 'horizontal', extend = 'both')
+    #cb2.set_label('Standard Error of Smoke Trend (Slope)', weight = 'bold')
+
+    #fig.tight_layout()
+
+    outname = 'naaps_grid_comps_all6_2.png'
+    if(save == True):
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
+
+
+def plot_NAAPS(NAAPS_data, var, ax = None, labelsize = 12, \
+        plot_log = True, labelticksize = 10, zoom = True, vmin = None, \
+        minlat = 65., circle_bound = True, vmax = None, save = False):
+
+    in_ax = True
+    if(ax is None):
+        in_ax = False
+        plt.close('all')
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1, projection = mapcrs)
+
+    min_val = 0.0
+    if(plot_log):
+        plot_data = np.ma.masked_where(NAAPS_data[var] < min_val, NAAPS_data[var])
+        plot_data = np.log10(plot_data)
+    else:
+        plot_data = np.ma.masked_where(NAAPS_data[var] < min_val, NAAPS_data[var])
+        plot_data = plot_data
+
+    mesh = ax.pcolormesh(NAAPS_data['lon'], NAAPS_data['lat'], \
+        plot_data, \
+        cmap = 'viridis', vmin = vmin, vmax = vmax, \
+        transform = ccrs.PlateCarree(), shading = 'auto')
+    cbar = plt.colorbar(mesh, ax = ax, orientation='vertical',\
+        pad=0.04, fraction = 0.040, extend = 'both')
+    cbar.set_label(var, size = labelsize, weight = 'bold')
+    #cbar.ax.tick_params(labelsize = labelticksize)
+    ax.set_title(NAAPS_data['date'])
+
+    if(circle_bound):
+        ax.set_boundary(circle, transform = ax.transAxes)
+
+    if(zoom):
+        ax.set_extent([-180.0,180.0,minlat,90.0],\
+                       ccrs.PlateCarree())
+    else:
+        ax.set_extent([-180.0,180.0,65.0,90.0],\
+                       ccrs.PlateCarree())
+    if(not in_ax):
+        plt.show()
+
+def plot_NAAPS_figure(date_str, var, minlat = 65., vmin = None, vmax = None, \
+        circle_bound = True, plot_log = True, ptitle = '', zoom = True, \
+        save_dir = home_dir + '/Research/NAAPS/single_time_images/', \
+        save = False):
+
+    plt.close('all')
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1, projection = mapcrs)
+
+    # Read the data for this granule
+    # ------------------------------
+    NAAPS_data = read_NAAPS(date_str, minlat = minlat)
+
+    # Plot the data for this granule
+    # ------------------------------
+    plot_NAAPS(NAAPS_data, var, ax = ax, zoom = zoom, \
+            vmin = vmin, vmax = vmax, plot_log = plot_log, \
+            circle_bound = circle_bound, minlat = minlat)
+
+    ax.set_title('NAAPS-RA ' + var + '\n' + NAAPS_data['date'])
+ 
+    ax.coastlines()
+
+    if(save):
+        outname = save_dir + 'naaps_' + var + '_' + date_str + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+def plot_NAAPS_event(date_str, var, minlat = 65., vmin = None, vmax = None, \
+        plot_log = True, ptitle = '', circle_bound = True, zoom = True, \
+        save = False):
+
+    plt.close('all')
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1, projection = mapcrs)
+
+    # Read the data for this granule
+    # ------------------------------
+    NAAPS_data = read_NAAPS_event(date_str, minlat = minlat)
+
+    # Plot the data for this granule
+    # ------------------------------
+    plot_NAAPS(NAAPS_data, var, ax = ax, zoom = zoom, \
+            vmin = vmin, vmax = vmax, plot_log = plot_log, \
+            circle_bound = circle_bound, minlat = minlat)
+
+    ax.set_title('NAAPS-RA ' + var + '\n' + \
+        NAAPS_data['dt_begin_date'].strftime('%Y-%m-%d') + ' - ' + \
+        NAAPS_data['dt_end_date'].strftime('%Y-%m-%d'))
+ 
+    ax.coastlines()
+
+    if(save):
+        outname = 'naaps_event_' + var + '_' + date_str + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
 def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
         minlat = 70.5, vmin = None, vmax = None, vmin2 = None, vmax2 = None, \
         min_ice = 80., min_smoke = 0, max_smoke = 2e5, plot_log = True, \
-        satellite = 'Aqua', ptitle = '', lat_bounds = [-90, 90], lon_bounds = [-180, 180], \
+        satellite = 'Aqua', ptitle = '', lat_bounds = [-90, 90], \
+        lon_bounds = [-180, 180], plot_daily_data = False, \
         zoom = True, save = False):
 
     plt.close('all')
@@ -728,7 +1455,8 @@ def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
     second_labels, second_arrays, average_CERES, second_arrays_nosmoke = \
         read_CERES_historic(dt_begin_str1, dt_end_str1, dt_begin_str2, \
         dt_end_str2, ceres_var, min_ice, min_smoke, max_smoke, vmin2, \
-        satellite, NAAPS_data, minlat, lat_bounds, lon_bounds)
+        satellite, NAAPS_data, minlat, lat_bounds, lon_bounds, \
+        plot_daily_data = plot_daily_data)
 
     # Read in the NCEP temp data
     # --------------------------
@@ -770,15 +1498,24 @@ def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
     ax6.plot(average_NCEP)
     ax6.set_ylabel('NCEP Air Temperature')    
 
-    ax4.set_ylabel('Clear-sky Albedo')
-    ax5.set_ylabel('Clear-sky Albedo (No Smoke)')
+    label_dict = {
+        'alb_clr': 'Clear-sky Albedo',
+        'swf_clr': 'Clear-sky Shortwave Flux',
+        'lwf_clr': 'Clear-sky Longwave Flux',
+        'alb_all': 'All-sky Albedo',
+        'swf_all': 'All-sky Shortwave Flux',
+        'lwf_all': 'All-sky Longwave Flux',
+    }
+
+    ax4.set_ylabel(label_dict[ceres_var])
+    ax5.set_ylabel(label_dict[ceres_var] + ' (No Smoke)')
     
     ax1.set_title('NAAPS-RA ' + var + '\n' + \
         NAAPS_data['dt_begin_date'].strftime('%Y-%m-%d') + ' - ' + \
         NAAPS_data['dt_end_date'].strftime('%Y-%m-%d'))
-    ax2.set_title('CERES Average Clear-sky Albedo\n' + cdate_begin_str1 + ' - ' + \
+    ax2.set_title('CERES Average ' + label_dict[ceres_var] + '\n' + cdate_begin_str1 + ' - ' + \
         cdate_end_str1)
-    ax3.set_title('CERES Average Clear-sky Albedo\n' + cdate_begin_str2 + ' - ' + \
+    ax3.set_title('CERES Average ' + label_dict[ceres_var] + '\n' + cdate_begin_str2 + ' - ' + \
         cdate_end_str2)
     #ax4.set_title('CERES Average Ice Concentration')
      
@@ -866,19 +1603,30 @@ def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
 
 
     if(save):
-        outname = '_'.join(['naaps','ceres','event',var,ceres_var,date_str,'.png'])
+        outname = '_'.join(['naaps','ceres','event',var,ceres_var,date_str,'v2.png'])
         #outname = 'naaps_ceres_event_' + var + '_' + ceres_var + '_' + date_str + '.png'
         fig.savefig(outname, dpi = 300)
         print("Saved image", outname)
         #outname = 'naaps_ceres_event_boxplots_' + var + '_' + date_str + '.png'
-        outname = '_'.join(['naaps','ceres','event','boxplots',var,ceres_var,date_str,'.png'])
+        outname = '_'.join(['naaps','ceres','event','boxplots',var,ceres_var,date_str,'v2.png'])
         fig2.savefig(outname, dpi = 300)
         print("Saved image", outname)
         #outname = 'naaps_ceres_event_boxplots_' + var + '_nosmoke_' + date_str + '.png'
-        outname = '_'.join(['naaps','ceres','event','boxplots',var,'nosmoke',ceres_var,date_str,'.png'])
+        outname = '_'.join(['naaps','ceres','event','boxplots',var,'nosmoke',ceres_var,date_str,'v2.png'])
         fig3.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else:
         plt.show()
 
     return second_arrays, second_labels, second_arrays_nosmoke
+
+#def plot_NAAPS_month_avg(date_str, ax = None, minlat = 65., mask_zero = False, \
+#        plot_log = False, save = False):
+#
+#    dt_date_str = datetime.strptime(date_str, '%Y%m')
+#    
+#    in_ax = True 
+#    if(ax is None):
+
+
+

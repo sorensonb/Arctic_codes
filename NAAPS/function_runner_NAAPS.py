@@ -7,6 +7,26 @@
 
 from NAAPSLib import *
 
+NAAPS_data = readgridNAAPS_NCDF(infile=home_dir + \
+    '/Research/NAAPS/naaps_grid_smoke_conc_sfc_2005_2020.nc',\
+    start_date = 200504, end_date = 202009, calc_month = True, \
+    minlat = 65)
+
+plotNAAPS_ClimoTrend_all(NAAPS_data,\
+    trend_type = 'standard', minlat=65,save=False)
+
+#plotNAAPS_MonthTrend(NAAPS_data,month_idx=4,save=False,\
+#    trend_type='standard',minlat=65.,return_trend=False, colorbar = True, \
+#    title = '', label = '', colorbar_label_size = 14, pax = None, \
+#    show_pval = True, uncert_ax = None)
+
+sys.exit()
+
+# NOTE: to regenerate the entire NAAPS monthly climatology dataset
+##!#NAAPS_data = calc_NAAPS_all_avgs('200504', '202009', minlat = 65., \
+##!#    mask_zero = False)
+##!#sys.exit()
+
 #date_str = '20080422'
 date_str = '20120615'
 #date_str = '20170816'
@@ -14,17 +34,6 @@ date_str = '20120615'
 var = 'smoke_conc_sfc'
 #date_str = '20080422'
 #date_str = '20170816'
-
-# beg: 2020082400
-# end: 2020090800
-base_date = datetime.strptime('2014072400','%Y%m%d%H')
-for ii in range(80):
-    new_date = base_date + timedelta(hours = ii * 6)
-    plot_NAAPS_figure(new_date.strftime('%Y%m%d%H'), var, minlat = 60., \
-        vmax = 50, plot_log = False, zoom = True, save = True)
-
-sys.exit()
-
 
 if(date_str == '20170816'):
     minlat = 78.
@@ -71,7 +80,19 @@ second_arrays, second_labels, second_arrays_nosmoke = \
     vmin2 = alb_min, vmax2 = 300, \
     plot_log = False, min_ice = min_ice, min_smoke = min_smoke, max_smoke = max_smoke, \
     ptitle = '', zoom = True, lat_bounds = lat_bounds, lon_bounds = lon_bounds, \
-    save = True)
+    plot_daily_data = False, save = True)
+sys.exit()
+
+
+
+# beg: 2020082400
+# end: 2020090800
+base_date = datetime.strptime('2014072400','%Y%m%d%H')
+for ii in range(80):
+    new_date = base_date + timedelta(hours = ii * 6)
+    plot_NAAPS_figure(new_date.strftime('%Y%m%d%H'), var, minlat = 60., \
+        vmax = 50, plot_log = False, zoom = True, save = True)
+
 sys.exit()
 
 

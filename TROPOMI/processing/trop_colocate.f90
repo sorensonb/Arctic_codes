@@ -39,16 +39,19 @@ program trop_colocate
     TROP_prep_SSA2_data,  TROP_prep_SSA2_dims, &
     TROP_prep_LAT_data, TROP_prep_LAT_dims, &
     TROP_prep_LON_data, TROP_prep_LON_dims, &
-    OMI_AI_data,    OMI_AI_dims, &
-    OMI_LAT_data,   OMI_LAT_dims, &
-    OMI_LON_data,   OMI_LON_dims, &
-    OMI_LATCRNR_data,   OMI_LATCRNR_dims, &
-    OMI_LONCRNR_data,   OMI_LONCRNR_dims, &
-    OMI_SZA_data,   OMI_SZA_dims, &
-    OMI_VZA_data,   OMI_VZA_dims, &
-    OMI_AZM_data,   OMI_AZM_dims, &
     TROP_out_AI_data, TROP_out_SSA0_data, TROP_out_SSA1_data, &
       TROP_out_SSA2_data
+  use h5_vars, only: &
+    clear_h5_arrays, &
+    AI_data,         AI_dims, &
+    LAT_data,        LAT_dims, &
+    LON_data,        LON_dims, &
+    LATCRNR_data,    LATCRNR_dims, &
+    LONCRNR_data,    LONCRNR_dims, &
+    SZA_data,        SZA_dims, &
+    VZA_data,        VZA_dims, &
+    AZM_data,        AZM_dims
+    
 
   implicit none
 
@@ -94,6 +97,7 @@ program trop_colocate
   integer                :: rank
   integer(hsize_t), dimension(2)    :: test_dims
 
+
   real                   :: closest_dist
   real                   :: min_dist
   real                   :: match_lat
@@ -118,8 +122,12 @@ program trop_colocate
   character(len = 12)       :: omi_date        ! filename
   character(len = 12)       :: trop_date       ! filename
   character(len = 255)      :: omi_file_name   ! filename
+  character(len = 255)      :: omi_just_name   ! filename
+  character(len = 255)      :: omi_name_file   ! filename
   character(len = 255)      :: trop_file_name  ! filename
   character(len = 255)      :: out_file_name   ! filename
+
+  integer                    :: io7  ! omi file name file
 
   !logical                   :: test_logic
   !logical                   :: test_inbox
@@ -149,22 +157,50 @@ program trop_colocate
   ! ----------------------------
   arg_count = command_argument_count()
   if(arg_count /= 2) then
-    write(*,*) 'SYNTAX: ./trop_exec omi_date tropomi_date'
+    write(*,*) 'SYNTAX: ./trop_exec trop_prep_file omi_name_file'
     return
   endif
 
   ! Pull the output file name and input file list file from the command line
   ! ------------------------------------------------------------------------
-  call get_command_argument(1, omi_date)
-  call get_command_argument(2, trop_date)
+  call get_command_argument(1, trop_file_name)
+  call get_command_argument(2, omi_name_file)
 
-  ! Set the paths to the data files
-  ! -------------------------------
-  omi_path  = '/home/bsorenson/OMI/arctic_comp/comp_data/'
-  trop_path = '/home/bsorenson/OMI/tropomi_colocate/prep_data/'
+  !! Set the paths to the data files
+  !! -------------------------------
+  !omi_path  = '/Research/OMI/H5_files/'
+  !!omi_path  = '/home/bsorenson/OMI/arctic_comp/comp_data/'
+  !trop_path = '/home/bsorenson/OMI/tropomi_colocate/prep_data/'
 
-  omi_file_name  = trim(omi_path)//omi_date(1:8)//'/'//omi_date//'/omi_shawn_'//omi_date//'.hdf5'
-  trop_file_name = trim(trop_path)//'tropomi_uvai_coloc_prep_'//trop_date//'.hdf5'
+  ! Open the OMI name file
+  open(io7, file = trim(omi_name_file), iostat = istatus)
+  if(istatus > 0) then
+    write(*,*) "ERROR: Problem reading "//trim(omi_name_file)
+    return 
+  endif
+ 
+  ! Read the OMI file name  
+  read(io7, *, iostat = istatus) omi_just_name
+ 
+  close(io7)
+
+  omi_file_name = '/Research/OMI/H5_files/'//trim(omi_just_name)
+
+  write(*,*) trim(trop_file_name), '  ', trim(omi_file_name)
+
+
+  ! Set up the out file name based on the OMI timestamp
+  ! ---------------------------------------------------
+  omi_date = omi_file_name(len(trim(omi_file_name)) - 46 : &
+                           len(trim(omi_file_name)) - 43)//&
+             omi_file_name(len(trim(omi_file_name)) - 41 : &
+                           len(trim(omi_file_name)) - 38)//&
+             omi_file_name(len(trim(omi_file_name)) - 36 : &
+                           len(trim(omi_file_name)) - 33)
+  out_file_name = &
+    '/home/bsorenson/OMI/tropomi_colocate/coloc_data/colocated_tropomi_'//&
+    omi_date//'.hdf5'
+  write(*,*) trim(out_file_name)
 
   ! Initialize the HDF5 interface
   ! -----------------------------
@@ -194,14 +230,15 @@ program trop_colocate
   endif
 
 
-  call read_comp_OMI_AI(omi_file_id)
-  call read_comp_OMI_LAT(omi_file_id)
-  call read_comp_OMI_LON(omi_file_id)
-  call read_comp_OMI_LATCRNR(omi_file_id)
-  call read_comp_OMI_LONCRNR(omi_file_id)
-  call read_comp_OMI_SZA(omi_file_id)
-  call read_comp_OMI_VZA(omi_file_id)
-  call read_comp_OMI_AZM(omi_file_id)
+
+  call read_h5_AI(omi_file_id)
+  call read_h5_LAT(omi_file_id)
+  call read_h5_LON(omi_file_id)
+  call read_h5_LATCRNR(omi_file_id)
+  call read_h5_LONCRNR(omi_file_id)
+  call read_h5_SZA(omi_file_id)
+  call read_h5_VZA(omi_file_id)
+  call read_h5_AZM(omi_file_id)
 
   call read_prep_TROP_AI(trop_file_id)
   call read_prep_TROP_SSA0(trop_file_id)
@@ -211,12 +248,13 @@ program trop_colocate
   call read_prep_TROP_LON(trop_file_id)
 
   !test_dims = (/10, 20/)
-  test_dims = (/OMI_AI_dims(1), OMI_AI_dims(2)/)
-  !test_dims = OMI_AI_dims
+  test_dims = (/AI_dims(1), AI_dims(2)/)
+  !test_dims = AI_dims
 
   ! Allocate the output arrays
   ! --------------------------
-  call allocate_out_arrays
+  call allocate_out_arrays(AI_dims(1), AI_dims(2))
+  write(*,*) "HERE2", LAT_data(20,20)
 
   istatus = 0
   num_nan = 0 
@@ -231,19 +269,19 @@ program trop_colocate
   !!#!  write(*,*) TROP_prep_LAT_data(ii), TROP_prep_LON_data(ii), TROP_prep_AI_data(ii)
   !!#!enddo
 
-  omi_loop1: do ii=1,OMI_LAT_dims(2)
+  omi_loop1: do ii=1,LAT_dims(2)
 
     if(mod(ii, 50) == 0) then
       write(*,*) ii
     endif
 
-    omi_loop2: do jj=1,OMI_LAT_dims(1) 
+    omi_loop2: do jj=1,LAT_dims(1) 
 
       ! Check if the current pixel is missing
       ! NEW: Check if the current pixel is above minlat
       ! -----------------------------------------------
-      if(OMI_LAT_data(jj,ii) < min_lat) then
-      !if(isnan(OMI_AI_data(jj,ii))) then
+      if(LAT_data(jj,ii) < min_lat) then
+      !if(isnan(AI_data(jj,ii))) then
         TROP_out_AI_data(jj,ii) = -999.
         TROP_out_SSA0_data(jj,ii) = -999.
         TROP_out_SSA1_data(jj,ii) = -999.
@@ -260,72 +298,72 @@ program trop_colocate
         run_trop_total_ssa1 = 0.0
         run_trop_total_ssa2 = 0.0
 
-        !!#!if((minval(OMI_LONCRNR_data(:,jj,ii)) < 0) .and. &
-        !!#!           (maxval(OMI_LONCRNR_data(:,jj,ii)) > 0)) then
+        !!#!if((minval(LONCRNR_data(:,jj,ii)) < 0) .and. &
+        !!#!           (maxval(LONCRNR_data(:,jj,ii)) > 0)) then
 
         !!#!do njj = 1, 4
-        !!#!  if(OMI_LONCRNR_data(njj,jj,ii) < 0) then
-        !!#!    local_lon_crnr(njj) = OMI_LONCRNR_data(njj,jj,ii) + 360
-        !!#!    !write(*,*) "HERE", OMI_LONCRNR_data(njj,jj,ii), &
+        !!#!  if(LONCRNR_data(njj,jj,ii) < 0) then
+        !!#!    local_lon_crnr(njj) = LONCRNR_data(njj,jj,ii) + 360
+        !!#!    !write(*,*) "HERE", LONCRNR_data(njj,jj,ii), &
         !!#!    !  local_lon_crnr(njj)
         !!#!  else
-        !!#!    local_lon_crnr(njj) = OMI_LONCRNR_data(njj,jj,ii)     
+        !!#!    local_lon_crnr(njj) = LONCRNR_data(njj,jj,ii)     
         !!#!  endif
         !!#!enddo 
 
-        !!#!if(OMI_LON_data(jj,ii) < 0) then
-        !!#!  local_lon = OMI_LON_data(jj,ii) + 360
+        !!#!if(LON_data(jj,ii) < 0) then
+        !!#!  local_lon = LON_data(jj,ii) + 360
         !!#!else
-        !!#!  local_lon = OMI_LON_data(jj,ii)
+        !!#!  local_lon = LON_data(jj,ii)
         !!#!endif 
 
-        !!#!!local_lon_crnr = OMI_LONCRNR_data(:,jj,ii)
-        !!#!!local_lon = OMI_LON_data(jj,ii)
+        !!#!!local_lon_crnr = LONCRNR_data(:,jj,ii)
+        !!#!!local_lon = LON_data(jj,ii)
         !!#!write(*,'(5(f8.3,2x),1(1l, 1x))') &
-        !!#!           !OMI_LAT_data(jj,ii), OMI_LON_data(jj,ii), &
-        !!#!           OMI_LAT_data(jj,ii), local_lon, OMI_LON_data(jj,ii), &
+        !!#!           !LAT_data(jj,ii), LON_data(jj,ii), &
+        !!#!           LAT_data(jj,ii), local_lon, LON_data(jj,ii), &
         !!#!           minval(local_lon_crnr) , &
-        !!#!           !minval(OMI_LONCRNR_data(:,jj,ii)) , &
+        !!#!           !minval(LONCRNR_data(:,jj,ii)) , &
         !!#!           maxval(local_lon_crnr), &
-        !!#!           !maxval(OMI_LONCRNR_data(:,jj,ii)) - 360, &
+        !!#!           !maxval(LONCRNR_data(:,jj,ii)) - 360, &
         !!#!    !!#!! Logical 1: LON corners straddle antimeridian
-        !!#!    !!#!((minval(OMI_LONCRNR_data(:,jj,ii)) < 0) .and. &
-        !!#!    !!#!    (maxval(OMI_LONCRNR_data(:,jj,ii)) > 0)), &
+        !!#!    !!#!((minval(LONCRNR_data(:,jj,ii)) < 0) .and. &
+        !!#!    !!#!    (maxval(LONCRNR_data(:,jj,ii)) > 0)), &
         !!#!    !!#!! Logical 2: pixel LAT within the range of the corner lats
-        !!#!    !!#!(OMI_LAT_data(jj,ii) <= maxval(OMI_LATCRNR_data(:,jj,ii)) &
-        !!#!    !!#!        .and. OMI_LAT_data(jj,ii) >= &
-        !!#!    !!#!         minval(OMI_LATCRNR_data(:,jj,ii))), &
+        !!#!    !!#!(LAT_data(jj,ii) <= maxval(LATCRNR_data(:,jj,ii)) &
+        !!#!    !!#!        .and. LAT_data(jj,ii) >= &
+        !!#!    !!#!         minval(LATCRNR_data(:,jj,ii))), &
         !!#!    !!#!! Logical 3: pixel LON within the range of the corner lons
         !!#!    !!#!((local_lon >= minval(local_lon_crnr(:))) &
         !!#!    !!#!    .and. (local_lon <= maxval(local_lon_crnr(:)))), &
         !!#!    !!#!! Logical 4: combined
-        !!#!    !!#!(((minval(OMI_LONCRNR_data(:,jj,ii)) < 0) .and. &
-        !!#!    !!#!    (maxval(OMI_LONCRNR_data(:,jj,ii)) > 0)) .and. &
-        !!#!    !!#!    ((OMI_LAT_data(jj,ii) <= maxval(OMI_LATCRNR_data(:,jj,ii)) &
-        !!#!    !!#!    .and. OMI_LAT_data(jj,ii) >= &
-        !!#!    !!#!     minval(OMI_LATCRNR_data(:,jj,ii))) .and. &
+        !!#!    !!#!(((minval(LONCRNR_data(:,jj,ii)) < 0) .and. &
+        !!#!    !!#!    (maxval(LONCRNR_data(:,jj,ii)) > 0)) .and. &
+        !!#!    !!#!    ((LAT_data(jj,ii) <= maxval(LATCRNR_data(:,jj,ii)) &
+        !!#!    !!#!    .and. LAT_data(jj,ii) >= &
+        !!#!    !!#!     minval(LATCRNR_data(:,jj,ii))) .and. &
         !!#!    !!#!     (local_lon >= minval(local_lon_crnr) &
         !!#!    !!#!    .and. local_lon <= maxval(local_lon_crnr)))), &
         !!#!    !!#!! Logical 5: pixel in box
-        !!#!    pixel_in_box(OMI_LATCRNR_data(:,jj,ii), &
-        !!#!                 OMI_LONCRNR_data(:,jj,ii), &
-        !!#!                 OMI_LAT_data(jj,ii), OMI_LON_data(jj,ii))
-        !write(*,'(5x, 4(f8.3, 2x))')  OMI_LONCRNR_data(:,jj,ii)
+        !!#!    pixel_in_box(LATCRNR_data(:,jj,ii), &
+        !!#!                 LONCRNR_data(:,jj,ii), &
+        !!#!                 LAT_data(jj,ii), LON_data(jj,ii))
+        !write(*,'(5x, 4(f8.3, 2x))')  LONCRNR_data(:,jj,ii)
         !write(*,'(5x, 4(f8.3, 2x))')  local_lon_crnr
 
         !endif
 
-        !!#!if(((minval(OMI_LONCRNR_data(:,jj,ii)) < 0) .and. &
-        !!#!    (maxval(OMI_LONCRNR_data(:,jj,ii)) > 0)) .and. &
+        !!#!if(((minval(LONCRNR_data(:,jj,ii)) < 0) .and. &
+        !!#!    (maxval(LONCRNR_data(:,jj,ii)) > 0)) .and. &
         !!#!    ((plat <= maxval(lats) .and. plat >= minval(lats)) .and. &
         !!#!     (plon <= minval(lons) .or. plon >= maxval(lons)))) then
         ! Adjust the lon and lon corners to account for pixels
         ! that straddle the antimeridian
         do njj = 1, 4
-          if(OMI_LONCRNR_data(njj,jj,ii) < 0) then
-            local_lons(njj) = OMI_LONCRNR_data(njj,jj,ii) + 360
+          if(LONCRNR_data(njj,jj,ii) < 0) then
+            local_lons(njj) = LONCRNR_data(njj,jj,ii) + 360
           else
-            local_lons(njj) = OMI_LONCRNR_data(njj,jj,ii)     
+            local_lons(njj) = LONCRNR_data(njj,jj,ii)     
           endif
         enddo
  
@@ -343,8 +381,8 @@ program trop_colocate
 
           !!#!if((TROP_prep_LON_data(nii) > 170 .or. &
           !!#!    TROP_prep_LON_data(nii) < -170) .and. &
-          !!#!   (OMI_LON_data(jj,ii) > 170 .or. &
-          !!#!    OMI_LON_data(jj,ii) < -170)) then
+          !!#!   (LON_data(jj,ii) > 170 .or. &
+          !!#!    LON_data(jj,ii) < -170)) then
 
 
           if(TROP_prep_LON_data(nii) < 0) then
@@ -361,46 +399,46 @@ program trop_colocate
           endif
 
           !!#!test_logic =  &
-          !!#!    ((TROP_prep_LAT_data(nii) <= maxval(OMI_LATCRNR_data(:,jj,ii)) &
+          !!#!    ((TROP_prep_LAT_data(nii) <= maxval(LATCRNR_data(:,jj,ii)) &
           !!#!    .and. TROP_prep_LAT_data(nii) >= &
-          !!#!     minval(OMI_LATCRNR_data(:,jj,ii))) .and. &
+          !!#!     minval(LATCRNR_data(:,jj,ii))) .and. &
           !!#!     (local_lon >= minval(local_lons) &
           !!#!    .and. local_lon <= maxval(local_lons)))
-          !!#!test_inbox = pixel_in_box(OMI_LATCRNR_data(:,jj,ii), &
-          !!#!                 OMI_LONCRNR_data(:,jj,ii), &
+          !!#!test_inbox = pixel_in_box(LATCRNR_data(:,jj,ii), &
+          !!#!                 LONCRNR_data(:,jj,ii), &
           !!#!                 TROP_prep_LAT_data(nii), &
           !!#!                 TROP_prep_LON_data(nii))
 
           !!#!if(test_logic .neqv. test_inbox) then
           !!#!  write(*,'(a8, 8(f8.3,2x),4(1l, 1x), 3x, 1l)') &
-          !!#!             !OMI_LAT_data(jj,ii), OMI_LON_data(jj,ii), &
+          !!#!             !LAT_data(jj,ii), LON_data(jj,ii), &
           !!#!             'ERROR', &
-          !!#!             OMI_LAT_data(jj,ii), OMI_LON_data(jj,ii), &
+          !!#!             LAT_data(jj,ii), LON_data(jj,ii), &
           !!#!             TROP_prep_LAT_data(nii), local_lon, &
-          !!#!             minval(OMI_LATCRNR_data(:,jj,ii)) , &
-          !!#!             maxval(OMI_LATCRNR_data(:,jj,ii)), &
+          !!#!             minval(LATCRNR_data(:,jj,ii)) , &
+          !!#!             maxval(LATCRNR_data(:,jj,ii)), &
           !!#!             minval(local_lons(:)) , &
           !!#!             maxval(local_lons(:)), &
-          !!#!             !maxval(OMI_LONCRNR_data(:,jj,ii)) - 360, &
+          !!#!             !maxval(LONCRNR_data(:,jj,ii)) - 360, &
           !!#!      ! Logical 1: LON corners straddle antimeridian
-          !!#!      ((minval(OMI_LONCRNR_data(:,jj,ii)) < 0) .and. &
-          !!#!          (maxval(OMI_LONCRNR_data(:,jj,ii)) > 0)), &
+          !!#!      ((minval(LONCRNR_data(:,jj,ii)) < 0) .and. &
+          !!#!          (maxval(LONCRNR_data(:,jj,ii)) > 0)), &
           !!#!      ! Logical 2: pixel LAT within the range of the corner lats
-          !!#!      (TROP_prep_LAT_data(nii) <= maxval(OMI_LATCRNR_data(:,jj,ii)) &
+          !!#!      (TROP_prep_LAT_data(nii) <= maxval(LATCRNR_data(:,jj,ii)) &
           !!#!              .and. TROP_prep_LAT_data(nii) >= &
-          !!#!               minval(OMI_LATCRNR_data(:,jj,ii))), &
+          !!#!               minval(LATCRNR_data(:,jj,ii))), &
           !!#!      ! Logical 3: pixel LON within the range of the corner lons
           !!#!      ((local_lon >= minval(local_lons(:))) &
           !!#!          .and. (local_lon <= maxval(local_lons(:)))), &
           !!#!      ! Logical 4: combined
           !!#!      test_logic, &
           !!#!      ! Logical 5: pixel in box
-          !!#!      pixel_in_box(OMI_LATCRNR_data(:,jj,ii), &
-          !!#!                   OMI_LONCRNR_data(:,jj,ii), &
+          !!#!      pixel_in_box(LATCRNR_data(:,jj,ii), &
+          !!#!                   LONCRNR_data(:,jj,ii), &
           !!#!                   TROP_prep_LAT_data(nii), TROP_prep_LON_data(nii))
           !!#!endif
           !!#!endif
-          !write(*,'(5x, 4(f8.3, 2x))')  OMI_LONCRNR_data(:,jj,ii)
+          !write(*,'(5x, 4(f8.3, 2x))')  LONCRNR_data(:,jj,ii)
           !write(*,'(5x, 4(f8.3, 2x))')  local_lon_crnr
 
           !!#!endif
@@ -408,7 +446,7 @@ program trop_colocate
           !write(*,*) TROP_prep_AI_data(nii)
           ! Check if the current pixel is within the OMI pixel bounds
           ! ---------------------------------------------------------
-          if(pixel_in_box(OMI_LATCRNR_data(:,jj,ii), OMI_LONCRNR_data(:,jj,ii), &
+          if(pixel_in_box(LATCRNR_data(:,jj,ii), LONCRNR_data(:,jj,ii), &
               TROP_prep_LAT_data(nii), TROP_prep_LON_data(nii))) then
 
               run_trop_total_ai = &
@@ -510,7 +548,7 @@ program trop_colocate
 
   ! Write to the dataset
   ! --------------------
-  call h5dwrite_f(dset_id_OLT, H5T_NATIVE_DOUBLE, OMI_LAT_data, OMI_AI_dims, &
+  call h5dwrite_f(dset_id_OLT, H5T_NATIVE_DOUBLE, LAT_data, AI_dims, &
                       error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not write to dataset'
@@ -556,7 +594,7 @@ program trop_colocate
 
   ! Write to the dataset
   ! --------------------
-  call h5dwrite_f(dset_id_OLN, H5T_NATIVE_DOUBLE, OMI_LON_data, OMI_AI_dims, &
+  call h5dwrite_f(dset_id_OLN, H5T_NATIVE_DOUBLE, LON_data, AI_dims, &
                       error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not write to dataset'
@@ -602,7 +640,7 @@ program trop_colocate
 
   ! Write to the dataset
   ! --------------------
-  call h5dwrite_f(dset_id_OSZ, H5T_NATIVE_DOUBLE, OMI_SZA_data, OMI_AI_dims, &
+  call h5dwrite_f(dset_id_OSZ, H5T_NATIVE_DOUBLE, SZA_data, AI_dims, &
                       error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not write to dataset'
@@ -648,7 +686,7 @@ program trop_colocate
 
   ! Write to the dataset
   ! --------------------
-  call h5dwrite_f(dset_id_OVZ, H5T_NATIVE_DOUBLE, OMI_VZA_data, OMI_AI_dims, &
+  call h5dwrite_f(dset_id_OVZ, H5T_NATIVE_DOUBLE, VZA_data, AI_dims, &
                       error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not write to dataset'
@@ -694,7 +732,7 @@ program trop_colocate
 
   ! Write to the dataset
   ! --------------------
-  call h5dwrite_f(dset_id_OAZ, H5T_NATIVE_DOUBLE, OMI_AZM_data, OMI_AI_dims, &
+  call h5dwrite_f(dset_id_OAZ, H5T_NATIVE_DOUBLE, AZM_data, AI_dims, &
                       error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not write to dataset'
@@ -740,7 +778,7 @@ program trop_colocate
 
   ! Write to the dataset
   ! --------------------
-  call h5dwrite_f(dset_id_OAI, H5T_NATIVE_DOUBLE, OMI_AI_data, OMI_AI_dims, &
+  call h5dwrite_f(dset_id_OAI, H5T_NATIVE_DOUBLE, AI_data, AI_dims, &
                       error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not write to dataset'
@@ -787,7 +825,7 @@ program trop_colocate
   ! Write to the dataset
   ! --------------------
   call h5dwrite_f(dset_id_TAI, H5T_NATIVE_DOUBLE, TROP_out_AI_data, &
-                  OMI_AI_dims, error)
+                  AI_dims, error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not write to dataset'
     return
@@ -833,7 +871,7 @@ program trop_colocate
   ! Write to the dataset
   ! --------------------
   call h5dwrite_f(dset_id_TS0, H5T_NATIVE_DOUBLE, TROP_out_SSA0_data, &
-                  OMI_AI_dims, error)
+                  AI_dims, error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not write to dataset'
     return
@@ -879,7 +917,7 @@ program trop_colocate
   ! Write to the dataset
   ! --------------------
   call h5dwrite_f(dset_id_TS1, H5T_NATIVE_DOUBLE, TROP_out_SSA1_data, &
-                  OMI_AI_dims, error)
+                  AI_dims, error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not write to dataset'
     return
@@ -925,7 +963,7 @@ program trop_colocate
   ! Write to the dataset
   ! --------------------
   call h5dwrite_f(dset_id_TS2, H5T_NATIVE_DOUBLE, TROP_out_SSA2_data, &
-                  OMI_AI_dims, error)
+                  AI_dims, error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not write to dataset'
     return
@@ -965,6 +1003,7 @@ program trop_colocate
   ! Deallocate all the arrays for the next pass
   ! -------------------------------------------
   call clear_arrays
+  call clear_h5_arrays
 
   call h5fclose_f(omi_file_id, error)
   if(error /= 0) then

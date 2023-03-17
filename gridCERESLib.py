@@ -296,7 +296,8 @@ def readgridCERES_daily(date_str, end_str = None, satellite = 'Aqua', \
         CERES_data4 = readgridCERES_daily_file(date_str, end_str = end_str, \
             satellite = 'Aqua',minlat = minlat)
 
-        pvars = ['alb_all', 'alb_clr', 'swf_all', 'swf_clr', 'cld', 'ice_conc']
+        pvars = ['alb_all', 'alb_clr', 'swf_all', 'swf_clr', 'lwf_all', \
+            'lwf_clr', 'cld', 'ice_conc']
 
         over_180    = np.where(CERES_data1['lon'] < 0)
         under_180   = np.where(CERES_data1['lon'] >= 0)
@@ -395,6 +396,8 @@ def readgridCERES_daily_file(date_str, end_str = None, satellite = 'Aqua', \
     CERES_data['alb_clr']  = data['toa_alb_clr_daily'][time_idx,lat_idx,:].squeeze()
     CERES_data['swf_all']  = data['toa_sw_all_daily'][time_idx,lat_idx,:].squeeze()
     CERES_data['swf_clr']  = data['toa_sw_clr_daily'][time_idx,lat_idx,:].squeeze()
+    CERES_data['lwf_all']  = data['toa_lw_all_daily'][time_idx,lat_idx,:].squeeze()
+    CERES_data['lwf_clr']  = data['toa_lw_clr_daily'][time_idx,lat_idx,:].squeeze()
     CERES_data['cld']      = data['cldarea_total_day_daily'][time_idx,lat_idx,:].squeeze()
     CERES_data['ice_conc'] = data['aux_snow_daily'][time_idx,lat_idx,:].squeeze()
     CERES_data['lat'] = newlat

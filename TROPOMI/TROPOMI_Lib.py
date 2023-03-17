@@ -33,11 +33,165 @@ from python_lib import *
 
 data_dir = home_dir + '/data/TROPOMI/'
 
+
 trop_to_omi_dict = {
     '201807051819': '201807051856',
     '201807052142': '201807052213',
-    '201908110044': '201908110033'
+    '201908110044': '201908110033', 
+    #'202108010207': '202108010117',
+    '202108010207': '202108010256',
+    '202108010349': '202108010435',
+    '202108010530': '202108010614',
+    '202108011539': '202108011607',
+    '202108011902': '202108011925',
+    '202108012044': '202108012103',
+    '202108012225': '202108012242',
+    # TROP time      OMI time
+
 }
+
+json_time_database = home_dir + '/Research/Arctic_compares/json_comp_times.txt'
+json_file_database = home_dir + '/Research/Arctic_compares/json_comp_files.txt'
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
+# Automation
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+# This function automates everything for a single date string:
+# the data downloading/matching, the first-look comparison-making, the 
+# hdf5 file-making, and the data copying to raindrop.
+# Flags:
+#   - include_tropomi: adds the colocated TROPOMI data to the colocation
+#   - file package
+def automate_TROPOMI_preprocess(date_str, download = True, images = True, \
+        process = True, omi_dtype = 'ltc3', include_tropomi = True,\
+        remove_bad_OMI = False):
+
+    if(home_dir + '/Research/OMI/' not in sys.path):
+        sys.path.append(home_dir + '/Research/OMI/')
+
+    from OMILib import download_OMI_all_HDF, identify_OMI_HDF_swaths
+
+    if(isinstance(date_str, str)):
+        date_str = [date_str]
+
+    ## Reload the json file here
+    #with open(json_file_database, 'r') as fin:
+    #    aerosol_event_dict = json.load(fin)
+
+    # date_str should consist of an array of YYYYMMDD strings
+    for dstr in date_str:
+
+        dt_date_str = datetime.strptime(dstr, '%Y%m%d')
+
+        print(dstr)
+
+        # Determine if TROPOMI data are already downloaded for this date
+        # --------------------------------------------------------------
+        #trop_files = glob(dt_date_str.strftime(data_dir + \
+        #    'TROPOMI*_%Ym%m%dt*-o*.nc'))
+        #print(trop_files)
+
+        #download_TROPOMI_match_OMI(date_str, \
+        #    save_path = home_dir + '/Research/TROPOMI'):
+
+        ## If no TROPOMI data
+        #if(len(trop_files) == 0):
+ 
+        # Look for OMI HDF5 files for this date
+        # -------------------------------------
+        ##!#omi_files = glob(dt_date_str.strftime(\
+        ##!#    '/home/bsorenson/data/OMI/H5_files/OMI-A*_%Ym%m%d*.he5'))
+
+        ##!## If no OMI data, 
+        ##!#if(len(omi_files) == 0):
+        ##!#
+        ##!#    # Download the OMI files for this date
+        ##!#    # ------------------------------------
+        ##!#    download_OMI_all_HDF(dstr)
+
+        ##!#    omi_files = glob(dt_date_str.strftime(\
+        ##!#        '/home/bsorenson/data/OMI/H5_files/OMI-A*_%Ym%m%d*.he5'))
+           
+        # Screen the OMI swaths to determine which contain significant
+        # aerosol (remove bad files if desired)
+        # ------------------------------------------------------------
+        good_omi_times = identify_OMI_HDF_swaths(dstr, \
+            minlat = 70., min_AI = 2.0, remove_bad = remove_bad_OMI)
+
+        # Download matching TROPOMI files for each of the remaining 
+        # good swaths
+        # ---------------------------------------------------------
+        for omi_date in good_omi_times:
+            trop_name = download_TROPOMI_file(omi_date)
+
+            # Retrieve the OMI filename for this date
+            # ---------------------------------------
+            omi_dt_date = datetime.strptime(omi_date, '%Y%m%d%H%M')
+            omi_file_name = glob(omi_dt_date.strftime(home_dir + \
+                '/data/OMI/H5_files/OMI-*V_%Ym%m%dt%H%M*.he5'\
+                ))[0].strip().split('/')[-1]
+
+            trop_dtime = datetime.strptime(\
+                trop_name.strip().split('/')[-1][33:49], '%Ym%m%dt%H%M%S')
+            local_trop_time = trop_dtime.strftime('%Y%m%d%H%M')
+
+            print(omi_file_name.strip().split('/')[-1], trop_name)
+            #print(omi_file_name, trop_dtime.strftime('%Y%m%d%H%M'))
+
+            data_dir = home_dir + '/Research/TROPOMI/prep_data/'
+
+            # Make a data storage directory, if one does not already exist
+            # ------------------------------------------------------------
+            save_dir = data_dir + omi_dt_date.strftime('%Y%m%d%H%M') + '/'
+            short_save_dir = omi_dt_date.strftime('%Y%m%d%H%M/')
+            print(save_dir)
+
+            if(not os.path.exists(save_dir)):
+                print('Making ', save_dir)
+                os.system('mkdir ' +  save_dir)
+    
+            # Run the TROPOMI converter to prep the files for movement
+            # to raindrop
+            # --------------------------------------------------------
+            trop_file_name = convert_TROPOMI_to_HDF5(local_trop_time, \
+                omi_name = omi_file_name, save_path = save_dir)
+    
+            # Now, write the name of the OMI file to a text file, which
+            # will be zipped up with the TROPOMI file.
+            # ---------------------------------------------------------
+            omi_text_out = save_dir + 'omi_filename.txt'
+            with open(omi_text_out, 'w') as fout:
+                fout.write(omi_file_name)
+    
+            # Finally, gzip the data
+            # ---------------------
+            os.chdir(data_dir)
+            cmnd = omi_dt_date.strftime('tar -cvzf ' + data_dir + \
+                '/prepped_trop_data_%Y%m%d%H%M.tar.gz ' + short_save_dir)
+            print(cmnd)
+            os.system(cmnd)
+
+        #trop_files = glob(dt_date_str.strftime(data_dir + \
+        #    'TROPOMI*_%Ym%m%dt*-o*.nc'))
+        #print(trop_files)
+        
+        # ENDIF
+         
+        #omi_files = glob(dt_date_str.strftime(\
+        #    '/home/bsorenson/data/OMI/H5_files/OMI-A*_%Ym%m%d*.he5'))
+    
+        # For each TROPOMI file / date, 
+        #for trop_file in trop_files:
+
+            #trop_dtime = datetime.strptime(\
+            #    trop_file.strip().split('/')[-1][33:49], '%Ym%m%dt%H%M%S')
+
+            #local_trop_time = trop_dtime.strftime('%Y%m%d%H%M')
+            #print(local_trop_time)
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
@@ -106,7 +260,7 @@ def download_TROPOMI_file(date_str, dest_dir = data_dir):
         print(cmnd) 
         os.system(cmnd)
 
-    return found_file
+    return local_file
 
 def download_TROPOMI_match_OMI(date_str, \
         save_path = home_dir + '/Research/TROPOMI'):
@@ -150,7 +304,8 @@ def download_TROPOMI_match_OMI(date_str, \
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-def convert_TROPOMI_to_HDF5(date_str, save_path = home_dir + '/Research/TROPOMI/'):
+def convert_TROPOMI_to_HDF5(date_str, omi_name = None, \
+        save_path = home_dir + '/Research/TROPOMI/'):
 
     # Read the TROPOMI data
     TROP_data = read_TROPOMI(date_str, minlat = 65.)
@@ -171,11 +326,15 @@ def convert_TROPOMI_to_HDF5(date_str, save_path = home_dir + '/Research/TROPOMI/
     dset.create_dataset('ssa1',      data = TROP_data['ssa1'][~TROP_data['uvai'].mask])
     dset.create_dataset('ssa2',      data = TROP_data['ssa2'][~TROP_data['uvai'].mask])
 
+    if(omi_name is not None):
+        dset.attrs['omi_filename'] = omi_name
+
     # Save, write, and close the HDF5 file
     # --------------------------------------
     dset.close()
 
     print("Saved file ",outfile)
+    return outfile
 
 def read_TROPOMI(date_str, minlat = 60.):
 
@@ -436,16 +595,17 @@ def plot_compare_OMI_TROPOMI(date_str, minlat = 65., slope = 'linear', \
     if(home_dir + '/Research/OMI/' not in sys.path):
         sys.path.append(home_dir + '/Research/OMI/')
 
-    from OMILib import readOMI_swath_shawn, plotOMI_single_swath
+    from OMILib import readOMI_swath_shawn, plotOMI_single_swath, \
+        readOMI_swath_hdf
 
     # Read shawn (and raw) OMI data
     # -----------------------------
     omi_date = trop_to_omi_dict[date_str]
     #omi_date = date_str
-    OMI_base = readOMI_swath_shawn(omi_date, latmin = minlat, \
-        shawn_path = home_dir + '/data/OMI/shawn_files/ltc3/')
-    #OMI_base = readOMI_swath_hdf(plot_time, 'control', latmin = minlat, \
-    #    skiprows = 53)
+    #OMI_base = readOMI_swath_shawn(omi_date, latmin = minlat, \
+    #    shawn_path = home_dir + '/data/OMI/shawn_files/ltc3/')
+    OMI_base = readOMI_swath_hdf(omi_date, 'control', latmin = minlat, \
+        skiprows = [52])
 
     # Read high-res TROPOMI data
     # --------------------------
@@ -479,22 +639,22 @@ def plot_compare_OMI_TROPOMI(date_str, minlat = 65., slope = 'linear', \
     ax1.set_title('TROPOMI UVAI')
     
     # Plot 2: raw OMI
-    plotOMI_single_swath(ax2, OMI_base, pvar = 'UVAI_raw', \
+    plotOMI_single_swath(ax2, OMI_base, pvar = 'UVAI', \
         title = 'OMI UVAI Raw', circle_bound = True, gridlines = False, \
         label = 'UVAI', vmin = vmin, vmax = vmax)
 
-    # Plot 3: perturbed OMI
-    labelsize = 10
-    mesh = ax3.pcolormesh(TROP_coloc['omi_lon'], TROP_coloc['omi_lat'], \
-        TROP_coloc['omi_uvai_pert'], transform = datacrs, shading = 'auto', \
-        cmap = 'jet', vmin = vmin, vmax = vmax)
-    cbar = plt.colorbar(mesh, ax = ax3, orientation='vertical',\
-        pad=0.04, fraction = 0.040, extend = 'both')
-    cbar.set_label('UV Aerosol Index', size = labelsize, weight = 'bold')
-    ax3.coastlines()
-    ax3.set_extent([-180, 180, minlat, 90], datacrs)
-    ax3.set_boundary(circle, transform = ax3.transAxes)
-    ax3.set_title('OMI UVAI Perturbation')
+    ##!## Plot 3: perturbed OMI
+    ##!#labelsize = 10
+    ##!#mesh = ax3.pcolormesh(TROP_coloc['omi_lon'], TROP_coloc['omi_lat'], \
+    ##!#    TROP_coloc['omi_uvai_pert'], transform = datacrs, shading = 'auto', \
+    ##!#    cmap = 'jet', vmin = vmin, vmax = vmax)
+    ##!#cbar = plt.colorbar(mesh, ax = ax3, orientation='vertical',\
+    ##!#    pad=0.04, fraction = 0.040, extend = 'both')
+    ##!#cbar.set_label('UV Aerosol Index', size = labelsize, weight = 'bold')
+    ##!#ax3.coastlines()
+    ##!#ax3.set_extent([-180, 180, minlat, 90], datacrs)
+    ##!#ax3.set_boundary(circle, transform = ax3.transAxes)
+    ##!#ax3.set_title('OMI UVAI Perturbation')
 
     # Plot 4: Plot binned TROPOMI
     plot_TROPOMI_coloc(TROP_coloc, 'trop_ai', ax = ax4, minlat = minlat, \
@@ -505,15 +665,21 @@ def plot_compare_OMI_TROPOMI(date_str, minlat = 65., slope = 'linear', \
     # Plot scatter of OMI vs TROPOMI
     # ------------------------------
     # Plot 5: TROPOMI vs raw OMI   
-    mask_OMI_raw  = np.ma.masked_invalid(OMI_base['UVAI_raw'])
+    mask_OMI_raw  = np.ma.masked_where(OMI_base['UVAI'] < -2e5, OMI_base['UVAI'])
+    mask_OMI_raw  = np.ma.masked_invalid(mask_OMI_raw)
     match_TROP    = TROP_coloc['trop_ai'][~mask_OMI_raw.mask]
     mask_OMI_raw  = mask_OMI_raw.compressed()
+
  
     # Get rid of missing TROPOMI pixels
     mask_OMI_raw   = np.ma.masked_where(match_TROP == -999.0, mask_OMI_raw)
     mask_TROP      = np.ma.masked_where(match_TROP == -999.0, match_TROP)
     final_OMI_raw  = mask_OMI_raw.compressed()
     final_TROP     = mask_TROP.compressed()
+
+    print('HERE', np.nanmin(final_OMI_raw), np.nanmax(final_OMI_raw))
+    print('HERE', np.nanmin(match_TROP), np.nanmax(match_TROP))
+    print('HERE', np.nanmin(final_TROP), np.nanmax(final_TROP))
 
     xy = np.vstack([final_OMI_raw,final_TROP])
     z = stats.gaussian_kde(xy)(xy)
@@ -535,36 +701,36 @@ def plot_compare_OMI_TROPOMI(date_str, minlat = 65., slope = 'linear', \
     ax5.set_xlabel('OMI UVAI Raw')
     ax5.set_ylabel('TROPOMI UVAI')
     
-    # Plot 6: TROPOMI vs OMI pert
-    mask_OMI = np.ma.masked_invalid(TROP_coloc['omi_uvai_pert'])
-    match_TROP = TROP_coloc['trop_ai'][~mask_OMI.mask]
-    mask_OMI   = mask_OMI.compressed()
+    ##!## Plot 6: TROPOMI vs OMI pert
+    ##!#mask_OMI = np.ma.masked_invalid(TROP_coloc['omi_uvai_pert'])
+    ##!#match_TROP = TROP_coloc['trop_ai'][~mask_OMI.mask]
+    ##!#mask_OMI   = mask_OMI.compressed()
 
-    # Get rid of missing TROPOMI pixels
-    mask_OMI  = np.ma.masked_where(match_TROP == -999.0, mask_OMI)
-    mask_TROP = np.ma.masked_where(match_TROP == -999.0, match_TROP)
-    final_OMI  = mask_OMI.compressed()
-    final_TROP = mask_TROP.compressed()
+    ##!## Get rid of missing TROPOMI pixels
+    ##!#mask_OMI  = np.ma.masked_where(match_TROP == -999.0, mask_OMI)
+    ##!#mask_TROP = np.ma.masked_where(match_TROP == -999.0, match_TROP)
+    ##!#final_OMI  = mask_OMI.compressed()
+    ##!#final_TROP = mask_TROP.compressed()
 
-    xy = np.vstack([final_OMI,final_TROP])
-    z = stats.gaussian_kde(xy)(xy)
-    ax6.scatter(final_OMI, final_TROP, c = z, s = 6)
-    zdata = plot_trend_line(ax6, final_OMI, final_TROP, color='red', linestyle = '-', \
-        linewidth = 1.5, slope = slope)
-    ax6.set_title('TROPOMI = ' + str(np.round(zdata.slope,3)) + ' * OMI + ' + \
-        str(np.round(zdata.intercept,3)) + '\n$r^{2}$ = ' + \
-        str(np.round(zdata.rvalue**2., 3)))
+    ##!#xy = np.vstack([final_OMI,final_TROP])
+    ##!#z = stats.gaussian_kde(xy)(xy)
+    ##!#ax6.scatter(final_OMI, final_TROP, c = z, s = 6)
+    ##!#zdata = plot_trend_line(ax6, final_OMI, final_TROP, color='red', linestyle = '-', \
+    ##!#    linewidth = 1.5, slope = slope)
+    ##!#ax6.set_title('TROPOMI = ' + str(np.round(zdata.slope,3)) + ' * OMI + ' + \
+    ##!#    str(np.round(zdata.intercept,3)) + '\n$r^{2}$ = ' + \
+    ##!#    str(np.round(zdata.rvalue**2., 3)))
 
-    # Plot one to one line
-    xlim = ax6.get_xlim()
-    ylim = ax6.get_ylim()
-    xvals = np.arange(xlim[0] - 1, xlim[-1] + 1)
-    ax6.plot(xvals, xvals, '-', color = 'tab:cyan', linewidth = 1.5)
-    ax6.set_xlim(xlim)   
-    ax6.set_ylim(ylim)   
-    ax6.grid()
-    ax6.set_xlabel('OMI UVAI Perturbed')
-    ax6.set_ylabel('TROPOMI UVAI')
+    ##!## Plot one to one line
+    ##!#xlim = ax6.get_xlim()
+    ##!#ylim = ax6.get_ylim()
+    ##!#xvals = np.arange(xlim[0] - 1, xlim[-1] + 1)
+    ##!#ax6.plot(xvals, xvals, '-', color = 'tab:cyan', linewidth = 1.5)
+    ##!#ax6.set_xlim(xlim)   
+    ##!#ax6.set_ylim(ylim)   
+    ##!#ax6.grid()
+    ##!#ax6.set_xlabel('OMI UVAI Perturbed')
+    ##!#ax6.set_ylabel('TROPOMI UVAI')
 
     plt.suptitle(date_str)
  

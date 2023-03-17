@@ -315,7 +315,7 @@ program omi_colocate
 
   ! Allocate the output arrays
   ! --------------------------
-  call allocate_out_arrays
+  call allocate_out_arrays(OMI_AI_dims(1), OMI_AI_dims(2))
 
   !!#!write(*,*) MODIS_LAT_data(100,100), MODIS_LON_data(100,100)
   !!#!write(*,*) CERES_LAT_data(100,100), CERES_LON_data(100,100)

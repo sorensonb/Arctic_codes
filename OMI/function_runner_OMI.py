@@ -10,6 +10,55 @@ import OMILib
 from OMILib import *
 import sys
 
+date_str = '20180705'
+identify_OMI_HDF_swaths(date_str, minlat = 70., min_AI = 2.0, \
+    remove_bad = False, skiprows = [52])
+
+sys.exit()
+
+date_strs = [\
+        '202108010435',\
+        '202108010614',\
+        '202108010752',\
+        '202108010931',\
+        '202108011110',\
+        '202108011249',\
+        '202108011428',\
+        '202108011607',\
+        '202108011746',\
+        '202108011925',\
+        '202108012103',\
+        '202108012242',\
+    ]
+
+date_str = '20210801'
+base_date = datetime.strptime(date_str, '%Y%m%d')
+quit_date = base_date + timedelta(days = 1)
+local_date_str = base_date
+while(local_date_str < quit_date):
+    
+#for date_str in date_strs:
+    #dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+    print(local_date_str)
+    #print(dt_date_str, dt_date_str + timedelta(minutes = 99))
+
+    date_str = local_date_str.strftime('%Y%m%d%H%m')
+    download_OMI_file_HDF(date_str, dest_dir = h5_data_dir)
+
+    local_date_str = local_date_str + timedelta(minutes = 99)
+
+sys.exit()
+
+#date_str = '200607270100'
+#date_str = '201908101301'
+date_str = '202108010117'
+plotOMI_single_swath_figure(date_str, dtype = 'control',  \
+        only_sea_ice = False, minlat = 50., skiprows = [52], \
+        lat_circles = None, save = False, zoom = False, \
+        circle_bound = True, ax = None, \
+        shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
+sys.exit()
+
 OMI_base = '201908110033'
 write_shawn_to_HDF5(OMI_base, save_path = './', minlat = 65., \
     shawn_path = home_dir + '/data/OMI/shawn_files/')
@@ -29,15 +78,6 @@ sys.exit()
 plotOMI_Compare_TrendUncertainty_all('VJZ211', 'VSJ4',\
     trend_type = 'standard', minlat=65,save=True)
 
-sys.exit()
-
-date_str = '200607270100'
-date_str = '201908101301'
-plotOMI_single_swath_figure(date_str, dtype = 'control',  \
-        only_sea_ice = False, minlat = 50., skiprows = None, \
-        lat_circles = None, save = False, zoom = False, \
-        circle_bound = True, ax = None, \
-        shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
 sys.exit()
 
 # For JZ211 vs SJ4

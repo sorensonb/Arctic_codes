@@ -307,6 +307,15 @@ cmnd = "find "+base_dir+"NAAPS/ -type f -name \"*.py\" | xargs cp -t "+final_dir
 print(cmnd)
 os.system(cmnd)
 # ---------------------------------------------------------------------------- 
+# NCEP analysis
+# ---------------------------------------------------------------------------- 
+print("NCEP")
+final_dir = dest_dir + 'NCEP/'
+cmnd = "find "+base_dir+"NCEP/ -type f -name \"*.py\" | xargs cp -t "+final_dir
+#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
+# ---------------------------------------------------------------------------- 
 # NEXRAD analysis
 # ---------------------------------------------------------------------------- 
 print("NEXRAD")
@@ -381,6 +390,10 @@ cmnd = "scp "+rain_dir+"*.f90 "+final_dir
 print(cmnd)
 os.system(cmnd)
 cmnd = "scp "+rain_dir+"Make* "+final_dir
+print(cmnd)
+os.system(cmnd)
+
+cmnd = "scp "+rain_dir+"/tropomi_colocate/auto_trop_process.sh "+final_dir
 print(cmnd)
 os.system(cmnd)
 

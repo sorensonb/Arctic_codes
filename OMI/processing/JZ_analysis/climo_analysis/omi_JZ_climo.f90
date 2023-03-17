@@ -13,7 +13,7 @@ program omi_JZ_climo
 !     - h5_vars (custom module, shared between count and climo analyses)
 !   Subroutines:
 !     - check_bad_rows
-!     - clear_arrays (from h5_vars)
+!     - clear_h5_arrays (from h5_vars)
 !     - grid_raw_data_climo
 !     - print_climo
 !     - read_h5_AI
@@ -30,7 +30,7 @@ program omi_JZ_climo
 !  ############################################################################
 
   use hdf5
-  use h5_vars, only : clear_arrays, i_bad_list
+  use h5_vars, only : clear_h5_arrays, i_bad_list
 
   implicit none
 
@@ -238,7 +238,7 @@ program omi_JZ_climo
 
         ! Deallocate all the arrays for the next pass
         ! -------------------------------------------
-        call clear_arrays
+        call clear_h5_arrays
       endif
     enddo file_loop  
   endif

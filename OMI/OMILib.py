@@ -59,12 +59,14 @@ import os
 import importlib
 
 home_dir = os.environ['HOME']
+h5_data_dir = home_dir + '/data/OMI/H5_files/'
 
 sys.path.append(home_dir)
-from python_lib import circle, plot_subplot_label, plot_lat_circles
-from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
-    nearest_gridpoint, aerosol_event_dict, init_proj, \
-    convert_radiance_to_temp, format_coord, circle, plot_point_on_map
+from python_lib import *
+#from python_lib import circle, plot_subplot_label, plot_lat_circles
+#from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
+#    nearest_gridpoint, aerosol_event_dict, init_proj, \
+#    convert_radiance_to_temp, format_coord, circle, plot_point_on_map
 
 # Bits 
 #  0 - Missing
@@ -501,9 +503,182 @@ def onclick_climo(event):
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
+# Downloading functions
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+
+def download_OMI_all_HDF(date_str, dest_dir = h5_data_dir):
+
+    base_str = datetime.strptime(date_str, '%Y%m%d')
+
+    quit_date = base_date + timedelta(days = 1)
+    local_date_str = base_date
+
+    while(local_date_str < quit_date):
+        
+        print(local_date_str)
+    
+        date_str = local_date_str.strftime('%Y%m%d%H%m')
+
+        download_OMI_file_HDF(date_str, dest_dir = h5_data_dir)
+    
+        local_date_str = local_date_str + timedelta(minutes = 99)
+
+
+# This downloads the OMI l1b HDF5 file that is closest to the passed
+# date string from the GES DISC archive. 
+# --------------------------------------------------------------------
+def download_OMI_single_HDF(date_str, dest_dir = h5_data_dir):
+
+    base_url = 'https://aura.gesdisc.eosdis.nasa.gov/data/Aura_OMI_Level2/OMAERUV.003/'
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+
+    # For each desired channel, figure out the closest file time
+    # to the input date
+    # ----------------------------------------------------------
+    try:
+        files = listFD(dt_date_str.strftime(base_url + '/%Y/%j'), ext = '.he5')
+    except subprocess.CalledProcessError:
+        print("ERROR: No OMI files for the input DTG",date_str)
+        return -2
+
+    if(len(files) == 0):
+        print("ERROR: No OMI files returned from the request. Exiting")
+        return -1
+    
+    # Remove the timestamps from the file strings
+    # -------------------------------------------
+    total_files = files[::2]
+    files_only = [tfile.strip().split('/')[-1] for tfile in total_files]
+
+    # Use the actual file times to get timestamps
+    # -------------------------------------------
+    file_dates = [datetime.strptime(tfile[20:34],'%Ym%m%dt%H%M%S') for tfile in files_only]
+
+    # Figure out where the closest files to the desired time are
+    # ----------------------------------------------------------
+    time_diffs = np.array([abs((dt_date_str - ddate).total_seconds()) \
+        for ddate in file_dates])
+
+    # Extract the index of the matching OMI file
+    # --------------------------------------------
+    file_idx = np.argmin(time_diffs)
+    local_file = files_only[file_idx]
+    found_file = total_files[file_idx]
+ 
+    # Check if the file is already downloaded
+    # ---------------------------------------
+    if(os.path.exists(dest_dir + local_file)):
+        print(found_file + ' already exists. Not downloading')
+    else: 
+        # Download the file
+        # -----------------
+        base_cmnd = "wget --load-cookies ~/urs_cookies --save-cookies "+\
+            "~/.urs_cookies --keep-session-cookies --content-disposition "
+        cmnd = dt_date_str.strftime(base_cmnd + found_file)
+        print(cmnd)
+        os.system(cmnd)
+
+        # Move the file to the destination folder
+        # ---------------------------------------
+        cmnd = "mv " + local_file + " " + dest_dir
+        print(cmnd) 
+        os.system(cmnd)
+
+    return found_file
+
+# For a given date str (YYYYMMDDHH), downloads the corresponding OMI
+# H5 and shawn files and determines which Shawn swaths have significant
+# aerosol (AI_pert > 1.0)
+def identify_OMI_HDF_swaths(date_str, minlat = 70., min_AI = 2.0, \
+        remove_bad = False, skiprows = [52]):
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d')
+
+    h5_path = home_dir + '/data/OMI/H5_files/'
+
+    # For a date string, determine if H5 and shawn OMI files are downloaded
+    # ---------------------------------------------------------------------
+    h5_files    = glob(dt_date_str.strftime(h5_path + 'OMI*_%Ym%m%dt*.he5')) 
+
+    # = = = = = = = = = = = = = = = = = = 
+    # 
+    # Download files for each day
+    #
+    # = = = = = = = = = = = = = = = = = = 
+
+    # if not, download here
+    if(len(h5_files) == 0):
+        # download H5 files
+        download_OMI_all_HDF(date_str)
+
+        h5_files    = glob(dt_date_str.strftime(h5_path + \
+            'OMI*_%Ym%m%dt*.he5')) 
+    
+    # Loop over each of the files, reading in each file
+    file_times = [datetime.strptime(tfile[-47:-33], '%Ym%m%dt%H%M').strftime(\
+        '%Y%m%d%H%M') for tfile in h5_files]
+    
+    # = = = = = = = = = = = = = = = = = = = = = = = 
+    # 
+    # Determine which ones have significant aerosol
+    #
+    # = = = = = = = = = = = = = = = = = = = = = = = 
+    good_list = []
+    bad_list  = []
+    for ttime in file_times:
+        print(ttime)
+
+        OMI_base = readOMI_swath_hdf(ttime, dtype = 'control', \
+            latmin = minlat, skiprows = skiprows)
+
+        ##!## (Plot the file here?)
+        ##!#plt.close('all')
+        ##!#fig = plt.figure()
+        ##!#ax = fig.add_subplot(1,1,1, projection = mapcrs)
+        ##!#plotOMI_single_swath(ax, OMI_base, title = None, \
+        ##!#    circle_bound = False, gridlines = False, vmax = 3.0)
+        ##!##filename = 'omi_single_swath_' + ttime + '.png'
+        ##!#plt.show()
+
+        OMI_base['UVAI'] = np.ma.masked_where(OMI_base['UVAI'] < min_AI, \
+            OMI_base['UVAI'])
+        OMI_base['UVAI'] = np.ma.masked_invalid(OMI_base['UVAI'])
+        num_above_threshold = len(OMI_base['UVAI'].compressed())
+        print(num_above_threshold)
+
+        # Determine if the max AI pert. value north of 65 N
+        # is greater than 1 (or some threshold)
+        #if(np.nanmax(OMI_base['UVAI_pert']) >= min_AI):
+        if(num_above_threshold >= 100):
+            # If the value is over the threshold, add the YYYYMMDDHHMM
+            # date string to a keep list
+            good_list.append(ttime)
+        else:
+            # If not, add the date string to a throw away list
+            bad_list.append(ttime)
+
+    if(remove_bad):
+        # At the end, loop over the throw away list and delete those files.
+        for tstr in bad_list:
+            local_dstr = datetime.strptime(tstr, '%Y%m%d%H%M')
+            cmnd2 = local_dstr.strftime('rm ' + h5_path + \
+                'OMI*_%Ym%m%dt%H%M*.he5')
+        
+            print(cmnd2)
+            os.system(cmnd2)
+
+    # Return or print the keep list.
+    return good_list
+    
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#
 # Reading functions
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+
 
 # Written for old old data
    

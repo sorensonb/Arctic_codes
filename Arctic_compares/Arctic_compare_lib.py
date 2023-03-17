@@ -136,6 +136,7 @@ case_dates = ['200607240029', # GOOD
 # hdf5 file-making, and the data copying to raindrop.
 # Flags:
 #   - include_tropomi: adds the colocated TROPOMI data to the colocation
+#         NOTE: still need to implement this
 #   - file package
 def automate_all_preprocess(date_str, download = True, images = True, \
         process = True, omi_dtype = 'ltc3', include_tropomi = True):
@@ -286,6 +287,9 @@ def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+# For a given date str (YYYYMMDDHH), downloads the corresponding OMI
+# H5 and shawn files and determines which Shawn swaths have significant
+# aerosol (AI_pert > 1.0)
 def download_OMI_files(date_str, omi_dtype = 'ltc3', minlat = 70., \
         min_AI = 1.0, remove_bad = False):
 
@@ -315,16 +319,19 @@ def download_OMI_files(date_str, omi_dtype = 'ltc3', minlat = 70., \
     if(len(h5_files) == 0):
         # download H5 files
         cmnd = dt_date_str.strftime(\
-            'scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/H5_files/OMI*_%Ym%m%dt*.he5 ') + h5_path
+            'scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/'+\
+            'H5_files/OMI*_%Ym%m%dt*.he5 ') + h5_path
         print(cmnd)
         os.system(cmnd)
 
-        h5_files    = glob(dt_date_str.strftime(h5_path + 'OMI*_%Ym%m%dt*.he5')) 
+        h5_files    = glob(dt_date_str.strftime(h5_path + \
+            'OMI*_%Ym%m%dt*.he5')) 
     
     if(len(shawn_files) == 0):
         # download shawn files
         cmnd = dt_date_str.strftime(\
-            'scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/out_files-ltc3/%Y%m%d* ') + shawn_path
+            'scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/'+\
+            'out_files-ltc3/%Y%m%d* ') + shawn_path
         print(cmnd)
         os.system(cmnd)
 
@@ -355,7 +362,8 @@ def download_OMI_files(date_str, omi_dtype = 'ltc3', minlat = 70., \
         ##!##filename = 'omi_single_swath_' + ttime + '.png'
         ##!#plt.show()
 
-        OMI_base['UVAI_pert'] = np.ma.masked_where(OMI_base['UVAI_pert'] < min_AI, OMI_base['UVAI_pert'])
+        OMI_base['UVAI_pert'] = np.ma.masked_where(OMI_base['UVAI_pert'] < \
+            min_AI, OMI_base['UVAI_pert'])
         OMI_base['UVAI_pert'] = np.ma.masked_invalid(OMI_base['UVAI_pert'])
         num_above_threshold = len(OMI_base['UVAI_pert'].compressed())
         print(num_above_threshold)
@@ -377,7 +385,8 @@ def download_OMI_files(date_str, omi_dtype = 'ltc3', minlat = 70., \
         for tstr in bad_list:
             local_dstr = datetime.strptime(tstr, '%Y%m%d%H%M')
             cmnd1 = local_dstr.strftime('rm ' + shawn_path + '%Y%m%d%H%M')
-            cmnd2 = local_dstr.strftime('rm ' + h5_path + 'OMI*_%Ym%m%dt%H%M*.he5')
+            cmnd2 = local_dstr.strftime('rm ' + h5_path + \
+                'OMI*_%Ym%m%dt%H%M*.he5')
         
             print(cmnd1)
             print(cmnd2)

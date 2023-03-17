@@ -15,7 +15,7 @@ program omi_frequency_JZ
 !     - h5_vars (custom module, shared between count and climo analyses)
 !   Subroutines:
 !     - check_bad_rows
-!     - clear_arrays (from h5_vars)
+!     - clear_h5_arrays (from h5_vars)
 !     - count_ai_JZ
 !     - grid_raw_data
 !     - read_h5_AI
@@ -33,7 +33,7 @@ program omi_frequency_JZ
 !  ############################################################################
 
   use hdf5
-  use h5_vars, only : clear_arrays, i_bad_list
+  use h5_vars, only : clear_h5_arrays, i_bad_list
   use omi_fort_lib, only : lat_lon_area
  
   implicit none
@@ -270,7 +270,7 @@ program omi_frequency_JZ
 
         ! Deallocate all the arrays for the next pass
         ! -------------------------------------------
-        call clear_arrays
+        call clear_h5_arrays
 
       endif
     enddo file_loop  
