@@ -118,7 +118,7 @@ def automate_TROPOMI_preprocess(date_str, download = True, images = True, \
         # Screen the OMI swaths to determine which contain significant
         # aerosol (remove bad files if desired)
         # ------------------------------------------------------------
-        good_omi_times = identify_OMI_HDF_swaths(dstr, \
+        good_omi_times = download_identify_OMI_swaths(dstr, \
             minlat = 70., min_AI = 2.0, remove_bad = remove_bad_OMI)
 
         # Download matching TROPOMI files for each of the remaining 

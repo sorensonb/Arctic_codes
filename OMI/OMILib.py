@@ -591,10 +591,26 @@ def download_OMI_single_HDF(date_str, dest_dir = h5_data_dir):
 # For a given date str (YYYYMMDDHH), downloads the corresponding OMI
 # H5 and shawn files and determines which Shawn swaths have significant
 # aerosol (AI_pert > 1.0)
-def identify_OMI_HDF_swaths(date_str, minlat = 70., min_AI = 2.0, \
-        remove_bad = False, skiprows = [52]):
+def download_identify_OMI_swaths(date_str, minlat = 70., min_AI = 2.0, \
+        remove_bad = False, skiprows = [52], omi_dtype = 'ltc3'):
 
     dt_date_str = datetime.strptime(date_str, '%Y%m%d')
+
+    if(dt_date_str.year > 2021):
+        process_shawn = False
+        min_AI = min_AI - 1.0
+    else:
+        process_shawn = True
+        min_AI = min_AI
+
+        if(omi_dtype == 'shawn'):
+            omi_dtype2 = 'shawn'
+            shawn_path = home_dir + '/data/OMI/shawn_files/'
+        elif(omi_dtype == 'ltc3'):
+            omi_dtype = 'shawn'
+            omi_dtype2 = 'ltc3'
+            shawn_path = home_dir+ '/data/OMI/shawn_files/ltc3/'
+
 
     h5_path = home_dir + '/data/OMI/H5_files/'
 
@@ -610,12 +626,29 @@ def identify_OMI_HDF_swaths(date_str, minlat = 70., min_AI = 2.0, \
 
     # if not, download here
     if(len(h5_files) == 0):
+
         # download H5 files
+        #  NOTE: could set up so that Raindrop data are downloaded if the
+        #        year is after 2020, but am choosing to only download from
+        #        the source here so that it doesn't matter if the UND VPN
+        #        is running.
         download_OMI_all_HDF(date_str)
 
         h5_files    = glob(dt_date_str.strftime(h5_path + \
             'OMI*_%Ym%m%dt*.he5')) 
+   
+    if(process_shawn):
+        if(len(shawn_files) == 0):
+            # download shawn files
+            cmnd = dt_date_str.strftime(\
+                'scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/'+\
+                'out_files-ltc3/%Y%m%d* ') + shawn_path
+            print(cmnd)
+            os.system(cmnd)
+
+            shawn_files = glob(dt_date_str.strftime(shawn_path + '%Y%m%d*')) 
     
+ 
     # Loop over each of the files, reading in each file
     file_times = [datetime.strptime(tfile[-47:-33], '%Ym%m%dt%H%M').strftime(\
         '%Y%m%d%H%M') for tfile in h5_files]
@@ -630,8 +663,25 @@ def identify_OMI_HDF_swaths(date_str, minlat = 70., min_AI = 2.0, \
     for ttime in file_times:
         print(ttime)
 
-        OMI_base = readOMI_swath_hdf(ttime, dtype = 'control', \
-            latmin = minlat, skiprows = skiprows)
+        if(process_shawn):
+            OMI_base = readOMI_swath_shawn(ttime, latmin = minlat, \
+                shawn_path = shawn_path)
+
+            OMI_base['UVAI_pert'] = np.ma.masked_where(OMI_base['UVAI_pert'] < \
+                min_AI, OMI_base['UVAI_pert'])
+            OMI_base['UVAI_pert'] = np.ma.masked_invalid(OMI_base['UVAI_pert'])
+            num_above_threshold = len(OMI_base['UVAI_pert'].compressed())
+            print(num_above_threshold)
+        else:
+            OMI_base = readOMI_swath_hdf(ttime, dtype = 'control', \
+                latmin = minlat, skiprows = skiprows)
+
+            OMI_base['UVAI'] = np.ma.masked_where(OMI_base['UVAI'] < min_AI, \
+                OMI_base['UVAI'])
+            OMI_base['UVAI'] = np.ma.masked_invalid(OMI_base['UVAI'])
+            num_above_threshold = len(OMI_base['UVAI'].compressed())
+            print(num_above_threshold)
+
 
         ##!## (Plot the file here?)
         ##!#plt.close('all')
@@ -641,12 +691,6 @@ def identify_OMI_HDF_swaths(date_str, minlat = 70., min_AI = 2.0, \
         ##!#    circle_bound = False, gridlines = False, vmax = 3.0)
         ##!##filename = 'omi_single_swath_' + ttime + '.png'
         ##!#plt.show()
-
-        OMI_base['UVAI'] = np.ma.masked_where(OMI_base['UVAI'] < min_AI, \
-            OMI_base['UVAI'])
-        OMI_base['UVAI'] = np.ma.masked_invalid(OMI_base['UVAI'])
-        num_above_threshold = len(OMI_base['UVAI'].compressed())
-        print(num_above_threshold)
 
         # Determine if the max AI pert. value north of 65 N
         # is greater than 1 (or some threshold)
@@ -665,9 +709,13 @@ def identify_OMI_HDF_swaths(date_str, minlat = 70., min_AI = 2.0, \
             local_dstr = datetime.strptime(tstr, '%Y%m%d%H%M')
             cmnd2 = local_dstr.strftime('rm ' + h5_path + \
                 'OMI*_%Ym%m%dt%H%M*.he5')
-        
             print(cmnd2)
             os.system(cmnd2)
+
+            if(process_shawn):
+                cmnd1 = local_dstr.strftime('rm ' + shawn_path + '%Y%m%d%H%M')
+                print(cmnd1)
+                os.system(cmnd1)
 
     # Return or print the keep list.
     return good_list

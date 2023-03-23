@@ -27,11 +27,23 @@ from OMILib import readOMI_swath_shawn, plotOMI_single_swath, \
 #date_str = '201807052142'
 #date_str = '201908110044'
 date_str = '202108012225'
-plot_compare_OMI_TROPOMI(date_str, minlat = 65., slope = 'linear', vmin = -2, vmax = 7, save = False)
-#plot_TROPOMI_figure(date_str, minlat = 65., vmin = None, vmax = None, \
-#        circle_bound = True, ptitle = '', zoom = True, \
-#        save = False)
-#trop_data = read_TROPOMI(date_str)
+
+date_strs = [
+    '202108010207', \
+    '202108010349', \
+    '202108010530', \
+    '202108011539', \
+    '202108011902', \
+    '202108012044', \
+    '202108012225', \
+]
+for date_str in date_strs:
+    plot_compare_OMI_TROPOMI(date_str, minlat = 65., slope = 'linear', \
+        vmin = -2, vmax = 7, save = True)
+    #plot_TROPOMI_figure(date_str, minlat = 65., vmin = None, vmax = None, \
+    #        circle_bound = True, ptitle = '', zoom = True, \
+    #        save = False)
+    #trop_data = read_TROPOMI(date_str)
 sys.exit()
 
 

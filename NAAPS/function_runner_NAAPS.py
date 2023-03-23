@@ -7,35 +7,19 @@
 
 from NAAPSLib import *
 
-NAAPS_data = readgridNAAPS_NCDF(infile=home_dir + \
-    '/Research/NAAPS/naaps_grid_smoke_conc_sfc_2005_2020.nc',\
-    start_date = 200504, end_date = 202009, calc_month = True, \
-    minlat = 65)
-
-plotNAAPS_ClimoTrend_all(NAAPS_data,\
-    trend_type = 'standard', minlat=65,save=False)
-
-#plotNAAPS_MonthTrend(NAAPS_data,month_idx=4,save=False,\
-#    trend_type='standard',minlat=65.,return_trend=False, colorbar = True, \
-#    title = '', label = '', colorbar_label_size = 14, pax = None, \
-#    show_pval = True, uncert_ax = None)
-
-sys.exit()
-
-# NOTE: to regenerate the entire NAAPS monthly climatology dataset
-##!#NAAPS_data = calc_NAAPS_all_avgs('200504', '202009', minlat = 65., \
-##!#    mask_zero = False)
-##!#sys.exit()
-
 #date_str = '20080422'
 date_str = '20120615'
 #date_str = '20170816'
 #date_str = '20200824'
+#var = 'smoke_wetsink'
 var = 'smoke_conc_sfc'
 #date_str = '20080422'
 #date_str = '20170816'
 
 if(date_str == '20170816'):
+    begin_str = '20170801'
+    end_str   = '20170831'
+    interval = 4
     minlat = 78.
     min_smoke = 60
     max_smoke = 300
@@ -54,6 +38,9 @@ elif(date_str == '20080422'):
     min_ice = 80.
     vmin2 = 0.4
 elif(date_str == '20120615'):
+    begin_str = '20120501'
+    end_str   = '20120731'
+    interval = 4 
     minlat = 60.
     min_smoke = 15
     max_smoke = 50
@@ -62,6 +49,22 @@ elif(date_str == '20120615'):
     lon_bounds = [305, 345]
     min_ice = 0.
     alb_min = 0.4
+    plats =  [\
+        64.5616,  # smoke
+        66.6799,  # smoke
+        62.4603,
+        69.7040,  # light smoke
+        70.3616,  # no smoke
+        73.6032,  # no smoke
+    ]
+    plons =  [\
+        313.3088,  # smoke
+        312.6112,  # smoke
+        314.3501, 
+        314.7316,  # light smoke
+        327.0151,  # no smoke
+        316.2099,  # no smoke
+    ]
 elif(date_str == '20200824'):
     minlat = 75.
     min_smoke = 10
@@ -72,17 +75,59 @@ elif(date_str == '20200824'):
     min_ice = 0.
     vmin2 = 0.2
 
-second_arrays, second_labels, second_arrays_nosmoke = \
-    plot_NAAPS_event_CERES(date_str, var, ceres_var = 'swf_clr', \
-#ceres = plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
-    satellite = 'All', minlat = minlat, vmin = None, vmax = vmax, \
-    #satellite = 'All', minlat = 60., vmin = None, vmax = 300, \
-    vmin2 = alb_min, vmax2 = 300, \
-    plot_log = False, min_ice = min_ice, min_smoke = min_smoke, max_smoke = max_smoke, \
-    ptitle = '', zoom = True, lat_bounds = lat_bounds, lon_bounds = lon_bounds, \
-    plot_daily_data = False, save = True)
+##!#second_arrays, second_labels, second_arrays_nosmoke = \
+##!#    plot_NAAPS_event_CERES(date_str, var, ceres_var = 'lwf_clr', \
+##!##ceres = plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
+##!#    satellite = 'All', minlat = minlat, vmin = None, vmax = vmax, \
+##!#    #satellite = 'All', minlat = 60., vmin = None, vmax = 300, \
+##!#    vmin2 = alb_min, vmax2 = 300, \
+##!#    plot_log = False, min_ice = min_ice, min_smoke = min_smoke, max_smoke = max_smoke, \
+##!#    ptitle = '', zoom = True, lat_bounds = lat_bounds, lon_bounds = lon_bounds, \
+##!#    plot_daily_data = False, save = True)
+##!#sys.exit()
+
+
+#combined_data, combined_data_nosmoke = \
+#second_arrays, second_labels, second_arrays_nosmoke = \
+#        plot_NAAPS_event_CERES_region_time_series(date_str, begin_str, end_str, 
+#        interval, var, ceres_var = 'alb_clr', minlat = minlat, vmin = None, \
+#        vmax = vmax, vmin2 = alb_min, vmax2 = None, min_ice = min_ice, \
+#        min_smoke = min_smoke, max_smoke = max_smoke, plot_log = False, \
+#        satellite = 'All', ptitle = '', lat_bounds = lat_bounds, \
+#        lon_bounds = lon_bounds, plot_daily_data = False, \
+#        zoom = True, save = False)
+#sys.exit()
+
+plot_NAAPS_event_CERES_points_time_series(date_str, begin_str, end_str, \
+    interval, var, plats, plons, ceres_var = 'alb_clr', \
+    minlat = minlat, vmin = None, vmax = vmax, vmin2 = alb_min, vmax2 = None, \
+    min_ice = min_ice, min_smoke = min_smoke, max_smoke = max_smoke, \
+    plot_log = False, \
+    satellite = 'All', ptitle = '', lat_bounds = lat_bounds, \
+    lon_bounds = lon_bounds, plot_daily_data = False, \
+    zoom = True, save = True)
+
 sys.exit()
 
+NAAPS_data = readgridNAAPS_NCDF(infile=home_dir + \
+    '/Research/NAAPS/naaps_grid_smoke_conc_sfc_2005_2020.nc',\
+    start_date = 200504, end_date = 202009, calc_month = True, \
+    minlat = 65)
+
+plotNAAPS_ClimoTrend_all(NAAPS_data,\
+    trend_type = 'standard', minlat=65,save=True)
+
+#plotNAAPS_MonthTrend(NAAPS_data,month_idx=4,save=False,\
+#    trend_type='standard',minlat=65.,return_trend=False, colorbar = True, \
+#    title = '', label = '', colorbar_label_size = 14, pax = None, \
+#    show_pval = True, uncert_ax = None)
+
+sys.exit()
+
+# NOTE: to regenerate the entire NAAPS monthly climatology dataset
+##!#NAAPS_data = calc_NAAPS_all_avgs('200504', '202009', minlat = 65., \
+##!#    mask_zero = False)
+##!#sys.exit()
 
 
 # beg: 2020082400

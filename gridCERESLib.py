@@ -289,10 +289,10 @@ def readgridCERES_daily(date_str, end_str = None, satellite = 'Aqua', \
             found_NOAA = True
             CERES_data5 = readgridCERES_daily_file(date_str, end_str = end_str, \
                 satellite = 'NOAA20', minlat = minlat)
-        #if( (dt_begin_str > dt_begin_suominpp) & (dt_end_str <= dt_end_suominpp)):
-        #    found_NPP = True
-        #    CERES_data3 = readgridCERES_daily_file(date_str, end_str = end_str, \
-        #        satellite = 'SuomiNPP', minlat = minlat)
+        if( (dt_begin_str > dt_begin_suominpp) & (dt_end_str <= dt_end_suominpp)):
+            found_NPP = True
+            CERES_data3 = readgridCERES_daily_file(date_str, end_str = end_str, \
+                satellite = 'SuomiNPP', minlat = minlat)
         CERES_data4 = readgridCERES_daily_file(date_str, end_str = end_str, \
             satellite = 'Aqua',minlat = minlat)
 

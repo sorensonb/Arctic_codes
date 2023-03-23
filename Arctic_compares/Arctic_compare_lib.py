@@ -228,6 +228,10 @@ def automate_all_preprocess(date_str, download = True, images = True, \
 def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
         download = True, images = False, process = False, run_list = None):
 
+    if(home_dir + '/Research/OMI/' not in sys.path):
+        sys.path.append(home_dir + '/Research/OMI/')
+    from OMILib import plotOMI_single_swath_figure
+
     # See which of the good list files are in the json database
     # ---------------------------------------------------------
     with open(json_time_database,'r') as fin:
@@ -263,7 +267,8 @@ def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
 
             print(date_str, ai_val)
 
-            good_list = download_OMI_files(date_str, remove_bad = True)
+            good_list = download_identify_OMI_swaths(date_str, \
+                minlat = minlat, remove_bad = True)
 
             final_good_list = final_good_list + good_list
 
@@ -362,11 +367,6 @@ def download_OMI_files(date_str, omi_dtype = 'ltc3', minlat = 70., \
         ##!##filename = 'omi_single_swath_' + ttime + '.png'
         ##!#plt.show()
 
-        OMI_base['UVAI_pert'] = np.ma.masked_where(OMI_base['UVAI_pert'] < \
-            min_AI, OMI_base['UVAI_pert'])
-        OMI_base['UVAI_pert'] = np.ma.masked_invalid(OMI_base['UVAI_pert'])
-        num_above_threshold = len(OMI_base['UVAI_pert'].compressed())
-        print(num_above_threshold)
 
 
         # Determine if the max AI pert. value north of 65 N
