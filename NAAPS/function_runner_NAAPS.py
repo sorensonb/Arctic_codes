@@ -38,8 +38,8 @@ elif(date_str == '20080422'):
     min_ice = 80.
     vmin2 = 0.4
 elif(date_str == '20120615'):
-    begin_str = '20120501'
-    end_str   = '20120731'
+    begin_str = '20090601'
+    end_str   = '20090630'
     interval = 4 
     minlat = 60.
     min_smoke = 15
@@ -75,6 +75,16 @@ elif(date_str == '20200824'):
     min_ice = 0.
     vmin2 = 0.2
 
+#pvars = ['alb_clr', 'swf_clr']
+#for cvar in pvars:
+plot_NAAPS_multi_CERES_region_comp(date_str, var, ceres_var = 'lwf_clr', \
+    minlat = minlat, vmin = None, vmax = vmax, vmin2 = alb_min, vmax2 = None, \
+    min_ice = 80., min_smoke = 0, max_smoke = max_smoke, plot_log = True, \
+    satellite = 'All', ptitle = '', lat_bounds = lat_bounds, \
+    lon_bounds = lon_bounds, plot_daily_data = False, \
+    zoom = True, save = True)
+
+sys.exit()
 ##!#second_arrays, second_labels, second_arrays_nosmoke = \
 ##!#    plot_NAAPS_event_CERES(date_str, var, ceres_var = 'lwf_clr', \
 ##!##ceres = plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \

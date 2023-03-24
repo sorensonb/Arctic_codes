@@ -257,6 +257,7 @@ def plot_trend_line(pax, xdata, ydata, color='black', linestyle = '-', \
         out = plot_theil_sen_trend(pax, xdata, ydata, color, linestyle, linewidth)
         out = plot_lin_regress_trend(pax, xdata, ydata, color, linestyle, linewidth)
     else:
+        print("No slope type set. Using linear regression")
         out = plot_lin_regress_trend(pax, xdata, ydata, color, linestyle, linewidth)
 
     return out
