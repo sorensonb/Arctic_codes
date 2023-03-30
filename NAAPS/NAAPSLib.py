@@ -72,13 +72,21 @@ event_dict = {
         #'end_start': '20120620',
         #'end_end':   '20120630',
     },
-    '20140801': {
-        'before_start': '20120601',
-        'before_end':   '20120613',
-        'start': '2012061400',
-        'end':   '2012061900',
-        'end_start': '20120620',
-        'end_end':   '20120630',
+    '20140726': {
+        'before_start': '20140721',
+        'before_end':   '20140725',
+        'start': '2014072600',
+        'end':   '2014072800',
+        'end_start': '20140729',
+        'end_end':   '20140803',
+    },
+    '20140802': {
+        'before_start': '20140727',
+        'before_end':   '20140801',
+        'start': '2014080200',
+        'end':   '2014080800',
+        'end_start': '20140808',
+        'end_end':   '20140812',
     },
     '20170816': {
         'before_start': '20170811',
@@ -183,7 +191,8 @@ def read_NAAPS(date_str, minlat = 65.):
 
 def read_NAAPS_event(date_str, minlat = 65.):
  
-    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H')
+    print("HERE2:",date_str)
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d')
 
     # Get the event starting and ending times
     # ---------------------------------------
@@ -1655,6 +1664,7 @@ def plot_NAAPS_event(date_str, var, minlat = 65., vmin = None, vmax = None, \
 
     # Read the data for this granule
     # ------------------------------
+    print("HERE:",date_str)
     NAAPS_data = read_NAAPS_event(date_str, minlat = minlat)
 
     # Plot the data for this granule
@@ -1862,8 +1872,9 @@ def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
         mean_before = np.nanmean(second_arrays[ii,0])
         mean_after  = np.nanmean(second_arrays[ii,1])
         alb_diff = np.round(mean_after - mean_before, 2)
-        axs[jj,ii%3].set_title(second_labels[ii,0] + '\np_val = ' + \
-            str(np.round(p_val, 2)) + '\nΔα = ' + str(alb_diff))
+        axs[jj,ii%3].set_title(second_labels[ii,0])
+        #axs[jj,ii%3].set_title(second_labels[ii,0] + '\np_val = ' + \
+        #    str(np.round(p_val, 2)) + '\nΔα = ' + str(alb_diff))
         axs[jj,ii%3].set_xlabel(ceres_var)
         axs[jj,ii%3].set_ylabel('Counts')
         axs[jj,ii%3].legend()
@@ -1902,8 +1913,9 @@ def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
         mean_before = np.nanmean(second_arrays_nosmoke[ii,0])
         mean_after  = np.nanmean(second_arrays_nosmoke[ii,1])
         alb_diff = np.round(mean_after - mean_before, 2)
-        axs[jj,ii%3].set_title(second_labels[ii,0] + '\np_val = ' + \
-            str(np.round(p_val, 2)) + '\nΔα = ' + str(alb_diff))
+        axs[jj,ii%3].set_title(second_labels[ii,0])
+        #axs[jj,ii%3].set_title(second_labels[ii,0] + '\np_val = ' + \
+        #    str(np.round(p_val, 2)) + '\nΔα = ' + str(alb_diff))
         axs[jj,ii%3].set_xlabel(ceres_var)
         axs[jj,ii%3].set_ylabel('Counts')
         axs[jj,ii%3].legend()
@@ -2054,6 +2066,168 @@ def plot_NAAPS_event_CERES_region_time_series(date_str, begin_str, end_str, \
     if(save):
         outname = '_'.join(['naaps','ceres','time','series','region',ceres_var,\
             begin_str,end_str,'.png'])
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+def plot_NAAPS_event_CERES_region_time_series_allvars(date_str, begin_str, \
+        end_str, interval, var, minlat = 70.5, vmin = None, vmax = None, \
+        vmin2 = None, vmax2 = None, min_ice = 80., min_smoke = 0, \
+        max_smoke = 2e5, plot_log = True, \
+        satellite = 'Aqua', ptitle = '', lat_bounds = [-90, 90], \
+        lon_bounds = [-180, 180], plot_daily_data = False, \
+        zoom = True, save = False):
+
+    dt_date_str    = datetime.strptime(date_str, '%Y%m%d')
+    dt_total_begin = datetime.strptime(begin_str, '%Y%m%d')
+    dt_total_end   = datetime.strptime(end_str, '%Y%m%d')
+
+# beg: 2020082400
+# end: 2020090800
+
+    smoke_begin_str = event_dict[date_str]['start']
+    smoke_end_str   = event_dict[date_str]['end']
+
+    dt_smoke_begin = datetime.strptime(smoke_begin_str, '%Y%m%d%H')
+    dt_smoke_end   = datetime.strptime(smoke_end_str, '%Y%m%d%H')
+
+    NAAPS_data = read_NAAPS_event(date_str, minlat = minlat)
+
+
+    ##!## Plot the CERES data
+    ##!##plotCERES_daily(cdate_begin_str1, ceres_var, end_str = cdate_end_str1, \
+    ##!#plotCERES_daily(CERES_data1, ceres_var, end_str = cdate_end_str1, \
+    ##!#    satellite = satellite,  only_sea_ice = False, minlat = minlat, \
+    ##!#    vmin = vmin2, vmax = vmax2, \
+    ##!#    avg_data = True, ax = ax2, save = False, min_ice = min_ice, \
+    ##!#    circle_bound = True, colorbar = True)
+    ##!#plotCERES_daily(CERES_data2, ceres_var, end_str = cdate_end_str2, \
+    ##!#    satellite = satellite,  only_sea_ice = False, minlat = minlat, \
+    ##!#    vmin = vmin2, vmax = vmax2, \
+    ##!#    avg_data = True, ax = ax3, save = False, min_ice = min_ice, \
+    ##!#    circle_bound = True, colorbar = True)
+    #plotCERES_daily(cdate_begin_str2, 'ice_conc', end_str = cdate_end_str2, \
+    #    satellite = satellite,  only_sea_ice = False, minlat = minlat, \
+    #    avg_data = True, ax = ax4, save = False, \
+    #    circle_bound = True, colorbar = True)
+
+    # Now, process the yearly data
+    # ----------------------------
+    ##!#second_labels, second_arrays, average_CERES, second_arrays_nosmoke = \
+    ##!#    read_CERES_historic(dt_begin_str1, dt_end_str1, dt_begin_str2, \
+    ##!#    dt_end_str2, ceres_var, min_ice, min_smoke, max_smoke, vmin2, \
+    ##!#    satellite, NAAPS_data, minlat, lat_bounds, lon_bounds, \
+    ##!#    plot_daily_data = plot_daily_data)
+
+    # Read albedo data
+    second_labels, second_arrays_alb, average_CERES, second_arrays_nosmoke_alb = \
+        read_CERES_region_time_series(dt_total_begin, dt_total_end, interval, \
+        'alb_clr', min_ice, min_smoke, max_smoke, vmin2, satellite, \
+        NAAPS_data, minlat, lat_bounds, lon_bounds, \
+        plot_daily_data = False)
+
+    #str_final_labels = np.array([flbl.strftime('%m/%d') for flbl in final_labels]) 
+    alb_smoke_means   = np.array([np.nanmean(tdata) for tdata in second_arrays_alb])
+    alb_nosmoke_means = np.array([np.nanmean(tdata) for tdata in \
+        second_arrays_nosmoke_alb])
+
+    # Read SWF data
+    second_labels, second_arrays_swf, average_CERES, second_arrays_nosmoke_swf = \
+        read_CERES_region_time_series(dt_total_begin, dt_total_end, interval, \
+        'swf_clr', min_ice, min_smoke, max_smoke, vmin2, satellite, \
+        NAAPS_data, minlat, lat_bounds, lon_bounds, \
+        plot_daily_data = False)
+
+    #str_final_labels = np.array([flbl.strftime('%m/%d') for flbl in final_labels]) 
+    swf_smoke_means   = np.array([np.nanmean(tdata) for tdata in second_arrays_swf])
+    swf_nosmoke_means = np.array([np.nanmean(tdata) for tdata in \
+        second_arrays_nosmoke_swf])
+
+    # Read LWF data
+    second_labels, second_arrays_lwf, average_CERES, second_arrays_nosmoke_lwf = \
+        read_CERES_region_time_series(dt_total_begin, dt_total_end, interval, \
+        'lwf_clr', min_ice, min_smoke, max_smoke, vmin2, satellite, \
+        NAAPS_data, minlat, lat_bounds, lon_bounds, \
+        plot_daily_data = False)
+
+    #str_final_labels = np.array([flbl.strftime('%m/%d') for flbl in final_labels]) 
+    lwf_smoke_means   = np.array([np.nanmean(tdata) for tdata in second_arrays_lwf])
+    lwf_nosmoke_means = np.array([np.nanmean(tdata) for tdata in \
+        second_arrays_nosmoke_lwf])
+
+    final_labels = np.copy(second_labels)
+    for ii, slbl in enumerate(second_labels):
+        date1 = slbl.split()[0]
+        date2 = slbl.split()[-1] 
+        dt_date1 = datetime.strptime(date1, '%m/%d')
+        dt_date2 = datetime.strptime(date2, '%m/%d')
+        mid_time = int((dt_date2 - dt_date1).days / 2)
+        final_date = dt_date1 + timedelta(days = int(mid_time))
+        final_labels[ii] = final_date.strftime('%m/%d')
+ 
+    # Make an array of the final labels in datetime format
+    # ----------------------------------------------------
+    final_dt_dates = np.array([datetime.strptime(flbl,'%m/%d').replace(\
+        year = dt_date_str.year) for flbl in final_labels])
+
+    within_dates = np.where( (final_dt_dates >= dt_smoke_begin) & \
+        (final_dt_dates <= dt_smoke_end) )
+ 
+    plt.close('all')
+    fig = plt.figure(figsize = (12,4))
+    ax1 = fig.add_subplot(1,3,1)
+    ax2 = fig.add_subplot(1,3,2)
+    ax3 = fig.add_subplot(1,3,3)
+
+    xvals = np.arange(len(alb_smoke_means))
+    smoke_times = xvals[within_dates]    
+
+    num_ticks = 5
+
+    # Plot ALB data
+    ax1.plot(xvals, alb_smoke_means, label = 'Smoke')
+    ax1.plot(xvals, alb_nosmoke_means, label = 'No-smoke')
+    ax1.axvspan(smoke_times[0], smoke_times[-1], \
+        color = 'cyan', alpha = 0.5)
+    ax1.set_xticks(xvals[::int(len(xvals)/num_ticks)])
+    ax1.set_xticklabels(final_labels[::int(len(xvals)/num_ticks)])
+    ax1.set_ylabel('Albedo')
+    ax1.set_title(dt_date_str.strftime('CERES Clear-sky Albedo\n' + str(interval) + \
+        '-day running average'))
+    ax1.legend()
+
+    # Plot SWF data
+    ax2.plot(xvals, swf_smoke_means, label = 'Smoke')
+    ax2.plot(xvals, swf_nosmoke_means, label = 'No-smoke')
+    ax2.axvspan(smoke_times[0], smoke_times[-1], \
+        color = 'cyan', alpha = 0.5)
+    ax2.set_xticks(xvals[::int(len(xvals)/num_ticks)])
+    ax2.set_xticklabels(final_labels[::int(len(xvals)/num_ticks)])
+    ax2.set_ylabel('Shortwave Flux [Wm$^{-2}$]')
+    ax2.set_title(dt_date_str.strftime('CERES Clear-sky Shortwave Flux\n' + str(interval) + \
+        '-day running average'))
+    ax2.legend()
+
+    # Plot LWF data
+    ax3.plot(xvals, lwf_smoke_means, label = 'Smoke')
+    ax3.plot(xvals, lwf_nosmoke_means, label = 'No-smoke')
+    ax3.axvspan(smoke_times[0], smoke_times[-1], \
+        color = 'cyan', alpha = 0.5)
+    ax3.set_xticks(xvals[::int(len(xvals)/num_ticks)])
+    ax3.set_xticklabels(final_labels[::int(len(xvals)/num_ticks)])
+    ax3.set_ylabel('Longwave Flux [Wm$^{-2}$]')
+    ax3.set_title(dt_date_str.strftime('CERES Clear-sky Longwave Flux\n' + str(interval) + \
+        '-day running average'))
+    ax3.legend()
+   
+    plt.suptitle(dt_date_str.strftime('%d-%B-%Y Smoke Event'))
+ 
+    fig.tight_layout()
+
+    if(save):
+        outname = '_'.join(['naaps','ceres','time','series','region','all_vars',\
+            begin_str,end_str + '.png'])
         fig.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else:
@@ -2220,8 +2394,6 @@ def plot_NAAPS_event_CERES_region_time_series(date_str, begin_str, end_str, \
     ##!#else:
     ##!#    plt.show()
 
-    return second_arrays, second_labels, second_arrays_nosmoke
-
 def plot_NAAPS_event_CERES_points_time_series(date_str, begin_str, end_str, \
         interval, var, plats, plons, ceres_var = 'alb_clr', \
         minlat = 70.5, vmin = None, vmax = None, vmin2 = None, vmax2 = None, \
@@ -2374,7 +2546,10 @@ def plot_NAAPS_event_CERES_region_comp(date_str, var, ceres_var = 'alb_clr', \
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
 
-    ax.scatter(combined_data['NAAPS_data'], ceres_diff, s = markersize)
+    scat = ax.scatter(combined_data['NAAPS_data'], ceres_diff, s = markersize, \
+        #c = combined_data['lats'], \
+        )
+    #cbar = plt.colorbar(scat,ax=ax,label='Latitude')
     plot_trend_line(ax, combined_data['NAAPS_data'], ceres_diff, \
         color='k', linestyle = '-', slope = 'linregress')
 
@@ -2384,14 +2559,16 @@ def plot_NAAPS_event_CERES_region_comp(date_str, var, ceres_var = 'alb_clr', \
     ax.set_xlabel('Event Total\nNAAPS ' + var)
     ax.set_ylabel('CERES Δ' + ceres_var)
     if(ptitle == ''):
-        ax.set_title('NAAPS ' + var + ' vs. CERES ' + ceres_var + '\n' + \
-            cdate_begin_str1 + ' - ' + cdate_end_str1 + ' vs ' + \
-            cdate_begin_str2 + ' - ' + cdate_end_str2 + '\n' + \
-            str(np.round(r_value, 3)) + ' ' + str(np.around(p_value, 3)))
+        ax.set_title(cdate_begin_str1 + ' - ' + cdate_end_str1 + ' vs ' + \
+            cdate_begin_str2 + ' - ' + cdate_end_str2 + '\nr$^{2}$ = ' + \
+            str(np.round(r_value**2., 3)))
+    elif(ptitle == 'RVAL'):
+        ax.set_title('r$^{2}$ = ' + str(np.round(r_value**2., 3)))
     else:
-        ax.set_title(ptitle + '\nr$^{2}$ = ' + str(np.round(r_value**2.,2)))    
+        ax.set_title(ptitle + '\nr$^{2}$ = ' + str(np.round(r_value**2.,3)))    
     
     if(not in_ax):
+        fig.tight_layout()
         if(save):
             outname = '_'.join(['naaps','ceres','region','diff','comp',ceres_var,\
                 date_str, cdate_begin_str1,cdate_begin_str2,'.png'])
@@ -2399,6 +2576,66 @@ def plot_NAAPS_event_CERES_region_comp(date_str, var, ceres_var = 'alb_clr', \
             print("Saved image", outname)
         else:
             plt.show()
+
+def plot_NAAPS_event_CERES_region_comp_twovars(date_str, var, ceres_var1 = 'swf_clr', \
+        ceres_var2 = 'lwf_clr',\
+        minlat = 70.5, vmin = None, vmax = None, vmin2 = None, vmax2 = None, \
+        min_ice = 80., min_smoke = 0, max_smoke = 2e5, plot_log = True, \
+        satellite = 'Aqua', ptitle = '', lat_bounds = [-90, 90], \
+        lon_bounds = [-180, 180], plot_daily_data = False, \
+        in_year = None, markersize = None, zoom = True, save = False):
+
+    cdate_begin_str1 = event_dict[date_str]['before_start']
+    cdate_end_str1   = event_dict[date_str]['before_end']
+    cdate_begin_str2 = event_dict[date_str]['end_start']
+    cdate_end_str2   = event_dict[date_str]['end_end']
+
+    dt_begin_str1 = datetime.strptime(cdate_begin_str1, '%Y%m%d')
+    dt_end_str1   = datetime.strptime(cdate_end_str1, '%Y%m%d')
+    dt_begin_str2 = datetime.strptime(cdate_begin_str2, '%Y%m%d')
+    dt_end_str2   = datetime.strptime(cdate_end_str2, '%Y%m%d')
+
+    # Set up the figure
+    plt.close('all')
+    fig = plt.figure(figsize = (10, 5))
+    ax1 = fig.add_subplot(1,2,1)
+    ax2 = fig.add_subplot(1,2,2)
+   
+    plot_NAAPS_event_CERES_region_comp(date_str, var, ceres_var = ceres_var1, \
+        minlat = minlat, vmin = vmin, vmax = vmax, vmin2 = vmin2, vmax2 = vmax2, \
+        min_ice = min_ice, min_smoke = min_smoke, max_smoke = max_smoke, \
+        plot_log = plot_log, satellite = satellite, ptitle = 'CERES Clear-sky SWF', \
+        lat_bounds = lat_bounds, lon_bounds = lon_bounds, ax = ax1, \
+        plot_daily_data = plot_daily_data, in_year = in_year, \
+        markersize = markersize, save = False)
+
+    plot_NAAPS_event_CERES_region_comp(date_str, var, ceres_var = ceres_var2, \
+        minlat = minlat, vmin = vmin, vmax = vmax, vmin2 = vmin2, vmax2 = vmax2, \
+        min_ice = min_ice, min_smoke = min_smoke, max_smoke = max_smoke, \
+        plot_log = plot_log, satellite = satellite, ptitle = 'CERES Clear-sky LWF', \
+        lat_bounds = lat_bounds, lon_bounds = lon_bounds, ax = ax2, \
+        plot_daily_data = plot_daily_data, in_year = in_year, \
+        markersize = markersize, save = False)
+
+    plt.suptitle('CERES Flux Differences\nPost-smoke (' + \
+        cdate_begin_str2[4:] + ' - ' + cdate_end_str2[4:] + \
+        ') - Pre-smoke (' + cdate_begin_str1[4:] \
+        + ' - ' + cdate_end_str1[4:] + ')')
+
+    ax1.set_ylabel('ΔSWF [Wm$^{-2}$]')
+    ax2.set_ylabel('ΔLWF [Wm$^{-2}$]')
+    ax1.set_xlabel('Event Total\nNAAPS Near-surface Smoke Aerosol Conc. [μg m$^{-3}$]')
+    ax2.set_xlabel('Event Total\nNAAPS Near-surface Smoke Aeroson Conc. [μg m$^{-3}$]')
+
+    fig.tight_layout()
+    if(save):
+        outname = '_'.join(['naaps','ceres','region','diff','comp','twovar',\
+            date_str, cdate_begin_str1,cdate_begin_str2 + '.png'])
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
 
 def plot_NAAPS_multi_CERES_region_comp(date_str, var, ceres_var = 'alb_clr', \
         minlat = 70.5, vmin = None, vmax = None, vmin2 = None, vmax2 = None, \
@@ -2455,6 +2692,150 @@ def plot_NAAPS_multi_CERES_region_comp(date_str, var, ceres_var = 'alb_clr', \
         outname = '_'.join(['naaps','ceres','multi','region','comp',ceres_var,\
             date_str,'.png'])
         fig2.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+def plot_NAAPS_CERES_flux_diffs(date_str, var, ceres_var = 'alb_clr', \
+        minlat = 70.5, vmin = None, vmax = None, vmin2 = None, vmax2 = None, \
+        min_ice = 80., min_smoke = 0, max_smoke = 2e5, plot_log = True, \
+        satellite = 'Aqua', ptitle = '', lat_bounds = [-90, 90], \
+        lon_bounds = [-180, 180], ax = None, plot_daily_data = False, \
+        in_year = None, markersize = None, zoom = True, save = False):
+
+    cdate_begin_str1 = event_dict[date_str]['before_start']
+    cdate_end_str1   = event_dict[date_str]['before_end']
+    cdate_begin_str2 = event_dict[date_str]['end_start']
+    cdate_end_str2   = event_dict[date_str]['end_end']
+
+# beg: 2020082400
+# end: 2020090800
+
+    dt_begin_str1 = datetime.strptime(cdate_begin_str1, '%Y%m%d')
+    dt_end_str1   = datetime.strptime(cdate_end_str1, '%Y%m%d')
+    dt_begin_str2 = datetime.strptime(cdate_begin_str2, '%Y%m%d')
+    dt_end_str2   = datetime.strptime(cdate_end_str2, '%Y%m%d')
+
+    NAAPS_data = read_NAAPS_event(date_str, minlat = minlat)
+
+    # Used for the single day plotting purposes
+    CERES_data1 = readgridCERES_daily(dt_begin_str1.strftime('%Y%m%d'),\
+        end_str = dt_end_str1.strftime('%Y%m%d'), \
+        satellite = satellite, minlat = minlat)
+    CERES_data2 = readgridCERES_daily(dt_begin_str2.strftime('%Y%m%d'),\
+        end_str = dt_end_str2.strftime('%Y%m%d'), \
+        satellite = satellite, minlat = minlat)
+    CERES_diffs = readgridCERES_daily(dt_begin_str2.strftime('%Y%m%d'),\
+        end_str = dt_end_str2.strftime('%Y%m%d'), \
+        satellite = satellite, minlat = minlat)
+
+    # Find the differences
+    CERES_diffs['swf_clr'] = CERES_data2['swf_clr'] - CERES_data1['swf_clr']
+    CERES_diffs['lwf_clr'] = CERES_data2['lwf_clr'] - CERES_data1['lwf_clr']
+
+    # Make a figure of the local data
+    # -------------------------------
+    plt.close('all')
+    fig3 = plt.figure(figsize = (10,7))
+    ax10 = fig3.add_subplot(3,3,2, projection = ccrs.NorthPolarStereo(\
+        central_longitude = np.mean(lon_bounds))) # NAAPS
+    ax11 = fig3.add_subplot(3,3,4, projection = ccrs.NorthPolarStereo(\
+        central_longitude = np.mean(lon_bounds))) # CERES SWF before
+    ax12 = fig3.add_subplot(3,3,5, projection = ccrs.NorthPolarStereo(\
+        central_longitude = np.mean(lon_bounds))) # CERES SWF after
+    ax13 = fig3.add_subplot(3,3,6, projection = ccrs.NorthPolarStereo(\
+        central_longitude = np.mean(lon_bounds))) # CERES SWF diff
+    ax21 = fig3.add_subplot(3,3,7, projection = ccrs.NorthPolarStereo(\
+        central_longitude = np.mean(lon_bounds))) # CERES LWF before
+    ax22 = fig3.add_subplot(3,3,8, projection = ccrs.NorthPolarStereo(\
+        central_longitude = np.mean(lon_bounds))) # CERES LWF after
+    ax23 = fig3.add_subplot(3,3,9, projection = ccrs.NorthPolarStereo(\
+        central_longitude = np.mean(lon_bounds))) # CERES LWF diff
+
+    plot_NAAPS(NAAPS_data, 'smoke_conc_sfc', ax = ax10, zoom = True, \
+            minlat = minlat, vmin = 0, vmax = max_smoke, plot_log = False,\
+            circle_bound = False)
+
+    # Plot the CERES SWF data before
+    plotCERES_daily(CERES_data1, 'swf_clr', end_str = \
+        dt_end_str1.strftime('%Y%m%d'), satellite = satellite,  \
+        only_sea_ice = False, minlat = minlat, \
+        vmin = 220, vmax = 330, \
+        avg_data = True, ax = ax11, save = False, min_ice = min_ice, \
+        circle_bound = False, colorbar = True)
+    # Plot the CERES SWF data after
+    plotCERES_daily(CERES_data2, 'swf_clr', end_str = \
+        dt_end_str1.strftime('%Y%m%d'), satellite = satellite,  \
+        only_sea_ice = False, minlat = minlat, vmin = 220, \
+        vmax = 330, \
+        avg_data = True, ax = ax12, save = False, min_ice = min_ice, \
+        circle_bound = False, colorbar = True)
+    plotCERES_daily(CERES_diffs, 'swf_clr', end_str = \
+        dt_end_str1.strftime('%Y%m%d'), satellite = satellite,  \
+        only_sea_ice = False, minlat = minlat, vmin = -50, \
+        vmax = 50, cmap = 'bwr',\
+        avg_data = True, ax = ax13, save = False, min_ice = min_ice, \
+        circle_bound = False, colorbar = True)
+    # Plot the CERES LWF data before
+    plotCERES_daily(CERES_data1, 'lwf_clr', end_str = \
+        dt_end_str1.strftime('%Y%m%d'), satellite = satellite,  \
+        only_sea_ice = False, minlat = minlat, \
+        vmin = 210, vmax = 250, \
+        avg_data = True, ax = ax21, save = False, min_ice = min_ice, \
+        circle_bound = False, colorbar = True)
+    # Plot the CERES LWF data after
+    plotCERES_daily(CERES_data2, 'lwf_clr', end_str = \
+        dt_end_str1.strftime('%Y%m%d'), satellite = satellite,  \
+        only_sea_ice = False, minlat = minlat, vmin = 210, \
+        vmax = 250, \
+        avg_data = True, ax = ax22, save = False, min_ice = min_ice, \
+        circle_bound = False, colorbar = True)
+    plotCERES_daily(CERES_diffs, 'lwf_clr', end_str = \
+        dt_end_str1.strftime('%Y%m%d'), satellite = satellite,  \
+        only_sea_ice = False, minlat = minlat, vmin = 10, \
+        vmax = 20, cmap = 'viridis', \
+        avg_data = True, ax = ax23, save = False, min_ice = min_ice, \
+        circle_bound = False, colorbar = True)
+
+    ax10.set_extent([lon_bounds[0], lon_bounds[1], lat_bounds[0], \
+        lat_bounds[1]], ccrs.PlateCarree()) 
+    ax11.set_extent([lon_bounds[0], lon_bounds[1], lat_bounds[0], \
+        lat_bounds[1]], ccrs.PlateCarree()) 
+    ax12.set_extent([lon_bounds[0], lon_bounds[1], lat_bounds[0], \
+        lat_bounds[1]], ccrs.PlateCarree()) 
+    ax13.set_extent([lon_bounds[0], lon_bounds[1], lat_bounds[0], \
+        lat_bounds[1]], ccrs.PlateCarree()) 
+    ax21.set_extent([lon_bounds[0], lon_bounds[1], lat_bounds[0], \
+        lat_bounds[1]], ccrs.PlateCarree()) 
+    ax22.set_extent([lon_bounds[0], lon_bounds[1], lat_bounds[0], \
+        lat_bounds[1]], ccrs.PlateCarree()) 
+    ax23.set_extent([lon_bounds[0], lon_bounds[1], lat_bounds[0], \
+        lat_bounds[1]], ccrs.PlateCarree()) 
+
+    ax10.coastlines()
+    ax10.set_title('NAAPS-RA smoke_conc_sfc\n' + \
+        NAAPS_data['dt_begin_date'].strftime('%Y-%m-%d') + ' - ' + \
+        NAAPS_data['dt_end_date'].strftime('%Y-%m-%d'))
+    ax11.set_title('CERES Average Clear-sky SWF\n' + \
+        dt_begin_str1.strftime('%Y%m%d') + ' - ' + \
+        dt_end_str1.strftime('%Y%m%d'))
+    ax12.set_title('CERES Average Clear-sky SWF\n' + \
+        dt_begin_str2.strftime('%Y%m%d') + ' - ' + \
+        dt_end_str2.strftime('%Y%m%d'))
+    ax13.set_title('CERES Average Clear-sky SWF\nDifference')
+    ax21.set_title('CERES Average Clear-sky LWF\n' + \
+        dt_begin_str1.strftime('%Y%m%d') + ' - ' + \
+        dt_end_str1.strftime('%Y%m%d'))
+    ax22.set_title('CERES Average Clear-sky LWF\n' + \
+        dt_begin_str2.strftime('%Y%m%d') + ' - ' + \
+        dt_end_str2.strftime('%Y%m%d'))
+    ax23.set_title('CERES Average Clear-sky LWF\nDifference')
+    fig3.tight_layout()
+
+    if(save):
+        outname = '_'.join(['naaps','ceres','flux','diff','spatial',\
+            date_str + '.png'])
+        fig3.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else:
         plt.show()

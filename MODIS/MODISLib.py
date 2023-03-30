@@ -1318,7 +1318,7 @@ def plot_MODIS_satpy(date_str, channel, ax = None, var = None, crs = None, \
             cbar = plt.colorbar(im1, ax = ax, pad = 0.03, fraction = 0.052, \
                 extend = 'both')
             cbar.set_label(plabel.replace('_',' '), size = labelsize, weight = 'bold')
-    ax.add_feature(cfeature.STATES)
+    #ax.add_feature(cfeature.STATES)
 
     # Zoom in the figure if desired
     # -----------------------------
@@ -2020,7 +2020,7 @@ def write_MODIS_to_HDF5(MODIS_data, channel = 2, swath = True, \
 
 def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False, \
         ax = None, swath = False, vmin = None, vmax = None, \
-        circle_bound = True):
+        circle_bound = True, plot_borders = True, labelsize = 12):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
     #filename = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
@@ -2052,7 +2052,7 @@ def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False, \
         ax = fig1.add_subplot(1,1,1, projection = mapcrs)
 
     plot_MODIS_spatial(MODIS_data, ax, zoom, circle_bound = circle_bound, \
-        vmin = vmin, vmax = vmax)
+        vmin = vmin, vmax = vmax, plot_borders = plot_borders, labelsize = labelsize)
 
     #mesh = ax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\
     #    MODIS_data['data'],cmap = MODIS_data['colors'], shading='auto', \
@@ -2064,6 +2064,86 @@ def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False, \
         hash_data1, nohash_data1 = find_plume(date_str) 
         #hash_data1, nohash_data1 = find_plume(filename) 
         hash0 = ax.pcolor(MODIS_data['lon'],MODIS_data['lat'],\
+            hash_data1, hatch = '///', alpha=0., transform = datacrs)
+
+    if(swath and not zoom):
+        ax.set_extent([-180, 180, 65, 90], datacrs)
+
+    ##!#cbar = plt.colorbar(mesh,orientation='horizontal',pad=0,\
+    ##!#    aspect=50,shrink = 0.850)
+    ##!#cbar.ax.tick_params(labelsize=14)
+    ##!#cbar.set_label(MODIS_data['variable'],fontsize=16,weight='bold')
+    ##!#
+    ##!#ax.add_feature(cfeature.BORDERS)
+    ##!#ax.add_feature(cfeature.STATES)
+    ##!#ax.coastlines()
+    ##!#if(zoom):
+    ##!#    ax.set_extent([aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][0], \
+    ##!#                   aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lon'][1], \
+    ##!#                   aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][0], \
+    ##!#                   aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['Lat'][1]],\
+    ##!#                   ccrs.PlateCarree())
+    ##!#ax.set_title('Channel ' + str(channel) + '\n' + \
+    ##!#    channel_dict[str(channel)]['Bandwidth_label']) 
+
+    if(not in_ax):
+        if(save):
+            print("SAVE HERE")
+        else:
+            plt.show()
+
+def plot_MODIS_channel_time_diff(date_str1,date_str2,channel,zoom=True,\
+        show_smoke=False, ax = None, swath = False, vmin = None, vmax = None,\
+        circle_bound = True, plot_borders = True):
+
+    dt_date_str = datetime.strptime(date_str2,"%Y%m%d%H%M")
+    #filename = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
+
+    if(channel == 'red'):
+        channel = 1
+    elif(channel == 'green'):
+        channel = 4
+    elif(channel == 'blue'):
+        channel = 3
+
+    # Call read_MODIS_channel to read the desired MODIS data from the
+    # file and put it in a dictionary
+    # ---------------------------------------------------------------
+    MODIS_data1 = read_MODIS_channel(date_str1, channel, swath = swath)
+    MODIS_data2 = read_MODIS_channel(date_str2, channel, swath = swath)
+
+    if(debug):
+        print("Data max = ",np.max(MODIS_data1['data']), "  Data min = ",\
+        np.min(MODIS_data1['data']))
+        print("Data max = ",np.max(MODIS_data2['data']), "  Data min = ",\
+        np.min(MODIS_data2['data']))
+
+    in_ax = True 
+    if(ax is None): 
+        in_ax = False
+        plt.close('all')
+        fig1 = plt.figure()
+        #fig1 = plt.figure(figsize = (6,6))
+        mapcrs = ccrs.NorthPolarStereo()
+        #mapcrs = ccrs.Robinson()
+        ax = fig1.add_subplot(1,1,1, projection = mapcrs)
+
+    MODIS_data2['data'] = MODIS_data2['data'] - MODIS_data1['data']
+    MODIS_data2['colors'] = 'bwr'
+
+    plot_MODIS_spatial(MODIS_data2, ax, zoom, circle_bound = circle_bound, \
+        vmin = vmin, vmax = vmax, plot_borders = plot_borders)
+
+    #mesh = ax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\
+    #    MODIS_data['data'],cmap = MODIS_data['colors'], shading='auto', \
+    #    transform = datacrs) 
+
+    if(show_smoke):
+        # Determine where the smoke is located
+        # ------------------------------------
+        hash_data1, nohash_data1 = find_plume(date_str) 
+        #hash_data1, nohash_data1 = find_plume(filename) 
+        hash0 = ax.pcolor(MODIS_data2['lon'],MODIS_data2['lat'],\
             hash_data1, hatch = '///', alpha=0., transform = datacrs)
 
     if(swath and not zoom):
@@ -2986,7 +3066,7 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
 
 def plot_MODIS_spatial(MODIS_data, pax, zoom, vmin = None, vmax = None, \
         pvar = 'data', ptitle = None, labelsize = 13, labelticksize = 11, \
-        circle_bound = False):
+        circle_bound = False, plot_borders = True):
 
     print(MODIS_data['date'])
     local_dstr = datetime.strptime(MODIS_data['date'], '%Y%m%d%H%M')
@@ -3030,9 +3110,10 @@ def plot_MODIS_spatial(MODIS_data, pax, zoom, vmin = None, vmax = None, \
         cbar1.set_label(MODIS_data['variable'], size = labelsize, weight = 'bold')
         cbar1.ax.tick_params(labelsize = labelticksize)
 
-    pax.add_feature(cfeature.BORDERS)
-    pax.add_feature(cfeature.STATES)
-    pax.coastlines()
+    if(plot_borders):
+        pax.add_feature(cfeature.BORDERS)
+        pax.add_feature(cfeature.STATES)
+        pax.coastlines()
     if(zoom):
         pax.set_extent([aerosol_event_dict[local_date][local_time]['Lon'][0], \
                         aerosol_event_dict[local_date][local_time]['Lon'][1], \

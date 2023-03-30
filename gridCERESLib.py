@@ -1584,7 +1584,7 @@ def plotCERES_hrly(pax, CERES_data_hrly, param, minlat=65, \
 # ----------------------------------
 def plotCERES_daily(CERES_data, pvar, end_str = None, satellite = 'Aqua',  \
         only_sea_ice = False, minlat = 65., avg_data = True, \
-        vmin = None, vmax = None, \
+        vmin = None, vmax = None, cmap = 'viridis',\
         lat_circles = None, ax = None, save = False, min_ice = 0., \
         circle_bound = True, colorbar = True):
 
@@ -1624,16 +1624,16 @@ def plotCERES_daily(CERES_data, pvar, end_str = None, satellite = 'Aqua',  \
     pdata = np.ma.masked_where(ice_data < min_ice, pdata)
 
     mesh = ax.pcolormesh(CERES_data['lon'], CERES_data['lat'], pdata, \
-        transform = ccrs.PlateCarree(), vmin = vmin, vmax = vmax, \
-        shading = 'auto')
+        transform = ccrs.PlateCarree(), cmap = cmap, vmin = vmin, \
+        vmax = vmax, shading = 'auto')
     ax.coastlines()
     ax.set_extent([-180, 180, minlat, 90], datacrs)
     
     if(colorbar):
-            #cbar = plt.colorbar(mesh,ax = pax, orientation='horizontal',pad=0,\
-            cbar = plt.colorbar(mesh,ax = ax, orientation='vertical',\
-                pad = 0.04, fraction = 0.040)
-            cbar.set_label(pvar, fontsize = 12, weight='bold')
+        #cbar = plt.colorbar(mesh,ax = pax, orientation='horizontal',pad=0,\
+        cbar = plt.colorbar(mesh,ax = ax, orientation='vertical',\
+            pad = 0.04, fraction = 0.040)
+        cbar.set_label(pvar, fontsize = 12, weight='bold')
         
     if(circle_bound):
         ax.set_boundary(circle, transform=ax.transAxes)

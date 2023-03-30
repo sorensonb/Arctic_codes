@@ -9,26 +9,14 @@ from NAAPSLib import *
 
 #date_str = '20080422'
 date_str = '20120615'
+#date_str = '20140726'
+#date_str = '20140802'
 #date_str = '20170816'
 #date_str = '20200824'
 #var = 'smoke_wetsink'
 var = 'smoke_conc_sfc'
-#date_str = '20080422'
-#date_str = '20170816'
 
-if(date_str == '20170816'):
-    begin_str = '20170801'
-    end_str   = '20170831'
-    interval = 4
-    minlat = 78.
-    min_smoke = 60
-    max_smoke = 300
-    vmax = 300
-    lat_bounds = [78, 85]
-    lon_bounds = [180, 340]
-    min_ice = 70.
-    alb_min = 0.2
-elif(date_str == '20080422'):
+if(date_str == '20080422'):
     minlat = 60.
     min_smoke = 20
     max_smoke = 2e5
@@ -38,33 +26,61 @@ elif(date_str == '20080422'):
     min_ice = 80.
     vmin2 = 0.4
 elif(date_str == '20120615'):
-    begin_str = '20090601'
-    end_str   = '20090630'
+    begin_str = '20120501'
+    end_str   = '20120731'
     interval = 4 
     minlat = 60.
     min_smoke = 15
-    max_smoke = 50
+    max_smoke = 35
+    #max_smoke = 50
     vmax = 50
     lat_bounds = [60, 75]
     lon_bounds = [305, 345]
     min_ice = 0.
     alb_min = 0.4
-    plats =  [\
-        64.5616,  # smoke
-        66.6799,  # smoke
-        62.4603,
-        69.7040,  # light smoke
-        70.3616,  # no smoke
-        73.6032,  # no smoke
-    ]
-    plons =  [\
-        313.3088,  # smoke
-        312.6112,  # smoke
-        314.3501, 
-        314.7316,  # light smoke
-        327.0151,  # no smoke
-        316.2099,  # no smoke
-    ]
+    ##!#plats =  [\
+    ##!#    64.5616,  # smoke
+    ##!#    66.6799,  # smoke
+    ##!#    62.4603,
+    ##!#    69.7040,  # light smoke
+    ##!#    70.3616,  # no smoke
+    ##!#    73.6032,  # no smoke
+    ##!#]
+    ##!#plons =  [\
+    ##!#    313.3088,  # smoke
+    ##!#    312.6112,  # smoke
+    ##!#    314.3501, 
+    ##!#    314.7316,  # light smoke
+    ##!#    327.0151,  # no smoke
+    ##!#    316.2099,  # no smoke
+    ##!#]
+elif(date_str == '20140802'):
+    begin_str = '20140701'
+    end_str   = '20140831'
+    interval = 4 
+    minlat = 60.
+    min_smoke = 30
+    max_smoke = 150
+    vmax = 50
+    lat_bounds = [58, 82]
+    lon_bounds = [280, 355]
+    min_ice = 0.
+    alb_min = 0.4
+if(date_str == '20170816'):
+    begin_str = '20170801'
+    end_str   = '20170831'
+    interval = 4
+    minlat = 72.
+    #minlat = 78.
+    min_smoke = 10
+    max_smoke = 300
+    vmax = 300
+    lat_bounds = [minlat, 83]
+    #lat_bounds = [minlat, 85]
+    lon_bounds = [290, 340]
+    #lon_bounds = [180, 340]
+    min_ice = 70.
+    alb_min = 0.2
 elif(date_str == '20200824'):
     minlat = 75.
     min_smoke = 10
@@ -75,9 +91,47 @@ elif(date_str == '20200824'):
     min_ice = 0.
     vmin2 = 0.2
 
-#pvars = ['alb_clr', 'swf_clr']
-#for cvar in pvars:
-plot_NAAPS_multi_CERES_region_comp(date_str, var, ceres_var = 'lwf_clr', \
+# beg: 2020082400
+# end: 2020090800
+base_date = datetime.strptime('2012070200','%Y%m%d%H')
+for ii in range(60):
+    new_date = base_date + timedelta(hours = ii * 6)
+    plot_NAAPS_figure(new_date.strftime('%Y%m%d%H'), var, minlat = 60., \
+        vmax = 5, plot_log = False, zoom = True, save = True)
+
+sys.exit()
+
+
+plot_NAAPS_event_CERES_region_time_series_allvars(date_str, begin_str, end_str, 
+    interval, var, minlat = minlat, vmin = None, \
+    vmax = vmax, vmin2 = alb_min, vmax2 = None, min_ice = min_ice, \
+    min_smoke = min_smoke, max_smoke = max_smoke, plot_log = False, \
+    satellite = 'All', ptitle = '', lat_bounds = lat_bounds, \
+    lon_bounds = lon_bounds, plot_daily_data = False, \
+    zoom = True, save = False)
+
+sys.exit()
+
+second_arrays, second_labels, second_arrays_nosmoke = \
+    plot_NAAPS_event_CERES(date_str, var, ceres_var = 'swf_clr', \
+#ceres = plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
+    satellite = 'All', minlat = minlat, vmin = None, vmax = vmax, \
+    #satellite = 'All', minlat = 60., vmin = None, vmax = 300, \
+    vmin2 = alb_min, vmax2 = 300, \
+    plot_log = False, min_ice = min_ice, min_smoke = min_smoke, max_smoke = max_smoke, \
+    ptitle = '', zoom = True, lat_bounds = lat_bounds, lon_bounds = lon_bounds, \
+    plot_daily_data = False, save = True)
+sys.exit()
+
+
+#plot_NAAPS_event_CERES_region_comp(date_str, var, ceres_var = 'alb_clr', \
+#    minlat = minlat, vmin = None, vmax = vmax, vmin2 = alb_min, vmax2 = None, \
+#    min_ice = 80., min_smoke = 0, max_smoke = max_smoke, plot_log = True, \
+#    satellite = 'All', ptitle = '', lat_bounds = lat_bounds, \
+#    lon_bounds = lon_bounds, plot_daily_data = False, \
+#    zoom = True, save = False)
+plot_NAAPS_event_CERES_region_comp_twovars(date_str, var, ceres_var1 = 'swf_clr', \
+    ceres_var2 = 'lwf_clr', \
     minlat = minlat, vmin = None, vmax = vmax, vmin2 = alb_min, vmax2 = None, \
     min_ice = 80., min_smoke = 0, max_smoke = max_smoke, plot_log = True, \
     satellite = 'All', ptitle = '', lat_bounds = lat_bounds, \
@@ -85,28 +139,47 @@ plot_NAAPS_multi_CERES_region_comp(date_str, var, ceres_var = 'lwf_clr', \
     zoom = True, save = True)
 
 sys.exit()
-##!#second_arrays, second_labels, second_arrays_nosmoke = \
-##!#    plot_NAAPS_event_CERES(date_str, var, ceres_var = 'lwf_clr', \
-##!##ceres = plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
-##!#    satellite = 'All', minlat = minlat, vmin = None, vmax = vmax, \
-##!#    #satellite = 'All', minlat = 60., vmin = None, vmax = 300, \
-##!#    vmin2 = alb_min, vmax2 = 300, \
-##!#    plot_log = False, min_ice = min_ice, min_smoke = min_smoke, max_smoke = max_smoke, \
-##!#    ptitle = '', zoom = True, lat_bounds = lat_bounds, lon_bounds = lon_bounds, \
-##!#    plot_daily_data = False, save = True)
-##!#sys.exit()
 
 
 #combined_data, combined_data_nosmoke = \
-#second_arrays, second_labels, second_arrays_nosmoke = \
-#        plot_NAAPS_event_CERES_region_time_series(date_str, begin_str, end_str, 
-#        interval, var, ceres_var = 'alb_clr', minlat = minlat, vmin = None, \
-#        vmax = vmax, vmin2 = alb_min, vmax2 = None, min_ice = min_ice, \
-#        min_smoke = min_smoke, max_smoke = max_smoke, plot_log = False, \
-#        satellite = 'All', ptitle = '', lat_bounds = lat_bounds, \
-#        lon_bounds = lon_bounds, plot_daily_data = False, \
-#        zoom = True, save = False)
-#sys.exit()
+plot_NAAPS_CERES_flux_diffs(date_str, var, ceres_var = 'alb_clr', \
+    minlat = minlat, vmin = None, vmax = vmax, vmin2 = alb_min, vmax2 = None, \
+    min_ice = 80., min_smoke = 0, max_smoke = max_smoke, plot_log = True, \
+    satellite = 'All', ptitle = '', lat_bounds = lat_bounds, \
+    lon_bounds = lon_bounds, plot_daily_data = False, \
+    in_year = None, markersize = None, zoom = True, save = True)
+
+sys.exit()
+
+pvars = ['alb_clr', 'swf_clr', 'lwf_clr']
+for cvar in pvars:
+    #plot_NAAPS_event_CERES_region_comp(date_str, var, ceres_var = cvar, \
+    #    minlat = minlat, vmin = None, vmax = vmax, vmin2 = alb_min, vmax2 = None, \
+    #    min_ice = 80., min_smoke = 0, max_smoke = max_smoke, plot_log = True, \
+    #    satellite = 'All', ptitle = '', lat_bounds = lat_bounds, \
+    #    lon_bounds = lon_bounds, plot_daily_data = False, \
+    #    zoom = True, save = True)
+    second_arrays, second_labels, second_arrays_nosmoke = \
+            plot_NAAPS_event_CERES_region_time_series(date_str, begin_str, end_str, 
+            interval, var, ceres_var = cvar, minlat = minlat, vmin = None, \
+            vmax = vmax, vmin2 = alb_min, vmax2 = None, min_ice = min_ice, \
+            min_smoke = min_smoke, max_smoke = max_smoke, plot_log = False, \
+            satellite = 'All', ptitle = '', lat_bounds = lat_bounds, \
+            lon_bounds = lon_bounds, plot_daily_data = False, \
+            zoom = True, save = True)
+sys.exit()
+
+sys.exit()
+
+
+
+
+#plot_NAAPS_multi_CERES_region_comp(date_str, var, ceres_var = 'lwf_clr', \
+
+plot_NAAPS_event(date_str, var, minlat = 60., vmin = None, vmax = 200,\
+    plot_log = False, ptitle = '', zoom = True, save = False)
+sys.exit()
+
 
 plot_NAAPS_event_CERES_points_time_series(date_str, begin_str, end_str, \
     interval, var, plats, plons, ceres_var = 'alb_clr', \
@@ -140,21 +213,7 @@ sys.exit()
 ##!#sys.exit()
 
 
-# beg: 2020082400
-# end: 2020090800
-base_date = datetime.strptime('2014072400','%Y%m%d%H')
-for ii in range(80):
-    new_date = base_date + timedelta(hours = ii * 6)
-    plot_NAAPS_figure(new_date.strftime('%Y%m%d%H'), var, minlat = 60., \
-        vmax = 50, plot_log = False, zoom = True, save = True)
 
-sys.exit()
-
-
-
-plot_NAAPS_event(date_str, var, minlat = 60., vmin = None, vmax = 150, \
-    plot_log = False, ptitle = '', zoom = True, save = False)
-sys.exit()
 
 
 # Bugged
