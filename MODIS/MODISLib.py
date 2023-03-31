@@ -2020,6 +2020,7 @@ def write_MODIS_to_HDF5(MODIS_data, channel = 2, swath = True, \
 
 def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False, \
         ax = None, swath = False, vmin = None, vmax = None, \
+        ptitle = None, \
         circle_bound = True, plot_borders = True, labelsize = 12):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
@@ -2052,7 +2053,8 @@ def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False, \
         ax = fig1.add_subplot(1,1,1, projection = mapcrs)
 
     plot_MODIS_spatial(MODIS_data, ax, zoom, circle_bound = circle_bound, \
-        vmin = vmin, vmax = vmax, plot_borders = plot_borders, labelsize = labelsize)
+        vmin = vmin, vmax = vmax, ptitle = ptitle, \
+        plot_borders = plot_borders, labelsize = labelsize)
 
     #mesh = ax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\
     #    MODIS_data['data'],cmap = MODIS_data['colors'], shading='auto', \

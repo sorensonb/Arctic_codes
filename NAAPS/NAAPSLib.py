@@ -36,10 +36,16 @@ if(home_dir + '/Research/CERES' not in sys.path):
     sys.path.append(home_dir + '/Research/CERES')
 if(home_dir + '/Research/NCEP' not in sys.path):
     sys.path.append(home_dir + '/Research/NCEP')
+if(home_dir + '/Research/OMI' not in sys.path):
+    sys.path.append(home_dir + '/Research/OMI')
+if(home_dir + '/Research/MODIS/obs_smoke_forcing/' not in sys.path):
+    sys.path.append(home_dir + '/Research/MODIS/obs_smoke_forcing')
 
 #sys.path.append(os.environ['RESEARCH_PATH'] + '/CERES')
 from gridCERESLib import *
 from NCEP_Lib import *
+from OMILib import *
+from MODISLib import *
 #sys.path.append('/home/bsorenson/')
 #from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
 #    nearest_gridpoint, aerosol_event_dict, init_proj, \
@@ -1952,7 +1958,7 @@ def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
 #    if(ax is None):
 
 def plot_NAAPS_event_CERES_region_time_series(date_str, begin_str, end_str, \
-        interval, var, ceres_var = 'alb_clr', \
+        interval, var, ceres_var = 'alb_clr', ax = None, \
         minlat = 70.5, vmin = None, vmax = None, vmin2 = None, vmax2 = None, \
         min_ice = 80., min_smoke = 0, max_smoke = 2e5, plot_log = True, \
         satellite = 'Aqua', ptitle = '', lat_bounds = [-90, 90], \
@@ -2029,47 +2035,58 @@ def plot_NAAPS_event_CERES_region_time_series(date_str, begin_str, end_str, \
     nosmoke_means = np.array([np.nanmean(tdata) for tdata in \
         second_arrays_nosmoke])
 
-    plt.close('all')
-    fig = plt.figure(figsize = (12,5))
-    ax1 = fig.add_subplot(1,2,2, projection = mapcrs)
-    ax2 = fig.add_subplot(1,2,1)
+    # Make the figure
+    in_ax = True
+    num_ticks = 4
+    if(ax is None):
+        num_ticks = 7
+        in_ax = False
+        plt.close('all')
 
-    # Plot the data for this granule
-    # ------------------------------
-    print(np.nanmax(NAAPS_data[var]), vmin, vmax)
-    plot_NAAPS(NAAPS_data, var, ax = ax1, zoom = zoom, \
-            minlat = minlat, vmin = vmin, vmax = vmax, plot_log = plot_log)
-    ax1.coastlines()
-    ax1.set_title('NAAPS-RA smoke_conc_sfc\n' + \
-        NAAPS_data['dt_begin_date'].strftime('%Y-%m-%d') + ' - ' + \
-        NAAPS_data['dt_end_date'].strftime('%Y-%m-%d'))
+        fig = plt.figure()
+        #fig = plt.figure(figsize = (12,5))
+        #ax1 = fig.add_subplot(1,2,2, projection = mapcrs)
+        ax = fig.add_subplot(1,1,1)
+
+    ##!## Plot the data for this granule
+    ##!## ------------------------------
+    ##!#print(np.nanmax(NAAPS_data[var]), vmin, vmax)
+    ##!#plot_NAAPS(NAAPS_data, var, ax = ax1, zoom = zoom, \
+    ##!#        minlat = minlat, vmin = vmin, vmax = vmax, plot_log = plot_log)
+    ##!#ax1.coastlines()
+    ##!#ax1.set_title('NAAPS-RA smoke_conc_sfc\n' + \
+    ##!#    NAAPS_data['dt_begin_date'].strftime('%Y-%m-%d') + ' - ' + \
+    ##!#    NAAPS_data['dt_end_date'].strftime('%Y-%m-%d'))
 
 
     xvals = np.arange(len(smoke_means))
     smoke_times = xvals[within_dates]    
 
-    ax2.plot(xvals, smoke_means, label = 'Smoke')
-    ax2.plot(xvals, nosmoke_means, label = 'No-smoke')
-    ax2.axvspan(smoke_times[0], smoke_times[-1], \
+    ax.plot(xvals, smoke_means, label = 'Smoke')
+    ax.plot(xvals, nosmoke_means, label = 'No-smoke')
+    ax.axvspan(smoke_times[0], smoke_times[-1], \
         color = 'cyan', alpha = 0.5)
 
-    num_ticks = 7
-    ax2.set_xticks(xvals[::int(len(xvals)/num_ticks)])
-    ax2.set_xticklabels(final_labels[::int(len(xvals)/num_ticks)])
+    ax.set_xticks(xvals[::int(len(xvals)/num_ticks)])
+    ax.set_xticklabels(final_labels[::int(len(xvals)/num_ticks)])
 
-    ax2.set_ylabel(ceres_var)
-    ax2.set_title(dt_date_str.strftime('CERES ' + ceres_var + ' ' + str(interval) + \
-        '-day running average\n%d-%B-%Y'))
-
-    ax2.legend()
-
-    if(save):
-        outname = '_'.join(['naaps','ceres','time','series','region',ceres_var,\
-            begin_str,end_str,'.png'])
-        fig.savefig(outname, dpi = 300)
-        print("Saved image", outname)
+    ax.set_ylabel(ceres_var)
+    if(ptitle == ''):
+        ax.set_title(dt_date_str.strftime('CERES ' + ceres_var + ' ' + str(interval) + \
+           '-day running average\n%d-%B-%Y'))
     else:
-        plt.show()
+        ax.set_title(ptitle)
+
+    ax.legend()
+
+    if(not in_ax):
+        if(save):
+            outname = '_'.join(['naaps','ceres','time','series','region',ceres_var,\
+                begin_str,end_str,'.png'])
+            fig.savefig(outname, dpi = 300)
+            print("Saved image", outname)
+        else:
+            plt.show()
 
 def plot_NAAPS_event_CERES_region_time_series_allvars(date_str, begin_str, \
         end_str, interval, var, minlat = 70.5, vmin = None, vmax = None, \
@@ -2696,6 +2713,84 @@ def plot_NAAPS_multi_CERES_region_comp(date_str, var, ceres_var = 'alb_clr', \
     else:
         plt.show()
 
+def plot_NAAPS_multi_CERES_region_time_series(date_str, begin_date, end_date, \
+        interval, var, ceres_var = 'alb_clr', \
+        minlat = 70.5, vmin = None, vmax = None, vmin2 = None, vmax2 = None, \
+        min_ice = 80., min_smoke = 0, max_smoke = 2e5, plot_log = True, \
+        satellite = 'Aqua', ptitle = '', lat_bounds = [-90, 90], \
+        lon_bounds = [-180, 180], plot_daily_data = False, \
+        zoom = True, save = False):
+
+    #cdate_begin_str1 = event_dict[date_str]['before_start']
+    #cdate_end_str1   = event_dict[date_str]['before_end']
+    #cdate_begin_str2 = event_dict[date_str]['end_start']
+    #cdate_end_str2   = event_dict[date_str]['end_end']
+
+    #dt_begin_str1 = datetime.strptime(cdate_begin_str1, '%Y%m%d')
+    #dt_end_str1   = datetime.strptime(cdate_end_str1, '%Y%m%d')
+    #dt_begin_str2 = datetime.strptime(cdate_begin_str2, '%Y%m%d')
+    #dt_end_str2   = datetime.strptime(cdate_end_str2, '%Y%m%d')
+
+    dt_begin_str1 = datetime.strptime(begin_date, '%Y%m%d')
+    dt_end_str1   = datetime.strptime(end_date, '%Y%m%d')
+
+    final_end_date = datetime(year = 2021, month = 9, day = 30)
+    check_end_date = dt_end_str1 + relativedelta(years = 4)
+    if(check_end_date > final_end_date):
+        end_year_offset = check_end_date.year - final_end_date.year
+        end_idx = 5 - end_year_offset
+        beg_idx = -4 - end_year_offset
+    else:
+        beg_idx = -4
+        end_idx = 5
+
+    rangers = np.arange(beg_idx, end_idx)
+    years = rangers + dt_begin_str1.year
+
+    plt.close('all')
+    fig2 = plt.figure(figsize = (9,9))
+    axs = fig2.subplots(nrows = 3, ncols = 3)
+    jj = 0
+    for ii in range(len(years)):
+
+        local_begin_str = dt_begin_str1.replace(year = years[ii]).strftime('%Y%m%d')
+        local_end_str   = dt_end_str1.replace(year = years[ii]).strftime('%Y%m%d')
+
+        print(local_begin_str, local_end_str)
+    
+        if((ii > 2) & (ii < 6)):
+            jj = 1
+        elif(ii >= 6):
+            jj = 2
+
+        # Call the plotter here
+        #plot_NAAPS_event_CERES_region_comp(date_str, var, ceres_var = ceres_var, \
+        #    minlat = minlat, vmin = None, vmax = vmax, vmin2 = vmin2, vmax2 = None, \
+        #    min_ice = 80., min_smoke = 0, max_smoke = max_smoke, plot_log = True, \
+        #    satellite = 'All', ptitle = str(years[ii]), lat_bounds = lat_bounds, \
+        #    lon_bounds = lon_bounds, ax = axs[jj,ii%3], plot_daily_data = False, \
+        #    in_year = years[ii], markersize = 12, zoom = True, save = False)
+
+        plot_NAAPS_event_CERES_region_time_series(date_str, local_begin_str, \
+            local_end_str, interval, var, ceres_var = ceres_var, \
+            ax = axs[jj,ii%3], minlat = minlat, vmin = vmin, vmax = vmax, \
+            vmin2 = vmin2, vmax2 = vmax2, min_ice = min_ice, \
+            min_smoke = min_smoke, max_smoke = max_smoke, \
+            satellite = satellite, ptitle = str(years[ii]), \
+            lat_bounds = lat_bounds, lon_bounds = lon_bounds, \
+            plot_daily_data = False, zoom = True, save = False)
+
+    fig2.tight_layout()
+
+    if(save):
+        outname = '_'.join(['naaps','ceres','multi','region','time','series',\
+            ceres_var,date_str + '.png'])
+        fig2.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+
 def plot_NAAPS_CERES_flux_diffs(date_str, var, ceres_var = 'alb_clr', \
         minlat = 70.5, vmin = None, vmax = None, vmin2 = None, vmax2 = None, \
         min_ice = 80., min_smoke = 0, max_smoke = 2e5, plot_log = True, \
@@ -2792,8 +2887,8 @@ def plot_NAAPS_CERES_flux_diffs(date_str, var, ceres_var = 'alb_clr', \
         circle_bound = False, colorbar = True)
     plotCERES_daily(CERES_diffs, 'lwf_clr', end_str = \
         dt_end_str1.strftime('%Y%m%d'), satellite = satellite,  \
-        only_sea_ice = False, minlat = minlat, vmin = 10, \
-        vmax = 20, cmap = 'viridis', \
+        only_sea_ice = False, minlat = minlat, vmin = -20, \
+        vmax = 20, cmap = 'bwr', \
         avg_data = True, ax = ax23, save = False, min_ice = min_ice, \
         circle_bound = False, colorbar = True)
 
@@ -2839,3 +2934,143 @@ def plot_NAAPS_CERES_flux_diffs(date_str, var, ceres_var = 'alb_clr', \
         print("Saved image", outname)
     else:
         plt.show()
+
+def plot_MODIS_data_before_after(date_str, save = False):
+
+    if(date_str == '20120615'):
+        before_str = '201206121525'
+        after_str  = '201206231505'
+    else:
+        print("ERROR: No other dates allowed right now")
+        return
+
+    dt_before_str = datetime.strptime(before_str, '%Y%m%d%H%M')
+    dt_after_str  = datetime.strptime(after_str, '%Y%m%d%H%M')
+
+    plt.close('all')
+    fig = plt.figure(figsize = (6, 10.5))
+    ax1 = fig.add_subplot(4,2,1, projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ax2 = fig.add_subplot(4,2,2, projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ax3 = fig.add_subplot(4,2,3, projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ax4 = fig.add_subplot(4,2,4, projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ax5 = fig.add_subplot(4,2,5, projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ax6 = fig.add_subplot(4,2,6, projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ax7 = fig.add_subplot(4,2,7, projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ax8 = fig.add_subplot(4,2,8, projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    #ax3 = fig.add_subplot(1,3,3, projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    
+    channel = 3 
+    lsize = 10
+    # Time 1: first column
+    plot_MODIS_channel(before_str, 'true_color', swath = True, \
+        zoom = True, ax = ax1, plot_borders = True, vmax = None, labelsize = lsize)
+    plot_MODIS_channel(before_str, 2, swath = True, \
+        zoom = True, ax = ax3, plot_borders = True, vmax = 0.8, labelsize = lsize)
+    plot_MODIS_channel(before_str, 5, swath = True, \
+        zoom = True, ax = ax5, plot_borders = True, vmax = None, labelsize = lsize)
+    plot_MODIS_channel(before_str, 31, swath = True, \
+        zoom = True, ax = ax7, plot_borders = True, vmax = None, labelsize = lsize)
+    # Time 2: second column
+    plot_MODIS_channel(after_str, 'true_color', swath = True, \
+        zoom = True, ax = ax2, plot_borders = True, vmax = None, labelsize = lsize)
+    plot_MODIS_channel(after_str, 2, swath = True, \
+        zoom = True, ax = ax4, plot_borders = True, vmax = 0.8, labelsize = lsize)
+    plot_MODIS_channel(after_str, 5, swath = True, \
+        zoom = True, ax = ax6, plot_borders = True, vmax = None, labelsize = lsize)
+    plot_MODIS_channel(after_str, 31, swath = True, \
+        zoom = True, ax = ax8, plot_borders = True, vmax = None, labelsize = lsize)
+    #plot_MODIS_channel_time_diff('201206121525','201206231505',1,zoom=True,\
+    #    ax = ax3, swath = True, vmin = -0.8, vmax = 0.8,\
+    #    circle_bound = False, plot_borders = True)
+    #ax1.coastlines()
+    #ax2.coastlines()
+    #ax.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
+    ax1.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    ax2.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    ax3.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    ax4.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    ax5.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    ax6.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    ax7.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    ax8.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    #ax3.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    
+    #row_label_size = 10
+    #fig.text(0.20, 0.99, '15:25 UTC\n12-June-2012', ha='center', va='center', \
+    #    weight='bold',fontsize=row_label_size + 1)
+    #fig.text(0.70, 0.98, '15:05 UTC\n23-June-2012', ha='center', va='center', \
+    #    weight='bold',fontsize=row_label_size + 1)
+    
+    #plot_MODIS_satpy('201206121525', 'true_color', ax = ax1, var = None, crs = None, \
+    #    lons = None, lats = None, lat_lims = None, lon_lims = None, \
+    #    vmin = None, vmax = None, ptitle = None, plabel = None, \
+    #    labelsize = 10, colorbar = True, swath = True, zoom=False,save=False)
+    #plot_MODIS_satpy('201206231505', 'true_color', ax = ax2, var = None, crs = None, \
+    #    lons = None, lats = None, lat_lims = None, lon_lims = None, \
+    #    vmin = None, vmax = None, ptitle = None, plabel = None, \
+    #    labelsize = 10, colorbar = True, swath = True, zoom=False,save=False)
+    
+    plt.suptitle(dt_before_str.strftime('%H:%M UTC %d-%b-%Y') + ' vs ' + \
+        dt_after_str.strftime('%H:%M U%C %d-%b-%Y'), weight = 'bold')
+    
+    fig.tight_layout()
+   
+    if(save):
+        outname =  'modis_imagery_naaps_ceres_' + date_str + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+    
+def plot_MODIS_OMI_data(date_str, save = False):
+
+    if(date_str == '20120615'):
+        work_str = '201206151420'
+        omi_date = '201206151328'
+        dt_work_str = datetime.strptime(work_str, '%Y%m%d%H%M')
+    else:
+        print("ERROR: No other dates allowed right now")
+        return
+
+    plt.close('all')
+    fig = plt.figure(figsize = (9, 4.2))
+    ax1 = fig.add_subplot(1,2,1, projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ax2 = fig.add_subplot(1,2,2, projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    
+    channel = 3 
+    lsize = 10
+    # Time 1: first column
+    plot_MODIS_channel(work_str, 'true_color', swath = True, \
+        zoom = True, ax = ax1, plot_borders = True, vmax = None, labelsize = lsize)
+
+    plotOMI_single_swath_figure(omi_date, dtype = 'shawn',  \
+        only_sea_ice = False, minlat = 60., skiprows = None, \
+        lat_circles = None, save = False, zoom = False, \
+        vmin = -1, vmax = 4, circle_bound = False, ax = ax2, \
+        shawn_path = home_dir + '/data/OMI/shawn_files/ltc3/')
+
+    #plot_MODIS_channel_time_diff('201206121525','201206231505',1,zoom=True,\
+    #    ax = ax3, swath = True, vmin = -0.8, vmax = 0.8,\
+    #    circle_bound = False, plot_borders = True)
+    #ax1.coastlines()
+    #ax2.coastlines()
+    #ax.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
+    ax1.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    ax2.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    #ax3.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    
+    ax1.set_title('Aqua MODIS True Color')
+    ax2.set_title('OMI UVAI')
+     
+    #plt.suptitle(dt_before_str.strftime('%H:%M UTC %d-%b-%Y') + ' vs ' + \
+    #    dt_after_str.strftime('%H:%M U%C %d-%b-%Y'), weight = 'bold')
+    
+    fig.tight_layout()
+   
+    if(save):
+        outname =  'modis_omi_imagery_naaps_smoke_' + date_str + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+    

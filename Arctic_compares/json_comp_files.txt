@@ -3712,6 +3712,56 @@
             ]
         }
     },
+    "2012-06-15": {
+        "1420": {
+            "Lat": [
+                62.0,
+                78.0
+            ],
+            "Lon": [
+                288.0,
+                352.0
+            ],
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2012167.1420.061.2018040171937.hdf",
+            "modis_Lat": [
+                62.0,
+                78.0
+            ],
+            "modis_Lon": [
+                288.0,
+                352.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2012m0615t1328-o42119_v003-2017m0721t194941.he5",
+            "swath": [
+                "201206151420",
+                "201206151425"
+            ]
+        },
+        "1425": {
+            "Lat": [
+                62.0,
+                78.0
+            ],
+            "Lon": [
+                288.0,
+                352.0
+            ],
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2012167.1425.061.2018040172039.hdf",
+            "modis_Lat": [
+                62.0,
+                78.0
+            ],
+            "modis_Lon": [
+                288.0,
+                352.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2012m0615t1328-o42119_v003-2017m0721t194941.he5",
+            "swath": [
+                "201206151420",
+                "201206151425"
+            ]
+        }
+    },
     "2012-06-23": {
         "1505": {
             "Lat": [

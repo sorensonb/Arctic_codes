@@ -10,11 +10,34 @@ import OMILib
 from OMILib import *
 import sys
 
+date_strs = [\
+    #'201206141245',
+    #'201206141424',
+    #'201206141603',
+    #'201206150653',
+    #'201206150832',
+    #'201206151010',
+    #'201206151149',
+    '201206151328',
+    #'201206151507',
+    #'201206151646',
+    ]
+
+for date_str in date_strs:
+    plotOMI_single_swath_figure(date_str, dtype = 'control',  \
+            only_sea_ice = False, minlat = 50., skiprows = [52], \
+            lat_circles = None, save = False, zoom = False, \
+            circle_bound = True, ax = None, \
+            shawn_path = '/home/bsorenson/data/OMI/shawn_files/')
+sys.exit()
+    
+
 date_str = '20180705'
 identify_OMI_HDF_swaths(date_str, minlat = 70., min_AI = 2.0, \
     remove_bad = False, skiprows = [52])
 
 sys.exit()
+
 
 date_strs = [\
         '202108010435',\
