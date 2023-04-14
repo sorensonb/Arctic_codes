@@ -333,7 +333,7 @@ def read_zoom_CERES_data_single(date1, date2, ceres_var, min_ice, \
             (CERES_data1['lat'] >= lat_bounds[0]) & \
             (CERES_data1['lat'] <= lat_bounds[1])) , CERES_data1[ceres_var])
         CERES_data1[ceres_var] = np.ma.masked_where(\
-            CERES_data1['alb_clr'] < vmin2, CERES_data2[ceres_var])
+            CERES_data1['alb_clr'] < vmin2, CERES_data1[ceres_var])
         # Contains the non-smoky data
         CERES_data1[ceres_var+'_nosmoke'] = np.ma.masked_where((\
             avg_CERES1_ice <= min_ice) | \
@@ -344,7 +344,7 @@ def read_zoom_CERES_data_single(date1, date2, ceres_var, min_ice, \
             (CERES_data1['lat'] >= lat_bounds[0]) & \
             (CERES_data1['lat'] <= lat_bounds[1])) , CERES_data1[ceres_var+'_nosmoke'])
         CERES_data1[ceres_var+'_nosmoke'] = np.ma.masked_where(\
-            CERES_data1['alb_clr'] < vmin2, CERES_data2[ceres_var+'_nosmoke'])
+            CERES_data1['alb_clr'] < vmin2, CERES_data1[ceres_var+'_nosmoke'])
 
         if(mask_NAAPS):
             NAAPS_data['smoke_conc_sfc'] = np.ma.masked_where(\
@@ -760,6 +760,40 @@ def read_CERES_region_time_series(dt_begin_str, dt_end_str, interval, \
     #print(combined_data['2012']['06/25 - 06/30'])
 
     return second_labels, second_arrays, average_data, second_arrays_nosmoke
+
+def read_CERES_region_time_series_multiyear(dt_begin_str, \
+        dt_end_str, begin_year, end_year, interval, ceres_var, min_ice, \
+        min_smoke, max_smoke, vmin2, satellite, NAAPS_data, minlat, \
+        lat_bounds, lon_bounds):
+
+    # Find the number of intervals between the two dates
+    # --------------------------------------------------
+    num_times = (dt_end_str - dt_begin_str).days - (interval - 1)
+    years     = np.arange(begin_year,end_year+1)
+     
+    total_smoke_arrays   = np.full((len(years), num_times), np.nan)
+    total_nosmoke_arrays = np.full((len(years), num_times), np.nan)
+
+    for ii, year in enumerate(years):
+        dt_local_begin = dt_begin_str.replace(year = years[ii])
+        dt_local_end   = dt_end_str.replace(year = years[ii])
+
+        second_labels, second_arrays, average_CERES, second_arrays_nosmoke = \
+            read_CERES_region_time_series(dt_local_begin, dt_local_end, \
+            interval, ceres_var, min_ice, min_smoke, max_smoke, vmin2, \
+            satellite, NAAPS_data, minlat, lat_bounds, lon_bounds, \
+            plot_daily_data = False)
+
+        smoke_means   = np.array([np.nanmean(tdata) for tdata in second_arrays])
+        nosmoke_means = np.array([np.nanmean(tdata) for tdata in \
+            second_arrays_nosmoke])
+
+        total_smoke_arrays[ii,:] = smoke_means
+        total_nosmoke_arrays[ii,:] = nosmoke_means
+   
+
+    return total_smoke_arrays, total_nosmoke_arrays, second_labels
+    #return second_arrays, second_arrays_nosmoke
 
 # dt_begin_str = beginning of time window for traveling averaging
 # dt_end_str   = end of time window for traveling averaging
@@ -2643,6 +2677,7 @@ def plot_NAAPS_event_CERES_region_comp_twovars(date_str, var, ceres_var1 = 'swf_
     ax2.set_ylabel('ΔLWF [Wm$^{-2}$]')
     ax1.set_xlabel('Event Total\nNAAPS Near-surface Smoke Aerosol Conc. [μg m$^{-3}$]')
     ax2.set_xlabel('Event Total\nNAAPS Near-surface Smoke Aeroson Conc. [μg m$^{-3}$]')
+    ax2.set_ylim(ax1.get_ylim())
 
     fig.tight_layout()
     if(save):
@@ -2789,6 +2824,279 @@ def plot_NAAPS_multi_CERES_region_time_series(date_str, begin_date, end_date, \
         print("Saved image", outname)
     else:
         plt.show()
+
+def plot_NAAPS_event_CERES_region_time_series_combined(date_str, begin_date, end_date, \
+        interval, var, ceres_var = 'alb_clr', \
+        minlat = 70.5, vmin = None, vmax = None, vmin2 = None, vmax2 = None, \
+        min_ice = 80., min_smoke = 0, max_smoke = 2e5, plot_log = True, \
+        satellite = 'Aqua', ptitle = '', lat_bounds = [-90, 90], \
+        lon_bounds = [-180, 180], ax = None, plot_daily_data = False, \
+        zoom = True, save = False):
+
+    dt_date_str  = datetime.strptime(date_str, '%Y%m%d')
+    dt_begin_str = datetime.strptime(begin_date, '%Y%m%d')
+    dt_end_str   = datetime.strptime(end_date, '%Y%m%d')
+    begin_year = 2008
+    end_year = 2016
+
+    smoke_begin_str = event_dict[date_str]['start']
+    smoke_end_str   = event_dict[date_str]['end']
+
+    dt_smoke_begin = datetime.strptime(smoke_begin_str, '%Y%m%d%H')
+    dt_smoke_end   = datetime.strptime(smoke_end_str, '%Y%m%d%H')
+
+
+    # Check the year ranges
+    # ---------------------
+    final_end_date = datetime(year = 2021, month = 9, day = 30)
+    check_end_date = dt_end_str + relativedelta(years = 4)
+    if(check_end_date > final_end_date):
+        end_year_offset = check_end_date.year - final_end_date.year
+        end_idx = 5 - end_year_offset
+        beg_idx = -4 - end_year_offset
+    else:
+        beg_idx = -4
+        end_idx = 5
+       
+    begin_year = dt_date_str.year + beg_idx 
+    end_year   = dt_date_str.year + end_idx - 1
+    
+    NAAPS_data = read_NAAPS_event(date_str, minlat = minlat)
+    
+    smoke, nosmoke, labels = read_CERES_region_time_series_multiyear(dt_begin_str, \
+        dt_end_str, begin_year, end_year, interval, ceres_var, min_ice, \
+        min_smoke, max_smoke, vmin2, 'All', NAAPS_data, minlat, \
+        lat_bounds, lon_bounds)
+    
+    final_labels = np.copy(labels)
+    for ii, slbl in enumerate(labels):
+        date1 = slbl.split()[0]
+        date2 = slbl.split()[-1] 
+        dt_date1 = datetime.strptime(date1, '%m/%d')
+        dt_date2 = datetime.strptime(date2, '%m/%d')
+        mid_time = int((dt_date2 - dt_date1).days / 2)
+        final_date = dt_date1 + timedelta(days = int(mid_time))
+        final_labels[ii] = final_date.strftime('%m/%d')
+
+    # Extract just the 2012 data
+    smoke_keep   = smoke[4,:]
+    nosmoke_keep = nosmoke[4,:]
+    
+    # Get the climo, background data
+    smoke_bkgd   = np.concatenate([smoke[:4,:], smoke[5:,:]])
+    nosmoke_bkgd = np.concatenate([nosmoke[:4,:], nosmoke[5:,:]])
+    
+    smoke_bkgd_mean   = np.nanmean(smoke_bkgd, axis = 0)
+    nosmoke_bkgd_mean = np.nanmean(nosmoke_bkgd, axis = 0)
+    
+    smoke_bkgd_stdv   = np.nanstd(smoke_bkgd, axis = 0)
+    nosmoke_bkgd_stdv = np.nanstd(nosmoke_bkgd, axis = 0)
+    
+    smoke_bkgd_upper = smoke_bkgd_mean + smoke_bkgd_stdv
+    smoke_bkgd_lower = smoke_bkgd_mean - smoke_bkgd_stdv
+    nosmoke_bkgd_upper = nosmoke_bkgd_mean + nosmoke_bkgd_stdv
+    nosmoke_bkgd_lower = nosmoke_bkgd_mean - nosmoke_bkgd_stdv
+
+    # Make an array of the final labels in datetime format
+    # ----------------------------------------------------
+    final_dt_dates = np.array([datetime.strptime(flbl,'%m/%d').replace(\
+        year = dt_date_str.year) for flbl in final_labels])
+
+    within_dates = np.where( (final_dt_dates >= dt_smoke_begin) & \
+        (final_dt_dates <= dt_smoke_end) )
+
+    xvals = np.arange(len(smoke_keep))
+    smoke_times = xvals[within_dates]    
+
+    
+    in_ax = True
+    if(ax is None):
+        in_ax = False
+        plt.close('all')
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+
+    # Plot the smoky range
+    xvals = np.arange(len(smoke_bkgd_upper))
+    ax.plot(smoke_bkgd_mean, linestyle = ':', linewidth = 1.00, color = 'tab:blue')
+    ax.plot(smoke_bkgd_upper, linestyle = '--', linewidth = 0.5, color = 'tab:blue')
+    ax.plot(smoke_bkgd_lower, linestyle = '--', linewidth = 0.5, color = 'tab:blue')
+    ax.fill_between(xvals, smoke_bkgd_upper, y2 = smoke_bkgd_lower, \
+        color = 'tab:blue', alpha = 0.15)
+
+    # Plot the nosmoky range
+    ax.plot(nosmoke_bkgd_mean, linestyle = ':', linewidth = 1.00, color = 'tab:orange')
+    ax.plot(nosmoke_bkgd_upper, linestyle = '--', linewidth = 0.5, color = 'tab:orange')
+    ax.plot(nosmoke_bkgd_lower, linestyle = '--', linewidth = 0.5, color = 'tab:orange')
+    ax.fill_between(xvals, nosmoke_bkgd_upper, y2 = nosmoke_bkgd_lower, \
+        color = 'tab:orange', alpha = 0.15)
+
+    ax.axvspan(smoke_times[0], smoke_times[-1], \
+        color = 'cyan', alpha = 0.5)
+
+    # Plot the main year data
+    num_ticks = 7
+    ax.plot(smoke_keep, color = 'tab:blue', label = str(dt_date_str.year) + \
+        ' Smoke')
+    ax.plot(nosmoke_keep, color = 'tab:orange', label = \
+        str(dt_date_str.year) +  ' No-smoke')
+
+    ax.legend()
+    ax.set_xticks(xvals[::int(len(xvals)/num_ticks)])
+    ax.set_xticklabels(final_labels[::int(len(xvals)/num_ticks)])
+    ax.set_ylabel(ceres_var)
+    ax.set_title(dt_date_str.strftime('%d-%b-%Y Smoke Event\n%Y CERES ' + \
+        'Clear-sky ' + ceres_var + '\nvs. 2008 - 2016 Average'))
+
+
+    if(not in_ax):
+        fig.tight_layout()
+        if(save):
+            outname = '_'.join(['naaps','ceres','time','series','region',\
+                'multiyear',ceres_var, date_str]) + '.png'
+            fig.savefig(outname, dpi = 300)
+            print("Saved image", outname)
+        else:
+            plt.show()
+
+def plot_NCEP_region_time_series_combined(date_str, begin_date, end_date, \
+        interval, var, \
+        minlat = 70.5, vmin = None, vmax = None, vmin2 = None, vmax2 = None, \
+        min_ice = 80., min_smoke = 0, max_smoke = 2e5, plot_log = True, \
+        satellite = 'Aqua', ptitle = '', lat_bounds = [-90, 90], \
+        lon_bounds = [-180, 180], ax = None, plot_daily_data = False, \
+        zoom = True, save = False):
+
+    dt_date_str  = datetime.strptime(date_str, '%Y%m%d')
+    dt_begin_str = datetime.strptime(begin_date, '%Y%m%d')
+    dt_end_str   = datetime.strptime(end_date, '%Y%m%d')
+    begin_year = 2008
+    end_year = 2016
+
+    smoke_begin_str = event_dict[date_str]['start']
+    smoke_end_str   = event_dict[date_str]['end']
+
+    dt_smoke_begin = datetime.strptime(smoke_begin_str, '%Y%m%d%H')
+    dt_smoke_end   = datetime.strptime(smoke_end_str, '%Y%m%d%H')
+
+
+    # Check the year ranges
+    # ---------------------
+    final_end_date = datetime(year = 2021, month = 9, day = 30)
+    check_end_date = dt_end_str + relativedelta(years = 4)
+    if(check_end_date > final_end_date):
+        end_year_offset = check_end_date.year - final_end_date.year
+        end_idx = 5 - end_year_offset
+        beg_idx = -4 - end_year_offset
+    else:
+        beg_idx = -4
+        end_idx = 5
+       
+    begin_year = dt_date_str.year + beg_idx 
+    end_year   = dt_date_str.year + end_idx - 1
+    
+    NAAPS_data = read_NAAPS_event(date_str, minlat = minlat)
+   
+    # READ NCEP DATA HERE
+    # ------------------- 
+    smoke, nosmoke, labels = read_NCEP_region_time_series_multiyear(dt_begin_str, \
+        dt_end_str, begin_year, end_year, interval, min_ice, \
+        min_smoke, max_smoke, vmin2, satellite, NAAPS_data, minlat, \
+        lat_bounds, lon_bounds)
+    
+    final_labels = np.copy(labels)
+    for ii, slbl in enumerate(labels):
+        date1 = slbl.split()[0]
+        date2 = slbl.split()[-1] 
+        dt_date1 = datetime.strptime(date1, '%m/%d')
+        dt_date2 = datetime.strptime(date2, '%m/%d')
+        mid_time = int((dt_date2 - dt_date1).days / 2)
+        final_date = dt_date1 + timedelta(days = int(mid_time))
+        final_labels[ii] = final_date.strftime('%m/%d')
+
+    # Extract just the 2012 data
+    smoke_keep   = smoke[4,:]
+    nosmoke_keep = nosmoke[4,:]
+    
+    # Get the climo, background data
+    smoke_bkgd   = np.concatenate([smoke[:4,:], smoke[5:,:]])
+    nosmoke_bkgd = np.concatenate([nosmoke[:4,:], nosmoke[5:,:]])
+    
+    smoke_bkgd_mean   = np.nanmean(smoke_bkgd, axis = 0)
+    nosmoke_bkgd_mean = np.nanmean(nosmoke_bkgd, axis = 0)
+    
+    smoke_bkgd_stdv   = np.nanstd(smoke_bkgd, axis = 0)
+    nosmoke_bkgd_stdv = np.nanstd(nosmoke_bkgd, axis = 0)
+    
+    smoke_bkgd_upper = smoke_bkgd_mean + smoke_bkgd_stdv
+    smoke_bkgd_lower = smoke_bkgd_mean - smoke_bkgd_stdv
+    nosmoke_bkgd_upper = nosmoke_bkgd_mean + nosmoke_bkgd_stdv
+    nosmoke_bkgd_lower = nosmoke_bkgd_mean - nosmoke_bkgd_stdv
+
+    # Make an array of the final labels in datetime format
+    # ----------------------------------------------------
+    final_dt_dates = np.array([datetime.strptime(flbl,'%m/%d').replace(\
+        year = dt_date_str.year) for flbl in final_labels])
+
+    within_dates = np.where( (final_dt_dates >= dt_smoke_begin) & \
+        (final_dt_dates <= dt_smoke_end) )
+
+    xvals = np.arange(len(smoke_keep))
+    smoke_times = xvals[within_dates]    
+
+    
+    in_ax = True
+    if(ax is None):
+        in_ax = False
+        plt.close('all')
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+
+    # Plot the smoky range
+    xvals = np.arange(len(smoke_bkgd_upper))
+    ax.plot(smoke_bkgd_mean, linestyle = ':', linewidth = 1.00, color = 'tab:blue')
+    ax.plot(smoke_bkgd_upper, linestyle = '--', linewidth = 0.5, color = 'tab:blue')
+    ax.plot(smoke_bkgd_lower, linestyle = '--', linewidth = 0.5, color = 'tab:blue')
+    ax.fill_between(xvals, smoke_bkgd_upper, y2 = smoke_bkgd_lower, \
+        color = 'tab:blue', alpha = 0.15)
+
+    # Plot the nosmoky range
+    ax.plot(nosmoke_bkgd_mean, linestyle = ':', linewidth = 1.00, color = 'tab:orange')
+    ax.plot(nosmoke_bkgd_upper, linestyle = '--', linewidth = 0.5, color = 'tab:orange')
+    ax.plot(nosmoke_bkgd_lower, linestyle = '--', linewidth = 0.5, color = 'tab:orange')
+    ax.fill_between(xvals, nosmoke_bkgd_upper, y2 = nosmoke_bkgd_lower, \
+        color = 'tab:orange', alpha = 0.15)
+
+    ax.axvspan(smoke_times[0], smoke_times[-1], \
+        color = 'cyan', alpha = 0.5)
+
+    ax.axhline(273.15, color = 'tab:red')
+
+    # Plot the main year data
+    num_ticks = 7
+    ax.plot(smoke_keep, color = 'tab:blue', label = str(dt_date_str.year) + \
+        ' Smoke Area')
+    ax.plot(nosmoke_keep, color = 'tab:orange', label = \
+        str(dt_date_str.year) +  ' No-smoke Area')
+
+    ax.legend()
+    ax.set_xticks(xvals[::int(len(xvals)/num_ticks)])
+    ax.set_xticklabels(final_labels[::int(len(xvals)/num_ticks)])
+    ax.set_ylabel('NCEP Reanalysis 2-m Air Temperature')
+    ax.set_title(dt_date_str.strftime('%d-%b-%Y Smoke Event\n%Y NCEP ' + \
+        'Reanalysis 2-m Air Temp\nvs. 2008 - 2016 Average'))
+
+
+    if(not in_ax):
+        fig.tight_layout()
+        if(save):
+            outname = '_'.join(['naaps','ncep','time','series','region',\
+                'multiyear','airtmp', date_str]) + '.png'
+            fig.savefig(outname, dpi = 300)
+            print("Saved image", outname)
+        else:
+            plt.show()
+
 
 
 def plot_NAAPS_CERES_flux_diffs(date_str, var, ceres_var = 'alb_clr', \
@@ -2957,8 +3265,18 @@ def plot_MODIS_data_before_after(date_str, save = False):
     ax6 = fig.add_subplot(4,2,6, projection = ccrs.NorthPolarStereo(central_longitude = 320))
     ax7 = fig.add_subplot(4,2,7, projection = ccrs.NorthPolarStereo(central_longitude = 320))
     ax8 = fig.add_subplot(4,2,8, projection = ccrs.NorthPolarStereo(central_longitude = 320))
-    #ax3 = fig.add_subplot(1,3,3, projection = ccrs.NorthPolarStereo(central_longitude = 320))
-    
+    ##!#gs  = fig.add_gridspec(nrows = 4, ncols = 4)
+    ##!#ax1 = plt.subplot(gs[0,0], projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ##!#ax2 = plt.subplot(gs[0,1], projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ##!#ax3 = plt.subplot(gs[1,0], projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ##!#ax4 = plt.subplot(gs[1,1], projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ##!#ax5 = plt.subplot(gs[2,0], projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ##!#ax6 = plt.subplot(gs[2,1], projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ##!#ax7 = plt.subplot(gs[3,0], projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ##!#ax8 = plt.subplot(gs[3,1], projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ##!#ax01 = plt.subplot(gs[0:2,2:4])
+    ##!#ax02 = plt.subplot(gs[2:4,2:4])
+   
     channel = 3 
     lsize = 10
     # Time 1: first column
@@ -2984,6 +3302,30 @@ def plot_MODIS_data_before_after(date_str, save = False):
     #    circle_bound = False, plot_borders = True)
     #ax1.coastlines()
     #ax2.coastlines()
+
+    # Set up lat/lon points
+    # ---------------------
+    lons1 = np.linspace(-47.5000,-43.2181,3)
+    lons2 = np.linspace(-46.50,-38.9105, 3)
+    lons3 = np.linspace(-48.00,-37.0000, 3)
+    lons4 = np.linspace(-47.00,-36.0000, 3)
+    lats1 = np.full(lons1.shape, 65.0)
+    lats2 = np.full(lons2.shape, 66.5)
+    lats3 = np.full(lons3.shape, 68.0)
+    lats4 = np.full(lons3.shape, 70.0)
+    all_plons = np.concatenate([lons1, lons2, lons3, lons4])
+    all_plats = np.concatenate([lats1, lats2, lats3, lats4])
+
+    all_plats = np.array([all_plats[1], all_plats[3], all_plats[4], all_plats[6], all_plats[8], all_plats[10]])
+    all_plons = np.array([all_plons[1], all_plons[3], all_plons[4], all_plons[6], all_plons[8], all_plons[10]])
+
+    for ii in range(len(all_plons)):
+        plot_point_on_map(ax5, all_plats[ii], all_plons[ii], markersize = 10)
+    #for ii in range(len(lons2)):
+    #    plot_point_on_map(ax5, lats2[ii], lons2[ii], markersize = 10)
+    #for ii in range(len(lons3)):
+    #    plot_point_on_map(ax5, lats3[ii], lons3[ii], markersize = 10)
+
     #ax.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
     ax1.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
     ax2.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
@@ -3011,10 +3353,125 @@ def plot_MODIS_data_before_after(date_str, save = False):
     #    labelsize = 10, colorbar = True, swath = True, zoom=False,save=False)
     
     plt.suptitle(dt_before_str.strftime('%H:%M UTC %d-%b-%Y') + ' vs ' + \
-        dt_after_str.strftime('%H:%M U%C %d-%b-%Y'), weight = 'bold')
-    
-    fig.tight_layout()
+        dt_after_str.strftime('%H:%M UTC %d-%b-%Y'), weight = 'bold')
+
+    # Set up the third figure
+    # ----------------------------------------------------------------------
+    fig1  = plt.figure(figsize = (9, 10.5))
+    ax11  = fig1.add_subplot(4,3,1,  projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ax12  = fig1.add_subplot(4,3,2,  projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ax13  = fig1.add_subplot(4,3,3,  projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ax14  = fig1.add_subplot(4,3,4,  projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ax15  = fig1.add_subplot(4,3,5,  projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ax16  = fig1.add_subplot(4,3,6,  projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ax17  = fig1.add_subplot(4,3,7,  projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ax18  = fig1.add_subplot(4,3,8,  projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ax19  = fig1.add_subplot(4,3,9,  projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ax110 = fig1.add_subplot(4,3,10, projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ax111 = fig1.add_subplot(4,3,11, projection = ccrs.NorthPolarStereo(central_longitude = 320))
+    ax112 = fig1.add_subplot(4,3,12, projection = ccrs.NorthPolarStereo(central_longitude = 320))
+
+    plot_MODIS_channel(after_str, 1, swath = True, \
+        zoom = True, ax = ax11, plot_borders = True, vmax = None, labelsize = lsize)
+    plot_MODIS_channel(after_str, 2, swath = True, \
+        zoom = True, ax = ax12, plot_borders = True, vmax = 0.8, labelsize = lsize)
+    plot_MODIS_channel(after_str, 3, swath = True, \
+        zoom = True, ax = ax13, plot_borders = True, vmax = None, labelsize = lsize)
+    plot_MODIS_channel(after_str, 4, swath = True, \
+        zoom = True, ax = ax14, plot_borders = True, vmax = None, labelsize = lsize)
+    plot_MODIS_channel(after_str, 5, swath = True, \
+        zoom = True, ax = ax15, plot_borders = True, vmax = None, labelsize = lsize)
+    plot_MODIS_channel(after_str, 6, swath = True, \
+        zoom = True, ax = ax16, plot_borders = True, vmax = None, labelsize = lsize)
+    plot_MODIS_channel(after_str, 7, swath = True, \
+        zoom = True, ax = ax17, plot_borders = True, vmax = None, labelsize = lsize)
+    plot_MODIS_channel(after_str, 8, swath = True, \
+        zoom = True, ax = ax18, plot_borders = True, vmax = None, labelsize = lsize)
+    plot_MODIS_channel(after_str, 9, swath = True, \
+        zoom = True, ax = ax19, plot_borders = True, vmax = None, labelsize = lsize)
+    plot_MODIS_channel(after_str, 10, swath = True, \
+        zoom = True, ax = ax110, plot_borders = True, vmax = None, labelsize = lsize)
+    plot_MODIS_channel(after_str, 11, swath = True, \
+        zoom = True, ax = ax111, plot_borders = True, vmax = None, labelsize = lsize)
+    plot_MODIS_channel(after_str, 12, swath = True, \
+        zoom = True, ax = ax112, plot_borders = True, vmax = None, labelsize = lsize)
+
+    ax11.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    ax12.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    ax13.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    ax14.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    ax15.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    ax16.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    ax17.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    ax18.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    ax19.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    ax110.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    ax111.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+    ax112.set_extent([305, 335, 60, 75], ccrs.PlateCarree()) 
+
+    # Set up the second figure: the spectral reflectances before
+    # and after
+    # ----------------------------------------------------------
+
+    #plat1 = all_plats[0]
+    #plon1 = all_plons[1]
+
+    #channels = np.array([8,9,3,10,11,4,1,15,16,5,6,7])
+    channels = np.array([3,4,1,2,5,6,7])
+    before_refl = np.full((len(channels), len(all_plats)), np.nan)
+    after_refl  = np.full((len(channels), len(all_plats)), np.nan)
+
+    wavelengths = np.array([np.mean(channel_dict[str(ch)]['Bandwidth']) \
+        for ch in channels])
+
+    fig2 = plt.figure(figsize = (6,8))
+    ax01 = fig2.add_subplot(2,1,1)
+    ax02 = fig2.add_subplot(2,1,2)
+
+    for ii in range(len(channels)):
+        MODIS_data = read_MODIS_channel(before_str, channels[ii], swath = True)
+        #var1, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel1 = \
+        #    read_MODIS_satpy(before_str, channels[ii])
+        #m_idx = nearest_gridpoint(plat1, plon1, np.array(lats1), np.array(lons1))
+        #before_refl[ii] = np.array(var1)[m_idx] 
+
+        #m_idx = nearest_gridpoint(plat1, plon1, MODIS_data['lat'], MODIS_data['lon'])
+        before_refl[ii, :] = np.array([MODIS_data['data'][nearest_gridpoint(\
+            plat, plon, MODIS_data['lat'], MODIS_data['lon'])] for plat, \
+            plon in zip(all_plats, all_plons)]).squeeze()
+        #before_refl[ii] = MODIS_data['data'][m_idx]
+       
+        #var1, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel1 = \
+        #    read_MODIS_satpy(after_str, channels[ii])
+        #m_idx = nearest_gridpoint(plat1, plon1, np.array(lats1), np.array(lons1))
+        #after_refl[ii] = np.array(var1)[m_idx] 
+        
+        MODIS_data = read_MODIS_channel(after_str, channels[ii], swath = True)
+        #m_idx = nearest_gridpoint(plat1, plon1, MODIS_data['lat'], MODIS_data['lon'])
+        #after_refl[ii] = MODIS_data['data'][m_idx]
+        after_refl[ii,:] = np.array([MODIS_data['data'][nearest_gridpoint(\
+            plat, plon, MODIS_data['lat'], MODIS_data['lon'])] for plat, \
+            plon in zip(all_plats, all_plons)]).squeeze()
    
+    for jj in range(len(all_plats)): 
+        line = ax01.plot(wavelengths, before_refl[:,jj]) 
+        ax01.plot(wavelengths, after_refl[:,jj], linestyle = '--', \
+            color = line[-1].get_color()) 
+
+        ax02.plot(wavelengths, after_refl[:,jj] - before_refl[:,jj], \
+            color = line[-1].get_color()) 
+
+    ax01.set_xlabel('Wavelength [μm]')
+    ax02.set_xlabel('Wavelength [μm]')
+    ax01.set_ylabel('Reflectance')
+    ax02.set_ylabel('ΔRefl')
+    ax01.set_title(dt_before_str.strftime('Solid - Before (%d-%B-%Y)\n') + \
+                   dt_after_str.strftime('Dashed - After  (%d-%B-%Y)\n'))
+    fig2.tight_layout()
+ 
+    fig.tight_layout()
+    fig1.tight_layout()
+
     if(save):
         outname =  'modis_imagery_naaps_ceres_' + date_str + '.png'
         fig.savefig(outname, dpi = 300)

@@ -16,12 +16,6 @@ date_str = '20120615'
 #var = 'smoke_wetsink'
 var = 'smoke_conc_sfc'
 
-#plot_MODIS_OMI_data(date_str, save = True)
-#
-#plot_MODIS_data_before_after(date_str, save = True)
-#
-#sys.exit()
-
 if(date_str == '20080422'):
     minlat = 60.
     min_smoke = 20
@@ -32,8 +26,8 @@ if(date_str == '20080422'):
     min_ice = 80.
     vmin2 = 0.4
 elif(date_str == '20120615'):
-    begin_str = '20120601'
-    end_str   = '20120630'
+    begin_str = '20120501'
+    end_str   = '20120731'
     #begin_str = '20120501'
     #end_str   = '20120731'
     interval = 4 
@@ -99,6 +93,73 @@ elif(date_str == '20200824'):
     min_ice = 0.
     vmin2 = 0.2
 
+
+dt_begin_local1 = datetime(2012,6,15)
+dt_end_local1 = datetime(2012,6,19)
+NAAPS_data = read_NAAPS_event('20120615', minlat = minlat)
+NCEP_data = read_zoom_NCEP_data_single(\
+    dt_begin_local1.strftime('%Y%m%d'), \
+    dt_end_local1.strftime('%Y%m%d'), \
+    min_ice, \
+    min_smoke, max_smoke, alb_min, NAAPS_data, minlat, lat_bounds, \
+    lon_bounds, satellite = 'All', mask_NAAPS = False, \
+    plot_daily_data = True)
+
+sys.exit()
+
+plot_NCEP_region_time_series_combined(date_str, begin_str, end_str, \
+    interval, var, \
+    minlat = minlat, vmin = None, vmax = vmax, vmin2 = alb_min, vmax2 = None, \
+    min_ice = min_ice, min_smoke = min_smoke, max_smoke = max_smoke, plot_log = False, \
+    satellite = 'All', ptitle = '', lat_bounds = lat_bounds, \
+    lon_bounds = lon_bounds, ax = None, plot_daily_data = False, \
+    zoom = True, save = True)
+
+sys.exit()
+
+
+
+plot_NAAPS_event_CERES_region_time_series_combined(date_str, begin_str, end_str, 
+    interval, var, ceres_var = 'lwf_clr', minlat = minlat, vmin = None, \
+    vmax = vmax, vmin2 = alb_min, vmax2 = None, min_ice = min_ice, \
+    min_smoke = min_smoke, max_smoke = max_smoke, plot_log = False, \
+    satellite = 'All', ptitle = '', lat_bounds = lat_bounds, \
+    lon_bounds = lon_bounds, plot_daily_data = False, \
+    zoom = True, save = True)
+
+
+sys.exit()
+
+
+
+plot_MODIS_data_before_after(date_str, save = False)
+sys.exit()
+
+
+
+
+plot_NAAPS_event_CERES_region_comp_twovars(date_str, var, ceres_var1 = 'swf_clr', \
+    ceres_var2 = 'lwf_clr', \
+    minlat = minlat, vmin = None, vmax = vmax, vmin2 = alb_min, vmax2 = None, \
+    min_ice = 80., min_smoke = 0, max_smoke = max_smoke, plot_log = True, \
+    satellite = 'All', ptitle = '', lat_bounds = lat_bounds, \
+    lon_bounds = lon_bounds, plot_daily_data = False, \
+    zoom = True, save = True)
+
+sys.exit()
+
+#plot_MODIS_OMI_data(date_str, save = True)
+#
+
+
+#plot_NAAPS_event_CERES_region_time_series_combined(date_str, begin_date, end_date, \
+#    interval, var, ceres_var = 'alb_clr', \
+#    minlat = 70.5, vmin = None, vmax = None, vmin2 = None, vmax2 = None, \
+#    min_ice = 80., min_smoke = 0, max_smoke = 2e5, plot_log = True, \
+#    satellite = 'Aqua', ptitle = '', lat_bounds = [-90, 90], \
+#    lon_bounds = [-180, 180], plot_daily_data = False, \
+#    zoom = True, save = False):
+
 #combined_data, combined_data_nosmoke = \
 plot_NAAPS_CERES_flux_diffs(date_str, var, ceres_var = 'alb_clr', \
     minlat = minlat, vmin = None, vmax = vmax, vmin2 = alb_min, vmax2 = None, \
@@ -108,17 +169,6 @@ plot_NAAPS_CERES_flux_diffs(date_str, var, ceres_var = 'alb_clr', \
     in_year = None, markersize = None, zoom = True, save = True)
 
 sys.exit()
-
-#plot_NAAPS_event_CERES_region_time_series(date_str, begin_str, end_str, 
-#    interval, var, ceres_var = 'alb_clr', minlat = minlat, vmin = None, \
-#    vmax = vmax, vmin2 = alb_min, vmax2 = None, min_ice = min_ice, \
-#    min_smoke = min_smoke, max_smoke = max_smoke, plot_log = False, \
-#    satellite = 'All', ptitle = '', lat_bounds = lat_bounds, \
-#    lon_bounds = lon_bounds, plot_daily_data = False, \
-#    zoom = True, save = False)
-#
-#
-#sys.exit()
 
 
 pvars = ['alb_clr', 'swf_clr', 'lwf_clr']
@@ -172,16 +222,6 @@ sys.exit()
 #    satellite = 'All', ptitle = '', lat_bounds = lat_bounds, \
 #    lon_bounds = lon_bounds, plot_daily_data = False, \
 #    zoom = True, save = False)
-plot_NAAPS_event_CERES_region_comp_twovars(date_str, var, ceres_var1 = 'swf_clr', \
-    ceres_var2 = 'lwf_clr', \
-    minlat = minlat, vmin = None, vmax = vmax, vmin2 = alb_min, vmax2 = None, \
-    min_ice = 80., min_smoke = 0, max_smoke = max_smoke, plot_log = True, \
-    satellite = 'All', ptitle = '', lat_bounds = lat_bounds, \
-    lon_bounds = lon_bounds, plot_daily_data = False, \
-    zoom = True, save = True)
-
-sys.exit()
-
 
 pvars = ['alb_clr', 'swf_clr', 'lwf_clr']
 for cvar in pvars:

@@ -24,12 +24,22 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from glob import glob
 import os
+import importlib
+from scipy.interpolate import RegularGridInterpolator
 
 home_dir = os.environ['HOME']
 sys.path.append(home_dir)
 from python_lib import *
 
 data_dir = home_dir + '/data/NCEP/'
+
+if(home_dir + '/Research/NAAPS/' not in sys.path):
+    sys.path.append(home_dir + '/Research/NAAPS/')
+if(home_dir + '/Research/CERES/' not in sys.path):
+    sys.path.append(home_dir + '/Research/CERES/')
+
+from NAAPSLib import *
+from gridCERESLib import *
 
 datacrs = ccrs.PlateCarree()
 mapcrs = ccrs.NorthPolarStereo()
@@ -46,9 +56,10 @@ def read_NCEP(begin_date, end_date, minlat = 65.):
     begin_hours = divmod((dt_begin_str - base_date).total_seconds(), 3600)[0]
     end_hours = divmod((dt_end_str - base_date).total_seconds(), 3600)[0]
 
-    print(dt_begin_str, dt_end_str) 
+    print(dt_begin_str, dt_end_str, data_dir) 
 
-    filename = dt_begin_str.strftime(data_dir + 'air.sig995.%Y.nc')
+    filename = dt_begin_str.strftime(home_dir + '/data/NCEP/air.sig995.%Y.nc')
+    #filename = dt_begin_str.strftime(data_dir + 'air.sig995.%Y.nc')
 
     data = Dataset(filename, 'r')
 
@@ -96,6 +107,319 @@ def read_NCEP(begin_date, end_date, minlat = 65.):
     #        NCEP_data['lon'][ii,:][under_180]])
  
     return NCEP_data
+
+# NAAPS data is only passed and returned so that, if desired,
+# the NAAPS data can be masked in the regions where the CERES data
+# are masked for not having high enough ice or smoke.
+def read_zoom_NCEP_data_single(date1, date2, min_ice, \
+        min_smoke, max_smoke, vmin2, NAAPS_data, minlat, lat_bounds, \
+        lon_bounds, satellite = 'All', mask_NAAPS = False, \
+        plot_daily_data = False):
+
+    NCEP_data = read_NCEP(date1, date2, minlat = minlat)
+
+
+
+    # Read the corresponding CERES data
+    CERES_data1 = readgridCERES_daily(date1,end_str = date2, \
+        satellite = satellite, minlat = minlat)
+    raw_CERES1_alb = np.nanmean(CERES_data1['alb_clr'], axis = 0)
+    raw_CERES1_ice = np.nanmean(CERES_data1['ice_conc'], axis = 0)
+
+    # Regrid the CERES and NAAPS data
+    interper_NAAPS2NCEP = RegularGridInterpolator((NAAPS_data['lat'][:,0],\
+        NAAPS_data['lon'][0,:]), NAAPS_data['smoke_conc_sfc'])
+    interper_ice2NCEP = RegularGridInterpolator((CERES_data1['lat'][:,0],\
+        CERES_data1['lon'][0,:]), raw_CERES1_ice)
+    interper_alb2NCEP = RegularGridInterpolator((CERES_data1['lat'][:,0],\
+        CERES_data1['lon'][0,:]), raw_CERES1_alb)
+
+    # Trim the NCEP lats and lons to ensure that they do not go outside
+    # the bounds of the NAAPS data or CERES data
+    minlat_idx = np.where((NCEP_data['lat'][:,0] >= minlat) & \
+        (NCEP_data['lat'][:,0] >= np.min(NAAPS_data['lat'])) & \
+        (NCEP_data['lat'][:,0] <= np.max(NAAPS_data['lat'])))
+    trim_NCEP_lat1d = NCEP_data['lat'][minlat_idx,0].squeeze()
+
+    minlon_idx = np.where(\
+        (NCEP_data['lon'][0,:] >= np.min(NAAPS_data['lon'])) & \
+        (NCEP_data['lon'][0,:] <= np.max(NAAPS_data['lon'])))
+    trim_NCEP_lon1d = NCEP_data['lon'][0,minlon_idx].squeeze()
+
+    mesh_match_lons, mesh_match_lats = np.meshgrid(trim_NCEP_lon1d, \
+        trim_NCEP_lat1d)
+
+    NCEP_data['data'] = NCEP_data['data'][minlat_idx[0][0]:minlat_idx[0][-1]+1, \
+        minlon_idx[0][0]:minlon_idx[0][-1]+1]
+    NCEP_data['lon'] = NCEP_data['lon'][minlat_idx[0][0]:minlat_idx[0][-1]+1, \
+        minlon_idx[0][0]:minlon_idx[0][-1]+1]
+    NCEP_data['lat'] = NCEP_data['lat'][minlat_idx[0][0]:minlat_idx[0][-1]+1, \
+        minlon_idx[0][0]:minlon_idx[0][-1]+1]
+    work_NCEP     = NCEP_data['data']
+
+    avg_NAAPS     = interper_NAAPS2NCEP((mesh_match_lats, mesh_match_lons))
+    avg_CERES1_alb = interper_alb2NCEP((mesh_match_lats, mesh_match_lons))
+    avg_CERES1_ice = interper_ice2NCEP((mesh_match_lats, mesh_match_lons))
+
+    # Test masking the data
+    # ---------------------
+
+    # Test pulling out the data that only exists in both zones
+    # --------------------------------------------------------
+    #avg_CERES1 = np.ma.masked_where((avg_CERES1_ice <= min_ice) | \
+    if(lon_bounds[0] < lon_bounds[1]):
+
+        # Contains the smoky data
+        NCEP_data['data'] = np.ma.masked_where(\
+            (avg_CERES1_ice <= min_ice) | \
+            (avg_NAAPS < min_smoke) | \
+            (avg_NAAPS > max_smoke), work_NCEP)
+        NCEP_data['data'] = np.ma.masked_where(~ \
+            ((NCEP_data['lon'] >= lon_bounds[0]) & \
+             (NCEP_data['lon'] <= lon_bounds[1]) & \
+             (NCEP_data['lat'] >= lat_bounds[0]) & \
+             (NCEP_data['lat'] <= lat_bounds[1])), NCEP_data['data'])
+        NCEP_data['data'] = np.ma.masked_where(\
+            avg_CERES1_alb < vmin2, NCEP_data['data'])
+
+        # Contains the non-smoky data
+        NCEP_data['data_nosmoke'] = np.ma.masked_where((\
+            avg_CERES1_ice <= min_ice) | \
+            (avg_NAAPS > min_smoke), work_NCEP)
+        NCEP_data['data_nosmoke'] = np.ma.masked_where(~ \
+            ((NCEP_data['lon'] >= lon_bounds[0]) & \
+             (NCEP_data['lon'] <= lon_bounds[1]) & \
+             (NCEP_data['lat'] >= lat_bounds[0]) & \
+             (NCEP_data['lat'] <= lat_bounds[1])) , \
+            NCEP_data['data_nosmoke'])
+        NCEP_data['data_nosmoke'] = np.ma.masked_where(\
+            avg_CERES1_alb < vmin2, NCEP_data['data_nosmoke'])
+
+        avg_CERES1_ice = np.ma.masked_where(avg_CERES1_ice < min_ice, avg_CERES1_ice)
+        avg_CERES1_alb = np.ma.masked_where(avg_CERES1_alb < vmin2, avg_CERES1_alb)
+
+        ##!#if(mask_NAAPS):
+        ##!#   # Smoky data
+        ##!#   NAAPS_data['smoke_conc_sfc'] = np.ma.masked_where(\
+        ##!#       (avg_CERES1_ice <= min_ice) | \
+        ##!#       (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
+        ##!#       (NAAPS_data['smoke_conc_sfc'] > max_smoke), \
+        ##!#       NAAPS_data['smoke_conc_sfc'])
+        ##!#   NAAPS_data['smoke_conc_sfc'] = np.ma.masked_where(~ \
+        ##!#       ((CERES_data1['lon'] >= lon_bounds[0]) & \
+        ##!#       (CERES_data1['lon'] <= lon_bounds[1]) & \
+        ##!#       (CERES_data1['lat'] >= lat_bounds[0]) & \
+        ##!#       (CERES_data1['lat'] <= lat_bounds[1])), \
+        ##!#       NAAPS_data['smoke_conc_sfc'])
+           # Non-Smoky data
+
+        #NAAPS_data['smoke_conc_sfc'] = np.ma.masked_where(CERES_data1['alb_clr'] < vmin2, NAAPS_data['smoke_conc_sfc'])
+
+    else:
+        # Contains the smoky data
+        NCEP_data['data'] = np.ma.masked_where((\
+            avg_CERES1_ice <= min_ice) | \
+            (avg_NAAPS < min_smoke) | \
+            (avg_NAAPS > max_smoke), work_NCEP)
+        NCEP_data['data'] = np.ma.masked_where(~\
+            (((NCEP_data['lon'] >= lon_bounds[0]) | \
+              (NCEP_data['lon'] <= lon_bounds[1])) & \
+              (NCEP_data['lat'] >= lat_bounds[0]) & \
+              (NCEP_data['lat'] <= lat_bounds[1])) , NCEP_data['data'])
+        NCEP_data['data'] = np.ma.masked_where(\
+            avg_CERES1_alb < vmin2, NCEP_data['data'])
+        # Contains the non-smoky data
+        NCEP_data['data_nosmoke'] = np.ma.masked_where((\
+            avg_CERES1_ice <= min_ice) | \
+            (avg_NAAPS > min_smoke), work_NCEP)
+        NCEP_data['data_nosmoke'] = np.ma.masked_where(~\
+            (((NCEP_data['lon'] >= lon_bounds[0]) | \
+              (NCEP_data['lon'] <= lon_bounds[1])) & \
+              (NCEP_data['lat'] >= lat_bounds[0]) & \
+              (NCEP_data['lat'] <= lat_bounds[1])) , NCEP_data['data_nosmoke'])
+        NCEP_data['data_nosmoke'] = np.ma.masked_where(\
+            avg_CERES1_alb < vmin2, NCEP_data['data_nosmoke'])
+
+        ##!#if(mask_NAAPS):
+        ##!#    NAAPS_data['smoke_conc_sfc'] = np.ma.masked_where(\
+        ##!#        (avg_CERES1_ice <= min_ice) | \
+        ##!#        (NAAPS_data['smoke_conc_sfc'] < min_smoke) | \
+        ##!#        (NAAPS_data['smoke_conc_sfc'] > max_smoke), \
+        ##!#        NAAPS_data['smoke_conc_sfc'])
+        ##!#    NAAPS_data['smoke_conc_sfc'] = np.ma.masked_where(~ (((CERES_data1['lon'] >= lon_bounds[0]) | \
+        ##!#        (CERES_data1['lon'] <= lon_bounds[1])) & (CERES_data1['lat'] >= lat_bounds[0]) & \
+        ##!#        (CERES_data1['lat'] <= lat_bounds[1])), NAAPS_data['smoke_conc_sfc'])
+        ##!#    #NAAPS_data['smoke_conc_sfc'] = np.ma.masked_where(CERES_data1['alb_clr'] < vmin2, NAAPS_data['smoke_conc_sfc'])
+    if(plot_daily_data):
+        # Make a figure of the local data
+        # -------------------------------
+        plt.close('all')
+        fig3 = plt.figure(figsize = (11,7))
+        ax1 = fig3.add_subplot(2,4,1, projection = mapcrs)
+        ax2 = fig3.add_subplot(2,4,2, projection = mapcrs)
+        ax3 = fig3.add_subplot(2,4,3, projection = mapcrs)
+        ax4 = fig3.add_subplot(2,4,4, projection = mapcrs)
+        ax5 = fig3.add_subplot(2,4,5, projection = mapcrs)
+        ax6 = fig3.add_subplot(2,4,6, projection = mapcrs)
+        ax7 = fig3.add_subplot(2,4,7, projection = mapcrs)
+        ax8 = fig3.add_subplot(2,4,8, projection = mapcrs)
+   
+        #      ICE   ALB   NAAPS   NCEP
+        # raw   1     2      3      4
+        #   
+        # smth  5     6      7      8
+        #   
+        
+        ax1.pcolormesh(CERES_data1['lon'], CERES_data1['lat'], raw_CERES1_ice, \
+            transform = datacrs, shading = 'auto')
+        ax1.set_extent([-180, 180, 60, 90], datacrs)
+        ax1.coastlines()
+
+        ax2.pcolormesh(CERES_data1['lon'], CERES_data1['lat'], raw_CERES1_alb, \
+            transform = datacrs, shading = 'auto')
+        ax2.set_extent([-180, 180, 60, 90], datacrs)
+        ax2.coastlines()
+
+        ax3.pcolormesh(NAAPS_data['lon'], NAAPS_data['lat'], NAAPS_data['smoke_conc_sfc'], \
+            transform = datacrs, shading = 'auto', vmax = 50)
+        ax3.set_extent([-180, 180, 60, 90], datacrs)
+        ax3.coastlines()
+
+        ax4.pcolormesh(NCEP_data['lon'], NCEP_data['lat'], NCEP_data['data'], \
+            transform = datacrs, shading = 'auto')
+        ax4.set_extent([-180, 180, 60, 90], datacrs)
+        ax4.coastlines()
+
+        ax5.pcolormesh(mesh_match_lons, mesh_match_lats, avg_CERES1_ice, \
+            transform = datacrs, shading = 'auto')
+        ax5.set_extent([-180, 180, 60, 90], datacrs)
+        ax5.coastlines()
+
+        ax6.pcolormesh(mesh_match_lons, mesh_match_lats, avg_CERES1_alb, \
+            transform = datacrs, shading = 'auto')
+        ax6.set_extent([-180, 180, 60, 90], datacrs)
+        ax6.coastlines()
+
+        ax7.pcolormesh(mesh_match_lons, mesh_match_lats, avg_NAAPS, \
+            transform = datacrs, shading = 'auto', vmax = 50)
+        ax7.set_extent([-180, 180, 60, 90], datacrs)
+        ax7.coastlines()
+
+        ax8.pcolormesh(NCEP_data['lon'], NCEP_data['lat'], NCEP_data['data_nosmoke'], \
+            transform = datacrs, shading = 'auto')
+        ax8.set_extent([-180, 180, 60, 90], datacrs)
+        ax8.coastlines()
+
+        fig3.tight_layout()
+    
+        plt.show()
+
+    return NCEP_data
+
+
+
+# dt_begin_str = beginning of time window for traveling averaging
+# dt_end_str   = end of time window for traveling averaging
+# interval     = length of time window for averaging (in days)
+# ceres_var    = 'alb_clr', 'swf_clr', 'lwf_clr'
+# min_ice      = minimum NSIDC ice threshold for analysis
+# plats        = point lats for pulling data at a single grid point
+# plons        = point lons for pulling data at a single grid point
+def read_NCEP_region_time_series(dt_begin_str, dt_end_str, interval, \
+        min_ice, min_smoke, max_smoke, vmin2, satellite, \
+        NAAPS_data, minlat, lat_bounds, lon_bounds, \
+        plot_daily_data = False):
+
+    # Find the number of intervals between the two dates
+    # --------------------------------------------------
+    num_times = (dt_end_str - dt_begin_str).days - (interval - 1)
+
+    print('num_times = ',num_times)
+
+    combined_data = {}
+    combined_data_nosmoke = {}
+    average_data = np.zeros(num_times)
+    cnt = 0
+
+    for ii in np.arange(num_times):
+        print(ii)
+        dt_begin_local1 = dt_begin_str + timedelta(days = int(ii))
+        dt_end_local1   = dt_begin_local1 + timedelta(days = interval)
+
+        ##!#combined_data[dt_begin_local1.strftime('%Y')] = {}
+        ##!#combined_data_nosmoke[dt_begin_local1.strftime('%Y')] = {}
+
+        print(dt_begin_local1, dt_end_local1)
+
+        NCEP_data = read_zoom_NCEP_data_single(\
+            dt_begin_local1.strftime('%Y%m%d'), \
+            dt_end_local1.strftime('%Y%m%d'), \
+            min_ice, \
+            min_smoke, max_smoke, vmin2, NAAPS_data, minlat, lat_bounds, \
+            lon_bounds, satellite = 'All', mask_NAAPS = False, \
+            plot_daily_data = False)
+
+        bdata1 = NCEP_data['data'].flatten().compressed()
+        bdata3 = NCEP_data['data_nosmoke'].flatten().compressed()
+  
+        combined_data[dt_begin_local1.strftime('%m/%d') + ' - ' + \
+            dt_end_local1.strftime('%m/%d')] = bdata1
+
+        combined_data_nosmoke[dt_begin_local1.strftime('%m/%d') + ' - ' + \
+            dt_end_local1.strftime('%m/%d')] = bdata3
+
+        # Add the average data
+        # --------------------
+        average_data[cnt]     = np.nanmean(bdata1)
+
+        cnt += 1
+
+    second_labels = np.array([bkey for bkey in combined_data.keys()])
+    labels = second_labels.flatten()
+    second_arrays = np.array([combined_data[bkey] for bkey in \
+        combined_data.keys()], dtype = object)
+    second_arrays_nosmoke = np.array([combined_data_nosmoke[bkey] for \
+        bkey in combined_data_nosmoke.keys()], dtype = object)
+    
+    #print(combined_data['2012']['06/25 - 06/30'])
+
+    return second_labels, second_arrays, average_data, second_arrays_nosmoke
+
+
+
+def read_NCEP_region_time_series_multiyear(dt_begin_str, \
+        dt_end_str, begin_year, end_year, interval, min_ice, \
+        min_smoke, max_smoke, vmin2, satellite, NAAPS_data, minlat, \
+        lat_bounds, lon_bounds):
+
+    # Find the number of intervals between the two dates
+    # --------------------------------------------------
+    num_times = (dt_end_str - dt_begin_str).days - (interval - 1)
+    years     = np.arange(begin_year,end_year+1)
+     
+    total_smoke_arrays   = np.full((len(years), num_times), np.nan)
+    total_nosmoke_arrays = np.full((len(years), num_times), np.nan)
+
+    for ii, year in enumerate(years):
+        dt_local_begin = dt_begin_str.replace(year = years[ii])
+        dt_local_end   = dt_end_str.replace(year = years[ii])
+
+        second_labels, second_arrays, average_NCEP, second_arrays_nosmoke = \
+            read_NCEP_region_time_series(dt_local_begin, dt_local_end, \
+            interval, min_ice, min_smoke, max_smoke, vmin2, \
+            satellite, NAAPS_data, minlat, lat_bounds, lon_bounds, \
+            plot_daily_data = False)
+
+        smoke_means   = np.array([np.nanmean(tdata) for tdata in second_arrays])
+        nosmoke_means = np.array([np.nanmean(tdata) for tdata in \
+            second_arrays_nosmoke])
+
+        total_smoke_arrays[ii,:] = smoke_means
+        total_nosmoke_arrays[ii,:] = nosmoke_means
+   
+
+    return total_smoke_arrays, total_nosmoke_arrays, second_labels
+    #return second_arrays, second_arrays_nosmoke
 
 ##!#def read_NCEP_event(date_str, minlat = 65.):
 ##!# 
@@ -175,6 +499,7 @@ def plot_NCEP(NCEP_data, ax = None, labelsize = 12, \
         NCEP_data['dt_begin_date'].strftime('%Y-%m-%d') + ' - ' + \
         NCEP_data['dt_end_date'].strftime('%Y-%m-%d'))
 
+    ax.coastlines()
     if(circle_bound):
         ax.set_boundary(circle, transform = ax.transAxes)
 
@@ -729,3 +1054,139 @@ def plot_NCEP_event(date_str, minlat = 65., vmin = None, vmax = None, \
 ##!#    else:
 ##!#        plt.show()
 ##!#
+
+def plot_NCEP_region_time_series_combined(date_str, begin_date, end_date, \
+        interval, var, ceres_var = 'alb_clr', \
+        minlat = 70.5, vmin = None, vmax = None, vmin2 = None, vmax2 = None, \
+        min_ice = 80., min_smoke = 0, max_smoke = 2e5, plot_log = True, \
+        satellite = 'Aqua', ptitle = '', lat_bounds = [-90, 90], \
+        lon_bounds = [-180, 180], ax = None, plot_daily_data = False, \
+        zoom = True, save = False):
+
+    dt_date_str  = datetime.strptime(date_str, '%Y%m%d')
+    dt_begin_str = datetime.strptime(begin_date, '%Y%m%d')
+    dt_end_str   = datetime.strptime(end_date, '%Y%m%d')
+    begin_year = 2008
+    end_year = 2016
+
+    smoke_begin_str = event_dict[date_str]['start']
+    smoke_end_str   = event_dict[date_str]['end']
+
+    dt_smoke_begin = datetime.strptime(smoke_begin_str, '%Y%m%d%H')
+    dt_smoke_end   = datetime.strptime(smoke_end_str, '%Y%m%d%H')
+
+
+    # Check the year ranges
+    # ---------------------
+    final_end_date = datetime(year = 2021, month = 9, day = 30)
+    check_end_date = dt_end_str + relativedelta(years = 4)
+    if(check_end_date > final_end_date):
+        end_year_offset = check_end_date.year - final_end_date.year
+        end_idx = 5 - end_year_offset
+        beg_idx = -4 - end_year_offset
+    else:
+        beg_idx = -4
+        end_idx = 5
+       
+    begin_year = dt_date_str.year + beg_idx 
+    end_year   = dt_date_str.year + end_idx - 1
+    
+    NAAPS_data = read_NAAPS_event(date_str, minlat = minlat)
+    
+    smoke, nosmoke, labels = read_CERES_region_time_series_multiyear(dt_begin_str, \
+        dt_end_str, begin_year, end_year, interval, ceres_var, min_ice, \
+        min_smoke, max_smoke, vmin2, 'All', NAAPS_data, minlat, \
+        lat_bounds, lon_bounds)
+    
+    final_labels = np.copy(labels)
+    for ii, slbl in enumerate(labels):
+        date1 = slbl.split()[0]
+        date2 = slbl.split()[-1] 
+        dt_date1 = datetime.strptime(date1, '%m/%d')
+        dt_date2 = datetime.strptime(date2, '%m/%d')
+        mid_time = int((dt_date2 - dt_date1).days / 2)
+        final_date = dt_date1 + timedelta(days = int(mid_time))
+        final_labels[ii] = final_date.strftime('%m/%d')
+
+    # Extract just the 2012 data
+    smoke_keep   = smoke[4,:]
+    nosmoke_keep = nosmoke[4,:]
+    
+    # Get the climo, background data
+    smoke_bkgd   = np.concatenate([smoke[:4,:], smoke[5:,:]])
+    nosmoke_bkgd = np.concatenate([nosmoke[:4,:], nosmoke[5:,:]])
+    
+    smoke_bkgd_mean   = np.nanmean(smoke_bkgd, axis = 0)
+    nosmoke_bkgd_mean = np.nanmean(nosmoke_bkgd, axis = 0)
+    
+    smoke_bkgd_stdv   = np.nanstd(smoke_bkgd, axis = 0)
+    nosmoke_bkgd_stdv = np.nanstd(nosmoke_bkgd, axis = 0)
+    
+    smoke_bkgd_upper = smoke_bkgd_mean + smoke_bkgd_stdv
+    smoke_bkgd_lower = smoke_bkgd_mean - smoke_bkgd_stdv
+    nosmoke_bkgd_upper = nosmoke_bkgd_mean + nosmoke_bkgd_stdv
+    nosmoke_bkgd_lower = nosmoke_bkgd_mean - nosmoke_bkgd_stdv
+
+    # Make an array of the final labels in datetime format
+    # ----------------------------------------------------
+    final_dt_dates = np.array([datetime.strptime(flbl,'%m/%d').replace(\
+        year = dt_date_str.year) for flbl in final_labels])
+
+    within_dates = np.where( (final_dt_dates >= dt_smoke_begin) & \
+        (final_dt_dates <= dt_smoke_end) )
+
+    xvals = np.arange(len(smoke_keep))
+    smoke_times = xvals[within_dates]    
+
+    
+    in_ax = True
+    if(ax is None):
+        in_ax = False
+        plt.close('all')
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+
+    # Plot the smoky range
+    xvals = np.arange(len(smoke_bkgd_upper))
+    ax.plot(smoke_bkgd_mean, linestyle = ':', linewidth = 1.00, color = 'tab:blue')
+    ax.plot(smoke_bkgd_upper, linestyle = '--', linewidth = 0.5, color = 'tab:blue')
+    ax.plot(smoke_bkgd_lower, linestyle = '--', linewidth = 0.5, color = 'tab:blue')
+    ax.fill_between(xvals, smoke_bkgd_upper, y2 = smoke_bkgd_lower, \
+        color = 'tab:blue', alpha = 0.15)
+
+    # Plot the nosmoky range
+    ax.plot(nosmoke_bkgd_mean, linestyle = ':', linewidth = 1.00, color = 'tab:orange')
+    ax.plot(nosmoke_bkgd_upper, linestyle = '--', linewidth = 0.5, color = 'tab:orange')
+    ax.plot(nosmoke_bkgd_lower, linestyle = '--', linewidth = 0.5, color = 'tab:orange')
+    ax.fill_between(xvals, nosmoke_bkgd_upper, y2 = nosmoke_bkgd_lower, \
+        color = 'tab:orange', alpha = 0.15)
+
+    ax.axvspan(smoke_times[0], smoke_times[-1], \
+        color = 'cyan', alpha = 0.5)
+
+    # Plot the main year data
+    num_ticks = 7
+    ax.plot(smoke_keep, color = 'tab:blue', label = str(dt_date_str.year) + \
+        ' Smoke')
+    ax.plot(nosmoke_keep, color = 'tab:orange', label = \
+        str(dt_date_str.year) +  ' No-smoke')
+
+    ax.legend()
+    ax.set_xticks(xvals[::int(len(xvals)/num_ticks)])
+    ax.set_xticklabels(final_labels[::int(len(xvals)/num_ticks)])
+    ax.set_ylabel(ceres_var)
+    ax.set_title(dt_date_str.strftime('%d-%b-%Y Smoke Event\n%Y CERES ' + \
+        'Clear-sky ' + ceres_var + '\nvs. 2008 - 2016 Average'))
+
+
+    if(not in_ax):
+        fig.tight_layout()
+        if(save):
+            outname = '_'.join(['naaps','ceres','time','series','region',\
+                'multiyear',ceres_var, date_str]) + '.png'
+            fig.savefig(outname, dpi = 300)
+            print("Saved image", outname)
+        else:
+            plt.show()
+
+
