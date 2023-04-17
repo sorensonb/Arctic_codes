@@ -663,7 +663,7 @@ def download_identify_OMI_swaths(date_str, minlat = 70., min_AI = 2.0, \
     for ttime in file_times:
         print(ttime)
 
-        if(process_shawn):
+        if(process_shawn & (dt_date_str.year <= 2020)):
             OMI_base = readOMI_swath_shawn(ttime, latmin = minlat, \
                 shawn_path = shawn_path)
 
@@ -1482,14 +1482,25 @@ def write_da_to_NCDF(avgAI,counts,latmin,da_time):
     print("Saved file ",outfile)  
 
 # Writes a single Shawn file to HDF5. 
-def write_shawn_to_HDF5(OMI_base, save_path = './', minlat = 65., \
+def write_swath_to_HDF5(OMI_base, dtype, save_path = './', minlat = 65., \
         shawn_path = home_dir + '/data/OMI/shawn_files/'):
 
     if(isinstance(OMI_base, str)):
         # Read the swath
         # --------------
-        OMI_base  = readOMI_swath_shawn(OMI_base, latmin = minlat,\
-            shawn_path = shawn_path)
+        if((dtype == 'shawn') | (dtype == 'ltc3')):
+            OMI_base  = readOMI_swath_shawn(OMI_base, latmin = minlat,\
+                shawn_path = shawn_path)
+        else:
+            OMI_base  = readOMI_swath_hdf(OMI_base, 'control', \
+                latmin = minlat)
+
+    if(OMI_base['dtype'] == 'shawn'):
+        local_UVAI_raw  = OMI_base['UVAI_raw'][:,:]
+        local_UVAI_pert = OMI_base['UVAI_pert'][:,:]
+    else:
+        local_UVAI_raw  = OMI_base['UVAI'][:,:]
+        local_UVAI_pert = np.full(local_UVAI_raw.shape, np.nan)
 
     # Convert the filename object to datetime
     # ---------------------------------------
@@ -1498,15 +1509,17 @@ def write_shawn_to_HDF5(OMI_base, save_path = './', minlat = 65., \
   
     # Create a new HDF5 dataset to write to the file
     # ------------------------------------------------
-    outfile = save_path + 'omi_shawn_' + file_date + '.hdf5'
+    outfile = save_path + 'omi_pfile_' + file_date + '.hdf5'
     dset = h5py.File(outfile,'w')
  
     dset.create_dataset('latitude',  data = OMI_base['LAT'][:,:])
     dset.create_dataset('longitude', data = OMI_base['LON'][:,:])
     dset.create_dataset('lat_crnr',  data = OMI_base['LATcrnr'][:,:,:])
     dset.create_dataset('lon_crnr',  data = OMI_base['LONcrnr'][:,:,:])
-    dset.create_dataset('uvai_pert', data = OMI_base['UVAI_pert'][:,:])
-    dset.create_dataset('uvai_raw',  data = OMI_base['UVAI_raw'][:,:])
+    dset.create_dataset('uvai_raw',  data = local_UVAI_raw)
+    dset.create_dataset('uvai_pert', data = local_UVAI_pert)
+    #dset.create_dataset('uvai_raw',  data = OMI_base['UVAI_raw'][:,:])
+    #dset.create_dataset('uvai_pert', data = OMI_base['UVAI_pert'][:,:])
     dset.create_dataset('time',      data = OMI_base['TIME_2'][:,:])
     dset.create_dataset('sza',       data = OMI_base['SZA'][:,:])
     dset.create_dataset('vza',       data = OMI_base['VZA'][:,:])

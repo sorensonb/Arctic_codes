@@ -46,6 +46,7 @@ program omi_colocate
     CERES_LAT_data, CERES_LAT_dims, &
     CERES_LON_data, CERES_LON_dims, &
     OMI_AI_data,    OMI_AI_dims, &
+    OMI_AI_raw_data,    OMI_AI_raw_dims, &
     OMI_LAT_data,   OMI_LAT_dims, &
     OMI_LON_data,   OMI_LON_dims, &
     OMI_LATCRNR_data,   OMI_LATCRNR_dims, &
@@ -97,7 +98,8 @@ program omi_colocate
   integer                :: dspace_id_OSZ  ! OMI SZA
   integer                :: dspace_id_OVZ  ! OMI VZA
   integer                :: dspace_id_OAZ  ! OMI AZM
-  integer                :: dspace_id_OAI  ! OMI AI
+  integer                :: dspace_id_OAI  ! OMI AI pert
+  integer                :: dspace_id_OAR  ! OMI AI raw
   !integer                :: dspace_id_CLT  ! CERES LAT
   !integer                :: dspace_id_CLN  ! CERES LON
   integer                :: dspace_id_CLW  ! CERES LWF
@@ -119,7 +121,8 @@ program omi_colocate
   integer                :: dset_id_OSZ  ! OMI SZA
   integer                :: dset_id_OVZ  ! OMI VZA
   integer                :: dset_id_OAZ  ! OMI AZM
-  integer                :: dset_id_OAI  ! OMI AI
+  integer                :: dset_id_OAI  ! OMI AI pert
+  integer                :: dset_id_OAR  ! OMI AI raw
   !integer                :: dset_id_CLT  ! CERES LAT
   !integer                :: dset_id_CLN  ! CERES LON
   integer                :: dset_id_CLW  ! CERES LWF
@@ -301,6 +304,7 @@ program omi_colocate
   call read_comp_CERES_LAT(ceres_file_id)
   call read_comp_CERES_LON(ceres_file_id)
   call read_comp_OMI_AI(omi_file_id)
+  call read_comp_OMI_AI_raw(omi_file_id)
   call read_comp_OMI_LAT(omi_file_id)
   call read_comp_OMI_LON(omi_file_id)
   call read_comp_OMI_LATCRNR(omi_file_id)
@@ -361,8 +365,8 @@ program omi_colocate
       ! -------------------------------------
       if( (l_trop_found .and. ((.not.isnan(local_trop_ai) .and. &
            (local_trop_ai/= -999.)) .or. &
-          .not.isnan(OMI_AI_data(jj,ii)))) .or. &
-          (.not.l_trop_found .and. .not.isnan(OMI_AI_data(jj,ii)))) then
+          .not.isnan(OMI_AI_raw_data(jj,ii)))) .or. &
+          (.not.l_trop_found .and. .not.isnan(OMI_AI_raw_data(jj,ii)))) then
         ! Now, loop over the NSIDC data
         ! -----------------------------
         nsidc_loop1: do nii=1,NSIDC_LAT_dims(2)
@@ -757,7 +761,7 @@ program omi_colocate
   
   ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
   !
-  ! Write OMI AI data
+  ! Write OMI AI pert data
   !
   ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -800,6 +804,52 @@ program omi_colocate
   endif
 
   write(*,*) 'Wrote OMI AI'
+
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! Write OMI AI raw data
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+  ! Create the dataspace
+  ! --------------------
+  call h5screate_simple_f(rank, test_dims, dspace_id_OAR, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataspace'
+    return
+  endif
+
+  ! Create the dataset
+  ! ------------------
+  call h5dcreate_f(out_file_id, 'omi_uvai_raw', H5T_NATIVE_DOUBLE, &
+                   dspace_id_OAR,  dset_id_OAR, error) 
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataset '//'omi_uvai_raw'
+    return
+  endif
+
+  ! Write to the dataset
+  ! --------------------
+  call h5dwrite_f(dset_id_OAR, H5T_NATIVE_DOUBLE, OMI_AI_raw_data, OMI_AI_raw_dims, &
+                      error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  ! Close the dataset
+  ! -----------------
+  call h5dclose_f(dset_id_OAR, error)
+
+  ! Close access to data space rank
+  call h5sclose_f(dspace_id_OAR, error)
+
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  write(*,*) 'Wrote OMI AI raw'
 
   !!#!! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
   !!#!!

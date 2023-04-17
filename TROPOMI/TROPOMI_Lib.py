@@ -125,54 +125,66 @@ def automate_TROPOMI_preprocess(date_str, download = True, images = True, \
         # good swaths
         # ---------------------------------------------------------
         for omi_date in good_omi_times:
-            trop_name = download_TROPOMI_file(omi_date)
 
-            # Retrieve the OMI filename for this date
-            # ---------------------------------------
-            omi_dt_date = datetime.strptime(omi_date, '%Y%m%d%H%M')
-            omi_file_name = glob(omi_dt_date.strftime(home_dir + \
-                '/data/OMI/H5_files/OMI-*V_%Ym%m%dt%H%M*.he5'\
-                ))[0].strip().split('/')[-1]
+            generate_TROPOMI_prep_data(omi_date)
 
-            trop_dtime = datetime.strptime(\
-                trop_name.strip().split('/')[-1][33:49], '%Ym%m%dt%H%M%S')
-            local_trop_time = trop_dtime.strftime('%Y%m%d%H%M')
+            ##!#trop_name = download_TROPOMI_file(omi_date)
 
-            print(omi_file_name.strip().split('/')[-1], trop_name)
-            #print(omi_file_name, trop_dtime.strftime('%Y%m%d%H%M'))
+            ##!## Retrieve the OMI filename for this date
+            ##!## ---------------------------------------
+            ##!#omi_dt_date = datetime.strptime(omi_date, '%Y%m%d%H%M')
+            ##!#omi_file_name = glob(omi_dt_date.strftime(home_dir + \
+            ##!#    '/data/OMI/H5_files/OMI-*V_%Ym%m%dt%H%M*.he5'\
+            ##!#    ))[0].strip().split('/')[-1]
 
-            data_dir = home_dir + '/Research/TROPOMI/prep_data/'
+            ##!#trop_dtime = datetime.strptime(\
+            ##!#    trop_name.strip().split('/')[-1][33:49], '%Ym%m%dt%H%M%S')
+            ##!#local_trop_time = trop_dtime.strftime('%Y%m%d%H%M')
 
-            # Make a data storage directory, if one does not already exist
-            # ------------------------------------------------------------
-            save_dir = data_dir + omi_dt_date.strftime('%Y%m%d%H%M') + '/'
-            short_save_dir = omi_dt_date.strftime('%Y%m%d%H%M/')
-            print(save_dir)
+            ##!#print(omi_file_name.strip().split('/')[-1], trop_name)
+            ##!##print(omi_file_name, trop_dtime.strftime('%Y%m%d%H%M'))
 
-            if(not os.path.exists(save_dir)):
-                print('Making ', save_dir)
-                os.system('mkdir ' +  save_dir)
+            ##!#data_dir = home_dir + '/Research/TROPOMI/prep_data/'
+
+            ##!## Make a data storage directory, if one does not already exist
+            ##!## ------------------------------------------------------------
+            ##!#save_dir = data_dir + omi_dt_date.strftime('%Y%m%d%H%M') + '/'
+            ##!#short_save_dir = omi_dt_date.strftime('%Y%m%d%H%M/')
+            ##!#print(save_dir)
+
+            ##!#if(not os.path.exists(save_dir)):
+            ##!#    print('Making ', save_dir)
+            ##!#    os.system('mkdir ' +  save_dir)
     
-            # Run the TROPOMI converter to prep the files for movement
-            # to raindrop
-            # --------------------------------------------------------
-            trop_file_name = convert_TROPOMI_to_HDF5(local_trop_time, \
-                omi_name = omi_file_name, save_path = save_dir)
+            ##!## Run the TROPOMI converter to prep the files for movement
+            ##!## to raindrop
+            ##!## --------------------------------------------------------
+            ##!#trop_file_name = convert_TROPOMI_to_HDF5(local_trop_time, \
+            ##!#    omi_name = omi_file_name, save_path = save_dir)
     
-            # Now, write the name of the OMI file to a text file, which
-            # will be zipped up with the TROPOMI file.
-            # ---------------------------------------------------------
-            omi_text_out = save_dir + 'omi_filename.txt'
-            with open(omi_text_out, 'w') as fout:
-                fout.write(omi_file_name)
+            ##!## Now, write the name of the OMI file to a text file, which
+            ##!## will be zipped up with the TROPOMI file.
+            ##!## ---------------------------------------------------------
+            ##!#omi_text_out = save_dir + 'omi_filename.txt'
+            ##!#with open(omi_text_out, 'w') as fout:
+            ##!#    fout.write(omi_file_name)
     
-            # Finally, gzip the data
-            # ---------------------
-            os.chdir(data_dir)
-            cmnd = omi_dt_date.strftime('tar -cvzf ' + data_dir + \
-                '/prepped_trop_data_%Y%m%d%H%M.tar.gz ' + short_save_dir)
-            print(cmnd)
-            os.system(cmnd)
+            ##!## Finally, gzip the data
+            ##!## ---------------------
+            ##!#os.chdir(data_dir)
+            ##!#cmnd = omi_dt_date.strftime('tar -cvzf ' + data_dir + \
+            ##!#    '/prepped_trop_data_%Y%m%d%H%M.tar.gz ' + short_save_dir)
+            ##!#print(cmnd)
+            ##!#os.system(cmnd)
+
+            ##!## Secure copy the gzipped file to Raindrop
+            ##!## ----------------------------------------
+            ##!#cmnd = omi_dt_date.strftime('scp ' + data_dir + \
+            ##!#    '/prepped_trop_data_%Y%m%d%H%M.tar.gz ' + \
+            ##!#    'bsorenson@raindrop.atmos.und.edu:' + \
+            ##!#    '/home/bsorenson/OMI/tropomi_colocate/prep_data')
+            ##!#print(cmnd)
+            ##!#os.system(cmnd)
 
         #trop_files = glob(dt_date_str.strftime(data_dir + \
         #    'TROPOMI*_%Ym%m%dt*-o*.nc'))
@@ -191,6 +203,66 @@ def automate_TROPOMI_preprocess(date_str, download = True, images = True, \
 
             #local_trop_time = trop_dtime.strftime('%Y%m%d%H%M')
             #print(local_trop_time)
+
+def generate_TROPOMI_prep_data(date_str, copy_to_raindrop = False):
+    trop_name = download_TROPOMI_file(omi_date)
+
+    # Retrieve the OMI filename for this date
+    # ---------------------------------------
+    omi_dt_date = datetime.strptime(omi_date, '%Y%m%d%H%M')
+    omi_file_name = glob(omi_dt_date.strftime(home_dir + \
+        '/data/OMI/H5_files/OMI-*V_%Ym%m%dt%H%M*.he5'\
+        ))[0].strip().split('/')[-1]
+
+    trop_dtime = datetime.strptime(\
+        trop_name.strip().split('/')[-1][33:49], '%Ym%m%dt%H%M%S')
+    local_trop_time = trop_dtime.strftime('%Y%m%d%H%M')
+
+    print(omi_file_name.strip().split('/')[-1], trop_name)
+    #print(omi_file_name, trop_dtime.strftime('%Y%m%d%H%M'))
+
+    data_dir = home_dir + '/Research/TROPOMI/prep_data/'
+
+    # Make a data storage directory, if one does not already exist
+    # ------------------------------------------------------------
+    save_dir = data_dir + omi_dt_date.strftime('%Y%m%d%H%M') + '/'
+    short_save_dir = omi_dt_date.strftime('%Y%m%d%H%M/')
+    print(save_dir)
+
+    if(not os.path.exists(save_dir)):
+        print('Making ', save_dir)
+        os.system('mkdir ' +  save_dir)
+    
+    # Run the TROPOMI converter to prep the files for movement
+    # to raindrop
+    # --------------------------------------------------------
+    trop_file_name = convert_TROPOMI_to_HDF5(local_trop_time, \
+        omi_name = omi_file_name, save_path = save_dir)
+    
+    # Now, write the name of the OMI file to a text file, which
+    # will be zipped up with the TROPOMI file.
+    # ---------------------------------------------------------
+    omi_text_out = save_dir + 'omi_filename.txt'
+    with open(omi_text_out, 'w') as fout:
+        fout.write(omi_file_name)
+    
+    # Finally, gzip the data
+    # ---------------------
+    os.chdir(data_dir)
+    cmnd = omi_dt_date.strftime('tar -cvzf ' + data_dir + \
+        '/prepped_trop_data_%Y%m%d%H%M.tar.gz ' + short_save_dir)
+    print(cmnd)
+    os.system(cmnd)
+
+    if(copy_to_raindrop):
+        # Secure copy the gzipped file to Raindrop
+        # ----------------------------------------
+        cmnd = omi_dt_date.strftime('scp ' + data_dir + \
+            '/prepped_trop_data_%Y%m%d%H%M.tar.gz ' + \
+            'bsorenson@raindrop.atmos.und.edu:' + \
+            '/home/bsorenson/OMI/tropomi_colocate/prep_data')
+        print(cmnd)
+        os.system(cmnd)
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

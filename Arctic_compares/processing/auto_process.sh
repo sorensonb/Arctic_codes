@@ -30,7 +30,8 @@ if $EXTRACT; then
       tester="${filelist[$i]##*_}"
       file_time="${tester%.tar*}"
       just_date=$(echo $file_time | head -c 8)
-      check_file=${data_dir}${just_date}/${file_time}/omi_shawn_${file_time}.hdf5
+      check_file=${data_dir}${just_date}/${file_time}/omi_pfile_${file_time}.hdf5
+      #check_file=${data_dir}${just_date}/${file_time}/omi_shawn_${file_time}.hdf5
       if !(test -f "$check_file") ; then
         echo "Extracting ${filelist[$i]}"
         tar -xvzf ${filelist[$i]}

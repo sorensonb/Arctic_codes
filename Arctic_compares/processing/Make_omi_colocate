@@ -20,6 +20,7 @@ OBJECTS = colocate_vars.o \
 			read_comp_NSIDC_LAT.o \
 			read_comp_NSIDC_LON.o \
 			read_comp_OMI_AI.o \
+			read_comp_OMI_AI_raw.o \
 			read_comp_OMI_LAT.o \
 			read_comp_OMI_LON.o \
 			read_comp_OMI_LATCRNR.o \
@@ -92,6 +93,9 @@ read_comp_NSIDC_LON.o: $(LIB_PATH)read_comp_NSIDC_LON.f90
 
 read_comp_OMI_AI.o: $(LIB_PATH)read_comp_OMI_AI.f90
 	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_AI.f90
+
+read_comp_OMI_AI_raw.o: $(LIB_PATH)read_comp_OMI_AI_raw.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_AI_raw.f90
 
 read_comp_OMI_LAT.o: $(LIB_PATH)read_comp_OMI_LAT.f90
 	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_LAT.f90

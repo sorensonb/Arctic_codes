@@ -26,6 +26,7 @@ module colocate_vars
   ! Dimensions for input data
   ! ------------------------- 
   integer(hsize_t), dimension(:), allocatable       :: OMI_AI_dims
+  integer(hsize_t), dimension(:), allocatable       :: OMI_AI_raw_dims
   integer(hsize_t), dimension(:), allocatable       :: OMI_LAT_dims
   integer(hsize_t), dimension(:), allocatable       :: OMI_LON_dims
   integer(hsize_t), dimension(:), allocatable       :: OMI_LATCRNR_dims
@@ -78,6 +79,7 @@ module colocate_vars
   ! Data from input data
   ! -------------------- 
   real(kind=8), dimension(:,:), allocatable, target   :: OMI_AI_data
+  real(kind=8), dimension(:,:), allocatable, target   :: OMI_AI_raw_data
   real(kind=8), dimension(:,:), allocatable, target   :: OMI_LAT_data
   real(kind=8), dimension(:,:), allocatable, target   :: OMI_LON_data
   real(kind=8), dimension(:,:,:), allocatable, target :: OMI_LATCRNR_data
@@ -187,6 +189,7 @@ module colocate_vars
       ! Dimensions for input data
       ! ------------------------- 
       if(allocated(OMI_AI_dims))           deallocate(OMI_AI_dims)
+      if(allocated(OMI_AI_raw_dims))       deallocate(OMI_AI_raw_dims)
       if(allocated(OMI_LAT_dims))          deallocate(OMI_LAT_dims)
       if(allocated(OMI_LON_dims))          deallocate(OMI_LON_dims)
       if(allocated(OMI_LATCRNR_dims))      deallocate(OMI_LATCRNR_dims)
@@ -239,6 +242,7 @@ module colocate_vars
       ! Data from input data
       ! -------------------- 
       if(allocated(OMI_AI_data))           deallocate(OMI_AI_data)
+      if(allocated(OMI_AI_raw_data))       deallocate(OMI_AI_raw_data)
       if(allocated(OMI_LAT_data))          deallocate(OMI_LAT_data)
       if(allocated(OMI_LON_data))          deallocate(OMI_LON_data)
       if(allocated(OMI_LATCRNR_data))      deallocate(OMI_LATCRNR_data)
