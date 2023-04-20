@@ -13,6 +13,19 @@ import sys
 # Set up the overall figure
 # ----------------------------------------------------
 
+start_date = '200503'
+end_date   = '202009'
+CERES_data = readgridCERES(start_date,end_date,'toa_sw_clr_mon',\
+    satellite = 'Aqua',minlat=60.5,calc_month = True,season = 'sunlight')
+CERES_all  = readgridCERES(start_date,end_date,'toa_sw_all_mon',\
+    satellite = 'Aqua',minlat=60.5,calc_month = True,season = 'sunlight')
+
+plotCERES_MonthTrend(CERES_data,month_idx=4,save=False,\
+    trend_type='standard',season='sunlight',minlat=65.,return_trend=False, \
+    pax = None)
+
+sys.exit()
+
 write_CERES_L2_to_HDF5('20170816', 'Aqua', save_path = './')
 
 sys.exit()

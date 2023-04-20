@@ -8,6 +8,40 @@
 import Arctic_compare_lib
 from Arctic_compare_lib import *
 
+
+run_list = ['20180814']
+#run_list = ['20180721','20180810','20180826','20180827']
+#run_list = ['20180721','20180810','20180814','20180826','20180827']
+#run_list = ['20180721','20170814','20100731','20100801']
+#final_list = entire_wrapper(min_AI = 2.0, minlat = 70., download = True, \
+#    images = False, process = False, run_list = run_list)
+final_list = entire_wrapper(min_AI = 2.0, minlat = 70., download = False, \
+    images = True, process = True, run_list = run_list, copy_to_raindrop = True)
+
+sys.exit()
+
+
+date_strs = [\
+           '202108010117',
+           '202108010256',
+           '202108010435',
+           '202108010614',
+           '202108011607',
+           '202108011925',
+           '202108012103',
+           '202108012242',
+    ]
+for date_str in date_strs:
+    plot_compare_combined_category(date_str, var1 = 'OMI_RAW', \
+        var2 = 'CERES_SWF', var3 = None, cat = "ALL", minlat = 65., \
+        xmin = 1.0, xmax = None, ymin = None, ymax = None, ax = None, \
+        colorbar = True, trend = 'lin_regress', zoom = True, color = None, \
+        save = False)
+
+
+sys.exit()
+
+
 #date_strs = [\
 #                     #'200804221841',  # GOOD
 #                     #'200804222020',  # GOOD
@@ -22,17 +56,15 @@ from Arctic_compare_lib import *
 #           #'201807052034',
 #            ]
 
+
+date_strs = ['201807052213']
+automate_all_preprocess(date_strs, download = False, images = False, process = True,\
+    omi_dtype = 'ltc3', copy_to_raindrop = True)
+sys.exit()
+
 #date_str = '201807051856'
 #date_str = '201807052213'
-date_str = '201908110033'
-plot_compare_combined_category(date_str, var1 = 'TROP_AI', \
-    var2 = 'CERES_SWF', var3 = None, cat = "ALL", minlat = 65., \
-    xmin = 1.0, xmax = None, ymin = None, ymax = None, ax = None, \
-    colorbar = True, trend = 'lin_regress', zoom = True, color = None, \
-    save = False)
-
-
-sys.exit()
+#date_str = '201908110033'
 
 for date_str in case_dates:
 
@@ -144,13 +176,6 @@ for date_str in date_strs:
         save = True)
 sys.exit()
 
-run_list = ['20180721','20170814','20100731','20100801']
-final_list = entire_wrapper(min_AI = 1.0, minlat = 70., download = True, \
-    images = False, process = False, run_list = run_list)
-#final_list = entire_wrapper(min_AI = 1.0, minlat = 70., download = False, \
-#    images = True, process = True, run_list = run_list)
-
-sys.exit()
 
 
 # Uses the slope statistics returned from the other function, 

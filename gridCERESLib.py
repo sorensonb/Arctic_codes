@@ -1098,15 +1098,15 @@ def readgridCERES_hrly(data_dt,param,satellite = 'Aqua',minlat=60.0,\
 def calcCERES_MonthClimo(CERES_data):
 
     # Set up arrays to hold monthly climatologies
-    month_climo = np.zeros((12,CERES_data['data'].shape[1],CERES_data['data'].shape[2]))
+    month_climo = np.zeros((6,CERES_data['data'].shape[1],CERES_data['data'].shape[2]))
 
     # Mask the monthly averages
     local_data = np.copy(CERES_data['data'][:,:,:])
     local_mask = np.ma.masked_where(local_data == -999., local_data)
 
     # Calculate monthly climatologies
-    for m_i in range(12):
-        month_climo[m_i,:,:] = np.nanmean(local_mask[m_i::12,:,:],axis=0)
+    for m_i in range(6):
+        month_climo[m_i,:,:] = np.nanmean(local_mask[m_i::6,:,:],axis=0)
         print("Month: ",CERES_data['dates'][m_i][4:]) 
     ##!## Calculate monthly climatologies
     ##!## Assume all Aqua CERES data starting at 200207 is read in previously
@@ -1968,7 +1968,8 @@ def calcCERES_grid_trend(CERES_data, month_idx, trend_type, minlat):
 
     lat_ranges = CERES_data['lat'][:,0]
     #lat_ranges = np.arange(minlat,90,1.0)
-    lon_ranges = np.arange(-180,180,1.0)
+    lon_ranges = CERES_data['lon'][0,:]
+    #lon_ranges = np.arange(-180,180,1.0)
 
     # Make copy of CERES_data array
     print(CERES_data['dates'][month_idx::index_jumper])
@@ -1984,8 +1985,10 @@ def calcCERES_grid_trend(CERES_data, month_idx, trend_type, minlat):
     for i in range(0,len(lat_ranges)):
         for j in range(0,len(lon_ranges)):
             # Check the current max and min
-            work_mask = local_mask[:,i,j][~local_mask[:,i,j].mask][0]
-            if(len(work_mask) > 1):
+            #print(local_mask[:,i,j])
+            work_mask = local_mask[:,i,j]
+            #work_mask = local_mask[:,i,j][~local_mask[:,i,j].mask][0]
+            if(len(work_mask.compressed()) > 1):
                 x_vals = np.arange(0,len(work_mask))
                 # Find the slope of the line of best fit for the time series of
                 # average data
@@ -2032,7 +2035,7 @@ def plotCERES_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
     #pax.gridlines()
     pax.coastlines(resolution='50m')
     mesh = pax.pcolormesh(plon, plat,\
-            mask_AI.T,transform = datacrs,\
+            mask_AI.T,transform = datacrs,shading = 'auto',\
             cmap = colormap,vmin=vmin,vmax=vmax)
     pax.set_extent([-180,180,minlat,90],datacrs)
     pax.set_boundary(circle, transform=pax.transAxes)
@@ -2224,15 +2227,27 @@ def plotCERES_MonthTrend(CERES_data,month_idx=None,save=False,\
 
     # Call plotCERES_spatial to add the data to the figure
 
+    ii = 15
+    jj = 180
+    print(CERES_data['lat'][ii,jj], CERES_data['lon'][ii,jj])
+
     if(pax is None):
         plt.close('all')
-        fig1 = plt.figure()
-        ax = fig1.add_subplot(1,1,1, projection = mapcrs)
+        fig1 = plt.figure(figsize = (10,4))
+        ax = fig1.add_subplot(1,2,1, projection = mapcrs)
+        ax2 = fig1.add_subplot(1,2,2)
 
         plotCERES_spatial(ax, CERES_data['lat'], CERES_data['lon'], \
             ceres_trends, 'trend', ptitle = title, plabel = 'W/m2 per study period', \
             vmin = v_min, vmax = v_max, colorbar_label_size = 16, \
             minlat = minlat)
+
+        ax2.plot(CERES_data['data'][month_idx::index_jumper,ii,jj])
+        ax2.set_title(str(CERES_data['lat'][ii,jj]) + ' ' + \
+            str(CERES_data['lon'][ii,jj]))
+        ax2.set_ylabel(CERES_data['parm_name'])
+
+        fig1.tight_layout()
 
         if(save == True):
             month_adder = ''

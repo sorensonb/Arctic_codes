@@ -509,7 +509,7 @@ def onclick_climo(event):
 
 def download_OMI_all_HDF(date_str, dest_dir = h5_data_dir):
 
-    base_str = datetime.strptime(date_str, '%Y%m%d')
+    base_date = datetime.strptime(date_str, '%Y%m%d')
 
     quit_date = base_date + timedelta(days = 1)
     local_date_str = base_date
@@ -592,13 +592,14 @@ def download_OMI_single_HDF(date_str, dest_dir = h5_data_dir):
 # H5 and shawn files and determines which Shawn swaths have significant
 # aerosol (AI_pert > 1.0)
 def download_identify_OMI_swaths(date_str, minlat = 70., min_AI = 2.0, \
-        remove_bad = False, skiprows = [52], omi_dtype = 'ltc3'):
+        remove_bad = False, skiprows = [52], omi_dtype = 'ltc3', \
+        screen_SZA = False):
 
     dt_date_str = datetime.strptime(date_str, '%Y%m%d')
 
-    if(dt_date_str.year > 2021):
+    if(dt_date_str.year > 2020):
         process_shawn = False
-        min_AI = min_AI - 1.0
+        min_AI = min_AI + 0.0
     else:
         process_shawn = True
         min_AI = min_AI
@@ -638,6 +639,7 @@ def download_identify_OMI_swaths(date_str, minlat = 70., min_AI = 2.0, \
             'OMI*_%Ym%m%dt*.he5')) 
    
     if(process_shawn):
+        shawn_files = glob(dt_date_str.strftime(shawn_path + '%Y%m%d*')) 
         if(len(shawn_files) == 0):
             # download shawn files
             cmnd = dt_date_str.strftime(\
@@ -669,6 +671,10 @@ def download_identify_OMI_swaths(date_str, minlat = 70., min_AI = 2.0, \
 
             OMI_base['UVAI_pert'] = np.ma.masked_where(OMI_base['UVAI_pert'] < \
                 min_AI, OMI_base['UVAI_pert'])
+            if(screen_SZA):
+                OMI_base['UVAI_pert'] = np.ma.masked_where(OMI_base['SZA'] > \
+                    70, OMI_base['UVAI_pert'])
+
             OMI_base['UVAI_pert'] = np.ma.masked_invalid(OMI_base['UVAI_pert'])
             num_above_threshold = len(OMI_base['UVAI_pert'].compressed())
             print(num_above_threshold)
@@ -678,6 +684,10 @@ def download_identify_OMI_swaths(date_str, minlat = 70., min_AI = 2.0, \
 
             OMI_base['UVAI'] = np.ma.masked_where(OMI_base['UVAI'] < min_AI, \
                 OMI_base['UVAI'])
+            if(screen_SZA):
+                OMI_base['UVAI'] = np.ma.masked_where(OMI_base['SZA'] > \
+                    70, OMI_base['UVAI'])
+
             OMI_base['UVAI'] = np.ma.masked_invalid(OMI_base['UVAI'])
             num_above_threshold = len(OMI_base['UVAI'].compressed())
             print(num_above_threshold)
@@ -810,6 +820,8 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
     UVAI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex'][:,:]
     GPQF   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/GroundPixelQualityFlags'][:,:]
     PXQF   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/PixelQualityFlags'][:,:]
+    SZA    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/SolarZenithAngle'][:,:]
+    VZA    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/ViewingZenithAngle'][:,:]
     AZM    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/RelativeAzimuthAngle'][:,:]
     SSA    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/FinalAerosolSingleScattAlb'][:,:,:]
     LATcrnr = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/FoV75CornerLatitude'][:,:,:]
@@ -871,7 +883,9 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
 
     OMI_swath['LAT']    = LAT
     OMI_swath['LON']    = LON
-    OMI_swath['AZM']    = AZM
+    OMI_swath['SZA']    = SZA
+    OMI_swath['VZA']    = VZA
+    OMI_swath['RAZ']    = AZM
     OMI_swath['GPQF']   = GPQF_decode
     OMI_swath['PXQF']   = PXQF_decode
     OMI_swath['XTRACK'] = XTRK_decode
@@ -1509,7 +1523,7 @@ def write_swath_to_HDF5(OMI_base, dtype, save_path = './', minlat = 65., \
   
     # Create a new HDF5 dataset to write to the file
     # ------------------------------------------------
-    outfile = save_path + 'omi_pfile_' + file_date + '.hdf5'
+    outfile = save_path + 'omi_shawn_' + file_date + '.hdf5'
     dset = h5py.File(outfile,'w')
  
     dset.create_dataset('latitude',  data = OMI_base['LAT'][:,:])
@@ -5558,7 +5572,29 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
     if(title == ''):
         title = 'OMI UVAI ' + OMI_hrly['dtype'] + ' ' + OMI_hrly['date']
     pax.set_title(title)
-    if((pvar != 'UVAI') & (OMI_hrly['dtype'] != 'shawn')):
+    if(pvar == 'SZA'):
+        mesh = pax.pcolormesh(OMI_hrly['LON'], OMI_hrly['LAT'], OMI_hrly[pvar],\
+                transform = datacrs, cmap = colormap,\
+                vmin = vmin, vmax = vmax,\
+                shading='auto')
+        gl = pax.gridlines(crs = ccrs.PlateCarree(), draw_labels = False, \
+            linewidth = 1, color = 'gray', alpha = 0.5, linestyle = '-',\
+            y_inline = True, xlocs = range(-180, 180, 30), ylocs = range(70, 90, 10))
+
+        if(label == ''):
+            label = 'Solar Zenith Angle'
+
+        if(colorbar):
+            #cbar.set_label(variable,fontsize=16,weight='bold')
+            #tickvals = np.arange(vmin,vmax,1.0)
+            cbar = plt.colorbar(mesh,ax = pax, \
+                orientation='vertical', extend = 'both', fraction = 0.046,\
+                pad = 0.04)
+            cbar.set_label(label,fontsize = labelsize, weight='bold')
+            cbar.ax.tick_params(labelsize= labelsize)
+
+        
+    elif((pvar != 'UVAI') & (OMI_hrly['dtype'] != 'shawn')):
         if(pvar == 'ice'): #if(pvar == 'GPQF'):
             # Convert the GPQF flag values to ice flags
             # -----------------------------------------
@@ -5752,10 +5788,11 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
     if(ax is None): 
         in_ax = False
         plt.close('all')
-        fig1 = plt.figure(figsize = (6,6))
+        fig1 = plt.figure(figsize = (5,6))
         mapcrs = ccrs.NorthPolarStereo()
         #mapcrs = ccrs.Robinson()
         ax = fig1.add_subplot(1,1,1, projection = mapcrs)
+    #    ax2 = fig1.add_subplot(1,2,2, projection = mapcrs)
 
     # ----------------------------------------------------
     # Use the single-swath plotting function to plot each
@@ -5768,6 +5805,10 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
         #circle_bound = False, gridlines = False)
         vmin = vmin, vmax = vmax, 
         circle_bound = circle_bound, gridlines = False)
+    #plotOMI_single_swath(ax2, OMI_base, pvar = 'SZA', \
+    #    title = "SZA", \
+    #    vmin = 50, vmax = 75, 
+    #    circle_bound = circle_bound, gridlines = False)
 
     #ax0.set_extent([-180., , -40., 0.], datacrs)
     #ax0.set_extent([-180,180,-90,90], datacrs)
@@ -5781,6 +5822,7 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
                         datacrs)
     else:
         ax.set_extent([-180,180,minlat,90], datacrs)
+    #    ax2.set_extent([-180,180,minlat,90], datacrs)
 
     plt.suptitle(date_str)
 

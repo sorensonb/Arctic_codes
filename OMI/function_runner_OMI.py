@@ -10,6 +10,11 @@ import OMILib
 from OMILib import *
 import sys
 
+#date_str = '20180721'
+#good_list = download_identify_OMI_swaths(date_str, minlat = 70., min_AI = 2.0, \
+#    remove_bad = False, skiprows = [52], omi_dtype = 'ltc3', screen_SZA = True)
+
+
 date_strs = [\
     #'201206141245',
     #'201206141424',
@@ -18,14 +23,36 @@ date_strs = [\
     #'201206150832',
     #'201206151010',
     #'201206151149',
-    '201206151328',
+#    '201206151328',
     #'201206151507',
     #'201206151646',
+    '201807210047',
+    '201807210226',
+    '201807211358',
+    '201807211537',
+    '201807211716',
+    '201807211855',
+    '201807212034',
+    '201807212213',
+
+    #'202108010117',
+    #'202108010256',
+    #'202108010435',
+    #'202108010614',
+    #'202108010931',  # BAD
+    #'202108011110',  # BAD
+    #'202108011428',
+    #'202108011607',
+    #'202108011925',
+    #'202108012103',
+    #'202108012242',
+
+
     ]
 
 for date_str in date_strs:
-    plotOMI_single_swath_figure(date_str, dtype = 'control',  \
-            only_sea_ice = False, minlat = 50., skiprows = [52], \
+    plotOMI_single_swath_figure(date_str, dtype = 'ltc3',  \
+            only_sea_ice = False, minlat = 70., skiprows = [52], \
             lat_circles = None, save = False, zoom = False, \
             circle_bound = True, ax = None, \
             shawn_path = '/home/bsorenson/data/OMI/shawn_files/')

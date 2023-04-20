@@ -8,6 +8,7 @@ make -f Make_omi_colocate
 REDO_ALL=false
 EXTRACT=true
 REPROCESS=false
+INCLUDE_NEW=false   # Turns on the pfile check
 
 #base_dir=$(pwd)
 #echo $base_dir
@@ -30,9 +31,10 @@ if $EXTRACT; then
       tester="${filelist[$i]##*_}"
       file_time="${tester%.tar*}"
       just_date=$(echo $file_time | head -c 8)
-      check_file=${data_dir}${just_date}/${file_time}/omi_pfile_${file_time}.hdf5
+      #check_file1=${data_dir}${just_date}/${file_time}/omi_pfile_${file_time}.hdf5
+      check_file2=${data_dir}${just_date}/${file_time}/omi_shawn_${file_time}.hdf5
       #check_file=${data_dir}${just_date}/${file_time}/omi_shawn_${file_time}.hdf5
-      if !(test -f "$check_file") ; then
+      if !(test -f "$check_file2") ; then
         echo "Extracting ${filelist[$i]}"
         tar -xvzf ${filelist[$i]}
       fi

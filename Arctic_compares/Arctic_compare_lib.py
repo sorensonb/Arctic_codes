@@ -19,6 +19,8 @@ sys.path.append(home_dir + '/Research/OMI')
 from OMILib import *
 sys.path.append(home_dir + '/Research/CERES')
 from gridCERESLib import *
+sys.path.append(home_dir + '/Research/TROPOMI')
+from TROPOMI_Lib import *
 sys.path.append(home_dir + '/Research/MODIS/obs_smoke_forcing')
 from MODISLib import *
 sys.path.append(home_dir + '/Research/NSIDC')
@@ -180,10 +182,17 @@ def automate_all_preprocess(date_str, download = True, images = True, \
             # Plot the first-look 6-panel comparison plot
             # -------------------------------------------
             #modis_date_str = file_date_dict[dstr]['MODIS'][0]
+            if(dt_date_str.year > 2020):
+                omi_dtype2 = 'control'
             plot_compare_OMI_CERES_MODIS_NSIDC(dstr, 7, \
                 omi_dtype = omi_dtype2, minlat = 65., zoom = True, save = True)
 
         if(process):
+
+            if(include_tropomi & (dt_date_str.year > 2017)):                    
+                generate_TROPOMI_prep_data(dstr, copy_to_raindrop = \
+                    copy_to_raindrop)
+
             # Make a data storage directory, if one does not already exist
             # ------------------------------------------------------------
             save_dir = dt_date_str.strftime(data_dir + '%Y%m%d/')
@@ -240,8 +249,35 @@ def automate_all_preprocess(date_str, download = True, images = True, \
                 print(cmnd)
                 os.system(cmnd)
 
+def single_wrap_function(date_str, minlat, min_AI, out_time_dict, download, \
+        images, process, include_tropomi, new_only, copy_to_raindrop):
+
+    print(date_str)
+
+    good_list = download_identify_OMI_swaths(date_str, \
+        minlat = minlat, min_AI = min_AI, remove_bad = True)
+
+    #final_good_list = final_good_list + good_list
+
+    for ttime in good_list:
+        if(new_only and (ttime not in out_time_dict.keys())):
+        #if(ttime not in out_time_dict.keys()):
+            print("NEW TIME: " + ttime + " not in json database. Run preprocessor")
+            automate_all_preprocess(ttime, download = download, \
+                images = images, process = process, \
+                omi_dtype = 'ltc3', include_tropomi = include_tropomi,\
+                copy_to_raindrop = copy_to_raindrop)
+
+        else:
+            print(ttime + " in json database. Reprocessing")
+            automate_all_preprocess(ttime, download = download, \
+                images = images, process = process, \
+                omi_dtype = 'ltc3', include_tropomi = include_tropomi, \
+                copy_to_raindrop = copy_to_raindrop)
+
 def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
-        download = True, images = False, process = False, run_list = None):
+        download = True, images = False, process = False, run_list = None, \
+        include_tropomi = True, copy_to_raindrop = True):
 
     if(home_dir + '/Research/OMI/' not in sys.path):
         sys.path.append(home_dir + '/Research/OMI/')
@@ -252,56 +288,69 @@ def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
     with open(json_time_database,'r') as fin:
         out_time_dict = json.load(fin)
 
-    # Open the omi event list
-    # -----------------------
-    omi_event_file = home_dir + '/Research/OMI/omi_area_event_dates_minlat70.txt'
-    fin = open(omi_event_file, 'r')
-    flines = fin.readlines()
-    fin.close()
-
     # Prep the run list variables
     # ---------------------------
-    no_run_list = False
-    if(run_list is None):
-        no_run_list = True
+    no_run_list = True
+    if(run_list is not None):
+        no_run_list = False
 
-    final_good_list = []
-    for fline in flines[:]:
-        date_str = fline.strip().split()[0]
-        ai_val   = fline.strip().split()[1]
+        for date_str in run_list:
 
-        if(no_run_list):
-            run_list = [date_str]
+            single_wrap_function(date_str, minlat, min_AI, out_time_dict, \
+                download, images, process, include_tropomi, new_only, \
+                copy_to_raindrop)
 
-        if((no_run_list) | \
-           ((not no_run_list) & (date_str in run_list))):
+    else:
+    
+        # Open the omi event list
+        # -----------------------
+        omi_event_file = home_dir + '/Research/OMI/omi_area_event_dates_minlat70.txt'
+        fin = open(omi_event_file, 'r')
+        flines = fin.readlines()
+        fin.close()
+
+        final_good_list = []
+        for fline in flines[:]:
+            date_str = fline.strip().split()[0]
+            ai_val   = fline.strip().split()[1]
+
+            if(no_run_list):
+                run_list = [date_str]
+
+            if((no_run_list) | \
+               ((not no_run_list) & (date_str in run_list))):
+
+                print(date_str, ai_val)
+
+                single_wrap_function(date_str, minlat, min_AI, out_time_dict, \
+                    download, images, process, include_tropomi, new_only,\
+                    copy_to_raindrop)
+                
 
         #if((date_str == '20140812') | \
         #   (date_str == '20140814') | \
         #   (date_str == '20140816')):
 
-            print(date_str, ai_val)
+        ##!#    print(date_str, ai_val)
 
-            good_list = download_identify_OMI_swaths(date_str, \
-                minlat = minlat, remove_bad = True)
+        ##!#    good_list = download_identify_OMI_swaths(date_str, \
+        ##!#        minlat = minlat, remove_bad = True)
 
-            final_good_list = final_good_list + good_list
+        ##!#    final_good_list = final_good_list + good_list
 
-            for ttime in good_list:
-                if(new_only and (ttime not in out_time_dict.keys())):
-                #if(ttime not in out_time_dict.keys()):
-                    print("NEW TIME: " + ttime + " not in json database. Run preprocessor")
-                    automate_all_preprocess(ttime, download = download, \
-                        images = images, process = process, omi_dtype = 'ltc3')
+        ##!#    for ttime in good_list:
+        ##!#        if(new_only and (ttime not in out_time_dict.keys())):
+        ##!#        #if(ttime not in out_time_dict.keys()):
+        ##!#            print("NEW TIME: " + ttime + " not in json database. Run preprocessor")
+        ##!#            automate_all_preprocess(ttime, download = download, \
+        ##!#                images = images, process = process, \
+        ##!#                omi_dtype = 'ltc3', include_tropomi = include_tropomi)
 
-                    # If doing TROPOMI stuff too, run some here?
-
-                else:
-                    print(ttime + " in json database. Reprocessing")
-                    automate_all_preprocess(ttime, download = download, \
-                        images = images, process = process, omi_dtype = 'ltc3')
-
-                    # If doing TROPOMI stuff too, run some here?
+        ##!#        else:
+        ##!#            print(ttime + " in json database. Reprocessing")
+        ##!#            automate_all_preprocess(ttime, download = download, \
+        ##!#                images = images, process = process, \
+        ##!#                omi_dtype = 'ltc3', include_tropomi = include_tropomi)
 
     #return final_good_list
 
@@ -622,7 +671,11 @@ def read_colocated(date_str, zoom = True):
 
     coloc_data = {}
     coloc_data['date_str'] = date_str
-    coloc_data['OMI'] = np.ma.masked_invalid(data['omi_uvai_pert'][:,:])
+    coloc_data['OMI_PERT'] = np.ma.masked_invalid(data['omi_uvai_pert'][:,:])
+    coloc_data['OMI_RAW']  = np.ma.masked_invalid(data['omi_uvai_raw'][:,:])
+    coloc_data['OMI_RAW'][:,23:53] = -9e9
+    coloc_data['OMI_RAW'] = np.ma.masked_where(coloc_data['OMI_RAW'] < -15, \
+        coloc_data['OMI_RAW'])
     if('trop_uvai' in data.keys()):
         coloc_data['TROP_AI'] = np.ma.masked_invalid(data['trop_uvai'][:,:])
         coloc_data['TROP_AI'] = np.ma.masked_where(\
@@ -802,6 +855,8 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(date_str, ch1, \
         omi_dtype = 'shawn'
         shawn_path = home_dir + '/data/OMI/shawn_files/ltc3/'
         print('In plotter, looking for ltc3')
+    else:
+        shawn_path = home_dir + '/data/OMI/shawn_files/ltc3/'
 
     # Load in the JSON file string relations
     # --------------------------------------
@@ -1487,9 +1542,9 @@ def plot_compare_combined_category(coloc_data, var1 = 'OMI', \
 
     # Plot the OMI coloc_data
     # -----------------
-    plot_spatial(ax4, coloc_data['LON'], coloc_data['LAT'], coloc_data['TROP_AI'], \
+    plot_spatial(ax4, coloc_data['LON'], coloc_data['LAT'], coloc_data[var1], \
         pdate, cmap = 'jet', zoom = zoom)
-    ax4.set_title('OMI AI Perturb')
+    ax4.set_title(var1)
     
     # Plot the CERES coloc_data
     # -------------------

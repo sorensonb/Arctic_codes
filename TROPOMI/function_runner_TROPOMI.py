@@ -37,6 +37,7 @@ date_strs = [
     '202108012044', \
     '202108012225', \
 ]
+
 for date_str in date_strs:
     plot_compare_OMI_TROPOMI(date_str, minlat = 65., slope = 'linear', \
         vmin = -2, vmax = 7, save = True)
