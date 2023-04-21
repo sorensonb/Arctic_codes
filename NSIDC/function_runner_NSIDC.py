@@ -13,6 +13,18 @@ import sys
 # Set up the overall figure
 # ----------------------------------------------------
 
+begin_date = datetime(2005,4,1)
+end_date   = datetime(2020,9,1)
+
+local_date = begin_date
+while(local_date <= end_date):
+    print(local_date)
+    local_date = local_date + relativedelta(months = 1)
+
+    download_NSIDC_monthly(local_date.strftime('%Y%m'))
+
+sys.exit()
+
 date_str = '20080426'
 download_NSIDC_daily(date_str, save_dir = '/home/bsorenson/data/NSIDC/')
 sys.exit()

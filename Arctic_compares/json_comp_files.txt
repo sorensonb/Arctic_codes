@@ -16704,6 +16704,311 @@
         ]
     },
     "2019-08-10": {
+        "0220": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081000-2019081023.nc",
+            "ceres_time": "02",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019222.0220.061.2019222153616.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0810t0129-o80149_v003-2019m0813t031226.he5",
+            "swath": [
+                "201908100220",
+                "201908100225",
+                "201908100230",
+                "201908100235"
+            ]
+        },
+        "0225": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081000-2019081023.nc",
+            "ceres_time": "02",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019222.0225.061.2019222153620.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0810t0129-o80149_v003-2019m0813t031226.he5",
+            "swath": [
+                "201908100220",
+                "201908100225",
+                "201908100230",
+                "201908100235"
+            ]
+        },
+        "0230": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081000-2019081023.nc",
+            "ceres_time": "02",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019222.0230.061.2019222153608.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0810t0129-o80149_v003-2019m0813t031226.he5",
+            "swath": [
+                "201908100220",
+                "201908100225",
+                "201908100230",
+                "201908100235"
+            ]
+        },
+        "0235": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081000-2019081023.nc",
+            "ceres_time": "02",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019222.0235.061.2019222152756.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0810t0129-o80149_v003-2019m0813t031226.he5",
+            "swath": [
+                "201908100220",
+                "201908100225",
+                "201908100230",
+                "201908100235"
+            ]
+        },
+        "0400": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081000-2019081023.nc",
+            "ceres_time": "04",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019222.0400.061.2019222153518.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0810t0308-o80150_v003-2019m0813t045305.he5",
+            "swath": [
+                "201908100400",
+                "201908100405",
+                "201908100410",
+                "201908100415"
+            ]
+        },
+        "0405": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081000-2019081023.nc",
+            "ceres_time": "04",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019222.0405.061.2019222153628.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0810t0308-o80150_v003-2019m0813t045305.he5",
+            "swath": [
+                "201908100400",
+                "201908100405",
+                "201908100410",
+                "201908100415"
+            ]
+        },
+        "0410": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081000-2019081023.nc",
+            "ceres_time": "04",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019222.0410.061.2019222153551.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0810t0308-o80150_v003-2019m0813t045305.he5",
+            "swath": [
+                "201908100400",
+                "201908100405",
+                "201908100410",
+                "201908100415"
+            ]
+        },
+        "0415": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081000-2019081023.nc",
+            "ceres_time": "04",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019222.0415.061.2019222152604.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0810t0308-o80150_v003-2019m0813t045305.he5",
+            "swath": [
+                "201908100400",
+                "201908100405",
+                "201908100410",
+                "201908100415"
+            ]
+        },
+        "2030": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081000-2019081023.nc",
+            "ceres_time": "20",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019222.2030.061.2019223151547.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0810t1936-o80160_v003-2019m0813t150144.he5",
+            "swath": [
+                "201908102030",
+                "201908102035",
+                "201908102040"
+            ]
+        },
+        "2035": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081000-2019081023.nc",
+            "ceres_time": "20",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019222.2035.061.2019223151625.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0810t1936-o80160_v003-2019m0813t150144.he5",
+            "swath": [
+                "201908102030",
+                "201908102035",
+                "201908102040"
+            ]
+        },
+        "2040": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081000-2019081023.nc",
+            "ceres_time": "20",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019222.2040.061.2019223151545.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0810t1936-o80160_v003-2019m0813t150144.he5",
+            "swath": [
+                "201908102030",
+                "201908102035",
+                "201908102040"
+            ]
+        },
         "2205": {
             "Lat": [
                 60.0,
@@ -17019,6 +17324,87 @@
                 "201908110140"
             ]
         },
+        "0305": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc",
+            "ceres_time": "03",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019223.0305.061.2019223152906.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t0212-o80164_v003-2019m0812t234246.he5",
+            "swath": [
+                "201908110305",
+                "201908110310",
+                "201908110315"
+            ]
+        },
+        "0310": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc",
+            "ceres_time": "03",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019223.0310.061.2019223152911.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t0212-o80164_v003-2019m0812t234246.he5",
+            "swath": [
+                "201908110305",
+                "201908110310",
+                "201908110315"
+            ]
+        },
+        "0315": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc",
+            "ceres_time": "03",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019223.0315.061.2019223152855.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t0212-o80164_v003-2019m0812t234246.he5",
+            "swath": [
+                "201908110305",
+                "201908110310",
+                "201908110315"
+            ]
+        },
         "0445": {
             "Lat": [
                 60.0,
@@ -17098,6 +17484,649 @@
                 "201908110445",
                 "201908110450",
                 "201908110455"
+            ]
+        },
+        "0800": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc",
+            "ceres_time": "08",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019223.0800.061.2019223191949.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t0708-o80167_v003-2019m0812t234314.he5",
+            "swath": [
+                "201908110800",
+                "201908110805",
+                "201908110810",
+                "201908110815"
+            ]
+        },
+        "0805": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc",
+            "ceres_time": "08",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019223.0805.061.2019223191901.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t0708-o80167_v003-2019m0812t234314.he5",
+            "swath": [
+                "201908110800",
+                "201908110805",
+                "201908110810",
+                "201908110815"
+            ]
+        },
+        "0810": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc",
+            "ceres_time": "08",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019223.0810.061.2019223191527.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t0708-o80167_v003-2019m0812t234314.he5",
+            "swath": [
+                "201908110800",
+                "201908110805",
+                "201908110810",
+                "201908110815"
+            ]
+        },
+        "0815": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc",
+            "ceres_time": "08",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019223.0815.061.2019223191703.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t0708-o80167_v003-2019m0812t234314.he5",
+            "swath": [
+                "201908110800",
+                "201908110805",
+                "201908110810",
+                "201908110815"
+            ]
+        },
+        "1615": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc",
+            "ceres_time": "16",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019223.1615.061.2019224152043.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t1523-o80172_v003-2019m0812t234301.he5",
+            "swath": [
+                "201908111615",
+                "201908111620",
+                "201908111625",
+                "201908111630"
+            ]
+        },
+        "1620": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc",
+            "ceres_time": "16",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019223.1620.061.2019224152047.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t1523-o80172_v003-2019m0812t234301.he5",
+            "swath": [
+                "201908111615",
+                "201908111620",
+                "201908111625",
+                "201908111630"
+            ]
+        },
+        "1625": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc",
+            "ceres_time": "16",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019223.1625.061.2019224152105.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t1523-o80172_v003-2019m0812t234301.he5",
+            "swath": [
+                "201908111615",
+                "201908111620",
+                "201908111625",
+                "201908111630"
+            ]
+        },
+        "1630": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc",
+            "ceres_time": "16",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019223.1630.061.2019224151902.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t1523-o80172_v003-2019m0812t234301.he5",
+            "swath": [
+                "201908111615",
+                "201908111620",
+                "201908111625",
+                "201908111630"
+            ]
+        },
+        "1800": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc",
+            "ceres_time": "18",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019223.1800.061.2019224151827.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t1702-o80173_v003-2019m0812t234344.he5",
+            "swath": [
+                "201908111800",
+                "201908111805"
+            ]
+        },
+        "1805": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc",
+            "ceres_time": "18",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019223.1805.061.2019224151946.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t1702-o80173_v003-2019m0812t234344.he5",
+            "swath": [
+                "201908111800",
+                "201908111805"
+            ]
+        },
+        "1935": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc",
+            "ceres_time": "19",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019223.1935.061.2019224151920.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t1841-o80174_v003-2019m0812t234247.he5",
+            "swath": [
+                "201908111935",
+                "201908111940",
+                "201908111945"
+            ]
+        },
+        "1940": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc",
+            "ceres_time": "19",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019223.1940.061.2019224151825.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t1841-o80174_v003-2019m0812t234247.he5",
+            "swath": [
+                "201908111935",
+                "201908111940",
+                "201908111945"
+            ]
+        },
+        "1945": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc",
+            "ceres_time": "19",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019223.1945.061.2019224151842.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t1841-o80174_v003-2019m0812t234247.he5",
+            "swath": [
+                "201908111935",
+                "201908111940",
+                "201908111945"
+            ]
+        },
+        "2110": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc",
+            "ceres_time": "21",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019223.2110.061.2019224152009.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t2019-o80175_v003-2019m0812t234145.he5",
+            "swath": [
+                "201908112110",
+                "201908112115",
+                "201908112120",
+                "201908112125"
+            ]
+        },
+        "2115": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc",
+            "ceres_time": "21",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019223.2115.061.2019224152233.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t2019-o80175_v003-2019m0812t234145.he5",
+            "swath": [
+                "201908112110",
+                "201908112115",
+                "201908112120",
+                "201908112125"
+            ]
+        },
+        "2120": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc",
+            "ceres_time": "21",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019223.2120.061.2019224152339.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t2019-o80175_v003-2019m0812t234145.he5",
+            "swath": [
+                "201908112110",
+                "201908112115",
+                "201908112120",
+                "201908112125"
+            ]
+        },
+        "2125": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc",
+            "ceres_time": "21",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019223.2125.061.2019224152200.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t2019-o80175_v003-2019m0812t234145.he5",
+            "swath": [
+                "201908112110",
+                "201908112115",
+                "201908112120",
+                "201908112125"
+            ]
+        },
+        "2300": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc",
+            "ceres_time": "23",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019223.2300.061.2019224152635.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t2158-o80176_v003-2019m0812t234140.he5",
+            "swath": [
+                "201908112300",
+                "201908112305"
+            ]
+        },
+        "2305": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081100-2019081123.nc",
+            "ceres_time": "23",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019223.2305.061.2019224152532.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t2158-o80176_v003-2019m0812t234140.he5",
+            "swath": [
+                "201908112300",
+                "201908112305"
+            ]
+        },
+        "Lat": [
+            60.0,
+            90.0
+        ],
+        "Lon": [
+            -180.0,
+            180.0
+        ]
+    },
+    "2019-08-12": {
+        "0030": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081200-2019081223.nc",
+            "ceres_time": "00",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019224.0030.061.2019224153915.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t2337-o80177_v003-2019m0812t234340.he5",
+            "swath": [
+                "201908120030",
+                "201908120035",
+                "201908120040",
+                "201908120045"
+            ]
+        },
+        "0035": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081200-2019081223.nc",
+            "ceres_time": "00",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019224.0035.061.2019224153900.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t2337-o80177_v003-2019m0812t234340.he5",
+            "swath": [
+                "201908120030",
+                "201908120035",
+                "201908120040",
+                "201908120045"
+            ]
+        },
+        "0040": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081200-2019081223.nc",
+            "ceres_time": "00",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019224.0040.061.2019224153841.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t2337-o80177_v003-2019m0812t234340.he5",
+            "swath": [
+                "201908120030",
+                "201908120035",
+                "201908120040",
+                "201908120045"
+            ]
+        },
+        "0045": {
+            "Lat": [
+                60.0,
+                90.0
+            ],
+            "Lon": [
+                -180.0,
+                180.0
+            ],
+            "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2019081200-2019081223.nc",
+            "ceres_time": "00",
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD021KM.A2019224.0045.061.2019224152309.hdf",
+            "modis_Lat": [
+                60.0,
+                90.0
+            ],
+            "modis_Lon": [
+                -180.0,
+                180.0
+            ],
+            "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2019m0811t2337-o80177_v003-2019m0812t234340.he5",
+            "swath": [
+                "201908120030",
+                "201908120035",
+                "201908120040",
+                "201908120045"
             ]
         },
         "Lat": [

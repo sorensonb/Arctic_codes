@@ -644,7 +644,8 @@ def auto_all_download(date_str, download = True, rewrite_json = False, \
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-def read_colocated(date_str, zoom = True):
+def read_colocated(date_str, minlat = 70., zoom = True, \
+        compare_tropomi = False):
    
     filename =  data_dir + 'colocated_subset_' + date_str + '.hdf5'
     #filename =  data_dir + date_str[:8] + '/colocated_subset_' + date_str + '.hdf5'
@@ -671,52 +672,81 @@ def read_colocated(date_str, zoom = True):
 
     coloc_data = {}
     coloc_data['date_str'] = date_str
+    coloc_data['LAT'] = data['omi_lat'][:,:]
+    coloc_data['LON'] = data['omi_lon'][:,:]
     coloc_data['OMI_PERT'] = np.ma.masked_invalid(data['omi_uvai_pert'][:,:])
+    coloc_data['OMI_PERT'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
+        coloc_data['OMI_PERT'])
     coloc_data['OMI_RAW']  = np.ma.masked_invalid(data['omi_uvai_raw'][:,:])
-    coloc_data['OMI_RAW'][:,23:53] = -9e9
+    #coloc_data['OMI_RAW'][:,23:53] = -9e9
     coloc_data['OMI_RAW'] = np.ma.masked_where(coloc_data['OMI_RAW'] < -15, \
+        coloc_data['OMI_RAW'])
+    coloc_data['OMI_RAW'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
         coloc_data['OMI_RAW'])
     if('trop_uvai' in data.keys()):
         coloc_data['TROP_AI'] = np.ma.masked_invalid(data['trop_uvai'][:,:])
+        coloc_data['TROP_AI'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
+            coloc_data['TROP_AI'])
+        if(compare_tropomi):
+            coloc_data['TROP_AI'] = np.ma.masked_where(\
+                coloc_data['OMI_RAW'].mask, coloc_data['TROP_AI'])
         coloc_data['TROP_AI'] = np.ma.masked_where(\
-            coloc_data['TROP_AI'] == -999., coloc_data['TROP_AI'])
+            coloc_data['TROP_AI'] < -900., coloc_data['TROP_AI'])
     if('trop_ssa0' in data.keys()):
         coloc_data['TROP_SSA0'] = np.ma.masked_invalid(data['trop_ssa0'][:,:])
+        coloc_data['TROP_SSA0'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
+            coloc_data['TROP_SSA0'])
         coloc_data['TROP_SSA0'] = np.ma.masked_where(\
             coloc_data['TROP_SSA0'] == -999., coloc_data['TROP_SSA0'])
     if('trop_ssa1' in data.keys()):
         coloc_data['TROP_SSA1'] = np.ma.masked_invalid(data['trop_ssa1'][:,:])
+        coloc_data['TROP_SSA1'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
+            coloc_data['TROP_SSA1'])
         coloc_data['TROP_SSA1'] = np.ma.masked_where(\
             coloc_data['TROP_SSA1'] == -999., coloc_data['TROP_SSA1'])
     if('trop_ssa2' in data.keys()):
         coloc_data['TROP_SSA2'] = np.ma.masked_invalid(data['trop_ssa2'][:,:])
+        coloc_data['TROP_SSA2'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
+            coloc_data['TROP_SSA2'])
         coloc_data['TROP_SSA2'] = np.ma.masked_where(\
             coloc_data['TROP_SSA2'] == -999., coloc_data['TROP_SSA2'])
     coloc_data['MODIS_CH2'] = np.ma.masked_where((\
         data['modis_ch2'][:,:] == -999.) | (data['modis_ch2'][:,:] > 1.0), \
         data['modis_ch2'][:,:])
+    coloc_data['MODIS_CH2'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
+        coloc_data['MODIS_CH2'])
     coloc_data['MODIS_CH7'] = np.ma.masked_where((\
         data['modis_ch7'][:,:] == -999.) | (data['modis_ch7'][:,:] > 1.0), \
         data['modis_ch7'])
+    coloc_data['MODIS_CH7'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
+        coloc_data['MODIS_CH7'])
     coloc_data['NSIDC_ICE'] = np.ma.masked_where((\
         #data['nsidc_ice'][:,:] == -999.) | (data['nsidc_ice'][:,:] > 100.), \
         data['nsidc_ice'][:,:] == -999.) | (data['nsidc_ice'][:,:] > 100.) | \
         (data['nsidc_ice'][:,:] < 80.), \
         data['nsidc_ice'])
+    coloc_data['NSIDC_ICE'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
+        coloc_data['NSIDC_ICE'])
     coloc_data['NSIDC_OCEAN'] = np.ma.masked_where((\
         data['nsidc_ice'][:,:] == -999.) | (data['nsidc_ice'][:,:] > 0.), \
         data['nsidc_ice'])
+    coloc_data['NSIDC_OCEAN'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
+        coloc_data['NSIDC_OCEAN'])
     coloc_data['NSIDC_LAND'] = np.ma.masked_where((\
         data['nsidc_ice'][:,:] == -999.) |  (data['nsidc_ice'][:,:] != 254.), \
         data['nsidc_ice'])
+    coloc_data['NSIDC_LAND'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
+        coloc_data['NSIDC_LAND'])
     coloc_data['CERES_SWF'] = np.ma.masked_where((\
         data['ceres_swf'][:,:] == -999.) | (data['ceres_swf'][:,:] > 5000.), \
         data['ceres_swf'])
+    coloc_data['CERES_SWF'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
+        coloc_data['CERES_SWF'])
     coloc_data['CERES_LWF'] = np.ma.masked_where((\
         data['ceres_lwf'][:,:] == -999.) | (data['ceres_lwf'][:,:] > 5000.), \
         data['ceres_lwf'])
-    coloc_data['LAT'] = data['omi_lat'][:,:]
-    coloc_data['LON'] = data['omi_lon'][:,:]
+    coloc_data['CERES_LWF'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
+        coloc_data['CERES_LWF'])
     coloc_data['SZA'] = data['omi_sza'][:,:]
     #coloc_data['VZA'] = data['omi_vza'][:,:]
     #coloc_data['AZM'] = data['omi_azm'][:,:]
@@ -1005,8 +1035,11 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(date_str, ch1, \
         plt.show()
 
 def plot_spatial(ax, lon, lat, data, date_str, cmap = 'Greys_r', \
-        plabel = '', colorbar = True, zoom = False):
-   
+        plabel = '', colorbar = True, zoom = False, xmin = None):
+  
+    if(xmin is not None):
+        data = np.ma.masked_where(data < xmin, data) 
+     
     mesh = ax.pcolormesh(lon, lat, data, \
                    transform = datacrs, shading = 'auto', cmap = cmap)
     ax.coastlines()
@@ -1496,15 +1529,172 @@ def plot_compare_scatter_category(coloc_data, var1, var2, var3 = None, \
         else:
             plt.show()
 
+def plot_compare_AI_combined_category(coloc_data, var2 = 'CERES_SWF', \
+        cat = "ALL", minlat = 65., xmin = 1.0, xmax = None, ymin = None, \
+        ymax = None, ax = None, \
+        colorbar = True, trend = False, zoom = False, color = None, \
+        compare_tropomi = False, mask_spatial = False, save = False):
+
+    if(isinstance(coloc_data, str)):
+        dt_date_str = datetime.strptime(coloc_data, '%Y%m%d%H%M')
+        coloc_data = read_colocated(coloc_data, minlat = minlat, \
+            compare_tropomi = compare_tropomi)
+    else:
+        dt_date_str = datetime.strptime(coloc_data['date_str'], '%Y%m%d%H%M')
+
+    raw_min = xmin
+    pert_min = xmin
+    trop_min = xmin
+
+    # Make the overall figure
+    # -----------------------
+    plt.close('all')
+    fig1 = plt.figure(figsize = (12,12))
+    ax1  = fig1.add_subplot(4,3,1, projection = mapcrs)
+    ax2  = fig1.add_subplot(4,3,2, projection = mapcrs)
+    ax3  = fig1.add_subplot(4,3,3, projection = mapcrs)
+    ax4  = fig1.add_subplot(4,3,4)
+    ax5  = fig1.add_subplot(4,3,5)
+    ax6  = fig1.add_subplot(4,3,6)
+    ax7  = fig1.add_subplot(4,3,7)
+    ax8  = fig1.add_subplot(4,3,8)
+    ax9  = fig1.add_subplot(4,3,9)
+    ax10 = fig1.add_subplot(4,3,10)
+    ax11 = fig1.add_subplot(4,3,11)
+    ax12 = fig1.add_subplot(4,3,12)
+  
+    pdate = dt_date_str.strftime('%Y-%m-%d') 
+    # Plot the OMI coloc_data
+    # -----------------
+    raw_plot_min = None
+    pert_plot_min = None
+    trop_plot_min = None
+    if(mask_spatial):
+        raw_plot_min = raw_min 
+        pert_plot_min = raw_min 
+        trop_plot_min = raw_min 
+    plot_spatial(ax1, coloc_data['LON'], coloc_data['LAT'], coloc_data['OMI_RAW'], \
+        pdate, cmap = 'jet', zoom = zoom, xmin = raw_plot_min)
+    ax1.set_title('OMI_RAW')
+    plot_spatial(ax2, coloc_data['LON'], coloc_data['LAT'], coloc_data['OMI_PERT'], \
+        pdate, cmap = 'jet', zoom = zoom, xmin = pert_plot_min)
+    ax2.set_title('OMI_PERT')
+    plot_spatial(ax3, coloc_data['LON'], coloc_data['LAT'], coloc_data['TROP_AI'], \
+        pdate, cmap = 'jet', zoom = zoom, xmin = trop_plot_min)
+    ax3.set_title('TROP_AI')
+    
+    # Plot the scatter data
+    date_str = dt_date_str.strftime('%Y%m%d%H%M')
+
+    # Plot the OMI RAW comparison stuff
+    plot_compare_scatter_category(coloc_data, 'OMI_RAW', var2, var3 = None, \
+        cat = 'ICE_CLOUD', minlat = 65., xmin = raw_min, xmax = None, ymin = None, ymax = None, \
+        ax = ax4, colorbar = True, trend = trend, zoom = zoom, save = False,\
+        color = 'tab:blue')
+    plot_compare_scatter_category(coloc_data, 'OMI_RAW', var2, var3 = None, \
+        cat = 'ICE_CLEAR', minlat = 65., xmin = raw_min, xmax = None, ymin = None, ymax = None, \
+        ax = ax4, colorbar = True, trend = trend, zoom = zoom, save = False,\
+        color = 'tab:orange')
+    plot_compare_scatter_category(coloc_data, 'OMI_RAW', var2, var3 = None, \
+        cat = 'OCEAN_CLOUD', minlat = 65., xmin = raw_min, xmax = None, ymin = None, ymax = None, \
+        ax = ax5, colorbar = True, trend = trend, zoom = zoom, save = False, \
+        color = 'tab:blue')
+    plot_compare_scatter_category(coloc_data, 'OMI_RAW', var2, var3 = None, \
+        cat = 'OCEAN_CLEAR', minlat = 65., xmin = raw_min, xmax = None, ymin = None, ymax = None, \
+        ax = ax5, colorbar = True, trend = trend, zoom = zoom, save = False, \
+        color = 'tab:orange')
+    plot_compare_scatter_category(coloc_data, 'OMI_RAW', var2, var3 = None, \
+        cat = 'LAND_CLOUD', minlat = 65., xmin = raw_min, xmax = None, ymin = None, ymax = None, \
+        ax = ax6, colorbar = True, trend = trend, zoom = zoom, save = False, \
+        color = 'tab:blue')
+    plot_compare_scatter_category(coloc_data, 'OMI_RAW', var2, var3 = None, \
+        cat = 'LAND_CLEAR', minlat = 65., xmin = raw_min, xmax = None, ymin = None, ymax = None, \
+        ax = ax6, colorbar = True, trend = trend, zoom = zoom, save = False, \
+        color = 'tab:orange')
+
+    # Plot the OMI PERT comparison stuff
+    plot_compare_scatter_category(coloc_data, 'OMI_PERT', var2, var3 = None, \
+        cat = 'ICE_CLOUD', minlat = 65., xmin = pert_min, xmax = None, ymin = None, ymax = None, \
+        ax = ax7, colorbar = True, trend = trend, zoom = zoom, save = False,\
+        color = 'tab:blue')
+    plot_compare_scatter_category(coloc_data, 'OMI_PERT', var2, var3 = None, \
+        cat = 'ICE_CLEAR', minlat = 65., xmin = pert_min, xmax = None, ymin = None, ymax = None, \
+        ax = ax7, colorbar = True, trend = trend, zoom = zoom, save = False,\
+        color = 'tab:orange')
+    plot_compare_scatter_category(coloc_data, 'OMI_PERT', var2, var3 = None, \
+        cat = 'OCEAN_CLOUD', minlat = 65., xmin = pert_min, xmax = None, ymin = None, ymax = None, \
+        ax = ax8, colorbar = True, trend = trend, zoom = zoom, save = False, \
+        color = 'tab:blue')
+    plot_compare_scatter_category(coloc_data, 'OMI_PERT', var2, var3 = None, \
+        cat = 'OCEAN_CLEAR', minlat = 65., xmin = pert_min, xmax = None, ymin = None, ymax = None, \
+        ax = ax8, colorbar = True, trend = trend, zoom = zoom, save = False, \
+        color = 'tab:orange')
+    plot_compare_scatter_category(coloc_data, 'OMI_PERT', var2, var3 = None, \
+        cat = 'LAND_CLOUD', minlat = 65., xmin = pert_min, xmax = None, ymin = None, ymax = None, \
+        ax = ax9, colorbar = True, trend = trend, zoom = zoom, save = False, \
+        color = 'tab:blue')
+    plot_compare_scatter_category(coloc_data, 'OMI_PERT', var2, var3 = None, \
+        cat = 'LAND_CLEAR', minlat = 65., xmin = pert_min, xmax = None, ymin = None, ymax = None, \
+        ax = ax9, colorbar = True, trend = trend, zoom = zoom, save = False, \
+        color = 'tab:orange')
+
+    # Plot the OMI RAW comparison stuff
+    plot_compare_scatter_category(coloc_data, 'TROP_AI', var2, var3 = None, \
+        cat = 'ICE_CLOUD', minlat = 65., xmin = trop_min, xmax = None, ymin = None, ymax = None, \
+        ax = ax10, colorbar = True, trend = trend, zoom = zoom, save = False,\
+        color = 'tab:blue')
+    plot_compare_scatter_category(coloc_data, 'TROP_AI', var2, var3 = None, \
+        cat = 'ICE_CLEAR', minlat = 65., xmin = trop_min, xmax = None, ymin = None, ymax = None, \
+        ax = ax10, colorbar = True, trend = trend, zoom = zoom, save = False,\
+        color = 'tab:orange')
+    plot_compare_scatter_category(coloc_data, 'TROP_AI', var2, var3 = None, \
+        cat = 'OCEAN_CLOUD', minlat = 65., xmin = trop_min, xmax = None, ymin = None, ymax = None, \
+        ax = ax11, colorbar = True, trend = trend, zoom = zoom, save = False, \
+        color = 'tab:blue')
+    plot_compare_scatter_category(coloc_data, 'TROP_AI', var2, var3 = None, \
+        cat = 'OCEAN_CLEAR', minlat = 65., xmin = trop_min, xmax = None, ymin = None, ymax = None, \
+        ax = ax11, colorbar = True, trend = trend, zoom = zoom, save = False, \
+        color = 'tab:orange')
+    plot_compare_scatter_category(coloc_data, 'TROP_AI', var2, var3 = None, \
+        cat = 'LAND_CLOUD', minlat = 65., xmin = trop_min, xmax = None, ymin = None, ymax = None, \
+        ax = ax12, colorbar = True, trend = trend, zoom = zoom, save = False, \
+        color = 'tab:blue')
+    plot_compare_scatter_category(coloc_data, 'TROP_AI', var2, var3 = None, \
+        cat = 'LAND_CLEAR', minlat = 65., xmin = trop_min, xmax = None, ymin = None, ymax = None, \
+        ax = ax12, colorbar = True, trend = trend, zoom = zoom, save = False, \
+        color = 'tab:orange')
+
+
+    # Add legend to last box
+    # ----------------------
+    custom_lines = [Line2D([0], [0], color='tab:blue', linestyle = ':'),
+                    Line2D([0], [0], color='tab:orange', linestyle = ':')]
+
+    ax12.legend(custom_lines, ['Cloud', 'Clear'],\
+        fontsize = 10, loc = 1)
+
+    fig1.tight_layout()
+
+    if(save):
+        date_str = dt_date_str.strftime('%Y%m%d%H%M')
+        outname = 'arctic_compare_AI_combined_category_nomin_' + date_str + '.png'
+        fig1.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+
 def plot_compare_combined_category(coloc_data, var1 = 'OMI', \
         var2 = 'CERES_SWF', var3 = None, cat = "ALL", minlat = 65., \
         xmin = 1.0, xmax = None, ymin = None, ymax = None, ax = None, \
         colorbar = True, trend = False, zoom = False, color = None, \
+        compare_tropomi = False, \
         save = False):
 
     if(isinstance(coloc_data, str)):
         dt_date_str = datetime.strptime(coloc_data, '%Y%m%d%H%M')
-        coloc_data = read_colocated(coloc_data)
+        coloc_data = read_colocated(coloc_data, minlat = minlat, \
+            compare_tropomi = compare_tropomi)
     else:
         dt_date_str = datetime.strptime(coloc_data['date_str'], '%Y%m%d%H%M')
 

@@ -7,6 +7,16 @@
 
 from NAAPSLib import *
 
+NAAPS_data = readgridNAAPS_NCDF(infile=home_dir + \
+    '/Research/NAAPS/naaps_grid_smoke_conc_sfc_2005_2020.nc',\
+    start_date = 200504, end_date = 202009, calc_month = True, \
+    minlat = 70)
+
+plotNAAPS_ClimoTrend_all(NAAPS_data,\
+    trend_type = 'standard', minlat=70,save=True)
+
+sys.exit()
+
 #date_str = '20080422'
 date_str = '20120615'
 #date_str = '20140726'
@@ -271,6 +281,8 @@ NAAPS_data = readgridNAAPS_NCDF(infile=home_dir + \
 
 plotNAAPS_ClimoTrend_all(NAAPS_data,\
     trend_type = 'standard', minlat=65,save=True)
+
+sys.exit()
 
 #plotNAAPS_MonthTrend(NAAPS_data,month_idx=4,save=False,\
 #    trend_type='standard',minlat=65.,return_trend=False, colorbar = True, \

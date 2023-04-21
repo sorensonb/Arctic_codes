@@ -32,6 +32,7 @@ import matplotlib.path as mpath
 from matplotlib.colors import rgb2hex,Normalize
 from matplotlib import cm
 from matplotlib.cm import ScalarMappable
+import matplotlib.gridspec as gridspec
 from matplotlib.colorbar import ColorbarBase
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -1978,7 +1979,9 @@ def calcCERES_grid_trend(CERES_data, month_idx, trend_type, minlat):
     #local_mask = np.ma.masked_where(local_counts == 0, local_data)
     local_mask = np.ma.masked_where(((local_data == -999.) | \
         (CERES_data['lat'] < minlat)), local_data)
-    ceres_trends = np.zeros(local_data.shape[1:])
+    ceres_trends = np.full(local_data.shape[1:], np.nan)
+    ceres_pvals  = np.full(local_data.shape[1:], np.nan)
+    ceres_uncert = np.full(local_data.shape[1:], np.nan)
 
     # Loop over all the keys and print the regression slopes 
     # Grab the averages for the key
@@ -1989,28 +1992,36 @@ def calcCERES_grid_trend(CERES_data, month_idx, trend_type, minlat):
             work_mask = local_mask[:,i,j]
             #work_mask = local_mask[:,i,j][~local_mask[:,i,j].mask][0]
             if(len(work_mask.compressed()) > 1):
-                x_vals = np.arange(0,len(work_mask))
+                x_vals = np.arange(0,len(work_mask.compressed()))
                 # Find the slope of the line of best fit for the time series of
                 # average data
                 if(trend_type=='standard'): 
-                    slope, intercept, r_value, p_value, std_err = \
-                        stats.linregress(x_vals,work_mask)
-                    ceres_trends[i,j] = slope * len(x_vals)
+                    result = stats.linregress(x_vals, work_mask.compressed())
+                    #slope, intercept, r_value, p_value, std_err = \
+                    #    stats.linregress(x_vals,work_mask.compressed())
+                    ceres_trends[i,j] = result.slope * len(x_vals)
+                    ceres_pvals[i,j]  = result.pvalue
+                    ceres_uncert[i,j] = result.stderr * len(x_vals)
                 else:
-                    res = stats.theilslopes(work_mask, x_vals, 0.90)
+                    res = stats.theilslopes(work_mask.compressed(), x_vals, 0.90)
                     ceres_trends[i,j] = res[0]*len(x_vals)
             else:
                 print('no data')
 
-    ceres_trends = np.ma.masked_where(((CERES_data['lat'] < minlat) | \
-        (ceres_trends == -999.)), ceres_trends)
+    #ceres_trends = np.ma.masked_where(((CERES_data['lat'] < minlat) | \
+    #    (ceres_trends == -999.)), ceres_trends)
+    ceres_trends = np.ma.masked_where(CERES_data['lat'] < minlat, ceres_trends)
+    ceres_pvals  = np.ma.masked_where(CERES_data['lat'] < minlat, ceres_pvals)
+    ceres_uncert = np.ma.masked_where(CERES_data['lat'] < minlat, ceres_uncert)
 
-    return ceres_trends
+    return ceres_trends, ceres_pvals, ceres_uncert
 
 # title is the plot title
 # ptype is 'climo', 'trend'
 def plotCERES_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
-        vmin = None, vmax = None, colorbar_label_size = 16, minlat = 65.):
+        vmin = None, vmax = None, colorbar_label_size = 16, minlat = 65., \
+        colorbar = True, \
+        pvals = None):
 
     if(vmin == None):
         vmin = np.nanmin(pdata)
@@ -2019,6 +2030,9 @@ def plotCERES_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
 
     if(ptype == 'trend'):
         colormap = plt.cm.bwr
+    elif(ptype == 'uncert'):
+        #colormap = plt.cm.plasma
+        colormap = plt.cm.get_cmap('jet', 6)
     else:
         colormap = plt.cm.jet
 
@@ -2037,6 +2051,14 @@ def plotCERES_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
     mesh = pax.pcolormesh(plon, plat,\
             mask_AI.T,transform = datacrs,shading = 'auto',\
             cmap = colormap,vmin=vmin,vmax=vmax)
+    if(pvals is not None):
+        cyclic_pvals, cyclic_lons = add_cyclic_point(pvals, plon[0,:])
+        print(pvals.shape, plat.shape, plat2.shape)
+        mask_pvals = np.ma.masked_where((plat < minlat) | \
+            (pvals > 0.05), pvals)
+        pax.pcolor(plon, plat, mask_pvals, hatch = '...', alpha = 0.0, \
+            shading = 'auto', transform = datacrs)
+
     pax.set_extent([-180,180,minlat,90],datacrs)
     pax.set_boundary(circle, transform=pax.transAxes)
     #cbar = plt.colorbar(mesh,ticks = np.arange(-200.,400.,5.),\
@@ -2077,8 +2099,14 @@ def plotCERES_Daily(CERES_data,day_idx,minlat = 60,save=False):
     ax.set_extent([-180,180,minlat,90],datacrs)
     ax.set_xlim(-3430748.535086173,3430748.438879491)
     ax.set_ylim(-3413488.8763307533,3443353.899053069)
-    cbar = plt.colorbar(mesh,ticks = np.arange(0.0,400.,25.),orientation='horizontal',pad=0,\
-        aspect=50,shrink = 0.905,label=CERES_data['parm_name'])
+    if(colorbar):
+        cbar = plt.colorbar(mesh,ticks = np.arange(0.0,400.,25.),orientation='horizontal',pad=0,\
+            aspect=50,shrink = 0.905,label=CERES_data['parm_name'])
+        #cbar = plt.colorbar(mesh,\
+        #    ax = pax, orientation='vertical',shrink = 0.8, extend = 'both')
+        ##cbar10.set_label('UV Aerosol Index',weight='bold',fontsize=colorbar_label_size)
+        ##cbar.ax.tick_params(labelsize=14)
+        #cbar.set_label(plabel,fontsize=colorbar_label_size,weight='bold')
     ax.set_title(title)
 
     if(save == True):   
@@ -2127,7 +2155,8 @@ def plotCERES_Month(CERES_data, month_idx, pax = None, minlat = 65, \
             minlat = minlat)
 
 # Plot a monthly climatology 
-def plotCERES_MonthClimo(CERES_data,month_idx,minlat = 60):
+def plotCERES_MonthClimo(CERES_data,month_idx,minlat = 60, ax = None, \
+        colorbar = True, title = None):
 
     # Set up mapping variables 
     datacrs = ccrs.PlateCarree() 
@@ -2141,14 +2170,18 @@ def plotCERES_MonthClimo(CERES_data,month_idx,minlat = 60):
     str_month = month_obj.strftime('%B')
 
     # Make figure title
-    title = 'CERES ' + CERES_data['param'] + ' ' + str_month + \
-        ' Climatology\n'+str_month+'. ' + CERES_data['dates'][0][:4] \
-        + ' - '+str_month+'. ' + CERES_data['dates'][-1][:4]
+    if(title == None):
+        title = 'CERES ' + CERES_data['param'] + ' ' + str_month + \
+            ' Climatology\n'+str_month+'. ' + CERES_data['dates'][0][:4] \
+            + ' - '+str_month+'. ' + CERES_data['dates'][-1][:4]
 
     # Make figure
-    plt.close()
-    fig1 = plt.figure(figsize = (8,8))
-    ax = plt.axes(projection = mapcrs)
+    in_ax = True 
+    if(ax is None): 
+        in_ax = False
+        fig1 = plt.figure(figsize = (8,8))
+        ax = plt.axes(projection = mapcrs)
+
     ax.gridlines()
     ax.coastlines(resolution='50m')
     mesh = ax.pcolormesh(CERES_data['lon'], CERES_data['lat'],\
@@ -2159,16 +2192,30 @@ def plotCERES_MonthClimo(CERES_data,month_idx,minlat = 60):
     ax.set_boundary(circle, transform=ax.transAxes)
     #ax.set_xlim(-3430748.535086173,3430748.438879491)
     #ax.set_ylim(-3413488.8763307533,3443353.899053069)
-    cbar = plt.colorbar(mesh,ticks = np.arange(0.0,400.,25.),orientation='horizontal',pad=0,\
-        aspect=50,shrink = 0.845,label=CERES_data['parm_name'])
+    if(colorbar):
+        #cbar = plt.colorbar(mesh,ax = pax, orientation='horizontal',pad=0,\
+        cbar = plt.colorbar(mesh,ax = ax, orientation='vertical',\
+            pad = 0.04, fraction = 0.040)
+        cbar.set_label('W/m2', fontsize = 12, weight='bold')
+    #cbar = plt.colorbar(mesh,ticks = np.arange(0.0,400.,25.),orientation='horizontal',pad=0,\
+    #    aspect=50,shrink = 0.845,label=CERES_data['parm_name'])
     ax.set_title(title)
 
-    plt.show()
+    if(not in_ax):
+        fig1.tight_layout()
+        if(save):
+            outname = 'ceres_' + CERES_data['satellite'] + '_daily_' + pvar + '_' + \
+                date_str + '_FINISH.png'
+            fig1.savefig(outname, dpi=300)
+            print("Saved image",outname)
+        else:
+            plt.show()
 
 # Designed to work with the netCDF data
 def plotCERES_MonthTrend(CERES_data,month_idx=None,save=False,\
         trend_type='standard',season='',minlat=65.,return_trend=False, \
-        pax = None):
+        colorbar = True, colorbar_label_size = None,title = None, \
+        pax = None, show_pval = False, uncert_ax = None):
 
     trend_label=''
     if(trend_type=='thiel-sen'):
@@ -2199,9 +2246,18 @@ def plotCERES_MonthTrend(CERES_data,month_idx=None,save=False,\
     # Use calcCERES_grid_trend to calculate the trends in the AI data
     #
     # --------------------------------------------------------------
-    ceres_trends = calcCERES_grid_trend(CERES_data, month_idx, trend_type, \
+    ceres_trends, ceres_pvals, ceres_uncert = \
+        calcCERES_grid_trend(CERES_data, month_idx, trend_type, \
         minlat)
 
+    if(not show_pval):
+        ceres_pvals = None
+    else:
+        print('month_idx = ',month_idx,' PVAL nanmean = ', \
+            np.nanmean(ceres_pvals))
+
+    if(uncert_ax is None):
+        ceres_uncert = None
     # --------------------------------------------------------------
     #
     # Plot the calculated trends on a figure
@@ -2221,31 +2277,28 @@ def plotCERES_MonthTrend(CERES_data,month_idx=None,save=False,\
     if(do_month == True):
         month_string = start_date.strftime('%B') + ' '
 
-    title = 'CERES ' + CERES_data['param'] + ' ' + month_string + 'Trends'\
-        '\n'+start_date.strftime('%b. %Y') + ' - ' +\
-        end_date.strftime('%b. %Y')
+    if(title is None):
+        title = 'CERES ' + CERES_data['param'] + ' ' + month_string + 'Trends'\
+            '\n'+start_date.strftime('%b. %Y') + ' - ' +\
+            end_date.strftime('%b. %Y')
 
     # Call plotCERES_spatial to add the data to the figure
 
     ii = 15
     jj = 180
+    print(CERES_data['param'])
     print(CERES_data['lat'][ii,jj], CERES_data['lon'][ii,jj])
+    print(CERES_data['data'][month_idx::index_jumper,ii,jj])
 
     if(pax is None):
         plt.close('all')
-        fig1 = plt.figure(figsize = (10,4))
-        ax = fig1.add_subplot(1,2,1, projection = mapcrs)
-        ax2 = fig1.add_subplot(1,2,2)
+        fig1 = plt.figure(figsize = (6,6))
+        ax = fig1.add_subplot(1,1,1, projection = mapcrs)
 
         plotCERES_spatial(ax, CERES_data['lat'], CERES_data['lon'], \
             ceres_trends, 'trend', ptitle = title, plabel = 'W/m2 per study period', \
-            vmin = v_min, vmax = v_max, colorbar_label_size = 16, \
-            minlat = minlat)
-
-        ax2.plot(CERES_data['data'][month_idx::index_jumper,ii,jj])
-        ax2.set_title(str(CERES_data['lat'][ii,jj]) + ' ' + \
-            str(CERES_data['lon'][ii,jj]))
-        ax2.set_ylabel(CERES_data['parm_name'])
+            vmin = v_min, vmax = v_max, colorbar_label_size = colorbar_label_size, \
+            minlat = minlat, pvals = ceres_pvals)
 
         fig1.tight_layout()
 
@@ -2263,11 +2316,277 @@ def plotCERES_MonthTrend(CERES_data,month_idx=None,save=False,\
     else:
         plotCERES_spatial(pax, CERES_data['lat'], CERES_data['lon'], \
             ceres_trends, 'trend', ptitle = title, plabel = 'W/m2 per study period', \
-            vmin = v_min, vmax = v_max, colorbar_label_size = 16, \
+            vmin = v_min, vmax = v_max, colorbar_label_size = colorbar_label_size, \
             minlat = minlat)
+
+    if(uncert_ax is not None):
+        plotCERES_spatial(uncert_ax, CERES_data['lat'], CERES_data['lon'], \
+            ceres_uncert, 'uncert', ptitle = title, plabel = 'W/m2', \
+            colorbar = colorbar, colorbar_label_size = colorbar_label_size, \
+            vmin = 0, vmax = 20.0, minlat = minlat)
 
     if(return_trend == True):
         return ceres_trends
+
+def plotCERES_MonthTrend_AllClr(start_date, end_date, month_idx, \
+        minlat = 65., satellite = 'Aqua', save = False):
+
+    CERES_swall = readgridCERES(start_date,end_date,'toa_sw_all_mon',\
+        satellite = satellite,minlat=minlat,calc_month = True,season = 'sunlight')
+    CERES_lwall = readgridCERES(start_date,end_date,'toa_lw_all_mon',\
+        satellite = satellite,minlat=minlat,calc_month = True,season = 'sunlight')
+    CERES_swclr = readgridCERES(start_date,end_date,'toa_sw_clr_mon',\
+        satellite = satellite,minlat=minlat,calc_month = True,season = 'sunlight')
+    CERES_lwclr = readgridCERES(start_date,end_date,'toa_lw_clr_mon',\
+        satellite = satellite,minlat=minlat,calc_month = True,season = 'sunlight')
+    #CERES_all  = readgridCERES(start_date,end_date,'toa_sw_all_mon',\
+    #    satellite = 'Aqua',minlat=60.5,calc_month = True,season = 'sunlight')
+    
+    fig1 = plt.figure(figsize = (10,10))
+    ax1 = fig1.add_subplot(2,2,1, projection = mapcrs)
+    ax2 = fig1.add_subplot(2,2,2, projection = mapcrs)
+    ax3 = fig1.add_subplot(2,2,3, projection = mapcrs)
+    ax4 = fig1.add_subplot(2,2,4, projection = mapcrs)
+    
+    plotCERES_MonthTrend(CERES_swclr,month_idx=month_idx,save=False,\
+        trend_type='standard',season='sunlight',minlat=minlat,return_trend=False, \
+        pax = ax1)
+    plotCERES_MonthTrend(CERES_lwclr,month_idx=month_idx,save=False,\
+        trend_type='standard',season='sunlight',minlat=minlat,return_trend=False, \
+        pax = ax2)
+    plotCERES_MonthTrend(CERES_swall,month_idx=month_idx,save=False,\
+        trend_type='standard',season='sunlight',minlat=minlat,return_trend=False, \
+        pax = ax3)
+    plotCERES_MonthTrend(CERES_lwall,month_idx=month_idx,save=False,\
+        trend_type='standard',season='sunlight',minlat=minlat,return_trend=False, \
+        pax = ax4)
+    
+    fig1.tight_layout()
+
+    if(save):
+        outname = '_'.join(['ceres',satellite,'month'+str(month_idx),\
+            'AllClr']) + '.png'
+        fig1.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+
+    else:
+        plt.show()
+
+# Generate a 15-panel figure comparing the climatology and trend between 3
+# versions of the CERES data for all months
+def plotCERES_ClimoTrend_all(CERES_data,\
+        trend_type = 'standard', minlat=65.,save=False):
+
+    colormap = plt.cm.jet
+
+    lat_ranges = np.arange(minlat,90,1.0)
+    lon_ranges = np.arange(-180,180,1.0)
+
+    index_jumper = 6 
+
+    colorbar_label_size = 7
+    axis_title_size = 8
+    row_label_size = 10 
+    #colorbar_label_size = 13
+    #axis_title_size = 14.5
+    #row_label_size = 14.5
+
+    #fig = plt.figure()
+    plt.close('all')
+    fig = plt.figure(figsize=(9.2,13))
+    #plt.suptitle('NAAPS Comparisons: '+start_date.strftime("%B"),y=0.95,\
+    #    fontsize=18,fontweight=4,weight='bold')
+    gs = gridspec.GridSpec(nrows=6, ncols=3, hspace = 0.001, wspace = 0.15)
+
+    # - - - - - - - - - - - - - - - - - - - - -
+    # Plot the climatologies along the top row
+    # - - - - - - - - - - - - - - - - - - - - -
+       
+    # Plot DATA1 climos
+    # -----------------
+    ##!## Make copy of CERES_data array
+    local_data1_Apr  = np.copy(CERES_data['MONTH_CLIMO'][0,:,:])
+    local_data1_May  = np.copy(CERES_data['MONTH_CLIMO'][1,:,:])
+    local_data1_Jun  = np.copy(CERES_data['MONTH_CLIMO'][2,:,:])
+    local_data1_Jul  = np.copy(CERES_data['MONTH_CLIMO'][3,:,:])
+    local_data1_Aug  = np.copy(CERES_data['MONTH_CLIMO'][4,:,:])
+    local_data1_Sep  = np.copy(CERES_data['MONTH_CLIMO'][5,:,:])
+
+    mask_AI1_Apr = np.ma.masked_where(local_data1_Apr == -999.9, local_data1_Apr)
+    mask_AI1_May = np.ma.masked_where(local_data1_May == -999.9, local_data1_May)
+    mask_AI1_Jun = np.ma.masked_where(local_data1_Jun == -999.9, local_data1_Jun)
+    mask_AI1_Jul = np.ma.masked_where(local_data1_Jul == -999.9, local_data1_Jul)
+    mask_AI1_Aug = np.ma.masked_where(local_data1_Aug == -999.9, local_data1_Aug)
+    mask_AI1_Sep = np.ma.masked_where(local_data1_Sep == -999.9, local_data1_Sep)
+    ##!## Grid the data, fill in white space
+    ##!#cyclic_data,cyclic_lons = add_cyclic_point(local_data,CERES_data1['LON'][0,:])
+    ##!#plat,plon = np.meshgrid(CERES_data1['LAT'][:,0],cyclic_lons)   
+  
+    # Mask any missing values
+    #mask_AI = np.ma.masked_where(plat.T < minlat, mask_AI)
+    ax00 = plt.subplot(gs[0,0], projection=mapcrs)   # April climo original
+    ax01 = plt.subplot(gs[0,1], projection=mapcrs)   # April climo screened
+    ax02 = plt.subplot(gs[0,2], projection=mapcrs)   # April trend original
+    ax10 = plt.subplot(gs[1,0], projection=mapcrs)   # May climo original
+    ax11 = plt.subplot(gs[1,1], projection=mapcrs)   # May climo screened
+    ax12 = plt.subplot(gs[1,2], projection=mapcrs)   # May trend original
+    ax20 = plt.subplot(gs[2,0], projection=mapcrs)   # June climo original
+    ax21 = plt.subplot(gs[2,1], projection=mapcrs)   # June climo screened
+    ax22 = plt.subplot(gs[2,2], projection=mapcrs)   # June trend original
+    ax30 = plt.subplot(gs[3,0], projection=mapcrs)   # July climo original
+    ax31 = plt.subplot(gs[3,1], projection=mapcrs)   # July climo screened
+    ax32 = plt.subplot(gs[3,2], projection=mapcrs)   # July trend original
+    ax40 = plt.subplot(gs[4,0], projection=mapcrs)   # August climo original
+    ax41 = plt.subplot(gs[4,1], projection=mapcrs)   # August climo screened
+    ax42 = plt.subplot(gs[4,2], projection=mapcrs)   # August trend original
+    ax50 = plt.subplot(gs[5,0], projection=mapcrs)   # September climo original
+    ax51 = plt.subplot(gs[5,1], projection=mapcrs)   # September climo screened
+    ax52 = plt.subplot(gs[5,2], projection=mapcrs)   # September trend original
+
+    # Plot the figures in the first row: April
+    # ---------------------------------------
+    cbar_switch = True
+    plotCERES_MonthClimo(CERES_data,0,minlat = minlat, ax = ax00, title = '')
+    plotCERES_MonthTrend(CERES_data,month_idx=0,save=False,\
+        trend_type='standard',season='sunlight',minlat=minlat,\
+        return_trend=False, colorbar = cbar_switch, \
+        colorbar_label_size = colorbar_label_size, \
+        pax = ax01, show_pval = True, uncert_ax = ax02, title = '')
+    #plotCERES_spatial(ax00, CERES_data['lats'], CERES_data['lons'], mask_AI1_Apr, \
+    #    'climo', ptitle = ' ', plabel = '', vmin = 0, vmax = 1.0, \
+    #    minlat = minlat, colorbar = cbar_switch)
+    #plotCERES_MonthTrend(CERES_data,month_idx=0,trend_type=trend_type,label = ' ',\
+    #    minlat=65.,title = ' ', pax = ax01, colorbar = cbar_switch, \
+    #    colorbar_label_size = colorbar_label_size, show_pval = True, \
+    #    uncert_ax = ax02)
+    #plotCERES_MonthTrend(CERES_data,month_idx=month_idx,save=False,\
+    #    trend_type='standard',season='sunlight',minlat=65.,return_trend=False, \
+    #    pax = ax1)
+
+    # Plot the figures in the first row: May
+    # ---------------------------------------
+    #plotCERES_spatial(ax10, CERES_data['lats'], CERES_data['lons'], mask_AI1_May, \
+    #    'climo', ptitle = ' ', plabel = '', vmin = 0, vmax = 2.0, \
+    #    minlat = minlat, colorbar = cbar_switch)
+    #plotCERES_MonthTrend(CERES_data,month_idx=1,trend_type=trend_type,label = ' ',\
+    #    minlat=65.,title = ' ', pax = ax11, colorbar = cbar_switch, \
+    #    colorbar_label_size = colorbar_label_size, show_pval = True, \
+    #    uncert_ax = ax12)
+    plotCERES_MonthClimo(CERES_data,1,minlat = minlat, ax = ax10, title = '')
+    plotCERES_MonthTrend(CERES_data,month_idx=1,save=False,\
+        trend_type='standard',season='sunlight',\
+        minlat=minlat,return_trend=False, colorbar = cbar_switch, \
+        colorbar_label_size = colorbar_label_size, \
+        pax = ax11, show_pval = True, uncert_ax = ax12, title = '')
+
+    # Plot the figures in the first row: June
+    # ---------------------------------------
+    #plotCERES_spatial(ax20, CERES_data['lats'], CERES_data['lons'], mask_AI1_Jun, \
+    #    'climo', ptitle = ' ', plabel = '', vmin = 0, vmax = 3.0, \
+    #    minlat = minlat, colorbar = cbar_switch)
+    #plotCERES_MonthTrend(CERES_data,month_idx=2,trend_type=trend_type,label = ' ',\
+    #    minlat=65.,title = ' ', pax = ax21, colorbar = cbar_switch, \
+    #    colorbar_label_size = colorbar_label_size, show_pval = True, \
+    #    uncert_ax = ax22)
+    plotCERES_MonthClimo(CERES_data,2,minlat = minlat, ax = ax20, title = '')
+    plotCERES_MonthTrend(CERES_data,month_idx=2,save=False,\
+        trend_type='standard',season='sunlight',
+        minlat=minlat,return_trend=False, colorbar = cbar_switch, \
+        colorbar_label_size = colorbar_label_size, \
+        pax = ax21, show_pval = True, uncert_ax = ax22, title = '')
+
+    # Plot the figures in the second row: July
+    # ----------------------------------------
+    #plotCERES_spatial(ax30, CERES_data['lats'], CERES_data['lons'], mask_AI1_Jul, \
+    #    'climo', ptitle = ' ', plabel = '', vmin = 0, vmax = 3.0, \
+    #    minlat = minlat, colorbar = cbar_switch)
+    #plotCERES_MonthTrend(CERES_data,month_idx=3,trend_type=trend_type,label = ' ',\
+    #    minlat=65.,title = ' ', pax = ax31, colorbar = cbar_switch, \
+    #    colorbar_label_size = colorbar_label_size, show_pval = True, \
+    #    uncert_ax = ax32)
+    plotCERES_MonthClimo(CERES_data,3,minlat = minlat, ax = ax30, title = '')
+    plotCERES_MonthTrend(CERES_data,month_idx=3,save=False,\
+        trend_type='standard',season='sunlight',\
+        minlat=minlat,return_trend=False, colorbar = cbar_switch, \
+        colorbar_label_size = colorbar_label_size, \
+        pax = ax31, show_pval = True, uncert_ax = ax32, title = '')
+
+    # Plot the figures in the third row: August
+    # -----------------------------------------
+    #plotCERES_spatial(ax40, CERES_data['lats'], CERES_data['lons'], mask_AI1_Aug, \
+    #    'climo', ptitle = ' ', plabel = '', vmin = 0, vmax = 3.0, \
+    #    minlat = minlat, colorbar = cbar_switch)
+    #plotCERES_MonthTrend(CERES_data,month_idx=4,trend_type=trend_type,label = ' ',\
+    #    minlat=65.,title = ' ', pax = ax41, colorbar = cbar_switch, \
+    #    colorbar_label_size = colorbar_label_size, show_pval = True, \
+    #    uncert_ax = ax42)
+    plotCERES_MonthClimo(CERES_data,4,minlat = minlat, ax = ax40, title = '')
+    plotCERES_MonthTrend(CERES_data,month_idx=4,save=False,\
+        trend_type='standard',season='sunlight',\
+        minlat=minlat,return_trend=False, colorbar = cbar_switch, \
+        colorbar_label_size = colorbar_label_size, \
+        pax = ax41, show_pval = True, uncert_ax = ax42, title = '')
+
+    # Plot the figures in the third row: September
+    # --------------------------------------------
+    #plotCERES_spatial(ax50, CERES_data['lats'], CERES_data['lons'], mask_AI1_Sep, \
+    #    'climo', ptitle = ' ', plabel = '', vmin = 0, vmax = 1.0, \
+    #    minlat = minlat, colorbar = cbar_switch)
+    #plotCERES_MonthTrend(CERES_data,month_idx=5,trend_type=trend_type,label = ' ',\
+    #    minlat=65.,title = ' ', pax = ax51, colorbar = cbar_switch, \
+    #    colorbar_label_size = colorbar_label_size, show_pval = True, \
+    #    uncert_ax = ax52)
+    plotCERES_MonthClimo(CERES_data,5,minlat = minlat, ax = ax50, title = '')
+    plotCERES_MonthTrend(CERES_data,month_idx=5,save=False,\
+        trend_type='standard',season='sunlight',\
+        minlat=minlat,return_trend=False, colorbar = cbar_switch, \
+        colorbar_label_size = colorbar_label_size, \
+        pax = ax51, show_pval = True, uncert_ax = ax52, title = '')
+
+    fig.text(0.10, 0.82, 'April', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.692, 'May', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.565, 'June', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.435, 'July', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.305, 'August', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.18, 'September', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+
+    fig.text(0.250, 0.90, 'Climatology', ha='center', va='center', \
+        rotation='horizontal',weight='bold',fontsize=row_label_size)
+    fig.text(0.500, 0.90, 'Trend', ha='center', va='center', \
+        rotation='horizontal',weight='bold',fontsize=row_label_size)
+    fig.text(0.75, 0.90, 'Standard Error of\nScreened Trend (Slope)', \
+        ha='center', va='center', rotation='horizontal',weight='bold',\
+        fontsize=row_label_size)
+
+    plt.suptitle(CERES_data['param'])
+
+    #cax = fig.add_axes([0.15, 0.09, 0.35, 0.01])
+    #norm = mpl.colors.Normalize(vmin = -0.5, vmax = 0.5)
+    #cb1 = mpl.colorbar.ColorbarBase(cax, cmap = plt.cm.bwr, norm = norm, \
+    #    orientation = 'horizontal', extend = 'both')
+    #cb1.set_label('Sfc Smoke Trend (Smoke / Study Period)', \
+    #    weight = 'bold')
+
+    #cax2 = fig.add_axes([0.530, 0.09, 0.35, 0.01])
+    #norm2 = mpl.colors.Normalize(vmin = 0.0, vmax = 0.3)
+    #cmap = plt.cm.get_cmap('jet', 6)
+    #cb2 = mpl.colorbar.ColorbarBase(cax2, cmap = cmap, norm = norm2, \
+    #    orientation = 'horizontal', extend = 'both')
+    #cb2.set_label('Standard Error of Smoke Trend (Slope)', weight = 'bold')
+
+    outname = '_'.join(['ceres',CERES_data['param'],'grid','comps','all6']) + '.png'
+    if(save == True):
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
 
 # Plot a daily monthly anomalies, which are daily data with that month's
 # climatology subtracted 

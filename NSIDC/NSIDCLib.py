@@ -24,6 +24,7 @@ from scipy import stats
 from datetime import datetime, timedelta
 from netCDF4 import Dataset
 import h5py
+from dateutil.relativedelta import relativedelta
 
 home_dir = os.environ['HOME']
 
@@ -234,6 +235,26 @@ def download_NSIDC_daily(date_str, save_dir = data_dir):
     dt_date_str = datetime.strptime(date_str, '%Y%m%d')
     base_link = "https://n5eil01u.ecs.nsidc.org/PM/NSIDC-0051.002/"
     file_str = 'NSIDC0051_SEAICE_PS_N25km_%Y%m%d_v2.0.nc'
+
+    # First check if the file is already there
+    # ----------------------------------------
+    if(os.path.exists(dt_date_str.strftime(save_dir + file_str))):
+        print("NSIDC file already exists.")
+        return
+    else:
+
+        total_cmnd = dt_date_str.strftime('wget ' + base_link + '%Y.%m.%d/' + file_str)
+        print(total_cmnd)
+        os.system(total_cmnd)
+        total_cmnd = dt_date_str.strftime('mv ' + file_str + ' ' + save_dir)
+        print(total_cmnd)
+        os.system(total_cmnd)
+
+def download_NSIDC_monthly(date_str, save_dir = data_dir + 'monthly/'):
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m')
+    base_link = "https://n5eil01u.ecs.nsidc.org/PM/NSIDC-0051.002/"
+    file_str = 'NSIDC0051_SEAICE_PS_N25km_%Y%m_v2.0.nc'
 
     # First check if the file is already there
     # ----------------------------------------

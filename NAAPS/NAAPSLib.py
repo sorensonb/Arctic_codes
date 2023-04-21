@@ -1347,7 +1347,9 @@ def plotNAAPS_MonthTrend(NAAPS_data,month_idx=None,save=False,\
     if(trend_type=='theil-sen'):
         trend_label='_theilSen'
 
-    max_vals = [0.5, 0.7, 3.0, 7.0, 12.0, 10.0]
+    fillval = 1.0
+    max_vals = [fillval, fillval, fillval, fillval, fillval, fillval]
+    #max_vals = [0.5, 0.7, 3.0, 7.0, 12.0, 10.0]
 
     if(month_idx == None):
         month_adder = ''
@@ -1522,7 +1524,7 @@ def plotNAAPS_ClimoTrend_all(NAAPS_data,\
         'climo', ptitle = ' ', plabel = '', vmin = 0, vmax = 1.0, \
         minlat = minlat, colorbar = cbar_switch)
     plotNAAPS_MonthTrend(NAAPS_data,month_idx=0,trend_type=trend_type,label = ' ',\
-        minlat=65.,title = ' ', pax = ax01, colorbar = cbar_switch, \
+        minlat=minlat,title = ' ', pax = ax01, colorbar = cbar_switch, \
         colorbar_label_size = colorbar_label_size, show_pval = True, \
         uncert_ax = ax02)
 
@@ -1532,7 +1534,7 @@ def plotNAAPS_ClimoTrend_all(NAAPS_data,\
         'climo', ptitle = ' ', plabel = '', vmin = 0, vmax = 2.0, \
         minlat = minlat, colorbar = cbar_switch)
     plotNAAPS_MonthTrend(NAAPS_data,month_idx=1,trend_type=trend_type,label = ' ',\
-        minlat=65.,title = ' ', pax = ax11, colorbar = cbar_switch, \
+        minlat=minlat,title = ' ', pax = ax11, colorbar = cbar_switch, \
         colorbar_label_size = colorbar_label_size, show_pval = True, \
         uncert_ax = ax12)
 
@@ -1542,7 +1544,7 @@ def plotNAAPS_ClimoTrend_all(NAAPS_data,\
         'climo', ptitle = ' ', plabel = '', vmin = 0, vmax = 3.0, \
         minlat = minlat, colorbar = cbar_switch)
     plotNAAPS_MonthTrend(NAAPS_data,month_idx=2,trend_type=trend_type,label = ' ',\
-        minlat=65.,title = ' ', pax = ax21, colorbar = cbar_switch, \
+        minlat=minlat,title = ' ', pax = ax21, colorbar = cbar_switch, \
         colorbar_label_size = colorbar_label_size, show_pval = True, \
         uncert_ax = ax22)
 
@@ -1552,7 +1554,7 @@ def plotNAAPS_ClimoTrend_all(NAAPS_data,\
         'climo', ptitle = ' ', plabel = '', vmin = 0, vmax = 3.0, \
         minlat = minlat, colorbar = cbar_switch)
     plotNAAPS_MonthTrend(NAAPS_data,month_idx=3,trend_type=trend_type,label = ' ',\
-        minlat=65.,title = ' ', pax = ax31, colorbar = cbar_switch, \
+        minlat=minlat,title = ' ', pax = ax31, colorbar = cbar_switch, \
         colorbar_label_size = colorbar_label_size, show_pval = True, \
         uncert_ax = ax32)
 
@@ -1562,7 +1564,7 @@ def plotNAAPS_ClimoTrend_all(NAAPS_data,\
         'climo', ptitle = ' ', plabel = '', vmin = 0, vmax = 3.0, \
         minlat = minlat, colorbar = cbar_switch)
     plotNAAPS_MonthTrend(NAAPS_data,month_idx=4,trend_type=trend_type,label = ' ',\
-        minlat=65.,title = ' ', pax = ax41, colorbar = cbar_switch, \
+        minlat=minlat,title = ' ', pax = ax41, colorbar = cbar_switch, \
         colorbar_label_size = colorbar_label_size, show_pval = True, \
         uncert_ax = ax42)
 
@@ -1572,7 +1574,7 @@ def plotNAAPS_ClimoTrend_all(NAAPS_data,\
         'climo', ptitle = ' ', plabel = '', vmin = 0, vmax = 1.0, \
         minlat = minlat, colorbar = cbar_switch)
     plotNAAPS_MonthTrend(NAAPS_data,month_idx=5,trend_type=trend_type,label = ' ',\
-        minlat=65.,title = ' ', pax = ax51, colorbar = cbar_switch, \
+        minlat=minlat,title = ' ', pax = ax51, colorbar = cbar_switch, \
         colorbar_label_size = colorbar_label_size, show_pval = True, \
         uncert_ax = ax52)
 

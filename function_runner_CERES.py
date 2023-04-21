@@ -13,16 +13,51 @@ import sys
 # Set up the overall figure
 # ----------------------------------------------------
 
+#plotCERES_MonthTrend_AllClr('200504', '202009', 4, \
+#    minlat = 70, satellite = 'Aqua', save = True)
 start_date = '200503'
 end_date   = '202009'
-CERES_data = readgridCERES(start_date,end_date,'toa_sw_clr_mon',\
-    satellite = 'Aqua',minlat=60.5,calc_month = True,season = 'sunlight')
-CERES_all  = readgridCERES(start_date,end_date,'toa_sw_all_mon',\
-    satellite = 'Aqua',minlat=60.5,calc_month = True,season = 'sunlight')
+CERES_swclr = readgridCERES(start_date,end_date,'toa_sw_clr_mon',\
+    satellite = 'Aqua',minlat=70.,calc_month = True,season = 'sunlight')
+plotCERES_ClimoTrend_all(CERES_swclr,\
+    trend_type = 'standard', minlat=70.,save=True)
 
-plotCERES_MonthTrend(CERES_data,month_idx=4,save=False,\
+sys.exit()
+
+start_date = '200503'
+end_date   = '202009'
+CERES_swall = readgridCERES(start_date,end_date,'toa_sw_all_mon',\
+    satellite = 'Aqua',minlat=60.5,calc_month = True,season = 'sunlight')
+CERES_lwall = readgridCERES(start_date,end_date,'toa_lw_all_mon',\
+    satellite = 'Aqua',minlat=60.5,calc_month = True,season = 'sunlight')
+CERES_swclr = readgridCERES(start_date,end_date,'toa_sw_clr_mon',\
+    satellite = 'Aqua',minlat=60.5,calc_month = True,season = 'sunlight')
+CERES_lwclr = readgridCERES(start_date,end_date,'toa_lw_clr_mon',\
+    satellite = 'Aqua',minlat=60.5,calc_month = True,season = 'sunlight')
+#CERES_all  = readgridCERES(start_date,end_date,'toa_sw_all_mon',\
+#    satellite = 'Aqua',minlat=60.5,calc_month = True,season = 'sunlight')
+
+fig1 = plt.figure(figsize = (10,10))
+ax1 = fig1.add_subplot(2,2,1, projection = mapcrs)
+ax2 = fig1.add_subplot(2,2,2, projection = mapcrs)
+ax3 = fig1.add_subplot(2,2,3, projection = mapcrs)
+ax4 = fig1.add_subplot(2,2,4, projection = mapcrs)
+
+plotCERES_MonthTrend(CERES_swclr,month_idx=4,save=False,\
     trend_type='standard',season='sunlight',minlat=65.,return_trend=False, \
-    pax = None)
+    pax = ax1)
+plotCERES_MonthTrend(CERES_lwclr,month_idx=4,save=False,\
+    trend_type='standard',season='sunlight',minlat=65.,return_trend=False, \
+    pax = ax2)
+plotCERES_MonthTrend(CERES_swall,month_idx=4,save=False,\
+    trend_type='standard',season='sunlight',minlat=65.,return_trend=False, \
+    pax = ax3)
+plotCERES_MonthTrend(CERES_lwall,month_idx=4,save=False,\
+    trend_type='standard',season='sunlight',minlat=65.,return_trend=False, \
+    pax = ax4)
+
+fig1.tight_layout()
+plt.show()
 
 sys.exit()
 
