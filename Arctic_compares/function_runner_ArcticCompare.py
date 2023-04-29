@@ -8,35 +8,21 @@
 import Arctic_compare_lib
 from Arctic_compare_lib import *
 
-date_str = '201807052213'
-plot_compare_AI_combined_category(date_str, var2 = 'CERES_SWF', \
-    cat = "ALL", minlat = 65., \
-    xmin = 1.0, xmax = None, ymin = None, ymax = None, ax = None, \
-    colorbar = True, trend = 'theil-sen', zoom = True, color = None, \
-    compare_tropomi = True, save = False)
-sys.exit()
-
-
-run_list = ['20190810','20190811']
+run_list = ['20180704', '20180705']
+#run_list = ['20200722', '20200723']
+#run_list = ['20180721','20180810','20180826','20180827']
+#run_list = ['20180721','20180810','20180814','20180826','20180827']
+#run_list = ['20180721','20170814','20100731','20100801']
 #final_list = entire_wrapper(min_AI = 2.0, minlat = 70., download = True, \
-#    images = False, process = False, run_list = run_list, copy_to_raindrop = True)
+#    images = False, process = False, run_list = run_list)
 final_list = entire_wrapper(min_AI = 2.0, minlat = 70., download = False, \
     images = True, process = True, run_list = run_list, copy_to_raindrop = True)
 
 sys.exit()
 
-
 date_strs = [\
-           #'202108010117',
-           #'202108010256',
-           #'202108010435',
-           #'202108010614',
-           #'202108011607',
-           #'202108011925',
-           #'202108012103',
-           #'202108012242',
            '201807210047',
-           '201807211358',
+           ###'201807211358', BAD. terminator line
            '201807211537',
            '201807211716',
            '201807211855',
@@ -46,11 +32,35 @@ date_strs = [\
            '201808141804',
            '201808141942',
            '201808142121',
-           '201808142300',
+           ###'201808142300', BAD. Error in MODIS and CERES data extent
            '201808260158',
            '201808260337',
            '201808260655',
+           '201908100129',
+           '201908100308', # GOOD OCEAN COMPARISON
+           '201908101936',
+           '201908102115',
+           '201908102254',
+           '201908110033',
+           '201908110212',
+           '201908110351',
+           '201908110708',
+           '201908111523',
+           '201908111702',
+           '201908111841',
+           '201908112019',
+           ###'201908112158', # BAD
+           ###'201908112337', # BAD
+           #'202108010117',
+           #'202108010256',
+           #'202108010435',
+           #'202108010614',
+           #'202108011607',
+           #'202108011925',
+           #'202108012103',
+           #'202108012242',
     ]
+
 
 for date_str in date_strs:
     plot_compare_combined_category(date_str, var1 = 'TROP_AI', \
@@ -63,12 +73,33 @@ for date_str in date_strs:
 sys.exit()
 
 
-run_list = ['20180814']
+
+
+run_list = ['20200722', '20200723']
 #run_list = ['20180721','20180810','20180826','20180827']
 #run_list = ['20180721','20180810','20180814','20180826','20180827']
 #run_list = ['20180721','20170814','20100731','20100801']
+final_list = entire_wrapper(min_AI = 2.0, minlat = 70., download = True, \
+    images = False, process = False, run_list = run_list)
+#final_list = entire_wrapper(min_AI = 2.0, minlat = 70., download = False, \
+#    images = True, process = True, run_list = run_list, copy_to_raindrop = True)
+
+sys.exit()
+
+
+
+date_str = '201807052213'
+plot_compare_AI_combined_category(date_str, var2 = 'CERES_SWF', \
+    cat = "ALL", minlat = 65., \
+    xmin = 1.0, xmax = None, ymin = None, ymax = None, ax = None, \
+    colorbar = True, trend = 'theil-sen', zoom = True, color = None, \
+    compare_tropomi = True, save = False)
+sys.exit()
+
+
+run_list = ['20190810','20190811']
 #final_list = entire_wrapper(min_AI = 2.0, minlat = 70., download = True, \
-#    images = False, process = False, run_list = run_list)
+#    images = False, process = False, run_list = run_list, copy_to_raindrop = True)
 final_list = entire_wrapper(min_AI = 2.0, minlat = 70., download = False, \
     images = True, process = True, run_list = run_list, copy_to_raindrop = True)
 

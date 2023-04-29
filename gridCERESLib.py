@@ -42,8 +42,9 @@ import cartopy
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.util import add_cyclic_point
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 import os
-import glob
+from glob import glob
 from scipy.stats import pearsonr,spearmanr
 from sklearn.linear_model import HuberRegressor
 from sklearn.preprocessing import StandardScaler
@@ -59,6 +60,14 @@ from python_lib import circle, plot_trend_line, nearest_gridpoint, \
     aerosol_event_dict, init_proj, plot_lat_circles, plot_figure_text, \
     plot_subplot_label
 
+if(home_dir + '/Research/NSIDC' not in sys.path):
+    sys.path.append(home_dir + '/Research/NSIDC')
+if(home_dir + '/Research/OMI' not in sys.path):
+    sys.path.append(home_dir + '/Research/OMI')
+if(home_dir + '/Research/NAAPS' not in sys.path):
+    sys.path.append(home_dir + '/Research/NAAPS')
+from NSIDCLib import *
+from NAAPSLib import *
 ##!## Compute a circle in axes coordinates, which we can use as a boundary
 ##!## for the map. We can pan/zoom as much as we like - the boundary will be
 ##!## permanently circular.
@@ -187,7 +196,7 @@ def readgridCERES(start_date,end_date,param,satellite = 'Aqua',minlat=60.5,\
         base_path = home_dir + '/data/CERES/SSF_1Deg/monthly/Aqua/CERES_SSF1deg-Month_Aqua-MODIS_Ed4.1_Subset_'
     #base_path = '/data/CERES/SSF_1Deg/monthly/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
     #base_path = '/home/bsorenson/data/CERES/SSF_1Deg/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
-    total_list = sorted(glob.glob(base_path+'*.nc')) 
+    total_list = sorted(glob(base_path+'*.nc')) 
 
     # Loop over all files and find the ones that match with the desired times
     start_date = datetime.strptime(str(start_date),'%Y%m')
@@ -449,7 +458,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
     elif(satellite == 'NOAA20'):
         base_path = home_dir + '/data/CERES/SSF_Level2/NOAA20/'
 
-    total_list = sorted(glob.glob(base_path+'CERES_SSF_*.nc'))
+    total_list = sorted(glob(base_path+'CERES_SSF_*.nc'))
 
     # Convert the desired dt to a datetime object to use for finding the file
     # -----------------------------------------------------------------------
@@ -2046,6 +2055,25 @@ def plotCERES_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
     mask_AI = np.ma.masked_where(cyclic_data < -998.9, cyclic_data)
     mask_AI = np.ma.masked_where(plat.T < minlat, mask_AI)
 
+    # Plot lat/lon lines
+    gl = pax.gridlines(crs = ccrs.PlateCarree(), draw_labels = False, \
+        linewidth = 1, color = 'gray', alpha = 0.5, linestyle = '-',\
+        y_inline = True, xlocs = range(-180, 180, 30), ylocs = range(70, 90, 10))
+    #gl.top_labels = False
+    #gl.bottom_labels = False
+    #gl.left_labels = False
+    #gl.right_labels = False
+    #gl.xlines = False
+    #gl.xlocator = mticker.FixedLocator(np.arange(-180, 180, 30))
+    #gl.ylocator = mticker.FixedLocator(np.arange(70, 90, 10))
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    #gl.xlabel_style = {'size': 5, 'color': 'gray'}
+    gl.xlabel_style = {'color': 'gray', 'weight': 'bold'}
+    gl.ylabel_style = {'size': 15, 'color': 'gray'}
+    gl.ylabel_style = {'color': 'black', 'weight': 'bold'}
+    #pax.gridlines()
+
     #pax.gridlines()
     pax.coastlines(resolution='50m')
     mesh = pax.pcolormesh(plon, plat,\
@@ -2296,7 +2324,7 @@ def plotCERES_MonthTrend(CERES_data,month_idx=None,save=False,\
         ax = fig1.add_subplot(1,1,1, projection = mapcrs)
 
         plotCERES_spatial(ax, CERES_data['lat'], CERES_data['lon'], \
-            ceres_trends, 'trend', ptitle = title, plabel = 'W/m2 per study period', \
+            ceres_trends, 'trend', ptitle = title, plabel = 'W m$^{-2}$ per study period', \
             vmin = v_min, vmax = v_max, colorbar_label_size = colorbar_label_size, \
             minlat = minlat, pvals = ceres_pvals)
 
@@ -2315,7 +2343,7 @@ def plotCERES_MonthTrend(CERES_data,month_idx=None,save=False,\
             plt.show()
     else:
         plotCERES_spatial(pax, CERES_data['lat'], CERES_data['lon'], \
-            ceres_trends, 'trend', ptitle = title, plabel = 'W/m2 per study period', \
+            ceres_trends, 'trend', ptitle = title, plabel = 'W m$^{-2}$ per study period', \
             vmin = v_min, vmax = v_max, colorbar_label_size = colorbar_label_size, \
             minlat = minlat)
 
@@ -3514,3 +3542,451 @@ def plot_compare_OMI_CERES_hrly_grid_2case(date_str1,date_str2, minlat=65,max_AI
         plt.show()
 
     #return OMI_base, CERES_hrly
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#
+# CERES/NSIDC/NAAPS gridded comparison work
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+
+def plot_compare_CERES_NSIDC_NAAPS_OMI(CERES_data, NSIDC_data, NAAPS_data, \
+        OMI_data, \
+        month_idx = 4, minlat = 70., trend_type = 'standard', \
+        save = False):
+
+    month_obj = datetime(year = 1,month = int(CERES_data['dates'][month_idx][4:]),day = 1)
+    str_month = month_obj.strftime('%B')
+
+    # Set up the figure
+    #plt.close('all')
+    fig1 = plt.figure(figsize = (16,12))
+    ax1  = fig1.add_subplot(3,4,5, projection = mapcrs)
+    ax2  = fig1.add_subplot(3,4,2, projection = mapcrs)
+    ax3  = fig1.add_subplot(3,4,3, projection = mapcrs)
+    ax4  = fig1.add_subplot(3,4,4, projection = mapcrs)
+    ax5  = fig1.add_subplot(3,4,6)
+    ax6  = fig1.add_subplot(3,4,7)
+    ax7  = fig1.add_subplot(3,4,8)
+    ax8  = fig1.add_subplot(3,4,9, projection = mapcrs)
+    ax9  = fig1.add_subplot(3,4,10, projection = mapcrs)
+    ax10 = fig1.add_subplot(3,4,11, projection = mapcrs)
+    ax11 = fig1.add_subplot(3,4,12, projection = mapcrs)
+
+    cbar_switch = True
+    colorbar_label_size = 10
+    ceres_trends = plotCERES_MonthTrend(CERES_data,month_idx=month_idx,save=False,\
+        trend_type=trend_type,season='sunlight',minlat=minlat,return_trend=True, \
+        pax = ax1)
+    nsidc_trends = plotNSIDC_MonthTrend(NSIDC_data,month_idx=month_idx,save=False,\
+        trend_type=trend_type,season='sunlight',minlat=minlat,\
+        return_trend=True, colorbar = cbar_switch, \
+        colorbar_label_size = colorbar_label_size, \
+        pax = ax2, show_pval = False, uncert_ax = None, title = '')
+    naaps_trends = plotNAAPS_MonthTrend(NAAPS_data,month_idx=month_idx,trend_type=trend_type,label = ' ',\
+        minlat=minlat,title = ' ', pax = ax3, colorbar = cbar_switch, \
+        colorbar_label_size = colorbar_label_size, show_pval = False, \
+        uncert_ax = None, vmax = 1, return_trend = True)
+    omi_trends = plotOMI_MonthTrend(OMI_data,month_idx=month_idx,\
+        trend_type=trend_type,label = 'AI Trend (AI/Study Period)',\
+        return_trend = True, \
+        minlat=minlat,title = None, pax = ax4)
+
+    if(np.max(CERES_data['lon']) > 270):
+
+        # Flip the CERES data to convert the longitudes from 0 - 360 to -180 - 180
+        # ------------------------------------------------------------------------
+        local_lon = np.copy(CERES_data['lon'])
+        local_lat = np.copy(CERES_data['lat'])
+        over_180  = np.where(CERES_data['lon'][0,:] >= 179.9999)
+        under_180 = np.where(CERES_data['lon'][0,:] < 179.9999)
+
+        for ii in range(local_lon.shape[0]):
+            local_lon[ii,:] = np.concatenate([local_lon[ii,:][over_180] - 360.,\
+                local_lon[ii,:][under_180]])
+            local_lat[ii,:] = np.concatenate([local_lat[ii,:][over_180],\
+                local_lat[ii,:][under_180]])
+            ceres_trends[ii,:] = np.concatenate([ceres_trends[ii,:][over_180],\
+                ceres_trends[ii,:][under_180]])
+   
+
+    mask_nsidc = np.ma.masked_invalid(nsidc_trends)
+    mask_nsidc = np.ma.masked_where((mask_nsidc == 0.) | \
+        (NSIDC_data['MONTH_CLIMO'][month_idx,:,:] < 40), mask_nsidc)
+    mask_naaps = np.ma.masked_invalid(naaps_trends)
+    mask_naaps = np.ma.masked_where(mask_nsidc == 0., mask_naaps)
+    mask_omi   = np.ma.masked_invalid(omi_trends)
+    mask_omi   = np.ma.masked_where(mask_nsidc == 0., mask_omi)
+    mask_ceres = np.ma.masked_invalid(ceres_trends)
+    mask_ceres = np.ma.masked_where(mask_nsidc == 0., mask_ceres)
+
+    ax8.pcolormesh(local_lon, local_lat, mask_ceres, \
+        transform = datacrs, vmax = 30, vmin = -30, shading = 'auto', \
+        cmap = 'bwr')
+    ax8.coastlines()
+    ax8.set_extent([-180,180,minlat, 90], datacrs)
+    ax9.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+        mask_nsidc, cmap = 'bwr', \
+        transform = datacrs, vmax = 30, vmin = -30, shading = 'auto')
+    ax9.coastlines()
+    ax9.set_extent([-180,180,minlat, 90], datacrs)
+    ax10.pcolormesh(NAAPS_data['lons'], NAAPS_data['lats'], \
+        mask_naaps, cmap = 'bwr', \
+        transform = datacrs, vmax = 1, vmin = -1, shading = 'auto')
+    ax10.coastlines()
+    ax10.set_extent([-180,180,minlat, 90], datacrs)
+    ax11.pcolormesh(OMI_data['LON'], OMI_data['LAT'], \
+        mask_omi, cmap = 'bwr', \
+        transform = datacrs, vmax = 0.5, vmin = -0.5, shading = 'auto')
+    ax11.coastlines()
+    ax11.set_extent([-180,180,minlat, 90], datacrs)
+
+    final_ceres = ceres_trends[(~mask_ceres.mask) & (~mask_nsidc.mask) & \
+        (~mask_naaps.mask) & (~mask_omi.mask)]
+    final_nsidc = nsidc_trends[(~mask_ceres.mask) & (~mask_nsidc.mask) & \
+        (~mask_naaps.mask) & (~mask_omi.mask)]
+    final_naaps = naaps_trends[(~mask_ceres.mask) & (~mask_nsidc.mask) & \
+        (~mask_naaps.mask) & (~mask_omi.mask)]
+    final_omi   = omi_trends[(~mask_ceres.mask) & (~mask_nsidc.mask) & \
+        (~mask_naaps.mask) & (~mask_omi.mask)]
+
+    #return ceres_trends,nsidc_trends,naaps_trends
+
+    ax5.scatter(final_nsidc.flatten(), final_ceres.flatten(), s = 6, color = 'k')
+    ax6.scatter(final_naaps.flatten(), final_ceres.flatten(), s = 6, color = 'k')
+    ax7.scatter(final_omi.flatten(),   final_ceres.flatten(), s = 6, color = 'k')
+    ax6.set_xlim(ax6.get_xlim()[0], 0.5)
+
+    ax2.set_title('NSIDC Sea Ice Concentration Trends')
+    ax3.set_title('NAAPS Near-Surface\nSmoke Aerosol Trends')
+    ax4.set_title('OMI UVAI Trends')
+    
+    fig1.tight_layout()
+    fig1.tight_layout()
+    if(save):
+        outname = '_'.join(['ceres','nsidc','naaps','omi','trend','comp',\
+            month_obj.strftime('%b'), CERES_data['param'].split('_')[2]]) + '.png'
+        fig1.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+def plot_compare_CERES_NSIDC_NAAPS_OMI_combined(CERES_swclr, CERES_swall, \
+        NSIDC_data, NAAPS_data, OMI_data, \
+        month_idx = 4, minlat = 70., trend_type = 'standard', \
+        save = False):
+
+    month_obj = datetime(year = 1,month = int(CERES_data['dates'][month_idx][4:]),day = 1)
+    str_month = month_obj.strftime('%B')
+
+    # Set up the figure
+    plt.close('all')
+    fig1 = plt.figure(figsize = (12,6))
+    ax1  = fig1.add_subplot(2,4,1, projection = mapcrs)
+    ax2  = fig1.add_subplot(2,4,2, projection = mapcrs)
+    ax3  = fig1.add_subplot(2,4,3, projection = mapcrs)
+    ax4  = fig1.add_subplot(2,4,4, projection = mapcrs)
+    ax5  = fig1.add_subplot(2,4,5, projection = mapcrs)
+    ax6  = fig1.add_subplot(2,4,6)
+    ax7  = fig1.add_subplot(2,4,7)
+    ax8  = fig1.add_subplot(2,4,8)
+
+    ceres_clr_trends, ceres_clr_pvals, ceres_clr_uncert = \
+        calcCERES_grid_trend(CERES_swclr, month_idx, trend_type, \
+        minlat)
+    ceres_all_trends, ceres_all_pvals, ceres_all_uncert = \
+        calcCERES_grid_trend(CERES_swall, month_idx, trend_type, \
+        minlat)
+    naaps_trends, naaps_pvals, naaps_uncert = \
+        calcNAAPS_grid_trend(NAAPS_data, month_idx, trend_type, \
+        minlat)
+    nsidc_trends, nsidc_pvals, nsidc_uncert = \
+        calcNSIDC_grid_trend(NSIDC_data, month_idx, trend_type, \
+        minlat)
+    omi_trends, omi_pvals, omi_uncert = \
+        calcOMI_grid_trend(OMI_data, month_idx, trend_type, \
+        minlat)
+    
+    ##!#cbar_switch = True
+    ##!#colorbar_label_size = 10
+    ##!#ceres_clr_trends = plotCERES_MonthTrend(CERES_swclr,month_idx=month_idx,save=False,\
+    ##!#    trend_type=trend_type,season='sunlight',minlat=minlat,return_trend=True, \
+    ##!#    pax = ax1)
+    ##!#ceres_all_trends = plotCERES_MonthTrend(CERES_swall,month_idx=month_idx,save=False,\
+    ##!#    trend_type=trend_type,season='sunlight',minlat=minlat,return_trend=True, \
+    ##!#    pax = ax2)
+    ##!#nsidc_trends = plotNSIDC_MonthTrend(NSIDC_data,month_idx=month_idx,save=False,\
+    ##!#    trend_type=trend_type,season='sunlight',minlat=minlat,\
+    ##!#    return_trend=True, colorbar = cbar_switch, \
+    ##!#    colorbar_label_size = colorbar_label_size, \
+    ##!#    pax = ax3, show_pval = False, uncert_ax = None, title = '')
+    ##!#naaps_trends = plotNAAPS_MonthTrend(NAAPS_data,month_idx=month_idx,trend_type=trend_type,label = ' ',\
+    ##!#    minlat=minlat,title = ' ', pax = ax4, colorbar = cbar_switch, \
+    ##!#    colorbar_label_size = colorbar_label_size, show_pval = False, \
+    ##!#    uncert_ax = None, vmax = 1, return_trend = True)
+    ##!#omi_trends = plotOMI_MonthTrend(OMI_data,month_idx=month_idx,\
+    ##!#    trend_type=trend_type,label = 'AI Trend (AI/Study Period)',\
+    ##!#    return_trend = True, \
+    ##!#    minlat=minlat,title = None, pax = ax5)
+
+    if(np.max(CERES_swclr['lon']) > 270):
+
+        # Flip the CERES data to convert the longitudes from 0 - 360 to -180 - 180
+        # ------------------------------------------------------------------------
+        local_lon = np.copy(CERES_swclr['lon'])
+        local_lat = np.copy(CERES_swclr['lat'])
+        over_180  = np.where(CERES_swclr['lon'][0,:] >= 179.9999)
+        under_180 = np.where(CERES_swclr['lon'][0,:] < 179.9999)
+
+        for ii in range(local_lon.shape[0]):
+            local_lon[ii,:] = np.concatenate([local_lon[ii,:][over_180] - 360.,\
+                local_lon[ii,:][under_180]])
+            local_lat[ii,:] = np.concatenate([local_lat[ii,:][over_180],\
+                local_lat[ii,:][under_180]])
+            ceres_clr_trends[ii,:] = np.concatenate([ceres_clr_trends[ii,:][over_180],\
+                ceres_clr_trends[ii,:][under_180]])
+            ceres_all_trends[ii,:] = np.concatenate([ceres_all_trends[ii,:][over_180],\
+                ceres_all_trends[ii,:][under_180]])
+
+    mask_nsidc = np.ma.masked_invalid(nsidc_trends)
+    mask_nsidc = np.ma.masked_where((mask_nsidc == 0.) | \
+        (NSIDC_data['MONTH_CLIMO'][month_idx,:,:] < 40), mask_nsidc)
+    mask_naaps = np.ma.masked_invalid(naaps_trends)
+    mask_naaps = np.ma.masked_where(naaps_trends > 1, mask_naaps)
+    mask_naaps = np.ma.masked_where((mask_nsidc == 0.) | \
+        (NSIDC_data['MONTH_CLIMO'][month_idx,:,:] < 40), mask_naaps)
+    mask_omi   = np.ma.masked_invalid(omi_trends)
+    mask_omi   = np.ma.masked_where((mask_nsidc == 0.) | \
+        (NSIDC_data['MONTH_CLIMO'][month_idx,:,:] < 40), mask_omi)
+    mask_ceres_clr = np.ma.masked_invalid(ceres_clr_trends)
+    mask_ceres_clr = np.ma.masked_where((mask_nsidc == 0.) | \
+        (NSIDC_data['MONTH_CLIMO'][month_idx,:,:] < 40), mask_ceres_clr)
+    mask_ceres_all = np.ma.masked_invalid(ceres_all_trends)
+    mask_ceres_all = np.ma.masked_where((mask_nsidc == 0.) | \
+        (NSIDC_data['MONTH_CLIMO'][month_idx,:,:] < 40), mask_ceres_all)
+
+    labelsize = 9
+    # Map 1: CERES SWCLR
+    mesh = ax1.pcolormesh(local_lon, local_lat, mask_ceres_clr, \
+        transform = datacrs, vmax = 30, vmin = -30, shading = 'auto', \
+        cmap = 'bwr')
+    cbar = plt.colorbar(mesh,ax = ax1, orientation='vertical',shrink = 0.8, \
+        extend = 'both')
+    cbar.set_label('Total Flux Trend [W m$^{-2}$]', \
+        fontsize = labelsize)
+    ax1.coastlines()
+    ax1.set_extent([-180,180,minlat, 90], datacrs)
+    ax1.set_boundary(circle, transform=ax1.transAxes)
+    # Map 2: CERES SWALL
+    mesh = ax2.pcolormesh(local_lon, local_lat, mask_ceres_all, \
+        transform = datacrs, vmax = 30, vmin = -30, shading = 'auto', \
+        cmap = 'bwr')
+    cbar = plt.colorbar(mesh,ax = ax2, orientation='vertical',shrink = 0.8, \
+        extend = 'both')
+    cbar.set_label('Total Flux Trend [W m$^{-2}$]', \
+        fontsize = labelsize)
+    ax2.coastlines()
+    ax2.set_extent([-180,180,minlat, 90], datacrs)
+    ax2.set_boundary(circle, transform=ax2.transAxes)
+    # Map 3: NSIDC
+    mesh = ax3.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+        mask_nsidc, cmap = 'bwr', \
+        transform = datacrs, vmax = 30, vmin = -30, shading = 'auto')
+    cbar = plt.colorbar(mesh,ax = ax3, orientation='vertical',shrink = 0.8, \
+        extend = 'both')
+    cbar.set_label('Sea Ice Trend [%]', \
+        fontsize = labelsize)
+    ax3.coastlines()
+    ax3.set_extent([-180,180,minlat, 90], datacrs)
+    ax3.set_boundary(circle, transform=ax3.transAxes)
+    # Map 4: NAAPS
+    ax4.pcolormesh(NAAPS_data['lons'], NAAPS_data['lats'], \
+        mask_naaps, cmap = 'bwr', \
+        transform = datacrs, vmax = 1, vmin = -1, shading = 'auto')
+    cbar = plt.colorbar(mesh,ax = ax4, orientation='vertical',shrink = 0.8, \
+        extend = 'both')
+    cbar.set_label('Smoke Trend [μg m$^{-3}$]', \
+        fontsize = labelsize)
+    ax4.coastlines()
+    ax4.set_extent([-180,180,minlat, 90], datacrs)
+    ax4.set_boundary(circle, transform=ax4.transAxes)
+    # Map 5: OMI
+    ax5.pcolormesh(OMI_data['LON'], OMI_data['LAT'], \
+        mask_omi, cmap = 'bwr', \
+        transform = datacrs, vmax = 0.5, vmin = -0.5, shading = 'auto')
+    cbar = plt.colorbar(mesh,ax = ax5, orientation='vertical',shrink = 0.8, \
+        extend = 'both')
+    cbar.set_label('UVAI Trend [AI]', \
+        fontsize = labelsize)
+    ax5.coastlines()
+    ax5.set_extent([-180,180,minlat, 90], datacrs)
+    ax5.set_boundary(circle, transform=ax5.transAxes)
+
+    titlesize = 10
+    ax1.set_title('Aqua CERES\nClear-sky SWF Trends', fontsize = titlesize)
+    ax2.set_title('Aqua CERES\nAll-sky SWF Trends', fontsize = titlesize)
+    ax3.set_title('SSMI/S Sea Ice\nConcentration Trends', fontsize = titlesize)
+    ax4.set_title('NAAPS-RA Near-surface\nSmoke Aerosol Trends', fontsize = titlesize)
+    ax5.set_title('OMI Perturbed\nUVAI Trends', fontsize = titlesize)
+
+    final_ceres_clr = ceres_clr_trends[(~mask_ceres_clr.mask) & \
+        (~mask_ceres_all.mask) & \
+        (~mask_nsidc.mask) & \
+        (~mask_naaps.mask) & \
+        (~mask_omi.mask)]
+    final_ceres_all = ceres_all_trends[(~mask_ceres_clr.mask) & \
+        (~mask_ceres_all.mask) & \
+        (~mask_nsidc.mask) & \
+        (~mask_naaps.mask) & \
+        (~mask_omi.mask)]
+    final_nsidc = nsidc_trends[(~mask_ceres_clr.mask) & \
+        (~mask_ceres_all.mask) & \
+        (~mask_nsidc.mask) & \
+        (~mask_naaps.mask) & \
+        (~mask_omi.mask)]
+    final_naaps = naaps_trends[(~mask_ceres_clr.mask) & \
+        (~mask_ceres_all.mask) & \
+        (~mask_nsidc.mask) & \
+        (~mask_naaps.mask) & \
+        (~mask_omi.mask)]
+    final_omi   = omi_trends[(~mask_ceres_clr.mask) & \
+        (~mask_ceres_all.mask) & \
+        (~mask_nsidc.mask) & \
+        (~mask_naaps.mask) & \
+        (~mask_omi.mask)]
+
+    #return ceres_trends,nsidc_trends,naaps_trends
+
+    # Scatter 1: NSIDC vs CERES SWCLR
+    sizer = 4
+    ax6.scatter(final_nsidc.flatten(), final_ceres_clr.flatten(), s = sizer, color = 'k')
+    # Scatter 2: OMI vs CERES SWALL
+    ax7.scatter(final_omi.flatten(), final_ceres_all.flatten(), s = sizer, color = 'k')
+    # Scatter 3: NSIDC vs CERES SWCLR
+    ax8.scatter(final_naaps.flatten(),  final_ceres_clr.flatten(), s = sizer, color = 'k')
+    #ax8.set_xlim(ax8.get_xlim()[0], 0.5)
+
+    ax6_result = stats.linregress(final_nsidc.flatten(), final_ceres_clr.flatten())
+    ax7_result = stats.linregress(final_omi.flatten(), final_ceres_all.flatten())
+    ax8_result = stats.linregress(final_naaps.flatten(), final_ceres_clr.flatten())
+
+    corr1 = ax6_result.rvalue**2.
+    corr2 = ax7_result.rvalue**2.
+    corr3 = ax8_result.rvalue**2.
+
+    #ax6.text(0,    80, 'r$^{2}$ = ' + str(np.round(corr1, 3)))
+    #ax7.text(0.05, 35, 'r$^{2}$ = ' + str(np.round(corr2, 3)), backgroundcolor = 'white')
+    #ax8.text(0.5,  80, 'r$^{2}$ = ' + str(np.round(corr3, 3)))
+
+    plot_figure_text(ax6, 'r$^{2}$ = ' + str(np.round(corr1, 3)), xval = None, yval = None, transform = None, \
+        color = 'black', fontsize = 10, backgroundcolor = 'white',\
+        halign = 'right', location = 'upper_right')
+    plot_figure_text(ax7, 'r$^{2}$ = ' + str(np.round(corr2, 3)), xval = None, yval = None, transform = None, \
+        color = 'black', fontsize = 10, backgroundcolor = 'white',\
+        halign = 'right', location = 'upper_right')
+    plot_figure_text(ax8, 'r$^{2}$ = ' + str(np.round(corr3, 3)), xval = None, yval = None, transform = None, \
+        color = 'black', fontsize = 10, backgroundcolor = 'white',\
+        halign = 'right', location = 'upper_right')
+
+    print("Correlation 1", ax6_result.rvalue**2.)
+    print("Correlation 2", ax7_result.rvalue**2.)
+    print("Correlation 3", ax8_result.rvalue**2.)
+
+    sloper = 'linregress'
+    plot_trend_line(ax6, final_nsidc.flatten(), final_ceres_clr.flatten(), \
+        color='r', linestyle = '-', slope = sloper)
+    plot_trend_line(ax7, final_omi.flatten(), final_ceres_all.flatten(), \
+        color='r', linestyle = '-', slope = sloper)
+    plot_trend_line(ax8, final_naaps.flatten(), final_ceres_clr.flatten(), \
+        color='r', linestyle = '-', slope = sloper)
+
+    ax6.set_title('Sea Ice Concentration Trend vs.\nCERES Clear-sky SWF Trend', fontsize = titlesize)
+    ax7.set_title('OMI Perturbed UVAI Trend vs.\nCERES All-sky SWF Trend', fontsize = titlesize)
+    ax8.set_title('NAAPS-RA Surface Smoke Trend vs.\nCERES Clear-sky SWF Trend', fontsize = titlesize)
+
+    ax6.set_xlabel('Sea Ice Trend [% / Study Period]', fontsize = labelsize)
+    ax7.set_xlabel('UVAI Trend [AI/Study Period]', fontsize = labelsize)
+    ax8.set_xlabel('Near-surface Smoke Trend [μg m$^{-3}$]', fontsize = labelsize)
+    ax6.set_ylabel('Clear-sky SWF Trend [W m$^{-2}$]', fontsize = labelsize)
+    ax7.set_ylabel('All-sky SWF Trend [W m$^{-2}$]', fontsize = labelsize)
+    ax8.set_ylabel('Clear-sky SWF Trend [W m$^{-2}$]', fontsize = labelsize)
+
+    plot_subplot_label(ax1, '(a)', location = 'upper_left')
+    plot_subplot_label(ax2, '(b)', location = 'upper_left')
+    plot_subplot_label(ax3, '(c)', location = 'upper_left')
+    plot_subplot_label(ax4, '(d)', location = 'upper_left')
+    plot_subplot_label(ax5, '(e)', location = 'upper_left')
+    plot_subplot_label(ax6, '(f)', location = 'upper_left')
+    plot_subplot_label(ax7, '(g)', location = 'upper_left')
+    plot_subplot_label(ax8, '(h)', location = 'upper_left')
+   
+    plt.suptitle(month_obj.strftime("%B Monthly Trends (2005 - 2020)"))
+ 
+    fig1.tight_layout()
+    if(save):
+        outname = '_'.join(['ceres','nsidc','naaps','omi','trend','comp',\
+            month_obj.strftime('%b'),'combined']) + '.png'
+        fig1.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+
+def plot_compare_CERES_NSIDC_NAAPS_OMI_spatial(CERES_data, NSIDC_data, NAAPS_data, \
+        OMI_data, \
+        month_idx = 4, minlat = 70., trend_type = 'standard', \
+        save = False):
+
+    month_obj = datetime(year = 1,month = int(CERES_data['dates'][month_idx][4:]),day = 1)
+    str_month = month_obj.strftime('%B')
+
+    # Set up the figure
+    plt.close('all')
+    fig1 = plt.figure(figsize = (7,7))
+    ax1  = fig1.add_subplot(2,2,1, projection = mapcrs)
+    ax2  = fig1.add_subplot(2,2,2, projection = mapcrs)
+    ax3  = fig1.add_subplot(2,2,3, projection = mapcrs)
+    ax4  = fig1.add_subplot(2,2,4, projection = mapcrs)
+
+    cbar_switch = True
+    colorbar_label_size = 10
+    ceres_trends = plotCERES_MonthTrend(CERES_data,month_idx=month_idx,save=False,\
+        trend_type=trend_type,season='sunlight',minlat=minlat,return_trend=True, \
+        pax = ax1, title = '')
+    nsidc_trends = plotNSIDC_MonthTrend(NSIDC_data,month_idx=month_idx,save=False,\
+        trend_type=trend_type,season='sunlight',minlat=minlat,\
+        return_trend=True, colorbar = cbar_switch, \
+        colorbar_label_size = colorbar_label_size, \
+        pax = ax2, show_pval = False, uncert_ax = None, title = '')
+    naaps_trends = plotNAAPS_MonthTrend(NAAPS_data,month_idx=month_idx,\
+        trend_type=trend_type,label = 'μg m$^{-3}$ per study period',\
+        minlat=minlat,title = ' ', pax = ax3, colorbar = cbar_switch, \
+        colorbar_label_size = colorbar_label_size, show_pval = False, \
+        uncert_ax = None, vmax = 1, return_trend = True)
+    omi_trends = plotOMI_MonthTrend(OMI_data,month_idx=month_idx,\
+        trend_type=trend_type,label = 'AI Trend (AI/Study Period)',\
+        return_trend = True, colorbar_label_size = colorbar_label_size, \
+        minlat=minlat,title = None, pax = ax4)
+
+    ax1.set_title('Aqua CERES\nClear-Sky SWF Trends')
+    ax2.set_title('SSMI/S Sea Ice\nConcentration Trends')
+    ax3.set_title('NAAPS-RA Near-Surface\nSmoke Aerosol Trends')
+    ax4.set_title('OMI UVAI Trends')
+
+    plot_subplot_label(ax1, '(a)', location = 'upper_left')
+    plot_subplot_label(ax2, '(b)', location = 'upper_left')
+    plot_subplot_label(ax3, '(c)', location = 'upper_left')
+    plot_subplot_label(ax4, '(d)', location = 'upper_left')
+
+    plt.suptitle(month_obj.strftime('%B Trends (' + \
+        CERES_data['dates'][0][:4] + ' - ' + \
+        CERES_data['dates'][-1][:4] + ')'))
+        
+    fig1.tight_layout()
+    if(save):
+        outname = '_'.join(['ceres','nsidc','naaps','omi','trend','comp',\
+            'spatial',month_obj.strftime('%b'), \
+            CERES_data['param'].split('_')[2]]) + '.png'
+        fig1.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()

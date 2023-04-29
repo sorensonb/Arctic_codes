@@ -1017,11 +1017,12 @@ def readOMI_swath_shawn(plot_time, latmin = 65., \
 
 # NOTE: this is the old way of reading Shawn data. Grids everything
 # into the 0.25 x 0.25 degree grid
-def readOMI_swath_shawn_old(plot_time, latmin = 65., resolution = 0.25):
+def readOMI_swath_shawn_old(plot_time, latmin = 65., resolution = 0.25, \
+        shawn_path = home_dir + '/data/OMI/shawn_files/'):
 
     # This is the path that points to the HDF5 OMI files. This must be changed
     # if running on a new system.
-    base_path = home_dir + '/data/OMI/shawn_files/'
+    #base_path = home_dir + '/data/OMI/shawn_files/'
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
     #
@@ -1037,7 +1038,7 @@ def readOMI_swath_shawn_old(plot_time, latmin = 65., resolution = 0.25):
     else:
         time = ''
     
-    total_list = subprocess.check_output('ls '+base_path+year+date+time+\
+    total_list = subprocess.check_output('ls '+shawn_path+year+date+time+\
         '*',shell=True).decode('utf-8').strip().split('\n')
     
     # Set up values for gridding the AI data
@@ -1097,7 +1098,7 @@ def readOMI_swath_shawn_old(plot_time, latmin = 65., resolution = 0.25):
     OMI_data['LON']       = lon_ranges
     #OMI_data['LAT']       = plot_lat 
     #OMI_data['LON']       = plot_lon
-    OMI_data['AI'] = mask_UVAI
+    OMI_data['AI']        = mask_UVAI
     OMI_data['counts']    = count
 
     return OMI_data
@@ -1294,16 +1295,21 @@ def readOMI_NCDF(infile=home_dir + '/Research/OMI/omi_ai_V003_2005_2020.nc',\
     time_indices = np.where((int_str_dates >= start_date) & \
         (int_str_dates <= end_date))[0]
 
+    # Use minlat to restrict the data to only the desired minimum
+    # latitude
+    # ------------------------------------------------------------
+    min_idx =  np.where(in_data['Latitude'][:,0] > minlat)[0][0]
+
     #check_int_dates
     #check_int_dates = np.array([\
     #    (start_date + relativedelta(months=mi)).strftime('%Y:%m')\
     #     for mi in in_data['MONTH']])
 
     
-    OMI_data['AI']       = in_data['AI'][time_indices,:,:]
-    OMI_data['OB_COUNT'] = in_data['OB_COUNT'][time_indices,:,:]
-    OMI_data['LAT']      = in_data['Latitude'][:,:]
-    OMI_data['LON']      = in_data['Longitude'][:,:]
+    OMI_data['AI']       = in_data['AI'][time_indices,min_idx:,:]
+    OMI_data['OB_COUNT'] = in_data['OB_COUNT'][time_indices,min_idx:,:]
+    OMI_data['LAT']      = in_data['Latitude'][min_idx:,:]
+    OMI_data['LON']      = in_data['Longitude'][min_idx:,:]
     OMI_data['MONTH']    = in_data['MONTH'][time_indices]
     OMI_data['DATES']    = str_dates[time_indices]
     OMI_data['VERSION']  = version
@@ -3249,8 +3255,8 @@ def plotOMI_MonthTrend(OMI_data,month_idx=None,save=False,\
             colorbar_label_size = colorbar_label_size, \
             vmin = 0, vmax = 0.3, minlat = minlat)
 
-    #if(return_trend == True):
-    #    return ai_trends
+    if(return_trend == True):
+        return ai_trends
 
 
 # Plots a single month of OMI climatology data (assumed to be from the 

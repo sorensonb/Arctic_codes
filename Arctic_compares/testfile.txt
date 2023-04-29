@@ -1,0 +1,54 @@
+netcdf NVA_CLIMO1misr_sfc_conc_sink_2017110606 {
+dimensions:
+	lat = 180 ;
+	lon = 360 ;
+variables:
+	float lat(lat) ;
+		lat:long_name = "latitude" ;
+		lat:units = "degrees_north" ;
+	float lon(lon) ;
+		lon:long_name = "longitude" ;
+		lon:units = "degrees_east" ;
+	float abf_wetsink(lat, lon) ;
+		abf_wetsink:long_name = "Wet Deposition of Anthropogenic and Biogenic Fine aerosol in the past 6-hour" ;
+		abf_wetsink:units = "mg/m2" ;
+	float dust_wetsink(lat, lon) ;
+		dust_wetsink:long_name = "Wet Deposition of Dust aerosol in the past 6-hour" ;
+		dust_wetsink:units = "mg/m2" ;
+	float smoke_wetsink(lat, lon) ;
+		smoke_wetsink:long_name = "Wet deposition of Smoke aerosol in the past 6-hour" ;
+		smoke_wetsink:units = "mg/m2" ;
+	float salt_wetsink(lat, lon) ;
+		salt_wetsink:long_name = "Wet deposition of Sea Salt aerosol in the past 6-hour" ;
+		salt_wetsink:units = "mg/m2" ;
+	float abf_drysink(lat, lon) ;
+		abf_drysink:long_name = "Dry Deposition of Anthropogenic and Biogenic Fine aerosol in the past 6-hour" ;
+		abf_drysink:units = "mg/m2" ;
+	float dust_drysink(lat, lon) ;
+		dust_drysink:long_name = "Dry Deposition of Dust aerosol in the past 6-hour" ;
+		dust_drysink:units = "mg/m2" ;
+	float smoke_drysink(lat, lon) ;
+		smoke_drysink:long_name = "Dry deposition of Smoke aerosol in the past 6-hour" ;
+		smoke_drysink:units = "mg/m2" ;
+	float salt_drysink(lat, lon) ;
+		salt_drysink:long_name = "Dry deposition of Sea Salt aerosol in the past 6-hour" ;
+		salt_drysink:units = "mg/m2" ;
+	float abf_conc_sfc(lat, lon) ;
+		abf_conc_sfc:long_name = "Surface Anthropogenic and Biogenic Fine aerosol concentration" ;
+		abf_conc_sfc:units = "ug/m3" ;
+	float dust_conc_sfc(lat, lon) ;
+		dust_conc_sfc:long_name = "Surface Dust aerosol concentration" ;
+		dust_conc_sfc:units = "ug/m3" ;
+	float smoke_conc_sfc(lat, lon) ;
+		smoke_conc_sfc:long_name = "Surface Smoke aerosol concentration" ;
+		smoke_conc_sfc:units = "ug/m3" ;
+	float salt_conc_sfc(lat, lon) ;
+		salt_conc_sfc:long_name = "Surface Sea Salt aerosol concentration" ;
+		salt_conc_sfc:units = "ug/m3" ;
+
+// global attributes:
+		:Conventions = "CF-1.0" ;
+		:model = "NAAPS(NVA_CLIMO1misr)" ;
+		:dtg_vald = "2017110606" ;
+		:contact = "peng.xian@nrlmry.navy.mil" ;
+}

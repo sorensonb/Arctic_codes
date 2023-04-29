@@ -393,7 +393,7 @@ cmnd = "scp "+rain_dir+"Make* "+final_dir
 print(cmnd)
 os.system(cmnd)
 
-cmnd = "scp "+rain_dir+"/tropomi_colocate/auto_trop_process.sh "+final_dir
+cmnd = "scp "+rain_dir+"/auto_trop_process.sh "+final_dir
 print(cmnd)
 os.system(cmnd)
 

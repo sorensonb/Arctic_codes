@@ -15,10 +15,49 @@ import sys
 
 #plotCERES_MonthTrend_AllClr('200504', '202009', 4, \
 #    minlat = 70, satellite = 'Aqua', save = True)
-start_date = '200503'
+start_date = '200504'
 end_date   = '202009'
+season     = 'sunlight'
+
+# NOTE: gridded CERES SSF_1Deg data are the same along
+#       latitude lines, and along wider ranges farther
+#       north. The result is "pixels" in the data that 
+#       appear roughly the same size. 
+minlat = 70.
 CERES_swclr = readgridCERES(start_date,end_date,'toa_sw_clr_mon',\
-    satellite = 'Aqua',minlat=70.,calc_month = True,season = 'sunlight')
+    satellite = 'Aqua',minlat=minlat,calc_month = True,season = 'sunlight')
+CERES_swall = readgridCERES(start_date,end_date,'toa_sw_all_mon',\
+    satellite = 'Aqua',minlat=minlat,calc_month = True,season = 'sunlight')
+
+NSIDC_data = readNSIDC_monthly_grid_all(start_date, end_date, \
+    season, minlat = minlat, calc_month = True)
+
+NAAPS_data = readgridNAAPS_NCDF(infile=home_dir + \
+    '/Research/NAAPS/naaps_grid_smoke_conc_sfc_2005_2020_noAI.nc',\
+    start_date = 200504, end_date = int(end_date), calc_month = True, \
+    minlat = minlat)
+
+#OMI_VJZ211 = readOMI_NCDF(infile = '/home/bsorenson/Research/OMI/omi_ai_VJZ211_2005_2020.nc', minlat = minlat)
+OMI_data   = readOMI_NCDF(infile = \
+    '/home/bsorenson/Research/OMI/omi_ai_VSJ4_2005_2020.nc', \
+    minlat = minlat, end_date = int(end_date))
+
+#plot_compare_CERES_NSIDC_NAAPS_OMI(CERES_swall, NSIDC_data, NAAPS_data, \
+#    OMI_data, month_idx = 3, minlat = minlat, trend_type = 'theil-sen', \
+#    save = True)
+#
+#sys.exit()
+
+for ii in range(5):
+    #plot_compare_CERES_NSIDC_NAAPS_OMI_spatial(CERES_swclr, NSIDC_data, NAAPS_data, \
+    #    OMI_data, month_idx = ii, minlat = minlat, trend_type = 'theil-sen', \
+    #    save = True)
+    plot_compare_CERES_NSIDC_NAAPS_OMI(CERES_swall, NSIDC_data, NAAPS_data, \
+        OMI_data, month_idx = ii, minlat = minlat, trend_type = 'theil-sen', \
+        save = True)
+
+sys.exit()
+
 plotCERES_ClimoTrend_all(CERES_swclr,\
     trend_type = 'standard', minlat=70.,save=True)
 

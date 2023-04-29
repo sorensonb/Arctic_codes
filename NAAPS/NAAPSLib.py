@@ -148,12 +148,17 @@ event_dict = {
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
-def read_NAAPS(date_str, minlat = 65.):
+def read_NAAPS(date_str, minlat = 65., dtype = 'no_AI'):
 
     print(date_str) 
     dt_date_str = datetime.strptime(date_str, '%Y%m%d%H')
 
-    filename = dt_date_str.strftime(data_dir + '%Y/%Y%m/NVA_CLIMO1misr_sfc_conc_sink_%Y%m%d%H.nc')
+    if(dtype == 'no_AI'):
+        local_type = 'CLIMO1misr'
+    else:
+        local_type = 'OMI' 
+    filename = dt_date_str.strftime(data_dir + dtype + '/' + \
+        '%Y/%Y%m/NVA_' + local_type + '_sfc_conc_sink_%Y%m%d%H.nc')
 
     data = Dataset(filename, 'r')
 
@@ -164,6 +169,7 @@ def read_NAAPS(date_str, minlat = 65.):
 
     NAAPS_data = {}
     NAAPS_data['filename']       = filename
+    NAAPS_data['data_type']      = dtype
     NAAPS_data['date']           = date_str
     NAAPS_data['smoke_conc_sfc'] = data['smoke_conc_sfc'][idx1:idx2,:]
     NAAPS_data['smoke_wetsink']  = data['smoke_wetsink'][idx1:idx2,:]
@@ -195,7 +201,7 @@ def read_NAAPS(date_str, minlat = 65.):
  
     return NAAPS_data
 
-def read_NAAPS_event(date_str, minlat = 65.):
+def read_NAAPS_event(date_str, minlat = 65., dtype = 'no_AI'):
  
     print("HERE2:",date_str)
     dt_date_str = datetime.strptime(date_str, '%Y%m%d')
@@ -211,14 +217,14 @@ def read_NAAPS_event(date_str, minlat = 65.):
     # Grab the files from the data directory
     # --------------------------------------
     files = subprocess.check_output(dt_begin_str.strftime('ls ' + data_dir + \
-        '%Y/%Y%m/*.nc'), \
+        dtype + '/%Y/%Y%m/*.nc'), \
         shell = True).decode('utf-8').strip().split('\n')
 
     # Account for events that cross month boundaries
     # ----------------------------------------------
     if(dt_begin_str.month != dt_end_str.month):
-        files = files + subprocess.check_output(dt_end_str.strftime('ls ' + data_dir + \
-            '%Y/%Y%m/*.nc'), \
+        files = files + subprocess.check_output(dt_end_str.strftime('ls ' + \
+            data_dir + dtype + '/%Y/%Y%m/*.nc'), \
             shell = True).decode('utf-8').strip().split('\n')
 
     # Use the actual file times to get timestamps
@@ -238,13 +244,15 @@ def read_NAAPS_event(date_str, minlat = 65.):
 
     # Set up the first data object
     # ----------------------------
-    NAAPS_data = read_NAAPS(dates_found[0].strftime('%Y%m%d%H'), minlat = minlat) 
+    NAAPS_data = read_NAAPS(dates_found[0].strftime('%Y%m%d%H'), \
+        minlat = minlat, dtype = dtype) 
     NAAPS_data['dates'] = [NAAPS_data['date']]
 
     # Loop over the remaining objects
     # -------------------------------
     for ttime in dates_found[1:]:
-        local_data = read_NAAPS(ttime.strftime('%Y%m%d%H'), minlat = minlat)
+        local_data = read_NAAPS(ttime.strftime('%Y%m%d%H'), \
+            minlat = minlat, dtype = dtype)
         NAAPS_data['smoke_conc_sfc'] += local_data['smoke_conc_sfc']
         NAAPS_data['smoke_wetsink']  += local_data['smoke_wetsink']
         NAAPS_data['smoke_drysink']  += local_data['smoke_drysink']
@@ -1213,9 +1221,9 @@ def writeNAAPS_toNCDF(NAAPS_data,file_name, minlat = 65.):
     print("Saved file", file_name)
 
 def readgridNAAPS_NCDF(infile=home_dir + \
-        '/Research/NAAPS/naaps_grid_smoke_conc_sfc_2005_2020.nc',\
+        '/Research/NAAPS/naaps_grid_smoke_conc_sfc_2005_2020_noAI.nc',\
         start_date = 200504, end_date = 202009, calc_month = True, \
-        minlat = 65):
+        minlat = 65.5):
 
     # Read in data to netCDF object
     in_data = Dataset(infile,'r')
@@ -1229,6 +1237,11 @@ def readgridNAAPS_NCDF(infile=home_dir + \
         np.array([(base_date + relativedelta(months=mi)).strftime('%Y%m') for mi in \
             in_data['MONTH']])
 
+    # Use minlat to restrict the data to only the desired minimum
+    # latitude
+    # ------------------------------------------------------------
+    min_idx =  np.where(in_data['Latitude'][:,0] > minlat)[0][0]
+
     # Use the file dates to select just the data within the user-specified
     # timeframe
     # --------------------------------------------------------------------
@@ -1240,9 +1253,9 @@ def readgridNAAPS_NCDF(infile=home_dir + \
     NAAPS_data['begin_str'] = str_dates[0]
     NAAPS_data['end_str']   = str_dates[-1]
     NAAPS_data['dates']     = str_dates
-    NAAPS_data['data']      = in_data['smoke_conc_sfc'][:,:,:]
-    NAAPS_data['lats']      = in_data['Latitude'][:,:]
-    NAAPS_data['lons']      = in_data['Longitude'][:,:]
+    NAAPS_data['data']      = in_data['smoke_conc_sfc'][:,min_idx:,:]
+    NAAPS_data['lats']      = in_data['Latitude'][min_idx:,:]
+    NAAPS_data['lons']      = in_data['Longitude'][min_idx:,:]
  
 
     if(calc_month == True):
@@ -1341,7 +1354,7 @@ def plotNAAPS_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
 def plotNAAPS_MonthTrend(NAAPS_data,month_idx=None,save=False,\
         trend_type='standard',minlat=65.,return_trend=False, colorbar = True, \
         title = '', label = '', colorbar_label_size = 14, pax = None, \
-        show_pval = False, uncert_ax = None):
+        show_pval = False, uncert_ax = None, vmax = None):
 
     trend_label=''
     if(trend_type=='theil-sen'):
@@ -1360,8 +1373,11 @@ def plotNAAPS_MonthTrend(NAAPS_data,month_idx=None,save=False,\
         month_adder = '_month'
         do_month = True
         index_jumper = 6 
-        v_max = max_vals[month_idx]
-        v_min = -max_vals[month_idx]
+        if(vmax is None):
+            vmax = max_vals[month_idx]
+            vmin = -max_vals[month_idx]
+        else:
+            vmin = -vmax
     # --------------------------------------------------------------
     #
     # Use calcNAAPS_grid_trend to calculate the trends in the AI data
@@ -1416,7 +1432,7 @@ def plotNAAPS_MonthTrend(NAAPS_data,month_idx=None,save=False,\
         plotNAAPS_spatial(ax, NAAPS_data['lats'], NAAPS_data['lons'], \
             smoke_trends, 'trend', ptitle = title, plabel = label, \
             colorbar = colorbar, colorbar_label_size = colorbar_label_size, \
-            vmin = v_min, vmax = v_max, minlat = minlat, pvals = smoke_pvals)
+            vmin = vmin, vmax = vmax, minlat = minlat, pvals = smoke_pvals)
 
         fig1.tight_layout()
 
@@ -1435,7 +1451,7 @@ def plotNAAPS_MonthTrend(NAAPS_data,month_idx=None,save=False,\
         plotNAAPS_spatial(pax, NAAPS_data['lats'], NAAPS_data['lons'], \
             smoke_trends, 'trend', ptitle = title, plabel = label, \
             colorbar = colorbar, colorbar_label_size = colorbar_label_size, \
-            vmin = v_min, vmax = v_max, minlat = minlat, pvals = smoke_pvals)
+            vmin = vmin, vmax = vmax, minlat = minlat, pvals = smoke_pvals)
 
     if(uncert_ax is not None):
         plotNAAPS_spatial(uncert_ax, NAAPS_data['lats'], NAAPS_data['lons'], \
@@ -1443,8 +1459,8 @@ def plotNAAPS_MonthTrend(NAAPS_data,month_idx=None,save=False,\
             colorbar = colorbar, colorbar_label_size = colorbar_label_size, \
             vmin = 0, vmax = 4.0, minlat = minlat)
 
-    #if(return_trend == True):
-    #    return ai_trends
+    if(return_trend == True):
+        return smoke_trends
 
 # Generate a 15-panel figure comparing the climatology and trend between 3
 # versions of the NAAPS data for all months
@@ -1627,6 +1643,7 @@ def plotNAAPS_ClimoTrend_all(NAAPS_data,\
 
 def plot_NAAPS(NAAPS_data, var, ax = None, labelsize = 12, \
         plot_log = True, labelticksize = 10, zoom = True, vmin = None, \
+        min_val = 0.0, \
         minlat = 65., circle_bound = True, vmax = None, save = False):
 
     in_ax = True
@@ -1636,7 +1653,6 @@ def plot_NAAPS(NAAPS_data, var, ax = None, labelsize = 12, \
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1, projection = mapcrs)
 
-    min_val = 0.0
     if(plot_log):
         plot_data = np.ma.masked_where(NAAPS_data[var] < min_val, NAAPS_data[var])
         plot_data = np.log10(plot_data)
@@ -1696,9 +1712,9 @@ def plot_NAAPS_figure(date_str, var, minlat = 65., vmin = None, vmax = None, \
     else:
         plt.show()
 
-def plot_NAAPS_event(date_str, var, minlat = 65., vmin = None, vmax = None, \
-        plot_log = True, ptitle = '', circle_bound = True, zoom = True, \
-        save = False):
+def plot_NAAPS_event(date_str, var, minlat = 65., ax = None, vmin = None, \
+        vmax = None, plot_log = True, ptitle = '', circle_bound = True, \
+        dtype = 'no_AI', zoom = True, save = False):
 
     plt.close('all')
     fig = plt.figure()
@@ -1706,7 +1722,6 @@ def plot_NAAPS_event(date_str, var, minlat = 65., vmin = None, vmax = None, \
 
     # Read the data for this granule
     # ------------------------------
-    print("HERE:",date_str)
     NAAPS_data = read_NAAPS_event(date_str, minlat = minlat)
 
     # Plot the data for this granule
@@ -1727,6 +1742,173 @@ def plot_NAAPS_event(date_str, var, minlat = 65., vmin = None, vmax = None, \
         print("Saved image", outname)
     else:
         plt.show()
+
+# NOTE: Works for either total events or single times.
+#       For a whole event, use YYYYMMDD
+#       For a single time, use YYYYMMDDHH
+def plot_NAAPS_compare_types(date_str, minlat = 65., ax = None, \
+        vmin = None, vmax = None, plot_log = True, ptitle = '', \
+        circle_bound = True, dtype = 'no_AI', zoom = True, save = False):
+   
+    plt.close('all')
+    fig = plt.figure(figsize = (9,8.5))
+    ax1 = fig.add_subplot(3,3,1, projection = mapcrs)
+    ax2 = fig.add_subplot(3,3,2, projection = mapcrs)
+    ax3 = fig.add_subplot(3,3,3, projection = mapcrs)
+    ax4 = fig.add_subplot(3,3,4, projection = mapcrs)
+    ax5 = fig.add_subplot(3,3,5, projection = mapcrs)
+    ax6 = fig.add_subplot(3,3,6, projection = mapcrs)
+    ax7 = fig.add_subplot(3,3,7, projection = mapcrs)
+    ax8 = fig.add_subplot(3,3,8, projection = mapcrs)
+    ax9 = fig.add_subplot(3,3,9, projection = mapcrs)
+
+    # Read the data for this granule
+    # ------------------------------
+    if(len(date_str) == 10):
+        max_dict = {
+            'smoke_conc_sfc': 8,
+            'smoke_drysink': 0.1,
+            'smoke_wetsink': 3,
+        }
+
+        l_event = False
+        NAAPS_noAI    = read_NAAPS(date_str, minlat = minlat, \
+            dtype = 'no_AI')
+        NAAPS_withAI  = read_NAAPS(date_str, minlat = minlat, \
+            dtype = 'with_AI')
+        dt_date_str = datetime.strptime(date_str, '%Y%m%d%H')
+        plot_title = 'NAAPS-RA Comparisons\n' + \
+            dt_date_str.strftime('%Y-%m-%d %H UTC')
+        fileadd = ''
+
+    elif(len(date_str) == 8):
+        max_dict = {
+            'smoke_conc_sfc': 120,
+            'smoke_drysink': 1,
+            'smoke_wetsink': 30,
+        }
+    
+        l_event = True
+        NAAPS_noAI    = read_NAAPS_event(date_str, minlat = minlat, \
+            dtype = 'no_AI')
+        NAAPS_withAI  = read_NAAPS_event(date_str, minlat = minlat, \
+            dtype = 'with_AI')
+        plot_title = 'Event Total NAAPS-RA Values\n' + \
+            NAAPS_noAI['dt_begin_date'].strftime('%Y-%m-%d') + ' - ' + \
+            NAAPS_noAI['dt_end_date'].strftime('%Y-%m-%d')
+        fileadd = '_event'
+    else:
+        print("ERROR: Invalid date_str. Must be either YYYYMMDD or YYYYMMDDHH")
+        return
+
+    # Plot the smoke_conc_sfc data and comps
+    # --------------------------------------
+    var = 'smoke_conc_sfc'
+    vmax = max_dict[var]
+    plot_NAAPS(NAAPS_noAI, var, ax = ax1, zoom = zoom, \
+            vmin = vmin, vmax = vmax, plot_log = plot_log, \
+            circle_bound = circle_bound, minlat = minlat)
+    plot_NAAPS(NAAPS_withAI, var, ax = ax2, zoom = zoom, \
+            vmin = vmin, vmax = vmax, plot_log = plot_log, \
+            circle_bound = circle_bound, minlat = minlat)
+
+    diff_data = NAAPS_withAI[var] - NAAPS_noAI[var]
+
+    labelsize = 12
+    mesh = ax3.pcolormesh(NAAPS_withAI['lon'], NAAPS_noAI['lat'], \
+        diff_data, \
+        cmap = 'bwr', vmin = -(vmax/4), vmax = (vmax/4), \
+        transform = ccrs.PlateCarree(), shading = 'auto')
+    cbar = plt.colorbar(mesh, ax = ax3, orientation='vertical',\
+        pad=0.04, fraction = 0.040, extend = 'both')
+    cbar.set_label('Δ' + var, size = labelsize, weight = 'bold')
+    ax3.set_boundary(circle, transform=ax3.transAxes)
+    ax3.set_extent([-180.0,180.0,minlat,90.0],datacrs)
+    ax1.set_title('AOD Only\n' + var)
+    ax2.set_title('AOD + AI\n' + var)
+    ax3.set_title('Difference (with_AI - no_AI)\n' + var)
+
+    # Plot the smoke_conc_sfc data and comps
+    # --------------------------------------
+    var = 'smoke_drysink'
+    vmax = max_dict[var]
+    plot_NAAPS(NAAPS_noAI, var, ax = ax4, zoom = zoom, \
+            vmin = vmin, vmax = vmax, plot_log = plot_log, \
+            circle_bound = circle_bound, minlat = minlat)
+    plot_NAAPS(NAAPS_withAI, var, ax = ax5, zoom = zoom, \
+            vmin = vmin, vmax = vmax, plot_log = plot_log, \
+            circle_bound = circle_bound, minlat = minlat)
+
+    diff_data = NAAPS_withAI[var] - NAAPS_noAI[var]
+
+    labelsize = 12
+    mesh = ax6.pcolormesh(NAAPS_withAI['lon'], NAAPS_noAI['lat'], \
+        diff_data, \
+        cmap = 'bwr', vmin = -(vmax/4), vmax = (vmax/4), \
+        transform = ccrs.PlateCarree(), shading = 'auto')
+    cbar = plt.colorbar(mesh, ax = ax6, orientation='vertical',\
+        pad=0.04, fraction = 0.040, extend = 'both')
+    cbar.set_label('Δ' + var, size = labelsize, weight = 'bold')
+    ax6.set_boundary(circle, transform=ax6.transAxes)
+    ax6.set_extent([-180.0,180.0,minlat,90.0],datacrs)
+    ax4.set_title('AOD Only\n' + var)
+    ax5.set_title('AOD + AI\n' + var)
+    ax6.set_title('Difference (with_AI - no_AI)\n' + var)
+
+    # Plot the smoke_conc_sfc data and comps
+    # --------------------------------------
+    var = 'smoke_wetsink'
+    vmax = max_dict[var]
+    plot_NAAPS(NAAPS_noAI, var, ax = ax7, zoom = zoom, \
+            vmin = vmin, vmax = vmax, plot_log = plot_log, \
+            circle_bound = circle_bound, minlat = minlat)
+    plot_NAAPS(NAAPS_withAI, var, ax = ax8, zoom = zoom, \
+            vmin = vmin, vmax = vmax, plot_log = plot_log, \
+            circle_bound = circle_bound, minlat = minlat)
+
+    diff_data = NAAPS_withAI[var] - NAAPS_noAI[var]
+
+    labelsize = 12
+    mesh = ax9.pcolormesh(NAAPS_withAI['lon'], NAAPS_noAI['lat'], \
+        diff_data, \
+        cmap = 'bwr', vmin = -(vmax/4), vmax = (vmax/4), \
+        transform = ccrs.PlateCarree(), shading = 'auto')
+    cbar = plt.colorbar(mesh, ax = ax9, orientation='vertical',\
+        pad=0.04, fraction = 0.040, extend = 'both')
+    cbar.set_label('Δ' + var, size = labelsize, weight = 'bold')
+    ax9.set_boundary(circle, transform=ax9.transAxes)
+    ax9.set_extent([-180.0,180.0,minlat,90.0],datacrs)
+    ax7.set_title('NAAPS-RA (No AI)\n' + var)
+    ax8.set_title('NAAPS-RA (With AI)\n' + var)
+    ax9.set_title('Difference (with_AI - no_AI)\n' + var)
+
+    plt.suptitle(plot_title)
+
+ 
+    ax1.coastlines()
+    ax2.coastlines()
+    ax3.coastlines()
+    ax4.coastlines()
+    ax5.coastlines()
+    ax6.coastlines()
+    ax7.coastlines()
+    ax8.coastlines()
+    ax9.coastlines()
+
+    fig.tight_layout()
+    
+    if(save):
+        outname = 'naaps' + fileadd + '_comparetype_allvar_' + \
+            date_str + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+
+
+
+
 
 def plot_NAAPS_event_CERES(date_str, var, ceres_var = 'alb_clr', \
         minlat = 70.5, vmin = None, vmax = None, vmin2 = None, vmax2 = None, \

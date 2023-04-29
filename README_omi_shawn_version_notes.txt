@@ -38,6 +38,7 @@ out_files-ltc3/new/ = identical to old, but with fewer lines.
 out_files-ltc3/old/ = same as ltc3, but with no GPQF flag value.
                       longer file length than ltc3 or new. 
                       Contain data for April and May.
+                      VALUES ARE NOT THE SAME AS LTC3, NEW, OR LTC4
     201708161504 contains 7945 lines
                  last column is the GPQF flag
 out_files-ltc4      = same as ltc3/new, but with row number added at end.

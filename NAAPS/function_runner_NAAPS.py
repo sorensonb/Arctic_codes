@@ -7,10 +7,114 @@
 
 from NAAPSLib import *
 
+#x = 1010
+#
+#for ii in range(5):
+#    str_x = sorted(str(x))[::-1]
+#    str_y = str_x[::-1]
+#    if(len(str_y) < 4):
+#        filler = ['0'] * (4 - len(str_y))
+#        str_y = str_y + filler
+#    x = int(''.join(str_x))
+#    y = int(''.join(str_y))
+#    z = x - y
+#    print(x,'   ',y,'   ',z)
+#
+#    x = z
+#
+#sys.exit()
+
+save_flag = True
+minlat = 65.
+date_str = '20080422'
+shawn_path = home_dir + '/data/OMI/shawn_files/ltc3_old/'
+#var = 'smoke_conc_sfc'
+#var = 'smoke_drysink'
+#var = 'smoke_wetsink'
+
+shawn_files = glob(shawn_path + '200804*')
+dt_dates = np.array([datetime.strptime(sfile.strip().split('/')[-1], \
+    '%Y%m%d%H%M') for sfile in shawn_files])
+date_strs = np.array([dtd.strftime('%Y%m%d%H%M') for dtd in dt_dates])
+
+#sys.exit()
+
+base_date = datetime(2008,4,20,18)
+for ii in range(16):
+    base_date = base_date + timedelta(hours = 6)
+    date_str = base_date.strftime('%Y%m%d%H')    
+
+    # Load and plot Shawn averaged data
+    # Figure out which swaths are within the range
+    # --------------------------------------------
+    min_window = base_date - timedelta(hours = 3)
+    max_window = base_date + timedelta(hours = 3)
+
+    in_times = date_strs[(dt_dates >= min_window) & \
+        (dt_dates <= max_window)]
+
+
+    OMI_data = readOMI_swath_shawn_old(in_times[0], latmin = minlat, \
+        resolution = 1.00, shawn_path = shawn_path)
+    local_AI = np.full((len(in_times), OMI_data['AI'].shape[0], \
+        OMI_data['AI'].shape[1]), np.nan)
+    local_AI[0,:,:] = OMI_data['AI'][:,:]
+
+    for ii in range(1, len(in_times)):
+        OMI_local = readOMI_swath_shawn_old(in_times[ii], latmin = minlat,
+            resolution = 1.00, shawn_path = shawn_path)
+        local_AI[ii,:,:] = OMI_local['AI'][:,:]
+
+    mask_AI = np.ma.masked_where(local_AI == 0., local_AI)
+    mask_AI = np.ma.masked_invalid(mask_AI)
+    mask_AI = np.nanmean(mask_AI, axis = 0)
+
+    plt.close('all')
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1, projection = mapcrs)
+    mesh = ax.pcolormesh(OMI_data['LON'], OMI_data['LAT'], mask_AI.T, \
+        transform = datacrs, shading = 'auto', cmap = 'jet', \
+        vmin = -2, vmax = 3)
+    cbar = plt.colorbar(mesh, ax = ax, orientation='vertical',\
+        pad=0.04, fraction = 0.040, extend = 'both')
+    cbar.set_label('UVAI', size = None, weight = None)
+    ax.set_boundary(circle, transform=ax.transAxes)
+    ax.set_extent([-180,180,minlat, 90], datacrs)
+    ax.coastlines()
+    ax.set_title('OMI Perturbed UVAI\n' + \
+        min_window.strftime('%Y-%m-%d %H UTC') + ' - '  + \
+        max_window.strftime('%Y-%m-%d %H UTC'))
+    fig.tight_layout()
+    outname = 'omi_assim_window_' + min_window.strftime('%Y%m%d%H') + \
+        '_' + max_window.strftime('%Y%m%d%H') + '.png'
+    fig.savefig(outname, dpi = 300)
+    print("Saved image", outname)
+
+    plot_NAAPS_compare_types(date_str, minlat = 65., ax = None, \
+        vmin = None, vmax = None, plot_log = False, ptitle = '', \
+        circle_bound = True, zoom = True, \
+        save = save_flag)
+
+date_str = '20080422'
+plot_NAAPS_compare_types(date_str, minlat = 65., ax = None, \
+    vmin = None, vmax = None, plot_log = False, ptitle = '', \
+    circle_bound = True, zoom = True, \
+    save = save_flag)
+
+sys.exit()
+
+NAAPS_noAI   = read_NAAPS_event('20080422', minlat = minlat, dtype = 'no_AI')
+NAAPS_withAI = read_NAAPS_event('20080422', minlat = minlat, dtype = 'with_AI')
+
+sys.exit()
+
+# NOTE: Remake gridded NAAPS data to include
+#       drysink and wetsink?
+
 NAAPS_data = readgridNAAPS_NCDF(infile=home_dir + \
     '/Research/NAAPS/naaps_grid_smoke_conc_sfc_2005_2020.nc',\
     start_date = 200504, end_date = 202009, calc_month = True, \
-    minlat = 70)
+    minlat = 65)
 
 plotNAAPS_ClimoTrend_all(NAAPS_data,\
     trend_type = 'standard', minlat=70,save=True)

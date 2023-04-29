@@ -13,10 +13,13 @@ import numpy.ma as ma
 import sys
 import matplotlib.pyplot as plt
 import matplotlib.colors as cm
+import matplotlib.gridspec as gridspec
 from matplotlib.lines import Line2D
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import cartopy
 import cartopy.crs as ccrs
+from cartopy.util import add_cyclic_point
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 import glob
 import subprocess
 import os
@@ -270,9 +273,115 @@ def download_NSIDC_monthly(date_str, save_dir = data_dir + 'monthly/'):
         print(total_cmnd)
         os.system(total_cmnd)
 
+def readNSIDC_monthly_grid_all(begin_date, end_date, season, minlat = 70., \
+        calc_month = True):
+
+    NSIDC_data = {}
+  
+    spring=False
+    summer=False
+    autumn=False
+    winter=False
+    sunlight=False
+    if(season=='spring'):
+        spring=True
+    elif(season=='summer'):
+        summer=True
+    elif(season=='autumn'):
+        autumn=True
+    elif(season=='winter'):
+        winter=True
+    elif(season=='sunlight'):
+        sunlight=True
+   
+
+    # Grab all the files
+    base_path = home_dir + '/data/NSIDC/monthly/'
+    total_list = sorted(glob.glob(base_path+'*.nc')) 
+
+    # Loop over all files and find the ones that match with the desired times
+    begin_date = datetime.strptime(str(begin_date),'%Y%m')
+    end_date = datetime.strptime(str(end_date),'%Y%m')
+    final_list = []
+    for f in total_list:
+        fdate = f.strip().split('/')[-1].split('_')[-2]
+        fdate = datetime.strptime(str(fdate),'%Y%m')
+        if((fdate >= begin_date) & (fdate <= end_date)):
+            if(spring==True):
+                if((fdate.month >= 3) & (fdate.month < 6)):
+                    final_list.append(f)
+            elif(summer==True):
+                if((fdate.month >= 6) & (fdate.month < 9)):
+                    final_list.append(f)
+            elif(autumn==True):
+                if((fdate.month >= 9) & (fdate.month < 12)):
+                    final_list.append(f)
+            elif(winter==True):
+                if((fdate.month == 12) | (fdate.month < 3)):
+                    final_list.append(f)
+            elif(sunlight==True):
+                if((fdate.month > 3) & (fdate.month < 10)):
+                    final_list.append(f)
+            else:
+                final_list.append(f)
+    time_dim = len(final_list)
+
+    dates = [ffile.strip().split('/')[-1].split('_')[-2] for ffile in \
+        final_list]
+
+    NSIDC_data = {}
+    NSIDC_data['begin_dt_date'] = begin_date
+    NSIDC_data['end_dt_date']   = end_date
+    NSIDC_data['season']        = season
+    NSIDC_data['dates']         = dates
+    NSIDC_data['data']          = np.full((time_dim, 448, 304), np.nan)
+    #NSIDC_data['area']          = np.full((448, 304), np.nan)
+
+    for ii, work_str in enumerate(dates):
+        #work_str = ffile[0].strip().split('/')[-1].split('_')[-2]
+        NSIDC_local = readNSIDC_monthly(work_str)
+
+        NSIDC_data['data'][ii,:,:] = NSIDC_local['data']
+   
+    NSIDC_data['lat'] = NSIDC_local['lat'] 
+    NSIDC_data['lon'] = NSIDC_local['lon'] 
+    NSIDC_data['area'] = NSIDC_local['area'] 
+
+
+    NSIDC_data = grid_data_conc(NSIDC_data, minlat = minlat)
+
+    if(calc_month == True):
+        NSIDC_data = calcNSIDC_MonthClimo(NSIDC_data)
+    
+    NSIDC_data['data'] = np.ma.masked_where((NSIDC_data['data'] < 0) | \
+        (NSIDC_data['data'] > 100), NSIDC_data['data'])
+    NSIDC_data['grid_ice_conc'] = np.ma.masked_where((NSIDC_data['grid_ice_conc'] < 0) | \
+        (NSIDC_data['grid_ice_conc'] > 100), NSIDC_data['grid_ice_conc'])
+    NSIDC_data['MONTH_CLIMO'] = np.ma.masked_where((NSIDC_data['MONTH_CLIMO'] < 0) | \
+        (NSIDC_data['MONTH_CLIMO'] > 100), NSIDC_data['MONTH_CLIMO'])
+
+    return NSIDC_data
+
+
+def readNSIDC_monthly(date_str, grid_data = False):
+
+    NSIDC_data = readNSIDC_daily(date_str, grid_data = grid_data)
+
+    return NSIDC_data
+
 def readNSIDC_daily(date_str, grid_data = False):
 
-    dt_date_str = datetime.strptime(date_str, '%Y%m%d') 
+    if(len(date_str) == 8):
+        str_fmt = '%Y%m%d'
+        file_dir = data_dir
+    elif(len(date_str) == 6):
+        str_fmt = '%Y%m'
+        file_dir = data_dir + 'monthly/'
+    else:
+        print("ERROR: Invalid date format")
+        print(date_str)
+    
+    dt_date_str = datetime.strptime(date_str, str_fmt) 
   
     # Read in the latitude, longitude, area and ice data
     # --------------------------------------------------
@@ -287,9 +396,9 @@ def readNSIDC_daily(date_str, grid_data = False):
 
     # Look for both the binary file and the netCDF file.
     # --------------------------------------------------
-    bin_filename = data_dir + 'nt_' + date_str + '_f17_v1.1_n.bin'
-    net_filename = data_dir + 'NSIDC0051_SEAICE_PS_N25km_' + date_str + '_v2.0.nc'
-    print(bin_filename)
+    bin_filename = file_dir + 'nt_' + date_str + '_f17_v1.1_n.bin'
+    net_filename = file_dir + 'NSIDC0051_SEAICE_PS_N25km_' + date_str + '_v2.0.nc'
+    #print(bin_filename)
 
     bin_found = os.path.exists(bin_filename)
     net_found = os.path.exists(net_filename)
@@ -346,15 +455,597 @@ def readNSIDC_daily(date_str, grid_data = False):
             return
 
         in_data.close()
- 
+
     NSIDC_data = {}
     NSIDC_data['data'] = data
     NSIDC_data['lat']  = lats
     NSIDC_data['lon']  = lons
     NSIDC_data['area']  = areas
     NSIDC_data['date'] = date_str
+
+    if(grid_data):
+        NSIDC_data = grid_NSIDC_data(NSIDC_data)
  
     return NSIDC_data
+
+
+def calcNSIDC_MonthClimo(NSIDC_data):
+
+    if('grid_ice_conc' not in NSIDC_data.keys()):
+        print("ERROR: no gridded data. Must grid data before month averaging")
+        return   
+ 
+    # Set up arrays to hold monthly climatologies
+    month_grid_climo = np.full((6, NSIDC_data['grid_lat'].shape[0], \
+        NSIDC_data['grid_lat'].shape[1]), np.nan)
+
+    local_grid_data = np.copy(NSIDC_data['grid_ice_conc'][:,:,:])
+    local_grid_mask = np.ma.masked_where((local_grid_data < 0) | \
+        (local_grid_data > 100), local_grid_data)
+
+    # Calculate monthly climatologies
+    for m_i in range(6):
+        month_grid_climo[m_i,:,:] = np.nanmean(\
+            local_grid_mask[m_i::6,:,:],axis=0)
+        print("Month: ",NSIDC_data['dates'][m_i][4:]) 
+    ##!## Calculate monthly climatologies
+    ##!## Assume all Aqua CERES data starting at 200207 is read in previously
+    ##!#month_climo[0,:,:]  = np.nanmean(local_mask[6::12,:,:],axis=0)  # January 
+    ##!#month_climo[1,:,:]  = np.nanmean(local_mask[7::12,:,:],axis=0)  # February
+    ##!#month_climo[2,:,:]  = np.nanmean(local_mask[8::12,:,:],axis=0)  # March 
+    ##!#month_climo[3,:,:]  = np.nanmean(local_mask[9::12,:,:],axis=0)  # April 
+    ##!#month_climo[4,:,:]  = np.nanmean(local_mask[10::12,:,:],axis=0) # May 
+    ##!#month_climo[5,:,:]  = np.nanmean(local_mask[11::12,:,:],axis=0) # June 
+    ##!#month_climo[6,:,:]  = np.nanmean(local_mask[0::12,:,:],axis=0)  # July 
+    ##!#month_climo[7,:,:]  = np.nanmean(local_mask[1::12,:,:],axis=0)  # August 
+    ##!#month_climo[8,:,:]  = np.nanmean(local_mask[2::12,:,:],axis=0)  # September 
+    ##!#month_climo[9,:,:]  = np.nanmean(local_mask[3::12,:,:],axis=0)  # October 
+    ##!#month_climo[10,:,:] = np.nanmean(local_mask[4::12,:,:],axis=0)  # November
+    ##!#month_climo[11,:,:] = np.nanmean(local_mask[5::12,:,:],axis=0)  # December
+
+    # Insert data into dictionary
+    NSIDC_data['MONTH_CLIMO'] = month_grid_climo
+
+    return NSIDC_data
+
+def calcNSIDC_grid_trend(NSIDC_data, month_idx, trend_type, mingrid_lat):
+
+    if(month_idx == None):
+        month_idx = 0
+        index_jumper = 1
+    else:
+        month_adder = '_month'
+        if(NSIDC_data['season'] == 'sunlight'):
+            index_jumper = 6
+        else:   
+            index_jumper = 12
+
+    lat_ranges = NSIDC_data['grid_lat'][:,0]
+    #grid_lat_ranges = np.arange(mingrid_lat,90,1.0)
+    lon_ranges = NSIDC_data['grid_lon'][0,:]
+    #lon_ranges = np.arange(-180,180,1.0)
+
+    # Make copy of NSIDC_data array
+    print(NSIDC_data['dates'][month_idx::index_jumper])
+    local_data   = np.copy(NSIDC_data['grid_ice_conc'][month_idx::index_jumper,:,:])
+    local_data = np.ma.masked_invalid(local_data)
+    #local_counts = np.copy(NSIDC_data['OB_COUNT'][month_idx::index_jumper,:,:])
+    #local_mask = np.ma.masked_where(local_counts == 0, local_data)
+    local_mask = np.ma.masked_where(((local_data < 0.) | \
+        (local_data > 100) | 
+        (NSIDC_data['grid_lat'] < mingrid_lat)), local_data)
+    nsidc_trends = np.full(local_data.shape[1:], np.nan)
+    nsidc_pvals  = np.full(local_data.shape[1:], np.nan)
+    nsidc_uncert = np.full(local_data.shape[1:], np.nan)
+
+    # Loop over all the keys and print the regression slopes 
+    # Grab the averages for the key
+    for i in range(0,len(lat_ranges)):
+        for j in range(0,len(lon_ranges)):
+            # Check the current max and min
+            #print(local_mask[:,i,j])
+            work_mask = local_mask[:,i,j]
+            #work_mask = local_mask[:,i,j][~local_mask[:,i,j].mask][0]
+            if(len(work_mask.compressed()) > 1):
+                x_vals = np.arange(0,len(work_mask.compressed()))
+                # Find the slope of the line of best fit for the time series of
+                # average data
+                if(trend_type=='standard'): 
+                    result = stats.linregress(x_vals, work_mask.compressed())
+                    #slope, intercept, r_value, p_value, std_err = \
+                    #    stats.linregress(x_vals,work_mask.compressed())
+                    nsidc_trends[i,j] = result.slope * len(x_vals)
+                    nsidc_pvals[i,j]  = result.pvalue
+                    nsidc_uncert[i,j] = result.stderr * len(x_vals)
+                else:
+                    res = stats.theilslopes(work_mask.compressed(), x_vals, 0.90)
+                    nsidc_trends[i,j] = res[0]*len(x_vals)
+            #else:
+            #    print('no data')
+
+    #nsidc_trends = np.ma.masked_where(((NSIDC_data['grid_lat'] < mingrid_lat) | \
+    #    (nsidc_trends == -999.)), nsidc_trends)
+    nsidc_trends = np.ma.masked_where(NSIDC_data['grid_lat'] < mingrid_lat, nsidc_trends)
+    nsidc_pvals  = np.ma.masked_where(NSIDC_data['grid_lat'] < mingrid_lat, nsidc_pvals)
+    nsidc_uncert = np.ma.masked_where(NSIDC_data['grid_lat'] < mingrid_lat, nsidc_uncert)
+
+    return nsidc_trends, nsidc_pvals, nsidc_uncert
+
+# title is the plot title
+# ptype is 'climo', 'trend'
+def plotNSIDC_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
+        vmin = None, vmax = None, colorbar_label_size = 16, minlat = 65., \
+        colorbar = True, \
+        pvals = None):
+
+    if(vmin == None):
+        vmin = np.nanmin(pdata)
+    if(vmax == None):
+        vmax = np.nanmax(pdata)
+
+    if(ptype == 'trend'):
+        colormap = plt.cm.bwr
+    elif(ptype == 'uncert'):
+        #colormap = plt.cm.plasma
+        colormap = plt.cm.get_cmap('jet', 6)
+    else:
+        colormap = plt.cm.jet
+
+    # Make copy of OMI_data array
+    local_data  = np.copy(pdata)
+    # Grid the data, fill in white space
+    cyclic_data,cyclic_lons = add_cyclic_point(local_data,plon[0,:])
+    plat,plon = np.meshgrid(plat[:,0],cyclic_lons)   
+  
+    # Mask any missing values
+    mask_AI = np.ma.masked_where(cyclic_data < -998.9, cyclic_data)
+    mask_AI = np.ma.masked_where(plat.T < minlat, mask_AI)
+
+    # Plot lat/lon lines
+    gl = pax.gridlines(crs = ccrs.PlateCarree(), draw_labels = False, \
+        linewidth = 1, color = 'gray', alpha = 0.5, linestyle = '-',\
+        y_inline = True, xlocs = range(-180, 180, 30), ylocs = range(70, 90, 10))
+    #gl.top_labels = False
+    #gl.bottom_labels = False
+    #gl.left_labels = False
+    #gl.right_labels = False
+    #gl.xlines = False
+    #gl.xlocator = mticker.FixedLocator(np.arange(-180, 180, 30))
+    #gl.ylocator = mticker.FixedLocator(np.arange(70, 90, 10))
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    #gl.xlabel_style = {'size': 5, 'color': 'gray'}
+    gl.xlabel_style = {'color': 'gray', 'weight': 'bold'}
+    gl.ylabel_style = {'size': 15, 'color': 'gray'}
+    gl.ylabel_style = {'color': 'black', 'weight': 'bold'}
+    #pax.gridlines()
+
+    #pax.gridlines()
+    pax.coastlines(resolution='50m')
+    mesh = pax.pcolormesh(plon, plat,\
+            mask_AI.T,transform = datacrs,shading = 'auto',\
+            cmap = colormap,vmin=vmin,vmax=vmax)
+    if(pvals is not None):
+        cyclic_pvals, cyclic_lons = add_cyclic_point(pvals, plon[0,:])
+        print(pvals.shape, plat.shape, plat2.shape)
+        mask_pvals = np.ma.masked_where((plat < minlat) | \
+            (pvals > 0.05), pvals)
+        pax.pcolor(plon, plat, mask_pvals, hatch = '...', alpha = 0.0, \
+            shading = 'auto', transform = datacrs)
+
+    pax.set_extent([-180,180,minlat,90],datacrs)
+    pax.set_boundary(circle, transform=pax.transAxes)
+    #cbar = plt.colorbar(mesh,ticks = np.arange(-200.,400.,5.),\    
+    if(colorbar):
+        cbar = plt.colorbar(mesh,\
+            ax = pax, orientation='vertical',shrink = 0.8, extend = 'both')
+        cbar.set_label(plabel,fontsize=colorbar_label_size,weight='bold')
+    print("USING ",ptitle)
+    pax.set_title(ptitle)
+
+
+# Plot a monthly climatology 
+def plotNSIDC_MonthClimo(NSIDC_data,month_idx,minlat = 60, ax = None, \
+        colorbar = True, title = None, save = False):
+
+    # Set up mapping variables 
+    datacrs = ccrs.PlateCarree() 
+    colormap = plt.cm.ocean
+    if(minlat < 45):
+        mapcrs = ccrs.Miller()
+    else:
+        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0.)
+
+    month_obj = datetime(year = 1,month = int(NSIDC_data['dates'][month_idx][4:]),day = 1)
+    str_month = month_obj.strftime('%B')
+
+    # Make figure title
+    if(title == None):
+        title = 'NSIDC Sea Ice Conc. ' + str_month + \
+            ' Climatology\n'+str_month+'. ' + NSIDC_data['dates'][0][:4] \
+            + ' - '+str_month+'. ' + NSIDC_data['dates'][-1][:4]
+
+    # Make figure
+    in_ax = True 
+    if(ax is None): 
+        in_ax = False
+        fig1 = plt.figure(figsize = (6,6))
+        ax = plt.axes(projection = mapcrs)
+
+    mask_data = np.ma.masked_where(\
+        NSIDC_data['MONTH_CLIMO'][month_idx,:,:] < 10, 
+        NSIDC_data['MONTH_CLIMO'][month_idx,:,:])
+    ax.gridlines()
+    ax.coastlines(resolution='50m')
+    mesh = ax.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'],\
+            mask_data,transform = datacrs,\
+            cmap = colormap)
+    ax.set_extent([-180,180,minlat,90],datacrs)
+    ax.set_extent([-180,180,minlat,90],datacrs)
+    ax.set_boundary(circle, transform=ax.transAxes)
+    #ax.set_xlim(-3430748.535086173,3430748.438879491)
+    #ax.set_ylim(-3413488.8763307533,3443353.899053069)
+    if(colorbar):
+        #cbar = plt.colorbar(mesh,ax = pax, orientation='horizontal',pad=0,\
+        cbar = plt.colorbar(mesh,ax = ax, orientation='vertical',\
+            pad = 0.04, fraction = 0.040)
+        cbar.set_label('Sea Ice Concentration', fontsize = 12, weight='bold')
+    #cbar = plt.colorbar(mesh,ticks = np.arange(0.0,400.,25.),orientation='horizontal',pad=0,\
+    #    aspect=50,shrink = 0.845,label=CERES_data['parm_name'])
+    ax.set_title(title)
+
+    if(not in_ax):
+        fig1.tight_layout()
+        if(save):
+            outname = 'nsidc_month_climo_'+ month_obj.strftime('%b') + '.png'
+            fig1.savefig(outname, dpi=300)
+            print("Saved image",outname)
+        else:
+            plt.show()
+
+
+# Designed to work with the netCDF data
+def plotNSIDC_MonthTrend(NSIDC_data,month_idx=None,save=False,\
+        trend_type='standard',season='',minlat=65.,return_trend=False, \
+        colorbar = True, colorbar_label_size = None,title = None, \
+        pax = None, show_pval = False, uncert_ax = None):
+
+    trend_label=''
+    if(trend_type=='thiel-sen'):
+        trend_label='_thielSen'
+
+    if(month_idx == None):
+        month_adder = ''
+        month_idx = 0
+        index_jumper = 1
+        do_month = False
+        v_max = 30.
+        v_min = -30.
+    else:
+        month_adder = '_month'
+        if(NSIDC_data['season'] == 'sunlight'):
+            index_jumper = 6
+        else:   
+            index_jumper = 12
+        do_month = True
+        v_max = 30.
+        v_min = -30.
+
+    lat_ranges = np.arange(minlat,90,1.0)
+    lon_ranges = np.arange(-180,180,1.0)
+
+    # --------------------------------------------------------------
+    #
+    # Use calcNSIDC_grid_trend to calculate the trends in the AI data
+    #
+    # --------------------------------------------------------------
+    nsidc_trends, nsidc_pvals, nsidc_uncert = \
+        calcNSIDC_grid_trend(NSIDC_data, month_idx, trend_type, \
+        minlat)
+
+    if(not show_pval):
+        nsidc_pvals = None
+    else:
+        print('month_idx = ',month_idx,' PVAL nanmean = ', \
+            np.nanmean(nsidc_pvals))
+
+    if(uncert_ax is None):
+        nsidc_uncert = None
+    # --------------------------------------------------------------
+    #
+    # Plot the calculated trends on a figure
+    #
+    # --------------------------------------------------------------
+
+    # Set up mapping variables 
+    colormap = plt.cm.bwr
+
+    # Pull the beginning and ending dates into datetime objects
+    start_date = datetime.strptime(NSIDC_data['dates'][month_idx::index_jumper][0],'%Y%m')
+    end_date   = datetime.strptime(NSIDC_data['dates'][month_idx::index_jumper][-1],'%Y%m')
+    
+    # Make figure title
+    #date_month = datetime(year = 1,month = month_idx+1, day = 1).strftime('%B')
+    month_string = ''
+    if(do_month == True):
+        month_string = start_date.strftime('%B') + ' '
+
+    if(title is None):
+        title = 'NSIDC ' +  month_string + 'Trends'\
+            '\n'+start_date.strftime('%b. %Y') + ' - ' +\
+            end_date.strftime('%b. %Y')
+
+    # Call plotNSIDC_spatial to add the data to the figure
+
+    #ii = 10
+    #jj = 44
+    #print(NSIDC_data['grid_lat'][ii,jj], NSIDC_data['grid_lon'][ii,jj])
+    #print(NSIDC_data['grid_ice_conc'][month_idx::index_jumper,ii,jj])
+    #fig2 = plt.figure()
+    #ax4 = fig2.add_subplot(1,1,1)
+    #ax4.plot(NSIDC_data['grid_ice_conc'][month_idx::index_jumper,ii,jj])
+    
+
+    if(pax is None):
+        #plt.close('all')
+        fig1 = plt.figure(figsize = (6,6))
+        ax = fig1.add_subplot(1,1,1, projection = mapcrs)
+
+        plotNSIDC_spatial(ax, NSIDC_data['grid_lat'], NSIDC_data['grid_lon'], \
+            nsidc_trends, 'trend', ptitle = title, plabel = 'Sea Ice Conc. per study period', \
+            vmin = v_min, vmax = v_max, colorbar_label_size = colorbar_label_size, \
+            minlat = minlat, pvals = nsidc_pvals, colorbar = colorbar)
+
+        fig1.tight_layout()
+
+        if(save == True):
+            month_adder = ''
+            if(do_month == True):
+                month_adder = '_' + start_date.strftime('%b') 
+            out_name = 'nsidc_trend'+ month_adder + '_' + \
+                start_date.strftime('%Y%m') + '_' + end_date.strftime('%Y%m') + \
+                '_min' + str(int(minlat)) + '.png'
+            plt.savefig(out_name,dpi=300)
+            print("Saved image",out_name)
+        else:
+            plt.show()
+    else:
+        plotNSIDC_spatial(pax, NSIDC_data['grid_lat'], NSIDC_data['grid_lon'], \
+            nsidc_trends, 'trend', ptitle = title, plabel = 'Sea Ice Conc. per study period', \
+            vmin = v_min, vmax = v_max, colorbar_label_size = colorbar_label_size, \
+            minlat = minlat, colorbar = colorbar)
+
+    if(uncert_ax is not None):
+        plotNSIDC_spatial(uncert_ax, NSIDC_data['grid_lat'], \
+            NSIDC_data['grid_lon'], \
+            nsidc_uncert, 'uncert', ptitle = title, plabel = 'Sea Ice Conc.', \
+            colorbar = colorbar, colorbar_label_size = colorbar_label_size, \
+            vmin = 0, vmax = 20.0, minlat = minlat)
+
+    if(return_trend == True):
+        return nsidc_trends
+
+# Generate a 15-panel figure comparing the climatology and trend between 3
+# versions of the CERES data for all months
+def plotNSIDC_ClimoTrend_all(NSIDC_data,\
+        trend_type = 'standard', minlat=65.,save=False):
+
+    colormap = plt.cm.jet
+
+    lat_ranges = np.arange(minlat,90,1.0)
+    lon_ranges = np.arange(-180,180,1.0)
+
+    index_jumper = 6 
+
+    colorbar_label_size = 7
+    axis_title_size = 8
+    row_label_size = 10 
+    #colorbar_label_size = 13
+    #axis_title_size = 14.5
+    #row_label_size = 14.5
+
+    #fig = plt.figure()
+    plt.close('all')
+    fig = plt.figure(figsize=(9.2,13))
+    #plt.suptitle('NAAPS Comparisons: '+start_date.strftime("%B"),y=0.95,\
+    #    fontsize=18,fontweight=4,weight='bold')
+    gs = gridspec.GridSpec(nrows=6, ncols=3, hspace = 0.001, wspace = 0.15)
+
+    # - - - - - - - - - - - - - - - - - - - - -
+    # Plot the climatologies along the top row
+    # - - - - - - - - - - - - - - - - - - - - -
+       
+    # Plot DATA1 climos
+    # -----------------
+    ##!## Make copy of CERES_data array
+    local_data1_Apr  = np.copy(NSIDC_data['MONTH_CLIMO'][0,:,:])
+    local_data1_May  = np.copy(NSIDC_data['MONTH_CLIMO'][1,:,:])
+    local_data1_Jun  = np.copy(NSIDC_data['MONTH_CLIMO'][2,:,:])
+    local_data1_Jul  = np.copy(NSIDC_data['MONTH_CLIMO'][3,:,:])
+    local_data1_Aug  = np.copy(NSIDC_data['MONTH_CLIMO'][4,:,:])
+    local_data1_Sep  = np.copy(NSIDC_data['MONTH_CLIMO'][5,:,:])
+
+    mask_AI1_Apr = np.ma.masked_where(local_data1_Apr == -999.9, local_data1_Apr)
+    mask_AI1_May = np.ma.masked_where(local_data1_May == -999.9, local_data1_May)
+    mask_AI1_Jun = np.ma.masked_where(local_data1_Jun == -999.9, local_data1_Jun)
+    mask_AI1_Jul = np.ma.masked_where(local_data1_Jul == -999.9, local_data1_Jul)
+    mask_AI1_Aug = np.ma.masked_where(local_data1_Aug == -999.9, local_data1_Aug)
+    mask_AI1_Sep = np.ma.masked_where(local_data1_Sep == -999.9, local_data1_Sep)
+    ##!## Grid the data, fill in white space
+    ##!#cyclic_data,cyclic_lons = add_cyclic_point(local_data,CERES_data1['LON'][0,:])
+    ##!#plat,plon = np.meshgrid(CERES_data1['LAT'][:,0],cyclic_lons)   
+  
+    # Mask any missing values
+    #mask_AI = np.ma.masked_where(plat.T < minlat, mask_AI)
+    ax00 = plt.subplot(gs[0,0], projection=mapcrs)   # April climo original
+    ax01 = plt.subplot(gs[0,1], projection=mapcrs)   # April climo screened
+    ax02 = plt.subplot(gs[0,2], projection=mapcrs)   # April trend original
+    ax10 = plt.subplot(gs[1,0], projection=mapcrs)   # May climo original
+    ax11 = plt.subplot(gs[1,1], projection=mapcrs)   # May climo screened
+    ax12 = plt.subplot(gs[1,2], projection=mapcrs)   # May trend original
+    ax20 = plt.subplot(gs[2,0], projection=mapcrs)   # June climo original
+    ax21 = plt.subplot(gs[2,1], projection=mapcrs)   # June climo screened
+    ax22 = plt.subplot(gs[2,2], projection=mapcrs)   # June trend original
+    ax30 = plt.subplot(gs[3,0], projection=mapcrs)   # July climo original
+    ax31 = plt.subplot(gs[3,1], projection=mapcrs)   # July climo screened
+    ax32 = plt.subplot(gs[3,2], projection=mapcrs)   # July trend original
+    ax40 = plt.subplot(gs[4,0], projection=mapcrs)   # August climo original
+    ax41 = plt.subplot(gs[4,1], projection=mapcrs)   # August climo screened
+    ax42 = plt.subplot(gs[4,2], projection=mapcrs)   # August trend original
+    ax50 = plt.subplot(gs[5,0], projection=mapcrs)   # September climo original
+    ax51 = plt.subplot(gs[5,1], projection=mapcrs)   # September climo screened
+    ax52 = plt.subplot(gs[5,2], projection=mapcrs)   # September trend original
+
+    # Plot the figures in the first row: April
+    # ---------------------------------------
+    cbar_switch = False
+    plotNSIDC_MonthClimo(NSIDC_data,0,minlat = minlat, ax = ax00, title = '', \
+        colorbar = cbar_switch)
+    plotNSIDC_MonthTrend(NSIDC_data,month_idx=0,save=False,\
+        trend_type='standard',season='sunlight',minlat=minlat,\
+        return_trend=False, colorbar = cbar_switch, \
+        colorbar_label_size = colorbar_label_size, \
+        pax = ax01, show_pval = True, uncert_ax = ax02, title = '')
+    #plotNSIDC_spatial(ax00, NSIDC_data['lats'], NSIDC_data['lons'], mask_AI1_Apr, \
+    #    'climo', ptitle = ' ', plabel = '', vmin = 0, vmax = 1.0, \
+    #    minlat = minlat, colorbar = cbar_switch)
+    #plotNSIDC_MonthTrend(NSIDC_data,month_idx=0,trend_type=trend_type,label = ' ',\
+    #    minlat=65.,title = ' ', pax = ax01, colorbar = cbar_switch, \
+    #    colorbar_label_size = colorbar_label_size, show_pval = True, \
+    #    uncert_ax = ax02)
+    #plotNSIDC_MonthTrend(NSIDC_data,month_idx=month_idx,save=False,\
+    #    trend_type='standard',season='sunlight',minlat=65.,return_trend=False, \
+    #    pax = ax1)
+
+    # Plot the figures in the first row: May
+    # ---------------------------------------
+    #plotNSIDC_spatial(ax10, NSIDC_data['lats'], NSIDC_data['lons'], mask_AI1_May, \
+    #    'climo', ptitle = ' ', plabel = '', vmin = 0, vmax = 2.0, \
+    #    minlat = minlat, colorbar = cbar_switch)
+    #plotNSIDC_MonthTrend(NSIDC_data,month_idx=1,trend_type=trend_type,label = ' ',\
+    #    minlat=65.,title = ' ', pax = ax11, colorbar = cbar_switch, \
+    #    colorbar_label_size = colorbar_label_size, show_pval = True, \
+    #    uncert_ax = ax12)
+    plotNSIDC_MonthClimo(NSIDC_data,1,minlat = minlat, ax = ax10, title = '', \
+        colorbar = cbar_switch)
+    plotNSIDC_MonthTrend(NSIDC_data,month_idx=1,save=False,\
+        trend_type='standard',season='sunlight',\
+        minlat=minlat,return_trend=False, colorbar = cbar_switch, \
+        colorbar_label_size = colorbar_label_size, \
+        pax = ax11, show_pval = True, uncert_ax = ax12, title = '')
+
+    # Plot the figures in the first row: June
+    # ---------------------------------------
+    #plotNSIDC_spatial(ax20, NSIDC_data['lats'], NSIDC_data['lons'], mask_AI1_Jun, \
+    #    'climo', ptitle = ' ', plabel = '', vmin = 0, vmax = 3.0, \
+    #    minlat = minlat, colorbar = cbar_switch)
+    #plotNSIDC_MonthTrend(NSIDC_data,month_idx=2,trend_type=trend_type,label = ' ',\
+    #    minlat=65.,title = ' ', pax = ax21, colorbar = cbar_switch, \
+    #    colorbar_label_size = colorbar_label_size, show_pval = True, \
+    #    uncert_ax = ax22)
+    plotNSIDC_MonthClimo(NSIDC_data,2,minlat = minlat, ax = ax20, title = '', \
+        colorbar = cbar_switch)
+    plotNSIDC_MonthTrend(NSIDC_data,month_idx=2,save=False,\
+        trend_type='standard',season='sunlight',
+        minlat=minlat,return_trend=False, colorbar = cbar_switch, \
+        colorbar_label_size = colorbar_label_size, \
+        pax = ax21, show_pval = True, uncert_ax = ax22, title = '')
+
+    # Plot the figures in the second row: July
+    # ----------------------------------------
+    #plotNSIDC_spatial(ax30, NSIDC_data['lats'], NSIDC_data['lons'], mask_AI1_Jul, \
+    #    'climo', ptitle = ' ', plabel = '', vmin = 0, vmax = 3.0, \
+    #    minlat = minlat, colorbar = cbar_switch)
+    #plotNSIDC_MonthTrend(NSIDC_data,month_idx=3,trend_type=trend_type,label = ' ',\
+    #    minlat=65.,title = ' ', pax = ax31, colorbar = cbar_switch, \
+    #    colorbar_label_size = colorbar_label_size, show_pval = True, \
+    #    uncert_ax = ax32)
+    plotNSIDC_MonthClimo(NSIDC_data,3,minlat = minlat, ax = ax30, title = '', \
+        colorbar = cbar_switch)
+    plotNSIDC_MonthTrend(NSIDC_data,month_idx=3,save=False,\
+        trend_type='standard',season='sunlight',\
+        minlat=minlat,return_trend=False, colorbar = cbar_switch, \
+        colorbar_label_size = colorbar_label_size, \
+        pax = ax31, show_pval = True, uncert_ax = ax32, title = '')
+
+    # Plot the figures in the third row: August
+    # -----------------------------------------
+    #plotNSIDC_spatial(ax40, NSIDC_data['lats'], NSIDC_data['lons'], mask_AI1_Aug, \
+    #    'climo', ptitle = ' ', plabel = '', vmin = 0, vmax = 3.0, \
+    #    minlat = minlat, colorbar = cbar_switch)
+    #plotNSIDC_MonthTrend(NSIDC_data,month_idx=4,trend_type=trend_type,label = ' ',\
+    #    minlat=65.,title = ' ', pax = ax41, colorbar = cbar_switch, \
+    #    colorbar_label_size = colorbar_label_size, show_pval = True, \
+    #    uncert_ax = ax42)
+    plotNSIDC_MonthClimo(NSIDC_data,4,minlat = minlat, ax = ax40, title = '', \
+        colorbar = cbar_switch)
+    plotNSIDC_MonthTrend(NSIDC_data,month_idx=4,save=False,\
+        trend_type='standard',season='sunlight',\
+        minlat=minlat,return_trend=False, colorbar = cbar_switch, \
+        colorbar_label_size = colorbar_label_size, \
+        pax = ax41, show_pval = True, uncert_ax = ax42, title = '')
+
+    # Plot the figures in the third row: September
+    # --------------------------------------------
+    #plotNSIDC_spatial(ax50, NSIDC_data['lats'], NSIDC_data['lons'], mask_AI1_Sep, \
+    #    'climo', ptitle = ' ', plabel = '', vmin = 0, vmax = 1.0, \
+    #    minlat = minlat, colorbar = cbar_switch)
+    #plotNSIDC_MonthTrend(NSIDC_data,month_idx=5,trend_type=trend_type,label = ' ',\
+    #    minlat=65.,title = ' ', pax = ax51, colorbar = cbar_switch, \
+    #    colorbar_label_size = colorbar_label_size, show_pval = True, \
+    #    uncert_ax = ax52)
+    plotNSIDC_MonthClimo(NSIDC_data,5,minlat = minlat, ax = ax50, title = '', \
+        colorbar = cbar_switch)
+    plotNSIDC_MonthTrend(NSIDC_data,month_idx=5,save=False,\
+        trend_type='standard',season='sunlight',\
+        minlat=minlat,return_trend=False, colorbar = cbar_switch, \
+        colorbar_label_size = colorbar_label_size, \
+        pax = ax51, show_pval = True, uncert_ax = ax52, title = '')
+
+    fig.text(0.10, 0.82, 'April', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.692, 'May', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.565, 'June', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.435, 'July', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.305, 'August', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    fig.text(0.10, 0.18, 'September', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+
+    fig.text(0.250, 0.90, 'Climatology', ha='center', va='center', \
+        rotation='horizontal',weight='bold',fontsize=row_label_size)
+    fig.text(0.500, 0.90, 'Trend', ha='center', va='center', \
+        rotation='horizontal',weight='bold',fontsize=row_label_size)
+    fig.text(0.75, 0.90, 'Standard Error of\nScreened Trend (Slope)', \
+        ha='center', va='center', rotation='horizontal',weight='bold',\
+        fontsize=row_label_size)
+
+    plt.suptitle('NSIDC')
+
+    #cax = fig.add_axes([0.15, 0.09, 0.35, 0.01])
+    #norm = mpl.colors.Normalize(vmin = -0.5, vmax = 0.5)
+    #cb1 = mpl.colorbar.ColorbarBase(cax, cmap = plt.cm.bwr, norm = norm, \
+    #    orientation = 'horizontal', extend = 'both')
+    #cb1.set_label('Sfc Smoke Trend (Smoke / Study Period)', \
+    #    weight = 'bold')
+
+    #cax2 = fig.add_axes([0.530, 0.09, 0.35, 0.01])
+    #norm2 = mpl.colors.Normalize(vmin = 0.0, vmax = 0.3)
+    #cmap = plt.cm.get_cmap('jet', 6)
+    #cb2 = mpl.colorbar.ColorbarBase(cax2, cmap = cmap, norm = norm2, \
+    #    orientation = 'horizontal', extend = 'both')
+    #cb2.set_label('Standard Error of Smoke Trend (Slope)', weight = 'bold')
+
+    outname = '_'.join(['nsidc','ice','grid','comps','all6']) + '.png'
+    if(save == True):
+        plt.savefig(outname,dpi=300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
 
 def plotNSIDC_daily(pax, NSIDC_data, minlat=65, \
         vmin = None, vmax = None, title = None, label = None, \
@@ -697,13 +1388,16 @@ def ice_gridtrendCalc(NSIDC_data,area=True,thielSen=False):
 
 # grid_data_conc grids the 25x25 km gridded ice concentration data into
 # a 1x1 degree lat/lon grid
-def grid_data_conc(NSIDC_data):
+def grid_data_conc(NSIDC_data, minlat = 65.):
     lon_ranges  = np.arange(-180.,180.,1.0)
-    lat_ranges  = np.arange(30.,90.,1.0)
-    grid_ice_conc    = np.full((len(NSIDC_data['data'][:,0,0]),len(lat_ranges),len(lon_ranges)),-99.)
+    lat_ranges  = np.arange(minlat,90.,1.0)
+    grid_ice_conc    = np.full((len(NSIDC_data['data'][:,0,0]),\
+        len(lat_ranges),len(lon_ranges)),-99.)
     grid_ice_area    = np.zeros((len(lat_ranges),len(lon_ranges)))
-    grid_ice_area_trend    = np.full((len(lat_ranges),len(lon_ranges)),-999.)
-    grid_ice_conc_cc = np.full((len(NSIDC_data['data'][:,0,0]),len(lat_ranges),len(lon_ranges)),-999.)
+    grid_ice_area_trend    = np.full((len(lat_ranges),len(lon_ranges)),\
+        -999.)
+    grid_ice_conc_cc = np.full((len(NSIDC_data['data'][:,0,0]),\
+        len(lat_ranges),len(lon_ranges)),-999.)
     print("Size of grid array: ",grid_ice_conc.shape)
     for nt in range(len(NSIDC_data['data'][:,0,0])):
         print(nt)
@@ -711,37 +1405,54 @@ def grid_data_conc(NSIDC_data):
             # Don't grid the data if any portion of the lat/lon box is over land.
             # Don't include land data
             for yj in range(304):
-                lat_index = np.where(np.floor(NSIDC_data['lat'][xi,yj])>=lat_ranges)[-1][-1]
-                lon_index = np.where(np.floor(NSIDC_data['lon'][xi,yj])>=lon_ranges)[-1][-1]
-                # Add the current pixel area into the correct grid box, no
-                # matter if the current box is missing or not.
-                #if((lat_index==20) & (lon_index==10)):
-                #    print("Current grid area = ",grid_ice_area[lat_index,lon_index])
-                #if((lat_index==20) & (lon_index==10)):
-                #    print("    New grid area = ",grid_ice_area[lat_index,lon_index])
-                if(NSIDC_data['data'][nt,xi,yj] < 251):
-                    if(nt==0): grid_ice_area[lat_index,lon_index] += NSIDC_data['area'][xi,yj]
-                    if(grid_ice_conc_cc[nt,lat_index,lon_index]==-999.):
-                        grid_ice_conc[nt,lat_index,lon_index] = NSIDC_data['data'][nt,xi,yj]
-                        grid_ice_conc_cc[nt,lat_index,lon_index] = 1.
+                if(NSIDC_data['lat'][xi,yj] > minlat):
+                    lat_index = np.where(np.floor(NSIDC_data['lat'][xi,yj])>=\
+                        lat_ranges)[-1][-1]
+                    lon_index = np.where(np.floor(NSIDC_data['lon'][xi,yj])>=\
+                        lon_ranges)[-1][-1]
+#                    if(np.floor(NSIDC_data['lon'][xi,yj]) == -136
+                    # Add the current pixel area into the correct grid box, no
+                    # matter if the current box is missing or not.
+                    #if((lat_index==20) & (lon_index==10)):
+                    #    print("Current grid area = ",grid_ice_area[lat_index,lon_index])
+                    #if((lat_index==20) & (lon_index==10)):
+                    #    print("    New grid area = ",grid_ice_area[lat_index,lon_index])
+                    if(NSIDC_data['data'][nt,xi,yj] < 251):
+                        if(nt==0): 
+                            grid_ice_area[lat_index,lon_index] += \
+                            NSIDC_data['area'][xi,yj]
+                        if(grid_ice_conc_cc[nt,lat_index,lon_index]==-999.):
+                            grid_ice_conc[nt,lat_index,lon_index] = \
+                                NSIDC_data['data'][nt,xi,yj]
+                            grid_ice_conc_cc[nt,lat_index,lon_index] = 1.
+                        else:
+                            grid_ice_conc[nt,lat_index,lon_index] += \
+                                NSIDC_data['data'][nt,xi,yj]
+                            #grid_ice_conc[nt,lat_index,lon_index] = ((grid_ice_conc[nt,lat_index,lon_index]*grid_ice_conc_cc[nt,lat_index,lon_index])+\
+                            #                                 NSIDC_data['data'][nt,xi,yj])/(grid_ice_conc_cc[nt,lat_index,lon_index]+1.)
+                            grid_ice_conc_cc[nt,lat_index,lon_index] += 1
                     else:
-                        grid_ice_conc[nt,lat_index,lon_index] = ((grid_ice_conc[nt,lat_index,lon_index]*grid_ice_conc_cc[nt,lat_index,lon_index])+\
-                                                         NSIDC_data['data'][nt,xi,yj])/(grid_ice_conc_cc[nt,lat_index,lon_index]+1.)
-                        grid_ice_conc_cc[nt,lat_index,lon_index]+=1
-                else:
-                    if(nt==0): grid_ice_area[lat_index,lon_index] = np.nan
+                        if(nt==0): grid_ice_area[lat_index,lon_index] = np.nan
 
                     # end else
                 # end if good ice check
             # end y grid loop
         # end x grid loop
+        
+        # Calc averages here
+        final_grid_ice_conc = np.copy(grid_ice_conc)
+        final_grid_ice_conc[grid_ice_conc_cc > 0] = \
+            grid_ice_conc[grid_ice_conc_cc > 0] / \
+            grid_ice_conc_cc[grid_ice_conc_cc > 0]
+
     # end time loop 
-    NSIDC_data['grid_ice_conc'] = grid_ice_conc
+    xx, yy = np.meshgrid(lon_ranges, lat_ranges)
+    NSIDC_data['grid_ice_conc'] = final_grid_ice_conc
     NSIDC_data['grid_ice_conc_cc'] = grid_ice_conc_cc
     NSIDC_data['grid_total_area'] = grid_ice_area
     NSIDC_data['grid_ice_area_trend'] = grid_ice_area_trend
-    NSIDC_data['grid_lat'] = lat_ranges
-    NSIDC_data['grid_lon'] = lon_ranges
+    NSIDC_data['grid_lat'] = yy
+    NSIDC_data['grid_lon'] = xx
     
     return NSIDC_data
 
