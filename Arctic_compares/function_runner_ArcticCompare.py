@@ -8,6 +8,87 @@
 import Arctic_compare_lib
 from Arctic_compare_lib import *
 
+files = glob(home_dir + \
+    '/Research/Arctic_compares/comp_data/colocated_subset_20*.hdf5')
+
+# Figure out the total size to insert the data
+# ---------------------------------------------
+minlat = 70.
+total_size = 0
+for ff in files:
+    data = h5py.File(ff,'r')
+    local_data = np.ma.masked_invalid(data['omi_uvai_pert'])
+    local_data = np.ma.masked_where(data['omi_lat'][:,:] < minlat, \
+        local_data) 
+    local_data = np.ma.masked_where((data['ceres_swf'][:,:] < -200.) | \
+        (data['ceres_swf'][:,:] > 3000), \
+        local_data) 
+    local_size = local_data.compressed().shape[0]
+    print(local_size)
+    total_size += local_size
+
+    data.close()
+
+
+# Set up the data structure to hold all the data
+# ----------------------------------------------
+combined_data = {}
+combined_data['omi_uvai_pert'] = np.full(total_size, np.nan)
+combined_data['ceres_swf']     = np.full(total_size, np.nan)
+combined_data['modis_ch7']     = np.full(total_size, np.nan)
+combined_data['omi_sza']       = np.full(total_size, np.nan)
+combined_data['omi_lat']       = np.full(total_size, np.nan)
+combined_data['nsidc_ice']     = np.full(total_size, np.nan)
+
+print("Loading data")
+
+# Loop back over the files and insert the data into the structure
+# ---------------------------------------------------------------
+beg_idx = 0
+end_idx = 0
+for ff in files:
+
+    data = h5py.File(ff,'r')
+    local_data = np.ma.masked_invalid(data['omi_uvai_pert'])
+    local_data = np.ma.masked_where(data['omi_lat'][:,:] < minlat, \
+        local_data) 
+    local_data = np.ma.masked_where((data['ceres_swf'][:,:] < -200.) | \
+        (data['ceres_swf'][:,:] > 3000), \
+        local_data) 
+    local_size = local_data.compressed().shape[0]
+
+    beg_idx = end_idx
+    end_idx = beg_idx + local_size
+
+    for tkey in combined_data.keys():
+        combined_data[tkey][beg_idx:end_idx] = \
+            data[tkey][~local_data.mask]
+
+    print(local_size)
+    total_size += local_size
+
+    data.close()
+
+
+
+# old_swath_total = 0.839 + 6.8*2 + 3.2 + 7.6
+# new_swath_total = 0.839 + 5.4*2 + 3.2 + 2.1
+
+#mask_data = np.ma.masked_invalid(OMI_base['UVAI_raw'])
+#mask_data = np.ma.masked_invalid(data['uvai_raw'])
+#
+#mask_dims = np.array([ (False in mask_data[ii,:].mask) \
+#    for ii in range(mask_data.shape[0])])
+#
+#keep_idxs = np.where(mask_dims == True)[0]
+#
+#dset.create_dataset('VARIABLE', data = data[key][keep_idxs,:])
+
+plot_combined_scatter(combined_data, sza_min = 0, sza_max = 70, \
+    omi_min = 2,trend_type = 'theil-sen', show_trend = False)
+
+sys.exit()
+
 run_list = ['20180704', '20180705']
 #run_list = ['20200722', '20200723']
 #run_list = ['20180721','20180810','20180826','20180827']

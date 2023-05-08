@@ -1503,7 +1503,8 @@ def write_da_to_NCDF(avgAI,counts,latmin,da_time):
 
 # Writes a single Shawn file to HDF5. 
 def write_swath_to_HDF5(OMI_base, dtype, save_path = './', minlat = 65., \
-        shawn_path = home_dir + '/data/OMI/shawn_files/'):
+        shawn_path = home_dir + '/data/OMI/shawn_files/', \
+        remove_empty_scans = True):
 
     if(isinstance(OMI_base, str)):
         # Read the swath
@@ -1521,6 +1522,11 @@ def write_swath_to_HDF5(OMI_base, dtype, save_path = './', minlat = 65., \
     else:
         local_UVAI_raw  = OMI_base['UVAI'][:,:]
         local_UVAI_pert = np.full(local_UVAI_raw.shape, np.nan)
+
+    # If the user wants the file to only contain scans that have
+    # data (i.e., no scans that contain only nans).
+    if(remove_empty_scans):
+
 
     # Convert the filename object to datetime
     # ---------------------------------------

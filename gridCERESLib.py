@@ -58,7 +58,7 @@ home_dir = os.environ['HOME']
 sys.path.append(home_dir)
 from python_lib import circle, plot_trend_line, nearest_gridpoint, \
     aerosol_event_dict, init_proj, plot_lat_circles, plot_figure_text, \
-    plot_subplot_label
+    plot_subplot_label, add_gridlines
 
 if(home_dir + '/Research/NSIDC' not in sys.path):
     sys.path.append(home_dir + '/Research/NSIDC')
@@ -3771,7 +3771,7 @@ def plot_compare_CERES_NSIDC_NAAPS_OMI_combined(CERES_swclr, CERES_swall, \
         cmap = 'bwr')
     cbar = plt.colorbar(mesh,ax = ax1, orientation='vertical',shrink = 0.8, \
         extend = 'both')
-    cbar.set_label('Total Flux Trend [W m$^{-2}$]', \
+    cbar.set_label('SW Flux Trend [W m$^{-2}$]', \
         fontsize = labelsize)
     ax1.coastlines()
     ax1.set_extent([-180,180,minlat, 90], datacrs)
@@ -3782,7 +3782,7 @@ def plot_compare_CERES_NSIDC_NAAPS_OMI_combined(CERES_swclr, CERES_swall, \
         cmap = 'bwr')
     cbar = plt.colorbar(mesh,ax = ax2, orientation='vertical',shrink = 0.8, \
         extend = 'both')
-    cbar.set_label('Total Flux Trend [W m$^{-2}$]', \
+    cbar.set_label('SW Flux Trend [W m$^{-2}$]', \
         fontsize = labelsize)
     ax2.coastlines()
     ax2.set_extent([-180,180,minlat, 90], datacrs)
@@ -3799,9 +3799,9 @@ def plot_compare_CERES_NSIDC_NAAPS_OMI_combined(CERES_swclr, CERES_swall, \
     ax3.set_extent([-180,180,minlat, 90], datacrs)
     ax3.set_boundary(circle, transform=ax3.transAxes)
     # Map 4: NAAPS
-    ax4.pcolormesh(NAAPS_data['lons'], NAAPS_data['lats'], \
+    mesh = ax4.pcolormesh(NAAPS_data['lons'], NAAPS_data['lats'], \
         mask_naaps, cmap = 'bwr', \
-        transform = datacrs, vmax = 1, vmin = -1, shading = 'auto')
+        transform = datacrs, vmax = 0.5, vmin = -0.5, shading = 'auto')
     cbar = plt.colorbar(mesh,ax = ax4, orientation='vertical',shrink = 0.8, \
         extend = 'both')
     cbar.set_label('Smoke Trend [μg m$^{-3}$]', \
@@ -3810,7 +3810,7 @@ def plot_compare_CERES_NSIDC_NAAPS_OMI_combined(CERES_swclr, CERES_swall, \
     ax4.set_extent([-180,180,minlat, 90], datacrs)
     ax4.set_boundary(circle, transform=ax4.transAxes)
     # Map 5: OMI
-    ax5.pcolormesh(OMI_data['LON'], OMI_data['LAT'], \
+    mesh = ax5.pcolormesh(OMI_data['LON'], OMI_data['LAT'], \
         mask_omi, cmap = 'bwr', \
         transform = datacrs, vmax = 0.5, vmin = -0.5, shading = 'auto')
     cbar = plt.colorbar(mesh,ax = ax5, orientation='vertical',shrink = 0.8, \
@@ -3821,12 +3821,18 @@ def plot_compare_CERES_NSIDC_NAAPS_OMI_combined(CERES_swclr, CERES_swall, \
     ax5.set_extent([-180,180,minlat, 90], datacrs)
     ax5.set_boundary(circle, transform=ax5.transAxes)
 
-    titlesize = 10
+    titlesize = 9
     ax1.set_title('Aqua CERES\nClear-sky SWF Trends', fontsize = titlesize)
     ax2.set_title('Aqua CERES\nAll-sky SWF Trends', fontsize = titlesize)
     ax3.set_title('SSMI/S Sea Ice\nConcentration Trends', fontsize = titlesize)
     ax4.set_title('NAAPS-RA Near-surface\nSmoke Aerosol Trends', fontsize = titlesize)
     ax5.set_title('OMI Perturbed\nUVAI Trends', fontsize = titlesize)
+
+    add_gridlines(ax1)
+    add_gridlines(ax2)
+    add_gridlines(ax3)
+    add_gridlines(ax4)
+    add_gridlines(ax5)
 
     final_ceres_clr = ceres_clr_trends[(~mask_ceres_clr.mask) & \
         (~mask_ceres_all.mask) & \
@@ -3868,6 +3874,8 @@ def plot_compare_CERES_NSIDC_NAAPS_OMI_combined(CERES_swclr, CERES_swall, \
     ax6_result = stats.linregress(final_nsidc.flatten(), final_ceres_clr.flatten())
     ax7_result = stats.linregress(final_omi.flatten(), final_ceres_all.flatten())
     ax8_result = stats.linregress(final_naaps.flatten(), final_ceres_clr.flatten())
+    
+    print(ax6_result)
 
     corr1 = ax6_result.rvalue**2.
     corr2 = ax7_result.rvalue**2.
@@ -3879,7 +3887,7 @@ def plot_compare_CERES_NSIDC_NAAPS_OMI_combined(CERES_swclr, CERES_swall, \
 
     plot_figure_text(ax6, 'r$^{2}$ = ' + str(np.round(corr1, 3)), xval = None, yval = None, transform = None, \
         color = 'black', fontsize = 10, backgroundcolor = 'white',\
-        halign = 'right', location = 'upper_right')
+        halign = 'right', location = 'lower_right')
     plot_figure_text(ax7, 'r$^{2}$ = ' + str(np.round(corr2, 3)), xval = None, yval = None, transform = None, \
         color = 'black', fontsize = 10, backgroundcolor = 'white',\
         halign = 'right', location = 'upper_right')

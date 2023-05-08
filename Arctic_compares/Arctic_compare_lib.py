@@ -2094,3 +2094,76 @@ def calculate_type_forcing(month_idx, trend_type = 'linear', minlat = 65.):
     test_trend = 0.5
     for tkey in relat_dict.keys():
         print(tkey, test_trend * relat_dict[tkey]) 
+
+
+def plot_combined_scatter(combined_data, xval = 'omi_uvai_pert', \
+        yval = 'ceres_swf', \
+        swf_min = None, swf_max = None, \
+        ch7_min = None, ch7_max = None, \
+        sza_min = None, sza_max = None, \
+        ice_min = None, ice_max = None, \
+        omi_min = None, omi_max = None, \
+        trend_type = 'theil-sen', \
+        show_trend = False, shade_density = False):
+
+    local_xdata = np.copy(combined_data[xval])
+    local_ydata = np.copy(combined_data[yval])
+
+    def check_range_vals(local_xdata, local_ydata, lvar,\
+            var_min, var_max):
+
+        if(var_min is not None):
+            local_xdata = np.ma.masked_where(\
+                combined_data[lvar] < var_min,local_xdata)
+            local_ydata = np.ma.masked_where(\
+                combined_data[lvar] < var_min,local_ydata)
+        if(var_max is not None):
+            local_xdata = np.ma.masked_where(\
+                combined_data[lvar] > var_max,local_xdata)
+            local_ydata = np.ma.masked_where(\
+                combined_data[lvar] > var_max,local_ydata)
+
+        return local_xdata, local_ydata
+        
+    local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
+        'ceres_swf', swf_min, swf_max)
+    local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
+        'modis_ch7', ch7_min, ch7_max)
+    local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
+        'omi_sza', sza_min, sza_max)
+    local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
+        'nsidc_ice', ice_min, ice_max)
+    local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
+        'omi_uvai_pert', omi_min, omi_max)
+
+    local_xdata = local_xdata.compressed()
+    local_ydata = local_ydata.compressed()
+
+    print(local_xdata.shape, local_ydata.shape)
+
+    z = 'k'
+    if(shade_density):
+        if(len(local_xdata) > 10000):
+            print("ERROR: Density shading with too many points")
+            print("       Preventing this for the sake of computer safety")
+        else:
+            xy = np.vstack([local_xdata, local_ydata])
+            z = stats.gaussian_kde(xy)(xy)       
+
+    plt.close('all')
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    
+    ax.scatter(local_xdata, local_ydata, c = z, s = 6)
+    if(show_trend):
+        if(len(local_xdata) > 10000):
+            print("ERROR: Plotting trend line with too many points")
+            print("       Preventing this for the sake of computer safety")
+        else:
+            plot_trend_line(ax, local_xdata, local_ydata, color='tab:red', \
+                linestyle = '-',  slope = trend_type)
+
+    plt.show()
+
+
+
