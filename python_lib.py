@@ -17,16 +17,20 @@ from PIL import Image
 import h5py
 import matplotlib.pyplot as plt
 import cartopy.feature as cfeature
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from math import sin, cos, sqrt, atan2, radians
 from bs4 import BeautifulSoup
 import requests
 import json
+import os
 
 # LAADS DAAC key
 # --------------
 laads_daac_key = 'Ymxha2Uuc29yZW5zb246WW14aGEyVXVjMjl5Wlc1emIyNUFkVzVr'+\
     'TG1Wa2RRPT06MTY2MzYwNjAyMDo1NWU4MjMwNjI2ZTVkZDE2MmU3MmQ3M2Q3OGQxN'+\
     'Dg3Y2NjZTU4ZTAx'
+
+home_dir = os.environ['HOME']
 
 # Compute a circle in axes coordinates, which we can use as a boundary
 # for the map. We can pan/zoom as much as we like - the boundary will be
@@ -68,6 +72,16 @@ def find_distance_between_points(lat1, lon1, lat2, lon2):
     distance = R * c
 
     return distance
+
+def find_new_lon_val(lat1, lon1, distance):
+
+    # CONTINUE HERE
+    print("hi")    
+
+def find_new_lat_val(lat1, lon1, distance):
+
+    # CONTINUE HERE
+    print("hi")    
 
 # Find the gridpoint in the gridded lat/lon data that 
 # corresponds to the station at slat and slon
@@ -176,6 +190,16 @@ def convert_radiance_to_temp(lmbda, radiance):
 # 
 # >>> identify_axes(ax)
 #
+
+def add_gridlines(pax):
+    gl = pax.gridlines(crs = ccrs.PlateCarree(), draw_labels = False, \
+        linewidth = 1, color = 'gray', alpha = 0.5, linestyle = '-',\
+        y_inline = True, xlocs = range(-180, 180, 30), ylocs = range(70, 90, 10))
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.xlabel_style = {'color': 'gray', 'weight': 'bold'}
+    gl.ylabel_style = {'size': 15, 'color': 'gray'}
+    gl.ylabel_style = {'color': 'black', 'weight': 'bold'}
 
 def identify_axes(ax_dict, fontsize = 14, color = 'k', \
         backgroundcolor = None):
@@ -412,7 +436,7 @@ def listFD(url, ext=''):
 # Event dictionary  
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-with open('/home/bsorenson/Research/Arctic_compares/json_comp_files.txt') as fin:
+with open(home_dir + '/Research/Arctic_compares/json_comp_files.txt') as fin:
     aerosol_event_dict = json.load(fin)
 ##!#aerosol_event_dict = {
 ##!#    "2008-04-22": {
