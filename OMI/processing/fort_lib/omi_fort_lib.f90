@@ -20,6 +20,75 @@ module omi_fort_lib
   contains
 
     ! -------------------------------------------------------------
+    ! This function determines if lat/lon point is within a box
+    ! made by 4 lat/lon pairs.
+    ! -------------------------------------------------------------
+    function pixel_in_box(lats, lons, plat, plon) result(l_inside)
+
+      real(kind = 8), dimension(4), intent(in)    :: lats 
+      real(kind = 8), dimension(4), intent(in)    :: lons   
+      real(kind = 8), intent(in)                  :: plat
+      real(kind = 8), intent(in)                  :: plon
+
+      real(kind = 8), dimension(4)                :: local_lons
+      real(kind = 8)                              :: local_lon
+      integer                                     :: njj
+      logical                                     :: l_inside
+
+
+      
+      ! Adjust the lon and lon corners to account for pixels
+      ! that straddle the antimeridian
+      do njj = 1, 4
+        if(lons(njj) < 0) then
+          local_lons(njj) = lons(njj) + 360
+        else
+          local_lons(njj) = lons(njj)     
+        endif
+      enddo 
+
+      if(plon < 0) then
+        local_lon = plon + 360
+      else
+        local_lon = plon
+      endif 
+
+      ! Handle case if lat/lon box straddles the prime meridian
+      if((maxval(local_lons) - minval(local_lons)) > 180) then
+        do njj = 1, 4
+          if(local_lons(njj) <= 180) then
+            local_lons(njj) = local_lons(njj) + 360
+          !else
+          !  local_lons(njj) = local_lons(njj) + 360
+          endif 
+        enddo
+
+        if(local_lon <= 180) then
+          local_lon = local_lon + 360
+        endif
+      endif
+
+      if( (plat <= maxval(lats) .and. plat >= minval(lats)) .and. &
+          (local_lon >= minval(local_lons) .and. &
+           local_lon <= maxval(local_lons))) then
+        !write(*,*) local_lon
+        l_inside = .true.
+      else
+        ! Perform the check again with the adjusted lons
+        if( (plat <= maxval(lats) .and. plat >= minval(lats)) .and. &
+            (local_lon >= minval(local_lons) .and. &
+             local_lon <= maxval(local_lons))) then
+          l_inside = .true.
+        else
+          l_inside = .false.
+        endif
+        !else
+        !  l_inside = .false.
+        !endif
+    
+      endif
+
+    ! -------------------------------------------------------------
     ! This function returns the surface area of a lat x lon box in
     ! square kilometers.
     ! -------------------------------------------------------------

@@ -644,7 +644,7 @@ def download_identify_OMI_swaths(date_str, minlat = 70., min_AI = 2.0, \
             # download shawn files
             cmnd = dt_date_str.strftime(\
                 'scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/'+\
-                'out_files-ltc3/%Y%m%d* ') + shawn_path
+                'out_files-ltc3/new/%Y%m%d* ') + shawn_path
             print(cmnd)
             os.system(cmnd)
 
@@ -666,6 +666,18 @@ def download_identify_OMI_swaths(date_str, minlat = 70., min_AI = 2.0, \
         print(ttime)
 
         if(process_shawn & (dt_date_str.year <= 2020)):
+            # Make sure that the shawn file is actually downloaded for
+            # this HDF time.
+            # --------------------------------------------------------
+            if(not os.path.exists(shawn_path + ttime)):
+                print("Shawn file",ttime,"does not exist. Downloading")
+                cmnd = \
+                    'scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/'+\
+                    'out_files-ltc3/new/' + ttime + ' ' + shawn_path
+                print(cmnd)
+                os.system(cmnd)
+    
+
             OMI_base = readOMI_swath_shawn(ttime, latmin = minlat, \
                 shawn_path = shawn_path)
 
@@ -987,6 +999,9 @@ def readOMI_swath_shawn(plot_time, latmin = 65., \
 
     #sfile_TIME = np.array([[base_date + timedelta(seconds = stime2) \
     #    for stime2 in stime1] for stime1 in sfile_TIME])
+    sfile_AIraw  = np.ma.masked_where(OMI_data['LAT'] < latmin, sfile_AIraw)
+    sfile_AIclim = np.ma.masked_where(OMI_data['LAT'] < latmin, sfile_AIclim)
+    sfile_AIpert = np.ma.masked_where(OMI_data['LAT'] < latmin, sfile_AIpert)
 
     OMI_swath = {}
     OMI_swath['date'] = plot_time
@@ -1002,16 +1017,19 @@ def readOMI_swath_shawn(plot_time, latmin = 65., \
     OMI_swath['UVAI_raw']   = np.ma.masked_invalid(sfile_AIraw)
     OMI_swath['UVAI_climo'] = np.ma.masked_invalid(sfile_AIclim)
     OMI_swath['UVAI_pert']  = np.ma.masked_invalid(sfile_AIpert)
-    OMI_swath['SZA'] = np.ma.masked_invalid(sfile_SZA)
-    OMI_swath['VZA'] = np.ma.masked_invalid(sfile_VZA)
-    OMI_swath['RAZ'] = np.ma.masked_invalid(sfile_RAZ)
+    OMI_swath['SZA'] = OMI_data['SZA']
+    OMI_swath['VZA'] = OMI_data['VZA']
+    OMI_swath['RAZ'] = OMI_data['RAZ']
+    #OMI_swath['SZA'] = np.ma.masked_invalid(sfile_SZA)
+    #OMI_swath['VZA'] = np.ma.masked_invalid(sfile_VZA)
+    #OMI_swath['RAZ'] = np.ma.masked_invalid(sfile_RAZ)
     OMI_swath['SSA'] = OMI_data['SSA']
    
-    # Mask the data south of the desired latmin
-    # -----------------------------------------
-    OMI_swath['UVAI_raw']   = np.ma.masked_where(OMI_data['LAT'] < latmin, sfile_AIraw)
-    OMI_swath['UVAI_climo'] = np.ma.masked_where(OMI_data['LAT'] < latmin, sfile_AIclim)
-    OMI_swath['UVAI_pert']  = np.ma.masked_where(OMI_data['LAT'] < latmin, sfile_AIpert)
+    ## Mask the data south of the desired latmin
+    ## -----------------------------------------
+    #OMI_swath['UVAI_raw']   = np.ma.masked_where(OMI_data['LAT'] < latmin, sfile_AIraw)
+    #OMI_swath['UVAI_climo'] = np.ma.masked_where(OMI_data['LAT'] < latmin, sfile_AIclim)
+    #OMI_swath['UVAI_pert']  = np.ma.masked_where(OMI_data['LAT'] < latmin, sfile_AIpert)
 
     return OMI_swath
 
@@ -1523,10 +1541,28 @@ def write_swath_to_HDF5(OMI_base, dtype, save_path = './', minlat = 65., \
         local_UVAI_raw  = OMI_base['UVAI'][:,:]
         local_UVAI_pert = np.full(local_UVAI_raw.shape, np.nan)
 
+    local_UVAI_raw  = np.ma.masked_invalid(local_UVAI_raw)
+
     # If the user wants the file to only contain scans that have
     # data (i.e., no scans that contain only nans).
     if(remove_empty_scans):
+        mask_dims = np.array([ (False in local_UVAI_raw[ii,:].mask) for ii in \
+            range(local_UVAI_raw.shape[0])])
+        keep_idxs = np.where(mask_dims == True)[0]
 
+        #local_UVAI_raw  = local_UVAI_raw[keep_idxs,:] 
+        #local_UVAI_pert = local_UVAI_pert[keep_idxs,:] 
+        #OMI_base['LAT'] = OMI_base['LAT'][keep_idxs,:]
+        #OMI_base['LON'] = OMI_base['LON'][keep_idxs,:]
+        #OMI_base['LATcrnr'] = OMI_base['LATcrnr'][keep_idxs,:,:]
+        #OMI_base['LONcrnr'] = OMI_base['LONcrnr'][keep_idxs,:,:]
+        #OMI_base['TIME_2'] = OMI_base['TIME_2'][keep_idxs,:]
+        #OMI_base['SZA'] = OMI_base['SZA'][keep_idxs,:]
+        #OMI_base['VZA'] = OMI_base['VZA'][keep_idxs,:]
+        #OMI_base['RAZ'] = OMI_base['RAZ'][keep_idxs,:]
+       
+    else:
+        keep_idxs = None 
 
     # Convert the filename object to datetime
     # ---------------------------------------
@@ -1538,18 +1574,18 @@ def write_swath_to_HDF5(OMI_base, dtype, save_path = './', minlat = 65., \
     outfile = save_path + 'omi_shawn_' + file_date + '.hdf5'
     dset = h5py.File(outfile,'w')
  
-    dset.create_dataset('latitude',  data = OMI_base['LAT'][:,:])
-    dset.create_dataset('longitude', data = OMI_base['LON'][:,:])
-    dset.create_dataset('lat_crnr',  data = OMI_base['LATcrnr'][:,:,:])
-    dset.create_dataset('lon_crnr',  data = OMI_base['LONcrnr'][:,:,:])
-    dset.create_dataset('uvai_raw',  data = local_UVAI_raw)
-    dset.create_dataset('uvai_pert', data = local_UVAI_pert)
+    dset.create_dataset('latitude',  data = OMI_base['LAT'][keep_idxs,:].squeeze())
+    dset.create_dataset('longitude', data = OMI_base['LON'][keep_idxs,:].squeeze())
+    dset.create_dataset('lat_crnr',  data = OMI_base['LATcrnr'][keep_idxs,:,:].squeeze())
+    dset.create_dataset('lon_crnr',  data = OMI_base['LONcrnr'][keep_idxs,:,:].squeeze())
+    dset.create_dataset('uvai_raw',  data = local_UVAI_raw[keep_idxs,:].squeeze())
+    dset.create_dataset('uvai_pert', data = local_UVAI_pert[keep_idxs,:].squeeze())
     #dset.create_dataset('uvai_raw',  data = OMI_base['UVAI_raw'][:,:])
     #dset.create_dataset('uvai_pert', data = OMI_base['UVAI_pert'][:,:])
-    dset.create_dataset('time',      data = OMI_base['TIME_2'][:,:])
-    dset.create_dataset('sza',       data = OMI_base['SZA'][:,:])
-    dset.create_dataset('vza',       data = OMI_base['VZA'][:,:])
-    dset.create_dataset('azm',       data = OMI_base['RAZ'][:,:])
+    dset.create_dataset('time',      data = OMI_base['TIME_2'][keep_idxs,:].squeeze())
+    dset.create_dataset('sza',       data = OMI_base['SZA'][keep_idxs,:].squeeze())
+    dset.create_dataset('vza',       data = OMI_base['VZA'][keep_idxs,:].squeeze())
+    dset.create_dataset('azm',       data = OMI_base['RAZ'][keep_idxs,:].squeeze())
 
     # Save, write, and close the HDF5 file
     # --------------------------------------

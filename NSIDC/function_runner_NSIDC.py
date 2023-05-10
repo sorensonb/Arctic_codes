@@ -13,6 +13,13 @@ import sys
 # Set up the overall figure
 # ----------------------------------------------------
 
+NSIDC_data = readNSIDC_daily('20180705')
+minlat = 65.
+writeNSIDC_to_HDF5(NSIDC_data, save_path = './', minlat = minlat, \
+    remove_empty_scans = True)
+
+sys.exit()
+
 begin_date = '200504'
 end_date   = '202009'
 season     = 'sunlight'

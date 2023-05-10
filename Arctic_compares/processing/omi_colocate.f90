@@ -321,15 +321,6 @@ program omi_colocate
   ! --------------------------
   call allocate_out_arrays(OMI_AI_dims(1), OMI_AI_dims(2))
 
-  !!#!write(*,*) MODIS_LAT_data(100,100), MODIS_LON_data(100,100)
-  !!#!write(*,*) CERES_LAT_data(100,100), CERES_LON_data(100,100)
-
-  !!#!distance = &
-  !!#!  find_distance_between_points(MODIS_LAT_data(100,100), &
-  !!#!                               MODIS_LON_data(100,100), &
-  !!#!                               CERES_LAT_data(100,100), &
-  !!#!                               CERES_LON_data(100,100))
-
   !!#!write(*,*) distance
 
   istatus = 0

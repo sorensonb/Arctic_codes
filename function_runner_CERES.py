@@ -13,6 +13,16 @@ import sys
 # Set up the overall figure
 # ----------------------------------------------------
 
+date_str = '2018070523'
+minlat = 65.
+CERES_grid_hrly =  readgridCERES_hrly_grid(date_str, 'swf', \
+    minlat=minlat)
+
+write_CERES_hrly_grid_to_HDF5(CERES_grid_hrly, save_path = './', \
+    minlat = 65., remove_empty_scans = True)
+
+sys.exit()
+
 #plotCERES_MonthTrend_AllClr('200504', '202009', 4, \
 #    minlat = 70, satellite = 'Aqua', save = True)
 start_date = '200504'

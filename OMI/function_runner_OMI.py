@@ -10,6 +10,63 @@ import OMILib
 from OMILib import *
 import sys
 
+date_str = '200607242155'
+date_str = '200804210805'
+date_str = '201507121137'
+#date_str = '201807041812'
+fig = plt.figure()
+ax1 = fig.add_subplot(2,2,1, projection = mapcrs)
+ax2 = fig.add_subplot(2,2,2, projection = mapcrs)
+ax3 = fig.add_subplot(2,2,3, projection = mapcrs)
+ax4 = fig.add_subplot(2,2,4, projection = mapcrs)
+
+vmax = 1.0
+plotOMI_single_swath_figure(date_str, dtype = 'shawn',  \
+        only_sea_ice = False, minlat = 70., skiprows = [52], \
+        lat_circles = None, save = False, zoom = False, \
+        circle_bound = True, ax = ax1, \
+        vmax = vmax, \
+        shawn_path = '/home/bsorenson/data/OMI/shawn_files/ltc3/')
+plotOMI_single_swath_figure(date_str, dtype = 'shawn',  \
+        only_sea_ice = False, minlat = 70., skiprows = [52], \
+        lat_circles = None, save = False, zoom = False, \
+        circle_bound = True, ax = ax2, \
+        vmax = vmax, \
+        shawn_path = '/home/bsorenson/data/OMI/shawn_files/ltc3_old/')
+plotOMI_single_swath_figure(date_str, dtype = 'shawn',  \
+        only_sea_ice = False, minlat = 70., skiprows = [52], \
+        lat_circles = None, save = False, zoom = False, \
+        circle_bound = True, ax = ax3, \
+        vmax = vmax, \
+        shawn_path = '/home/bsorenson/data/OMI/shawn_files/ltc3_new/')
+plotOMI_single_swath_figure(date_str, dtype = 'shawn',  \
+        only_sea_ice = False, minlat = 70., skiprows = [52], \
+        lat_circles = None, save = False, zoom = False, \
+        circle_bound = True, ax = ax4, \
+        vmax = vmax, \
+        shawn_path = '/home/bsorenson/data/OMI/shawn_files/ltc4/')
+
+ax1.set_title('Control')
+ax2.set_title('LTC3 OLD')
+ax3.set_title('LTC3 NEW')
+ax4.set_title('LTC4')
+
+plt.show()
+
+sys.exit()
+
+date_str = '201807052213'
+minlat = 65.
+OMI_base  = readOMI_swath_shawn(date_str, latmin = minlat,\
+    shawn_path = home_dir + '/data/OMI/shawn_files/ltc3/')
+dtype = 'ltc3'
+OMI_hdf   = readOMI_swath_hdf(date_str, 'control', latmin = minlat)
+#write_swath_to_HDF5(OMI_base, dtype, save_path = './', minlat = 65., \
+#    shawn_path = home_dir + '/data/OMI/shawn_files/ltc3/', \
+#    remove_empty_scans = True)
+
+sys.exit()
+
 #date_str = '20180721'
 #good_list = download_identify_OMI_swaths(date_str, minlat = 70., min_AI = 2.0, \
 #    remove_bad = False, skiprows = [52], omi_dtype = 'ltc3', screen_SZA = True)

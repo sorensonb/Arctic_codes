@@ -774,11 +774,21 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
 # NOTE: used for writing gridded SSF_Level2 to an HDF5 file for a
 #       single hour.
 # ----------------------------------------------------------------
-def write_CERES_hrly_grid_to_HDF5(CERES_grid_hrly, save_path = './'):
+def write_CERES_hrly_grid_to_HDF5(CERES_grid_hrly, save_path = './', \
+        minlat = 65., remove_empty_scans = False):
 
     if(isinstance(CERES_grid_hrly, str)):
         CERES_grid_hrly =  readgridCERES_hrly_grid(CERES_grid_hrly, 'swf', \
-            minlat=65.0)
+            minlat=minlat)
+
+    if(remove_empty_scans):
+        mask_data = np.ma.masked_where(CERES_grid_hrly['lat'] < minlat, \
+            CERES_grid_hrly['swf'])
+        mask_dims = np.array([ (False in mask_data[ii,:].mask) for ii in \
+            range(mask_data.shape[0])])
+        keep_idxs = np.where(mask_dims == True)[0]
+    else:
+        keep_idxs = None 
 
     # Convert the filename object to datetime
     # ---------------------------------------
@@ -790,11 +800,11 @@ def write_CERES_hrly_grid_to_HDF5(CERES_grid_hrly, save_path = './'):
     outfile = save_path + 'ceres_subset_' + file_date + '.hdf5'
     dset = h5py.File(outfile,'w')
  
-    dset.create_dataset('latitude',  data = CERES_grid_hrly['lat'][:,:])
-    dset.create_dataset('longitude', data = CERES_grid_hrly['lon'][:,:])
-    dset.create_dataset('swf',       data = CERES_grid_hrly['swf'][:,:])
-    dset.create_dataset('lwf',       data = CERES_grid_hrly['lwf'][:,:])
-    dset.create_dataset('time',      data = CERES_grid_hrly['time'][:,:])
+    dset.create_dataset('latitude',  data = CERES_grid_hrly['lat'][keep_idxs,:].squeeze())
+    dset.create_dataset('longitude', data = CERES_grid_hrly['lon'][keep_idxs,:].squeeze())
+    dset.create_dataset('swf',       data = CERES_grid_hrly['swf'][keep_idxs,:].squeeze())
+    dset.create_dataset('lwf',       data = CERES_grid_hrly['lwf'][keep_idxs,:].squeeze())
+    dset.create_dataset('time',      data = CERES_grid_hrly['time'][keep_idxs,:].squeeze())
 
     # Save, write, and close the HDF5 file
     # --------------------------------------

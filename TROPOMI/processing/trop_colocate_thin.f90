@@ -1,4 +1,4 @@
-program trop_colocate
+program trop_colocate_thin
 !
 ! NAME:
 !   trop_colocate.f90
@@ -33,6 +33,15 @@ program trop_colocate
   use colocate_vars, only : clear_arrays, i_bad_list, &
     find_distance_between_points, allocate_out_arrays, &
     pixel_in_box, &
+    OMI_AI_data,    OMI_AI_dims, &
+    OMI_AI_raw_data,    OMI_AI_raw_dims, &
+    OMI_LAT_data,   OMI_LAT_dims, &
+    OMI_LON_data,   OMI_LON_dims, &
+    OMI_LATCRNR_data,   OMI_LATCRNR_dims, &
+    OMI_LONCRNR_data,   OMI_LONCRNR_dims, &
+    OMI_SZA_data,   OMI_SZA_dims, &
+    OMI_VZA_data,   OMI_VZA_dims, &
+    OMI_AZM_data,   OMI_AZM_dims, &
     TROP_prep_AI_data,    TROP_prep_AI_dims, &
     TROP_prep_SSA0_data,  TROP_prep_SSA0_dims, &
     TROP_prep_SSA1_data,  TROP_prep_SSA1_dims, &
@@ -41,17 +50,6 @@ program trop_colocate
     TROP_prep_LON_data, TROP_prep_LON_dims, &
     TROP_out_AI_data, TROP_out_SSA0_data, TROP_out_SSA1_data, &
       TROP_out_SSA2_data
-  use h5_vars, only: &
-    clear_h5_arrays, &
-    AI_data,         AI_dims, &
-    LAT_data,        LAT_dims, &
-    LON_data,        LON_dims, &
-    LATCRNR_data,    LATCRNR_dims, &
-    LONCRNR_data,    LONCRNR_dims, &
-    SZA_data,        SZA_dims, &
-    VZA_data,        VZA_dims, &
-    AZM_data,        AZM_dims
-    
 
   implicit none
 
@@ -77,7 +75,8 @@ program trop_colocate
   integer                :: dspace_id_OSZ  ! OMI SZA
   integer                :: dspace_id_OVZ  ! OMI VZA
   integer                :: dspace_id_OAZ  ! OMI AZM
-  integer                :: dspace_id_OAI  ! OMI AI
+  integer                :: dspace_id_OAI  ! OMI AI pert
+  integer                :: dspace_id_OAR  ! OMI AI raw
   integer                :: dspace_id_TAI  ! TROPOMI AI
   integer                :: dspace_id_TS0  ! TROPOMI SSA0
   integer                :: dspace_id_TS1  ! TROPOMI SSA1
@@ -89,6 +88,7 @@ program trop_colocate
   integer                :: dset_id_OVZ  ! OMI VZA
   integer                :: dset_id_OAZ  ! OMI AZM
   integer                :: dset_id_OAI  ! OMI AI
+  integer                :: dset_id_OAR  ! OMI AI raw
   integer                :: dset_id_TAI  ! TROPOMI AI
   integer                :: dset_id_TS0  ! TROPOMI SSA0
   integer                :: dset_id_TS1  ! TROPOMI SSA1
@@ -117,10 +117,12 @@ program trop_colocate
   real(kind = 8), dimension(4) :: local_lons
   real(kind = 8)               :: local_lon
 
+  character(len = 255)      :: omi_path        ! filename
+  character(len = 255)      :: trop_path       ! filename
   character(len = 12)       :: omi_date        ! filename
+  character(len = 12)       :: trop_date       ! filename
   character(len = 255)      :: omi_file_name   ! filename
   character(len = 255)      :: omi_just_name   ! filename
-  character(len = 255)      :: omi_name_file   ! filename
   character(len = 255)      :: trop_file_name  ! filename
   character(len = 255)      :: out_file_name   ! filename
 
@@ -135,64 +137,55 @@ program trop_colocate
 
   !!#!! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   
-  !!#!lats = [73.5486, 73.4014, 73.2849, 73.4465]
-  !!#!lons = [179.7175, 179.6764, 179.9431, -179.4345]
-
-  !!#!! inside
-  !!#!plat = 73.4117
-  !!#!plon = -179.8443
-
-
-  !!#!write(*,*) pixel_in_box(lats, lons, plat, plon) 
-
-  !!#!! outside
-  !!#!plat = 73.5925
-  !!#!plon = -179.2505  
-  !!#!write(*,*) pixel_in_box(lats, lons, plat, plon) 
  
   ! Check command line arguments
   ! ----------------------------
   arg_count = command_argument_count()
   if(arg_count /= 2) then
-    write(*,*) 'SYNTAX: ./trop_exec trop_prep_file omi_name_file'
+    write(*,*) 'SYNTAX: ./trop_exec trop_prep_file omi_comp_file'
     return
   endif
 
   ! Pull the output file name and input file list file from the command line
   ! ------------------------------------------------------------------------
   call get_command_argument(1, trop_file_name)
-  call get_command_argument(2, omi_name_file)
+  call get_command_argument(2, omi_file_name)
 
-  ! Open the OMI name file
-  io7 = 42
-  open(io7, file = trim(omi_name_file), iostat = istatus)
-  if(istatus > 0) then
-    write(*,*) "ERROR: Problem reading "//trim(omi_name_file)
-    return 
-  endif
+  !! Set the paths to the data files
+  !! -------------------------------
+  !omi_path  = '/Research/OMI/H5_files/'
+  !!omi_path  = '/home/bsorenson/OMI/arctic_comp/comp_data/'
+  !trop_path = '/home/bsorenson/OMI/tropomi_colocate/prep_data/'
+
+  !!#!! Open the OMI name file
+  !!#!open(io7, file = trim(omi_name_file), iostat = istatus)
+  !!#!if(istatus > 0) then
+  !!#!  write(*,*) "ERROR: Problem reading "//trim(omi_name_file)
+  !!#!  return 
+  !!#!endif
  
-  ! Read the OMI file name  
-  read(io7, *, iostat = istatus) omi_just_name
+  !!#!! Read the OMI file name  
+  !!#!read(io7, *, iostat = istatus) omi_just_name
  
-  close(io7)
+  !!#!close(io7)
 
-  omi_file_name = '/Research/OMI/H5_files/'//trim(omi_just_name)
+  !!#!omi_file_name = '/Research/OMI/H5_files/'//trim(omi_just_name)
 
-  write(*,*) trim(trop_file_name), '  ', trim(omi_file_name)
+  !!#!write(*,*) trim(trop_file_name), '  ', trim(omi_file_name)
 
 
-  ! Set up the out file name based on the OMI timestamp
-  ! ---------------------------------------------------
-  omi_date = omi_file_name(len(trim(omi_file_name)) - 46 : &
-                           len(trim(omi_file_name)) - 43)//&
-             omi_file_name(len(trim(omi_file_name)) - 41 : &
-                           len(trim(omi_file_name)) - 38)//&
-             omi_file_name(len(trim(omi_file_name)) - 36 : &
-                           len(trim(omi_file_name)) - 33)
-  out_file_name = &
-    '/home/bsorenson/OMI/tropomi_colocate/coloc_data/colocated_tropomi_'//&
-    omi_date//'.hdf5'
-  write(*,*) trim(out_file_name)
+  !!#!! Set up the out file name based on the OMI timestamp
+  !!#!! ---------------------------------------------------
+  !!#!omi_date = omi_file_name(len(trim(omi_file_name)) - 46 : &
+  !!#!                         len(trim(omi_file_name)) - 43)//&
+  !!#!           omi_file_name(len(trim(omi_file_name)) - 41 : &
+  !!#!                         len(trim(omi_file_name)) - 38)//&
+  !!#!           omi_file_name(len(trim(omi_file_name)) - 36 : &
+  !!#!                         len(trim(omi_file_name)) - 33)
+  !!#!out_file_name = &
+  !!#!  '/home/bsorenson/OMI/tropomi_colocate/coloc_data/colocated_tropomi_'//&
+  !!#!  omi_date//'.hdf5'
+  !!#!write(*,*) trim(out_file_name)
 
   ! Initialize the HDF5 interface
   ! -----------------------------
@@ -222,16 +215,20 @@ program trop_colocate
   endif
 
 
+  ! Read data from OMI file
+  ! -----------------------
+  call read_comp_OMI_AI(omi_file_id)
+  call read_comp_OMI_AI_raw(omi_file_id)
+  call read_comp_OMI_LAT(omi_file_id)
+  call read_comp_OMI_LON(omi_file_id)
+  call read_comp_OMI_LATCRNR(omi_file_id)
+  call read_comp_OMI_LONCRNR(omi_file_id)
+  call read_comp_OMI_SZA(omi_file_id)
+  call read_comp_OMI_VZA(omi_file_id)
+  call read_comp_OMI_AZM(omi_file_id)
 
-  call read_h5_AI(omi_file_id)
-  call read_h5_LAT(omi_file_id)
-  call read_h5_LON(omi_file_id)
-  call read_h5_LATCRNR(omi_file_id)
-  call read_h5_LONCRNR(omi_file_id)
-  call read_h5_SZA(omi_file_id)
-  call read_h5_VZA(omi_file_id)
-  call read_h5_AZM(omi_file_id)
-
+  ! Read data from TROPOMI file
+  ! ----------------------------
   call read_prep_TROP_AI(trop_file_id)
   call read_prep_TROP_SSA0(trop_file_id)
   call read_prep_TROP_SSA1(trop_file_id)
@@ -240,13 +237,15 @@ program trop_colocate
   call read_prep_TROP_LON(trop_file_id)
 
   !test_dims = (/10, 20/)
-  test_dims = (/AI_dims(1), AI_dims(2)/)
+  test_dims = (/OMI_AI_dims(1), OMI_AI_dims(2)/)
   !test_dims = AI_dims
+
+  write(*,*) "DATA DIMS:",OMI_AI_dims
 
   ! Allocate the output arrays
   ! --------------------------
-  call allocate_out_arrays(AI_dims(1), AI_dims(2))
-  write(*,*) "HERE2", LAT_data(20,20)
+  call allocate_out_arrays(OMI_AI_dims(1), OMI_AI_dims(2))
+  write(*,*) "HERE2", OMI_LAT_data(20,20)
 
   istatus = 0
   num_nan = 0 
@@ -261,18 +260,18 @@ program trop_colocate
   !!#!  write(*,*) TROP_prep_LAT_data(ii), TROP_prep_LON_data(ii), TROP_prep_AI_data(ii)
   !!#!enddo
 
-  omi_loop1: do ii=1,LAT_dims(2)
+  omi_loop1: do ii=1,OMI_LAT_dims(2)
 
     if(mod(ii, 50) == 0) then
       write(*,*) ii
     endif
 
-    omi_loop2: do jj=1,LAT_dims(1) 
+    omi_loop2: do jj=1,OMI_LAT_dims(1) 
 
       ! Check if the current pixel is missing
       ! NEW: Check if the current pixel is above minlat
       ! -----------------------------------------------
-      if(LAT_data(jj,ii) < min_lat) then
+      if(OMI_LAT_data(jj,ii) < min_lat) then
       !if(isnan(AI_data(jj,ii))) then
         TROP_out_AI_data(jj,ii) = -999.
         TROP_out_SSA0_data(jj,ii) = -999.
@@ -352,10 +351,10 @@ program trop_colocate
         ! Adjust the lon and lon corners to account for pixels
         ! that straddle the antimeridian
         do njj = 1, 4
-          if(LONCRNR_data(njj,jj,ii) < 0) then
-            local_lons(njj) = LONCRNR_data(njj,jj,ii) + 360
+          if(OMI_LONCRNR_data(njj,jj,ii) < 0) then
+            local_lons(njj) = OMI_LONCRNR_data(njj,jj,ii) + 360
           else
-            local_lons(njj) = LONCRNR_data(njj,jj,ii)     
+            local_lons(njj) = OMI_LONCRNR_data(njj,jj,ii)     
           endif
         enddo
  
@@ -438,7 +437,7 @@ program trop_colocate
           !write(*,*) TROP_prep_AI_data(nii)
           ! Check if the current pixel is within the OMI pixel bounds
           ! ---------------------------------------------------------
-          if(pixel_in_box(LATCRNR_data(:,jj,ii), LONCRNR_data(:,jj,ii), &
+          if(pixel_in_box(OMI_LATCRNR_data(:,jj,ii), OMI_LONCRNR_data(:,jj,ii), &
               TROP_prep_LAT_data(nii), TROP_prep_LON_data(nii))) then
 
               run_trop_total_ai = &
@@ -503,7 +502,8 @@ program trop_colocate
   ! --------------------
   out_file_name = &
     '/home/bsorenson/OMI/tropomi_colocate/coloc_data/colocated_tropomi_'//&
-    omi_date//'.hdf5'
+    omi_file_name(len(trim(omi_file_name)) - &
+    16:len(trim(omi_file_name)) - 5)//'.hdf5'
 
   write(*,*) trim(out_file_name)
 
@@ -540,7 +540,7 @@ program trop_colocate
 
   ! Write to the dataset
   ! --------------------
-  call h5dwrite_f(dset_id_OLT, H5T_NATIVE_DOUBLE, LAT_data, AI_dims, &
+  call h5dwrite_f(dset_id_OLT, H5T_NATIVE_DOUBLE, OMI_LAT_data, OMI_AI_dims, &
                       error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not write to dataset'
@@ -586,7 +586,7 @@ program trop_colocate
 
   ! Write to the dataset
   ! --------------------
-  call h5dwrite_f(dset_id_OLN, H5T_NATIVE_DOUBLE, LON_data, AI_dims, &
+  call h5dwrite_f(dset_id_OLN, H5T_NATIVE_DOUBLE, OMI_LON_data, OMI_AI_dims, &
                       error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not write to dataset'
@@ -632,7 +632,7 @@ program trop_colocate
 
   ! Write to the dataset
   ! --------------------
-  call h5dwrite_f(dset_id_OSZ, H5T_NATIVE_DOUBLE, SZA_data, AI_dims, &
+  call h5dwrite_f(dset_id_OSZ, H5T_NATIVE_DOUBLE, OMI_SZA_data, OMI_AI_dims, &
                       error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not write to dataset'
@@ -678,7 +678,7 @@ program trop_colocate
 
   ! Write to the dataset
   ! --------------------
-  call h5dwrite_f(dset_id_OVZ, H5T_NATIVE_DOUBLE, VZA_data, AI_dims, &
+  call h5dwrite_f(dset_id_OVZ, H5T_NATIVE_DOUBLE, OMI_VZA_data, OMI_AI_dims, &
                       error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not write to dataset'
@@ -724,7 +724,7 @@ program trop_colocate
 
   ! Write to the dataset
   ! --------------------
-  call h5dwrite_f(dset_id_OAZ, H5T_NATIVE_DOUBLE, AZM_data, AI_dims, &
+  call h5dwrite_f(dset_id_OAZ, H5T_NATIVE_DOUBLE, OMI_AZM_data, OMI_AI_dims, &
                       error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not write to dataset'
@@ -747,7 +747,7 @@ program trop_colocate
   
   ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
   !
-  ! Write OMI AI data
+  ! Write OMI AI pert data
   !
   ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -770,7 +770,7 @@ program trop_colocate
 
   ! Write to the dataset
   ! --------------------
-  call h5dwrite_f(dset_id_OAI, H5T_NATIVE_DOUBLE, AI_data, AI_dims, &
+  call h5dwrite_f(dset_id_OAI, H5T_NATIVE_DOUBLE, OMI_AI_data, OMI_AI_dims, &
                       error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not write to dataset'
@@ -789,7 +789,53 @@ program trop_colocate
     return
   endif
 
-  write(*,*) 'Wrote OMI AI'
+  write(*,*) 'Wrote OMI AI pert'
+
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! Write OMI AI raw data
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+  ! Create the dataspace
+  ! --------------------
+  call h5screate_simple_f(rank, test_dims, dspace_id_OAR, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataspace'
+    return
+  endif
+
+  ! Create the dataset
+  ! ------------------
+  call h5dcreate_f(out_file_id, 'omi_uvai_raw', H5T_NATIVE_DOUBLE, &
+                   dspace_id_OAR,  dset_id_OAR, error) 
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataset '//'omi_uvai_raw'
+    return
+  endif
+
+  ! Write to the dataset
+  ! --------------------
+  call h5dwrite_f(dset_id_OAR, H5T_NATIVE_DOUBLE, OMI_AI_raw_data, OMI_AI_dims, &
+                      error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  ! Close the dataset
+  ! -----------------
+  call h5dclose_f(dset_id_OAR, error)
+
+  ! Close access to data space rank
+  call h5sclose_f(dspace_id_OAR, error)
+
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  write(*,*) 'Wrote OMI AI raw'
 
   ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
   !
@@ -817,7 +863,7 @@ program trop_colocate
   ! Write to the dataset
   ! --------------------
   call h5dwrite_f(dset_id_TAI, H5T_NATIVE_DOUBLE, TROP_out_AI_data, &
-                  AI_dims, error)
+                  OMI_AI_dims, error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not write to dataset'
     return
@@ -863,7 +909,7 @@ program trop_colocate
   ! Write to the dataset
   ! --------------------
   call h5dwrite_f(dset_id_TS0, H5T_NATIVE_DOUBLE, TROP_out_SSA0_data, &
-                  AI_dims, error)
+                  OMI_AI_dims, error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not write to dataset'
     return
@@ -909,7 +955,7 @@ program trop_colocate
   ! Write to the dataset
   ! --------------------
   call h5dwrite_f(dset_id_TS1, H5T_NATIVE_DOUBLE, TROP_out_SSA1_data, &
-                  AI_dims, error)
+                  OMI_AI_dims, error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not write to dataset'
     return
@@ -955,7 +1001,7 @@ program trop_colocate
   ! Write to the dataset
   ! --------------------
   call h5dwrite_f(dset_id_TS2, H5T_NATIVE_DOUBLE, TROP_out_SSA2_data, &
-                  AI_dims, error)
+                  OMI_AI_dims, error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not write to dataset'
     return
@@ -995,7 +1041,7 @@ program trop_colocate
   ! Deallocate all the arrays for the next pass
   ! -------------------------------------------
   call clear_arrays
-  call clear_h5_arrays
+  !call clear_h5_arrays
 
   call h5fclose_f(omi_file_id, error)
   if(error /= 0) then
@@ -1018,4 +1064,4 @@ program trop_colocate
   endif
   write(*,*) "Interface closed"
 
-end program trop_colocate
+end program trop_colocate_thin

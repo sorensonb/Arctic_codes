@@ -26,7 +26,11 @@ from OMILib import readOMI_swath_shawn, plotOMI_single_swath, \
 
 #date_str = '201807052142'
 #date_str = '201908110044'
-date_str = '202108012225'
+date_str = '201807051819'
+
+TROP_data = read_TROPOMI(date_str, minlat = 65.)
+
+sys.exit()
 
 date_strs = [
     '202108010207', \

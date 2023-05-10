@@ -1992,10 +1992,19 @@ def read_MODIS_channel(date_str, channel, zoom = False, swath = False):
 # NOTE: can take either a date string OR a dictionary
 # ----------------------------------------------------------------
 def write_MODIS_to_HDF5(MODIS_data, channel = 2, swath = True, \
-        save_path = './'):
+        save_path = './', minlat = 20., remove_empty_scans = False):
 
     if(isinstance(MODIS_data, str)):
         MODIS_data = read_MODIS_channel(MODIS_data, channel, swath = swath)
+
+    if(remove_empty_scans):
+        mask_data = np.ma.masked_where(MODIS_data['lat'] < minlat, \
+            MODIS_data['data'])
+        mask_dims = np.array([ (False in mask_data[ii,:].mask) for ii in \
+            range(mask_data.shape[0])])
+        keep_idxs = np.where(mask_dims == True)[0]
+    else:
+        keep_idxs = None 
 
     # Convert the filename object to datetime
     # ---------------------------------------
@@ -2008,9 +2017,12 @@ def write_MODIS_to_HDF5(MODIS_data, channel = 2, swath = True, \
         '_subset_'+ file_date + '.hdf5'
     dset = h5py.File(outfile,'w')
  
-    dset.create_dataset('latitude',  data = MODIS_data['lat'][:,:])
-    dset.create_dataset('longitude', data = MODIS_data['lon'][:,:])
-    dset.create_dataset('data', data = MODIS_data['data'][:,:])
+    dset.create_dataset('latitude',  data = \
+        MODIS_data['lat'][keep_idxs,:].squeeze())
+    dset.create_dataset('longitude', data = \
+        MODIS_data['lon'][keep_idxs,:].squeeze())
+    dset.create_dataset('data', data = \
+        MODIS_data['data'][keep_idxs,:].squeeze())
 
     # Save, write, and close the HDF5 file
     # --------------------------------------

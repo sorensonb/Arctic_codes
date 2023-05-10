@@ -215,6 +215,18 @@ cmnd = "scp "+rain_dir+"colocate_lib/*.f90 "+final_dir
 print(cmnd)
 os.system(cmnd)
 
+# comp grid climo stuff
+final_dir = dest_dir + 'Arctic_compares/processing/comp_grid_climo/'
+cmnd = "scp "+rain_dir+"comp_grid_climo/*.f90 "+final_dir
+print(cmnd)
+os.system(cmnd)
+cmnd = "scp "+rain_dir+"comp_grid_climo/Make* "+final_dir
+print(cmnd)
+os.system(cmnd)
+#cmnd = "scp "+rain_dir+"arctic_comp/auto_process.sh "+final_dir
+#print(cmnd)
+#os.system(cmnd)
+
 rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/CERES/"
 
 final_dir = dest_dir + 'CERES/processing/'

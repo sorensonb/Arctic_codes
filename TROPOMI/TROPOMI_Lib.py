@@ -204,7 +204,8 @@ def automate_TROPOMI_preprocess(date_str, download = True, images = True, \
             #local_trop_time = trop_dtime.strftime('%Y%m%d%H%M')
             #print(local_trop_time)
 
-def generate_TROPOMI_prep_data(date_str, copy_to_raindrop = False):
+def generate_TROPOMI_prep_data(date_str, copy_to_raindrop = False, \
+        minlat = 20., remove_empty_scans = False):
 
     trop_name = download_TROPOMI_file(date_str)
 
@@ -238,7 +239,8 @@ def generate_TROPOMI_prep_data(date_str, copy_to_raindrop = False):
     # to raindrop
     # --------------------------------------------------------
     trop_file_name = convert_TROPOMI_to_HDF5(local_trop_time, \
-        omi_name = omi_file_name, save_path = save_dir)
+        omi_name = omi_file_name, save_path = save_dir, \
+        minlat = minlat)
     
     # Now, write the name of the OMI file to a text file, which
     # will be zipped up with the TROPOMI file.
@@ -378,10 +380,11 @@ def download_TROPOMI_match_OMI(date_str, \
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 def convert_TROPOMI_to_HDF5(date_str, omi_name = None, \
-        save_path = home_dir + '/Research/TROPOMI/'):
+        save_path = home_dir + '/Research/TROPOMI/', \
+        minlat = 65.):
 
     # Read the TROPOMI data
-    TROP_data = read_TROPOMI(date_str, minlat = 65.)
+    TROP_data = read_TROPOMI(date_str, minlat = minlat)
     
     # Prep the data for output for the temporary pre-colocating file
     # --------------------------------------------------------------

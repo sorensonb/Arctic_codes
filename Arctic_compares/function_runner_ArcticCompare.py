@@ -8,6 +8,48 @@
 import Arctic_compare_lib
 from Arctic_compare_lib import *
 
+run_list = ['20060724', \
+    '20060725','20060726','20060727','20080422',]
+run_list = ['20060727','20080422',
+    '20140811','20140812','20150627','20150706','20150707','20150708',\
+    '20150709','20150710','20170816','20170817','20170818','20170819']
+
+run_list = [
+    '20180704','20180705','20180721','20180810','20180814','20180824',\
+    '20180826','20190810','20190811','20210801']
+
+
+# NOTE: RERUN FOR THE 2017 DAYS, BUT TEMPORARILY MOVING THE GIANT
+#       CERES SSFL2 FILES THAT WERE USED FOR THE NAAPS ALBEDO
+#       STUDY. SLOWING DOWN THE RUNTIME SUBSTANTIALLY
+
+#run_list = ['20060725']
+#run_list = ['20200722', '20200723']
+#run_list = ['20180721','20180810','20180826','20180827']
+#run_list = ['20180721','20180810','20180814','20180826','20180827']
+#run_list = ['20180721','20170814','20100731','20100801']
+#final_list = entire_wrapper(min_AI = 2.0, minlat = 70., download = True, \
+#    images = False, process = False, run_list = run_list, copy_to_raindrop = True)
+final_list = entire_wrapper(min_AI = 2.0, minlat = 70., download = False, \
+    images = True, process = True, run_list = run_list, copy_to_raindrop = True)
+
+sys.exit()
+
+#date_str = '201807052213'
+#plot_compare_combined_category(date_str, var1 = 'TROP_AI', \
+#    var2 = 'CERES_SWF', var3 = None, cat = "ALL", minlat = 65., \
+#    xmin = 1.0, xmax = None, ymin = None, ymax = None, ax = None, \
+#    colorbar = True, trend = 'lin_regress', zoom = True, color = None, \
+#    save = False)
+#
+#sys.exit()
+#
+#date_strs = ['201807052213']
+#automate_all_preprocess(date_strs, download = False, images = False, process = True,\
+#    omi_dtype = 'ltc3', copy_to_raindrop = True)
+#sys.exit()
+
+
 files = glob(home_dir + \
     '/Research/Arctic_compares/comp_data/colocated_subset_20*.hdf5')
 
@@ -202,10 +244,6 @@ sys.exit()
 #            ]
 
 
-date_strs = ['201807052213']
-automate_all_preprocess(date_strs, download = False, images = False, process = True,\
-    omi_dtype = 'ltc3', copy_to_raindrop = True)
-sys.exit()
 
 #date_str = '201807051856'
 #date_str = '201807052213'

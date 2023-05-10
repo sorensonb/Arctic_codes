@@ -1180,10 +1180,20 @@ def plotNSIDC_daily_figure(date_str, minlat = 65., \
 
 # Writes a MODIS channel dictionary to HDF5 for Fortran colocation
 # ----------------------------------------------------------------
-def writeNSIDC_to_HDF5(NSIDC_data, save_path = './'):
+def writeNSIDC_to_HDF5(NSIDC_data, save_path = './', minlat = 65., \
+        remove_empty_scans = False):
 
     if(isinstance(NSIDC_data, str)):
         NSIDC_data = readNSIDC_daily(NSIDC_data)
+
+    if(remove_empty_scans):
+        mask_data = np.ma.masked_where(NSIDC_data['lat'] < minlat, \
+            NSIDC_data['data'])
+        mask_dims = np.array([ (False in mask_data[ii,:].mask) for ii in \
+            range(mask_data.shape[0])])
+        keep_idxs = np.where(mask_dims == True)[0]
+    else:
+        keep_idxs = None 
 
     # Convert the filename object to datetime
     # ---------------------------------------
@@ -1195,9 +1205,12 @@ def writeNSIDC_to_HDF5(NSIDC_data, save_path = './'):
     outfile = save_path + 'nsidc_comp_' + file_date + '.hdf5'
     dset = h5py.File(outfile,'w')
  
-    dset.create_dataset('latitude',  data = NSIDC_data['lat'][:,:])
-    dset.create_dataset('longitude', data = NSIDC_data['lon'][:,:])
-    dset.create_dataset('SeaIceConcentration', data = NSIDC_data['data'][:,:].data)
+    dset.create_dataset('latitude',  data = \
+        NSIDC_data['lat'][keep_idxs,:].squeeze())
+    dset.create_dataset('longitude', data = \
+        NSIDC_data['lon'][keep_idxs,:].squeeze())
+    dset.create_dataset('SeaIceConcentration', data = \
+        NSIDC_data['data'][keep_idxs,:].data.squeeze())
 
     # Save, write, and close the HDF5 file
     # --------------------------------------

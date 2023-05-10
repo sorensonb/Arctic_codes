@@ -142,7 +142,8 @@ case_dates = ['200607240029', # GOOD
 #   - file package
 def automate_all_preprocess(date_str, download = True, images = True, \
         process = True, omi_dtype = 'ltc3', include_tropomi = True, \
-        copy_to_raindrop = False):
+        copy_to_raindrop = False, remove_empty_scans = True, \
+        minlat = 65.):
     if(isinstance(date_str, str)):
         date_str = [date_str]
 
@@ -185,13 +186,14 @@ def automate_all_preprocess(date_str, download = True, images = True, \
             if(dt_date_str.year > 2020):
                 omi_dtype2 = 'control'
             plot_compare_OMI_CERES_MODIS_NSIDC(dstr, 7, \
-                omi_dtype = omi_dtype2, minlat = 65., zoom = True, save = True)
+                omi_dtype = omi_dtype2, minlat = minlat, zoom = True, \
+                save = True)
 
         if(process):
 
             if(include_tropomi & (dt_date_str.year > 2017)):                    
                 generate_TROPOMI_prep_data(dstr, copy_to_raindrop = \
-                    copy_to_raindrop)
+                    copy_to_raindrop, minlat = minlat)
 
             # Make a data storage directory, if one does not already exist
             # ------------------------------------------------------------
@@ -216,20 +218,25 @@ def automate_all_preprocess(date_str, download = True, images = True, \
             else:
                 omi_type = 'control'
             write_swath_to_HDF5(dstr, omi_type, save_path = save_dir2, \
-                minlat = 65., shawn_path = shawn_path)
+                minlat = minlat, shawn_path = shawn_path, \
+                remove_empty_scans = remove_empty_scans)
 
             write_CERES_hrly_grid_to_HDF5(file_date_dict[dstr]['CERES'], \
-                save_path = save_dir2)
+                save_path = save_dir2, minlat = minlat, \
+                remove_empty_scans = remove_empty_scans)
 
             MODIS_date = file_date_dict[dstr]['MODIS'][0]
             write_MODIS_to_HDF5(MODIS_date, channel = 2, swath = True, \
-                save_path = save_dir2)
+                save_path = save_dir2, minlat = minlat, \
+                remove_empty_scans = remove_empty_scans)
             write_MODIS_to_HDF5(MODIS_date, channel = 7, swath = True, \
-                save_path = save_dir2)
+                save_path = save_dir2, minlat = minlat, \
+                remove_empty_scans = remove_empty_scans)
 
             NSIDC_date = file_date_dict[dstr]['NSIDC'][:8]
             print(NSIDC_date)
-            writeNSIDC_to_HDF5(NSIDC_date, save_path = save_dir2)
+            writeNSIDC_to_HDF5(NSIDC_date, save_path = save_dir2, \
+                minlat = minlat, remove_empty_scans = remove_empty_scans)
 
             # Finally, gzip the data
             # ---------------------
@@ -250,7 +257,8 @@ def automate_all_preprocess(date_str, download = True, images = True, \
                 os.system(cmnd)
 
 def single_wrap_function(date_str, minlat, min_AI, out_time_dict, download, \
-        images, process, include_tropomi, new_only, copy_to_raindrop):
+        images, process, include_tropomi, new_only, copy_to_raindrop, \
+        remove_empty_scans):
 
     print(date_str)
 
@@ -266,18 +274,23 @@ def single_wrap_function(date_str, minlat, min_AI, out_time_dict, download, \
             automate_all_preprocess(ttime, download = download, \
                 images = images, process = process, \
                 omi_dtype = 'ltc3', include_tropomi = include_tropomi,\
-                copy_to_raindrop = copy_to_raindrop)
+                copy_to_raindrop = copy_to_raindrop, \
+                minlat = minlat, \
+                remove_empty_scans = remove_empty_scans)
 
         else:
             print(ttime + " in json database. Reprocessing")
             automate_all_preprocess(ttime, download = download, \
                 images = images, process = process, \
                 omi_dtype = 'ltc3', include_tropomi = include_tropomi, \
-                copy_to_raindrop = copy_to_raindrop)
+                copy_to_raindrop = copy_to_raindrop, \
+                minlat = minlat, \
+                remove_empty_scans = remove_empty_scans)
 
 def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
         download = True, images = False, process = False, run_list = None, \
-        include_tropomi = True, copy_to_raindrop = True):
+        include_tropomi = True, copy_to_raindrop = True, \
+        remove_empty_scans = True):
 
     if(home_dir + '/Research/OMI/' not in sys.path):
         sys.path.append(home_dir + '/Research/OMI/')
@@ -298,7 +311,7 @@ def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
 
             single_wrap_function(date_str, minlat, min_AI, out_time_dict, \
                 download, images, process, include_tropomi, new_only, \
-                copy_to_raindrop)
+                copy_to_raindrop, remove_empty_scans)
 
     else:
     
@@ -324,7 +337,7 @@ def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
 
                 single_wrap_function(date_str, minlat, min_AI, out_time_dict, \
                     download, images, process, include_tropomi, new_only,\
-                    copy_to_raindrop)
+                    copy_to_raindrop, remove_empty_scans)
                 
 
         #if((date_str == '20140812') | \
@@ -544,9 +557,15 @@ def auto_all_download(date_str, download = True, rewrite_json = False, \
                 print(" Cycling the loop.")
                 continue
 
-            modis_date_list, file_list = download_MODIS_swath(CERES_date_str, \
-                    dest_dir = home_dir + '/data/MODIS/Aqua/', download = download)
-   
+            try:
+                modis_date_list, file_list = download_MODIS_swath(CERES_date_str, \
+                        dest_dir = home_dir + '/data/MODIS/Aqua/', download = download)
+            except TypeError: 
+                print("ERROR: problems determining MODIS swath times " + \
+                    "using CERES data")
+                print(" Cycling the loop.")
+                continue
+ 
             if(download): 
                 download_NSIDC_daily(CERES_date_str[:8])
 

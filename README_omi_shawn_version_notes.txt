@@ -29,11 +29,15 @@
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 out_files-ltc3/     = same as ltc3, but with GPQF flag added at end.
+                      Contains only rows that are always good 
+                      (no row anomaly rows at all).
                       No files for April or May
     201708161504 contains 7644 lines
                  last two columns are GPQF flag and row number
 out_files-ltc3/new/ = identical to old, but with fewer lines.
     201708161504 contains 7644 lines
+                      Contains only rows that are always good 
+                      (no row anomaly rows at all).
                  last column is the GPQF flag
 out_files-ltc3/old/ = same as ltc3, but with no GPQF flag value.
                       longer file length than ltc3 or new. 
@@ -44,6 +48,28 @@ out_files-ltc3/old/ = same as ltc3, but with no GPQF flag value.
 out_files-ltc4      = same as ltc3/new, but with row number added at end.
                       201708161504 is IDENTICAL to ltc3 version
 
+Looked at local versions of files, compared to raindrop
+201807041812, housed in ltc3 locally
+- ltc4: IDENTICAL
+- ltc3
+
+201507121137, stored locally in ltc3
+- ltc3    : identical to local version in ltc3
+- ltc3_old: contains more lines than local version, pert values are different
+- ltc3_new: does not contain all rows, identical to ltc4
+- ltc4:     identical to local version in ltc3
+
+200804210805, not housed in ltc3 locally 
+- ltc3    : NO DATA
+- ltc3_old: contains all rows, much higher values than other types
+- ltc3_new: does not contain all rows, identical to ltc4
+- ltc4:     does not contain all rows, identical to ltc3_new
+
+200607242155
+- ltc3    : NO DATA
+- ltc3_old: contains all rows, much higher values than other types
+- ltc3_new: does not contain all rows, identical to ltc4
+- ltc4:     does not contain all rows, identical to ltc3_new
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #

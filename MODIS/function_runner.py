@@ -7,6 +7,17 @@
 
 from MODISLib import *
 
+       
+MODIS_data = '201807052305'
+swath = True
+channel = 2 
+minlat = 65.
+MODIS_data = read_MODIS_channel(MODIS_data, channel, swath = swath)
+write_MODIS_to_HDF5(MODIS_data, channel = 2, swath = True, \
+    save_path = './', minlat = minlat, remove_empty_scans = True)
+
+sys.exit()
+
 date_str = '201206151425'
 download_MODIS_file(date_str, dest_dir = '/home/bsorenson/data/MODIS/Aqua/')
 

@@ -5,6 +5,8 @@ cd $base_dir
 
 make -f Make_trop_colocate
 
+make -f Make_trop_colocate_thin
+
 REDO_ALL=false
 EXTRACT=true
 REPROCESS=false
@@ -59,6 +61,7 @@ for d1 in ${dirlist} ; do
   #part1=$(dirname "$d2")
   part2=$(basename "$d1")
 
+
   # Check if the colocated file exists
   # ----------------------------------
   coloc_trop_file=${data_dir}colocated_tropomi_${part2}.hdf5
@@ -66,14 +69,33 @@ for d1 in ${dirlist} ; do
   if !(test -f "$coloc_trop_file") || $REPROCESS ; then
     echo "$coloc_trop_file does NOT exist. Processing data"
 
-    trop_file=$(ls ${d1}tropomi_*)
-    omi_name_file=$(ls ${d1}omi_filename.txt)
+    # NOTE: ADD A CHECK FOR A MATCHING OMI COMP FILE IN arctic_comp
+    #       IF IT EXISTS, RUN TROP_COLOC_THIN
+    # -------------------------------------------------------------
+    dv1=$(echo $d1 | head -c 8)
+    dv2=$(echo $d1 | head -c 12)
+    omi_prep_file=$(ls /home/bsorenson/OMI/arctic_comp/comp_data/${dv1}/${dv2}/omi_shawn_${dv2}.hdf5)
+   
+    if (test -f "$omi_prep_file"); then
+      echo "OMI prep file found. Processing thin data."
 
-    echo $trop_file $omi_name_file
+      # Run the OMI colocation executable
+      # ---------------------------------
+      echo $trop_file $omi_prep_file
+      ${base_dir}trop_thin_coloc_exec $trop_file $omi_prep_file
 
-    # Run the OMI colocation executable
-    # ---------------------------------
-    ${base_dir}trop_coloc_exec $trop_file $omi_name_file
+    else 
+      echo "No OMI prep file found. Processing full data"
+
+      trop_file=$(ls ${d1}tropomi_*)
+      omi_name_file=$(ls ${d1}omi_filename.txt)
+
+      echo $trop_file $omi_name_file
+
+      # Run the OMI colocation executable
+      # ---------------------------------
+      ${base_dir}trop_coloc_exec $trop_file $omi_name_file
+    fi 
 
     echo
   else
