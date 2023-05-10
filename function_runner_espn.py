@@ -26,36 +26,32 @@ gdict = load_json_stats()
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-##fcs_rankings, rank_values = \
-##    generate_division_rankings(gdict, division = 'FCS', \
-##    use_rankings = False)
-
-# Set pre-season rankings
-# ONLY DO FOR FIRST WEEK OF SEASON
-gdict = set_preseason_rankings(gdict, rank_file = 'sagarin_rank_postseason_2022.txt')
-gdict = simulate_whole_season(gdict, 12)
-
 fcs_rankings, rank_values = \
-    extract_rank_and_values(gdict, division = 'FCS')
+    generate_division_rankings(gdict, division = 'FCS', \
+    use_rankings = False)
+
+## Set pre-season rankings
+## ONLY DO FOR FIRST WEEK OF SEASON
+#gdict = set_preseason_rankings(gdict, rank_file = massey_file)
+#gdict = simulate_whole_season(gdict, 12)
+#
+#fcs_rankings, rank_values = \
+#    extract_rank_and_values(gdict, division = 'FCS')
 
 sorted_names = [rval[1] for rval in rank_values]
 
-# NOTE: Modify this to allow reading in either massey or sagarin 
-#       verification rankings. Also, make sure that all sagarin
-#       ranking names match those in the massey files.
-massey_rankings = read_poll_ranks()
+massey_rankings = read_massey_ranks()
 
 total_abs_error = 0
 
 for key in sorted_names:
-    if((key in fcs_rankings.keys()) & (key in massey_rankings.keys())):
-        conf =  gdict[key]['Conference']
-        calced_ranking = fcs_rankings[key]['rank']
-        massey_rank    = massey_rankings[key]
-        pcnt_error     = (massey_rank - calced_ranking)
-        total_abs_error += abs(pcnt_error)
-    #    print(key, calced_ranking, massey_rank, pcnt_error)
-        print(f'{calced_ranking:4d}{massey_rank:4d}{pcnt_error:4d} {key:25}{conf:30}')
+    conf =  gdict[key]['Conference']
+    calced_ranking = fcs_rankings[key]['rank']
+    massey_rank    = massey_rankings[key]
+    pcnt_error     = (massey_rank - calced_ranking)
+    total_abs_error += abs(pcnt_error)
+#    print(key, calced_ranking, massey_rank, pcnt_error)
+    print(f'{calced_ranking:4d}{massey_rank:4d}{pcnt_error:4d} {key:25}{conf:30}')
 
 print(total_abs_error / len(rank_values))
 
