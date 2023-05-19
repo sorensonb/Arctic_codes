@@ -8,6 +8,7 @@ LIB_PATH = /home/bsorenson/OMI/comp_grid_climo/
 #LIB_PATH = ../JZ_lib/
 #FORT_LIB_PATH = ../../fort_lib/
 OBJECTS = comp_grid_vars.o \
+			read_coloc_CERES_CLD.o \
 			read_coloc_CERES_SWF.o \
 			read_coloc_MODIS_CH7.o \
 			read_coloc_NSIDC_ICE.o \
@@ -39,6 +40,9 @@ comp_grid_vars.o: $(LIB_PATH)comp_grid_vars.f90
 #read_h5_GPQF.o: $(LIB_PATH)read_h5_GPQF.f90
 #	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_GPQF.f90
 #
+read_coloc_CERES_CLD.o: $(LIB_PATH)read_coloc_CERES_CLD.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_coloc_CERES_CLD.f90
+
 #read_comp_CERES_LWF.o: $(LIB_PATH)read_comp_CERES_LWF.f90
 #	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_CERES_LWF.f90
 #

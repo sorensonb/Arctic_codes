@@ -251,8 +251,12 @@ def automate_all_preprocess(date_str, download = True, images = True, \
                 # ----------------------------------------
                 cmnd = dt_date_str.strftime('scp ' + \
                     'combined_subsets_%Y%m%d%H%M.tar.gz ' + \
-                    'bsorenson@raindrop.atmos.und.edu:' + \
+                    'bsorenson@134.129.222.68:' + \
                     '/home/bsorenson/OMI/arctic_comp/comp_data/')
+                #cmnd = dt_date_str.strftime('scp ' + \
+                #    'combined_subsets_%Y%m%d%H%M.tar.gz ' + \
+                #    'bsorenson@raindrop.atmos.und.edu:' + \
+                #    '/home/bsorenson/OMI/arctic_comp/comp_data/')
                 print(cmnd)
                 os.system(cmnd)
 
@@ -838,6 +842,36 @@ def read_colocated_combined(date_str, zoom = True):
     return total_data
  
     #print(test_data.shape)    
+
+def read_comp_grid_climo(filename):
+
+    data = h5py.File(filename,'r')
+
+    comp_grid_data = {}
+    comp_grid_data['swf_climo'] = np.ma.masked_where(\
+        (data['ceres_swf_count'][:] == -9) | \
+        (data['ceres_swf_climo'][:] > 2e3), data['ceres_swf_climo'][:])
+    comp_grid_data['swf_count'] = np.ma.masked_where(\
+        (data['ceres_swf_count'][:] == -9) | \
+        (data['ceres_swf_climo'][:] > 2e3), data['ceres_swf_count'][:])
+   
+
+ 
+    comp_grid_data['ai_bins'] = data['omi_ai_bins'][:]
+    comp_grid_data['sza_bins'] = data['omi_sza_bins'][:]
+    comp_grid_data['ice_bins'] = data['nsidc_ice_bins'][:]
+    comp_grid_data['ch7_bins'] = data['modis_ch7_bins'][:]
+    comp_grid_data['cld_bins'] = data['ceres_cld_bins'][:]
+    comp_grid_data['ai_edges'] = data['omi_ai_edges'][:]
+    comp_grid_data['sza_edges'] = data['omi_sza_edges'][:]
+    comp_grid_data['ice_edges'] = data['nsidc_ice_edges'][:]
+    comp_grid_data['ch7_edges'] = data['modis_ch7_edges'][:]
+    comp_grid_data['cld_edges'] = data['ceres_cld_edges'][:]
+
+    data.close()
+
+    return comp_grid_data
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
 # Processing functions
@@ -2115,9 +2149,10 @@ def calculate_type_forcing(month_idx, trend_type = 'linear', minlat = 65.):
         print(tkey, test_trend * relat_dict[tkey]) 
 
 
-def plot_combined_scatter(combined_data, xval = 'omi_uvai_pert', \
-        yval = 'ceres_swf', \
+def plot_combined_scatter(combined_data, xval = 'omi_uvai_raw', \
+        yval = 'ceres_swf', ax = None, \
         swf_min = None, swf_max = None, \
+        cld_min = None, cld_max = None, \
         ch7_min = None, ch7_max = None, \
         sza_min = None, sza_max = None, \
         ice_min = None, ice_max = None, \
@@ -2145,6 +2180,8 @@ def plot_combined_scatter(combined_data, xval = 'omi_uvai_pert', \
         return local_xdata, local_ydata
         
     local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
+        'ceres_cld', cld_min, cld_max)
+    local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
         'ceres_swf', swf_min, swf_max)
     local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
         'modis_ch7', ch7_min, ch7_max)
@@ -2153,7 +2190,7 @@ def plot_combined_scatter(combined_data, xval = 'omi_uvai_pert', \
     local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
         'nsidc_ice', ice_min, ice_max)
     local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
-        'omi_uvai_pert', omi_min, omi_max)
+        'omi_uvai_raw', omi_min, omi_max)
 
     local_xdata = local_xdata.compressed()
     local_ydata = local_ydata.compressed()
@@ -2169,9 +2206,12 @@ def plot_combined_scatter(combined_data, xval = 'omi_uvai_pert', \
             xy = np.vstack([local_xdata, local_ydata])
             z = stats.gaussian_kde(xy)(xy)       
 
-    plt.close('all')
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
+    in_ax = True
+    if(ax is None):
+        plt.close('all')
+        in_ax = False
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
     
     ax.scatter(local_xdata, local_ydata, c = z, s = 6)
     if(show_trend):
@@ -2182,7 +2222,366 @@ def plot_combined_scatter(combined_data, xval = 'omi_uvai_pert', \
             plot_trend_line(ax, local_xdata, local_ydata, color='tab:red', \
                 linestyle = '-',  slope = trend_type)
 
-    plt.show()
+    ax.set_xlabel('OMI UVAI')
+    ax.set_ylabel('CERES SWF')
+
+    if(not in_ax):
+        plt.show()
 
 
+def plot_comp_grid_scatter(comp_grid_data, xval = 'ai', \
+        cld_min = None, cld_max = None,\
+        ch7_min = None, ch7_max = None,\
+        ice_min = None, ice_max = None,\
+        sza_min = None, sza_max = None,\
+        ai_min = None,  ai_max = None,\
+        ax = None, show_trend = False , \
+        trend_type = 'theil-sen', \
+        save = False):
 
+    #cld_lims  = [0., 20.]
+    cld_lims  = [np.min(comp_grid_data['cld_bins']), np.max(comp_grid_data['cld_bins'])]
+    #ch7_lims  = [0., 0.05]
+    ch7_lims  = [np.min(comp_grid_data['ch7_bins']), np.max(comp_grid_data['ch7_bins'])]
+    #ice_lims  = [101, 105]
+    ice_lims  = [np.min(comp_grid_data['ice_bins']), np.max(comp_grid_data['ice_bins'])]
+    #sza_lims  = [65, 70]
+    sza_lims  = [np.min(comp_grid_data['sza_bins']), np.max(comp_grid_data['sza_bins'])]
+    #ai_lims   = [2, 12]
+    ai_lims   = [np.min(comp_grid_data['ai_bins']), np.max(comp_grid_data['ai_bins'])]
+   
+    if(cld_min is not None):
+        cld_lims[0] = cld_min
+    if(cld_max is not None):
+        cld_lims[1] = cld_max
+    if(ch7_min is not None):
+        ch7_lims[0] = ch7_min
+    if(ch7_max is not None):
+        ch7_lims[1] = ch7_max
+    if(ice_min is not None):
+        ice_lims[0] = ice_min
+    if(ice_max is not None):
+        ice_lims[1] = ice_max
+    if(sza_min is not None):
+        sza_lims[0] = sza_min
+    if(sza_max is not None):
+        sza_lims[1] = sza_max
+    if(ai_min is not None):
+        ai_lims[0] = ai_min
+    if(ai_max is not None):
+        ai_lims[1] = ai_max
+ 
+    #keep_ai_lims  = np.arange(len(comp_grid_data['ai_bins']))
+    keep_ai_lims = np.where((comp_grid_data['ai_bins'] >= ai_lims[0]) & \
+                             (comp_grid_data['ai_bins'] <= ai_lims[1]))[0]
+    keep_sza_lims = np.where((comp_grid_data['sza_bins'] >= sza_lims[0]) & \
+                             (comp_grid_data['sza_bins'] <= sza_lims[1]))[0]
+    keep_ice_lims = np.where((comp_grid_data['ice_bins'] >= ice_lims[0]) & \
+                             (comp_grid_data['ice_bins'] <= ice_lims[1]))[0]
+    keep_ch7_lims = np.where((comp_grid_data['ch7_bins'] >= ch7_lims[0]) & \
+                             (comp_grid_data['ch7_bins'] <= ch7_lims[1]))[0]
+    keep_cld_lims = np.where((comp_grid_data['cld_bins'] >= cld_lims[0]) & \
+                             (comp_grid_data['cld_bins'] <= cld_lims[1]))[0]
+    #keep_ice_lims  = np.arange(len(comp_grid_data['ice_bins']))
+    #keep_ch7_lims  = np.arange(len(comp_grid_data['ch7_bins']))
+    
+    keep_swf = comp_grid_data['swf_climo'][keep_cld_lims[0]:keep_cld_lims[-1]+1,\
+                                           keep_ch7_lims[0]:keep_ch7_lims[-1]+1,\
+                                           keep_ice_lims[0]:keep_ice_lims[-1]+1,\
+                                           keep_sza_lims[0]:keep_sza_lims[-1]+1,\
+                                           keep_ai_lims[0]:keep_ai_lims[-1]+1]
+    
+    #keep_swf_new = np.array([[[[comp_grid_data['swf_climo'][ii,jj,kk,nn] \
+    #    for nn in keep_ai_lims] \
+    #    for kk in keep_sza_lims] \
+    #    for jj in keep_ice_lims] \
+    #    for ii in keep_ch7_lims])
+
+    keep_cld = np.array([[[[[comp_grid_data['cld_bins'][mm] \
+        for nn in keep_ai_lims] \
+        for kk in keep_sza_lims] \
+        for jj in keep_ice_lims] \
+        for ii in keep_ch7_lims] \
+        for mm in keep_cld_lims])
+
+    keep_ch7 = np.array([[[[[comp_grid_data['ch7_bins'][ii] \
+        for nn in keep_ai_lims] \
+        for kk in keep_sza_lims] \
+        for jj in keep_ice_lims] \
+        for ii in keep_ch7_lims] \
+        for mm in keep_cld_lims])
+    
+    keep_ice = np.array([[[[[comp_grid_data['ice_bins'][jj] \
+        for nn in keep_ai_lims] \
+        for kk in keep_sza_lims] \
+        for jj in keep_ice_lims] \
+        for ii in keep_ch7_lims] \
+        for mm in keep_cld_lims])
+    
+    keep_sza = np.array([[[[[comp_grid_data['sza_bins'][kk] \
+        for nn in keep_ai_lims] \
+        for kk in keep_sza_lims] \
+        for jj in keep_ice_lims] \
+        for ii in keep_ch7_lims] \
+        for mm in keep_cld_lims])
+    
+    keep_ai  = np.array([[[[[comp_grid_data['ai_bins'][nn] \
+        for nn in keep_ai_lims] \
+        for kk in keep_sza_lims] \
+        for jj in keep_ice_lims] \
+        for ii in keep_ch7_lims] \
+        for mm in keep_cld_lims])
+    
+
+    final_cld = keep_cld.flatten()[~keep_swf.flatten().mask]
+    final_ch7 = keep_ch7.flatten()[~keep_swf.flatten().mask]
+    final_ice = keep_ice.flatten()[~keep_swf.flatten().mask]
+    final_sza = keep_sza.flatten()[~keep_swf.flatten().mask]
+    final_ai  = keep_ai.flatten()[~keep_swf.flatten().mask]
+    final_swf = keep_swf.compressed()
+  
+    in_ax = True
+    if(ax is None):
+        plt.close('all')
+        in_ax = False
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+       
+    print('compressed size:',final_swf.shape)
+ 
+    if(xval == 'ai'): 
+        #ax.scatter(final_ai, final_swf, s = 6, color = 'k')
+        xlabel = 'OMI UVAI Raw'
+        local_xdata = final_ai
+    elif(xval == 'sza'):
+        #ax.scatter(final_sza, final_swf, s = 6, color = 'k')
+        local_xdata = final_sza
+        xlabel = 'OMI SZA'
+    elif(xval == 'ice'):
+        #ax.scatter(final_ice, final_swf, s = 6, color = 'k')
+        local_xdata = final_ice
+        xlabel = 'NSIDC ICE CONC.'
+    elif(xval == 'ch7'):
+        #ax.scatter(final_ch7, final_swf, s = 6, color = 'k')
+        local_xdata = final_ch7
+        xlabel = 'MODIS CH7 REFL.'
+    elif(xval == 'cld'):
+        #ax.scatter(final_ch7, final_swf, s = 6, color = 'k')
+        local_xdata = final_cld
+        xlabel = 'CERES CLD FRAC.'
+    local_ydata = final_swf
+
+    ax.scatter(local_xdata, local_ydata, s = 6, color = 'k')
+    ax.set_xlabel(xlabel)
+
+    if(show_trend):
+        if(len(local_xdata) > 10000):
+            print("ERROR: Plotting trend line with too many points")
+            print("       Preventing this for the sake of computer safety")
+        else:
+            plot_trend_line(ax, local_xdata, local_ydata, color='tab:red', \
+                linestyle = '-',  slope = trend_type)
+
+    if(not in_ax):
+        plt.show()
+
+def plot_dual_combined_grid_climo(comp_grid_data, combined_data, \
+        xval = 'ai', \
+        cld_min = None, cld_max = None,\
+        ch7_min = None, ch7_max = None,\
+        ice_min = None, ice_max = None,\
+        sza_min = None, sza_max = None,\
+        ai_min = None,  ai_max = None,\
+        save = False, show_trend = False, trend_type = 'theil-sen'):
+
+    plt.close('all')
+    fig = plt.figure(figsize = (9, 4))
+    ax1 = fig.add_subplot(1,2,1)
+    ax2 = fig.add_subplot(1,2,2)
+
+    try:
+        plot_combined_scatter(combined_data, ax = ax1, \
+            omi_min = ai_min,  omi_max  = ai_max, \
+            sza_min = sza_min, sza_max = sza_max, \
+            ice_min = ice_min, ice_max = ice_max, \
+            ch7_min = ch7_min, ch7_max = ch7_max, \
+            cld_min = cld_min, cld_max = cld_max, \
+            trend_type = 'theil-sen', show_trend = show_trend)
+        
+        plot_comp_grid_scatter(comp_grid_data, ax = ax2, xval = 'ai', \
+            ai_min = ai_min,  ai_max  = ai_max, \
+            sza_min = sza_min, sza_max = sza_max, \
+            ice_min = ice_min, ice_max = ice_max, \
+            ch7_min = ch7_min, ch7_max = ch7_max, \
+            cld_min = cld_min, cld_max = cld_max, \
+            show_trend = show_trend)
+
+        ax1.set_title('Raw Colocated L2')
+        ax2.set_title('Binned Colocated L2')
+        
+
+        title = set_comp_title(cld_min, cld_max, \
+                               ch7_min, ch7_max, \
+                               ice_min, ice_max, \
+                               sza_min, sza_max,\
+                               ai_min,  ai_max)
+        filer = set_file_title(cld_min, cld_max, \
+                               ch7_min, ch7_max, \
+                               ice_min, ice_max, \
+                               sza_min, sza_max,\
+                               ai_min,  ai_max)
+        plt.suptitle(title)
+
+        fig.tight_layout()
+
+        if(save):
+            outname = 'comp_dual_' + filer + '.png'
+            fig.savefig(outname, dpi = 300)
+            print("Saved image",outname)
+        else:
+            plt.show()
+    except TypeError:
+        print("ERROR: no data for these criteria")
+   
+def set_comp_title(\
+        cld_min = None, cld_max = None,\
+        ch7_min = None, ch7_max = None,\
+        ice_min = None, ice_max = None,\
+        sza_min = None, sza_max = None,\
+        ai_min = None,  ai_max = None):
+
+    ch7_min = np.round(ch7_min, 2)
+    ch7_max = np.round(ch7_max, 2)
+
+    title = '' 
+    if(cld_min is not None):
+        if(cld_max is not None):
+            title = title + str(cld_min) + ' < cld < ' + str(cld_max) + '\n'
+        else:
+            title = title + 'cld > ' + str(cld_min) + '\n'
+    else:
+        if(cld_max is not None):
+            title = title + 'cld < ' + str(cld_max) + '\n'
+
+    if(ch7_min is not None):
+        if(ch7_max is not None):
+            title = title + str(ch7_min) + ' < ch7 < ' + str(ch7_max) + '\n'
+        else:
+            title = title + 'ch7 > ' + str(ch7_min) + '\n'
+    else:
+        if(ch7_max is not None):
+            title = title + 'ch7 < ' + str(ch7_max) + '\n'
+
+    if(ice_min is not None):
+        if(ice_max is not None):
+            title = title + str(ice_min) + ' < ice < ' + str(ice_max) + '\n'
+        else:
+            title = title + 'ice > ' + str(ice_min) + '\n'
+    else:
+        if(ice_max is not None):
+            title = title + 'ice < ' + str(ice_max) + '\n'
+
+    if(sza_min is not None):
+        if(sza_max is not None):
+            title = title + str(sza_min) + ' < sza < ' + str(sza_max) + '\n'
+        else:
+            title = title + 'sza > ' + str(sza_min) + '\n'
+    else:
+        if(sza_max is not None):
+            title = title + 'sza < ' + str(sza_max) + '\n'
+
+    if(ai_min is not None):
+        if(ai_max is not None):
+            title = title + str(ai_min) + ' < ai < ' + str(ai_max)
+        else:
+            title = title + 'ai > ' + str(ai_min)
+    else:
+        if(ai_max is not None):
+            title = title + 'ai < ' + str(ai_max)
+
+    return title 
+
+def set_file_title(\
+        cld_min = None, cld_max = None,\
+        ch7_min = None, ch7_max = None,\
+        ice_min = None, ice_max = None,\
+        sza_min = None, sza_max = None,\
+        ai_min = None,  ai_max = None):
+
+    ch7_min = np.round(ch7_min, 2)
+    ch7_max = np.round(ch7_max, 2)
+
+
+    title = '' 
+    if(cld_min is not None):
+        cld_min = int(cld_min)
+        if(cld_max is not None):
+            cld_max = int(cld_max)
+            title = title + str(cld_min) + 'cld' + str(cld_max) + '_'
+        else:
+            title = title + str(cld_min) + 'cld_'
+    else:
+        if(cld_max is not None):
+            cld_max = int(cld_max)
+            title = title + 'cld' + str(cld_max) + '_'
+
+    if(ch7_min is not None):
+        if(ch7_max is not None):
+            title = title + str(ch7_min) + 'ch7' + str(ch7_max) + '_'
+        else:
+            title = title + str(ch7_min) + 'ch7_'
+    else:
+        if(ch7_max is not None):
+            title = title + 'ch7' + str(ch7_max) + '_'
+
+    if(ice_min is not None):
+        ice_min = int(ice_min)
+        if(ice_max is not None):
+            ice_max = int(ice_max)
+            title = title + str(ice_min) + 'ice' + str(ice_max) + '_'
+        else:
+            title = title + str(ice_min) + 'ice_'
+    else:
+        if(ice_max is not None):
+            ice_max = int(ice_max)
+            title = title + 'ice' + str(ice_max) + '_'
+
+    if(sza_min is not None):
+        sza_min = int(sza_min)
+        if(sza_max is not None):
+            sza_max = int(sza_max)
+            title = title + str(sza_min) + 'sza' + str(sza_max) + '_'
+        else:
+            title = title + str(sza_min) + 'sza_'
+    else:
+        if(sza_max is not None):
+            sza_max = int(sza_max)
+            title = title + 'sza' + str(sza_max) + '_'
+
+    if(ai_min is not None):
+        ai_min  = int(ai_min)
+        if(ai_max is not None):
+            ai_max  = int(ai_max)
+            title = title + str(ai_min) + 'ai' + str(ai_max)
+        else:
+            title = title + str(ai_min) + 'ai'
+    else:
+        if(ai_max is not None):
+            ai_max  = int(ai_max)
+            title = title + 'ai' + str(ai_max)
+
+    print("HERE",title)
+
+    #if(ch7_min is not None):
+    #if(ch7_max is not None):
+
+    #if(ice_min is not None):
+    #if(ice_max is not None):
+
+    #if(sza_min is not None):
+    #if(sza_max is not None):
+
+    #if(ai_min is not None):
+    #if(ai_max is not None):
+
+    return title 

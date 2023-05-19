@@ -262,7 +262,7 @@ def generate_TROPOMI_prep_data(date_str, copy_to_raindrop = False, \
         # ----------------------------------------
         cmnd = omi_dt_date.strftime('scp ' + data_dir + \
             'prepped_trop_data_%Y%m%d%H%M.tar.gz ' + \
-            'bsorenson@raindrop.atmos.und.edu:' + \
+            'bsorenson@134.129.222.68:' + \
             '/home/bsorenson/OMI/tropomi_colocate/prep_data')
         print(cmnd)
         os.system(cmnd)

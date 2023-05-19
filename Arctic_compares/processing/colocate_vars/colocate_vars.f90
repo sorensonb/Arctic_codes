@@ -53,6 +53,7 @@ module colocate_vars
   integer(hsize_t), dimension(:), allocatable       :: NSIDC_LON_dims
   integer(hsize_t), dimension(:), allocatable       :: CERES_SWF_dims
   integer(hsize_t), dimension(:), allocatable       :: CERES_LWF_dims
+  integer(hsize_t), dimension(:), allocatable       :: CERES_CLD_dims
   integer(hsize_t), dimension(:), allocatable       :: CERES_LAT_dims
   integer(hsize_t), dimension(:), allocatable       :: CERES_LON_dims
 
@@ -73,6 +74,7 @@ module colocate_vars
   integer(hsize_t), dimension(:), allocatable       :: NSIDC_out_LON_dims
   integer(hsize_t), dimension(:), allocatable       :: CERES_out_SWF_dims
   integer(hsize_t), dimension(:), allocatable       :: CERES_out_LWF_dims
+  integer(hsize_t), dimension(:), allocatable       :: CERES_out_CLD_dims
   integer(hsize_t), dimension(:), allocatable       :: CERES_out_LAT_dims
   integer(hsize_t), dimension(:), allocatable       :: CERES_out_LON_dims
 
@@ -106,6 +108,7 @@ module colocate_vars
   real(kind=8), dimension(:,:), allocatable, target   :: NSIDC_LON_data
   real(kind=8), dimension(:,:), allocatable, target   :: CERES_LWF_data
   real(kind=8), dimension(:,:), allocatable, target   :: CERES_SWF_data
+  real(kind=8), dimension(:,:), allocatable, target   :: CERES_CLD_data
   real(kind=8), dimension(:,:), allocatable, target   :: CERES_LAT_data
   real(kind=8), dimension(:,:), allocatable, target   :: CERES_LON_data
 
@@ -120,6 +123,7 @@ module colocate_vars
   real(kind=8), dimension(:,:), allocatable, target :: NSIDC_out_LON_data
   real(kind=8), dimension(:,:), allocatable, target :: CERES_out_LWF_data
   real(kind=8), dimension(:,:), allocatable, target :: CERES_out_SWF_data
+  real(kind=8), dimension(:,:), allocatable, target :: CERES_out_CLD_data
   real(kind=8), dimension(:,:), allocatable, target :: CERES_out_LAT_data
   real(kind=8), dimension(:,:), allocatable, target :: CERES_out_LON_data
   real(kind=8), dimension(:,:), allocatable, target :: TROP_out_AI_data
@@ -167,6 +171,7 @@ module colocate_vars
     allocate(NSIDC_out_data(dim1, dim2), stat = error)
     allocate(CERES_out_LWF_data(dim1, dim2), stat = error)
     allocate(CERES_out_SWF_data(dim1, dim2), stat = error)
+    allocate(CERES_out_CLD_data(dim1, dim2), stat = error)
 
     if ( error < 0 ) then
        write(*,*) " *** Error allocating H5datasets in output data"
@@ -216,6 +221,7 @@ module colocate_vars
       if(allocated(NSIDC_LON_dims))        deallocate(NSIDC_LON_dims)
       if(allocated(CERES_LWF_dims))        deallocate(CERES_LWF_dims)
       if(allocated(CERES_SWF_dims))        deallocate(CERES_SWF_dims)
+      if(allocated(CERES_CLD_dims))        deallocate(CERES_CLD_dims)
       if(allocated(CERES_LAT_dims))        deallocate(CERES_LAT_dims)
       if(allocated(CERES_LON_dims))        deallocate(CERES_LON_dims)
 
@@ -236,6 +242,7 @@ module colocate_vars
       if(allocated(NSIDC_out_LON_dims))   deallocate(NSIDC_out_LON_dims)
       if(allocated(CERES_out_LWF_dims))   deallocate(CERES_out_LWF_dims)
       if(allocated(CERES_out_SWF_dims))   deallocate(CERES_out_SWF_dims)
+      if(allocated(CERES_out_CLD_dims))   deallocate(CERES_out_CLD_dims)
       if(allocated(CERES_out_LAT_dims))   deallocate(CERES_out_LAT_dims)
       if(allocated(CERES_out_LON_dims))   deallocate(CERES_out_LON_dims)
 
@@ -269,6 +276,7 @@ module colocate_vars
       if(allocated(NSIDC_LON_data))        deallocate(NSIDC_LON_data)
       if(allocated(CERES_LWF_data))        deallocate(CERES_LWF_data)
       if(allocated(CERES_SWF_data))        deallocate(CERES_SWF_data)
+      if(allocated(CERES_CLD_data))        deallocate(CERES_CLD_data)
       if(allocated(CERES_LAT_data))        deallocate(CERES_LAT_data)
       if(allocated(CERES_LON_data))        deallocate(CERES_LON_data)
 
@@ -289,6 +297,7 @@ module colocate_vars
       if(allocated(NSIDC_out_LON_data))   deallocate(NSIDC_out_LON_data)
       if(allocated(CERES_out_LWF_data))   deallocate(CERES_out_LWF_data)
       if(allocated(CERES_out_SWF_data))   deallocate(CERES_out_SWF_data)
+      if(allocated(CERES_out_CLD_data))   deallocate(CERES_out_CLD_data)
       if(allocated(CERES_out_LAT_data))   deallocate(CERES_out_LAT_data)
       if(allocated(CERES_out_LON_data))   deallocate(CERES_out_LON_data)
 

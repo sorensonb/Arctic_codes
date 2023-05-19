@@ -31,6 +31,7 @@ from matplotlib.patches import Polygon
 import matplotlib.path as mpath
 from matplotlib.colors import rgb2hex,Normalize
 from matplotlib import cm
+import matplotlib.dates as mdates
 from matplotlib.cm import ScalarMappable
 import matplotlib.gridspec as gridspec
 from matplotlib.colorbar import ColorbarBase
@@ -525,7 +526,8 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
     vza   = data.variables['CERES_viewing_zenith_at_surface'][:]
     azm   = data.variables['CERES_relative_azimuth_at_surface'][:]
     alb   = data.variables['CERES_broadband_surface_albedo'][:]
-    #cld   = data.variables['Cloud_mask_clear_weak_percent_coverage'][:]
+    cld   = 100. - data.variables['Clear_layer_overlap_percent_coverages'][:,0]
+    #cld   = 100. - data.variables['Cloud_mask_clear_weak_percent_coverage'][:]
     lon[lon>179.99] = -360.+lon[lon>179.99]
     ##!#if(param == 'clr'):
     ##!#    # clear layer overlap indices:
@@ -572,7 +574,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
     test_vza  = vza[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
     test_azm  = azm[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
     test_alb  = alb[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
-    #test_cld  = cld[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
+    test_cld  = cld[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
 
     # Determine where the LAT peaks are located and separated by 181
     # --------------------------------------------------------------
@@ -619,7 +621,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
     test_vza  = test_vza[begin_idx: end_idx]
     test_azm  = test_azm[begin_idx: end_idx]
     test_alb  = test_alb[begin_idx: end_idx]
-    #test_cld  = test_cld[begin_idx: end_idx]
+    test_cld  = test_cld[begin_idx: end_idx]
 
     # Make grid arrays for the data
     # -----------------------------
@@ -631,7 +633,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
     grid_vza  = np.full((300, 181), np.nan)
     grid_azm  = np.full((300, 181), np.nan)
     grid_alb  = np.full((300, 181), np.nan)
-    #grid_cld  = np.full((300, 181), np.nan)
+    grid_cld  = np.full((300, 181), np.nan)
     grid_time = np.full((300, 181), np.nan)
 
     # Loop over the data and insert into the grids
@@ -648,7 +650,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
             grid_vza[ii, :len(test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
             grid_azm[ii, :len(test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
             grid_alb[ii, :len(test_alb[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_alb[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
-    #        grid_cld[ii, :len(test_cld[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_cld[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
+            grid_cld[ii, :len(test_cld[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_cld[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
             grid_time[ii,:len(test_ftim[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_ftim[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]
         ##!#elif(idx_diff > 181):
         ##!#    print(idx_diff, test_time[keep_lat_peaks[ii]], np.nanmean(test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]), 'over estimate')
@@ -692,7 +694,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
                         grid_vza[ii,m_idx[0][0]:len(test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
                         grid_azm[ii,m_idx[0][0]:len(test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
                         grid_alb[ii,m_idx[0][0]:len(test_alb[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_alb[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
-    #                    grid_cld[ii,m_idx[0][0]:len(test_cld[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_cld[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                        grid_cld[ii,m_idx[0][0]:len(test_cld[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_cld[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
                         grid_time[ii,m_idx[0][0]:len(test_ftim[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_ftim[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
 
     # Remove any rows in the grid arrays with any nans
@@ -727,7 +729,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
     grid_sza  = grid_sza[finders]
     grid_azm  = grid_azm[finders]
     grid_alb  = grid_alb[finders]
-    #grid_cld  = grid_cld[finders]
+    grid_cld  = grid_cld[finders]
     grid_time = grid_time[finders]
 
     # Convert the day timedelta to actual datetimes
@@ -750,7 +752,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
     CERES_grid_hrly['sza']       = grid_sza  
     CERES_grid_hrly['azm']       = grid_azm
     CERES_grid_hrly['alb']       = grid_alb
-    #CERES_grid_hrly['cld']       = grid_cld
+    CERES_grid_hrly['cld']       = grid_cld
     CERES_grid_hrly['time']      = grid_time
     CERES_grid_hrly['time_dt']   = grid_time_dt
     CERES_grid_hrly['base_date'] = '197001010000'
@@ -804,6 +806,7 @@ def write_CERES_hrly_grid_to_HDF5(CERES_grid_hrly, save_path = './', \
     dset.create_dataset('longitude', data = CERES_grid_hrly['lon'][keep_idxs,:].squeeze())
     dset.create_dataset('swf',       data = CERES_grid_hrly['swf'][keep_idxs,:].squeeze())
     dset.create_dataset('lwf',       data = CERES_grid_hrly['lwf'][keep_idxs,:].squeeze())
+    dset.create_dataset('cld',       data = CERES_grid_hrly['cld'][keep_idxs,:].squeeze())
     dset.create_dataset('time',      data = CERES_grid_hrly['time'][keep_idxs,:].squeeze())
 
     # Save, write, and close the HDF5 file
@@ -3947,6 +3950,551 @@ def plot_compare_CERES_NSIDC_NAAPS_OMI_combined(CERES_swclr, CERES_swall, \
         print("Saved image", outname)
     else:
         plt.show()
+
+# Assumed that the NAAPS_data dictionary is returned from 
+# readgridNAAPS_monthly
+def plot_compare_CERES_NAAPS_monthly(CERES_swclr, CERES_swall, \
+        NSIDC_data, NAAPS_data, param = 'smoke_conc_sfc', \
+        month_idx = 4, minlat = 70., trend_type = 'standard', \
+        save = False):
+
+    month_obj = datetime(year = 1,month = int(CERES_data['dates'][month_idx][4:]),day = 1)
+    str_month = month_obj.strftime('%B')
+
+    # Set up the figure
+    plt.close('all')
+    fig1 = plt.figure(figsize = (9,6))
+    ax6  = fig1.add_subplot(2,3,1, projection = mapcrs) # CERES All-sky
+    ax1  = fig1.add_subplot(2,3,3, projection = mapcrs) # CERES All-sky
+    ax2  = fig1.add_subplot(2,3,2, projection = mapcrs) # CERES clear-sky
+    ax3  = fig1.add_subplot(2,3,4, projection = mapcrs) # NAAPS variable
+    ax4  = fig1.add_subplot(2,3,6)
+    ax5  = fig1.add_subplot(2,3,5)
+    #fig1 = plt.figure(figsize = (12,6))
+    #ax1  = fig1.add_subplot(2,4,1, projection = mapcrs)
+    #ax2  = fig1.add_subplot(2,4,2, projection = mapcrs)
+    #ax3  = fig1.add_subplot(2,4,3, projection = mapcrs)
+    #ax4  = fig1.add_subplot(2,4,4, projection = mapcrs)
+    #ax5  = fig1.add_subplot(2,4,5, projection = mapcrs)
+    #ax6  = fig1.add_subplot(2,4,6)
+    #ax7  = fig1.add_subplot(2,4,7)
+    #ax8  = fig1.add_subplot(2,4,8)
+
+    ceres_clr_trends, ceres_clr_pvals, ceres_clr_uncert = \
+        calcCERES_grid_trend(CERES_swclr, month_idx, trend_type, \
+        minlat)
+    ceres_all_trends, ceres_all_pvals, ceres_all_uncert = \
+        calcCERES_grid_trend(CERES_swall, month_idx, trend_type, \
+        minlat)
+    nsidc_trends, nsidc_pvals, nsidc_uncert = \
+        calcNSIDC_grid_trend(NSIDC_data, month_idx, trend_type, \
+        minlat)
+    naaps_trends, naaps_pvals, naaps_uncert = \
+        calcNAAPS_grid_trend(NAAPS_data, month_idx, trend_type, \
+        minlat, param = param)
+
+
+    #nsidc_trends, nsidc_pvals, nsidc_uncert = \
+    #    calcNSIDC_grid_trend(NSIDC_data, month_idx, trend_type, \
+    #    minlat)
+    #omi_trends, omi_pvals, omi_uncert = \
+    #    calcOMI_grid_trend(OMI_data, month_idx, trend_type, \
+    #    minlat)
+    
+    ##!#cbar_switch = True
+    ##!#colorbar_label_size = 10
+    ##!#ceres_clr_trends = plotCERES_MonthTrend(CERES_swclr,month_idx=month_idx,save=False,\
+    ##!#    trend_type=trend_type,season='sunlight',minlat=minlat,return_trend=True, \
+    ##!#    pax = ax1)
+    ##!#ceres_all_trends = plotCERES_MonthTrend(CERES_swall,month_idx=month_idx,save=False,\
+    ##!#    trend_type=trend_type,season='sunlight',minlat=minlat,return_trend=True, \
+    ##!#    pax = ax2)
+    ##!#nsidc_trends = plotNSIDC_MonthTrend(NSIDC_data,month_idx=month_idx,save=False,\
+    ##!#    trend_type=trend_type,season='sunlight',minlat=minlat,\
+    ##!#    return_trend=True, colorbar = cbar_switch, \
+    ##!#    colorbar_label_size = colorbar_label_size, \
+    ##!#    pax = ax3, show_pval = False, uncert_ax = None, title = '')
+    ##!#naaps_trends = plotNAAPS_MonthTrend(NAAPS_data,month_idx=month_idx,trend_type=trend_type,label = ' ',\
+    ##!#    minlat=minlat,title = ' ', pax = ax4, colorbar = cbar_switch, \
+    ##!#    colorbar_label_size = colorbar_label_size, show_pval = False, \
+    ##!#    uncert_ax = None, vmax = 1, return_trend = True)
+    ##!#omi_trends = plotOMI_MonthTrend(OMI_data,month_idx=month_idx,\
+    ##!#    trend_type=trend_type,label = 'AI Trend (AI/Study Period)',\
+    ##!#    return_trend = True, \
+    ##!#    minlat=minlat,title = None, pax = ax5)
+
+    if(np.max(CERES_swclr['lon']) > 270):
+
+        # Flip the CERES data to convert the longitudes from 0 - 360 to -180 - 180
+        # ------------------------------------------------------------------------
+        local_lon = np.copy(CERES_swclr['lon'])
+        local_lat = np.copy(CERES_swclr['lat'])
+        over_180  = np.where(CERES_swclr['lon'][0,:] >= 179.9999)
+        under_180 = np.where(CERES_swclr['lon'][0,:] < 179.9999)
+
+        for ii in range(local_lon.shape[0]):
+            local_lon[ii,:] = np.concatenate([local_lon[ii,:][over_180] - 360.,\
+                local_lon[ii,:][under_180]])
+            local_lat[ii,:] = np.concatenate([local_lat[ii,:][over_180],\
+                local_lat[ii,:][under_180]])
+            ceres_clr_trends[ii,:] = np.concatenate([ceres_clr_trends[ii,:][over_180],\
+                ceres_clr_trends[ii,:][under_180]])
+            ceres_all_trends[ii,:] = np.concatenate([ceres_all_trends[ii,:][over_180],\
+                ceres_all_trends[ii,:][under_180]])
+
+    mask_nsidc = np.ma.masked_invalid(nsidc_trends)
+    mask_nsidc = np.ma.masked_where((mask_nsidc == 0.) | \
+        (NSIDC_data['MONTH_CLIMO'][month_idx,:,:] < 40), mask_nsidc)
+    mask_naaps = np.ma.masked_invalid(naaps_trends)
+    #mask_naaps = np.ma.masked_where(naaps_trends > 1, mask_naaps)
+    mask_naaps = np.ma.masked_where((mask_nsidc == 0.) | \
+        (NSIDC_data['MONTH_CLIMO'][month_idx,:,:] < 40), mask_naaps)
+    #mask_omi   = np.ma.masked_invalid(omi_trends)
+    #mask_omi   = np.ma.masked_where((mask_nsidc == 0.) | \
+    #    (NSIDC_data['MONTH_CLIMO'][month_idx,:,:] < 40), mask_omi)
+    mask_ceres_clr = np.ma.masked_invalid(ceres_clr_trends)
+    mask_ceres_clr = np.ma.masked_where((mask_nsidc == 0.) | \
+        (NSIDC_data['MONTH_CLIMO'][month_idx,:,:] < 40), mask_ceres_clr)
+    mask_ceres_all = np.ma.masked_invalid(ceres_all_trends)
+    mask_ceres_all = np.ma.masked_where((mask_nsidc == 0.) | \
+        (NSIDC_data['MONTH_CLIMO'][month_idx,:,:] < 40), mask_ceres_all)
+
+    #plotNSIDC_MonthClimo(NSIDC_data,month_idx,minlat = minlat, ax = ax6, title = '', \
+    #    colorbar = True)
+
+    mask_data = np.ma.masked_where(\
+        NSIDC_data['MONTH_CLIMO'][month_idx,:,:] < 40, 
+        NSIDC_data['MONTH_CLIMO'][month_idx,:,:])
+    labelsize = 9
+    # Map 1: NSIDC ICE
+    mesh = ax6.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+        mask_data, \
+        transform = datacrs, vmax = 10, vmin = 100, shading = 'auto', \
+        cmap = 'ocean')
+    cbar = plt.colorbar(mesh,ax = ax6, orientation='vertical', \
+        shrink = 0.8, \
+        extend = 'both')
+    cbar.set_label('Sea Ice Concentration [%]', \
+        fontsize = labelsize)
+    ax6.coastlines()
+    ax6.set_extent([-180,180,minlat, 90], datacrs)
+    ax6.set_boundary(circle, transform=ax6.transAxes)
+
+    # Map 1: CERES SWCLR
+    mesh = ax1.pcolormesh(local_lon, local_lat, mask_ceres_clr, \
+        transform = datacrs, vmax = 30, vmin = -30, shading = 'auto', \
+        cmap = 'bwr')
+    cbar = plt.colorbar(mesh,ax = ax1, orientation='vertical', \
+        shrink = 0.8, \
+        extend = 'both')
+    cbar.set_label('SW Flux Trend [W m$^{-2}$]', \
+        fontsize = labelsize)
+    ax1.coastlines()
+    ax1.set_extent([-180,180,minlat, 90], datacrs)
+    ax1.set_boundary(circle, transform=ax1.transAxes)
+    # Map 2: CERES SWALL
+    mesh = ax2.pcolormesh(local_lon, local_lat, mask_ceres_all, \
+        transform = datacrs, vmax = 30, vmin = -30, shading = 'auto', \
+        cmap = 'bwr')
+    cbar = plt.colorbar(mesh,ax = ax2, orientation='vertical', \
+        shrink = 0.8, \
+        extend = 'both')
+    cbar.set_label('SW Flux Trend [W m$^{-2}$]', \
+        fontsize = labelsize)
+    ax2.coastlines()
+    ax2.set_extent([-180,180,minlat, 90], datacrs)
+    ax2.set_boundary(circle, transform=ax2.transAxes)
+    ## Map 3: NSIDC
+    #mesh = ax3.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+    #    mask_nsidc, cmap = 'bwr', \
+    #    transform = datacrs, vmax = 30, vmin = -30, shading = 'auto')
+    #cbar = plt.colorbar(mesh,ax = ax3, orientation='vertical',shrink = 0.8, \
+    #    extend = 'both')
+    #cbar.set_label('Sea Ice Trend [%]', \
+    #    fontsize = labelsize)
+    #ax3.coastlines()
+    #ax3.set_extent([-180,180,minlat, 90], datacrs)
+    #ax3.set_boundary(circle, transform=ax3.transAxes)
+    # Map 4: NAAPS
+
+    lim_dict = {
+        'smoke_conc_sfc': 1.5,
+        'smoke_conc_sfc_yearly': 5., 
+        'smoke_totsink': 1.5,
+        'smoke_totsink_yearly': 3.,
+        'smoke_drysink': 0.1,
+        'smoke_drysink_yearly': 0.25,
+        'smoke_wetsink': 1,
+        'smoke_wetsink_yearly': 3.,
+    }   
+
+    vmin = -lim_dict[param]
+    vmax = lim_dict[param]
+
+    mask_naaps = np.ma.masked_where((mask_naaps > 3*vmax) | \
+        (mask_naaps < 3*vmin), mask_naaps)
+
+    mesh = ax3.pcolormesh(NAAPS_data['lons'], NAAPS_data['lats'], \
+        mask_naaps, cmap = 'bwr', \
+        transform = datacrs, vmax = vmax, vmin = vmin, shading = 'auto')
+    cbar = plt.colorbar(mesh,ax = ax3, orientation='vertical', \
+        shrink = 0.8, \
+        extend = 'both')
+    cbar.set_label('Smoke Trend [μg m$^{-3}$]', \
+        fontsize = labelsize)
+    ax3.coastlines()
+    ax3.set_extent([-180,180,minlat, 90], datacrs)
+    ax3.set_boundary(circle, transform=ax3.transAxes)
+    ## Map 5: OMI
+    #mesh = ax5.pcolormesh(OMI_data['LON'], OMI_data['LAT'], \
+    #    mask_omi, cmap = 'bwr', \
+    #    transform = datacrs, vmax = 0.5, vmin = -0.5, shading = 'auto')
+    #cbar = plt.colorbar(mesh,ax = ax5, orientation='vertical',shrink = 0.8, \
+    #    extend = 'both')
+    #cbar.set_label('UVAI Trend [AI]', \
+    #    fontsize = labelsize)
+    #ax5.coastlines()
+    #ax5.set_extent([-180,180,minlat, 90], datacrs)
+    #ax5.set_boundary(circle, transform=ax5.transAxes)
+
+    titlesize = 9
+    ax6.set_title('SSMI/S Average\nSea Ice Conc.', fontsize = titlesize)
+    ax1.set_title('Aqua CERES\nClear-sky SWF Trends', fontsize = titlesize)
+    ax2.set_title('Aqua CERES\nAll-sky SWF Trends', fontsize = titlesize)
+    #ax3.set_title('SSMI/S Sea Ice\nConcentration Trends', fontsize = titlesize)
+    ax3.set_title('NAAPS-RA Near-surface\n' + param, fontsize = titlesize)
+    #ax5.set_title('OMI Perturbed\nUVAI Trends', fontsize = titlesize)
+
+    add_gridlines(ax1)
+    add_gridlines(ax2)
+    add_gridlines(ax3)
+    #add_gridlines(ax4)
+    #add_gridlines(ax5)
+
+    final_ceres_clr = ceres_clr_trends[(~mask_ceres_clr.mask) & \
+        (~mask_ceres_all.mask) & \
+        (~mask_naaps.mask)]
+    final_ceres_all = ceres_all_trends[(~mask_ceres_clr.mask) & \
+        (~mask_ceres_all.mask) & \
+        (~mask_naaps.mask)]
+    final_naaps = naaps_trends[(~mask_ceres_clr.mask) & \
+        (~mask_ceres_all.mask) & \
+        (~mask_naaps.mask)]
+    #final_ceres_clr = ceres_clr_trends[(~mask_ceres_clr.mask) & \
+    #    (~mask_ceres_all.mask) & \
+    #    (~mask_nsidc.mask) & \
+    #    (~mask_naaps.mask) & \
+    #    (~mask_omi.mask)]
+    #final_ceres_all = ceres_all_trends[(~mask_ceres_clr.mask) & \
+    #    (~mask_ceres_all.mask) & \
+    #    (~mask_nsidc.mask) & \
+    #    (~mask_naaps.mask) & \
+    #    (~mask_omi.mask)]
+    #final_nsidc = nsidc_trends[(~mask_ceres_clr.mask) & \
+    #    (~mask_ceres_all.mask) & \
+    #    (~mask_nsidc.mask) & \
+    #    (~mask_naaps.mask) & \
+    #    (~mask_omi.mask)]
+    #final_naaps = naaps_trends[(~mask_ceres_clr.mask) & \
+    #    (~mask_ceres_all.mask) & \
+    #    (~mask_nsidc.mask) & \
+    #    (~mask_naaps.mask) & \
+    #    (~mask_omi.mask)]
+    #final_omi   = omi_trends[(~mask_ceres_clr.mask) & \
+    #    (~mask_ceres_all.mask) & \
+    #    (~mask_nsidc.mask) & \
+    #    (~mask_naaps.mask) & \
+    #    (~mask_omi.mask)]
+
+    #return ceres_trends,nsidc_trends,naaps_trends
+
+    # Scatter 1: NSIDC vs CERES SWCLR
+    sizer = 4
+    ax4.scatter(final_naaps.flatten(), final_ceres_clr.flatten(), s = sizer, color = 'k')
+    # Scatter 2: OMI vs CERES SWALL
+    ax5.scatter(final_naaps.flatten(), final_ceres_all.flatten(), s = sizer, color = 'k')
+    # Scatter 3: NSIDC vs CERES SWCLR
+    #ax8.scatter(final_naaps.flatten(),  final_ceres_clr.flatten(), s = sizer, color = 'k')
+    #ax8.set_xlim(ax8.get_xlim()[0], 0.5)
+
+    ax4_result = stats.linregress(final_naaps.flatten(), final_ceres_clr.flatten())
+    ax5_result = stats.linregress(final_naaps.flatten(), final_ceres_all.flatten())
+    #ax8_result = stats.linregress(final_naaps.flatten(), final_ceres_clr.flatten())
+    
+    print(ax4_result)
+    print(ax5_result)
+
+    corr1 = ax4_result.rvalue**2.
+    corr2 = ax5_result.rvalue**2.
+
+    #ax6.text(0,    80, 'r$^{2}$ = ' + str(np.round(corr1, 3)))
+    #ax7.text(0.05, 35, 'r$^{2}$ = ' + str(np.round(corr2, 3)), backgroundcolor = 'white')
+    #ax8.text(0.5,  80, 'r$^{2}$ = ' + str(np.round(corr3, 3)))
+
+    plot_figure_text(ax4, 'r$^{2}$ = ' + str(np.round(corr1, 3)), xval = None, yval = None, transform = None, \
+        color = 'black', fontsize = 10, backgroundcolor = 'white',\
+        halign = 'right', location = 'lower_right')
+    plot_figure_text(ax5, 'r$^{2}$ = ' + str(np.round(corr2, 3)), xval = None, yval = None, transform = None, \
+        color = 'black', fontsize = 10, backgroundcolor = 'white',\
+        halign = 'right', location = 'upper_right')
+    #plot_figure_text(ax8, 'r$^{2}$ = ' + str(np.round(corr3, 3)), xval = None, yval = None, transform = None, \
+    #    color = 'black', fontsize = 10, backgroundcolor = 'white',\
+    #    halign = 'right', location = 'upper_right')
+
+    print("Correlation 1", ax4_result.rvalue**2.)
+    print("Correlation 2", ax5_result.rvalue**2.)
+
+    sloper = trend_type
+    plot_trend_line(ax4, final_naaps.flatten(), final_ceres_clr.flatten(), \
+        color='r', linestyle = '-', slope = sloper)
+    plot_trend_line(ax5, final_naaps.flatten(), final_ceres_all.flatten(), \
+        color='r', linestyle = '-', slope = sloper)
+    #plot_trend_line(ax8, final_naaps.flatten(), final_ceres_clr.flatten(), \
+    #    color='r', linestyle = '-', slope = sloper)
+
+    ax4.set_title('NAAPS ' + param + ' Trend vs.\nCERES Clear-sky SWF Trend', fontsize = titlesize)
+    ax5.set_title('NAAPS ' + param + ' Trend vs.\nCERES All-sky SWF Trend', fontsize = titlesize)
+    #ax8.set_title('NAAPS-RA Surface Smoke Trend vs.\nCERES Clear-sky SWF Trend', fontsize = titlesize)
+
+    ax4.set_xlabel(param + ' Trend', fontsize = labelsize)
+    ax5.set_xlabel(param + ' Trend', fontsize = labelsize)
+    ax4.set_ylabel('Clear-sky SWF Trend [W m$^{-2}$]', fontsize = labelsize)
+    ax5.set_ylabel('All-sky SWF Trend [W m$^{-2}$]', fontsize = labelsize)
+
+    plot_subplot_label(ax6, '(a)', location = 'upper_left')
+    plot_subplot_label(ax1, '(b)', location = 'upper_left')
+    plot_subplot_label(ax2, '(c)', location = 'upper_left')
+    plot_subplot_label(ax3, '(d)', location = 'upper_left')
+    plot_subplot_label(ax4, '(e)', location = 'upper_left')
+    plot_subplot_label(ax5, '(f)', location = 'upper_left')
+    #plot_subplot_label(ax6, '(f)', location = 'upper_left')
+    #plot_subplot_label(ax7, '(g)', location = 'upper_left')
+    #plot_subplot_label(ax8, '(h)', location = 'upper_left')
+   
+    plt.suptitle(month_obj.strftime("%B Monthly Trends (2005 - 2019)"))
+ 
+    fig1.tight_layout()
+    if(save):
+        outname = '_'.join(['ceres','naaps',param, 'monthly','trend','comp',\
+            month_obj.strftime('%b'),'combined']) + '.png'
+        fig1.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+# Assumed that the NAAPS_data dictionary is returned from 
+# readgridNAAPS_monthly
+def plot_compare_CERES_NAAPS_monthly_timeseries(CERES_swclr, CERES_swall, \
+        NSIDC_data, NAAPS_data, param = 'smoke_conc_sfc', \
+        month_idx = 4, minlat = 70.5, maxlat = 80.5, trend_type = 'standard', \
+        save = False):
+
+    month_obj = datetime(year = 1,month = int(CERES_data['dates'][month_idx][4:]),day = 1)
+    str_month = month_obj.strftime('%B')
+
+    # Prep the data
+    naaps_idx = np.where((NAAPS_data['lats'][:,0] >= minlat) & (NAAPS_data['lats'][:,0] <= maxlat))
+    ceres_idx = np.where((CERES_swclr['lat'][:,0] >= minlat) & (CERES_swclr['lat'][:,0] <= maxlat))
+    nsidc_idx = np.where((NSIDC_data['grid_lat'][:,0] >= minlat) & (NSIDC_data['grid_lat'][:,0] <= maxlat))
+  
+    local_CERES_swclr = np.ma.masked_where(CERES_swclr['data'] == -999., CERES_swclr['data'])
+    local_CERES_swall = np.ma.masked_where(CERES_swall['data'] == -999., CERES_swall['data'])
+ 
+    # Average the data along latitudes
+    # -------------------------------- 
+    zonal_naaps = np.mean(NAAPS_data[param][4::6,naaps_idx[0],:], axis = 1)
+    zonal_ceres_swclr = np.mean(local_CERES_swclr[4::6,naaps_idx[0],:], axis = 1)
+    zonal_ceres_swall = np.mean(local_CERES_swall[4::6,naaps_idx[0],:], axis = 1)
+    zonal_nsidc = np.mean(NSIDC_data['grid_ice_conc'][4::6,naaps_idx[0],:], axis = 1)
+
+    ## Adjust the CERES longitudes before averaging atain
+    #if(np.max(CERES_swclr['lon']) > 270):
+
+    #    # Flip the CERES data to convert the longitudes from 0 - 360 to -180 - 180
+    #    # ------------------------------------------------------------------------
+    #    local_lon = np.copy(CERES_swclr['lon'])
+    #    local_lat = np.copy(CERES_swclr['lat'])
+    #    over_180  = np.where(CERES_swclr['lon'][0,:] >= 179.9999)
+    #    under_180 = np.where(CERES_swclr['lon'][0,:] < 179.9999)
+
+    #    for ii in range(local_lon.shape[0]):
+    #        local_lon[ii,:] = np.concatenate([local_lon[ii,:][over_180] - 360.,\
+    #            local_lon[ii,:][under_180]])
+    #        local_lat[ii,:] = np.concatenate([local_lat[ii,:][over_180],\
+    #            local_lat[ii,:][under_180]])
+    #        ceres_clr_trends[ii,:] = np.concatenate([ceres_clr_trends[ii,:][over_180],\
+    #            ceres_clr_trends[ii,:][under_180]])
+    #        ceres_all_trends[ii,:] = np.concatenate([ceres_all_trends[ii,:][over_180],\
+    #            ceres_all_trends[ii,:][under_180]])
+
+   
+    # Now average the data longitudinally
+    # ----------------------------------- 
+    final_naaps = np.mean(zonal_naaps, axis = 1)
+    final_ceres_swclr = np.mean(zonal_ceres_swclr, axis = 1)
+    final_ceres_swall = np.mean(zonal_ceres_swall, axis = 1)
+    final_nsidc = np.mean(zonal_nsidc, axis = 1) 
+
+    # Set up the figure
+    plt.close('all')
+    fig = plt.figure(figsize = (11,11))
+    gs1 = fig.add_gridspec(nrows = 4, ncols = 3)
+    ax1 = fig.add_subplot(gs1[0,0:2]) # NAAPS / Clear CERES time
+    ax2 = fig.add_subplot(gs1[0,2])   # N / CC scatter
+    ax3 = fig.add_subplot(gs1[1,0:2]) # NAAPS / All CERES time
+    ax4 = fig.add_subplot(gs1[1,2])   # N / CA scatter
+    ax5 = fig.add_subplot(gs1[2,0:2]) # NAAPS / ice time
+    ax6 = fig.add_subplot(gs1[2,2])   # NAAPS / ice scatter
+    ax7 = fig.add_subplot(gs1[3,0:2]) # NAAPS / ice time
+    ax8 = fig.add_subplot(gs1[3,2])   # NAAPS / ice scatter
+
+    # Plot stuff here
+    # =================================
+    str_dates = CERES_data['dates'][month_idx::6]
+    xvals = np.array([datetime.strptime(tdate, '%Y%m') for tdate in str_dates])
+    #xvals = np.arange(len(final_naaps))
+
+   
+    # Plot NAAPS versus clear 
+    ax1.plot(xvals, final_naaps)
+    ax1.set_ylabel('NAAPS-RA\n' + param, color = 'tab:blue')
+    ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+    ax12 = ax1.twinx()
+    ax12.plot(xvals, final_ceres_swclr, color = 'tab:orange')
+    ax12.set_ylabel('CERES Clear-sky SWF [W/m2]', color = 'tab:orange')
+    ax2.scatter(final_naaps, final_ceres_swclr)
+    ax2.set_xlabel('NAAPS-RA ' + param)
+    ax2.set_ylabel('CERES Clear-sky SWF [W/m2]')
+    ax2_result = stats.linregress(final_naaps.flatten(), final_ceres_swclr.flatten())
+    corr1 = ax2_result.rvalue**2.
+    ax2.set_title('r$^{2}$ = ' + str(np.round(corr1, 3)))
+    #plot_figure_text(ax4, 'r$^{2}$ = ' + str(np.round(corr1, 3)), xval = None, yval = None, transform = None, \
+    #    color = 'black', fontsize = 10, backgroundcolor = 'white',\
+    #    halign = 'right', location = 'lower_right')
+    ax1.set_title('NAAPS-RA ' + param + ' vs. CERES Clear-sky SWF', weight = 'bold')
+
+    # Plot NAAPS versus all 
+    ax3.plot(xvals, final_naaps)
+    ax3.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+    ax3.set_ylabel('NAAPS-RA\n' + param, color = 'tab:blue')
+    ax32 = ax3.twinx()
+    ax32.plot(xvals, final_ceres_swall, color = 'tab:orange')
+    ax32.set_ylabel('CERES All-sky SWF [W/m2]', color = 'tab:orange')
+    ax4.scatter(final_naaps, final_ceres_swall)
+    ax4.set_xlabel('NAAPS ' + param)
+    ax4.set_ylabel('CERES All-sky SWF [W/m2]')
+    ax4_result = stats.linregress(final_naaps.flatten(), final_ceres_swall.flatten())
+    corr1 = ax4_result.rvalue**2.
+    ax4.set_title('r$^{2}$ = ' + str(np.round(corr1, 3)))
+    ax3.set_title('NAAPS-RA ' + param + ' vs. CERES All-sky SWF', weight = 'bold')
+
+    # Plot NAAPS versus NSIDC
+    ax5.plot(xvals, final_naaps)
+    ax5.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+    ax5.set_ylabel('NAAPS-RA\n' + param, color = 'tab:blue')
+    ax52 = ax5.twinx()
+    ax52.plot(xvals, final_nsidc, color = 'tab:orange')
+    ax52.set_ylabel('SSMI/S Sea Ice Conc. [%]', color = 'tab:orange')
+    ax6.scatter(final_naaps, final_nsidc)
+    ax6.set_xlabel('NAAPS ' + param)
+    ax6.set_ylabel('SSMI/S Sea Ice Conc. [%]')
+    ax6_result = stats.linregress(final_naaps.flatten(), final_nsidc.flatten())
+    corr1 = ax6_result.rvalue**2.
+    ax6.set_title('r$^{2}$ = ' + str(np.round(corr1, 3)))
+    ax5.set_title('NAAPS-RA ' + param + ' vs. SSMI/S Sea Ice Conc.', weight = 'bold')
+
+    # Plot NAAPS versus all 
+    ax7.plot(xvals, final_nsidc)
+    ax7.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+    ax7.set_ylabel('SSMI/S Sea Ice Conc. [%]', color = 'tab:blue')
+    ax72 = ax7.twinx()
+    ax72.plot(xvals, final_ceres_swclr, color = 'tab:orange')
+    ax72.set_ylabel('CERES Clear-sky SWF [W/m2]', color = 'tab:orange')
+    ax8.scatter(final_nsidc, final_ceres_swclr)
+    ax8_result = stats.linregress(final_nsidc.flatten(), final_ceres_swclr.flatten())
+    corr1 = ax8_result.rvalue**2.
+    ax8.set_title('r$^{2}$ = ' + str(np.round(corr1, 3)))
+    ax8.set_xlabel('SSMI/S Sea Ice Conc. [%]')
+    ax8.set_ylabel('CERES Clear-sky SWF [W/m2]')
+    ax7.set_title('SSMI/S Sea Ice Conc. vs. CERES Clear-sky SWF', weight = 'bold')
+ 
+    plt.suptitle(str_month + ' Monthly Area Averages (2005 - 2019)\n' + \
+        str(minlat) + ' $^{o}$N - ' + str(maxlat) + ' $^{o}$N\n', weight = 'bold')
+ 
+    fig.tight_layout()
+
+    if(save):
+        outname = '_'.join(['ceres','naaps','monthly','area','avgs',param,\
+            str(int(minlat)), str(int(maxlat))]) + '.png'
+        fig.savefig(outname, dpi = 300)
+        print('Saved image', outname)
+ 
+    plt.show() 
+
+    ##!#ax4_result = stats.linregress(final_naaps.flatten(), final_ceres_clr.flatten())
+    ##!#ax5_result = stats.linregress(final_naaps.flatten(), final_ceres_all.flatten())
+    ##!##ax8_result = stats.linregress(final_naaps.flatten(), final_ceres_clr.flatten())
+    ##!#
+    ##!#print(ax4_result)
+    ##!#print(ax5_result)
+
+    ##!#corr1 = ax4_result.rvalue**2.
+    ##!#corr2 = ax5_result.rvalue**2.
+
+    ##!##ax6.text(0,    80, 'r$^{2}$ = ' + str(np.round(corr1, 3)))
+    ##!##ax7.text(0.05, 35, 'r$^{2}$ = ' + str(np.round(corr2, 3)), backgroundcolor = 'white')
+    ##!##ax8.text(0.5,  80, 'r$^{2}$ = ' + str(np.round(corr3, 3)))
+
+    ##!#plot_figure_text(ax4, 'r$^{2}$ = ' + str(np.round(corr1, 3)), xval = None, yval = None, transform = None, \
+    ##!#    color = 'black', fontsize = 10, backgroundcolor = 'white',\
+    ##!#    halign = 'right', location = 'lower_right')
+    ##!#plot_figure_text(ax5, 'r$^{2}$ = ' + str(np.round(corr2, 3)), xval = None, yval = None, transform = None, \
+    ##!#    color = 'black', fontsize = 10, backgroundcolor = 'white',\
+    ##!#    halign = 'right', location = 'upper_right')
+    ##!##plot_figure_text(ax8, 'r$^{2}$ = ' + str(np.round(corr3, 3)), xval = None, yval = None, transform = None, \
+    ##!##    color = 'black', fontsize = 10, backgroundcolor = 'white',\
+    ##!##    halign = 'right', location = 'upper_right')
+
+    ##!#print("Correlation 1", ax4_result.rvalue**2.)
+    ##!#print("Correlation 2", ax5_result.rvalue**2.)
+
+    ##!#sloper = trend_type
+    ##!#plot_trend_line(ax4, final_naaps.flatten(), final_ceres_clr.flatten(), \
+    ##!#    color='r', linestyle = '-', slope = sloper)
+    ##!#plot_trend_line(ax5, final_naaps.flatten(), final_ceres_all.flatten(), \
+    ##!#    color='r', linestyle = '-', slope = sloper)
+    ##!##plot_trend_line(ax8, final_naaps.flatten(), final_ceres_clr.flatten(), \
+    ##!##    color='r', linestyle = '-', slope = sloper)
+
+    ##!#ax4.set_title('NAAPS ' + param + ' Trend vs.\nCERES Clear-sky SWF Trend', fontsize = titlesize)
+    ##!#ax5.set_title('NAAPS ' + param + ' Trend vs.\nCERES All-sky SWF Trend', fontsize = titlesize)
+    ##!##ax8.set_title('NAAPS-RA Surface Smoke Trend vs.\nCERES Clear-sky SWF Trend', fontsize = titlesize)
+
+    ##!#ax4.set_xlabel(param + ' Trend', fontsize = labelsize)
+    ##!#ax5.set_xlabel(param + ' Trend', fontsize = labelsize)
+    ##!#ax4.set_ylabel('Clear-sky SWF Trend [W m$^{-2}$]', fontsize = labelsize)
+    ##!#ax5.set_ylabel('All-sky SWF Trend [W m$^{-2}$]', fontsize = labelsize)
+
+    ##!#plot_subplot_label(ax6, '(a)', location = 'upper_left')
+    ##!#plot_subplot_label(ax1, '(b)', location = 'upper_left')
+    ##!#plot_subplot_label(ax2, '(c)', location = 'upper_left')
+    ##!#plot_subplot_label(ax3, '(d)', location = 'upper_left')
+    ##!#plot_subplot_label(ax4, '(e)', location = 'upper_left')
+    ##!#plot_subplot_label(ax5, '(f)', location = 'upper_left')
+    ##!##plot_subplot_label(ax6, '(f)', location = 'upper_left')
+    ##!##plot_subplot_label(ax7, '(g)', location = 'upper_left')
+    ##!##plot_subplot_label(ax8, '(h)', location = 'upper_left')
+   
+    ##!#plt.suptitle(month_obj.strftime("%B Monthly Trends (2005 - 2019)"))
+ 
+    ##!#fig1.tight_layout()
+    ##!#if(save):
+    ##!#    outname = '_'.join(['ceres','naaps',param, 'monthly','trend','comp',\
+    ##!#        month_obj.strftime('%b'),'combined']) + '.png'
+    ##!#    fig1.savefig(outname, dpi = 300)
+    ##!#    print("Saved image", outname)
+    ##!#else:
+    ##!#    plt.show()
 
 
 def plot_compare_CERES_NSIDC_NAAPS_OMI_spatial(CERES_data, NSIDC_data, NAAPS_data, \

@@ -8,6 +8,7 @@ LIB_PATH = /home/bsorenson/OMI/colocate_lib/
 #LIB_PATH = ../JZ_lib/
 #FORT_LIB_PATH = ../../fort_lib/
 OBJECTS = colocate_vars.o \
+			read_comp_CERES_CLD.o \
 			read_comp_CERES_LWF.o \
 			read_comp_CERES_SWF.o \
 			read_comp_CERES_LAT.o \
@@ -58,6 +59,9 @@ colocate_vars.o: $(LIB_PATH)colocate_vars.f90
 #read_h5_GPQF.o: $(LIB_PATH)read_h5_GPQF.f90
 #	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_GPQF.f90
 #
+read_comp_CERES_CLD.o: $(LIB_PATH)read_comp_CERES_CLD.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_CERES_CLD.f90
+
 read_comp_CERES_LWF.o: $(LIB_PATH)read_comp_CERES_LWF.f90
 	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_CERES_LWF.f90
 

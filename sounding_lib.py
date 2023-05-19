@@ -21,11 +21,12 @@ from readsounding import readsounding
 from python_lib import *
 
 # colors is used to color each sounding and its associated wind barbs
-colors=['tab:blue','tab:red','tab:red','cyan','purple','olive','black']
+colors=['tab:cyan','tab:red','tab:red','cyan','purple','olive','black']
 
 lwidth = 0.6
 
-def plot_sounding_figure(in_data, fig = None, skew = None, save = False):
+def plot_sounding_figure(in_data, fig = None, skew = None, save = False, \
+        color = None):
 
     dt_date_str = datetime.strptime(in_data[0].strip().split('/')[-1][:13],'%y%m%d_%H%M%S')
 
@@ -48,7 +49,7 @@ def plot_sounding_figure(in_data, fig = None, skew = None, save = False):
         # Use readsounding to read in sounding
         data=readsounding(ifile)
 
-        plot_sounding(data, skew, idx = ii)
+        plot_sounding(data, skew, idx = ii, color = color)
     
     # Add adiabats and mixing ratio lines and set axis limits
     skew.ax.set_ylim(1050, 50)
@@ -76,7 +77,7 @@ def plot_sounding_figure(in_data, fig = None, skew = None, save = False):
         else: 
             plt.show()
 
-def plot_sounding(data, skew, idx = 0):
+def plot_sounding(data, skew, idx = 0, color = None):
     # Generate a label for the current sounding using the sounding's title
     # The name consists of the type and time/forecast of the sounding
     t1label=data['LABEL'].split()
@@ -89,8 +90,10 @@ def plot_sounding(data, skew, idx = 0):
     data['UWIND'] = data['UWIND'] * units.knots
     data['VWIND'] = data['VWIND'] * units.knots
     # Plot the dataerature and dewpoint profiles
-    skew.plot(data['PRESS'], data['TEMP'], colors[idx], label=tlabel, linewidth = lwidth + 0.2)
-    skew.plot(data['PRESS'], data['DP'], colors[idx], linewidth = lwidth + 0.2)
+    if(color is None):
+        color = colors[idx]
+    skew.plot(data['PRESS'], data['TEMP'], color, label=tlabel, linewidth = lwidth + 0.2)
+    skew.plot(data['PRESS'], data['DP'], color, linewidth = lwidth + 0.2)
     # Generate wind barbs at every 25 millibars
     plotP = []
     my_interval=np.arange(100, 1000, 50) * units('mbar')

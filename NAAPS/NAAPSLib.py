@@ -926,6 +926,131 @@ def read_CERES_all_region(dt_begin_str1, dt_end_str1, \
  
     return combined_data
 
+# param: abf, smoke, dust, salt 
+def readgridNAAPS_monthly(start_date,end_date,param,minlat=60.5,\
+                 calc_month = True,season = '',\
+                 calc_yearly_accumulation = True):
+    NAAPS_data = {}
+  
+    spring=False
+    summer=False
+    autumn=False
+    winter=False
+    sunlight=False
+    if(season=='spring'):
+        spring=True
+    elif(season=='summer'):
+        summer=True
+    elif(season=='autumn'):
+        autumn=True
+    elif(season=='winter'):
+        winter=True
+    elif(season=='sunlight'):
+        sunlight=True
+   
+
+    base_path = home_dir + '/data/NAAPS/with_AI/monthly/sfc_conc_sinks_monthly_ncdf/NVA_CLIMO1misr_sfc_conc_sink_'
+    #base_path = '/data/CERES/SSF_1Deg/monthly/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
+    #base_path = '/home/bsorenson/data/CERES/SSF_1Deg/Terra/CERES_SSF1deg-Month_Terra-MODIS_Ed4A_Subset_'
+    total_list = sorted(glob(base_path+'*.nc')) 
+
+    # Loop over all files and find the ones that match with the desired times
+    start_date = datetime.strptime(str(start_date),'%Y%m')
+    end_date = datetime.strptime(str(end_date),'%Y%m')
+    final_list = []
+    for f in total_list:
+        fdate = f.split('_')[-1][:6]
+        fdate = datetime.strptime(str(fdate),'%Y%m')
+        if((fdate >= start_date) & (fdate <= end_date)):
+            if(spring==True):
+                if((fdate.month >= 3) & (fdate.month < 6)):
+                    final_list.append(f)
+            elif(summer==True):
+                if((fdate.month >= 6) & (fdate.month < 9)):
+                    final_list.append(f)
+            elif(autumn==True):
+                if((fdate.month >= 9) & (fdate.month < 12)):
+                    final_list.append(f)
+            elif(winter==True):
+                if((fdate.month == 12) | (fdate.month < 3)):
+                    final_list.append(f)
+            elif(sunlight==True):
+                if((fdate.month > 3) & (fdate.month < 10)):
+                    final_list.append(f)
+            else:
+                final_list.append(f)
+    time_dim = len(final_list)
+
+    data = Dataset(final_list[0],'r')
+    lat_ranges = data['lat'][:].data
+    lon_ranges = data['lon'][:].data
+    #lat_ranges = np.arange(60.5,89.5,1.0)
+    #lon_ranges = np.arange(0.5,360.5,1.0)
+
+
+    lat_indices = np.where(lat_ranges>=minlat)[0]
+    print(lat_indices)
+
+    # Grid the lat and data
+    grid_lon, grid_lat = np.meshgrid(lon_ranges,lat_ranges[lat_indices])
+
+    NAAPS_data[param + '_wetsink']   = np.full((time_dim,len(lat_indices),len(lon_ranges)), np.nan)
+    NAAPS_data[param + '_drysink']   = np.full((time_dim,len(lat_indices),len(lon_ranges)), np.nan)
+    NAAPS_data[param + '_totsink']   = np.full((time_dim,len(lat_indices),len(lon_ranges)), np.nan)
+    NAAPS_data[param + '_conc_sfc']   = np.full((time_dim,len(lat_indices),len(lon_ranges)), np.nan)
+    NAAPS_data[param + '_wetsink_yearly']   = np.full((time_dim,len(lat_indices),len(lon_ranges)), np.nan)
+    NAAPS_data[param + '_drysink_yearly']   = np.full((time_dim,len(lat_indices),len(lon_ranges)), np.nan)
+    NAAPS_data[param + '_totsink_yearly']   = np.full((time_dim,len(lat_indices),len(lon_ranges)), np.nan)
+    NAAPS_data[param + '_conc_sfc_yearly']   = np.full((time_dim,len(lat_indices),len(lon_ranges)), np.nan)
+    #NAAPS_data['trends'] = np.full((len(lat_indices),len(lon_ranges)), np.nan)
+    NAAPS_data['dates'] = [] 
+    #NAAPS_data['parm_name'] = data.variables[param].standard_name 
+    #NAAPS_data['parm_unit'] = data.variables[param].units 
+    NAAPS_data['lats'] = grid_lat
+    NAAPS_data['lons'] = grid_lon
+    NAAPS_data['month_fix'] = ''
+    NAAPS_data['season']=season
+    data.close()
+
+    # Loop over good files and insert data into dictionary
+    i_count = 0
+    for ff in final_list:
+        print(ff)
+        data = Dataset(ff,'r')
+        NAAPS_data[param + '_wetsink'][i_count,:,:] = data.variables[param + '_wetsink'][lat_indices,:]
+        NAAPS_data[param + '_drysink'][i_count,:,:] = data.variables[param + '_drysink'][lat_indices,:]
+        NAAPS_data[param + '_totsink'][i_count,:,:] = data.variables[param + '_totsink'][lat_indices,:]
+        NAAPS_data[param + '_conc_sfc'][i_count,:,:] = data.variables[param + '_conc_sfc'][lat_indices,:]
+
+        if(calc_yearly_accumulation):
+            if(int(ff.split('_')[-1][:6][-2:]) == 4):
+                NAAPS_data[param + '_wetsink_yearly'][i_count,:,:] =  data.variables[param + '_wetsink'][lat_indices,:]
+                NAAPS_data[param + '_drysink_yearly'][i_count,:,:] =  data.variables[param + '_drysink'][lat_indices,:]
+                NAAPS_data[param + '_totsink_yearly'][i_count,:,:] =  data.variables[param + '_totsink'][lat_indices,:]
+                NAAPS_data[param + '_conc_sfc_yearly'][i_count,:,:] = data.variables[param + '_conc_sfc'][lat_indices,:]
+            else:
+                NAAPS_data[param + '_wetsink_yearly'][i_count,:,:]  = data.variables[param + '_wetsink'][lat_indices,:]  + NAAPS_data[param + '_wetsink_yearly'][i_count - 1,:,:] 
+                NAAPS_data[param + '_drysink_yearly'][i_count,:,:]  = data.variables[param + '_drysink'][lat_indices,:]  + NAAPS_data[param + '_drysink_yearly'][i_count - 1,:,:] 
+                NAAPS_data[param + '_totsink_yearly'][i_count,:,:]  = data.variables[param + '_totsink'][lat_indices,:]  + NAAPS_data[param + '_totsink_yearly'][i_count - 1,:,:] 
+                NAAPS_data[param + '_conc_sfc_yearly'][i_count,:,:] = data.variables[param + '_conc_sfc'][lat_indices,:] + NAAPS_data[param + '_conc_sfc_yearly'][i_count - 1,:,:]
+
+        NAAPS_data['dates'].append(ff.split('_')[-1][:6])
+    #    print(data.variables[param][0,lat_indices,:])
+        data.close() 
+        i_count+=1
+     
+    #start_date = datetime.strptime(str(start_date),'%Y%m')
+    #end_date = datetime.strptime(str(end_date),'%Y%m') +timedelta(days=31)
+    #
+    #tempdate = data.variables['time'].units
+    #orig_date = datetime.strptime(tempdate.split()[2]+' '+tempdate.split()[3],'%Y-%m-%d %H:%M:%S')
+
+    if(calc_month == True):
+        print("WARNING: TURNING OFF MONTH CLIMO CALCULATION FOR NOW")
+        #NAAPS_data = calcNAAPS_MonthClimo(NAAPS_data, param = param)
+
+    return NAAPS_data
+
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -1029,7 +1154,8 @@ def calc_NAAPS_all_avgs(begin_date, end_date, minlat = 65., \
  
     return NAAPS_avgs
 
-def calcNAAPS_grid_trend(NAAPS_data, month_idx, trend_type, minlat):
+def calcNAAPS_grid_trend(NAAPS_data, month_idx, trend_type, minlat, \
+        param = 'data'):
 
     if(month_idx == None):
         month_idx = 0
@@ -1043,7 +1169,7 @@ def calcNAAPS_grid_trend(NAAPS_data, month_idx, trend_type, minlat):
 
     # Make copy of NAAPS_data array
     print('HERE:',NAAPS_data['dates'][month_idx::index_jumper])
-    local_data   = np.copy(NAAPS_data['data'][month_idx::index_jumper,:,:])
+    local_data   = np.copy(NAAPS_data[param][month_idx::index_jumper,:,:])
     local_mask = np.ma.masked_where((local_data == -999.9) & \
         (NAAPS_data['lats'] < minlat), local_data)
 
@@ -1083,14 +1209,14 @@ def calcNAAPS_grid_trend(NAAPS_data, month_idx, trend_type, minlat):
 
 # This function assumes the data is being read from the netCDF file
 # NOTE: Assume user is using new NAAPS climo file which starts in January
-def calcNAAPS_MonthClimo(NAAPS_data):
+def calcNAAPS_MonthClimo(NAAPS_data, param = 'data'):
 
     # Set up arrays to hold monthly climatologies
-    month_climo = np.zeros((6, NAAPS_data['data'].shape[1], \
-        NAAPS_data['data'].shape[2]))
+    month_climo = np.zeros((6, NAAPS_data[param].shape[1], \
+        NAAPS_data[param].shape[2]))
 
     # Mask the monthly averages
-    local_data   = np.copy(NAAPS_data['data'][:,:,:])
+    local_data   = np.copy(NAAPS_data[param][:,:,:])
     local_mask = np.ma.masked_where(local_data == -999.9, local_data)
  
     # Calculate monthly climatologies
@@ -1354,7 +1480,8 @@ def plotNAAPS_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
 def plotNAAPS_MonthTrend(NAAPS_data,month_idx=None,save=False,\
         trend_type='standard',minlat=65.,return_trend=False, colorbar = True, \
         title = '', label = '', colorbar_label_size = 14, pax = None, \
-        show_pval = False, uncert_ax = None, vmax = None):
+        show_pval = False, uncert_ax = None, vmax = None, \
+        param = 'data'):
 
     trend_label=''
     if(trend_type=='theil-sen'):
@@ -1386,7 +1513,7 @@ def plotNAAPS_MonthTrend(NAAPS_data,month_idx=None,save=False,\
     smoke_trends, smoke_pvals, smoke_uncert = \
         calcNAAPS_grid_trend(NAAPS_data, month_idx, trend_type, \
     #ai_trends, ai_pvals = calcNAAPS_grid_trend(NAAPS_data, month_idx, trend_type, \
-        minlat)
+        minlat, param = param)
 
     if(not show_pval):
         smoke_pvals = None

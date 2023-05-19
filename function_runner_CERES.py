@@ -9,6 +9,75 @@ import gridCERESLib
 from gridCERESLib import *
 import sys
 
+#date_str = '2017081421'
+date_str = '2019081023'
+plotCERES_hrly_figure(date_str, 'cld',  \
+    only_sea_ice = False, minlat = 60., \
+    lat_circles = None, grid_data = True, zoom = False, \
+    vmax = None, vmin = None, save = False)
+    #vmax = 450, vmin = None, save = False)
+sys.exit()
+
+
+start_date = '200504'
+end_date   = '201909'
+season     = 'sunlight'
+
+# NOTE: gridded CERES SSF_1Deg data are the same along
+#       latitude lines, and along wider ranges farther
+#       north. The result is "pixels" in the data that 
+#       appear roughly the same size. 
+minlat = 60.
+CERES_swclr = readgridCERES(start_date,end_date,'toa_sw_clr_mon',\
+    satellite = 'Aqua',minlat=minlat,calc_month = True,season = 'sunlight')
+CERES_swall = readgridCERES(start_date,end_date,'toa_sw_all_mon',\
+    satellite = 'Aqua',minlat=minlat,calc_month = True,season = 'sunlight')
+
+NSIDC_data = readNSIDC_monthly_grid_all(start_date, end_date, \
+    season, minlat = minlat, calc_month = True)
+
+NSIDC_data['grid_lat'] += 0.5
+
+param = 'smoke'
+NAAPS_data = readgridNAAPS_monthly(start_date,end_date,param,minlat=minlat,\
+             calc_month = True,season = 'sunlight', calc_yearly_accumulation = True)
+
+
+param = 'smoke_conc_sfc_yearly'
+#plot_compare_CERES_NAAPS_monthly(CERES_swclr, CERES_swall, \
+#    NSIDC_data, NAAPS_data, param = param, \
+#    month_idx = 4, minlat = minlat, trend_type = 'standard', \
+#    save = False)
+
+
+minlat = 60.5
+maxlat = 70.5
+
+plot_compare_CERES_NAAPS_monthly_timeseries(CERES_swclr, CERES_swall, \
+    NSIDC_data, NAAPS_data, param = param, \
+    month_idx = 4, minlat = minlat, maxlat = maxlat, trend_type = 'standard', \
+    save = False)
+
+##!#local_CERES_swclr = np.ma.masked_where(CERES_swclr['data'] == -999., CERES_swclr['data'])
+##!#local_CERES_swall = np.ma.masked_where(CERES_swall['data'] == -999., CERES_swall['data'])
+##!#
+##!#naaps_idx = np.where((NAAPS_data['lats'][:,0] >= minlat) & (NAAPS_data['lats'][:,0] <= maxlat))
+##!#ceres_idx = np.where((CERES_swclr['lat'][:,0] >= minlat) & (CERES_swclr['lat'][:,0] <= maxlat))
+##!#nsidc_idx = np.where((NSIDC_data['grid_lat'][:,0] >= minlat) & (NSIDC_data['grid_lat'][:,0] <= maxlat))
+##!#
+##!#zonal_naaps = np.mean(NAAPS_data['smoke_totsink_yearly'][4::6,naaps_idx[0],:], axis = 2)
+##!#zonal_ceres_swclr = np.mean(local_CERES_swclr[4::6,naaps_idx[0],:], axis = 2)
+##!#zonal_ceres_swall = np.mean(local_CERES_swall[4::6,naaps_idx[0],:], axis = 2)
+##!#zonal_nsidc = np.mean(NSIDC_data['grid_ice_conc'][4::6,naaps_idx[0],:], axis = 2)
+##!#
+##!#final_naaps = np.mean(zonal_naaps, axis = 1)
+##!#final_ceres_swclr = np.mean(zonal_ceres_swclr, axis = 1)
+##!#final_ceres_swall = np.mean(zonal_ceres_swall, axis = 1)
+##!#final_nsidc = np.mean(zonal_nsidc, axis = 1)
+
+sys.exit()
+
+
 # ----------------------------------------------------
 # Set up the overall figure
 # ----------------------------------------------------
@@ -112,14 +181,6 @@ sys.exit()
 
 write_CERES_L2_to_HDF5('20170816', 'Aqua', save_path = './')
 
-sys.exit()
-
-date_str = '2017081421'
-plotCERES_hrly_figure(date_str, 'cld',  \
-    only_sea_ice = False, minlat = 60., \
-    lat_circles = None, grid_data = True, zoom = False, \
-    vmax = None, vmin = None, save = False)
-    #vmax = 450, vmin = None, save = False)
 sys.exit()
 
 ###minlat = 65

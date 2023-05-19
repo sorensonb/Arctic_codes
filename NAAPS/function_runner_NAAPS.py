@@ -24,6 +24,15 @@ from NAAPSLib import *
 #
 #sys.exit()
 
+start_date = 200504
+end_date   = 201912
+param = 'smoke'
+NAAPS_data = readgridNAAPS_monthly(start_date,end_date,param,minlat=60.5,\
+             calc_month = True,season = 'sunlight', calc_yearly_accumulation = True)
+
+
+sys.exit()
+
 save_flag = True
 minlat = 65.
 date_str = '20080422'

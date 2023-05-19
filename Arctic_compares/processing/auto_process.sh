@@ -5,10 +5,9 @@ cd $base_dir
 
 make -f Make_omi_colocate
 
-REDO_ALL=false
+REDO_ALL=true
 EXTRACT=true
 REPROCESS=false
-INCLUDE_NEW=false   # Turns on the pfile check
 
 #base_dir=$(pwd)
 #echo $base_dir
@@ -79,7 +78,7 @@ for d1 in ${dirlist} ; do
 
       # Run the OMI colocation executable
       # ---------------------------------
-      ${base_dir}omi_comp_exec $modis_ch2 $modis_ch7 $nsidc_file $ceres_file $omi_file
+      time ${base_dir}omi_comp_exec $modis_ch2 $modis_ch7 $nsidc_file $ceres_file $omi_file
 
       echo
     else

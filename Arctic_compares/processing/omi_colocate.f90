@@ -43,6 +43,7 @@ program omi_colocate
     NSIDC_LON_data, NSIDC_LON_dims, &
     CERES_LWF_data, CERES_LWF_dims, &
     CERES_SWF_data, CERES_SWF_dims, &
+    CERES_CLD_data, CERES_CLD_dims, &
     CERES_LAT_data, CERES_LAT_dims, &
     CERES_LON_data, CERES_LON_dims, &
     OMI_AI_data,    OMI_AI_dims, &
@@ -65,6 +66,7 @@ program omi_colocate
     NSIDC_out_data,     &
     !NSIDC_out_LAT_data, &
     !NSIDC_out_LON_data, &
+    CERES_out_CLD_data, &
     CERES_out_LWF_data, &
     CERES_out_SWF_data   
     !CERES_out_LAT_data, &
@@ -299,6 +301,7 @@ program omi_colocate
   call read_comp_NSIDC_ICE(nsidc_file_id)
   call read_comp_NSIDC_LAT(nsidc_file_id)
   call read_comp_NSIDC_LON(nsidc_file_id)
+  call read_comp_CERES_CLD(ceres_file_id)
   call read_comp_CERES_SWF(ceres_file_id)
   call read_comp_CERES_LWF(ceres_file_id)
   call read_comp_CERES_LAT(ceres_file_id)
@@ -406,6 +409,7 @@ program omi_colocate
               closest_dist = distance
               !CERES_out_LAT_data(jj,ii) = CERES_LAT_data(njj, nii) 
               !CERES_out_LON_data(jj,ii) = CERES_LON_data(njj, nii) 
+              CERES_out_CLD_data(jj,ii) = CERES_CLD_data(njj, nii) 
               CERES_out_LWF_data(jj,ii) = CERES_LWF_data(njj, nii) 
               CERES_out_SWF_data(jj,ii) = CERES_SWF_data(njj, nii) 
             endif
@@ -418,6 +422,7 @@ program omi_colocate
         if(closest_dist > min_dist) then
           !CERES_out_LAT_data(jj,ii) = -999.
           !CERES_out_LON_data(jj,ii) = -999.
+          CERES_out_CLD_data(jj,ii) = -999.
           CERES_out_LWF_data(jj,ii) = -999.
           CERES_out_SWF_data(jj,ii) = -999.
         endif
@@ -490,6 +495,7 @@ program omi_colocate
         NSIDC_out_data(jj,ii)     = -999.
         !CERES_out_LAT_data(jj,ii) = -999.
         !CERES_out_LON_data(jj,ii) = -999.
+        CERES_out_CLD_data(jj,ii) = -999.
         CERES_out_LWF_data(jj,ii) = -999.
         CERES_out_SWF_data(jj,ii) = -999.
         !MODIS_out_LAT_data(jj,ii) = -999.
@@ -933,6 +939,53 @@ program omi_colocate
   !!#!endif
 
   !!#!write(*,*) 'Wrote CERES LON'
+
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! Write CERES CLD data
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+  ! Create the dataspace
+  ! --------------------
+  call h5screate_simple_f(rank, test_dims, dspace_id_CLW, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataspace'
+    return
+  endif
+
+  ! Create the dataset
+  ! ------------------
+  call h5dcreate_f(out_file_id, 'ceres_cld', H5T_NATIVE_DOUBLE, &
+                   dspace_id_CLW,  dset_id_CLW, error) 
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataset '//'ceres_cld'
+    return
+  endif
+
+  ! Write to the dataset
+  ! --------------------
+  call h5dwrite_f(dset_id_CLW, H5T_NATIVE_DOUBLE, CERES_out_CLD_data, &
+                  OMI_AI_dims, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  ! Close the dataset
+  ! -----------------
+  call h5dclose_f(dset_id_CLW, error)
+
+  ! Close access to data space rank
+  call h5sclose_f(dspace_id_CLW, error)
+
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  write(*,*) 'Wrote CERES CLD'
+
 
   ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
   !

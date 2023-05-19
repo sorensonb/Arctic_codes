@@ -520,7 +520,7 @@ def download_OMI_all_HDF(date_str, dest_dir = h5_data_dir):
     
         date_str = local_date_str.strftime('%Y%m%d%H%m')
 
-        download_OMI_file_HDF(date_str, dest_dir = h5_data_dir)
+        download_OMI_single_HDF(date_str, dest_dir = h5_data_dir)
     
         local_date_str = local_date_str + timedelta(minutes = 99)
 
@@ -643,8 +643,10 @@ def download_identify_OMI_swaths(date_str, minlat = 70., min_AI = 2.0, \
         if(len(shawn_files) == 0):
             # download shawn files
             cmnd = dt_date_str.strftime(\
-                'scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/'+\
+                'scp -r bsorenson@134.129.222.68:/Research/OMI/'+\
                 'out_files-ltc3/new/%Y%m%d* ') + shawn_path
+                #'scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/'+\
+                #'out_files-ltc3/new/%Y%m%d* ') + shawn_path
             print(cmnd)
             os.system(cmnd)
 
@@ -672,8 +674,10 @@ def download_identify_OMI_swaths(date_str, minlat = 70., min_AI = 2.0, \
             if(not os.path.exists(shawn_path + ttime)):
                 print("Shawn file",ttime,"does not exist. Downloading")
                 cmnd = \
-                    'scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/'+\
+                    'scp -r bsorenson@134.129.222.68:/Research/OMI/'+\
                     'out_files-ltc3/new/' + ttime + ' ' + shawn_path
+                    #'scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/'+\
+                    #'out_files-ltc3/new/' + ttime + ' ' + shawn_path
                 print(cmnd)
                 os.system(cmnd)
     
@@ -1769,19 +1773,27 @@ def auto_shawn_convert(start_year = 2005, end_year = 2020, latmin = 65., run = F
 
                 # Copy over the HDF files
                 # -----------------------
-                print('scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/H5_files/'+\
+                print('scp -r bsorenson@134.129.222.68:/Research/OMI/H5_files/'+\
                     'OMI*OMAERUV_'+data_time+str(m_idx).zfill(2)  + '* ' + hdf_path)
+                #print('scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/H5_files/'+\
+                #    'OMI*OMAERUV_'+data_time+str(m_idx).zfill(2)  + '* ' + hdf_path)
                 if(run):
-                    os.system('scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/H5_files/'+\
+                    os.system('scp -r bsorenson@134.129.222.68:/Research/OMI/H5_files/'+\
                         'OMI*OMAERUV_'+data_time+str(m_idx).zfill(2)  + '* ' + hdf_path)
+                    #os.system('scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/H5_files/'+\
+                    #    'OMI*OMAERUV_'+data_time+str(m_idx).zfill(2)  + '* ' + hdf_path)
 
                 # Copy over the shawn files
                 # -------------------------
-                print('scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/out_files-ltc4/'+\
+                print('scp -r bsorenson@134.129.222.68:/Research/OMI/out_files-ltc4/'+\
                     data_time_shawn + str(m_idx).zfill(2)  + '* ' + ltc4_path)
+                #print('scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/out_files-ltc4/'+\
+                #    data_time_shawn + str(m_idx).zfill(2)  + '* ' + ltc4_path)
                 if(run):
-                    os.system('scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/out_files-ltc4/'+\
+                    os.system('scp -r bsorenson@134.129.222.68:/Research/OMI/out_files-ltc4/'+\
                         data_time_shawn + str(m_idx).zfill(2)  + '* ' + ltc4_path)
+                    #os.system('scp -r bsorenson@raindrop.atmos.und.edu:/Research/OMI/out_files-ltc4/'+\
+                    #    data_time_shawn + str(m_idx).zfill(2)  + '* ' + ltc4_path)
             first_time = False
     
         print(base_date.strftime("%Y%m%d"))

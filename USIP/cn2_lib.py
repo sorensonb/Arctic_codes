@@ -25,7 +25,7 @@ sys.path.append('/home/bsorenson')
 from sounding_lib import *
 from python_lib import *
 
-colors=['tab:blue','tab:red','black','green','olive','blue','purple','yellow']
+colors=['tab:cyan','tab:red','black','green','olive','blue','purple','yellow']
 
 file_dict = {
     '2018050505': {
@@ -683,7 +683,7 @@ def read_synthetic(date_str, location):
     return synth_data 
 
 def plot_synthetic(synth_data, pvar, location = 'BIS', plot_lines = 'both', \
-        ptitle = None, ax = None, save = True):
+        ptitle = None, ax = None, save = True, pcolor = 'red'):
     
     if(isinstance(synth_data, str)):
         synth_data = read_synthetic(synth_data, location)
@@ -708,13 +708,13 @@ def plot_synthetic(synth_data, pvar, location = 'BIS', plot_lines = 'both', \
             color='black',label = 'Synthetic ' + label_add)
     if((plot_lines == 'smooth') | (plot_lines == 'both')):
         ax.plot(synth_data['smooth_' + pvar],synth_data['mid_alt']/1000.,\
-            color='red',label='Smoothed synthetic ' + label_add)
+            color=pcolor,label='Smooth synth. ' + label_add)
 
-    #if(not in_ax):
-    ax.legend()
-    ax.set_xlabel(axis_label,fontsize=11)
+    if(not in_ax):
+        ax.legend()
+        ax.set_xlabel(axis_label,fontsize=11)
     #plt.xlim(-20,-13)
-    ax.set_ylabel('Altitude [km]',fontsize=11)
+        ax.set_ylabel('Altitude [km]',fontsize=11)
     #plt.ylim(0,35)
     if(ptitle is None):
         ptitle = dt_date_str.strftime('Synthetic ' + label_add + \
@@ -778,7 +778,8 @@ def plot_tempdiffs(thermo_scn2, ax = None, save = False):
         ax = fig.add_subplot(1,1,1)
 
     ax.plot(thermo_scn2['tempdiff'][thermo_scn2['masked_indices']],\
-        thermo_scn2['matchalt_thermo'][thermo_scn2['masked_indices']]/1000.,color='black')
+        thermo_scn2['matchalt_thermo'][thermo_scn2['masked_indices']]/1000.,color='black', \
+        label = 'Thermosonde')
     if(pre2019 == True):
         ax.set_xlim(0,0.18)
     else:
@@ -807,37 +808,86 @@ def plot_tempdiffs(thermo_scn2, ax = None, save = False):
             plt.show()
     
    
-def plot_vert_tempdiffs(radio, thermo_scn2, save = False):
+def plot_vert_tempdiffs(date_str, ax = None, save = False, calc_abs = False,\
+        fontsize = None):
  
-    calc_abs = False
+    in_data = [file_dict[date_str]['radio_file'], \
+        file_dict[date_str]['model_file'], file_dict[date_str]['thermo_file']]
+
+    # Use readsounding to read the current sounding file into a dictionary
+    radio = readsounding(in_data[0])
+
+    # Read the thermosonde data
+    thermo_scn2 = read_temp_diffs(file_dict[date_str]['radio_file_orig'], in_data[2])
+
     # Plot the radiosonde temperature differences versus the thermosonde
     # temperature differences.
-    fig5 = plt.figure(figsize = (8,6))
+    in_ax = True
+    if(ax is None):
+        in_ax = False
+        fig = plt.figure(figsize = (8,6))
+        ax = fig.add_subplot(1,1,1)
+
     good_indices = np.where(np.diff(radio['TEMP'])!=0.)
     radio_diffs = np.diff(radio['TEMP'])[good_indices]/np.diff(radio['ALT'])[good_indices]
     if(calc_abs == True):
         radio_diffs = abs(radio_diffs)
     #radio_diffs = abs(np.diff(radio['TEMP'])/np.diff(radio['ALT']))
-    plt.plot(thermo_scn2['closetime_thermo'][thermo_scn2['masked_indices']],\
+    
+    ax.plot(thermo_scn2['closetime_thermo'][thermo_scn2['masked_indices']],\
         thermo_scn2['tempdiff'][thermo_scn2['masked_indices']],label='Thermosonde [horizontal]')
-    plt.plot(radio['UTCTime'][:-1][good_indices],radio_diffs,label='Radiosonde [vertical]')
-    plt.xticks(fontsize=11)
-    plt.yticks(fontsize=11)
-    plt.xlabel('Seconds [UTC]',fontsize=12)
-    plt.ylabel('Temperature Difference [K]',fontsize=12)
-    if(pre2019 == True):
-        plt.title('Free-Flight Launch 2018/05/05 05:00 UTC',fontsize=12)
+    ax.plot(radio['UTCTime'][:-1][good_indices],radio_diffs,label='Radiosonde [vertical]')
+    #ax.set_xticks(fontsize=11)
+    #ax.set_yticks(fontsize=11)
+    ax.set_xlabel('Seconds [UTC]',fontsize=fontsize)
+    if(calc_abs):
+        ax.set_ylabel('Absolute Value of\nTemperature Difference [K]',fontsize=fontsize)
     else:
-        plt.title('Free-Flight Launch 2019/05/04 03:00 UTC',fontsize=12)
-    plt.legend()
-    if(save):
-        filename = radio['NAME']+'_tempdiff_radio_vs_thermo.png'
-        if(calc_abs == True):
-            filename = radio['NAME']+'_tempdiff_radio_vs_thermo_abs.png'
-        plt.savefig(filename,dpi=300)
-        print("Saved image",filename)
-    else:
-        plt.show()
+        ax.set_ylabel('Temperature Difference [K]',fontsize=fontsize)
+    #plt.ylabel('Temperature Difference [K]',fontsize=12)
+    #if(pre2019 == True):
+    #    plt.title('Free-Flight Launch 2018/05/05 05:00 UTC',fontsize=12)
+    #else:
+    #    plt.title('Free-Flight Launch 2019/05/04 03:00 UTC',fontsize=12)
+    if(not in_ax):
+        ax.legend()
+
+        if(save):
+            filename = radio['NAME']+'_tempdiff_radio_vs_thermo.png'
+            if(calc_abs == True):
+                filename = radio['NAME']+'_tempdiff_radio_vs_thermo_abs.png'
+            plt.savefig(filename,dpi=300)
+            print("Saved image",filename)
+        else:
+            plt.show()
+
+def plot_dual_vert_tempdiffs(date_str, save = False):
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+    fig = plt.figure(figsize = (9, 4))
+    ax1 = fig.add_subplot(1,2,1)
+    ax2 = fig.add_subplot(1,2,2)
+    
+    plot_vert_tempdiffs(date_str, ax = ax1, save = False, calc_abs = False)
+    plot_vert_tempdiffs(date_str, ax = ax2, save = False, calc_abs = True)
+    
+    plt.suptitle(dt_date_str.strftime('%d-%b-%Y Thermosonde Flight'))
+    
+    plot_subplot_label(ax1, '(a)')
+    plot_subplot_label(ax2, '(b)')
+    
+    ax1.legend()
+    ax2.legend()
+    
+    fig.tight_layout()
+    
+    
+    if(save):    
+        filename = 'tempdiff_radio_vs_thermo_abs_' + date_str + '.png'
+        fig.savefig(filename, dpi = 300)
+        print("Saved image", filename)
+
+
 
 #def plot_cn2_figure(in_data, ax = None, raw = False, old = False, \
 def plot_cn2_figure(date_str, ax = None, raw = False, old = False, \
@@ -980,7 +1030,7 @@ def plot_combined_figure(date_str, save = False):
    
     if(date_str == '2018050505'):
         synth_date = '201805 00'
-        ylim = [0, 35]
+        ylim = [0, 30]
     else:
         synth_date = '201905 00'
         ylim = [0, 6.5]
@@ -988,7 +1038,7 @@ def plot_combined_figure(date_str, save = False):
     in_data = [file_dict[date_str]['radio_file'], \
         file_dict[date_str]['model_file']]
     
-    fig = plt.figure(figsize = (9,9))
+    fig = plt.figure(figsize = (7,7))
     #fig = plt.figure(figsize = (14,4))
     gs = fig.add_gridspec(2,2)
     #gs = fig.add_gridspec(1,3, hspace = 0.3)
@@ -996,18 +1046,18 @@ def plot_combined_figure(date_str, save = False):
     ax1  = fig.add_subplot(gs[1,0])   # true color    
     ax2  = fig.add_subplot(gs[1,1])   # true color 
     plot_sounding_figure(in_data, fig = fig, skew = gs[0,0], \
-        save = False)
+        save = False, color = None)
     #plot_sounding_figure(file_dict[date_str]['bis_files'], fig = fig, skew = gs[0,1], \
     #    save = False)
     
     thermo_scn2 = read_temp_diffs(file_dict[date_str]['radio_file_orig'], file_dict[date_str]['thermo_file'])
-    plot_synthetic(synth_date, 'tempdiff', ax = ax1, plot_lines = 'smooth') 
+    plot_synthetic(synth_date, 'tempdiff', ax = ax1, plot_lines = 'smooth', pcolor = 'tab:purple') 
     plot_tempdiffs(thermo_scn2, ax = ax1, save = False)
     ax1.set_ylim(ylim)
  
     #ax1_lims = ax1.get_ylim()
     #plot_cn2_figure(in_data, ax = ax2, raw = False, old = False, \
-    plot_synthetic(synth_date, 'cn2', ax = ax2, plot_lines = 'smooth') 
+    plot_synthetic(synth_date, 'cn2', ax = ax2, plot_lines = 'smooth', pcolor = 'tab:purple') 
     plot_cn2_figure(date_str, ax = ax2, raw = False, old = False, \
             save = False, no_3km = False, ymax = ylim[1])
             #save = False, no_3km = False, ymax = ax1_lims[1])
@@ -1016,8 +1066,11 @@ def plot_combined_figure(date_str, save = False):
     
     #ax2.plot(np.log10(thermo_scn2['CN2']),(data['ALT']/1000.),color=colors[ii],label=olabel)
     #gs[0,1].set_title('  b)', loc = 'left', weight = 'bold')
+    ax1.legend()
+    ax1.set_title('Temperature Differences', fontsize = 10)
     ax1.set_title('  b)', loc = 'left', weight = 'bold')
     ax2.set_title('  c)', loc = 'left', weight = 'bold')
+    fig.tight_layout()
     if(save):
         outname = 'combined_cn2_'+date_str+'.png'
         fig.savefig(outname, dpi = 300)

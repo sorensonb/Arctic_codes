@@ -7,9 +7,9 @@ make -f Make_trop_colocate
 
 make -f Make_trop_colocate_thin
 
-REDO_ALL=false
+REDO_ALL=true
 EXTRACT=true
-REPROCESS=false
+REPROCESS=true
 
 #base_dir=$(pwd)
 #echo $base_dir
@@ -69,6 +69,8 @@ for d1 in ${dirlist} ; do
   if !(test -f "$coloc_trop_file") || $REPROCESS ; then
     echo "$coloc_trop_file does NOT exist. Processing data"
 
+    trop_file=$(ls ${d1}tropomi_*)
+
     # NOTE: ADD A CHECK FOR A MATCHING OMI COMP FILE IN arctic_comp
     #       IF IT EXISTS, RUN TROP_COLOC_THIN
     # -------------------------------------------------------------
@@ -82,7 +84,7 @@ for d1 in ${dirlist} ; do
       # Run the OMI colocation executable
       # ---------------------------------
       echo $trop_file $omi_prep_file
-      ${base_dir}trop_thin_coloc_exec $trop_file $omi_prep_file
+      ${base_dir}trop_coloc_thin_exec $trop_file $omi_prep_file
 
     else 
       echo "No OMI prep file found. Processing full data"
