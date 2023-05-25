@@ -90,14 +90,14 @@ program gen_comp_grid_climo
   integer                                       :: len_sza
   integer                                       :: len_ice
   integer                                       :: len_ch7
-  integer                                       :: len_cld
+  !integer                                       :: len_cld
   integer                                       :: num_data_grids
 
   integer                                       :: ai_idx
   integer                                       :: sza_idx
   integer                                       :: ice_idx
   integer                                       :: ch7_idx
-  integer                                       :: cld_idx
+  !integer                                       :: cld_idx
 
   integer                                       :: io8
   integer                                       :: io5
@@ -106,16 +106,16 @@ program gen_comp_grid_climo
   real, dimension(:), allocatable                  :: sza_bins
   real, dimension(:), allocatable                  :: ice_bins
   real, dimension(:), allocatable                  :: ch7_bins
-  real, dimension(:), allocatable                  :: cld_bins
+  !real, dimension(:), allocatable                  :: cld_bins
 
   real, dimension(:), allocatable                  :: ai_edges
   real, dimension(:), allocatable                  :: sza_edges
   real, dimension(:), allocatable                  :: ice_edges
   real, dimension(:), allocatable                  :: ch7_edges
-  real, dimension(:), allocatable                  :: cld_edges
+  !real, dimension(:), allocatable                  :: cld_edges
 
-  integer, dimension(:,:,:,:,:), allocatable       :: grid_swf_count
-  real, dimension(:,:,:,:,:), allocatable          :: grid_swf_climo
+  integer, dimension(:,:,:,:), allocatable       :: grid_swf_count
+  real, dimension(:,:,:,:), allocatable          :: grid_swf_climo
 
   real                                             :: min_ai
   real                                             :: max_ai
@@ -129,24 +129,25 @@ program gen_comp_grid_climo
   real                                             :: min_ch7
   real                                             :: max_ch7
   real                                             :: delta_ch7
-  real                                             :: min_cld
-  real                                             :: max_cld
-  real                                             :: delta_cld
+  !real                                             :: min_cld
+  !real                                             :: max_cld
+  !real                                             :: delta_cld
+  real                                             :: min_lat
 
   real                                             :: found_max_ai
 
-  integer(hsize_t), dimension(5)                   :: grid_dims
+  integer(hsize_t), dimension(4)                   :: grid_dims
   integer(hsize_t), dimension(1)                   :: ai_dims
   integer(hsize_t), dimension(1)                   :: sza_dims
   integer(hsize_t), dimension(1)                   :: ice_dims
   integer(hsize_t), dimension(1)                   :: ch7_dims
-  integer(hsize_t), dimension(1)                   :: cld_dims
+  !integer(hsize_t), dimension(1)                   :: cld_dims
 
   integer(hsize_t), dimension(1)                   :: ai_edge_dims
   integer(hsize_t), dimension(1)                   :: sza_edge_dims
   integer(hsize_t), dimension(1)                   :: ice_edge_dims
   integer(hsize_t), dimension(1)                   :: ch7_edge_dims
-  integer(hsize_t), dimension(1)                   :: cld_edge_dims
+  !integer(hsize_t), dimension(1)                   :: cld_edge_dims
 
   character(len = 255)                             :: file_name_file 
   character(len = 255)                             :: total_file_name
@@ -198,16 +199,18 @@ program gen_comp_grid_climo
   delta_sza = 2.5
 
   min_ice   = 0.0
-  max_ice   = 120.0
-  delta_ice = 20.0
+  max_ice   = 105.0
+  delta_ice = 5.0
 
   min_ch7   = 0.0
   max_ch7   = 0.350
   delta_ch7 = 0.025
 
-  min_cld   = 0.0
-  max_cld   = 100.0
-  delta_cld = 10.
+  !min_cld   = 0.0
+  !max_cld   = 100.0
+  !delta_cld = 10.
+
+  min_lat = 70.
 
   ! Determine the number of bins for each variable
   ! ----------------------------------------------
@@ -215,24 +218,19 @@ program gen_comp_grid_climo
   len_sza = (max_sza - min_sza + delta_sza) / delta_sza
   len_ice = (max_ice - min_ice + delta_ice) / delta_ice
   len_ch7 = (max_ch7 - min_ch7 + delta_ch7) / delta_ch7
-  len_cld = (max_cld - min_cld + delta_cld) / delta_cld
-
-  !write(*,*) len_ai
-  !write(*,*) len_sza
-  !write(*,*) len_ice
-  !write(*,*) len_ch7
+  !len_cld = (max_cld - min_cld + delta_cld) / delta_cld
 
   allocate(ai_bins(len_ai))
   allocate(sza_bins(len_sza))
   allocate(ice_bins(len_ice))
   allocate(ch7_bins(len_ch7))
-  allocate(cld_bins(len_cld))
+  !allocate(cld_bins(len_cld))
 
   allocate(ai_edges(len_ai + 1))
   allocate(sza_edges(len_sza + 1))
   allocate(ice_edges(len_ice + 1))
   allocate(ch7_edges(len_ch7 + 1))
-  allocate(cld_edges(len_cld + 1))
+  !allocate(cld_edges(len_cld + 1))
  
   do ii = 1, len_ai
     ai_bins(ii) = min_ai + delta_ai*(ii-1)
@@ -250,9 +248,9 @@ program gen_comp_grid_climo
     ch7_bins(ii) = min_ch7 + delta_ch7*(ii-1)
   enddo
 
-  do ii = 1, len_cld
-    cld_bins(ii) = min_cld + delta_cld*(ii-1)
-  enddo
+  !do ii = 1, len_cld
+  !  cld_bins(ii) = min_cld + delta_cld*(ii-1)
+  !enddo
 
   do ii = 1, len_ai + 1 
     ai_edges(ii) = min_ai + delta_ai*((ii-1) - 0.5)
@@ -270,25 +268,25 @@ program gen_comp_grid_climo
     ch7_edges(ii) = min_ch7 + delta_ch7*((ii-1) - 0.5)
   enddo
 
-  do ii = 1, len_cld + 1 
-    cld_edges(ii) = min_cld + delta_cld*((ii-1) - 0.5)
-  enddo
+  !do ii = 1, len_cld + 1 
+  !  cld_edges(ii) = min_cld + delta_cld*((ii-1) - 0.5)
+  !enddo
 
-  write(*,*) 'total_size = ',len_ai * len_sza * len_ice * len_ch7 * len_cld
+  write(*,*) 'total_size = ',len_ai * len_sza * len_ice * len_ch7
 
   ai_dims   = (/size(ai_bins)/)
   sza_dims  = (/size(sza_bins)/)
   ice_dims  = (/size(ice_bins)/)
   ch7_dims  = (/size(ch7_bins)/)
-  cld_dims  = (/size(cld_bins)/)
+  !cld_dims  = (/size(cld_bins)/)
   grid_dims = (/size(ai_bins),size(sza_bins),size(ice_bins), &
-    size(ch7_bins),size(cld_bins)/)
+    size(ch7_bins)/)
 
   ai_edge_dims  = (/size(ai_edges)/)
   sza_edge_dims = (/size(sza_edges)/)
   ice_edge_dims = (/size(ice_edges)/)
   ch7_edge_dims = (/size(ch7_edges)/)
-  cld_edge_dims = (/size(cld_edges)/)
+  !cld_edge_dims = (/size(cld_edges)/)
 
   write(*,*) ai_dims
   write(*,*) ai_bins
@@ -299,11 +297,11 @@ program gen_comp_grid_climo
   !
   ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-  allocate(grid_swf_climo(len_ai, len_sza, len_ice, len_ch7, len_cld))
-  allocate(grid_swf_count(len_ai, len_sza, len_ice, len_ch7, len_cld))
+  allocate(grid_swf_climo(len_ai, len_sza, len_ice, len_ch7))
+  allocate(grid_swf_count(len_ai, len_sza, len_ice, len_ch7))
 
-  grid_swf_climo(:,:,:,:,:) = -999.
-  grid_swf_count(:,:,:,:,:) = -9
+  grid_swf_climo(:,:,:,:) = -999.
+  grid_swf_count(:,:,:,:) = -9
 
 
   ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -377,9 +375,10 @@ program gen_comp_grid_climo
         ! ------------------------------------
         call read_coloc_MODIS_CH7(file_id)
         call read_coloc_CERES_SWF(file_id)
-        call read_coloc_CERES_CLD(file_id)
+        !call read_coloc_CERES_CLD(file_id)
         call read_coloc_NSIDC_ICE(file_id)
         call read_coloc_OMI_AI_raw(file_id)
+        call read_coloc_OMI_LAT(file_id)
         call read_coloc_OMI_SZA(file_id)
 
         !!write(*,*) sza_bins, OMI_SZA_data(12,120)
@@ -395,36 +394,42 @@ program gen_comp_grid_climo
 
           omi_loop2: do jj=1,OMI_AI_raw_dims(1) 
 
+        
+            if(OMI_LAT_data(jj,ii) >= min_lat) then
 
-            ! Insert each pixel into the grid here
-            ! ------------------------------------      
-            ai_idx  = minloc(abs(ai_bins - OMI_AI_raw_data(jj,ii)), dim = 1)
-            sza_idx = minloc(abs(sza_bins - OMI_SZA_data(jj,ii)), dim = 1)
-            ice_idx = minloc(abs(ice_bins - NSIDC_data(jj,ii)), dim = 1)
-            ch7_idx = minloc(abs(ch7_bins - MODIS_CH7_data(jj,ii)), dim = 1)
-            cld_idx = minloc(abs(cld_bins - CERES_CLD_data(jj,ii)), dim = 1)
+              ! Insert each pixel into the grid here
+              ! ------------------------------------      
+              ai_idx  = minloc(abs(ai_bins - OMI_AI_raw_data(jj,ii)), dim = 1)
+              sza_idx = minloc(abs(sza_bins - OMI_SZA_data(jj,ii)), dim = 1)
+              ice_idx = minloc(abs(ice_bins - NSIDC_data(jj,ii)), dim = 1)
+              ch7_idx = minloc(abs(ch7_bins - MODIS_CH7_data(jj,ii)), dim = 1)
+              !cld_idx = minloc(abs(cld_bins - CERES_CLD_data(jj,ii)), dim = 1)
 
-            if((CERES_SWF_data(jj,ii) > 0) .and. &
-               (abs(OMI_AI_raw_data(jj,ii)) < max_ai)) then
-              if(grid_swf_count(ai_idx, sza_idx,ice_idx,ch7_idx,cld_idx) == -9) then
-                grid_swf_climo(ai_idx,sza_idx,ice_idx,ch7_idx,cld_idx) = &
-                  CERES_SWF_data(jj,ii)
-                grid_swf_count(ai_idx,sza_idx,ice_idx,ch7_idx,cld_idx) = 1
+              if(((CERES_SWF_data(jj,ii) > 0) .and. &
+                  (CERES_SWF_data(jj,ii) < 5000)) .and. &
+                 (abs(OMI_AI_raw_data(jj,ii)) < max_ai)) then
+                !if(grid_swf_count(ai_idx, sza_idx,ice_idx,ch7_idx,cld_idx) &
+                if(grid_swf_count(ai_idx, sza_idx,ice_idx,ch7_idx) &
+                    == -9) then
+                  grid_swf_climo(ai_idx,sza_idx,ice_idx,ch7_idx) = &
+                    CERES_SWF_data(jj,ii)
+                  grid_swf_count(ai_idx,sza_idx,ice_idx,ch7_idx) = 1
 
-              else
-                grid_swf_climo(ai_idx,sza_idx,ice_idx,ch7_idx,cld_idx) = &
-                  grid_swf_climo(ai_idx,sza_idx,ice_idx,ch7_idx,cld_idx) + &
-                  CERES_SWF_data(jj,ii)
-                grid_swf_count(ai_idx,sza_idx,ice_idx,ch7_idx,cld_idx) = &
-                  grid_swf_count(ai_idx,sza_idx,ice_idx,ch7_idx,cld_idx) + 1
+                else
+                  grid_swf_climo(ai_idx,sza_idx,ice_idx,ch7_idx) = &
+                    grid_swf_climo(ai_idx,sza_idx,ice_idx,ch7_idx) + &
+                    CERES_SWF_data(jj,ii)
+                  grid_swf_count(ai_idx,sza_idx,ice_idx,ch7_idx) = &
+                    grid_swf_count(ai_idx,sza_idx,ice_idx,ch7_idx) + 1
 
-              endif
+                endif
 
-              if(OMI_AI_raw_data(jj,ii) > found_max_ai) then
-                found_max_ai = OMI_AI_raw_data(jj,ii)
-              endif
+                if(OMI_AI_raw_data(jj,ii) > found_max_ai) then
+                  found_max_ai = OMI_AI_raw_data(jj,ii)
+                endif
 
-            endif 
+              endif 
+            endif
           enddo omi_loop2
 
         enddo omi_loop1
@@ -448,27 +453,29 @@ program gen_comp_grid_climo
   write(*,*) 'Found max AI', found_max_ai
 
   num_data_grids = 0 
-  do ii = 1, len_cld
-    do jj = 1, len_ch7
-      do kk = 1, len_ice
-        do nn = 1, len_sza
-          do mm = 1, len_ai
-            if(grid_swf_count(mm,nn,kk,jj,ii) > 0) then
-              !write(*,*) 'before', grid_swf_climo(nn,kk,jj,ii), grid_swf_count(nn,kk,jj,ii)
-              grid_swf_climo(mm,nn,kk,jj,ii) = &
-                grid_swf_climo(mm,nn,kk,jj,ii) / grid_swf_count(mm,nn,kk,jj,ii)
-              !write(*,*) 'after', grid_swf_climo(nn,kk,jj,ii)
-              num_data_grids = num_data_grids + 1
-            endif
-          enddo
+  !do ii = 1, len_cld
+  do jj = 1, len_ch7
+    do kk = 1, len_ice
+      do nn = 1, len_sza
+        do mm = 1, len_ai
+          !if(grid_swf_count(mm,nn,kk,jj,ii) > 0) then
+          if(grid_swf_count(mm,nn,kk,jj) > 0) then
+            !write(*,*) 'before', grid_swf_climo(mm,nn,kk,jj), &
+            !  grid_swf_count(mm,nn,kk,jj)
+            grid_swf_climo(mm,nn,kk,jj) = &
+              grid_swf_climo(mm,nn,kk,jj) / grid_swf_count(mm,nn,kk,jj)
+            !write(*,*) 'after', grid_swf_climo(mm,nn,kk,jj)
+            num_data_grids = num_data_grids + 1
+          endif
         enddo
       enddo
     enddo
   enddo
+  !enddo
 
   ! Open the output file
   ! --------------------
-  out_file_name = 'comp_grid_climo_v4.hdf5'
+  out_file_name = 'comp_grid_climo_v6.hdf5'
   write(*,*) trim(out_file_name)
 
   call h5fcreate_f(trim(out_file_name), H5F_ACC_TRUNC_F, out_file_id, error)
@@ -661,51 +668,51 @@ program gen_comp_grid_climo
 
   write(*,*) 'Wrote modis ch7 bins'
 
-  ! = = = = = = = = = = = = = = = = = = = = = = = 
-  !
-  ! Write CERES CLD bins
-  !
-  ! = = = = = = = = = = = = = = = = = = = = = = = 
+  !!#!! = = = = = = = = = = = = = = = = = = = = = = = 
+  !!#!!
+  !!#!! Write CERES CLD bins
+  !!#!!
+  !!#!! = = = = = = = = = = = = = = = = = = = = = = = 
 
-  ! Create the dataspace
-  ! --------------------
-  call h5screate_simple_f(1, cld_dims, dspace_id_OLT, error)
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open dataspace'
-    return
-  endif
+  !!#!! Create the dataspace
+  !!#!! --------------------
+  !!#!call h5screate_simple_f(1, cld_dims, dspace_id_OLT, error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not open dataspace'
+  !!#!  return
+  !!#!endif
 
-  ! Create the dataset
-  ! ------------------
-  call h5dcreate_f(out_file_id, 'ceres_cld_bins', H5T_NATIVE_REAL, dspace_id_OLT,  &
-                   dset_id_OLT, error) 
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open dataset '//'ceres_cld_bins'
-    return
-  endif
+  !!#!! Create the dataset
+  !!#!! ------------------
+  !!#!call h5dcreate_f(out_file_id, 'ceres_cld_bins', H5T_NATIVE_REAL, dspace_id_OLT,  &
+  !!#!                 dset_id_OLT, error) 
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not open dataset '//'ceres_cld_bins'
+  !!#!  return
+  !!#!endif
 
-  ! Write to the dataset
-  ! --------------------
-  call h5dwrite_f(dset_id_OLT, H5T_NATIVE_REAL, cld_bins, cld_dims, &
-                      error)
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not write to dataset'
-    return
-  endif
+  !!#!! Write to the dataset
+  !!#!! --------------------
+  !!#!call h5dwrite_f(dset_id_OLT, H5T_NATIVE_REAL, cld_bins, cld_dims, &
+  !!#!                    error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not write to dataset'
+  !!#!  return
+  !!#!endif
 
-  ! Close the dataset
-  ! -----------------
-  call h5dclose_f(dset_id_OLT, error)
+  !!#!! Close the dataset
+  !!#!! -----------------
+  !!#!call h5dclose_f(dset_id_OLT, error)
 
-  ! Close access to data space rank
-  call h5sclose_f(dspace_id_OLT, error)
+  !!#!! Close access to data space rank
+  !!#!call h5sclose_f(dspace_id_OLT, error)
 
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not close dataset'
-    return
-  endif
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not close dataset'
+  !!#!  return
+  !!#!endif
 
-  write(*,*) 'Wrote ceres cld bins'
+  !!#!write(*,*) 'Wrote ceres cld bins'
 
   ! = = = = = = = = = = = = = = = = = = = = = = = 
   !
@@ -891,51 +898,51 @@ program gen_comp_grid_climo
 
   write(*,*) 'Wrote modis ch7 edges'
 
-  ! = = = = = = = = = = = = = = = = = = = = = = = 
-  !
-  ! Write CERES CLD edges
-  !
-  ! = = = = = = = = = = = = = = = = = = = = = = = 
+  !!#!! = = = = = = = = = = = = = = = = = = = = = = = 
+  !!#!!
+  !!#!! Write CERES CLD edges
+  !!#!!
+  !!#!! = = = = = = = = = = = = = = = = = = = = = = = 
 
-  ! Create the dataspace
-  ! --------------------
-  call h5screate_simple_f(1, cld_edge_dims, dspace_id_OLT, error)
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open dataspace'
-    return
-  endif
+  !!#!! Create the dataspace
+  !!#!! --------------------
+  !!#!call h5screate_simple_f(1, cld_edge_dims, dspace_id_OLT, error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not open dataspace'
+  !!#!  return
+  !!#!endif
 
-  ! Create the dataset
-  ! ------------------
-  call h5dcreate_f(out_file_id, 'ceres_cld_edges', H5T_NATIVE_REAL, dspace_id_OLT,  &
-                   dset_id_OLT, error) 
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open dataset '//'ceres_cld_edges'
-    return
-  endif
+  !!#!! Create the dataset
+  !!#!! ------------------
+  !!#!call h5dcreate_f(out_file_id, 'ceres_cld_edges', H5T_NATIVE_REAL, dspace_id_OLT,  &
+  !!#!                 dset_id_OLT, error) 
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not open dataset '//'ceres_cld_edges'
+  !!#!  return
+  !!#!endif
 
-  ! Write to the dataset
-  ! --------------------
-  call h5dwrite_f(dset_id_OLT, H5T_NATIVE_REAL, cld_edges, cld_edge_dims, &
-                      error)
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not write to dataset'
-    return
-  endif
+  !!#!! Write to the dataset
+  !!#!! --------------------
+  !!#!call h5dwrite_f(dset_id_OLT, H5T_NATIVE_REAL, cld_edges, cld_edge_dims, &
+  !!#!                    error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not write to dataset'
+  !!#!  return
+  !!#!endif
 
-  ! Close the dataset
-  ! -----------------
-  call h5dclose_f(dset_id_OLT, error)
+  !!#!! Close the dataset
+  !!#!! -----------------
+  !!#!call h5dclose_f(dset_id_OLT, error)
 
-  ! Close access to data space rank
-  call h5sclose_f(dspace_id_OLT, error)
+  !!#!! Close access to data space rank
+  !!#!call h5sclose_f(dspace_id_OLT, error)
 
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not close dataset'
-    return
-  endif
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not close dataset'
+  !!#!  return
+  !!#!endif
 
-  write(*,*) 'Wrote ceres cld edges'
+  !!#!write(*,*) 'Wrote ceres cld edges'
 
   ! = = = = = = = = = = = = = = = = = = = = = = = 
   !
@@ -945,7 +952,7 @@ program gen_comp_grid_climo
 
   ! Create the dataspace
   ! --------------------
-  call h5screate_simple_f(5, grid_dims, dspace_id_OLT, error)
+  call h5screate_simple_f(4, grid_dims, dspace_id_OLT, error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not open dataspace'
     return
@@ -991,7 +998,7 @@ program gen_comp_grid_climo
 
   ! Create the dataspace
   ! --------------------
-  call h5screate_simple_f(5, grid_dims, dspace_id_OLT, error)
+  call h5screate_simple_f(4, grid_dims, dspace_id_OLT, error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not open dataspace'
     return
@@ -1062,13 +1069,13 @@ program gen_comp_grid_climo
   deallocate(sza_bins)
   deallocate(ice_bins)
   deallocate(ch7_bins)
-  deallocate(cld_bins)
+  !deallocate(cld_bins)
 
   deallocate(ai_edges)
   deallocate(sza_edges)
   deallocate(ice_edges)
   deallocate(ch7_edges)
-  deallocate(cld_edges)
+  !deallocate(cld_edges)
 
   ! Close the HDF5 interface
   ! ------------------------

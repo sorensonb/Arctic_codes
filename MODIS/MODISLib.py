@@ -53,7 +53,9 @@ from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 # Set up global variables
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-data_dir = home_dir + '/data/MODIS/Aqua/'
+modis_dir = home_dir + '/data/MODIS/Aqua/'
+data_dir  = modis_dir + 'MYD/'
+cloud_dir = modis_dir + 'CLDMSK/'
 datacrs = ccrs.PlateCarree()
 debug = False
 
@@ -624,7 +626,8 @@ def download_MODIS_swath(CERES_date_str, \
 # This downloads the MODIS l1b HDF5 file that is closest to the passed
 # date string from the LAADS DAAC archive. 
 # --------------------------------------------------------------------
-def download_MODIS_file(date_str, dest_dir = home_dir + '/data/MODIS/Aqua/'):
+def download_MODIS_file(date_str, dest_dir = home_dir + '/data/MODIS/Aqua/', \
+        download_cloud_mask = True):
 
     base_url = 'https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/61/MYD021KM'
 

@@ -139,7 +139,8 @@ os.system(cmnd)
 
 # Get codes from Raindrop
 # -----------------------
-rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/OMI/"
+rain_dir = "bsorenson@134.129.222.68:/home/bsorenson/OMI/"
+#rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/OMI/"
 
 final_dir = dest_dir + 'OMI/processing/shawn_analysis/count_analysis/'
 cmnd = "scp "+rain_dir+"shawn_analysis/count_analysis/*.f90 "+final_dir
@@ -227,7 +228,8 @@ os.system(cmnd)
 #print(cmnd)
 #os.system(cmnd)
 
-rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/CERES/"
+rain_dir = "bsorenson@134.129.222.68:/home/bsorenson/CERES/"
+#rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/CERES/"
 
 final_dir = dest_dir + 'CERES/processing/'
 cmnd = "scp "+rain_dir+"*.f90 "+final_dir
@@ -395,7 +397,8 @@ os.system(cmnd)
 
 # Get codes from Raindrop
 # -----------------------
-rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/OMI/tropomi_colocate/"
+rain_dir = "bsorenson@134.129.222.68:/home/bsorenson/OMI/tropomi_colocate/"
+#rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/OMI/tropomi_colocate/"
 
 final_dir = dest_dir + 'TROPOMI/processing/'
 cmnd = "scp "+rain_dir+"*.f90 "+final_dir

@@ -226,7 +226,7 @@ def automate_all_preprocess(date_str, download = True, images = True, \
                 remove_empty_scans = remove_empty_scans)
 
             MODIS_date = file_date_dict[dstr]['MODIS'][0]
-            write_MODIS_to_HDF5(MODIS_date, channel = 2, swath = True, \
+            write_MODIS_to_HDF5(MODIS_date, channel = 1, swath = True, \
                 save_path = save_dir2, minlat = minlat, \
                 remove_empty_scans = remove_empty_scans)
             write_MODIS_to_HDF5(MODIS_date, channel = 7, swath = True, \
@@ -861,12 +861,12 @@ def read_comp_grid_climo(filename):
     comp_grid_data['sza_bins'] = data['omi_sza_bins'][:]
     comp_grid_data['ice_bins'] = data['nsidc_ice_bins'][:]
     comp_grid_data['ch7_bins'] = data['modis_ch7_bins'][:]
-    comp_grid_data['cld_bins'] = data['ceres_cld_bins'][:]
+    #comp_grid_data['cld_bins'] = data['ceres_cld_bins'][:]
     comp_grid_data['ai_edges'] = data['omi_ai_edges'][:]
     comp_grid_data['sza_edges'] = data['omi_sza_edges'][:]
     comp_grid_data['ice_edges'] = data['nsidc_ice_edges'][:]
     comp_grid_data['ch7_edges'] = data['modis_ch7_edges'][:]
-    comp_grid_data['cld_edges'] = data['ceres_cld_edges'][:]
+    #comp_grid_data['cld_edges'] = data['ceres_cld_edges'][:]
 
     data.close()
 
@@ -2148,52 +2148,131 @@ def calculate_type_forcing(month_idx, trend_type = 'linear', minlat = 65.):
     for tkey in relat_dict.keys():
         print(tkey, test_trend * relat_dict[tkey]) 
 
-
-def plot_combined_scatter(combined_data, xval = 'omi_uvai_raw', \
-        yval = 'ceres_swf', ax = None, \
+def select_combined_scatter_data(combined_data, xval, yval, 
         swf_min = None, swf_max = None, \
-        cld_min = None, cld_max = None, \
+        #cld_min = None, cld_max = None, \
         ch7_min = None, ch7_max = None, \
         sza_min = None, sza_max = None, \
         ice_min = None, ice_max = None, \
         omi_min = None, omi_max = None, \
-        trend_type = 'theil-sen', \
-        show_trend = False, shade_density = False):
+        ai_diff = None, sza_diff = None, \
+        ice_diff = None, ch7_diff = None,\
+        cld_diff = None):
 
     local_xdata = np.copy(combined_data[xval])
     local_ydata = np.copy(combined_data[yval])
 
     def check_range_vals(local_xdata, local_ydata, lvar,\
-            var_min, var_max):
+            var_min, var_max, var_diff):
 
         if(var_min is not None):
+            if(var_diff is not None):
+                checker = var_min - var_diff
+            else:
+                checker = var_min
             local_xdata = np.ma.masked_where(\
-                combined_data[lvar] < var_min,local_xdata)
+                combined_data[lvar] < checker,local_xdata)
             local_ydata = np.ma.masked_where(\
-                combined_data[lvar] < var_min,local_ydata)
+                combined_data[lvar] < checker,local_ydata)
         if(var_max is not None):
+            if(var_diff is not None):
+                checker = var_max + var_diff
+            else:
+                checker = var_max
             local_xdata = np.ma.masked_where(\
-                combined_data[lvar] > var_max,local_xdata)
+                combined_data[lvar] > checker,local_xdata)
             local_ydata = np.ma.masked_where(\
-                combined_data[lvar] > var_max,local_ydata)
+                combined_data[lvar] > checker,local_ydata)
 
         return local_xdata, local_ydata
         
+    #local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
+    #    'ceres_cld', cld_min, cld_max, cld_diff)
     local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
-        'ceres_cld', cld_min, cld_max)
+        'modis_ch7', ch7_min, ch7_max, ch7_diff)
     local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
-        'ceres_swf', swf_min, swf_max)
+        'nsidc_ice', ice_min, ice_max, ice_diff)
     local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
-        'modis_ch7', ch7_min, ch7_max)
+        'omi_sza', sza_min, sza_max, sza_diff)
     local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
-        'omi_sza', sza_min, sza_max)
+        'omi_uvai_raw', omi_min, omi_max, ai_diff)
     local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
-        'nsidc_ice', ice_min, ice_max)
-    local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
-        'omi_uvai_raw', omi_min, omi_max)
+        'ceres_swf', swf_min, swf_max, None)
 
     local_xdata = local_xdata.compressed()
     local_ydata = local_ydata.compressed()
+
+    return local_xdata, local_ydata
+
+def plot_combined_scatter(combined_data, xval = 'omi_uvai_raw', \
+        yval = 'ceres_swf', ax = None, \
+        swf_min = None, swf_max = None, \
+        #cld_min = None, cld_max = None, \
+        ch7_min = None, ch7_max = None, \
+        sza_min = None, sza_max = None, \
+        ice_min = None, ice_max = None, \
+        omi_min = None, omi_max = None, \
+        ai_diff = None, sza_diff = None, \
+        ice_diff = None, ch7_diff = None,\
+        cld_diff = None, \
+        trend_type = 'theil-sen', \
+        show_trend = False, shade_density = False):
+
+    ##!#local_xdata = np.copy(combined_data[xval])
+    ##!#local_ydata = np.copy(combined_data[yval])
+
+    ##!#def check_range_vals(local_xdata, local_ydata, lvar,\
+    ##!#        var_min, var_max, var_diff):
+
+    ##!#    if(var_min is not None):
+    ##!#        if(var_diff is not None):
+    ##!#            checker = var_min - var_diff
+    ##!#        else:
+    ##!#            checker = var_min
+    ##!#        local_xdata = np.ma.masked_where(\
+    ##!#            combined_data[lvar] < checker,local_xdata)
+    ##!#        local_ydata = np.ma.masked_where(\
+    ##!#            combined_data[lvar] < checker,local_ydata)
+    ##!#    if(var_max is not None):
+    ##!#        if(var_diff is not None):
+    ##!#            checker = var_max + var_diff
+    ##!#        else:
+    ##!#            checker = var_max
+    ##!#        local_xdata = np.ma.masked_where(\
+    ##!#            combined_data[lvar] > checker,local_xdata)
+    ##!#        local_ydata = np.ma.masked_where(\
+    ##!#            combined_data[lvar] > checker,local_ydata)
+
+    ##!#    return local_xdata, local_ydata
+    ##!#    
+    ##!##local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
+    ##!##    'ceres_cld', cld_min, cld_max, cld_diff)
+    ##!#local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
+    ##!#    'modis_ch7', ch7_min, ch7_max, ch7_diff)
+    ##!#local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
+    ##!#    'nsidc_ice', ice_min, ice_max, ice_diff)
+    ##!#local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
+    ##!#    'omi_sza', sza_min, sza_max, sza_diff)
+    ##!#local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
+    ##!#    'omi_uvai_raw', omi_min, omi_max, ai_diff)
+    ##!#local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
+    ##!#    'ceres_swf', swf_min, swf_max, None)
+
+    ##!#local_xdata = local_xdata.compressed()
+    ##!#local_ydata = local_ydata.compressed()
+
+    local_xdata, local_ydata = \
+        select_combined_scatter_data(combined_data, xval, yval, 
+            swf_min = swf_min, swf_max = swf_max, \
+            #cld_min = None, cld_max = None, \
+            ch7_min = ch7_min, ch7_max = ch7_max, \
+            sza_min = sza_min, sza_max = sza_max, \
+            ice_min = ice_min, ice_max = ice_max, \
+            omi_min = omi_min, omi_max = omi_max, \
+            ai_diff = ai_diff, sza_diff = sza_diff, \
+            ice_diff = ice_diff, ch7_diff = ch7_diff, \
+            #cld_diff = cld_diff, \
+            )
 
     print(local_xdata.shape, local_ydata.shape)
 
@@ -2228,32 +2307,28 @@ def plot_combined_scatter(combined_data, xval = 'omi_uvai_raw', \
     if(not in_ax):
         plt.show()
 
-
-def plot_comp_grid_scatter(comp_grid_data, xval = 'ai', \
-        cld_min = None, cld_max = None,\
+def select_comp_grid_scatter_data(comp_grid_data, xval = 'ai', \
         ch7_min = None, ch7_max = None,\
         ice_min = None, ice_max = None,\
         sza_min = None, sza_max = None,\
-        ai_min = None,  ai_max = None,\
-        ax = None, show_trend = False , \
-        trend_type = 'theil-sen', \
-        save = False):
-
-    #cld_lims  = [0., 20.]
-    cld_lims  = [np.min(comp_grid_data['cld_bins']), np.max(comp_grid_data['cld_bins'])]
-    #ch7_lims  = [0., 0.05]
-    ch7_lims  = [np.min(comp_grid_data['ch7_bins']), np.max(comp_grid_data['ch7_bins'])]
+        ai_min = None,  ai_max = None):
+    
+    ch7_lims  = [np.min(comp_grid_data['ch7_bins']), \
+        np.max(comp_grid_data['ch7_bins'])]
     #ice_lims  = [101, 105]
-    ice_lims  = [np.min(comp_grid_data['ice_bins']), np.max(comp_grid_data['ice_bins'])]
+    ice_lims  = [np.min(comp_grid_data['ice_bins']), \
+        np.max(comp_grid_data['ice_bins'])]
     #sza_lims  = [65, 70]
-    sza_lims  = [np.min(comp_grid_data['sza_bins']), np.max(comp_grid_data['sza_bins'])]
+    sza_lims  = [np.min(comp_grid_data['sza_bins']), \
+        np.max(comp_grid_data['sza_bins'])]
     #ai_lims   = [2, 12]
-    ai_lims   = [np.min(comp_grid_data['ai_bins']), np.max(comp_grid_data['ai_bins'])]
+    ai_lims   = [np.min(comp_grid_data['ai_bins']), \
+        np.max(comp_grid_data['ai_bins'])]
    
-    if(cld_min is not None):
-        cld_lims[0] = cld_min
-    if(cld_max is not None):
-        cld_lims[1] = cld_max
+    #if(cld_min is not None):
+    #    cld_lims[0] = cld_min
+    #if(cld_max is not None):
+    #    cld_lims[1] = cld_max
     if(ch7_min is not None):
         ch7_lims[0] = ch7_min
     if(ch7_max is not None):
@@ -2280,66 +2355,220 @@ def plot_comp_grid_scatter(comp_grid_data, xval = 'ai', \
                              (comp_grid_data['ice_bins'] <= ice_lims[1]))[0]
     keep_ch7_lims = np.where((comp_grid_data['ch7_bins'] >= ch7_lims[0]) & \
                              (comp_grid_data['ch7_bins'] <= ch7_lims[1]))[0]
-    keep_cld_lims = np.where((comp_grid_data['cld_bins'] >= cld_lims[0]) & \
-                             (comp_grid_data['cld_bins'] <= cld_lims[1]))[0]
+    #keep_cld_lims = np.where((comp_grid_data['cld_bins'] >= cld_lims[0]) & \
+    #                         (comp_grid_data['cld_bins'] <= cld_lims[1]))[0]
     #keep_ice_lims  = np.arange(len(comp_grid_data['ice_bins']))
     #keep_ch7_lims  = np.arange(len(comp_grid_data['ch7_bins']))
     
-    keep_swf = comp_grid_data['swf_climo'][keep_cld_lims[0]:keep_cld_lims[-1]+1,\
-                                           keep_ch7_lims[0]:keep_ch7_lims[-1]+1,\
-                                           keep_ice_lims[0]:keep_ice_lims[-1]+1,\
-                                           keep_sza_lims[0]:keep_sza_lims[-1]+1,\
-                                           keep_ai_lims[0]:keep_ai_lims[-1]+1]
-    
-    #keep_swf_new = np.array([[[[comp_grid_data['swf_climo'][ii,jj,kk,nn] \
+    keep_swf = comp_grid_data['swf_climo'][\
+        #keep_cld_lims[0]:keep_cld_lims[-1]+1,\
+        keep_ch7_lims[0]:keep_ch7_lims[-1]+1,\
+        keep_ice_lims[0]:keep_ice_lims[-1]+1,\
+        keep_sza_lims[0]:keep_sza_lims[-1]+1,\
+        keep_ai_lims[0]:keep_ai_lims[-1]+1]
+
+    #keep_cld = np.array([[[[[comp_grid_data['cld_bins'][mm] \
     #    for nn in keep_ai_lims] \
     #    for kk in keep_sza_lims] \
     #    for jj in keep_ice_lims] \
-    #    for ii in keep_ch7_lims])
+    #    for ii in keep_ch7_lims] \
+    #    for mm in keep_cld_lims])
 
-    keep_cld = np.array([[[[[comp_grid_data['cld_bins'][mm] \
+    keep_ch7 = np.array([[[[comp_grid_data['ch7_bins'][ii] \
         for nn in keep_ai_lims] \
         for kk in keep_sza_lims] \
         for jj in keep_ice_lims] \
         for ii in keep_ch7_lims] \
-        for mm in keep_cld_lims])
-
-    keep_ch7 = np.array([[[[[comp_grid_data['ch7_bins'][ii] \
-        for nn in keep_ai_lims] \
-        for kk in keep_sza_lims] \
-        for jj in keep_ice_lims] \
-        for ii in keep_ch7_lims] \
-        for mm in keep_cld_lims])
+        )
     
-    keep_ice = np.array([[[[[comp_grid_data['ice_bins'][jj] \
+    keep_ice = np.array([[[[comp_grid_data['ice_bins'][jj] \
         for nn in keep_ai_lims] \
         for kk in keep_sza_lims] \
         for jj in keep_ice_lims] \
         for ii in keep_ch7_lims] \
-        for mm in keep_cld_lims])
+        )
     
-    keep_sza = np.array([[[[[comp_grid_data['sza_bins'][kk] \
+    keep_sza = np.array([[[[comp_grid_data['sza_bins'][kk] \
         for nn in keep_ai_lims] \
         for kk in keep_sza_lims] \
         for jj in keep_ice_lims] \
         for ii in keep_ch7_lims] \
-        for mm in keep_cld_lims])
+        )
     
-    keep_ai  = np.array([[[[[comp_grid_data['ai_bins'][nn] \
+    keep_ai  = np.array([[[[comp_grid_data['ai_bins'][nn] \
         for nn in keep_ai_lims] \
         for kk in keep_sza_lims] \
         for jj in keep_ice_lims] \
         for ii in keep_ch7_lims] \
-        for mm in keep_cld_lims])
+        )
     
 
-    final_cld = keep_cld.flatten()[~keep_swf.flatten().mask]
-    final_ch7 = keep_ch7.flatten()[~keep_swf.flatten().mask]
-    final_ice = keep_ice.flatten()[~keep_swf.flatten().mask]
-    final_sza = keep_sza.flatten()[~keep_swf.flatten().mask]
-    final_ai  = keep_ai.flatten()[~keep_swf.flatten().mask]
-    final_swf = keep_swf.compressed()
+
+    if(xval == 'ai'): 
+        #ax.scatter(final_ai, final_swf, s = 6, color = 'k')
+        xlabel = 'OMI UVAI Raw'
+        local_xdata = keep_ai.flatten()[~keep_swf.flatten().mask]
+    elif(xval == 'sza'):
+        #ax.scatter(final_sza, final_swf, s = 6, color = 'k')
+        local_xdata = keep_sza.flatten()[~keep_swf.flatten().mask]
+        xlabel = 'OMI SZA'
+    elif(xval == 'ice'):
+        #ax.scatter(final_ice, final_swf, s = 6, color = 'k')
+        local_xdata = keep_ice.flatten()[~keep_swf.flatten().mask]
+        xlabel = 'NSIDC ICE CONC.'
+    elif(xval == 'ch7'):
+        #ax.scatter(final_ch7, final_swf, s = 6, color = 'k')
+        local_xdata = keep_ch7.flatten()[~keep_swf.flatten().mask]
+        xlabel = 'MODIS CH7 REFL.'
+    #elif(xval == 'cld'):
+    #    #ax.scatter(final_ch7, final_swf, s = 6, color = 'k')
+    #    local_xdata = final_cld
+    #    xlabel = 'CERES CLD FRAC.'
+    local_ydata = keep_swf.compressed()
+
+    return local_xdata, local_ydata, xlabel
+
+def plot_comp_grid_scatter(comp_grid_data, xval = 'ai', \
+        #cld_min = None, cld_max = None,\
+        ch7_min = None, ch7_max = None,\
+        ice_min = None, ice_max = None,\
+        sza_min = None, sza_max = None,\
+        ai_min = None,  ai_max = None,\
+        ax = None, show_trend = False , \
+        trend_type = 'theil-sen', \
+        save = False):
+
+    ##!##cld_lims  = [0., 20.]
+    ##!##cld_lims  = [np.min(comp_grid_data['cld_bins']), \
+    ##!##    np.max(comp_grid_data['cld_bins'])]
+    ##!##ch7_lims  = [0., 0.05]
+    ##!#ch7_lims  = [np.min(comp_grid_data['ch7_bins']), \
+    ##!#    np.max(comp_grid_data['ch7_bins'])]
+    ##!##ice_lims  = [101, 105]
+    ##!#ice_lims  = [np.min(comp_grid_data['ice_bins']), \
+    ##!#    np.max(comp_grid_data['ice_bins'])]
+    ##!##sza_lims  = [65, 70]
+    ##!#sza_lims  = [np.min(comp_grid_data['sza_bins']), \
+    ##!#    np.max(comp_grid_data['sza_bins'])]
+    ##!##ai_lims   = [2, 12]
+    ##!#ai_lims   = [np.min(comp_grid_data['ai_bins']), \
+    ##!#    np.max(comp_grid_data['ai_bins'])]
+   
+    ##!##if(cld_min is not None):
+    ##!##    cld_lims[0] = cld_min
+    ##!##if(cld_max is not None):
+    ##!##    cld_lims[1] = cld_max
+    ##!#if(ch7_min is not None):
+    ##!#    ch7_lims[0] = ch7_min
+    ##!#if(ch7_max is not None):
+    ##!#    ch7_lims[1] = ch7_max
+    ##!#if(ice_min is not None):
+    ##!#    ice_lims[0] = ice_min
+    ##!#if(ice_max is not None):
+    ##!#    ice_lims[1] = ice_max
+    ##!#if(sza_min is not None):
+    ##!#    sza_lims[0] = sza_min
+    ##!#if(sza_max is not None):
+    ##!#    sza_lims[1] = sza_max
+    ##!#if(ai_min is not None):
+    ##!#    ai_lims[0] = ai_min
+    ##!#if(ai_max is not None):
+    ##!#    ai_lims[1] = ai_max
+ 
+    ##!##keep_ai_lims  = np.arange(len(comp_grid_data['ai_bins']))
+    ##!#keep_ai_lims = np.where((comp_grid_data['ai_bins'] >= ai_lims[0]) & \
+    ##!#                         (comp_grid_data['ai_bins'] <= ai_lims[1]))[0]
+    ##!#keep_sza_lims = np.where((comp_grid_data['sza_bins'] >= sza_lims[0]) & \
+    ##!#                         (comp_grid_data['sza_bins'] <= sza_lims[1]))[0]
+    ##!#keep_ice_lims = np.where((comp_grid_data['ice_bins'] >= ice_lims[0]) & \
+    ##!#                         (comp_grid_data['ice_bins'] <= ice_lims[1]))[0]
+    ##!#keep_ch7_lims = np.where((comp_grid_data['ch7_bins'] >= ch7_lims[0]) & \
+    ##!#                         (comp_grid_data['ch7_bins'] <= ch7_lims[1]))[0]
+    ##!##keep_cld_lims = np.where((comp_grid_data['cld_bins'] >= cld_lims[0]) & \
+    ##!##                         (comp_grid_data['cld_bins'] <= cld_lims[1]))[0]
+    ##!##keep_ice_lims  = np.arange(len(comp_grid_data['ice_bins']))
+    ##!##keep_ch7_lims  = np.arange(len(comp_grid_data['ch7_bins']))
+    ##!#
+    ##!#keep_swf = comp_grid_data['swf_climo'][\
+    ##!#    #keep_cld_lims[0]:keep_cld_lims[-1]+1,\
+    ##!#    keep_ch7_lims[0]:keep_ch7_lims[-1]+1,\
+    ##!#    keep_ice_lims[0]:keep_ice_lims[-1]+1,\
+    ##!#    keep_sza_lims[0]:keep_sza_lims[-1]+1,\
+    ##!#    keep_ai_lims[0]:keep_ai_lims[-1]+1]
+
+    ##!##keep_cld = np.array([[[[[comp_grid_data['cld_bins'][mm] \
+    ##!##    for nn in keep_ai_lims] \
+    ##!##    for kk in keep_sza_lims] \
+    ##!##    for jj in keep_ice_lims] \
+    ##!##    for ii in keep_ch7_lims] \
+    ##!##    for mm in keep_cld_lims])
+
+    ##!#keep_ch7 = np.array([[[[comp_grid_data['ch7_bins'][ii] \
+    ##!#    for nn in keep_ai_lims] \
+    ##!#    for kk in keep_sza_lims] \
+    ##!#    for jj in keep_ice_lims] \
+    ##!#    for ii in keep_ch7_lims] \
+    ##!#    )
+    ##!#
+    ##!#keep_ice = np.array([[[[comp_grid_data['ice_bins'][jj] \
+    ##!#    for nn in keep_ai_lims] \
+    ##!#    for kk in keep_sza_lims] \
+    ##!#    for jj in keep_ice_lims] \
+    ##!#    for ii in keep_ch7_lims] \
+    ##!#    )
+    ##!#
+    ##!#keep_sza = np.array([[[[comp_grid_data['sza_bins'][kk] \
+    ##!#    for nn in keep_ai_lims] \
+    ##!#    for kk in keep_sza_lims] \
+    ##!#    for jj in keep_ice_lims] \
+    ##!#    for ii in keep_ch7_lims] \
+    ##!#    )
+    ##!#
+    ##!#keep_ai  = np.array([[[[comp_grid_data['ai_bins'][nn] \
+    ##!#    for nn in keep_ai_lims] \
+    ##!#    for kk in keep_sza_lims] \
+    ##!#    for jj in keep_ice_lims] \
+    ##!#    for ii in keep_ch7_lims] \
+    ##!#    )
+    ##!#
+
+    ##!##final_cld = keep_cld.flatten()[~keep_swf.flatten().mask]
+    ##!#final_ch7 = keep_ch7.flatten()[~keep_swf.flatten().mask]
+    ##!#final_ice = keep_ice.flatten()[~keep_swf.flatten().mask]
+    ##!#final_sza = keep_sza.flatten()[~keep_swf.flatten().mask]
+    ##!#final_ai  = keep_ai.flatten()[~keep_swf.flatten().mask]
+    ##!#final_swf = keep_swf.compressed()
+
+    ##!#if(xval == 'ai'): 
+    ##!#    #ax.scatter(final_ai, final_swf, s = 6, color = 'k')
+    ##!#    xlabel = 'OMI UVAI Raw'
+    ##!#    local_xdata = final_ai
+    ##!#elif(xval == 'sza'):
+    ##!#    #ax.scatter(final_sza, final_swf, s = 6, color = 'k')
+    ##!#    local_xdata = final_sza
+    ##!#    xlabel = 'OMI SZA'
+    ##!#elif(xval == 'ice'):
+    ##!#    #ax.scatter(final_ice, final_swf, s = 6, color = 'k')
+    ##!#    local_xdata = final_ice
+    ##!#    xlabel = 'NSIDC ICE CONC.'
+    ##!#elif(xval == 'ch7'):
+    ##!#    #ax.scatter(final_ch7, final_swf, s = 6, color = 'k')
+    ##!#    local_xdata = final_ch7
+    ##!#    xlabel = 'MODIS CH7 REFL.'
+    ##!##elif(xval == 'cld'):
+    ##!##    #ax.scatter(final_ch7, final_swf, s = 6, color = 'k')
+    ##!##    local_xdata = final_cld
+    ##!##    xlabel = 'CERES CLD FRAC.'
+    ##!#local_ydata = final_swf
+
   
+    local_xdata, local_ydata, xlabel = \
+            select_comp_grid_scatter_data(comp_grid_data, xval = xval, \
+                ch7_min = ch7_min, ch7_max = ch7_max,\
+                ice_min = ice_min, ice_max = ice_max,\
+                sza_min = sza_min, sza_max = sza_max,\
+                ai_min = ai_min,  ai_max = ai_max)
+
     in_ax = True
     if(ax is None):
         plt.close('all')
@@ -2347,30 +2576,8 @@ def plot_comp_grid_scatter(comp_grid_data, xval = 'ai', \
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
        
-    print('compressed size:',final_swf.shape)
+    print('compressed size:',local_ydata.shape)
  
-    if(xval == 'ai'): 
-        #ax.scatter(final_ai, final_swf, s = 6, color = 'k')
-        xlabel = 'OMI UVAI Raw'
-        local_xdata = final_ai
-    elif(xval == 'sza'):
-        #ax.scatter(final_sza, final_swf, s = 6, color = 'k')
-        local_xdata = final_sza
-        xlabel = 'OMI SZA'
-    elif(xval == 'ice'):
-        #ax.scatter(final_ice, final_swf, s = 6, color = 'k')
-        local_xdata = final_ice
-        xlabel = 'NSIDC ICE CONC.'
-    elif(xval == 'ch7'):
-        #ax.scatter(final_ch7, final_swf, s = 6, color = 'k')
-        local_xdata = final_ch7
-        xlabel = 'MODIS CH7 REFL.'
-    elif(xval == 'cld'):
-        #ax.scatter(final_ch7, final_swf, s = 6, color = 'k')
-        local_xdata = final_cld
-        xlabel = 'CERES CLD FRAC.'
-    local_ydata = final_swf
-
     ax.scatter(local_xdata, local_ydata, s = 6, color = 'k')
     ax.set_xlabel(xlabel)
 
@@ -2387,17 +2594,29 @@ def plot_comp_grid_scatter(comp_grid_data, xval = 'ai', \
 
 def plot_dual_combined_grid_climo(comp_grid_data, combined_data, \
         xval = 'ai', \
-        cld_min = None, cld_max = None,\
+        #cld_min = None, cld_max = None,\
         ch7_min = None, ch7_max = None,\
         ice_min = None, ice_max = None,\
         sza_min = None, sza_max = None,\
         ai_min = None,  ai_max = None,\
-        save = False, show_trend = False, trend_type = 'theil-sen'):
+        save = False, show_trend = False, shade_density = False, \
+        trend_type = 'theil-sen'):
 
     plt.close('all')
     fig = plt.figure(figsize = (9, 4))
     ax1 = fig.add_subplot(1,2,1)
     ax2 = fig.add_subplot(1,2,2)
+
+    ai_diff = comp_grid_data['ai_bins'][2] - \
+        comp_grid_data['ai_edges'][2]
+    sza_diff = comp_grid_data['sza_bins'][2] - \
+        comp_grid_data['sza_edges'][2]
+    ice_diff = comp_grid_data['ice_bins'][2] - \
+        comp_grid_data['ice_edges'][2]
+    ch7_diff = comp_grid_data['ch7_bins'][2] - \
+        comp_grid_data['ch7_edges'][2]
+    #cld_diff = comp_grid_data['cld_bins'][2] - \
+    #    comp_grid_data['cld_edges'][2]
 
     try:
         plot_combined_scatter(combined_data, ax = ax1, \
@@ -2405,46 +2624,59 @@ def plot_dual_combined_grid_climo(comp_grid_data, combined_data, \
             sza_min = sza_min, sza_max = sza_max, \
             ice_min = ice_min, ice_max = ice_max, \
             ch7_min = ch7_min, ch7_max = ch7_max, \
-            cld_min = cld_min, cld_max = cld_max, \
-            trend_type = 'theil-sen', show_trend = show_trend)
-        
+            #cld_min = cld_min, cld_max = cld_max, \
+            ai_diff = ai_diff, sza_diff = sza_diff, \
+            ice_diff = ice_diff, ch7_diff = ch7_diff,\
+            #cld_diff = cld_diff, \
+            trend_type = trend_type, show_trend = show_trend, \
+            shade_density = shade_density)
+    
+    except:
+        print("ERROR in plot_combined_scatter")
+        return
+   
+    try: 
         plot_comp_grid_scatter(comp_grid_data, ax = ax2, xval = 'ai', \
             ai_min = ai_min,  ai_max  = ai_max, \
             sza_min = sza_min, sza_max = sza_max, \
             ice_min = ice_min, ice_max = ice_max, \
             ch7_min = ch7_min, ch7_max = ch7_max, \
-            cld_min = cld_min, cld_max = cld_max, \
-            show_trend = show_trend)
+            #cld_min = cld_min, cld_max = cld_max, \
+            show_trend = show_trend, trend_type = trend_type)
 
-        ax1.set_title('Raw Colocated L2')
-        ax2.set_title('Binned Colocated L2')
-        
+    except:
+        print("ERROR in plot_comp_grid_scatter")
+        return
 
-        title = set_comp_title(cld_min, cld_max, \
-                               ch7_min, ch7_max, \
-                               ice_min, ice_max, \
-                               sza_min, sza_max,\
-                               ai_min,  ai_max)
-        filer = set_file_title(cld_min, cld_max, \
-                               ch7_min, ch7_max, \
-                               ice_min, ice_max, \
-                               sza_min, sza_max,\
-                               ai_min,  ai_max)
-        plt.suptitle(title)
+    ax1.set_title('Raw Colocated L2')
+    ax2.set_title('Binned Colocated L2')
+    
 
-        fig.tight_layout()
+    title = set_comp_title(\
+                           #cld_min, cld_max, \
+                           ch7_min, ch7_max, \
+                           ice_min, ice_max, \
+                           sza_min, sza_max,\
+                           ai_min,  ai_max)
+    filer = set_file_title(\
+                           #cld_min, cld_max, \
+                           ch7_min, ch7_max, \
+                           ice_min, ice_max, \
+                           sza_min, sza_max,\
+                           ai_min,  ai_max)
+    plt.suptitle(title)
 
-        if(save):
-            outname = 'comp_dual_' + filer + '.png'
-            fig.savefig(outname, dpi = 300)
-            print("Saved image",outname)
-        else:
-            plt.show()
-    except TypeError:
-        print("ERROR: no data for these criteria")
+    fig.tight_layout()
+
+    if(save):
+        outname = 'comp_dual_' + filer + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image",outname)
+    else:
+        plt.show()
    
 def set_comp_title(\
-        cld_min = None, cld_max = None,\
+        #cld_min = None, cld_max = None,\
         ch7_min = None, ch7_max = None,\
         ice_min = None, ice_max = None,\
         sza_min = None, sza_max = None,\
@@ -2454,14 +2686,14 @@ def set_comp_title(\
     ch7_max = np.round(ch7_max, 2)
 
     title = '' 
-    if(cld_min is not None):
-        if(cld_max is not None):
-            title = title + str(cld_min) + ' < cld < ' + str(cld_max) + '\n'
-        else:
-            title = title + 'cld > ' + str(cld_min) + '\n'
-    else:
-        if(cld_max is not None):
-            title = title + 'cld < ' + str(cld_max) + '\n'
+    #if(cld_min is not None):
+    #    if(cld_max is not None):
+    #        title = title + str(cld_min) + ' < cld < ' + str(cld_max) + '\n'
+    #    else:
+    #        title = title + 'cld > ' + str(cld_min) + '\n'
+    #else:
+    #    if(cld_max is not None):
+    #        title = title + 'cld < ' + str(cld_max) + '\n'
 
     if(ch7_min is not None):
         if(ch7_max is not None):
@@ -2502,7 +2734,7 @@ def set_comp_title(\
     return title 
 
 def set_file_title(\
-        cld_min = None, cld_max = None,\
+        #cld_min = None, cld_max = None,\
         ch7_min = None, ch7_max = None,\
         ice_min = None, ice_max = None,\
         sza_min = None, sza_max = None,\
@@ -2513,17 +2745,17 @@ def set_file_title(\
 
 
     title = '' 
-    if(cld_min is not None):
-        cld_min = int(cld_min)
-        if(cld_max is not None):
-            cld_max = int(cld_max)
-            title = title + str(cld_min) + 'cld' + str(cld_max) + '_'
-        else:
-            title = title + str(cld_min) + 'cld_'
-    else:
-        if(cld_max is not None):
-            cld_max = int(cld_max)
-            title = title + 'cld' + str(cld_max) + '_'
+    #if(cld_min is not None):
+    #    cld_min = int(cld_min)
+    #    if(cld_max is not None):
+    #        cld_max = int(cld_max)
+    #        title = title + str(cld_min) + 'cld' + str(cld_max) + '_'
+    #    else:
+    #        title = title + str(cld_min) + 'cld_'
+    #else:
+    #    if(cld_max is not None):
+    #        cld_max = int(cld_max)
+    #        title = title + 'cld' + str(cld_max) + '_'
 
     if(ch7_min is not None):
         if(ch7_max is not None):
@@ -2585,3 +2817,298 @@ def set_file_title(\
     #if(ai_max is not None):
 
     return title 
+
+# smoother: either 'none','smooth','smoother'
+# sizer   : either 1, 2, or 3
+def calc_raw_grid_slopes(combined_data, comp_grid_data, \
+        ai_min = None, ai_max = None, \
+        trend_type = 'theil-sen', \
+        smoother = 'None', sizer = 1):
+
+    ice_mins = np.array([0,80,105])
+    ice_maxs = np.array([20,100,None])
+
+    if(smoother == 'None'):    
+        ch7_mins = comp_grid_data['ch7_bins'][0:-1:sizer]
+        ch7_maxs = comp_grid_data['ch7_bins'][0:-1:sizer]
+        
+        sza_mins = comp_grid_data['sza_bins'][4:-1:sizer]
+        sza_maxs = comp_grid_data['sza_bins'][4:-1:sizer]
+    elif(smoother == 'smooth'): 
+        ch7_mins = comp_grid_data['ch7_bins'][0:-2:sizer]
+        ch7_maxs = comp_grid_data['ch7_bins'][1:-1:sizer]
+        
+        sza_mins = comp_grid_data['sza_bins'][4:-2:sizer]
+        sza_maxs = comp_grid_data['sza_bins'][5:-1:sizer]
+    elif(smoother == 'smoother'):
+        ch7_mins = comp_grid_data['ch7_bins'][0:-3:sizer]
+        ch7_maxs = comp_grid_data['ch7_bins'][2:-1:sizer]
+        
+        sza_mins = comp_grid_data['sza_bins'][4:-3:sizer]
+        sza_maxs = comp_grid_data['sza_bins'][6:-1:sizer]
+    
+    raw_slopes   = np.full((ice_mins.size, ch7_mins.size, sza_mins.size), np.nan)
+    grid_slopes  = np.full((ice_mins.size, ch7_mins.size, sza_mins.size), np.nan)
+    raw_stderr   = np.full((ice_mins.size, ch7_mins.size, sza_mins.size), np.nan)
+    grid_stderr  = np.full((ice_mins.size, ch7_mins.size, sza_mins.size), np.nan)
+    raw_pvals    = np.full((ice_mins.size, ch7_mins.size, sza_mins.size), np.nan)
+    grid_pvals   = np.full((ice_mins.size, ch7_mins.size, sza_mins.size), np.nan)
+    
+    ai_diff = comp_grid_data['ai_bins'][2] - \
+        comp_grid_data['ai_edges'][2]
+    sza_diff = comp_grid_data['sza_bins'][2] - \
+        comp_grid_data['sza_edges'][2]
+    ice_diff = comp_grid_data['ice_bins'][2] - \
+        comp_grid_data['ice_edges'][2]
+    ch7_diff = comp_grid_data['ch7_bins'][2] - \
+        comp_grid_data['ch7_edges'][2]
+    
+    for ii in range(ice_mins.size):
+        for jj in range(ch7_mins.size):
+            for kk in range(sza_mins.size):
+                print(ii,jj,kk)
+    
+                raw_xdata, raw_ydata = \
+                    select_combined_scatter_data(combined_data, \
+                        xval = 'omi_uvai_raw', yval = 'ceres_swf', 
+                        #cld_min = None, cld_max = None, \
+                        ch7_min = ch7_mins[jj], ch7_max = ch7_maxs[jj], \
+                        sza_min = sza_mins[kk], sza_max = sza_maxs[kk], \
+                        ice_min = ice_mins[ii], ice_max = ice_maxs[ii], \
+                        omi_min = ai_min, omi_max = ai_max, \
+                        ai_diff = ai_diff, sza_diff = sza_diff, \
+                        ice_diff = ice_diff, ch7_diff = ch7_diff, \
+                        #cld_diff = cld_diff, \
+                        )
+    
+                grid_xdata, grid_ydata, xlabel = \
+                        select_comp_grid_scatter_data(comp_grid_data, xval = 'ai', \
+                            ch7_min = ch7_mins[jj], ch7_max = ch7_maxs[jj],\
+                            ice_min = ice_mins[ii], ice_max = ice_maxs[ii],\
+                            sza_min = sza_mins[kk], sza_max = sza_maxs[kk],\
+                            ai_min = ai_min,  ai_max = ai_max)
+    
+                # Calculate slopes 
+                # ----------------
+                if(len(grid_xdata) > 20):
+                    if(trend_type == 'theil-sen'):
+                        res = stats.theilslopes(raw_ydata, raw_xdata, 0.90)
+                        raw_slopes[ii,jj,kk]   = res[0]
+
+                        res = stats.theilslopes(grid_ydata, grid_xdata, 0.90)
+                        grid_slopes[ii,jj,kk]   = res[0]
+                    elif(trend_type == 'linregress'):
+                        result1 = stats.linregress(raw_xdata,raw_ydata)
+                        raw_slopes[ii,jj,kk] = result1.slope 
+                        raw_stderr[ii,jj,kk] = result1.stderr
+                        raw_pvals[ii,jj,kk]  = result1.pvalue
+
+                        result2 = stats.linregress(grid_xdata,grid_ydata)
+                        grid_slopes[ii,jj,kk] = result2.slope 
+                        grid_stderr[ii,jj,kk] = result2.stderr
+                        grid_pvals[ii,jj,kk]  = result2.pvalue
+                    else:
+                        print("WARNING: invalid trend_type specified. Using theil-sen")
+                        res = stats.theilslopes(raw_ydata, raw_xdata, 0.90)
+                        raw_slopes[ii,jj,kk]   = res[0]
+
+                        res = stats.theilslopes(grid_ydata, grid_xdata, 0.90)
+                        grid_slopes[ii,jj,kk]   = res[0]
+    
+                print(raw_xdata.shape, grid_xdata.shape)
+    
+                #raw_slopes[ii,jj,kk]   = 
+    
+    raw_slopes  = np.ma.masked_invalid(raw_slopes)
+    grid_slopes = np.ma.masked_invalid(grid_slopes)
+    raw_stderr  = np.ma.masked_invalid(raw_stderr)
+    grid_stderr = np.ma.masked_invalid(grid_stderr)
+    raw_pvals   = np.ma.masked_invalid(raw_pvals)
+    grid_pvals  = np.ma.masked_invalid(grid_pvals)
+
+    out_dict = {}
+    out_dict['raw_slopes'] = raw_slopes
+    out_dict['grid_slopes'] = grid_slopes
+    out_dict['raw_stderr'] = raw_stderr
+    out_dict['grid_stderr'] = grid_stderr
+    out_dict['raw_pvals'] = raw_pvals
+    out_dict['grid_pvals'] = grid_pvals
+    out_dict['sza_mins'] = sza_mins
+    out_dict['sza_maxs'] = sza_maxs
+    out_dict['ch7_mins'] = ch7_mins
+    out_dict['ch7_maxs'] = ch7_maxs
+    out_dict['ice_mins'] = ice_mins
+    out_dict['ice_maxs'] = ice_maxs
+    out_dict['smoother'] = smoother
+    out_dict['sizer'] = sizer
+    out_dict['trend_type'] = trend_type
+    
+    return out_dict
+
+def plot_raw_grid_slopes(out_dict, vmin = -10, vmax = 10, \
+        save = False, hatch_stderr = False, hatch_style = '.', \
+        maxerr = 2):
+
+    plt.close('all')
+    fig = plt.figure(figsize = (10, 6))
+    ax1 = fig.add_subplot(2,3,1)
+    ax2 = fig.add_subplot(2,3,2)
+    ax3 = fig.add_subplot(2,3,3)
+    
+    ax4 = fig.add_subplot(2,3,4)
+    ax5 = fig.add_subplot(2,3,5)
+    ax6 = fig.add_subplot(2,3,6)
+    
+    cmap = 'bwr'
+    
+    shrk = 1.0
+    mesh = ax1.pcolormesh(out_dict['sza_mins'], out_dict['ch7_mins'], \
+        out_dict['raw_slopes'][0,:,:], \
+        cmap = cmap, shading = 'auto', vmin = vmin, vmax = vmax)
+    #cbar = plt.colorbar(mesh,\
+    #    ax = ax1, orientation='vertical',shrink = shrk, extend = 'both')
+    ax1.set_xlabel('SZA')
+    ax1.set_ylabel('CH7')
+    ax1.set_title('Raw Ocean')
+    if(hatch_stderr):
+        hasher = np.ma.masked_where(out_dict['raw_stderr'][0,:,:] > maxerr, \
+            out_dict['raw_stderr'][0,:,:])
+        ax1.pcolor(out_dict['sza_mins'], out_dict['ch7_mins'], \
+            hasher, hatch = hatch_style, alpha=0., shading = 'auto')
+    
+    mesh = ax2.pcolormesh(out_dict['sza_mins'], out_dict['ch7_mins'], \
+        out_dict['raw_slopes'][1,:,:], \
+        cmap = cmap, shading = 'auto', vmin = vmin, vmax = vmax)
+    #cbar = plt.colorbar(mesh,\
+    #    ax = ax2, orientation='vertical',shrink = shrk, extend = 'both')
+    ax2.set_xlabel('SZA')
+    ax2.set_ylabel('CH7')
+    ax2.set_title('Raw Ice')
+    if(hatch_stderr):
+        hasher = np.ma.masked_where(out_dict['raw_stderr'][1,:,:] > maxerr, \
+            out_dict['grid_stderr'][2,:,:])
+        ax2.pcolor(out_dict['sza_mins'], out_dict['ch7_mins'], \
+            hasher, hatch = hatch_style, alpha=0., shading = 'auto')
+    
+    mesh =ax3.pcolormesh(out_dict['sza_mins'], out_dict['ch7_mins'], \
+        out_dict['raw_slopes'][2,:,:], \
+        cmap = cmap, shading = 'auto', vmin = vmin, vmax = vmax)
+    cbar = plt.colorbar(mesh,\
+        ax = ax3, orientation='vertical',shrink = shrk, extend = 'both')
+    cbar.set_label('AI - SWF slope [Wm$^{-2}$/AI]')
+    ax3.set_xlabel('SZA')
+    ax3.set_ylabel('CH7')
+    ax3.set_title('Raw Land')
+    if(hatch_stderr):
+        hasher = np.ma.masked_where(out_dict['raw_stderr'][2,:,:] > maxerr, \
+            out_dict['raw_stderr'][2,:,:])
+        ax3.pcolor(out_dict['sza_mins'], out_dict['ch7_mins'], \
+            hasher, hatch = hatch_style, alpha=0., shading = 'auto')
+    
+    mesh = ax4.pcolormesh(out_dict['sza_mins'], out_dict['ch7_mins'], \
+        out_dict['grid_slopes'][0,:,:], \
+        cmap = cmap, shading = 'auto', vmin = vmin, vmax = vmax)
+    #cbar = plt.colorbar(mesh,\
+    #    ax = ax4, orientation='vertical',shrink = shrk, extend = 'both')
+    ax4.set_xlabel('SZA')
+    ax4.set_ylabel('CH7')
+    ax4.set_title('Grid Ocean')
+    if(hatch_stderr):
+        hasher = np.ma.masked_where(out_dict['grid_stderr'][0,:,:] > maxerr, \
+            out_dict['grid_stderr'][0,:,:])
+        ax4.pcolor(out_dict['sza_mins'], out_dict['ch7_mins'], \
+            hasher, hatch = hatch_style, alpha=0., shading = 'auto')
+    
+    mesh = ax5.pcolormesh(out_dict['sza_mins'], out_dict['ch7_mins'],\
+        out_dict['grid_slopes'][1,:,:], \
+        cmap = cmap, shading = 'auto', vmin = vmin, vmax = vmax)
+    #cbar = plt.colorbar(mesh,\
+    #    ax = ax5, orientation='vertical',shrink = shrk, extend = 'both')
+    ax5.set_xlabel('SZA')
+    ax5.set_ylabel('CH7')
+    ax5.set_title('Grid Ice')
+    if(hatch_stderr):
+        hasher = np.ma.masked_where(out_dict['grid_stderr'][1,:,:] > maxerr, \
+            out_dict['grid_stderr'][1,:,:])
+        ax5.pcolor(out_dict['sza_mins'], out_dict['ch7_mins'], \
+            hasher, hatch = hatch_style, alpha=0., shading = 'auto')
+    
+    mesh = ax6.pcolormesh(out_dict['sza_mins'], out_dict['ch7_mins'], \
+        out_dict['grid_slopes'][2,:,:], \
+        cmap = cmap, shading = 'auto', vmin = vmin, vmax = vmax)
+    cbar = plt.colorbar(mesh,\
+        ax = ax6, orientation='vertical',shrink = shrk, extend = 'both')
+    cbar.set_label('AI - SWF slope [Wm$^{-2}$/AI]')
+    ax6.set_xlabel('SZA')
+    ax6.set_ylabel('CH7')
+    ax6.set_title('Grid Land')
+    if(hatch_stderr):
+        hasher = np.ma.masked_where(out_dict['grid_stderr'][2,:,:] > maxerr, \
+            out_dict['grid_stderr'][2,:,:])
+        ax6.pcolor(out_dict['sza_mins'], out_dict['ch7_mins'], \
+            hasher, hatch = hatch_style, alpha=0., shading = 'auto')
+  
+    title_str = 'MODIS CH7 Bin Size = ' + str(out_dict['ch7_mins'][1] - \
+                out_dict['ch7_mins'][0]) + '\n' + \
+                 'OMI SZA Bin Size = ' + str(out_dict['sza_mins'][1] - \
+                out_dict['sza_mins'][0])
+    if(out_dict['smoother'] == 'smooth'):
+        title_str = title_str + '\n1-Bin Smoothed'
+        out_adder = '_smooth1bin'
+    elif(out_dict['smoother'] == 'smoother'):
+        title_str = title_str + '\n2-Bin Smoothed'
+        out_adder = '_smooth2bin'
+    else:
+        out_adder = ''
+    if(hatch_stderr):
+        title_str = title_str + '\nHatching: Slope Standard Error < ' + \
+            str(maxerr)
+        hatch_adder = '_hatch' + str(maxerr)
+    else:
+        hatch_adder = ''
+    plt.suptitle(title_str)
+    
+    fig.tight_layout()
+   
+    if(save): 
+        if(out_dict['trend_type'] == 'linregress'):
+            type_adder = '_lin'
+        elif(out_dict['trend_type'] == 'theil-sen'):
+            type_adder = '_thl'
+
+        outname = 'comp_grid_ai_swf_slopes_highres' + type_adder + \
+            out_adder + hatch_adder + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved",outname)
+    else: 
+        plt.show()
+
+def plot_compare_grid_climo_stderr(comp_grid_data,  \
+        xval, ice_idx, save = False):
+
+    checker = xval.split('_')[0]
+
+    vmin = -15
+    vmax = 15
+    
+    fig = plt.figure(figsize = (9, 4))
+    ax1 = fig.add_subplot(1,2,1)
+    ax2 = fig.add_subplot(1,2,2)
+   
+    cmap = 'bwr' 
+    shrk = 1.0
+    cmap2 = plt.get_cmap('jet')
+    colorvals = np.arange(0, 6, 1)
+    norm = cm.BoundaryNorm(colorvals, cmap2.N, extend = 'upper')
+    mesh = ax1.pcolormesh(comp_grid_data['sza_mins'], comp_grid_data['ch7_mins'], \
+        comp_grid_data[xval][ice_idx,:,:], \
+        cmap = cmap, shading = 'auto', vmin = vmin, vmax = vmax)
+    cbar = plt.colorbar(mesh,\
+        ax = ax1, orientation='vertical',shrink = shrk, extend = 'both')
+    mesh = ax2.pcolormesh(comp_grid_data['sza_mins'], comp_grid_data['ch7_mins'], \
+        comp_grid_data[checker + '_stderr'][ice_idx,:,:], \
+        norm = norm, cmap = 'jet', shading = 'auto')
+    cbar = plt.colorbar(ScalarMappable(norm = norm, cmap = cmap2),\
+        ax = ax2, orientation='vertical',shrink = shrk, extend = 'both')
+    fig.tight_layout()
+    plt.show()

@@ -8,11 +8,61 @@
 from MODISLib import *
 
        
-MODIS_data = '201807052305'
-swath = True
+MODIS_data = '201908120035'
+#MODIS_data = '201807052305'
+swath = False
+#swath = True
 channel = 2 
 minlat = 65.
-MODIS_data = read_MODIS_channel(MODIS_data, channel, swath = swath)
+MODIS_ch1 = read_MODIS_channel(MODIS_data, 1, swath = swath)
+MODIS_ch7 = read_MODIS_channel(MODIS_data, 7, swath = swath)
+
+cldmsk = Dataset('CLDMSK_L2_MODIS_Aqua.A2019224.0035.001.2019224173701.nc')
+#cldmsk = Dataset('CLDMSK_L2_MODIS_Aqua.A2019224.0030.001.2019224173707.nc')
+#cldmsk = Dataset('CLDMSK_L2_MODIS_Aqua.A2018186.2305.001.2019064032332.nc')
+testmask = cldmsk['geophysical_data/Integer_Cloud_Mask'][::5,::5]
+testlat  = cldmsk['geolocation_data/latitude'][::5,::5]
+testlon  = cldmsk['geolocation_data/longitude'][::5,::5]
+#mydmsk = Dataset('MYD35_L2.A2018186.2305.061.2018187153528.hdf')
+
+cldmsk.close()
+#cldmsk['geophysical_data/Integer_Cloud_Mask']
+#
+
+plt.close('all')
+mapcrs = ccrs.NorthPolarStereo()
+modis_date = MODIS_data
+fig = plt.figure(figsize = (9, 9))
+ax1 = fig.add_subplot(2,2,1, projection = mapcrs)
+ax2 = fig.add_subplot(2,2,2, projection = mapcrs)
+ax3 = fig.add_subplot(2,2,3, projection = mapcrs)
+ax4 = fig.add_subplot(2,2,4, projection = mapcrs)
+
+zoom = False
+plot_MODIS_channel(modis_date, 'true_color', swath = swath, \
+    zoom = zoom, ax = ax1)
+plot_MODIS_channel(modis_date, 1, swath = swath, \
+    zoom = zoom, ax = ax2, vmax = 0.7)
+plot_MODIS_channel(modis_date, 7, swath = swath, \
+    zoom = zoom, ax = ax3, vmax = 0.4)
+ax4.pcolormesh(testlon, testlat, testmask, shading = 'auto', \
+    cmap = 'jet', vmin = 0, vmax = 3, transform = datacrs)
+#ax1.set_extent([145, 218, 65, 80], ccrs.PlateCarree())
+#ax2.set_extent([145, 218, 65, 80], ccrs.PlateCarree())
+#ax3.set_extent([145, 218, 65, 80], ccrs.PlateCarree())
+#ax4.set_extent([145, 218, 65, 80], ccrs.PlateCarree())
+ax1.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
+ax2.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
+ax3.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
+ax4.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
+ax1.coastlines()
+ax2.coastlines()
+ax3.coastlines()
+ax4.coastlines()
+fig.tight_layout()
+plt.show()
+sys.exit()
+
 write_MODIS_to_HDF5(MODIS_data, channel = 2, swath = True, \
     save_path = './', minlat = minlat, remove_empty_scans = True)
 
