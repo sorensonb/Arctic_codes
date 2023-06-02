@@ -38,10 +38,11 @@ module comp_grid_vars
   integer(hsize_t), dimension(:), allocatable       :: TROP_SSA2_dims
   integer(hsize_t), dimension(:), allocatable       :: MODIS_CH2_dims
   integer(hsize_t), dimension(:), allocatable       :: MODIS_CH7_dims
+  integer(hsize_t), dimension(:), allocatable       :: MODIS_CLD_dims
   integer(hsize_t), dimension(:), allocatable       :: NSIDC_dims
   integer(hsize_t), dimension(:), allocatable       :: CERES_SWF_dims
   integer(hsize_t), dimension(:), allocatable       :: CERES_LWF_dims
-  integer(hsize_t), dimension(:), allocatable       :: CERES_CLD_dims
+  !integer(hsize_t), dimension(:), allocatable       :: CERES_CLD_dims
 
   ! Dimensions for output data
   ! --------------------------
@@ -53,12 +54,13 @@ module comp_grid_vars
   integer(hsize_t), dimension(:), allocatable       :: TROP_out_LON_dims
   integer(hsize_t), dimension(:), allocatable       :: MODIS_out_CH2_dims
   integer(hsize_t), dimension(:), allocatable       :: MODIS_out_CH7_dims
+  integer(hsize_t), dimension(:), allocatable       :: MODIS_out_CLD_dims
   integer(hsize_t), dimension(:), allocatable       :: MODIS_out_LAT_dims
   integer(hsize_t), dimension(:), allocatable       :: MODIS_out_LON_dims
   integer(hsize_t), dimension(:), allocatable       :: NSIDC_out_dims
   integer(hsize_t), dimension(:), allocatable       :: NSIDC_out_LAT_dims
   integer(hsize_t), dimension(:), allocatable       :: NSIDC_out_LON_dims
-  integer(hsize_t), dimension(:), allocatable       :: CERES_out_CLD_dims
+  !integer(hsize_t), dimension(:), allocatable       :: CERES_out_CLD_dims
   integer(hsize_t), dimension(:), allocatable       :: CERES_out_SWF_dims
   integer(hsize_t), dimension(:), allocatable       :: CERES_out_LWF_dims
   integer(hsize_t), dimension(:), allocatable       :: CERES_out_LAT_dims
@@ -87,6 +89,7 @@ module comp_grid_vars
   real(kind=8), dimension(:,:), allocatable, target   :: TROP_SSA2_data
   real(kind=8), dimension(:,:), allocatable, target   :: MODIS_CH2_data
   real(kind=8), dimension(:,:), allocatable, target   :: MODIS_CH7_data
+  real(kind=8), dimension(:,:), allocatable, target   :: MODIS_CLD_data
   real(kind=8), dimension(:,:), allocatable, target   :: MODIS_LAT_data
   real(kind=8), dimension(:,:), allocatable, target   :: MODIS_LON_data
   real(kind=8), dimension(:,:), allocatable, target   :: NSIDC_data
@@ -94,7 +97,7 @@ module comp_grid_vars
   real(kind=8), dimension(:,:), allocatable, target   :: NSIDC_LON_data
   real(kind=8), dimension(:,:), allocatable, target   :: CERES_LWF_data
   real(kind=8), dimension(:,:), allocatable, target   :: CERES_SWF_data
-  real(kind=8), dimension(:,:), allocatable, target   :: CERES_CLD_data
+  !real(kind=8), dimension(:,:), allocatable, target   :: CERES_CLD_data
   real(kind=8), dimension(:,:), allocatable, target   :: CERES_LAT_data
   real(kind=8), dimension(:,:), allocatable, target   :: CERES_LON_data
 
@@ -102,6 +105,7 @@ module comp_grid_vars
   ! --------------------
   real(kind=8), dimension(:,:), allocatable, target :: MODIS_out_CH2_data
   real(kind=8), dimension(:,:), allocatable, target :: MODIS_out_CH7_data
+  real(kind=8), dimension(:,:), allocatable, target :: MODIS_out_CLD_data
   real(kind=8), dimension(:,:), allocatable, target :: MODIS_out_LAT_data
   real(kind=8), dimension(:,:), allocatable, target :: MODIS_out_LON_data
   real(kind=8), dimension(:,:), allocatable, target :: NSIDC_out_data
@@ -153,6 +157,7 @@ module comp_grid_vars
     allocate(TROP_out_SSA2_data(dim1, dim2), stat = error)
     allocate(MODIS_out_CH2_data(dim1, dim2), stat = error)
     allocate(MODIS_out_CH7_data(dim1, dim2), stat = error)
+    allocate(MODIS_out_CLD_data(dim1, dim2), stat = error)
     allocate(NSIDC_out_data(dim1, dim2), stat = error)
     allocate(CERES_out_LWF_data(dim1, dim2), stat = error)
     allocate(CERES_out_SWF_data(dim1, dim2), stat = error)
@@ -198,6 +203,7 @@ module comp_grid_vars
       if(allocated(TROP_SSA2_dims))        deallocate(TROP_SSA2_dims)
       if(allocated(MODIS_CH2_dims))        deallocate(MODIS_CH2_dims)
       if(allocated(MODIS_CH7_dims))        deallocate(MODIS_CH7_dims)
+      if(allocated(MODIS_CLD_dims))        deallocate(MODIS_CLD_dims)
       !if(allocated(MODIS_LAT_dims))        deallocate(MODIS_LAT_dims)
       !if(allocated(MODIS_LON_dims))        deallocate(MODIS_LON_dims)
       if(allocated(NSIDC_dims))            deallocate(NSIDC_dims)
@@ -205,7 +211,7 @@ module comp_grid_vars
       !if(allocated(NSIDC_LON_dims))        deallocate(NSIDC_LON_dims)
       if(allocated(CERES_LWF_dims))        deallocate(CERES_LWF_dims)
       if(allocated(CERES_SWF_dims))        deallocate(CERES_SWF_dims)
-      if(allocated(CERES_CLD_dims))        deallocate(CERES_CLD_dims)
+      !if(allocated(CERES_CLD_dims))        deallocate(CERES_CLD_dims)
       !if(allocated(CERES_LAT_dims))        deallocate(CERES_LAT_dims)
       !if(allocated(CERES_LON_dims))        deallocate(CERES_LON_dims)
 
@@ -252,6 +258,7 @@ module comp_grid_vars
       if(allocated(TROP_SSA2_data))        deallocate(TROP_SSA2_data)
       if(allocated(MODIS_CH2_data))        deallocate(MODIS_CH2_data)
       if(allocated(MODIS_CH7_data))        deallocate(MODIS_CH7_data)
+      if(allocated(MODIS_CLD_data))        deallocate(MODIS_CLD_data)
       if(allocated(MODIS_LAT_data))        deallocate(MODIS_LAT_data)
       if(allocated(MODIS_LON_data))        deallocate(MODIS_LON_data)
       if(allocated(NSIDC_data))            deallocate(NSIDC_data)
@@ -259,7 +266,6 @@ module comp_grid_vars
       if(allocated(NSIDC_LON_data))        deallocate(NSIDC_LON_data)
       if(allocated(CERES_LWF_data))        deallocate(CERES_LWF_data)
       if(allocated(CERES_SWF_data))        deallocate(CERES_SWF_data)
-      if(allocated(CERES_CLD_data))        deallocate(CERES_CLD_data)
       if(allocated(CERES_LAT_data))        deallocate(CERES_LAT_data)
       if(allocated(CERES_LON_data))        deallocate(CERES_LON_data)
 
@@ -273,6 +279,7 @@ module comp_grid_vars
       if(allocated(TROP_out_LON_data))    deallocate(TROP_out_LON_data)
       if(allocated(MODIS_out_CH2_data))   deallocate(MODIS_out_CH2_data)
       if(allocated(MODIS_out_CH7_data))   deallocate(MODIS_out_CH7_data)
+      if(allocated(MODIS_out_CLD_data))   deallocate(MODIS_out_CLD_data)
       if(allocated(MODIS_out_LAT_data))   deallocate(MODIS_out_LAT_data)
       if(allocated(MODIS_out_LON_data))   deallocate(MODIS_out_LON_data)
       if(allocated(NSIDC_out_data))       deallocate(NSIDC_out_data)

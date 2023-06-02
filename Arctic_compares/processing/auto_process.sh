@@ -8,6 +8,7 @@ make -f Make_omi_colocate
 REDO_ALL=true
 EXTRACT=true
 REPROCESS=false
+REMOVE_CH2=true
 
 #base_dir=$(pwd)
 #echo $base_dir
@@ -68,17 +69,37 @@ for d1 in ${dirlist} ; do
     if !(test -f "$colocate_file") || $REPROCESS ; then
       echo "$colocate_file does NOT exist. Processing data"
 
+      modis_ch1=$(ls ${d2}modis_ch1*)
       modis_ch2=$(ls ${d2}modis_ch2*)
       modis_ch7=$(ls ${d2}modis_ch7*)
       nsidc_file=$(ls ${d2}nsidc*)
       ceres_file=$(ls ${d2}ceres*)
       omi_file=$(ls ${d2}omi*)
 
-      echo $modis_ch2 $modis_ch7 $nsidc_file $ceres_file $omi_file
+      # See if an old MODIS ch2 file is here. If it is, and if there is a new
+      # MODIS ch1 file, just use the ch1 file and print warning message about
+      # the ch2 file. If ther is only a ch2 file and no ch1 file, print an 
+      # error message and do not process anything.
+      # ---------------------------------------------------------------------
 
-      # Run the OMI colocation executable
-      # ---------------------------------
-      time ${base_dir}omi_comp_exec $modis_ch2 $modis_ch7 $nsidc_file $ceres_file $omi_file
+      if (test -f "$modis_ch2") ; then
+        echo "Old MODIS CH2 file found."
+        if ($REMOVE_CH2) ; then
+          echo "Removing MODIS CH2 file."
+          rm $modis_ch2
+        fi
+      fi 
+  
+      if !(test -f "$modis_ch1") ; then
+        echo "ERROR: No MODIS CH1 in this directory. Must regenerate prep data."
+      else
+
+        echo $modis_ch1 $modis_ch7 $nsidc_file $ceres_file $omi_file
+
+        # Run the OMI colocation executable
+        # ---------------------------------
+        time ${base_dir}omi_comp_exec $modis_ch1 $modis_ch7 $nsidc_file $ceres_file $omi_file
+      fi
 
       echo
     else

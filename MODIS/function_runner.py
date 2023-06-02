@@ -7,71 +7,111 @@
 
 from MODISLib import *
 
-       
-MODIS_data = '201908120035'
-#MODIS_data = '201807052305'
-swath = False
-#swath = True
-channel = 2 
-minlat = 65.
-MODIS_ch1 = read_MODIS_channel(MODIS_data, 1, swath = swath)
-MODIS_ch7 = read_MODIS_channel(MODIS_data, 7, swath = swath)
+times = [
+        #"201507081750",
+        "201507081925",
+        "201507082105",
+        "201507082245",
+        "201807050140",
+        "201807050315",
+        "201807051630",
+        "201807051805",
+        "201807051945",
+        "201807052125",
+        "201807052305",
+        ]
 
-cldmsk = Dataset('CLDMSK_L2_MODIS_Aqua.A2019224.0035.001.2019224173701.nc')
-#cldmsk = Dataset('CLDMSK_L2_MODIS_Aqua.A2019224.0030.001.2019224173707.nc')
-#cldmsk = Dataset('CLDMSK_L2_MODIS_Aqua.A2018186.2305.001.2019064032332.nc')
-testmask = cldmsk['geophysical_data/Integer_Cloud_Mask'][::5,::5]
-testlat  = cldmsk['geolocation_data/latitude'][::5,::5]
-testlon  = cldmsk['geolocation_data/longitude'][::5,::5]
-#mydmsk = Dataset('MYD35_L2.A2018186.2305.061.2018187153528.hdf')
+for time in times:
+    plot_compare_MODIS_cloud(time, swath = True, save = True)
 
-cldmsk.close()
-#cldmsk['geophysical_data/Integer_Cloud_Mask']
+sys.exit()
+
+#def cloud_check(cloud_list):
+#    count_0 = cloud_list[0]
+#    count_1 = cloud_list[1]
+#    count_2 = cloud_list[2]
+#    count_3 = cloud_list[3]
+#    if(    ((count_0 > count_1) & (count_0 > count_2) & (count_0 > count_3))):
+#            out_cloud = 0.
+#    elif(  ((count_1 > count_0) & (count_1 > count_2) & (count_1 > count_3)) |
+#           ((count_0 > count_3) & (count_1 >= count_0) & (count_1 >= count_2)) |
+#           ((count_0 == count_3) & (count_1 > count_0) & (count_1 == count_2))
+#           ):
+#            out_cloud = 1.
+#    elif(  ((count_2 > count_0) & (count_2 > count_1) & (count_2 > count_3)) |
+#           ((count_3 > count_0) & (count_2 >= count_3) & (count_1 <= count_2)) |
+#           ((count_0 == count_2) & (count_0 > count_3) & (count_2 > count_1))
+#           ):
+#            out_cloud = 2.
+#    elif(  (count_3 >= count_0) & (count_3 >= count_1) & (count_3 >= count_2)):
+#            out_cloud = 3.
+#    return out_cloud
 #
+#
+#sys.exit()
 
-plt.close('all')
-mapcrs = ccrs.NorthPolarStereo()
-modis_date = MODIS_data
-fig = plt.figure(figsize = (9, 9))
-ax1 = fig.add_subplot(2,2,1, projection = mapcrs)
-ax2 = fig.add_subplot(2,2,2, projection = mapcrs)
-ax3 = fig.add_subplot(2,2,3, projection = mapcrs)
-ax4 = fig.add_subplot(2,2,4, projection = mapcrs)
+download = True
+#CERES_date_str = '2018070523'
+CERES_dates = [
+                "2015070811",
+                "2015070813",
+                "2015070814",
+                "2015070816",
+                "2015070817",
+             ]
 
-zoom = False
-plot_MODIS_channel(modis_date, 'true_color', swath = swath, \
-    zoom = zoom, ax = ax1)
-plot_MODIS_channel(modis_date, 1, swath = swath, \
-    zoom = zoom, ax = ax2, vmax = 0.7)
-plot_MODIS_channel(modis_date, 7, swath = swath, \
-    zoom = zoom, ax = ax3, vmax = 0.4)
-ax4.pcolormesh(testlon, testlat, testmask, shading = 'auto', \
-    cmap = 'jet', vmin = 0, vmax = 3, transform = datacrs)
-#ax1.set_extent([145, 218, 65, 80], ccrs.PlateCarree())
-#ax2.set_extent([145, 218, 65, 80], ccrs.PlateCarree())
-#ax3.set_extent([145, 218, 65, 80], ccrs.PlateCarree())
-#ax4.set_extent([145, 218, 65, 80], ccrs.PlateCarree())
-ax1.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
-ax2.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
-ax3.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
-ax4.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
-ax1.coastlines()
-ax2.coastlines()
-ax3.coastlines()
-ax4.coastlines()
-fig.tight_layout()
-plt.show()
+for CERES_date_str in CERES_dates:
+    download_dict = download_MODIS_swath(CERES_date_str, \
+            dest_dir = modis_dir, download = download)
+
 sys.exit()
 
+#MODIS_data = "201807050140"
+#MODIS_data = "201807050315"
+#MODIS_data = "201807051630"
+MODIS_data = "201807051805"
+#MODIS_data = "201807051945"
+#MODIS_data = "201807052125"
+
+sys.exit()
+
+#date_str = '201506011300'
+#date_str = '201807052305'
+#download_MODIS_file(date_str, dest_dir = modis_dir, download_cloud_mask = True)
+
+
+       
+#MODIS_data = '201908110125'
+MODIS_data = '201807052305'
+minlat = 70.
+swath = True
+write_MODIS_to_HDF5(MODIS_data, channel = 1, swath = True, \
+    save_path = './', minlat = minlat, remove_empty_scans = True, \
+    include_cloud_mask = False)
 write_MODIS_to_HDF5(MODIS_data, channel = 2, swath = True, \
-    save_path = './', minlat = minlat, remove_empty_scans = True)
+    save_path = './', minlat = minlat, remove_empty_scans = True, \
+    include_cloud_mask = False)
+
 
 sys.exit()
 
-date_str = '201206151425'
-download_MODIS_file(date_str, dest_dir = '/home/bsorenson/data/MODIS/Aqua/')
-
-sys.exit()
+#swath = True
+##!#channel = 2 
+##!#minlat = 65.
+##!#MODIS_ch1 = read_MODIS_channel(MODIS_data, 1, swath = swath, include_cloud_mask = True)
+##!#MODIS_ch7 = read_MODIS_channel(MODIS_data, 7, swath = swath, include_cloud_mask = True)
+##!#
+##!##cldmsk = Dataset('CLDMSK_L2_MODIS_Aqua.A2019224.0035.001.2019224173701.nc')
+##!##cldmsk = Dataset('CLDMSK_L2_MODIS_Aqua.A2019224.0030.001.2019224173707.nc')
+##!#cldmsk = Dataset('/home/bsorenson/data/MODIS/Aqua/CLDMSK/CLDMSK_L2_MODIS_Aqua.A2018186.2305.001.2019064032332.nc')
+##!#testmask = cldmsk['geophysical_data/Integer_Cloud_Mask'][::5,::5]
+##!#testlat  = cldmsk['geolocation_data/latitude'][::5,::5]
+##!#testlon  = cldmsk['geolocation_data/longitude'][::5,::5]
+##!##mydmsk = Dataset('MYD35_L2.A2018186.2305.061.2018187153528.hdf')
+##!#
+##!#cldmsk.close()
+##!##cldmsk['geophysical_data/Integer_Cloud_Mask']
+##!##
 
 
 plot_figure2(save=False, composite = True)

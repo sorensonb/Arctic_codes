@@ -53,7 +53,7 @@ from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 # Set up global variables
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-modis_dir = home_dir + '/data/MODIS/Aqua/'
+modis_dir = home_dir  + '/data/MODIS/Aqua/'
 data_dir  = modis_dir + 'MYD/'
 cloud_dir = modis_dir + 'CLDMSK/'
 datacrs = ccrs.PlateCarree()
@@ -405,108 +405,6 @@ for key in channel_dict.keys():
     else:
         channel_dict[key]['Bandwidth_label'] = ''
 
-##!#def init_proj(date_str):
-##!#    #mapcrs = Miller()
-##!#    if(date_str == None):
-##!#        mapcrs = ccrs.LambertConformal()
-##!#    else:
-##!#        dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
-##!#
-##!#        mapcrs = ccrs.LambertConformal(central_longitude = \
-##!#            np.mean(aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
-##!#            central_latitude = \
-##!#            np.mean(aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
-##!#
-##!#    return mapcrs
-
-##!#def plot_trend_line(pax, xdata, ydata, color='black', linestyle = '-', \
-##!#        slope = 'thiel-sen'):
-##!#
-##!#    if(slope == 'thiel-sen'):
-##!#        res = stats.theilslopes(ydata, xdata, 0.95)
-##!#        print("Theil-Sen: {0}x + {1}".format(res[0], res[1]))
-##!#
-##!#        # Then, plot the trend line on the figure
-##!#        pax.plot(xdata, res[1] + res[0] * xdata, \
-##!#            color='k', linewidth = 2.5, linestyle = linestyle)
-##!#        # Then, plot the trend line on the figure
-##!#        pax.plot(xdata, res[1] + res[0] * xdata, \
-##!#            color=color, linestyle = linestyle)
-##!#    else:
-##!#        # First, calculate the trend
-##!#        zdata = np.polyfit(xdata, ydata, 1)
-##!#
-##!#        print("{0}x + {1}".format(*zdata))
-##!#
-##!#        # Then, plot the trend line on the figure
-##!#        pax.plot(np.unique(xdata), np.poly1d(zdata)(np.unique(xdata)), \
-##!#            color=color, linestyle = linestyle)
-##!#
-##!#def plot_subplot_label(ax, label, xval = None, yval = None, transform = None, \
-##!#        color = 'black', backgroundcolor = None, fontsize = 14, \
-##!#        location = 'upper_left'):
-##!#
-##!#    if(location == 'upper_left'):
-##!#        y_lim = 0.90
-##!#        x_lim = 0.05
-##!#    elif(location == 'lower_left'):
-##!#        y_lim = 0.05
-##!#        x_lim = 0.05
-##!#    elif(location == 'upper_right'):
-##!#        y_lim = 0.90
-##!#        x_lim = 0.90
-##!#    elif(location == 'lower_right'):
-##!#        y_lim = 0.05
-##!#        x_lim = 0.90
-##!#
-##!#    if(xval is None):
-##!#        xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * x_lim
-##!#    if(yval is None):
-##!#        yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * y_lim
-##!#    print('Xval = ',xval, 'Yval = ',yval)
-##!#
-##!#    if(transform is None):
-##!#        if(backgroundcolor is None):
-##!#            ax.text(xval,yval,label, \
-##!#                color=color, weight='bold', \
-##!#                fontsize=fontsize)
-##!#        else:
-##!#            ax.text(xval,yval,label, \
-##!#                color=color, weight='bold', \
-##!#                fontsize=fontsize, backgroundcolor = backgroundcolor)
-##!#    else:
-##!#        if(backgroundcolor is None):
-##!#            ax.text(xval,yval,label, \
-##!#                color=color, weight='bold', \
-##!#                transform = transform, fontsize=fontsize)
-##!#        else:
-##!#            ax.text(xval,yval,label, \
-##!#                color=color, weight='bold', \
-##!#                transform = transform, fontsize=fontsize, \
-##!#                backgroundcolor = backgroundcolor)
-##!#
-##!#def plot_figure_text(ax, text, xval = None, yval = None, transform = None, \
-##!#        color = 'black', fontsize = 12, backgroundcolor = 'white',\
-##!#        halign = 'left'):
-##!#
-##!#    if(xval is None):
-##!#        print(len(text))
-##!#        xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * 0.95
-##!#    if(yval is None):
-##!#        yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.05
-##!#    print('Xval = ',xval, 'Yval = ',yval)
-##!#
-##!#    if(transform is None):
-##!#        ax.text(xval,yval,text, \
-##!#            color=color, weight='bold', \
-##!#            fontsize=fontsize, backgroundcolor = backgroundcolor, \
-##!#            horizontalalignment = halign)
-##!#    else:
-##!#        ax.text(xval,yval,text, \
-##!#            color=color, weight='bold', \
-##!#            transform = transform, fontsize=fontsize, \
-##!#            backgroundcolor = backgroundcolor, \
-##!#            horizontalalignment = halign)
 
 def getCorners_1d(centers):
     one = centers[:-1]
@@ -518,16 +416,6 @@ def getCorners_1d(centers):
     stepOne[:-2] = one
     stepOne[-2:] = two[-2:]
     return stepOne
-
-    ##!#one = stepOne[:,:-1]
-    ##!#two = stepOne[:,1:]
-    ##!#d2 = (two - one) / 2.
-    ##!#one = one - d2
-    ##!#two = two + d2
-    ##!#stepTwo = np.zeros((centers.shape[0] + 1, centers.shape[1] + 1))
-    ##!#stepTwo[:,:-2] = one
-    ##!#stepTwo[:,-2:] = two[:,-2:]
-    ##!#return stepTwo
 
 def getCorners(centers):
     one = centers[:-1,:]
@@ -548,19 +436,17 @@ def getCorners(centers):
     stepTwo[:,-2:] = two[:,-2:]
     return stepTwo
 
-##!## Find the gridpoint in the gridded lat/lon data that 
-##!## corresponds to the station at slat and slon
-##!## ---------------------------------------------------- 
-##!#def nearest_gridpoint(slat, slon, grid_lat, grid_lon):
-##!#    fun_c = np.maximum(np.abs(grid_lat - slat), \
-##!#        np.abs(grid_lon - slon))
-##!#    m_idx = np.where(fun_c == np.min(fun_c))
-##!#    return m_idx
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
+# Downloading  and writing functions
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 # Using a CERES swath as a base, download the matching MODIS granules
 # -------------------------------------------------------------------
 def download_MODIS_swath(CERES_date_str, \
-        dest_dir = home_dir + '/data/MODIS/Aqua/', download = True):
+        dest_dir = modis_dir, download = True, \
+        download_cloud_mask = True):
 
     if(home_dir + '/Research/CERES/' not in sys.path):
         sys.path.append(home_dir + '/Research/CERES/')
@@ -586,48 +472,87 @@ def download_MODIS_swath(CERES_date_str, \
                                    seconds = max_dt.second, \
                                    microseconds = max_dt.microsecond)
 
+    local_data_dir  = modis_dir + 'MYD/'
+    local_cloud_dir = modis_dir + 'CLDMSK/'
+
     modis_time = min_modis
     return_str = ''
-    file_list = ''
+    modis_file_list = ''
+    cldmk_file_list = ''
+    download_return_dict = {}
     while(modis_time <= max_modis):
 
         local_time = modis_time.strftime('%Y%m%d%H%M')
         print(local_time) 
 
-        try:
-            found_file = subprocess.check_output('ls ' + \
-                modis_time.strftime(dest_dir + '*%Y%j.%H%M.*'), \
-                shell = True).decode('utf-8').strip().split('\n')[0]
-            print(found_file)
-        except subprocess.CalledProcessError:
-            print("File not found. Must download")
+        # First, check for the MYD and CLDMSK files
+        # -----------------------------------------
+        modis_file = glob(modis_time.strftime(local_data_dir + \
+            '*%Y%j.%H%M.*.hdf'))
+
+        cldmk_file = glob(modis_time.strftime(local_cloud_dir + \
+            '*A%Y%j.%H%M.*.nc'))
+
+        if((len(modis_file) == 0) | ((len(cldmk_file) == 0) & \
+                (download_cloud_mask))):
+            print("MYD or CLDMSK file not found. Must download")
 
             if(download):
-                found_file = download_MODIS_file(local_time, \
-                    dest_dir = dest_dir)
+                #modis_file = download_MODIS_file(local_time, \
+                return_dict = download_MODIS_file(local_time, \
+                    dest_dir = dest_dir, \
+                    download_cloud_mask = download_cloud_mask)
+                modis_file = return_dict['modis_file']
+                cldmk_file = return_dict['cldmk_file']
 
                 # Check for download errors
                 # -------------------------
-                if(found_file == -1):
+                if(modis_file == -1):
                     print("No MODIS file returned. Continuing.")
                     continue
- 
+        else:
+            print("MODIS data downloaded",modis_file[0], cldmk_file[0])
+            modis_file = modis_file[0]
+            cldmk_file = cldmk_file[0]
+        
+        ##!#try:
+        ##!#    modis_file = subprocess.check_output('ls ' + \
+        ##!#        modis_time.strftime(local_data_dir + '*%Y%j.%H%M.*.hdf'), \
+        ##!#        shell = True).decode('utf-8').strip().split('\n')[0]
+        ##!#    print(modis_file)
+        ##!#except subprocess.CalledProcessError:
+        ##!#    print("MYD file not found. Must download")
+
+        ##!#    if(download):
+        ##!#        found_file = download_MODIS_file(local_time, \
+        ##!#            dest_dir = dest_dir, \
+        ##!#            download_cloud_mask = download_cloud_mask)
+
+        ##!#        # Check for download errors
+        ##!#        # -------------------------
+        ##!#        if(found_file == -1):
+        ##!#            print("No MODIS file returned. Continuing.")
+        ##!#            continue
+
         #if(os.path.exists(dest_dir + found_file)):
         #    print(found_file + ' already exists. Not downloading')
 
-
         return_str = return_str + local_time + ' '
-        file_list = file_list + found_file + ' '
+        modis_file_list = modis_file_list + modis_file + ' '
+        cldmk_file_list = cldmk_file_list + cldmk_file + ' '
 
         modis_time = modis_time + timedelta(minutes = 5)
-    
-    return return_str.split(), file_list.split()
+   
+    download_return_dict['modis_date_list'] = return_str.split()
+    download_return_dict['modis_file_list'] = modis_file_list.split()
+    download_return_dict['cldmk_file_list'] = cldmk_file_list.split()
 
-# This downloads the MODIS l1b HDF5 file that is closest to the passed
-# date string from the LAADS DAAC archive. 
-# --------------------------------------------------------------------
-def download_MODIS_file(date_str, dest_dir = home_dir + '/data/MODIS/Aqua/', \
-        download_cloud_mask = True):
+    return download_return_dict
+    #return return_str.split(), modis_file_list.split(), cldmk_file_list
+
+def identify_MODIS_MYD(date_str, modis_dir):
+
+    local_data_dir  = modis_dir + 'MYD/'
 
     base_url = 'https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/61/MYD021KM'
 
@@ -663,10 +588,10 @@ def download_MODIS_file(date_str, dest_dir = home_dir + '/data/MODIS/Aqua/', \
     # --------------------------------------------
     file_idx = np.argmin(time_diffs)
     found_file = files_only[file_idx]
- 
+
     # Check if the file is already downloaded
     # ---------------------------------------
-    if(os.path.exists(dest_dir + found_file)):
+    if(os.path.exists(local_data_dir + found_file)):
         print(found_file + ' already exists. Not downloading')
     else: 
         # Download the file
@@ -678,76 +603,148 @@ def download_MODIS_file(date_str, dest_dir = home_dir + '/data/MODIS/Aqua/', \
 
         # Move the file to the destination folder
         # ---------------------------------------
-        cmnd = "mv " + found_file + " " + dest_dir
+        cmnd = "mv " + found_file + " " + local_data_dir
         print(cmnd) 
         os.system(cmnd)
 
-    return found_file
+
+    return found_file 
+
+def identify_MODIS_CLDMSK(date_str, modis_dir):
+
+    local_data_dir  = modis_dir + 'CLDMSK/'
+
+    base_url = 'https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/' + \
+        '5110/CLDMSK_L2_MODIS_Aqua'
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+
+    # For each desired channel, figure out the closest file time
+    # to the input date
+    # ----------------------------------------------------------
+    try:
+        files = listFD(dt_date_str.strftime(base_url + '/%Y/%j/'), ext = '.nc')
+    except subprocess.CalledProcessError:
+        print("ERROR: No MODIS CLDMSK files for the input DTG",date_str)
+        return -2
+
+    if(len(files) == 0):
+        print("ERROR: No MODIS CLDMSK files returned from the request. Exiting")
+        return -1
+    
+    # Remove the timestamps from the file strings
+    # -------------------------------------------
+    files_only = [tfile.strip().split('/')[-1] for tfile in files]
+
+    # Use the actual file times to get timestamps
+    # -------------------------------------------
+    file_dates = [datetime.strptime(tfile[22:34],'%Y%j.%H%M') for tfile in files_only]
+
+    # Figure out where the closest files to the desired time are
+    # ----------------------------------------------------------
+    time_diffs = np.array([abs((dt_date_str - ddate).total_seconds()) \
+        for ddate in file_dates])
+
+    # Extract the index of the matching MODIS file
+    # --------------------------------------------
+    file_idx = np.argmin(time_diffs)
+    found_file = files_only[file_idx]
+
+    # Check if the file is already downloaded
+    # ---------------------------------------
+    if(os.path.exists(local_data_dir + found_file)):
+        print(found_file + ' already exists. Not downloading')
+    else: 
+        # Download the file
+        # -----------------
+        cmnd = dt_date_str.strftime("wget \"" + base_url + '/%Y/%j/' + found_file + \
+            "\" --header \"Authorization: Bearer " + laads_daac_key + "\" -P .")
+        print(cmnd)
+        os.system(cmnd)
+
+        # Move the file to the destination folder
+        # ---------------------------------------
+        cmnd = "mv " + found_file + " " + local_data_dir
+        print(cmnd) 
+        os.system(cmnd)
+
+    return found_file 
+
+# This downloads the MODIS l1b HDF5 file that is closest to the passed
+# date string from the LAADS DAAC archive. 
+# --------------------------------------------------------------------
+def download_MODIS_file(date_str, dest_dir = modis_dir, \
+        download_cloud_mask = True):
+
+    local_cloud_dir = modis_dir + 'CLDMSK/'
+
+    found_file = identify_MODIS_MYD(date_str, modis_dir)
  
-# Extract the MODIS information from a given channel at each ob point
-# -------------------------------------------------------------------
-def nearest_grid_values(MODIS_data):
-    # Read in the correct ASOS file 
-    asos_file = aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['asos']
-    df = pd.read_csv(asos_file)
-    df['valid'] = pd.to_datetime(df['valid'])
-    df = df.set_index('valid')
+    if(download_cloud_mask):
+        cloud_file = identify_MODIS_CLDMSK(date_str, modis_dir)
+    else:
+        cloud_file = ''
+    
+    return_dict = {}
+    return_dict['modis_file'] = found_file
+    return_dict['cldmk_file'] = cloud_file
+    
+    return return_dict
+    #return found_file
 
-    # Pull the event time from the aerosol_event_dict
-    event_date = datetime.strptime(MODIS_data['cross_date'], "%Y-%m-%d")
-    first_time = MODIS_data['file_time']
-    event_dtime = event_date + timedelta(hours = int(first_time[:2]))
-    # Test what happens if looking at the data near the hour
-    #event_dtime = event_date + timedelta(hours = int(first_time[:2]), \
-    #    minutes = int(first_time[2:4]))
-    if(debug):
-        print("Overpass time",event_dtime)
+# Writes a MODIS channel dictionary to HDF5 for Fortran colocation
+# NOTE: can take either a date string OR a dictionary
+# ----------------------------------------------------------------
+def write_MODIS_to_HDF5(MODIS_data, channel = 1, swath = True, \
+        save_path = './', minlat = 20., remove_empty_scans = False, \
+        include_cloud_mask = True):
 
-    begin_range = event_dtime - timedelta(minutes = 15)
-    end_range   = event_dtime + timedelta(minutes = 15)
+    if(isinstance(MODIS_data, str)):
+        MODIS_data = read_MODIS_channel(MODIS_data, channel, swath = swath, \
+            include_cloud_mask = include_cloud_mask)
 
-    compare_dict = {}
-    station_names = sorted(set(df['station'].values))
-    compare_dict['modis_time'] = event_dtime.strftime('%Y%m%d%H%M')
-    compare_dict['stations'] = station_names
-    compare_dict['stn_data'] = np.zeros((len(station_names)))
-    compare_dict['mds_data'] = np.zeros((len(station_names)))
+    if(remove_empty_scans):
+        mask_data = np.ma.masked_where(MODIS_data['lat'] < minlat, \
+            MODIS_data['data'])
+        mask_dims = np.array([ (False in mask_data[ii,:].mask) for ii in \
+            range(mask_data.shape[0])])
+        keep_idxs = np.where(mask_dims == True)[0]
+    else:
+        keep_idxs = None 
+
+    # Convert the filename object to datetime
+    # ---------------------------------------
+    file_date = MODIS_data['date']
+    dt_date_str = datetime.strptime(file_date, '%Y%m%d%H%M')
+
+    # Create a new netCDF dataset to write to the file
+    # ------------------------------------------------
+    outfile = save_path + 'modis_ch' + str(MODIS_data['channel']) + \
+        '_subset_'+ file_date + '.hdf5'
+    dset = h5py.File(outfile,'w')
  
-    for ii, station in enumerate(station_names):
-        # Get the correct ob data
-        stn_df = df[df['station'] == station]
-        lat_stn = stn_df['lat'].values[0]
-        lon_stn = stn_df['lon'].values[0]
+    dset.create_dataset('latitude',  data = \
+        MODIS_data['lat'][keep_idxs,:].squeeze())
+    dset.create_dataset('longitude', data = \
+        MODIS_data['lon'][keep_idxs,:].squeeze())
+    dset.create_dataset('data', data = \
+        MODIS_data['data'][keep_idxs,:].squeeze())
+    if(include_cloud_mask):
+        dset.create_dataset('cld', data = \
+            MODIS_data['cloud_mask'][keep_idxs,:].squeeze())
+        
 
-        #print(stn_df.index)
-        ##if(station == 'SVE'):
-        ##    for val in stn_df.index:
-        ##        print(val) 
-        #print(stn_df[event_dtime - timedelta(minutes = 30), event_dtime + timedelta(minutes = 30)])
-        stn_df = stn_df[ begin_range : end_range]
-        if(len(stn_df.index) == 0):
-            # No data for this time.
-            print("No valid data for station",station)
-            compare_dict['stn_data'][ii] = np.nan 
-        else:
-            s_idx = np.argmin(np.abs((stn_df.index - event_dtime).total_seconds())) 
-            if(stn_df['tmpc'][s_idx] == 'M'):
-                stn_tmps = pd.to_numeric(stn_df['tmpc'], errors='coerce').values
-                s_idx = np.where(~np.isnan(stn_tmps))[0][0]
-            compare_dict['stn_data'][ii] = stn_df['tmpc'][s_idx]
+    # Save, write, and close the HDF5 file
+    # --------------------------------------
+    dset.close()
 
-        # Find the matching grid index
-        m_idx = nearest_gridpoint(lat_stn, lon_stn, MODIS_data['lat'], \
-            MODIS_data['lon'])
-        m_data = MODIS_data['data'][m_idx][0]
-      
-        compare_dict['mds_data'][ii] = m_data
- 
-        ##print(station, lat_stn, MODIS_data['lat'][m_idx][0], \
-        ##    lon_stn, MODIS_data['lon'][m_idx][0], compare_dict['stn_data'][ii], m_data )
+    print("Saved file ",outfile)  
 
-    return compare_dict
-
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
+# Miscellaneous functions
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
  
 # Plot the downloaded ASOS stations for each case
 #
@@ -1167,6 +1164,49 @@ def grid_data_trends(modis_dict):
 # Plotting functions
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def plot_compare_MODIS_cloud(date_str, swath = True, save = False):
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+
+    plt.close('all')
+    mapcrs = ccrs.NorthPolarStereo()
+    fig = plt.figure(figsize = (9, 9))
+    ax1 = fig.add_subplot(2,2,1, projection = mapcrs)
+    ax2 = fig.add_subplot(2,2,2, projection = mapcrs)
+    ax3 = fig.add_subplot(2,2,3, projection = mapcrs)
+    ax4 = fig.add_subplot(2,2,4, projection = mapcrs)
+    
+    zoom = False
+    plot_MODIS_channel(date_str, 'true_color', swath = swath, \
+        zoom = zoom, ax = ax1)
+    plot_MODIS_channel(date_str, 1, swath = swath, \
+        zoom = zoom, ax = ax2, vmax = 0.7)
+    plot_MODIS_channel(date_str, 7, swath = swath, \
+        zoom = zoom, ax = ax3, vmax = 0.4)
+    plot_MODIS_channel(date_str, 'cloud_mask', swath = swath, \
+        zoom = zoom, ax = ax4, vmax = None)
+
+    ax1.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
+    ax2.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
+    ax3.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
+    ax4.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
+    ax1.coastlines()
+    ax2.coastlines()
+    ax3.coastlines()
+    ax4.coastlines()
+
+    plt.suptitle(dt_date_str.strftime('Aqua MODIS %Y-%m-%d %H:%M'))
+
+    fig.tight_layout()
+
+    if(save):
+        outname = 'modis_comp_cloud_' + date_str + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
 
 def read_MODIS_satpy(date_str, channel,  composite = False, swath = False, \
         zoom = True):
@@ -1671,7 +1711,8 @@ def plot_true_color(filename,zoom=True):
 
     plt.show()
 
-def read_MODIS_granule(filename, channel, zoom = False):
+def read_MODIS_granule(filename, channel, zoom = False, \
+            include_cloud_mask = False):
 
     modis = SD.SD(filename)
 
@@ -1690,11 +1731,6 @@ def read_MODIS_granule(filename, channel, zoom = False):
     if(str(channel)[:2] != 'wv'):
         sza = modis.select('SolarZenith').get() * modis.select('SolarZenith').attributes().get('scale_factor')
         vza = modis.select('SensorZenith').get() * modis.select('SensorZenith').attributes().get('scale_factor')
-
-    #print('Sensor zenith: ', modis.select('SensorZenith').get().shape)
-    #print('Sensor zenith scale: ', modis.select('SensorZenith').attributes().get('scale_factor'))
-    #print('Solar zenith: ', modis.select('SolarZenith').get().shape)
-    #print('Solar zenith scale: ', modis.select('SolarZenith').attributes().get('scale_factor'))
 
     if((str(channel)[2:] != '_ir') & (str(channel) != 'true_color')):
         data  = modis.select(channel_dict[str(channel)]['Name']).get()
@@ -1927,7 +1963,8 @@ def read_MODIS_granule(filename, channel, zoom = False):
     return MODIS_data
 
 # dt_date_str is of format YYYYMMDDHHMM
-def read_MODIS_channel(date_str, channel, zoom = False, swath = False):
+def read_MODIS_channel(date_str, channel, zoom = False, swath = False, \
+        include_cloud_mask = False):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
 
@@ -1942,19 +1979,42 @@ def read_MODIS_channel(date_str, channel, zoom = False, swath = False):
             dt_times = [datetime.strptime(time, '%Y%m%d%H%M') for time in times]
             filename = [aerosol_event_dict[ttime.strftime('%Y-%m-%d')][\
                 ttime.strftime('%H%M')]['modis'] for ttime in dt_times]
-            
+           
+            if(include_cloud_mask):
+                cloud_name = [aerosol_event_dict[ttime.strftime('%Y-%m-%d')][\
+                    ttime.strftime('%H%M')]['modis_cloud'] for ttime in dt_times]
+ 
         else:
-            filename = [aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']]
-    
-
+            filename = [aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+                dt_date_str.strftime('%H%M')]['modis']]
+            if(include_cloud_mask):
+                cloud_name = [aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+                    dt_date_str.strftime('%H%M')]['modis_cloud']]
+   
     MODIS_holder = {}
     counter = 0
-    for ifile in filename:
+    for ii, ifile in enumerate(filename):
 
         print("Reading MODIS channel",channel," from ",ifile)
 
-        MODIS_data = read_MODIS_granule(ifile, channel, zoom = zoom)
+        # Set the channel to an arbitrary "1" in this case
+        # ------------------------------------------------ 
+        if(channel == 'cloud_mask'):
+            include_cloud_mask = True
+            local_channel = 1
+        else:
+            local_channel = channel
 
+            
+        MODIS_data = read_MODIS_granule(ifile, local_channel, zoom = zoom, \
+            include_cloud_mask = include_cloud_mask)
+
+        if(include_cloud_mask):
+            cloud_data = Dataset(cloud_name[ii])
+            MODIS_data['cloud_mask'] = cloud_data[\
+                'geophysical_data/Integer_Cloud_Mask'][::5,::5]
+            cloud_data.close()
+ 
         MODIS_holder[str(counter)] = MODIS_data 
 
         counter += 1
@@ -1965,9 +2025,14 @@ def read_MODIS_channel(date_str, channel, zoom = False, swath = False):
     MODIS_final['lon']  = np.concatenate([MODIS_holder[key]['lon']  for key in MODIS_holder.keys()], axis = 0)
     MODIS_final['sza']  = np.concatenate([MODIS_holder[key]['sza']  for key in MODIS_holder.keys()], axis = 0)
     MODIS_final['vza']  = np.concatenate([MODIS_holder[key]['vza']  for key in MODIS_holder.keys()], axis = 0)
+    if(include_cloud_mask):
+        MODIS_final['cloud_mask'] = \
+            np.concatenate([MODIS_holder[key]['cloud_mask']  \
+            for key in MODIS_holder.keys()], axis = 0)
     MODIS_final['variable'] = MODIS_holder['0']['variable']
     MODIS_final['cross_date'] = MODIS_holder['0']['cross_date']
-    MODIS_final['channel'] = MODIS_holder['0']['channel']
+    MODIS_final['channel'] = channel
+    #MODIS_final['channel'] = MODIS_holder['0']['channel']
     MODIS_final['colors'] = MODIS_holder['0']['colors']
     MODIS_final['file_time'] = MODIS_holder['0']['file_time']
     MODIS_final['date'] = date_str
@@ -1991,48 +2056,6 @@ def read_MODIS_channel(date_str, channel, zoom = False, swath = False):
 
     return MODIS_final
 
-# Writes a MODIS channel dictionary to HDF5 for Fortran colocation
-# NOTE: can take either a date string OR a dictionary
-# ----------------------------------------------------------------
-def write_MODIS_to_HDF5(MODIS_data, channel = 2, swath = True, \
-        save_path = './', minlat = 20., remove_empty_scans = False):
-
-    if(isinstance(MODIS_data, str)):
-        MODIS_data = read_MODIS_channel(MODIS_data, channel, swath = swath)
-
-    if(remove_empty_scans):
-        mask_data = np.ma.masked_where(MODIS_data['lat'] < minlat, \
-            MODIS_data['data'])
-        mask_dims = np.array([ (False in mask_data[ii,:].mask) for ii in \
-            range(mask_data.shape[0])])
-        keep_idxs = np.where(mask_dims == True)[0]
-    else:
-        keep_idxs = None 
-
-    # Convert the filename object to datetime
-    # ---------------------------------------
-    file_date = MODIS_data['date']
-    dt_date_str = datetime.strptime(file_date, '%Y%m%d%H%M')
-
-    # Create a new netCDF dataset to write to the file
-    # ------------------------------------------------
-    outfile = save_path + 'modis_ch' + str(MODIS_data['channel']) + \
-        '_subset_'+ file_date + '.hdf5'
-    dset = h5py.File(outfile,'w')
- 
-    dset.create_dataset('latitude',  data = \
-        MODIS_data['lat'][keep_idxs,:].squeeze())
-    dset.create_dataset('longitude', data = \
-        MODIS_data['lon'][keep_idxs,:].squeeze())
-    dset.create_dataset('data', data = \
-        MODIS_data['data'][keep_idxs,:].squeeze())
-
-    # Save, write, and close the HDF5 file
-    # --------------------------------------
-    dset.close()
-
-    print("Saved file ",outfile)  
-
 def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False, \
         ax = None, swath = False, vmin = None, vmax = None, \
         ptitle = None, \
@@ -2041,17 +2064,21 @@ def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False, \
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
     #filename = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
 
+    include_cloud_mask = False
     if(channel == 'red'):
         channel = 1
     elif(channel == 'green'):
         channel = 4
     elif(channel == 'blue'):
         channel = 3
+    elif(channel == 'cloud_mask'):
+        include_cloud_mask = True
 
     # Call read_MODIS_channel to read the desired MODIS data from the
     # file and put it in a dictionary
     # ---------------------------------------------------------------
-    MODIS_data = read_MODIS_channel(date_str, channel, swath = swath)
+    MODIS_data = read_MODIS_channel(date_str, channel, swath = swath, \
+        include_cloud_mask = include_cloud_mask)
 
     if(debug):
         print("Data max = ",np.max(MODIS_data['data']), "  Data min = ",\
@@ -2373,226 +2400,19 @@ def compare_MODIS_3panel(date_str,channel1,channel2,channel3,zoom=True,save=Fals
         color = 'red', fontsize = 15, backgroundcolor = 'white', halign = 'right')
     plot_figure_text(ax1, 'MODIS 1.24 μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = 15, backgroundcolor = 'white', halign = 'right')
-    ##!## Step 3: Plot the MODIS channel data in the first 2 panels
-    ##!## ---------------------------------------------------------
-    ##!#mesh0 = ax0.pcolormesh(MODIS_data1['lon'],MODIS_data1['lat'],\
-    ##!#    cpy_1,cmap = MODIS_data1['colors'], shading='auto', \
-    ##!#    vmin = np.nanmin(MODIS_data1['data']), \
-    ##!#    vmax = np.nanmax(MODIS_data1['data']), transform = datacrs) 
-
-    ##!#cbar0 = plt.colorbar(mesh0,ax=ax0,orientation='vertical',\
-    ##!#    pad=0.03,label=MODIS_data1['variable'])
-
-    ##!#ax0.add_feature(cfeature.BORDERS)
-    ##!#ax0.add_feature(cfeature.STATES)
-    ##!#ax0.coastlines()
-    ##!#if(zoom):
-    ##!#    ax0.set_extent([aerosol_event_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lon'][0], \
-    ##!#                    aerosol_event_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lon'][1], \
-    ##!#                    aerosol_event_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][0], \
-    ##!#                    aerosol_event_dict[MODIS_data1['cross_date']][MODIS_data1['file_time']]['Lat'][1]],\
-    ##!#                    datacrs)
-    ##!##ax0.set_title('MODIS Ch. ' + str(channel1) + '\n' + \
-    ##!##    str(channel_dict[str(channel1)]['Bandwidth'][0]) + ' μm - ' + \
-    ##!##    str(channel_dict[str(channel1)]['Bandwidth'][1]) + ' μm')
-    ##!#ax0.set_title('Channel ' + str(channel1) + '\n' + \
-    ##!#    channel_dict[str(channel1)]['Bandwidth_label']) 
-
-
-    ##!## Plot channel 2
-    ##!#mesh1 = ax1.pcolormesh(MODIS_data2['lon'],MODIS_data2['lat'],\
-    ##!#    MODIS_data2['data'],cmap = MODIS_data2['colors'], shading='auto', \
-    ##!#    vmin = np.nanmin(MODIS_data2['data']), \
-    ##!#    vmax = np.nanmax(MODIS_data2['data']), transform = datacrs) 
-
-
-    ##!#cbar1 = plt.colorbar(mesh1,ax=ax1,orientation='vertical',\
-    ##!#    pad=0.03,label=MODIS_data2['variable'])
-    ##!#
-    ##!#ax1.add_feature(cfeature.BORDERS)
-    ##!#ax1.add_feature(cfeature.STATES)
-    ##!#ax1.coastlines()
-    ##!#if(zoom):
-    ##!#    ax1.set_extent([aerosol_event_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lon'][0], \
-    ##!#                    aerosol_event_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lon'][1], \
-    ##!#                    aerosol_event_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][0], \
-    ##!#                    aerosol_event_dict[MODIS_data2['cross_date']][MODIS_data2['file_time']]['Lat'][1]],\
-    ##!#                    datacrs)
-    ##!##ax1.set_title('MODIS Ch. ' + str(channel2) + '\n' + \
-    ##!##    str(channel_dict[str(channel2)]['Bandwidth'][0]) + ' μm - ' + \
-    ##!##    str(channel_dict[str(channel2)]['Bandwidth'][1]) + ' μm')
-    ##!#ax1.set_title('Channel ' + str(channel2) + '\n' + \
-    ##!#    channel_dict[str(channel2)]['Bandwidth_label']) 
-
-    ##!## Plot channel 3
-    ##!#mesh2 = ax2.pcolormesh(MODIS_data3['lon'],MODIS_data3['lat'],\
-    ##!#    MODIS_data3['data'],cmap = MODIS_data3['colors'], shading='auto', \
-    ##!#    vmin = np.nanmin(MODIS_data3['data']), \
-    ##!#    vmax = np.nanmax(MODIS_data3['data']), transform = datacrs) 
-    ##!#cbar2 = plt.colorbar(mesh2,ax=ax2,orientation='vertical',\
-    ##!#    pad=0.03,label=MODIS_data3['variable'])
-    ##!#
-    ##!#ax2.add_feature(cfeature.BORDERS)
-    ##!#ax2.add_feature(cfeature.STATES)
-    ##!#ax2.coastlines()
-    ##!#if(zoom):
-    ##!#    ax2.set_extent([aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0], \
-    ##!#                    aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1], \
-    ##!#                    aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0], \
-    ##!#                    aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]],\
-    ##!#                    datacrs)
-    ##!##ax2.set_title('MODIS Ch. ' + str(channel3) + '\n' + \
-    ##!##    str(channel_dict[str(channel3)]['Bandwidth'][0]) + ' μm - ' + \
-    ##!##    str(channel_dict[str(channel3)]['Bandwidth'][1]) + ' μm')
-    ##!#ax2.set_title('Channel ' + str(channel3) + '\n' + \
-    ##!#    channel_dict[str(channel3)]['Bandwidth_label']) 
-
 
     if(compare_OMI):
         print("Reading OMI data")
         LAT, LON, mask_UVAI = read_OMI_match_MODIS(date_str)
-        ##!#data = h5py.File(aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['omi'],'r')
-        ##!#LAT   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude'][:,:]
-        ##!#LON   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude'][:,:]
-        ##!#UVAI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex'][:,:]
-        ##!#XTRACK = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/XTrackQualityFlags'][:,:]
-        ##!#mask_UVAI = np.ma.masked_where((XTRACK < -2e5) | (UVAI < -2e5), UVAI)
-        ##!#mask_UVAI = np.ma.masked_where((((LAT < aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) | \
-        ##!#                     (LAT > aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1])) | \
-        ##!#                    ((LON < aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) | \
-        ##!#                     (LON > aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]))), mask_UVAI)
-
         plot_OMI_spatial(date_str, LAT, LON, mask_UVAI, axo, zoom = zoom)
-
-        ##!#mesh3 = axo.pcolormesh(LON,LAT,mask_UVAI, cmap = 'plasma', shading='auto', \
-        ##!#    vmin = np.nanmin(mask_UVAI), vmax = np.nanmax(mask_UVAI), transform = datacrs) 
-        ##!#axo.add_feature(cfeature.BORDERS)
-        ##!#axo.add_feature(cfeature.STATES)
-        ##!#axo.coastlines()
-        ##!#if(zoom):
-        ##!#    axo.set_extent([aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0], \
-        ##!#                    aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1], \
-        ##!#                    aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0], \
-        ##!#                    aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]],\
-        ##!#                    datacrs)
-        ##!#cbar3 = plt.colorbar(mesh3,ax=axo,orientation='vertical',\
-        ##!#    pad=0.03,label='OMI UVAI')
-        ##!#axo.set_title('OMI UVAI')
 
     if(compare_CERES):
         print("Reading CERES data")
 
         mask_LAT, mask_LON, mask_swf, mask_lwf = read_CERES_match_MODIS(date_str)
 
-        ##!#base_date = datetime(year=1970,month=1,day=1)
-        ##!#start_date = dt_date_str - timedelta(hours = 1)
-        ##!#end_date   = dt_date_str + timedelta(hours = 2)
-
-        ##!#print(start_date, end_date)
-
-        ##!#data = Dataset(aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['ceres'],'r')
-        ##!#LAT   = 90. - data.variables['Colatitude_of_CERES_FOV_at_surface'][:]
-        ##!#LON   = data.variables['Longitude_of_CERES_FOV_at_surface'][:]
-        ##!#LON[LON>179.99] = -360.+LON[LON>179.99]
-        ##!#swflux  = data.variables['CERES_SW_TOA_flux___upwards'][:]
-        ##!#lwflux  = data.variables['CERES_LW_TOA_flux___upwards'][:]
-        ##!#time  = data.variables['time'][:]
-        ##!#local_time = np.array([base_date + relativedelta(days = ttime) for ttime in time])
-
-        ##!#mask_LAT = LAT[ \
-        ##!#    (LAT >= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
-        ##!#    (LAT <= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
-        ##!#    (LON >= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
-        ##!#    (LON <= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
-        ##!#    (swflux > 0) & (lwflux > 0)]
-        ##!#mask_LON = LON[ \
-        ##!#    (LAT >= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
-        ##!#    (LAT <= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
-        ##!#    (LON >= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
-        ##!#    (LON <= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
-        ##!#    (swflux > 0) & (lwflux > 0)]
-        ##!#mask_swf = swflux[ \
-        ##!#    (LAT >= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
-        ##!#    (LAT <= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
-        ##!#    (LON >= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
-        ##!#    (LON <= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
-        ##!#    (swflux > 0) & (lwflux > 0)]
-        ##!#mask_lwf = lwflux[ \
-        ##!#    (LAT >= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
-        ##!#    (LAT <= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
-        ##!#    (LON >= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
-        ##!#    (LON <= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
-        ##!#    (swflux > 0) & (lwflux > 0)]
-        ##!###!#mask_time = local_time[ \
-        ##!###!#    (LAT >= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0]) & \
-        ##!###!#    (LAT <= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]) & \
-        ##!###!#    (LON >= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0]) & \
-        ##!###!#    (LON <= aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1]) & \
-        ##!###!#    (swflux > 0) & (lwflux > 0)]
-
-        # Removed masked data
-        ##!#triMesh = Triangulation(mask_LON,mask_LAT)
-
-        ##!## Reshape the data to make it work with pcolormesh
-        ##!#first_size = int(np.sqrt(mask_swf.shape)) 
-        ##!#max_size = int(first_size ** 2.)
-        ##!#mask_swf = mask_swf[:max_size].reshape((first_size, first_size))
-        ##!#mask_lwf = mask_lwf[:max_size].reshape((first_size, first_size))
-        ##!#LAT = LAT[:max_size].reshape((first_size, first_size))
-        ##!#LON = LON[:max_size].reshape((first_size, first_size))
-      
         plot_CERES_spatial(date_str,mask_LAT, mask_LON, mask_swf, 'SWF', axcs, zoom = zoom)
         plot_CERES_spatial(date_str,mask_LAT, mask_LON, mask_lwf, 'LWF', axcl, zoom = zoom)
-
-        ##!#print(np.nanmax(mask_LAT.compressed()), np.min(mask_LAT.compressed()))
-        ##!#print(np.nanmax(LAT), np.nanmin(LAT))
-        ##!#print(aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'])
- 
-        ##!##scat3 = axcs.scatter(mask_LON, mask_LAT,mask_swf, transform = datacrs)
-        ##!#mesh3 = axcs.scatter(mask_LON.compressed(), mask_LAT.compressed(),\
-        ##!#    s = 120,marker='s',c = mask_swf.compressed(),cmap='plasma', \
-        ##!#    transform = datacrs)
-        ##!##mesh3 = axcs.tricontourf(triMesh,mask_swf, cmap = 'plasma', shading='auto', \
-        ##!##    vmin = np.nanmin(mask_swf), vmax = np.nanmax(mask_swf), transform = datacrs) 
-#       ##!# mesh3 = axcs.pcolormesh(LON,LAT,mask_swf, cmap = 'plasma', shading='auto', \
-#       ##!#     vmin = np.nanmin(mask_swf), vmax = np.nanmax(mask_swf), transform = datacrs) 
-        ##!#axcs.add_feature(cfeature.BORDERS)
-        ##!#axcs.add_feature(cfeature.STATES)
-        ##!#axcs.coastlines()
-        ##!#if(zoom):
-        ##!#    axcs.set_extent([aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0], \
-        ##!#                     aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1], \
-        ##!#                     aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0], \
-        ##!#                     aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]],\
-        ##!#                     datacrs)
-        ##!#cbar3 = plt.colorbar(mesh3,ax=axcs,orientation='vertical',\
-        ##!#    pad=0.03,label='TOA SWF [W/m2]')
-        ##!#axcs.set_title('CERES SWF')
-
-
-
-        ##!#print(mask_LON.compressed().shape, mask_LAT.compressed().shape, mask_lwf.compressed().shape)
-        ##!#mesh4 = axcl.scatter(mask_LON, mask_LAT,\
-        ##!#    s = 120,marker = 's',c = mask_lwf,cmap='plasma', \
-        ##!#    transform = datacrs)
-        ##!##mesh4 = axcl.tricontourf(triMesh,mask_lwf, cmap = 'plasma', shading='auto', \
-        ##!##    vmin = np.nanmin(mask_lwf), vmax = np.nanmax(mask_lwf), transform = datacrs) 
-        ##!###!#mesh4 = axcl.tricontourf(LON,LAT,mask_lwf, cmap = 'plasma', shading='auto', \
-        ##!###!#    vmin = np.nanmin(mask_lwf), vmax = np.nanmax(mask_lwf), transform = datacrs) 
-        ##!#axcl.add_feature(cfeature.BORDERS)
-        ##!#axcl.add_feature(cfeature.STATES)
-        ##!#axcl.coastlines()
-        ##!#if(zoom):
-        ##!#    axcl.set_extent([aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][0], \
-        ##!#                    aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lon'][1], \
-        ##!#                    aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][0], \
-        ##!#                    aerosol_event_dict[MODIS_data3['cross_date']][MODIS_data3['file_time']]['Lat'][1]],\
-        ##!#                    datacrs)
-        ##!#    cbar4 = plt.colorbar(mesh4,ax=axcl,orientation='vertical',\
-        ##!#        pad=0.03,label='TOA LWF [W/m2]')
-        ##!#axcl.set_title('CERES LWF')
-
-        ##!#data.close()
 
     if(show_smoke):
         # Determine where the smoke is located
@@ -3112,6 +2932,10 @@ def plot_MODIS_spatial(MODIS_data, pax, zoom, vmin = None, vmax = None, \
         pax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\
             MODIS_data['data'][:,:,0],color= MODIS_data['colortuple'], \
             shading='auto', transform = ccrs.PlateCarree()) 
+    elif(MODIS_data['channel'] == 'cloud_mask'):
+        pax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\
+            MODIS_data['cloud_mask'][:,:],cmap = 'jet', \
+            shading='auto', transform = ccrs.PlateCarree()) 
     else:
         # Plot channel 1
         mesh1 = pax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\
@@ -3143,6 +2967,8 @@ def plot_MODIS_spatial(MODIS_data, pax, zoom, vmin = None, vmax = None, \
     if(ptitle == None):
         if(str(MODIS_data['channel']) == 'true_color'):
             pax.set_title('True color') 
+        elif(MODIS_data['channel'] == 'cloud_mask'):
+            pax.set_title('MODIS Cloud Mask')
         else:
             pax.set_title('Channel ' + str(MODIS_data['channel']) + '\n' + \
                 channel_dict[str(MODIS_data['channel'])]['Bandwidth_label']) 
@@ -3630,23 +3456,6 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
             total_match_LAT[ii] = mask_LAT[ii]
             total_match_LON[ii] = mask_LON[ii]
 
-
-    ##!##plt.close('all')
-    ##!#fig = plt.figure(figsize=(8,5))
-    ##!##dt_date_str = datetime.strptime(date_str, "%Y%m%d%H%M")
-    ##!#mapcrs = init_proj(date_str)
-    ##!##mapcrs = ccrs.LambertConformal(central_longitude = \
-    ##!##    np.mean(aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lon']),\
-    ##!##    central_latitude = \
-    ##!##np.mean(aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['Lat']))
-
-    ##!#tax1 = fig.add_subplot(2,3,1,projection = mapcrs) # smoke SW
-    ##!#tax2 = fig.add_subplot(2,3,2,projection = mapcrs) # smoke LW
-    ##!#tax3 = fig.add_subplot(2,3,3,projection = mapcrs) # smoke CH31
-    ##!#tax4 = fig.add_subplot(2,3,4,projection = mapcrs) # total SW
-    ##!#tax5 = fig.add_subplot(2,3,5,projection = mapcrs) # total LW
-    ##!#tax6 = fig.add_subplot(2,3,6,projection = mapcrs) # total CH31
-
     #print('old: ',hash_match_LWF.shape)
     total_match_LAT = np.ma.masked_invalid(total_match_LAT)
     total_match_LON = np.ma.masked_invalid(total_match_LON)
@@ -3668,46 +3477,15 @@ def plot_scatter_CERES(date_str, MODIS_data, pax, avg_pixel = False,\
     mask_LAT = np.ma.masked_invalid(mask_LAT)
     mask_LON = np.ma.masked_invalid(mask_LON)
   
-    ##!#total_match_SWF = np.ma.masked_invalid(total_match_SWF[~total_match_SWF.mask])
-    ##!#total_match_LWF = np.ma.masked_invalid(total_match_LWF[~total_match_LWF.mask])
-    ##!#total_match_LAT = np.ma.masked_invalid(total_match_LAT[~total_match_LAT.mask])
-    ##!#total_match_LON = np.ma.masked_invalid(total_match_LON[~total_match_LON.mask])
     total_mask_swf  = np.ma.masked_invalid(mask_swf[~total_match_SWF.mask])
     total_mask_lwf  = np.ma.masked_invalid(mask_lwf[~total_match_LWF.mask])
 
-    ##!#hash_match_SWF = np.ma.masked_invalid(hash_match_SWF[~hash_match_SWF.mask])
-    ##!#hash_match_LWF = np.ma.masked_invalid(hash_match_LWF[~hash_match_LWF.mask])
-    ##!#hash_match_LAT = np.ma.masked_invalid(hash_match_LAT[~hash_match_LAT.mask])
-    ##!#hash_match_LON = np.ma.masked_invalid(hash_match_LON[~hash_match_LON.mask])
     hash_mask_swf  = np.ma.masked_invalid(mask_swf[~hash_match_SWF.mask])
     hash_mask_lwf  = np.ma.masked_invalid(mask_lwf[~hash_match_LWF.mask])
  
-    ##!#nohash_match_SWF = np.ma.masked_invalid(nohash_match_SWF[~nohash_match_SWF.mask])
-    ##!#nohash_match_LWF = np.ma.masked_invalid(nohash_match_LWF[~nohash_match_LWF.mask])
-    ##!#nohash_match_LAT = np.ma.masked_invalid(nohash_match_LAT[~nohash_match_LAT.mask])
-    ##!#nohash_match_LON = np.ma.masked_invalid(nohash_match_LON[~nohash_match_LON.mask])
     nohash_mask_swf  = np.ma.masked_invalid(mask_swf[~nohash_match_SWF.mask])
     nohash_mask_lwf  = np.ma.masked_invalid(mask_lwf[~nohash_match_LWF.mask])
 
-    ##!## ----------------------------------------------------------------------- 
-    ##!##
-    ##!## Plot the CERES and gridded MODIS data on a temporary figure
-    ##!## Currently not saved anywhere.
-    ##!##
-    ##!## ----------------------------------------------------------------------- 
-    ##!#plot_CERES_spatial(date_str, total_match_LAT, total_match_LON, \
-    ##!#    total_mask_swf, 'SWF', tax1, zoom=True)
-    ##!#plot_CERES_spatial(date_str, total_match_LAT, total_match_LON, \
-    ##!#    total_mask_lwf, 'LWF', tax2, zoom=True)
-    ##!#plot_CERES_spatial(date_str, total_match_LAT, total_match_LON, \
-    ##!#    total_match_LWF, 'SWF', tax3, vmin = np.nanmin(MODIS_data['data']),\
-    ##!#    vmax = np.nanmax(MODIS_data['data']), zoom=True)
-    ##!#plot_CERES_spatial(date_str, mask_LAT, mask_LON, \
-    ##!#    mask_swf, 'SWF', tax4, zoom=True)
-    ##!#plot_CERES_spatial(date_str, mask_LAT, mask_LON, \
-    ##!#    mask_lwf, 'LWF', tax5, zoom=True)
-    ##!#plot_MODIS_spatial(MODIS_data, tax6, zoom = True)
- 
     mask_total = mask_swf + mask_lwf
 
     markersize = 14
@@ -5092,16 +4870,26 @@ def plot_spatial_scatter_wAI(date_str, zoom=True,save=False,composite=True,\
     #plot_subplot_label(ax8, '(c)', fontsize = 12, )
 
     font_size = 11
-    plot_figure_text(ax1, 'MODIS True Color', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax2, 'MODIS 11.0 μm', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax3, 'CERES SW', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax4, 'CERES LW', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax5, 'OMI AI', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax1, 'MODIS True Color', xval = None, yval = None, \
+        transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+    plot_figure_text(ax2, 'MODIS 11.0 μm', xval = None, yval = None, \
+        transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+    plot_figure_text(ax3, 'CERES SW', xval = None, yval = None, \
+        transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+    plot_figure_text(ax4, 'CERES LW', xval = None, yval = None, \
+        transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+    plot_figure_text(ax5, 'OMI AI', xval = None, yval = None, \
+        transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
 
     fig.tight_layout()
     fig2.tight_layout()
@@ -5124,6 +4912,18 @@ def plot_spatial_scatter_wAI(date_str, zoom=True,save=False,composite=True,\
         print("Saved image",outname)
     else:
         plt.show()
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
+# Figure plotting functions for the smoke thermal IR paper
+# (Sorenson et al., 2023b)
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
 
 def plot_combined_figure1(date_str = '202107222110', zoom = True, show_smoke = True, composite = True, \
         save=False):
@@ -6828,6 +6628,84 @@ def plot_total_asos_diurnal(save = False, composite = True):
         print("Saved image",outname)
     else: 
         plt.show() 
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
+# End known functions for the smoke thermal IR paper
+# (Sorenson et al., 2023b)
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+# Extract the MODIS information from a given channel at each ob point
+# -------------------------------------------------------------------
+def nearest_grid_values(MODIS_data):
+    # Read in the correct ASOS file 
+    asos_file = aerosol_event_dict[MODIS_data['cross_date']][MODIS_data['file_time']]['asos']
+    df = pd.read_csv(asos_file)
+    df['valid'] = pd.to_datetime(df['valid'])
+    df = df.set_index('valid')
+
+    # Pull the event time from the aerosol_event_dict
+    event_date = datetime.strptime(MODIS_data['cross_date'], "%Y-%m-%d")
+    first_time = MODIS_data['file_time']
+    event_dtime = event_date + timedelta(hours = int(first_time[:2]))
+    # Test what happens if looking at the data near the hour
+    #event_dtime = event_date + timedelta(hours = int(first_time[:2]), \
+    #    minutes = int(first_time[2:4]))
+    if(debug):
+        print("Overpass time",event_dtime)
+
+    begin_range = event_dtime - timedelta(minutes = 15)
+    end_range   = event_dtime + timedelta(minutes = 15)
+
+    compare_dict = {}
+    station_names = sorted(set(df['station'].values))
+    compare_dict['modis_time'] = event_dtime.strftime('%Y%m%d%H%M')
+    compare_dict['stations'] = station_names
+    compare_dict['stn_data'] = np.zeros((len(station_names)))
+    compare_dict['mds_data'] = np.zeros((len(station_names)))
+ 
+    for ii, station in enumerate(station_names):
+        # Get the correct ob data
+        stn_df = df[df['station'] == station]
+        lat_stn = stn_df['lat'].values[0]
+        lon_stn = stn_df['lon'].values[0]
+
+        #print(stn_df.index)
+        ##if(station == 'SVE'):
+        ##    for val in stn_df.index:
+        ##        print(val) 
+        #print(stn_df[event_dtime - timedelta(minutes = 30), event_dtime + timedelta(minutes = 30)])
+        stn_df = stn_df[ begin_range : end_range]
+        if(len(stn_df.index) == 0):
+            # No data for this time.
+            print("No valid data for station",station)
+            compare_dict['stn_data'][ii] = np.nan 
+        else:
+            s_idx = np.argmin(np.abs((stn_df.index - event_dtime).total_seconds())) 
+            if(stn_df['tmpc'][s_idx] == 'M'):
+                stn_tmps = pd.to_numeric(stn_df['tmpc'], errors='coerce').values
+                s_idx = np.where(~np.isnan(stn_tmps))[0][0]
+            compare_dict['stn_data'][ii] = stn_df['tmpc'][s_idx]
+
+        # Find the matching grid index
+        m_idx = nearest_gridpoint(lat_stn, lon_stn, MODIS_data['lat'], \
+            MODIS_data['lon'])
+        m_data = MODIS_data['data'][m_idx][0]
+      
+        compare_dict['mds_data'][ii] = m_data
+ 
+        ##print(station, lat_stn, MODIS_data['lat'][m_idx][0], \
+        ##    lon_stn, MODIS_data['lon'][m_idx][0], compare_dict['stn_data'][ii], m_data )
+
+    return compare_dict
+
+ 
+
 
 # Compare colocated MODIS and ob data for two dates
 def colocate_comparison(date1, date2, channel = 31):

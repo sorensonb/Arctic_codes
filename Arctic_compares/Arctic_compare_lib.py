@@ -143,14 +143,15 @@ case_dates = ['200607240029', # GOOD
 def automate_all_preprocess(date_str, download = True, images = True, \
         process = True, omi_dtype = 'ltc3', include_tropomi = True, \
         copy_to_raindrop = False, remove_empty_scans = True, \
-        minlat = 65.):
+        minlat = 65., remove_ch2_file = False):
     if(isinstance(date_str, str)):
         date_str = [date_str]
 
     if(download):
         # If desired, download all data and/or match up the files in the JSON
         # -------------------------------------------------------------------
-        auto_all_download(date_str, download = download, rewrite_json = True)
+        auto_all_download(date_str, download = download, rewrite_json = True, \
+            include_tropomi = include_tropomi)
 
         # Reload the json file here
         with open(json_file_database, 'r') as fin:
@@ -191,10 +192,6 @@ def automate_all_preprocess(date_str, download = True, images = True, \
 
         if(process):
 
-            if(include_tropomi & (dt_date_str.year > 2017)):                    
-                generate_TROPOMI_prep_data(dstr, copy_to_raindrop = \
-                    copy_to_raindrop, minlat = minlat)
-
             # Make a data storage directory, if one does not already exist
             # ------------------------------------------------------------
             save_dir = dt_date_str.strftime(data_dir + '%Y%m%d/')
@@ -210,6 +207,16 @@ def automate_all_preprocess(date_str, download = True, images = True, \
                 os.system('mkdir ' +  save_dir2)
    
             short_save_dir2 = dt_date_str.strftime('%Y%m%d/%Y%m%d%H%M/')
+
+            if(remove_ch2_file):
+                ch2_file = glob(save_dir2 + '*ch2*')
+                if(len(ch2_file) != 0):
+                    print("Removing old CH2 file")
+                    cmnd = 'rm ' + ch2_file[0]
+                    print(cmnd)
+                    os.system(cmnd)
+                else:
+                    print("No CH2 file to remove")
  
             # Run the data subsetter codes
             # ----------------------------
@@ -238,6 +245,11 @@ def automate_all_preprocess(date_str, download = True, images = True, \
             writeNSIDC_to_HDF5(NSIDC_date, save_path = save_dir2, \
                 minlat = minlat, remove_empty_scans = remove_empty_scans)
 
+            if(include_tropomi & (dt_date_str.year > 2017)):                    
+                generate_TROPOMI_prep_data(dstr, copy_to_raindrop = \
+                    copy_to_raindrop, minlat = minlat, \
+                    trop_time = file_date_dict[dstr]['TROPOMI'])
+
             # Finally, gzip the data
             # ---------------------
             os.chdir(data_dir)
@@ -262,7 +274,7 @@ def automate_all_preprocess(date_str, download = True, images = True, \
 
 def single_wrap_function(date_str, minlat, min_AI, out_time_dict, download, \
         images, process, include_tropomi, new_only, copy_to_raindrop, \
-        remove_empty_scans):
+        remove_empty_scans, remove_ch2_file):
 
     print(date_str)
 
@@ -280,7 +292,8 @@ def single_wrap_function(date_str, minlat, min_AI, out_time_dict, download, \
                 omi_dtype = 'ltc3', include_tropomi = include_tropomi,\
                 copy_to_raindrop = copy_to_raindrop, \
                 minlat = minlat, \
-                remove_empty_scans = remove_empty_scans)
+                remove_empty_scans = remove_empty_scans, \
+                remove_ch2_file = remove_ch2_file)
 
         else:
             print(ttime + " in json database. Reprocessing")
@@ -289,12 +302,13 @@ def single_wrap_function(date_str, minlat, min_AI, out_time_dict, download, \
                 omi_dtype = 'ltc3', include_tropomi = include_tropomi, \
                 copy_to_raindrop = copy_to_raindrop, \
                 minlat = minlat, \
-                remove_empty_scans = remove_empty_scans)
+                remove_empty_scans = remove_empty_scans, \
+                remove_ch2_file = remove_ch2_file)
 
 def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
         download = True, images = False, process = False, run_list = None, \
         include_tropomi = True, copy_to_raindrop = True, \
-        remove_empty_scans = True):
+        remove_empty_scans = True, remove_ch2_file = False):
 
     if(home_dir + '/Research/OMI/' not in sys.path):
         sys.path.append(home_dir + '/Research/OMI/')
@@ -315,7 +329,7 @@ def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
 
             single_wrap_function(date_str, minlat, min_AI, out_time_dict, \
                 download, images, process, include_tropomi, new_only, \
-                copy_to_raindrop, remove_empty_scans)
+                copy_to_raindrop, remove_empty_scans, remove_ch2_file)
 
     else:
     
@@ -341,36 +355,8 @@ def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
 
                 single_wrap_function(date_str, minlat, min_AI, out_time_dict, \
                     download, images, process, include_tropomi, new_only,\
-                    copy_to_raindrop, remove_empty_scans)
+                    copy_to_raindrop, remove_empty_scans, remove_ch2_file)
                 
-
-        #if((date_str == '20140812') | \
-        #   (date_str == '20140814') | \
-        #   (date_str == '20140816')):
-
-        ##!#    print(date_str, ai_val)
-
-        ##!#    good_list = download_identify_OMI_swaths(date_str, \
-        ##!#        minlat = minlat, remove_bad = True)
-
-        ##!#    final_good_list = final_good_list + good_list
-
-        ##!#    for ttime in good_list:
-        ##!#        if(new_only and (ttime not in out_time_dict.keys())):
-        ##!#        #if(ttime not in out_time_dict.keys()):
-        ##!#            print("NEW TIME: " + ttime + " not in json database. Run preprocessor")
-        ##!#            automate_all_preprocess(ttime, download = download, \
-        ##!#                images = images, process = process, \
-        ##!#                omi_dtype = 'ltc3', include_tropomi = include_tropomi)
-
-        ##!#        else:
-        ##!#            print(ttime + " in json database. Reprocessing")
-        ##!#            automate_all_preprocess(ttime, download = download, \
-        ##!#                images = images, process = process, \
-        ##!#                omi_dtype = 'ltc3', include_tropomi = include_tropomi)
-
-    #return final_good_list
-
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
 # Downloading functions
@@ -484,7 +470,7 @@ def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
 ##!#    # Then here, loop over the keep list and run the preprocessor?
     
 def auto_all_download(date_str, download = True, rewrite_json = False, \
-        omi_dtype = 'ltc3'):
+        omi_dtype = 'ltc3', include_tropomi = True):
     if(isinstance(date_str, str)):
         date_str = [date_str]
 
@@ -521,6 +507,8 @@ def auto_all_download(date_str, download = True, rewrite_json = False, \
     for dstr in date_str:
         print(dstr)
         if(dstr not in out_time_dict.keys() or rewrite_json):
+
+            dt_date_str = datetime.strptime(dstr, '%Y%m%d%H%M')
 
             # NOTE: 04/17/2023 - modifying to read the "control" data here,
             #       rather than the shawn data. The actual UVAI data doesn't
@@ -562,8 +550,10 @@ def auto_all_download(date_str, download = True, rewrite_json = False, \
                 continue
 
             try:
-                modis_date_list, file_list = download_MODIS_swath(CERES_date_str, \
-                        dest_dir = home_dir + '/data/MODIS/Aqua/', download = download)
+                #modis_date_list, modis_file_list = download_MODIS_swath(CERES_date_str, \
+                        #dest_dir = home_dir + '/data/MODIS/Aqua/', download = download)
+                download_dict = download_MODIS_swath(CERES_date_str, \
+                        dest_dir = modis_dir, download = download)
             except TypeError: 
                 print("ERROR: problems determining MODIS swath times " + \
                     "using CERES data")
@@ -576,30 +566,23 @@ def auto_all_download(date_str, download = True, rewrite_json = False, \
             nsidc_file = \
                 home_dir + '/data/NSIDC/NSIDC0051_SEAICE_PS_N25km_' + \
                 CERES_date_str[:8] + '_v2.0.nc'
-    
-            ##!#print(date_str)
-            ##!#print('    OMI - ', dstr)
-            ##!#print('  CERES - ', CERES_date_str)
-            ##!#print('  MODIS - ', *modis_date_list)
-            ##!#print('  NSIDC - ', CERES_date_str[:8])
-
-            ##!#print('   OMI file  - ', omi_shawn)
-            ##!#print(' CERES file  - ', ceres_file)
-            ##!#print(' MODIS files - ', file_list)
-            ##!#print('  NSIDC file - ', nsidc_file)
-
+   
             out_time_dict[dstr] = {}
             out_time_dict[dstr]['CERES'] = CERES_date_str
-            out_time_dict[dstr]['MODIS'] = modis_date_list
+            out_time_dict[dstr]['MODIS'] = download_dict['modis_date_list']
             out_time_dict[dstr]['NSIDC'] = CERES_date_str[:8]
 
-            ##out_file_dict[dstr] = {}
-            ##out_file_dict[dstr]['OMI'] = omi_shawn
-            ##out_file_dict[dstr]['CERES'] = ceres_file
-            ##out_file_dict[dstr]['MODIS'] = file_list
-            ##out_file_dict[dstr]['NSIDC'] = nsidc_file
+            # Download the TROPOMI file here (and/or get its name)
+            # ----------------------------------------------------
+            if(include_tropomi & (dt_date_str.year > 2017)):                    
+                trop_name = download_TROPOMI_file(dstr)
+                trop_time = datetime.strptime(\
+                    trop_name.strip().split('/')[-1].split('_')[2][:16],\
+                    '%Ym%m%dt%H%M%S').strftime('%Y%m%d%H%M')
+                out_time_dict[dstr]['TROPOMI'] = trop_time
 
-            dt_date_str = datetime.strptime(modis_date_list[0], '%Y%m%d%H%M')
+            dt_date_str = datetime.strptime(\
+                download_dict['modis_date_list'][0], '%Y%m%d%H%M')
             local_date = dt_date_str.strftime('%Y-%m-%d')
             if(local_date not in out_file_dict.keys()):
                 out_file_dict[local_date] = {}
@@ -608,7 +591,13 @@ def auto_all_download(date_str, download = True, rewrite_json = False, \
             if('Lon' not in out_file_dict[local_date].keys()):
                 out_file_dict[local_date]['Lon'] = [-180., 180.]
        
-            for ttime, tfile in zip(modis_date_list, file_list):
+            #for ttime, tfile in zip(modis_date_list, file_list):
+            for ii in range(len(download_dict['modis_date_list'])):
+
+                ttime = download_dict['modis_date_list'][ii]
+                mfile = download_dict['modis_file_list'][ii]
+                cfile = download_dict['cldmk_file_list'][ii]               
+ 
                 dt_date_str = datetime.strptime(ttime, '%Y%m%d%H%M')
 
                 local_time = dt_date_str.strftime('%H%M')
@@ -618,14 +607,21 @@ def auto_all_download(date_str, download = True, rewrite_json = False, \
 
                 # Make sure the MODIS files have the path attached
                 # ------------------------------------------------
-                if(len(tfile.split('/')) == 1):
-                    tfile = '/home/bsorenson/data/MODIS/Aqua/' + tfile
+                if(len(mfile.split('/')) == 1):
+                    mfile = modis_dir + 'MYD/' + mfile
+                if(len(cfile.split('/')) == 1):
+                    cfile = modis_dir + 'CLDMSK/' + cfile
 
                 out_file_dict[local_date][local_time]['omi']   = omi_file
+                if(include_tropomi & (dt_date_str.year > 2017)):                    
+                    out_file_dict[local_date][local_time]['tropomi'] = \
+                        home_dir + '/data/TROPOMI/' + trop_name
                 out_file_dict[local_date][local_time]['ceres'] = ceres_file
-                out_file_dict[local_date][local_time]['modis'] = tfile
+                out_file_dict[local_date][local_time]['modis'] = mfile
+                out_file_dict[local_date][local_time]['modis_cloud'] = cfile
                 out_file_dict[local_date][local_time]['ceres_time'] = CERES_date_str[8:10]
-                out_file_dict[local_date][local_time]['swath']      = modis_date_list
+                out_file_dict[local_date][local_time]['swath']      = \
+                    download_dict['modis_date_list']
                 if('Lat' not in out_file_dict[local_date][local_time].keys()):
                     out_file_dict[local_date][local_time]['Lat'] = [60., 90.]
                 elif( (out_file_dict[local_date]['Lat'] != [60., 90.]) & 
@@ -692,6 +688,11 @@ def read_colocated(date_str, minlat = 70., zoom = True, \
             date_str = date_str2
             data = h5py.File(filename,'r')
         
+    if('modis_ch2' in data.keys()):
+        print("ERROR: Using old version of colocated file that uses MODIS CH2")
+        print("       instead of MODIS CH1. Must reprocess file for ",date_str)
+        data.close()
+        return
 
     coloc_data = {}
     coloc_data['date_str'] = date_str
@@ -733,16 +734,20 @@ def read_colocated(date_str, minlat = 70., zoom = True, \
             coloc_data['TROP_SSA2'])
         coloc_data['TROP_SSA2'] = np.ma.masked_where(\
             coloc_data['TROP_SSA2'] == -999., coloc_data['TROP_SSA2'])
-    coloc_data['MODIS_CH2'] = np.ma.masked_where((\
-        data['modis_ch2'][:,:] == -999.) | (data['modis_ch2'][:,:] > 1.0), \
-        data['modis_ch2'][:,:])
-    coloc_data['MODIS_CH2'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
-        coloc_data['MODIS_CH2'])
+    coloc_data['MODIS_CH1'] = np.ma.masked_where((\
+        data['modis_ch1'][:,:] == -999.) | (data['modis_ch1'][:,:] > 1.0), \
+        data['modis_ch1'][:,:])
+    coloc_data['MODIS_CH1'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
+        coloc_data['MODIS_CH1'])
     coloc_data['MODIS_CH7'] = np.ma.masked_where((\
         data['modis_ch7'][:,:] == -999.) | (data['modis_ch7'][:,:] > 1.0), \
         data['modis_ch7'])
     coloc_data['MODIS_CH7'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
         coloc_data['MODIS_CH7'])
+    coloc_data['MODIS_CLD'] = np.ma.masked_where(\
+        (data['modis_cld'][:,:] < 0.), data['modis_cld'])
+    coloc_data['MODIS_CLD'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
+        coloc_data['MODIS_CLD'])
     coloc_data['NSIDC_ICE'] = np.ma.masked_where((\
         #data['nsidc_ice'][:,:] == -999.) | (data['nsidc_ice'][:,:] > 100.), \
         data['nsidc_ice'][:,:] == -999.) | (data['nsidc_ice'][:,:] > 100.) | \
@@ -815,9 +820,9 @@ def read_colocated_combined(date_str, zoom = True):
     total_data['date_str'] = date_str
 
     total_data['OMI'] = np.ma.masked_invalid(temp_data['OMI'][:,:])
-    total_data['MODIS_CH2'] = np.ma.masked_where((\
-        temp_data['MODIS_CH2'][:,:] == -999.) | (temp_data['MODIS_CH2'][:,:] > 1.0), \
-        temp_data['MODIS_CH2'][:,:])
+    total_data['MODIS_CH1'] = np.ma.masked_where((\
+        temp_data['MODIS_CH1'][:,:] == -999.) | (temp_data['MODIS_CH1'][:,:] > 1.0), \
+        temp_data['MODIS_CH1'][:,:])
     total_data['MODIS_CH7'] = np.ma.masked_where((\
         temp_data['MODIS_CH7'][:,:] == -999.) | (temp_data['MODIS_CH7'][:,:] > 1.0), \
         temp_data['MODIS_CH7'])
@@ -1054,7 +1059,7 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(date_str, ch1, \
         zoom = zoom, ax = ax1)
     plot_MODIS_channel(modis_date, ch1, swath = True, \
         zoom = zoom, ax = ax2, vmax = 0.4)
-    #plot_MODIS_channel(modis_date_str, ch2, swath = True, \
+    #plot_MODIS_channel(modis_date_str, ch1, swath = True, \
     #    zoom = zoom, ax = ax3)
 
     # Plot the NSIDC data
@@ -1088,10 +1093,13 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(date_str, ch1, \
         plt.show()
 
 def plot_spatial(ax, lon, lat, data, date_str, cmap = 'Greys_r', \
-        plabel = '', colorbar = True, zoom = False, xmin = None):
+        plabel = '', colorbar = True, zoom = False, vmin = None, \
+        vmax = None):
   
-    if(xmin is not None):
+    if(vmin is not None):
         data = np.ma.masked_where(data < xmin, data) 
+    if(vmax is not None):
+        data = np.ma.masked_where(data > vmax, data) 
      
     mesh = ax.pcolormesh(lon, lat, data, \
                    transform = datacrs, shading = 'auto', cmap = cmap)
@@ -1141,9 +1149,9 @@ def plot_compare_colocate_spatial(coloc_data, minlat = 65., zoom = False, \
     pdate = dt_date_str.strftime('%Y-%m-%d') 
     # Plot the MODIS true-color and channel data
     # ------------------------------------------
-    plot_spatial(ax1, coloc_data['LON'], coloc_data['LAT'], coloc_data['MODIS_CH2'], \
+    plot_spatial(ax1, coloc_data['LON'], coloc_data['LAT'], coloc_data['MODIS_CH1'], \
         pdate, cmap = 'Greys_r', zoom = zoom)
-    ##!#ax1.pcolormesh(coloc_data['LON'], coloc_data['LAT'], coloc_data['MODIS_CH2'], \
+    ##!#ax1.pcolormesh(coloc_data['LON'], coloc_data['LAT'], coloc_data['MODIS_CH1'], \
     ##!#    transform = datacrs, shading = 'auto', cmap = 'Greys_r')
     ##!#ax1.coastlines()
     ##!#ax1.set_extent([-180, 180, 60, 90], datacrs)
@@ -1257,6 +1265,56 @@ def plot_compare_scatter(coloc_data, var1, var2, var3 = None, minlat = 65., \
     else:
         plt.show()
 
+def plot_compare_colocate_cloud(coloc_data, save = False):
+
+    if(isinstance(coloc_data, str)):
+        dt_date_str = datetime.strptime(coloc_data, '%Y%m%d%H%M')
+        coloc_data = read_colocated(coloc_data)
+    else:
+        dt_date_str = datetime.strptime(coloc_data['date_str'], '%Y%m%d%H%M')
+
+    pdate = dt_date_str.strftime('%Y-%m-%d') 
+
+    plt.close('all')
+    mapcrs = ccrs.NorthPolarStereo()
+    fig = plt.figure(figsize = (9, 9))
+    ax1 = fig.add_subplot(2,2,1, projection = mapcrs)
+    ax2 = fig.add_subplot(2,2,2, projection = mapcrs)
+    ax3 = fig.add_subplot(2,2,3, projection = mapcrs)
+    ax4 = fig.add_subplot(2,2,4, projection = mapcrs)
+    
+    zoom = False
+    plot_spatial(ax1, coloc_data['LON'], coloc_data['LAT'], \
+        coloc_data['MODIS_CH1'], \
+        pdate, cmap = 'Greys_r', zoom = zoom)
+    plot_spatial(ax2, coloc_data['LON'], coloc_data['LAT'], \
+        coloc_data['MODIS_CH7'], \
+        pdate, cmap = 'Greys_r', vmax = 0.4, zoom = zoom)
+    plot_spatial(ax3, coloc_data['LON'], coloc_data['LAT'], \
+        coloc_data['MODIS_CLD'], \
+        pdate, cmap = 'jet', zoom = zoom)
+    plot_spatial(ax4, coloc_data['LON'], coloc_data['LAT'], \
+        coloc_data['OMI_RAW'], \
+        pdate, cmap = 'jet', zoom = zoom)
+
+    ax1.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
+    ax2.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
+    ax3.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
+    ax4.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
+    ax1.coastlines()
+    ax2.coastlines()
+    ax3.coastlines()
+    ax4.coastlines()
+
+    fig.tight_layout()
+
+    if(save):
+        outname = 'arctic_comp_cloud_' + date_str + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image",outname)
+    else:
+        plt.show()
+
 def plot_compare_colocate_spatial_category(coloc_data, cat = 'ALL', minlat = 65., \
         zoom = False, save = False):
 
@@ -1290,10 +1348,10 @@ def plot_compare_colocate_spatial_category(coloc_data, cat = 'ALL', minlat = 65.
     # Plot the MODIS true-color and channel data
     # ------------------------------------------
     plot_spatial(ax1, coloc_data['LON'], coloc_data['LAT'], \
-        select_category(coloc_data, 'MODIS_CH2', cat), \
-        #np.ma.masked_where(coloc_data[plot_var].mask, coloc_data['MODIS_CH2']), \
+        select_category(coloc_data, 'MODIS_CH1', cat), \
+        #np.ma.masked_where(coloc_data[plot_var].mask, coloc_data['MODIS_CH1']), \
         pdate, cmap = 'Greys_r', zoom = zoom)
-    ##!#ax1.pcolormesh(coloc_data['LON'], coloc_data['LAT'], coloc_data['MODIS_CH2'], \
+    ##!#ax1.pcolormesh(coloc_data['LON'], coloc_data['LAT'], coloc_data['MODIS_CH1'], \
     ##!#    transform = datacrs, shading = 'auto', cmap = 'Greys_r')
     ##!#ax1.coastlines()
     ##!#ax1.set_extent([-180, 180, 60, 90], datacrs)
@@ -1768,7 +1826,7 @@ def plot_compare_combined_category(coloc_data, var1 = 'OMI', \
     pdate = dt_date_str.strftime('%Y-%m-%d') 
     # Plot the MODIS true-color and channel data
     # ------------------------------------------
-    plot_spatial(ax1, coloc_data['LON'], coloc_data['LAT'], coloc_data['MODIS_CH2'], \
+    plot_spatial(ax1, coloc_data['LON'], coloc_data['LAT'], coloc_data['MODIS_CH1'], \
         pdate, cmap = 'Greys_r', zoom = zoom)
     plot_spatial(ax2, coloc_data['LON'], coloc_data['LAT'], coloc_data['MODIS_CH7'], \
         pdate, cmap = 'Greys_r', zoom = zoom)
@@ -2890,7 +2948,7 @@ def calc_raw_grid_slopes(combined_data, comp_grid_data, \
     
                 # Calculate slopes 
                 # ----------------
-                if(len(grid_xdata) > 20):
+                if((len(grid_xdata) > 20) & (len(raw_xdata) > 20)):
                     if(trend_type == 'theil-sen'):
                         res = stats.theilslopes(raw_ydata, raw_xdata, 0.90)
                         raw_slopes[ii,jj,kk]   = res[0]
@@ -3083,15 +3141,21 @@ def plot_raw_grid_slopes(out_dict, vmin = -10, vmax = 10, \
     else: 
         plt.show()
 
+# dtype: 'raw','grid'
 def plot_compare_grid_climo_stderr(comp_grid_data,  \
-        xval, ice_idx, save = False):
-
-    checker = xval.split('_')[0]
+        dtype, ice_idx, save = False):
 
     vmin = -15
     vmax = 15
-    
-    fig = plt.figure(figsize = (9, 4))
+   
+    label_dict = {
+        0: 'Ocean',
+        1: 'Ice',\
+        2: 'Land',
+    }
+
+    plt.close('all') 
+    fig = plt.figure(figsize = (7.5, 3.5))
     ax1 = fig.add_subplot(1,2,1)
     ax2 = fig.add_subplot(1,2,2)
    
@@ -3101,14 +3165,43 @@ def plot_compare_grid_climo_stderr(comp_grid_data,  \
     colorvals = np.arange(0, 6, 1)
     norm = cm.BoundaryNorm(colorvals, cmap2.N, extend = 'upper')
     mesh = ax1.pcolormesh(comp_grid_data['sza_mins'], comp_grid_data['ch7_mins'], \
-        comp_grid_data[xval][ice_idx,:,:], \
+        comp_grid_data[dtype + '_slopes'][ice_idx,:,:], \
         cmap = cmap, shading = 'auto', vmin = vmin, vmax = vmax)
     cbar = plt.colorbar(mesh,\
         ax = ax1, orientation='vertical',shrink = shrk, extend = 'both')
+    cbar.set_label('AI - SWF slope [Wm$^{-2}$/AI]')
+    ax1.set_xlabel('SZA')
+    ax1.set_ylabel('CH7')
+    ax1.set_title(dtype.title() + ' ' + label_dict[ice_idx] + ' Forcing')
+
+
     mesh = ax2.pcolormesh(comp_grid_data['sza_mins'], comp_grid_data['ch7_mins'], \
-        comp_grid_data[checker + '_stderr'][ice_idx,:,:], \
+        comp_grid_data[dtype + '_stderr'][ice_idx,:,:], \
         norm = norm, cmap = 'jet', shading = 'auto')
     cbar = plt.colorbar(ScalarMappable(norm = norm, cmap = cmap2),\
         ax = ax2, orientation='vertical',shrink = shrk, extend = 'both')
+    cbar.set_label('AI - SWF Slope Standard Error')
+    ax2.set_xlabel('SZA')
+    ax2.set_ylabel('CH7')
+    ax2.set_title(dtype.title() + ' ' + label_dict[ice_idx] + ' Slope Error')
+
+    
+    if(comp_grid_data['smoother'] == 'None'):
+        title_str = 'Unsmoothed'
+        out_adder = ''
+    elif(comp_grid_data['smoother'] == 'smooth'):
+        title_str = '1-Bin Smoothed'
+        out_adder = '_smooth1bin'
+    elif(comp_grid_data['smoother'] == 'smoother'):
+        title_str = '2-Bin Smoothed'
+        out_adder = '_smooth2bin'
+
+    plt.suptitle(title_str)
+
     fig.tight_layout()
-    plt.show()
+    if(save):
+        outname = 'comp_grid_climo_stderr_' + dtype + out_adder + '_' + label_dict[ice_idx] + '.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()

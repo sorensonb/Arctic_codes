@@ -24,6 +24,8 @@ if(home_dir + '/Research/OMI/' not in sys.path):
 from OMILib import readOMI_swath_shawn, plotOMI_single_swath, \
     readOMI_swath_hdf
 
+sys.exit()
+
 #date_str = '201807052142'
 #date_str = '201908110044'
 date_str = '201807051819'

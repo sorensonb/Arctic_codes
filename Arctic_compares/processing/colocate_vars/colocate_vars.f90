@@ -44,8 +44,9 @@ module colocate_vars
   integer(hsize_t), dimension(:), allocatable       :: TROP_SSA0_dims
   integer(hsize_t), dimension(:), allocatable       :: TROP_SSA1_dims
   integer(hsize_t), dimension(:), allocatable       :: TROP_SSA2_dims
-  integer(hsize_t), dimension(:), allocatable       :: MODIS_CH2_dims
+  integer(hsize_t), dimension(:), allocatable       :: MODIS_CH1_dims
   integer(hsize_t), dimension(:), allocatable       :: MODIS_CH7_dims
+  integer(hsize_t), dimension(:), allocatable       :: MODIS_CLD_dims
   integer(hsize_t), dimension(:), allocatable       :: MODIS_LAT_dims
   integer(hsize_t), dimension(:), allocatable       :: MODIS_LON_dims
   integer(hsize_t), dimension(:), allocatable       :: NSIDC_dims
@@ -65,8 +66,9 @@ module colocate_vars
   integer(hsize_t), dimension(:), allocatable       :: TROP_out_SSA2_dims
   integer(hsize_t), dimension(:), allocatable       :: TROP_out_LAT_dims
   integer(hsize_t), dimension(:), allocatable       :: TROP_out_LON_dims
-  integer(hsize_t), dimension(:), allocatable       :: MODIS_out_CH2_dims
+  integer(hsize_t), dimension(:), allocatable       :: MODIS_out_CH1_dims
   integer(hsize_t), dimension(:), allocatable       :: MODIS_out_CH7_dims
+  integer(hsize_t), dimension(:), allocatable       :: MODIS_out_CLD_dims
   integer(hsize_t), dimension(:), allocatable       :: MODIS_out_LAT_dims
   integer(hsize_t), dimension(:), allocatable       :: MODIS_out_LON_dims
   integer(hsize_t), dimension(:), allocatable       :: NSIDC_out_dims
@@ -99,8 +101,9 @@ module colocate_vars
   real(kind=8), dimension(:,:), allocatable, target   :: TROP_SSA0_data
   real(kind=8), dimension(:,:), allocatable, target   :: TROP_SSA1_data
   real(kind=8), dimension(:,:), allocatable, target   :: TROP_SSA2_data
-  real(kind=8), dimension(:,:), allocatable, target   :: MODIS_CH2_data
+  real(kind=8), dimension(:,:), allocatable, target   :: MODIS_CH1_data
   real(kind=8), dimension(:,:), allocatable, target   :: MODIS_CH7_data
+  real(kind=8), dimension(:,:), allocatable, target   :: MODIS_CLD_data
   real(kind=8), dimension(:,:), allocatable, target   :: MODIS_LAT_data
   real(kind=8), dimension(:,:), allocatable, target   :: MODIS_LON_data
   real(kind=8), dimension(:,:), allocatable, target   :: NSIDC_data
@@ -114,8 +117,9 @@ module colocate_vars
 
   ! Data for output data
   ! --------------------
-  real(kind=8), dimension(:,:), allocatable, target :: MODIS_out_CH2_data
+  real(kind=8), dimension(:,:), allocatable, target :: MODIS_out_CH1_data
   real(kind=8), dimension(:,:), allocatable, target :: MODIS_out_CH7_data
+  real(kind=8), dimension(:,:), allocatable, target :: MODIS_out_CLD_data
   real(kind=8), dimension(:,:), allocatable, target :: MODIS_out_LAT_data
   real(kind=8), dimension(:,:), allocatable, target :: MODIS_out_LON_data
   real(kind=8), dimension(:,:), allocatable, target :: NSIDC_out_data
@@ -148,7 +152,7 @@ module colocate_vars
 
     ! Dimensions for output data
     ! --------------------------
-    !!#!allocate(MODIS_out_CH2_dims)
+    !!#!allocate(MODIS_out_CH1_dims)
     !!#!allocate(MODIS_out_CH7_dims)
     !!#!allocate(MODIS_out_LAT_dims)
     !!#!allocate(MODIS_out_LON_dims)
@@ -166,8 +170,9 @@ module colocate_vars
     allocate(TROP_out_SSA0_data(dim1, dim2), stat = error)
     allocate(TROP_out_SSA1_data(dim1, dim2), stat = error)
     allocate(TROP_out_SSA2_data(dim1, dim2), stat = error)
-    allocate(MODIS_out_CH2_data(dim1, dim2), stat = error)
+    allocate(MODIS_out_CH1_data(dim1, dim2), stat = error)
     allocate(MODIS_out_CH7_data(dim1, dim2), stat = error)
+    allocate(MODIS_out_CLD_data(dim1, dim2), stat = error)
     allocate(NSIDC_out_data(dim1, dim2), stat = error)
     allocate(CERES_out_LWF_data(dim1, dim2), stat = error)
     allocate(CERES_out_SWF_data(dim1, dim2), stat = error)
@@ -212,8 +217,9 @@ module colocate_vars
       if(allocated(TROP_SSA0_dims))        deallocate(TROP_SSA0_dims)
       if(allocated(TROP_SSA1_dims))        deallocate(TROP_SSA1_dims)
       if(allocated(TROP_SSA2_dims))        deallocate(TROP_SSA2_dims)
-      if(allocated(MODIS_CH2_dims))        deallocate(MODIS_CH2_dims)
+      if(allocated(MODIS_CH1_dims))        deallocate(MODIS_CH1_dims)
       if(allocated(MODIS_CH7_dims))        deallocate(MODIS_CH7_dims)
+      if(allocated(MODIS_CLD_dims))        deallocate(MODIS_CLD_dims)
       if(allocated(MODIS_LAT_dims))        deallocate(MODIS_LAT_dims)
       if(allocated(MODIS_LON_dims))        deallocate(MODIS_LON_dims)
       if(allocated(NSIDC_dims))            deallocate(NSIDC_dims)
@@ -233,8 +239,9 @@ module colocate_vars
       if(allocated(TROP_out_SSA2_dims))   deallocate(TROP_out_SSA2_dims)
       if(allocated(TROP_out_LAT_dims))    deallocate(TROP_out_LAT_dims)
       if(allocated(TROP_out_LON_dims))    deallocate(TROP_out_LON_dims)
-      if(allocated(MODIS_out_CH2_dims))   deallocate(MODIS_out_CH2_dims)
+      if(allocated(MODIS_out_CH1_dims))   deallocate(MODIS_out_CH1_dims)
       if(allocated(MODIS_out_CH7_dims))   deallocate(MODIS_out_CH7_dims)
+      if(allocated(MODIS_out_CLD_dims))   deallocate(MODIS_out_CLD_dims)
       if(allocated(MODIS_out_LAT_dims))   deallocate(MODIS_out_LAT_dims)
       if(allocated(MODIS_out_LON_dims))   deallocate(MODIS_out_LON_dims)
       if(allocated(NSIDC_out_dims))       deallocate(NSIDC_out_dims)
@@ -267,8 +274,9 @@ module colocate_vars
       if(allocated(TROP_SSA0_data))        deallocate(TROP_SSA0_data)
       if(allocated(TROP_SSA1_data))        deallocate(TROP_SSA1_data)
       if(allocated(TROP_SSA2_data))        deallocate(TROP_SSA2_data)
-      if(allocated(MODIS_CH2_data))        deallocate(MODIS_CH2_data)
+      if(allocated(MODIS_CH1_data))        deallocate(MODIS_CH1_data)
       if(allocated(MODIS_CH7_data))        deallocate(MODIS_CH7_data)
+      if(allocated(MODIS_CLD_data))        deallocate(MODIS_CLD_data)
       if(allocated(MODIS_LAT_data))        deallocate(MODIS_LAT_data)
       if(allocated(MODIS_LON_data))        deallocate(MODIS_LON_data)
       if(allocated(NSIDC_data))            deallocate(NSIDC_data)
@@ -288,8 +296,9 @@ module colocate_vars
       if(allocated(TROP_out_SSA2_data))   deallocate(TROP_out_SSA2_data)
       if(allocated(TROP_out_LAT_data))    deallocate(TROP_out_LAT_data)
       if(allocated(TROP_out_LON_data))    deallocate(TROP_out_LON_data)
-      if(allocated(MODIS_out_CH2_data))   deallocate(MODIS_out_CH2_data)
+      if(allocated(MODIS_out_CH1_data))   deallocate(MODIS_out_CH1_data)
       if(allocated(MODIS_out_CH7_data))   deallocate(MODIS_out_CH7_data)
+      if(allocated(MODIS_out_CLD_data))   deallocate(MODIS_out_CLD_data)
       if(allocated(MODIS_out_LAT_data))   deallocate(MODIS_out_LAT_data)
       if(allocated(MODIS_out_LON_data))   deallocate(MODIS_out_LON_data)
       if(allocated(NSIDC_out_data))       deallocate(NSIDC_out_data)

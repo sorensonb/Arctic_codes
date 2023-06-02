@@ -9,6 +9,36 @@ import Arctic_compare_lib
 from Arctic_compare_lib import *
 
 
+#coloc_data = '201807050048'
+#plot_compare_colocate_cloud(coloc_data, save = False)
+#sys.exit()
+
+run_list = ['20060724','20060725','20060726','20060727','20080422',\
+    '20140811','20140812','20150627','20150706','20150707','20150708',\
+    '20150709','20150710','20170816','20170817','20170818','20170819',\
+    '20180704','20180705','20180721','20180810','20180814']
+
+run_list = [\
+    '20180826','20190810','20190811','20210801']
+
+# NOTE: RERUN FOR THE 2017 DAYS, BUT TEMPORARILY MOVING THE GIANT
+#       CERES SSFL2 FILES THAT WERE USED FOR THE NAAPS ALBEDO
+#       STUDY. SLOWING DOWN THE RUNTIME SUBSTANTIALLY
+
+#run_list = ['20060725']
+#run_list = ['20200722', '20200723']
+#run_list = ['20180721','20180810','20180826','20180827']
+#run_list = ['20180721','20180810','20180814','20180826','20180827']
+#run_list = ['20180721','20170814','20100731','20100801']
+#final_list = entire_wrapper(min_AI = 2.0, minlat = 70., download = True, \
+#    images = False, process = False, run_list = run_list, copy_to_raindrop = False)
+final_list = entire_wrapper(min_AI = 2.0, minlat = 70., download = False, \
+    images = False, process = True, run_list = run_list, copy_to_raindrop = True, \
+    include_tropomi = True, remove_ch2_file = True)
+
+sys.exit()
+
+
 #filename = 'comp_grid_climo_v1.hdf5'
 #filename = 'comp_grid_climo_v2.hdf5'
 #filename = 'comp_grid_climo_v3.hdf5'
@@ -467,28 +497,7 @@ thl_smth2_dict = calc_raw_grid_slopes(\
 
 sys.exit()
 
-vmin = -15
-vmax = 15
-
-fig = plt.figure()
-ax1 = fig.add_subplot(1,2,1)
-ax2 = fig.add_subplot(1,2,2)
-
-shrink = 1.0
-mesh = ax1.pcolormesh(lin_smth2_dict['sza_mins'], lin_smth2_dict['ch7_mins'], \
-    lin_smth2_dict['raw_slopes'][2,:,:], \
-    cmap = cmap, shading = 'auto', vmin = vmin, vmax = vmax)
-cbar = plt.colorbar(mesh,\
-    ax = ax1, orientation='vertical',shrink = shrk, extend = 'both')
-mesh = ax2.pcolormesh(lin_smth2_dict['sza_mins'], lin_smth2_dict['ch7_mins'], \
-    lin_smth2_dict['raw_stderr'][2,:,:], \
-    cmap = 'jet', shading = 'auto')
-cbar = plt.colorbar(mesh,\
-    ax = ax2, orientation='vertical',shrink = shrk, extend = 'both')
-fig.tight_layout()
-plt.show()
-
-sys.exit()
+plot_compare_grid_climo_stderr(lin_smth_dict, 'raw_land', 2, save = False)
 
 plot_raw_grid_slopes(thl_raw_dict, save = False, vmin = -15, vmax = 15)
 plot_raw_grid_slopes(thl_smth_dict, save = False, vmin = -15, vmax = 15)
@@ -549,37 +558,6 @@ sys.exit()
 
 
 
-
-
-run_list = ['20060724', \
-    '20060725','20060726','20060727','20080422',\
-    '20140811','20140812','20150627','20150706','20150707','20150708',\
-    '20150709','20150710','20170816','20170817','20170818','20170819']
-
-run_list = [
-    '20180704']
-
-run_list = ['20180705','20180721','20180810','20180814', \
-    '20180824','20180826','20190810','20190811','20210801']
-
-#run_list = ['20060725']
-
-# NOTE: RERUN FOR THE 2017 DAYS, BUT TEMPORARILY MOVING THE GIANT
-#       CERES SSFL2 FILES THAT WERE USED FOR THE NAAPS ALBEDO
-#       STUDY. SLOWING DOWN THE RUNTIME SUBSTANTIALLY
-
-#run_list = ['20060725']
-#run_list = ['20200722', '20200723']
-#run_list = ['20180721','20180810','20180826','20180827']
-#run_list = ['20180721','20180810','20180814','20180826','20180827']
-#run_list = ['20180721','20170814','20100731','20100801']
-#final_list = entire_wrapper(min_AI = 2.0, minlat = 70., download = True, \
-#    images = False, process = False, run_list = run_list, copy_to_raindrop = False)
-final_list = entire_wrapper(min_AI = 2.0, minlat = 70., download = False, \
-    images = False, process = True, run_list = run_list, copy_to_raindrop = True, \
-    include_tropomi = False)
-
-sys.exit()
 
 
 

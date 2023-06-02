@@ -205,9 +205,15 @@ def automate_TROPOMI_preprocess(date_str, download = True, images = True, \
             #print(local_trop_time)
 
 def generate_TROPOMI_prep_data(date_str, copy_to_raindrop = False, \
-        minlat = 20., remove_empty_scans = False):
+        minlat = 20., remove_empty_scans = False, \
+        trop_time = None):
 
-    trop_name = download_TROPOMI_file(date_str)
+    if(trop_time is None):
+        trop_name = download_TROPOMI_file(date_str)
+    else:
+        dt_trop_time = datetime.strptime(trop_time, '%Y%m%d%H%M')
+        trop_name = glob(dt_trop_time.strftime(home_dir + '/data/TROPOMI/*AER_%Ym%m%dt%H%M*.nc'\
+            ))[0].strip().split('/')[-1]
 
     # Retrieve the OMI filename for this date
     # ---------------------------------------

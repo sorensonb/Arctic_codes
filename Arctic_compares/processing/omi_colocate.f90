@@ -34,8 +34,9 @@ program omi_colocate
   use colocate_vars, only : clear_arrays, i_bad_list, &
     find_distance_between_points, allocate_out_arrays, &
     pixel_in_box, &
-    MODIS_CH2_data, MODIS_CH2_dims, &
+    MODIS_CH1_data, MODIS_CH1_dims, &
     MODIS_CH7_data, MODIS_CH7_dims, &
+    MODIS_CLD_data, MODIS_CLD_dims, &
     MODIS_LAT_data, MODIS_LAT_dims, &
     MODIS_LON_data, MODIS_LON_dims, &
     NSIDC_data,     NSIDC_dims, &
@@ -43,7 +44,7 @@ program omi_colocate
     NSIDC_LON_data, NSIDC_LON_dims, &
     CERES_LWF_data, CERES_LWF_dims, &
     CERES_SWF_data, CERES_SWF_dims, &
-    CERES_CLD_data, CERES_CLD_dims, &
+    !CERES_CLD_data, CERES_CLD_dims, &
     CERES_LAT_data, CERES_LAT_dims, &
     CERES_LON_data, CERES_LON_dims, &
     OMI_AI_data,    OMI_AI_dims, &
@@ -59,14 +60,15 @@ program omi_colocate
     TROP_SSA0_data, TROP_SSA0_dims, &
     TROP_SSA1_data, TROP_SSA1_dims, &
     TROP_SSA2_data, TROP_SSA2_dims, &
-    MODIS_out_CH2_data, &
+    MODIS_out_CH1_data, &
     MODIS_out_CH7_data, &
+    MODIS_out_CLD_data, &
     !MODIS_out_LAT_data, &
     !MODIS_out_LON_data, &
     NSIDC_out_data,     &
     !NSIDC_out_LAT_data, &
     !NSIDC_out_LON_data, &
-    CERES_out_CLD_data, &
+    !CERES_out_CLD_data, &
     CERES_out_LWF_data, &
     CERES_out_SWF_data   
     !CERES_out_LAT_data, &
@@ -108,7 +110,7 @@ program omi_colocate
   integer                :: dspace_id_CSW  ! CERES SWF
   !integer                :: dspace_id_MLT  ! MODIS LAT
   !integer                :: dspace_id_MLN  ! MODIS LON
-  integer                :: dspace_id_MC2  ! MODIS CH2
+  integer                :: dspace_id_MC2  ! MODIS CH1
   integer                :: dspace_id_MC7  ! MODIS CH7
   !integer                :: dspace_id_NLT  ! NSIDC LAT
   !integer                :: dspace_id_NLN  ! NSIDC LON
@@ -131,7 +133,7 @@ program omi_colocate
   integer                :: dset_id_CSW  ! CERES SWF
   !integer                :: dset_id_MLT  ! MODIS LAT
   !integer                :: dset_id_MLN  ! MODIS LON
-  integer                :: dset_id_MC2  ! MODIS CH2
+  integer                :: dset_id_MC2  ! MODIS CH1
   integer                :: dset_id_MC7  ! MODIS CH7
   !integer                :: dset_id_NLT  ! NSIDC LAT
   !integer                :: dset_id_NLN  ! NSIDC LON
@@ -153,9 +155,13 @@ program omi_colocate
   real                   :: match_data2
   real                   :: local_trop_ai
 
-  real                   :: run_modis_total_ch2
+  real                   :: run_modis_total_ch1
   real                   :: run_modis_total_ch7
   integer                :: count_modis_total 
+  integer                :: count_modis_cld0
+  integer                :: count_modis_cld1
+  integer                :: count_modis_cld2
+  integer                :: count_modis_cld3
 
   !!#!real                   :: lat_thresh    ! latitude threshold. Only analyze
   !!#!                                        ! data north of this value.
@@ -236,7 +242,7 @@ program omi_colocate
   ! ----------------------------
   call h5fopen_f(trim(modis_name1), H5F_ACC_RDWR_F, modis1_file_id, error)
   if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open MODIS CH2 file'
+    write(*,*) 'FATAL ERROR: could not open MODIS CH1 file'
     return
   endif
 
@@ -294,14 +300,15 @@ program omi_colocate
 
   endif
 
-  call read_comp_MODIS_CH2(modis1_file_id)
+  call read_comp_MODIS_CH1(modis1_file_id)
   call read_comp_MODIS_CH7(modis2_file_id)
+  call read_comp_MODIS_CLD(modis2_file_id)
   call read_comp_MODIS_LAT(modis2_file_id)
   call read_comp_MODIS_LON(modis2_file_id)
   call read_comp_NSIDC_ICE(nsidc_file_id)
   call read_comp_NSIDC_LAT(nsidc_file_id)
   call read_comp_NSIDC_LON(nsidc_file_id)
-  call read_comp_CERES_CLD(ceres_file_id)
+  !call read_comp_CERES_CLD(ceres_file_id)
   call read_comp_CERES_SWF(ceres_file_id)
   call read_comp_CERES_LWF(ceres_file_id)
   call read_comp_CERES_LAT(ceres_file_id)
@@ -315,6 +322,8 @@ program omi_colocate
   call read_comp_OMI_SZA(omi_file_id)
   call read_comp_OMI_VZA(omi_file_id)
   call read_comp_OMI_AZM(omi_file_id)
+
+  write(*,*) 'CLOUD VALUE:',MODIS_CLD_data(100,10), maxval(MODIS_CLD_data)
 
   !test_dims = (/10, 20/)
   test_dims = (/OMI_AI_dims(1), OMI_AI_dims(2)/)
@@ -409,7 +418,7 @@ program omi_colocate
               closest_dist = distance
               !CERES_out_LAT_data(jj,ii) = CERES_LAT_data(njj, nii) 
               !CERES_out_LON_data(jj,ii) = CERES_LON_data(njj, nii) 
-              CERES_out_CLD_data(jj,ii) = CERES_CLD_data(njj, nii) 
+              !CERES_out_CLD_data(jj,ii) = CERES_CLD_data(njj, nii) 
               CERES_out_LWF_data(jj,ii) = CERES_LWF_data(njj, nii) 
               CERES_out_SWF_data(jj,ii) = CERES_SWF_data(njj, nii) 
             endif
@@ -422,7 +431,7 @@ program omi_colocate
         if(closest_dist > min_dist) then
           !CERES_out_LAT_data(jj,ii) = -999.
           !CERES_out_LON_data(jj,ii) = -999.
-          CERES_out_CLD_data(jj,ii) = -999.
+          !CERES_out_CLD_data(jj,ii) = -999.
           CERES_out_LWF_data(jj,ii) = -999.
           CERES_out_SWF_data(jj,ii) = -999.
         endif
@@ -430,7 +439,11 @@ program omi_colocate
         closest_dist = 999999.
 
         count_modis_total = 0
-        run_modis_total_ch2 = 0.0
+        count_modis_cld0  = 0
+        count_modis_cld1  = 0
+        count_modis_cld2  = 0
+        count_modis_cld3  = 0
+        run_modis_total_ch1 = 0.0
         run_modis_total_ch7 = 0.0
         
         modis_loop1: do nii=1,MODIS_LAT_dims(2)
@@ -441,12 +454,21 @@ program omi_colocate
             if(pixel_in_box(OMI_LATCRNR_data(:,jj,ii), OMI_LONCRNR_data(:,jj,ii), &
                 MODIS_LAT_data(njj,nii), MODIS_LON_data(njj,nii))) then
 
-                run_modis_total_ch2 = &
-                    run_modis_total_ch2 + MODIS_CH2_data(njj,nii)
-                run_modis_total_ch7 = &
-                    run_modis_total_ch7 + MODIS_CH7_data(njj,nii)
-                count_modis_total = count_modis_total + 1
+              run_modis_total_ch1 = &
+                  run_modis_total_ch1 + MODIS_CH1_data(njj,nii)
+              run_modis_total_ch7 = &
+                  run_modis_total_ch7 + MODIS_CH7_data(njj,nii)
+              count_modis_total = count_modis_total + 1
 
+              if(MODIS_CLD_data(njj,nii) == 0.) then
+                count_modis_cld0 = count_modis_cld0 + 1
+              else if(MODIS_CLD_data(njj,nii) == 1.) then
+                count_modis_cld1 = count_modis_cld1 + 1
+              else if(MODIS_CLD_data(njj,nii) == 2.) then
+                count_modis_cld2 = count_modis_cld2 + 1
+              else if(MODIS_CLD_data(njj,nii) == 3.) then
+                count_modis_cld3 = count_modis_cld3 + 1
+              endif
             endif
             !!#!! Calculate the distance between the current pixels
             !!#!! -------------------------------------------------
@@ -459,7 +481,7 @@ program omi_colocate
             !!#!  closest_dist = distance
             !!#!  !MODIS_out_LAT_data(jj,ii) = MODIS_LAT_data(njj, nii) 
             !!#!  !MODIS_out_LON_data(jj,ii) = MODIS_LON_data(njj, nii) 
-            !!#!  MODIS_out_CH2_data(jj,ii) = MODIS_CH2_data(njj, nii) 
+            !!#!  MODIS_out_CH1_data(jj,ii) = MODIS_CH1_data(njj, nii) 
             !!#!  MODIS_out_CH7_data(jj,ii) = MODIS_CH7_data(njj, nii) 
             !!#!endif
 
@@ -471,17 +493,103 @@ program omi_colocate
         !!#!if(closest_dist > min_dist) then
         !!#!  !MODIS_out_LAT_data(jj,ii) = -999.
         !!#!  !MODIS_out_LON_data(jj,ii) = -999.
-        !!#!  MODIS_out_CH2_data(jj,ii) = -999.
+        !!#!  MODIS_out_CH1_data(jj,ii) = -999.
         !!#!  MODIS_out_CH7_data(jj,ii) = -999.
         !!#!endif
         if(count_modis_total == 0) then
           !MODIS_out_LAT_data(jj,ii) = -999.
           !MODIS_out_LON_data(jj,ii) = -999.
-          MODIS_out_CH2_data(jj,ii) = -999.
+          MODIS_out_CH1_data(jj,ii) = -999.
           MODIS_out_CH7_data(jj,ii) = -999.
+          MODIS_out_CLD_data(jj,ii) = -999.
         else
-          MODIS_out_CH2_data(jj,ii) = run_modis_total_ch2 / count_modis_total
+          MODIS_out_CH1_data(jj,ii) = run_modis_total_ch1 / count_modis_total
           MODIS_out_CH7_data(jj,ii) = run_modis_total_ch7 / count_modis_total
+
+          ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+          !
+          ! Examples of the cases for below:
+          !   [xx,yy,zz,aa]
+          !     - xx = counts of "clear"
+          !     - yy = counts of "probably clear"
+          !     - zz = counts of "probably cloudy"
+          !     - aa = counts of "clear"
+          !
+          ! "Cloudy" (out cloud value = 0.)
+          !   - [2,0,0,0]
+          !   - [2,0,0,1]
+          !   - [2,0,1,1]
+          !   - [2,1,0,0]
+          !   - [2,1,1,0]
+          !   - [2,1,0,1]
+          ! "Probably Cloudy" (out cloud value = 1.)
+          !   - [0,1,0,0]
+          !   - [0,2,2,0]
+          !   - [0,2,0,1]
+          !   - [0,2,1,0]
+          !   - [2,2,0,0]
+          !
+          ! "Probably Clear" (out cloud value = 2.)
+          !   - [0,0,2,0]
+          !   - [0,0,1,1]
+          !   - [0,2,2,2]
+          !   - [0,1,2,0]
+          !   - [0,1,2,1]
+          !   - [0,1,2,2]
+          !
+          ! "Clear" (out cloud value = 3.)
+          !   - [0,0,0,2]
+          !   - [0,0,1,2]
+          !   - [0,1,0,2]
+          !   - [0,1,1,2]
+          !   - [1,0,0,1]
+          !   - [1,0,1,1]
+          !   - [2,2,2,2]
+          !
+          ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+
+          ! "Clear" final pixels are only ones in which the 
+          ! majority of the pixels in this OMI pixel are clear
+          ! --------------------------------------------------
+          if(  ((count_modis_cld3 > count_modis_cld0) .and. &
+                (count_modis_cld3 > count_modis_cld1) .and. &
+                (count_modis_cld3 > count_modis_cld2))) then
+            MODIS_out_CLD_data(jj,ii) = 3.
+          ! "Probably clear" final pixels are only ones in which the 
+          ! majority of the pixels in this OMI pixel are probably clear
+          ! OR 
+          ! the number of "probably clear" pixels is the same as the
+          ! number of "clear" and "probably cloudy" pixels
+          ! --------------------------------------------------
+          else if(((count_modis_cld2 > count_modis_cld3) .and. &
+                   (count_modis_cld2 > count_modis_cld1) .and. &
+                   (count_modis_cld2 > count_modis_cld0)) .or. &
+                  ((count_modis_cld3 > count_modis_cld0) .and. &
+                   (count_modis_cld2 >= count_modis_cld3) .and. &
+                   (count_modis_cld2 >= count_modis_cld1)) .or. &
+                  ((count_modis_cld3 == count_modis_cld0) .and. &
+                   (count_modis_cld2 > count_modis_cld3) .and. &
+                   (count_modis_cld2 == count_modis_cld1))) then
+            MODIS_out_CLD_data(jj,ii) = 2.
+          ! If there are the same number of "clear" and "cloudy"
+          ! pixels, classify final pixel as "cloudy"
+          ! ----------------------------------------------------
+          else if(((count_modis_cld1 > count_modis_cld1) .and. &
+                   (count_modis_cld1 > count_modis_cld2) .and. &
+                   (count_modis_cld1 > count_modis_cld0)) .or. &
+                  ((count_modis_cld0 > count_modis_cld3) .and. &
+                   (count_modis_cld1 >= count_modis_cld0) .and. &
+                   (count_modis_cld2 <= count_modis_cld1)) .or. &
+                  ((count_modis_cld3 == count_modis_cld1) .and. &
+                   (count_modis_cld3 > count_modis_cld0) .and. &
+                   (count_modis_cld1 > count_modis_cld2))) then
+            MODIS_out_CLD_data(jj,ii) = 1.
+          else if((count_modis_cld0 >= count_modis_cld3) .and. &
+                  (count_modis_cld0 >= count_modis_cld2) .and. &
+                  (count_modis_cld0 >= count_modis_cld1)) then
+            MODIS_out_CLD_data(jj,ii) = 0.
+          endif
+
         endif
 
         closest_dist = 999999.
@@ -495,13 +603,14 @@ program omi_colocate
         NSIDC_out_data(jj,ii)     = -999.
         !CERES_out_LAT_data(jj,ii) = -999.
         !CERES_out_LON_data(jj,ii) = -999.
-        CERES_out_CLD_data(jj,ii) = -999.
+        !CERES_out_CLD_data(jj,ii) = -999.
         CERES_out_LWF_data(jj,ii) = -999.
         CERES_out_SWF_data(jj,ii) = -999.
         !MODIS_out_LAT_data(jj,ii) = -999.
         !MODIS_out_LON_data(jj,ii) = -999.
-        MODIS_out_CH2_data(jj,ii) = -999.
+        MODIS_out_CH1_data(jj,ii) = -999.
         MODIS_out_CH7_data(jj,ii) = -999.
+        MODIS_out_CLD_data(jj,ii) = -999.
         num_nan = num_nan + 1
 
       endif
@@ -940,51 +1049,51 @@ program omi_colocate
 
   !!#!write(*,*) 'Wrote CERES LON'
 
-  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-  !
-  ! Write CERES CLD data
-  !
-  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !!#!! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !!#!!
+  !!#!! Write CERES CLD data
+  !!#!!
+  !!#!! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-  ! Create the dataspace
-  ! --------------------
-  call h5screate_simple_f(rank, test_dims, dspace_id_CLW, error)
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open dataspace'
-    return
-  endif
+  !!#!! Create the dataspace
+  !!#!! --------------------
+  !!#!call h5screate_simple_f(rank, test_dims, dspace_id_CLW, error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not open dataspace'
+  !!#!  return
+  !!#!endif
 
-  ! Create the dataset
-  ! ------------------
-  call h5dcreate_f(out_file_id, 'ceres_cld', H5T_NATIVE_DOUBLE, &
-                   dspace_id_CLW,  dset_id_CLW, error) 
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open dataset '//'ceres_cld'
-    return
-  endif
+  !!#!! Create the dataset
+  !!#!! ------------------
+  !!#!call h5dcreate_f(out_file_id, 'ceres_cld', H5T_NATIVE_DOUBLE, &
+  !!#!                 dspace_id_CLW,  dset_id_CLW, error) 
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not open dataset '//'ceres_cld'
+  !!#!  return
+  !!#!endif
 
-  ! Write to the dataset
-  ! --------------------
-  call h5dwrite_f(dset_id_CLW, H5T_NATIVE_DOUBLE, CERES_out_CLD_data, &
-                  OMI_AI_dims, error)
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not write to dataset'
-    return
-  endif
+  !!#!! Write to the dataset
+  !!#!! --------------------
+  !!#!call h5dwrite_f(dset_id_CLW, H5T_NATIVE_DOUBLE, CERES_out_CLD_data, &
+  !!#!                OMI_AI_dims, error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not write to dataset'
+  !!#!  return
+  !!#!endif
 
-  ! Close the dataset
-  ! -----------------
-  call h5dclose_f(dset_id_CLW, error)
+  !!#!! Close the dataset
+  !!#!! -----------------
+  !!#!call h5dclose_f(dset_id_CLW, error)
 
-  ! Close access to data space rank
-  call h5sclose_f(dspace_id_CLW, error)
+  !!#!! Close access to data space rank
+  !!#!call h5sclose_f(dspace_id_CLW, error)
 
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not write to dataset'
-    return
-  endif
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not write to dataset'
+  !!#!  return
+  !!#!endif
 
-  write(*,*) 'Wrote CERES CLD'
+  !!#!write(*,*) 'Wrote CERES CLD'
 
 
   ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -1173,7 +1282,7 @@ program omi_colocate
 
   ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
   !
-  ! Write MODIS CH2 data
+  ! Write MODIS CH1 data
   !
   ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -1187,16 +1296,16 @@ program omi_colocate
 
   ! Create the dataset
   ! ------------------
-  call h5dcreate_f(out_file_id, 'modis_ch2', H5T_NATIVE_DOUBLE, &
+  call h5dcreate_f(out_file_id, 'modis_ch1', H5T_NATIVE_DOUBLE, &
                    dspace_id_MC2,  dset_id_MC2, error) 
   if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open dataset '//'modis_ch2'
+    write(*,*) 'FATAL ERROR: could not open dataset '//'modis_ch1'
     return
   endif
 
   ! Write to the dataset
   ! --------------------
-  call h5dwrite_f(dset_id_MC2, H5T_NATIVE_DOUBLE, MODIS_out_CH2_data, &
+  call h5dwrite_f(dset_id_MC2, H5T_NATIVE_DOUBLE, MODIS_out_CH1_data, &
                   OMI_AI_dims, error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not write to dataset'
@@ -1215,7 +1324,7 @@ program omi_colocate
     return
   endif
 
-  write(*,*) 'Wrote MODIS CH2'
+  write(*,*) 'Wrote MODIS CH1'
 
   ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
   !
@@ -1262,6 +1371,52 @@ program omi_colocate
   endif
 
   write(*,*) 'Wrote MODIS CH7'
+
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! Write MODIS CLD data
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+  ! Create the dataspace
+  ! --------------------
+  call h5screate_simple_f(rank, test_dims, dspace_id_MC7, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataspace'
+    return
+  endif
+
+  ! Create the dataset
+  ! ------------------
+  call h5dcreate_f(out_file_id, 'modis_cld', H5T_NATIVE_DOUBLE, &
+                   dspace_id_MC7,  dset_id_MC7, error) 
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataset '//'modis_cld'
+    return
+  endif
+
+  ! Write to the dataset
+  ! --------------------
+  call h5dwrite_f(dset_id_MC7, H5T_NATIVE_DOUBLE, MODIS_out_CLD_data, &
+                  OMI_AI_dims, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  ! Close the dataset
+  ! -----------------
+  call h5dclose_f(dset_id_MC7, error)
+
+  ! Close access to data space rank
+  call h5sclose_f(dspace_id_MC7, error)
+
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  write(*,*) 'Wrote MODIS CLD'
 
   !!#!! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
   !!#!!
@@ -1612,7 +1767,7 @@ program omi_colocate
   ! ----------
   call h5fclose_f(modis1_file_id, error)
   if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not close MODIS CH2 file'
+    write(*,*) 'FATAL ERROR: could not close MODIS CH1 file'
     return
   endif
 

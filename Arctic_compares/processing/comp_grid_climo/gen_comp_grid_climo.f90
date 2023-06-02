@@ -61,6 +61,7 @@ program gen_comp_grid_climo
     TROP_SSA2_data, TROP_SSA2_dims, &
     MODIS_out_CH2_data, &
     MODIS_out_CH7_data, &
+    MODIS_out_CLD_data, &
     !MODIS_out_LAT_data, &
     !MODIS_out_LON_data, &
     NSIDC_out_data,     &
@@ -353,9 +354,9 @@ program gen_comp_grid_climo
         !write(*,*) 'File ',trim(total_file_name),' has been opened'
 
         ! Read in the variables from this file
-        ! As of 2023/05/16, these are the available variables from the 
+        ! As of 2023/06/02, these are the available variables from the 
         ! colocated_subset files:
-        !  x ceres_cld
+        !  ceres_cld
         !  ceres_lwf
         !  x ceres_swf
         !  modis_ch2
@@ -374,6 +375,7 @@ program gen_comp_grid_climo
         !  trop_uvai
         ! ------------------------------------
         call read_coloc_MODIS_CH7(file_id)
+        call read_coloc_MODIS_CLD(file_id)
         call read_coloc_CERES_SWF(file_id)
         !call read_coloc_CERES_CLD(file_id)
         call read_coloc_NSIDC_ICE(file_id)
