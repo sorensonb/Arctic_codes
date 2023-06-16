@@ -36,12 +36,13 @@ program gen_comp_grid_climo
     pixel_in_box, &
     MODIS_CH2_data, MODIS_CH2_dims, &
     MODIS_CH7_data, MODIS_CH7_dims, &
+    MODIS_CLD_data, MODIS_CLD_dims, &
     !MODIS_LAT_data, MODIS_LAT_dims, &
     !MODIS_LON_data, MODIS_LON_dims, &
     NSIDC_data,     NSIDC_dims, &
     !NSIDC_LAT_data, NSIDC_LAT_dims, &
     !NSIDC_LON_data, NSIDC_LON_dims, &
-    CERES_CLD_data, CERES_CLD_dims, &
+    !CERES_CLD_data, CERES_CLD_dims, &
     CERES_LWF_data, CERES_LWF_dims, &
     CERES_SWF_data, CERES_SWF_dims, &
     !CERES_LAT_data, CERES_LAT_dims, &
@@ -203,13 +204,17 @@ program gen_comp_grid_climo
   max_ice   = 105.0
   delta_ice = 5.0
 
+  !min_ch7   = 0.0
+  !max_ch7   = 0.350
+  !delta_ch7 = 0.025
+
   min_ch7   = 0.0
-  max_ch7   = 0.350
-  delta_ch7 = 0.025
+  max_ch7   = 3.0
+  delta_ch7 = 1.
 
   !min_cld   = 0.0
-  !max_cld   = 100.0
-  !delta_cld = 10.
+  !max_cld   = 3.0
+  !delta_cld = 1.
 
   min_lat = 70.
 
@@ -354,13 +359,14 @@ program gen_comp_grid_climo
         !write(*,*) 'File ',trim(total_file_name),' has been opened'
 
         ! Read in the variables from this file
-        ! As of 2023/06/02, these are the available variables from the 
+        ! As of 2023/06/05, these are the available variables from the 
         ! colocated_subset files:
         !  ceres_cld
         !  ceres_lwf
         !  x ceres_swf
         !  modis_ch2
         !  x modis_ch7
+        !  x modis_cld
         !  x nsidc_ice
         !  omi_azm
         !  omi_lat
@@ -404,8 +410,11 @@ program gen_comp_grid_climo
               ai_idx  = minloc(abs(ai_bins - OMI_AI_raw_data(jj,ii)), dim = 1)
               sza_idx = minloc(abs(sza_bins - OMI_SZA_data(jj,ii)), dim = 1)
               ice_idx = minloc(abs(ice_bins - NSIDC_data(jj,ii)), dim = 1)
-              ch7_idx = minloc(abs(ch7_bins - MODIS_CH7_data(jj,ii)), dim = 1)
-              !cld_idx = minloc(abs(cld_bins - CERES_CLD_data(jj,ii)), dim = 1)
+              ! NOTE: For "v7", am substituting the MODIS CH7 values for
+              !       the MODIS CLD cloud mask values
+              ch7_idx = minloc(abs(ch7_bins - MODIS_CLD_data(jj,ii)), dim = 1)
+              !ch7_idx = minloc(abs(ch7_bins - MODIS_CH7_data(jj,ii)), dim = 1)
+              !cld_idx = minloc(abs(cld_bins - MODIS_CLD_data(jj,ii)), dim = 1)
 
               if(((CERES_SWF_data(jj,ii) > 0) .and. &
                   (CERES_SWF_data(jj,ii) < 5000)) .and. &
@@ -477,7 +486,8 @@ program gen_comp_grid_climo
 
   ! Open the output file
   ! --------------------
-  out_file_name = 'comp_grid_climo_v6.hdf5'
+  !out_file_name = 'comp_grid_climo_v6.hdf5'
+  out_file_name = 'comp_grid_climo_v7.hdf5'
   write(*,*) trim(out_file_name)
 
   call h5fcreate_f(trim(out_file_name), H5F_ACC_TRUNC_F, out_file_id, error)
@@ -669,6 +679,52 @@ program gen_comp_grid_climo
   endif
 
   write(*,*) 'Wrote modis ch7 bins'
+
+  !!#!! = = = = = = = = = = = = = = = = = = = = = = = 
+  !!#!!
+  !!#!! Write MODIS CLD bins
+  !!#!!
+  !!#!! = = = = = = = = = = = = = = = = = = = = = = = 
+      
+  !!#!! Create the dataspace
+  !!#!! --------------------
+  !!#!call h5screate_simple_f(1, cld_dims, dspace_id_OLT, error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not open dataspace'
+  !!#!  return
+  !!#!endif
+      
+  !!#!! Create the dataset
+  !!#!! ------------------
+  !!#!call h5dcreate_f(out_file_id, 'modis_cld_bins', H5T_NATIVE_REAL, dspace_id_OLT,  &
+  !!#!                 dset_id_OLT, error) 
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not open dataset '//'modis_cld_bins'
+  !!#!  return
+  !!#!endif
+      
+  !!#!! Write to the dataset
+  !!#!! --------------------
+  !!#!call h5dwrite_f(dset_id_OLT, H5T_NATIVE_REAL, cld_bins, cld_dims, &
+  !!#!                    error)
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not write to dataset'
+  !!#!  return
+  !!#!endif
+      
+  !!#!! Close the dataset
+  !!#!! -----------------
+  !!#!call h5dclose_f(dset_id_OLT, error)
+      
+  !!#!! Close access to data space rank
+  !!#!call h5sclose_f(dspace_id_OLT, error)
+      
+  !!#!if(error /= 0) then
+  !!#!  write(*,*) 'FATAL ERROR: could not close dataset'
+  !!#!  return
+  !!#!endif
+      
+  !!#!write(*,*) 'Wrote modis cld bins'
 
   !!#!! = = = = = = = = = = = = = = = = = = = = = = = 
   !!#!!
@@ -870,8 +926,8 @@ program gen_comp_grid_climo
 
   ! Create the dataset
   ! ------------------
-  call h5dcreate_f(out_file_id, 'modis_ch7_edges', H5T_NATIVE_REAL, dspace_id_OLT,  &
-                   dset_id_OLT, error) 
+  call h5dcreate_f(out_file_id, 'modis_ch7_edges', H5T_NATIVE_REAL, &
+                   dspace_id_OLT, dset_id_OLT, error) 
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not open dataset '//'modis_ch7_edges'
     return
@@ -902,10 +958,10 @@ program gen_comp_grid_climo
 
   !!#!! = = = = = = = = = = = = = = = = = = = = = = = 
   !!#!!
-  !!#!! Write CERES CLD edges
+  !!#!! Write MODIS CLD edges
   !!#!!
   !!#!! = = = = = = = = = = = = = = = = = = = = = = = 
-
+      
   !!#!! Create the dataspace
   !!#!! --------------------
   !!#!call h5screate_simple_f(1, cld_edge_dims, dspace_id_OLT, error)
@@ -913,16 +969,16 @@ program gen_comp_grid_climo
   !!#!  write(*,*) 'FATAL ERROR: could not open dataspace'
   !!#!  return
   !!#!endif
-
+      
   !!#!! Create the dataset
   !!#!! ------------------
-  !!#!call h5dcreate_f(out_file_id, 'ceres_cld_edges', H5T_NATIVE_REAL, dspace_id_OLT,  &
+  !!#!call h5dcreate_f(out_file_id, 'modis_cld_edges', H5T_NATIVE_REAL, dspace_id_OLT,  &
   !!#!                 dset_id_OLT, error) 
   !!#!if(error /= 0) then
-  !!#!  write(*,*) 'FATAL ERROR: could not open dataset '//'ceres_cld_edges'
+  !!#!  write(*,*) 'FATAL ERROR: could not open dataset '//'modis_cld_edges'
   !!#!  return
   !!#!endif
-
+      
   !!#!! Write to the dataset
   !!#!! --------------------
   !!#!call h5dwrite_f(dset_id_OLT, H5T_NATIVE_REAL, cld_edges, cld_edge_dims, &
@@ -931,20 +987,20 @@ program gen_comp_grid_climo
   !!#!  write(*,*) 'FATAL ERROR: could not write to dataset'
   !!#!  return
   !!#!endif
-
+      
   !!#!! Close the dataset
   !!#!! -----------------
   !!#!call h5dclose_f(dset_id_OLT, error)
-
+      
   !!#!! Close access to data space rank
   !!#!call h5sclose_f(dspace_id_OLT, error)
-
+      
   !!#!if(error /= 0) then
   !!#!  write(*,*) 'FATAL ERROR: could not close dataset'
   !!#!  return
   !!#!endif
-
-  !!#!write(*,*) 'Wrote ceres cld edges'
+      
+  !!#!write(*,*) 'Wrote modis cld edges'
 
   ! = = = = = = = = = = = = = = = = = = = = = = = 
   !
@@ -962,8 +1018,8 @@ program gen_comp_grid_climo
 
   ! Create the dataset
   ! ------------------
-  call h5dcreate_f(out_file_id, 'ceres_swf_climo', H5T_NATIVE_REAL, dspace_id_OLT,  &
-                   dset_id_OLT, error) 
+  call h5dcreate_f(out_file_id, 'ceres_swf_climo', H5T_NATIVE_REAL, &
+                   dspace_id_OLT, dset_id_OLT, error) 
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not open dataset '//'ceres_swf_climo'
     return
@@ -1008,8 +1064,8 @@ program gen_comp_grid_climo
 
   ! Create the dataset
   ! ------------------
-  call h5dcreate_f(out_file_id, 'ceres_swf_count', H5T_NATIVE_INTEGER, dspace_id_OLT,  &
-                   dset_id_OLT, error) 
+  call h5dcreate_f(out_file_id, 'ceres_swf_count', H5T_NATIVE_INTEGER, &
+                   dspace_id_OLT, dset_id_OLT, error) 
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not open dataset '//'ceres_swf_count'
     return

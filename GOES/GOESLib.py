@@ -427,7 +427,29 @@ goes_area_dict = {
             'goes_Lat': [38.0, 42.0],
             'goes_Lon': [-121.5, -118.]
         }
-    } 
+    } ,
+    "2023-06-12": {
+        #'asos': 'asos_data_20210722_4.csv',
+        #'goes': home_dir + '/data/GOES/Aqua/MYD021KM.A2021203.2110.061.2021204155922.hdf',
+        #'mdswv': home_dir + '/data/GOES/Aqua/MYD05_L2.A2021203.2110.061.2021204163638.hdf',
+        #'ceres': home_dir + '/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072210-2021072221.nc',
+        #'airs': [home_dir + '/data/AIRS/Aqua/AIRS.2021.07.22.212.L2.SUBS2RET.v6.0.32.0.G21204140844.hdf'],
+        'Lat': [53.0, 60.0],
+        'Lon': [-114.0, -108.0],
+        #'Lat': [39.5, 42.0],
+        #'Lon': [-122.0, -119.5],
+        'data_lim': {
+            1:  [0.05, 0.5],
+            5:  [None, None],
+            31: [270., 330.],
+            32: [270., 330.],
+            'wv_ir': [0.2, 1.5],
+        },
+        #'goes_Lat': [39.5, 42.0],
+        #'goes_Lon': [-122.0, -119.5]
+        'goes_Lat': [53.0, 60.0],
+        'goes_Lon': [-114.0, -108.0]
+    },
 }
 
 min_dict = {
@@ -559,7 +581,8 @@ max_dict = {
 # channels is a list containing the numbers of the desired channels
 def download_GOES_bucket(date_str, sat = 'goes17', \
         channels = [2,6,8,9,10,13], dest_dir = \
-        home_dir + '/data/GOES/goes17_abi/'):
+        home_dir + '/data/GOES/goes17_abi/',\
+        domain = 'C'):
 
     # Convert the input date_str to datetime
     # --------------------------------------
@@ -570,7 +593,8 @@ def download_GOES_bucket(date_str, sat = 'goes17', \
 
     # Pull the entire file list for this date and time
     # ------------------------------------------------
-    request_add = dt_date_str.strftime('s3://noaa-'+sat+'/ABI-L1b-RadC/2021/%j/%H/')
+    request_add = dt_date_str.strftime('s3://noaa-'+sat+'/ABI-L1b-Rad' + \
+        domain + '/%Y/%j/%H/')
 
     # For each desired channel, figure out the closest file time
     # to the input date
@@ -644,10 +668,24 @@ def download_GOES_bucket(date_str, sat = 'goes17', \
 # dest_dir   : the location where files are going to be downloaded to.
 #              NOTE: This MUST be changed when running on a computer
 #              that does not belong to bsorenson.
+# domain     : 'conus','full','meso'
 def auto_GOES_download(begin_date, end_date, interval, sat = 'goes17', \
-        channels = [2,6,8,9,10,13]):
+        channels = [2,6,8,9,10,13], domain = 'conus'):
 
     dest_dir = home_dir + '/data/GOES/' + sat + '_abi/'
+
+    # Make sure the domain is accurate
+    # --------------------------------
+    if(domain == 'conus'):
+        domainer = 'C'
+    elif((domain == 'full') | (domain == 'full_disk')):
+        domainer = 'F'
+    elif(domain == 'meso'):
+        domainer = 'M'
+    else:
+        print("WARNING: Invalid domain option")
+        print("         Must be 'conus','full','or'meso'")
+        return
 
     # Convert the input date_str to datetime
     # --------------------------------------
@@ -669,7 +707,8 @@ def auto_GOES_download(begin_date, end_date, interval, sat = 'goes17', \
     for ttime in image_times:
         print(ttime)
         download_GOES_bucket(ttime.strftime('%Y%m%d%H%M'), \
-            sat = sat, channels = channels, dest_dir = dest_dir)
+            sat = sat, channels = channels, dest_dir = dest_dir, \
+            domain = domainer)
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
@@ -1584,6 +1623,132 @@ def plot_GOES_satpy_5panel(date_str, ch1, ch2, ch3, ch4, ch5, \
 
     if(save):
         outname = save_dir + sat + '_'+date_str+'_5panel.png'
+        fig1.savefig(outname, dpi = 300)
+        print('Saved image', outname)
+    else:
+        plt.show()
+
+def plot_GOES_satpy_2panel(date_str, ch1, ch2, \
+        zoom = True, save_dir = './', sat = 'goes17', save = False):
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    plt.close('all')
+    fig1 = plt.figure(figsize = (10,6.5))
+    var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel0 = \
+        read_GOES_satpy(date_str, ch1, sat = sat, zoom = zoom)
+    var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel1 = \
+        read_GOES_satpy(date_str, ch2, sat = sat, zoom = zoom)
+
+    ax0 = fig1.add_subplot(1,2,1, projection = crs0)
+    ax1 = fig1.add_subplot(1,2,2, projection = crs1)
+
+    min_dict = {
+        2: 5,
+        6: 0,
+        8: 240, 
+        9: 245, 
+        10: 250, 
+        13: 270,
+    }
+    max_dict = {
+        2: 80,
+        6: 40, 
+        8: 250, 
+        9: 260, 
+        10: 270, 
+        13: 330,
+    }
+
+    ##!#ax1.set_title('GOES-17 Band ' + str(ch2) + '\n' + \
+    ##!#    goes_channel_dict[str(ch2)]['name'] + '\n' + \
+    labelsize = 11
+    font_size = 10
+    if(ch1 == 'true_color'):
+        plot_GOES_satpy(date_str, ch1, ax = ax0, var = var0, crs = crs0, \
+            lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
+            ptitle = '', plabel = plabel0, \
+            colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+    else:
+        plot_GOES_satpy(date_str, ch1, ax = ax0, var = var0, crs = crs0, \
+            lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
+            vmin = min_dict[ch1], vmax = max_dict[ch1], ptitle = '', plabel = plabel0, \
+            colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+    plot_GOES_satpy(date_str, ch2, ax = ax1, var = var1, crs = crs0, \
+        lons = lons1, lats = lats1, lat_lims = lat_lims, lon_lims = lon_lims, \
+        vmin = min_dict[ch2], vmax = max_dict[ch2], ptitle = '', plabel = plabel1, \
+        colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+
+    if(ch1 == 'true_color'):
+        plot_figure_text(ax0, 'True Color', \
+            xval = None, yval = None, transform = None, \
+            color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+            halign = 'right')
+    else: 
+        plot_figure_text(ax0, \
+            str(goes_channel_dict[str(ch1)]['wavelength']) + ' μm', \
+            xval = None, yval = None, transform = None, \
+            color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+            halign = 'right')
+        plot_figure_text(ax0, \
+            str(goes_channel_dict[str(ch1)]['short_name']), \
+            xval = None, yval = None, transform = None, \
+            color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
+            location = 'upper_right', halign = 'right')
+
+    # 2nd channel
+    # -----------
+    plot_figure_text(ax1, \
+        str(goes_channel_dict[str(ch2)]['wavelength']) + ' μm', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+    plot_figure_text(ax1, \
+        str(goes_channel_dict[str(ch2)]['short_name']), \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
+        location = 'upper_right', halign = 'right')
+
+    plot_subplot_label(ax0,  '(a)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax1,  '(b)', backgroundcolor = 'white', fontsize = font_size)
+
+    ax0.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+                   crs = ccrs.PlateCarree())
+    ax1.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+                   crs = ccrs.PlateCarree())
+
+    # Zoom in the figure if desired
+    # -----------------------------
+    if(zoom):
+        ax0.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+                       crs = ccrs.PlateCarree())
+        ax1.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+                       crs = ccrs.PlateCarree())
+    ##!#    ax2.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+    ##!#                   crs = ccrs.PlateCarree())
+    ##!#    ax3.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+    ##!#                   crs = ccrs.PlateCarree())
+    ##!#    ax4.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+    ##!#                   crs = ccrs.PlateCarree())
+    ##!#    ax5.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+    ##!#                   crs = ccrs.PlateCarree())
+        zoom_add = '_zoom'
+    else:
+        zoom_add = ''
+
+    if(sat == 'goes17'):
+        title_str = 'GOES-17\n'
+    elif(sat == 'goes18'):
+        title_str = 'GOES-18\n'
+    else:
+        title_str = 'GOES-16\n'
+
+    fig1.suptitle(title_str + \
+        dt_date_str.strftime('%Y/%m/%d %H:%M UTC'))
+
+    fig1.tight_layout()
+
+    if(save):
+        outname = save_dir + sat + '_'+date_str+'_2panel.png'
         fig1.savefig(outname, dpi = 300)
         print('Saved image', outname)
     else:

@@ -7,6 +7,153 @@
 
 from MODISLib import *
 
+
+start_date = '200504'
+end_date   = '202009'
+cloud_data = read_MODIS_CLDL3_monthrange(start_date,end_date,\
+    minlat=65.5, calc_month = True)
+
+##!#fig = plt.figure()
+##!#ax = fig.add_subplot(1,1,1, projection = ccrs.NorthPolarStereo())
+##!#plotMODIS_CLDL3_MonthTrend(cloud_data,month_idx=None,save=False,\
+##!#    trend_type='theil-sen',season='',minlat=65.5,return_trend=False, \
+##!#    colorbar = True, colorbar_label_size = None,title = None, \
+##!#    ax = ax, show_pval = False, uncert_ax = None, norm_to_decade = True)
+##!#ax.coastlines()
+##!#ax.set_extent([-180,180,65.5, 90], datacrs)
+##!#ax.set_title('MODIS CLDL3 Terra/Aqua Cloud Frac Trend\n' +
+##!#    'Percent per decade\nApril - September, 2005 - 2020')
+##!#fig.tight_layout()
+##!#plt.show()
+##!#sys.exit()
+
+
+
+fig = plt.figure(figsize = (9, 6))
+ax1 = fig.add_subplot(2,3,1, projection = ccrs.NorthPolarStereo())
+ax2 = fig.add_subplot(2,3,2, projection = ccrs.NorthPolarStereo())
+ax3 = fig.add_subplot(2,3,3, projection = ccrs.NorthPolarStereo())
+ax4 = fig.add_subplot(2,3,4, projection = ccrs.NorthPolarStereo())
+ax5 = fig.add_subplot(2,3,5, projection = ccrs.NorthPolarStereo())
+ax6 = fig.add_subplot(2,3,6, projection = ccrs.NorthPolarStereo())
+plotMODIS_CLDL3_MonthTrend(cloud_data,month_idx=0,save=False,\
+    trend_type='standard',season='',minlat=65.5,return_trend=False, \
+    colorbar = True, colorbar_label_size = None,title = None, \
+    ax = ax1, show_pval = False, uncert_ax = None, norm_to_decade = True)
+plotMODIS_CLDL3_MonthTrend(cloud_data,month_idx=1,save=False,\
+    trend_type='standard',season='',minlat=65.5,return_trend=False, \
+    colorbar = True, colorbar_label_size = None,title = None, \
+    ax = ax2, show_pval = False, uncert_ax = None, norm_to_decade = True)
+plotMODIS_CLDL3_MonthTrend(cloud_data,month_idx=2,save=False,\
+    trend_type='standard',season='',minlat=65.5,return_trend=False, \
+    colorbar = True, colorbar_label_size = None,title = None, \
+    ax = ax3, show_pval = False, uncert_ax = None, norm_to_decade = True)
+plotMODIS_CLDL3_MonthTrend(cloud_data,month_idx=3,save=False,\
+    trend_type='standard',season='',minlat=65.5,return_trend=False, \
+    colorbar = True, colorbar_label_size = None,title = None, \
+    ax = ax4, show_pval = False, uncert_ax = None, norm_to_decade = True)
+plotMODIS_CLDL3_MonthTrend(cloud_data,month_idx=4,save=False,\
+    trend_type='standard',season='',minlat=65.5,return_trend=False, \
+    colorbar = True, colorbar_label_size = None,title = None, \
+    ax = ax5, show_pval = False, uncert_ax = None, norm_to_decade = True)
+plotMODIS_CLDL3_MonthTrend(cloud_data,month_idx=5,save=False,\
+    trend_type='standard',season='',minlat=65.5,return_trend=False, \
+    colorbar = True, colorbar_label_size = None,title = None, \
+    ax = ax6, show_pval = False, uncert_ax = None, norm_to_decade = True)
+plt.suptitle('MODIS CLDL3 Terra/Aqua Cloud Frac Trend\n' +
+    'Percent per decade\n2005 - 2020')
+ax1.set_title('April')
+ax2.set_title('May')
+ax3.set_title('June')
+ax4.set_title('July')
+ax5.set_title('August')
+ax6.set_title('September')
+fig.tight_layout()
+plt.show()
+sys.exit()
+
+date_str = '201807'
+#download_MODIS_CLDL3_monthly(date_str)
+#cloud_data = read_MODIS_CLDL3_single_month(date_str, minlat = 65.5)
+#found_file = identify_MODIS_CLDL3(date_str)
+#cloud_data = read_MODIS_CLDL3_daily(date_str)
+#date_str = '201807'
+#cloud_data = read_MODIS_CLDL3_daily_allmonth(date_str)
+#write_MODIS_CLDL3_monthly(cloud_data, minlat = 65.5)
+plot_MODIS_CLDL3_2panel(date_str, var1 = 'cld_frac_mean', \
+    var2 = 'cld_frac_std',minlat = 65.5, ax = None, colorbar = True,\
+    save = True)
+sys.exit()
+
+
+sys.exit()
+
+base_date = datetime(2010,8,1)
+end_date  = datetime(2020,9,1)
+local_date = base_date
+
+while(local_date <= end_date):
+    
+    date_str = local_date.strftime('%Y%m') 
+    print(date_str)
+    
+    # Download the data for this month
+    download_MODIS_CLDL3_monthly(date_str)
+
+    # Create the monthly average and write to an out file
+    write_MODIS_CLDL3_monthly(date_str, minlat = 65.5)
+
+    # Remove the old single-day files 
+    cmnd = local_date.strftime('rm ' + cloudL3_daily_dir + '*.A%Y*.nc')
+    print(cmnd)
+    os.system(cmnd)
+
+    # Increment the month and continue
+    local_date = local_date + relativedelta(months = 1)
+
+sys.exit()
+
+
+#date_str = '201807'
+#tester = read_MODIS_CLDL3_daily_allmonth(date_str, minlat = 65.5)
+#sys.exit()
+
+
+dt_date_str = datetime.strptime(date_str, '%Y%m%d')
+
+base_url = 'https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/62/MCD06COSP_D3_MODIS/'
+
+total_url = dt_date_str.strftime(base_url + '%Y/%j')
+
+files = listFD(dt_date_str.strftime(total_url), ext = '.nc')
+
+print(files[0])
+
+final_url = 'wget -e robots=off -m -np -R .html,.tmp -nH --cut-dirs=3 \"' + \
+    total_url + '\" --header \"Authorization: Bearer ' + laads_daac_key + \
+    '\" -P .'
+
+print(final_url)
+#os.system(final_url)
+
+sys.exit()
+
+testfile = '/home/bsorenson/data/MODIS/combined/MCD06COSP_D3_MODIS.A2018186.062.2022124045334.nc'
+data = Dataset(testfile,'r')
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1, projection = ccrs.NorthPolarStereo())
+
+ax.pcolormesh(data['longitude'][:], data['latitude'][:], data['Cloud_Mask_Fraction/Mean'][:,:].T,\
+    transform = datacrs, shading = 'auto')
+ax.coastlines()
+ax.set_boundary(circle, transform=ax.transAxes)
+ax.set_extent([-180,180,65,90], datacrs)
+data.close()
+plt.show()
+
+sys.exit()
+
 times = [
         #"201507081750",
         "201507081925",

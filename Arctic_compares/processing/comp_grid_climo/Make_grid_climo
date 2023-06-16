@@ -8,7 +8,6 @@ LIB_PATH = /home/bsorenson/OMI/comp_grid_climo/
 #LIB_PATH = ../JZ_lib/
 #FORT_LIB_PATH = ../../fort_lib/
 OBJECTS = comp_grid_vars.o \
-			#read_coloc_CERES_CLD.o \
 			read_coloc_CERES_SWF.o \
 			read_coloc_MODIS_CH7.o \
 			read_coloc_MODIS_CLD.o \

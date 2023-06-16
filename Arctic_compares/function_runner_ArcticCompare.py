@@ -9,43 +9,15 @@ import Arctic_compare_lib
 from Arctic_compare_lib import *
 
 
-#coloc_data = '201807050048'
-#plot_compare_colocate_cloud(coloc_data, save = False)
-#sys.exit()
-
-run_list = ['20060724','20060725','20060726','20060727','20080422',\
-    '20140811','20140812','20150627','20150706','20150707','20150708',\
-    '20150709','20150710','20170816','20170817','20170818','20170819',\
-    '20180704','20180705','20180721','20180810','20180814']
-
-run_list = [\
-    '20180826','20190810','20190811','20210801']
-
-# NOTE: RERUN FOR THE 2017 DAYS, BUT TEMPORARILY MOVING THE GIANT
-#       CERES SSFL2 FILES THAT WERE USED FOR THE NAAPS ALBEDO
-#       STUDY. SLOWING DOWN THE RUNTIME SUBSTANTIALLY
-
-#run_list = ['20060725']
-#run_list = ['20200722', '20200723']
-#run_list = ['20180721','20180810','20180826','20180827']
-#run_list = ['20180721','20180810','20180814','20180826','20180827']
-#run_list = ['20180721','20170814','20100731','20100801']
-#final_list = entire_wrapper(min_AI = 2.0, minlat = 70., download = True, \
-#    images = False, process = False, run_list = run_list, copy_to_raindrop = False)
-final_list = entire_wrapper(min_AI = 2.0, minlat = 70., download = False, \
-    images = False, process = True, run_list = run_list, copy_to_raindrop = True, \
-    include_tropomi = True, remove_ch2_file = True)
-
-sys.exit()
-
-
 #filename = 'comp_grid_climo_v1.hdf5'
 #filename = 'comp_grid_climo_v2.hdf5'
 #filename = 'comp_grid_climo_v3.hdf5'
 #filename = 'comp_grid_climo_v4.hdf5'
 #filename = 'comp_grid_climo_v5.hdf5'
-filename = 'comp_grid_climo_v6.hdf5'
-comp_grid_data = read_comp_grid_climo(filename)
+filename1 = 'comp_grid_climo_v6.hdf5'
+#filename = 'comp_grid_climo_v7.hdf5'
+comp_grid_data_v6 = read_comp_grid_climo(filename1)
+#comp_grid_data_v7 = read_comp_grid_climo(filename)
 
 #files = glob(home_dir + \
 #    '/Research/Arctic_compares/comp_data/colocated_subset_20*.hdf5')
@@ -387,7 +359,7 @@ for ff in files:
 combined_data = {}
 combined_data['omi_uvai_pert'] = np.full(total_size, np.nan)
 combined_data['omi_uvai_raw'] = np.full(total_size, np.nan)
-combined_data['ceres_cld']     = np.full(total_size, np.nan)
+combined_data['modis_cld']     = np.full(total_size, np.nan)
 combined_data['ceres_swf']     = np.full(total_size, np.nan)
 combined_data['modis_ch7']     = np.full(total_size, np.nan)
 combined_data['omi_sza']       = np.full(total_size, np.nan)
@@ -438,6 +410,7 @@ for ff in files:
 #
 #dset.create_dataset('VARIABLE', data = data[key][keep_idxs,:])
 
+
 ai_min  = 2
 ai_max  = None
 sza_min = 50
@@ -449,52 +422,120 @@ ch7_max = None
 cld_min = None
 cld_max = None
 
-ai_bin_size  = comp_grid_data['ai_bins'][1]  - comp_grid_data['ai_bins'][0]
-sza_bin_size = comp_grid_data['sza_bins'][1] - comp_grid_data['sza_bins'][0]
-ice_bin_size = comp_grid_data['ice_bins'][1] - comp_grid_data['ice_bins'][0]
-ch7_bin_size = comp_grid_data['ch7_bins'][1] - comp_grid_data['ch7_bins'][0]
-#cld_bin_size = comp_grid_data['cld_bins'][1] - comp_grid_data['cld_bins'][0]
-
-#ice_mins = np.arange(0, 81, 20)
-#ice_maxs = np.arange(20, 101, 20)
-
-#ch7_mins = np.arange(0.0,0.26,0.025)
-#ch7_maxs = np.arange(0.0,0.26,0.025)
-
 trend_type = 'linregress'
 lin_raw_dict = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data, \
+        combined_data, comp_grid_data_v6, \
         ai_min = ai_min, ai_max = ai_max, \
         trend_type = trend_type, \
         )
 lin_smth_dict = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data, \
+        combined_data, comp_grid_data_v6, \
         ai_min = ai_min, ai_max = ai_max, \
         trend_type = trend_type, \
         smoother = 'smooth', sizer = 1)
 lin_smth2_dict = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data, \
+        combined_data, comp_grid_data_v6, \
         ai_min = ai_min, ai_max = ai_max, \
         trend_type = trend_type, \
         smoother = 'smoother', sizer = 1)
 
+
+#lin_raw_dict_v7 = calc_raw_grid_slopes(\
+#        combined_data, comp_grid_data_v7, \
+#        ai_min = ai_min, ai_max = ai_max, \
+#        trend_type = trend_type, \
+#        )
+#lin_smth_dict_v7 = calc_raw_grid_slopes(\
+#        combined_data, comp_grid_data_v7, \
+#        ai_min = ai_min, ai_max = ai_max, \
+#        trend_type = trend_type, \
+#        smoother = 'smooth', sizer = 1)
+#lin_smth2_dict_v7 = calc_raw_grid_slopes(\
+#        combined_data, comp_grid_data_v7, \
+#        ai_min = ai_min, ai_max = ai_max, \
+#        trend_type = trend_type, \
+#        smoother = 'smoother', sizer = 1)
+
 trend_type = 'theil-sen'
 thl_raw_dict = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data, \
+        combined_data, comp_grid_data_v6, \
         ai_min = ai_min, ai_max = ai_max, \
         trend_type = trend_type, \
         )
 thl_smth_dict = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data, \
+        combined_data, comp_grid_data_v6, \
         ai_min = ai_min, ai_max = ai_max, \
         trend_type = trend_type, \
         smoother = 'smooth', sizer = 1)
 thl_smth2_dict = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data, \
+        combined_data, comp_grid_data_v6, \
         ai_min = ai_min, ai_max = ai_max, \
         trend_type = trend_type, \
         smoother = 'smoother', sizer = 1)
 
+#thl_raw_dict_v7 = calc_raw_grid_slopes(\
+#        combined_data, comp_grid_data_v7, \
+#        ai_min = ai_min, ai_max = ai_max, \
+#        trend_type = trend_type, \
+#        )
+#thl_smth_dict_v7 = calc_raw_grid_slopes(\
+#        combined_data, comp_grid_data_v7, \
+#        ai_min = ai_min, ai_max = ai_max, \
+#        trend_type = trend_type, \
+#        smoother = 'smooth', sizer = 1)
+#thl_smth2_dict_v7 = calc_raw_grid_slopes(\
+#        combined_data, comp_grid_data_v7, \
+#        ai_min = ai_min, ai_max = ai_max, \
+#        trend_type = trend_type, \
+#        smoother = 'smoother', sizer = 1)
+
+
+min_cloud = 0.95
+cld_idx = 0
+sfc_type_idx = 2
+maxerr = 2
+plot_slopes_cloud_types_szamean(lin_smth2_dict,cld_idx = 0, maxerr = 2, \
+    data_type = 'raw', remove_high_error = True, hatch_cloud = False, \
+    min_cloud = 0.95, save = False)
+sys.exit()
+
+mask_cloud = np.ma.masked_where(\
+    lin_smth2_dict_v6['raw_cldvals'][sfc_type_idx,:,:,cld_idx] < -9, \
+    lin_smth2_dict_v6['raw_cldvals'][sfc_type_idx,:,:,cld_idx])
+hasher = np.ma.masked_where(mask_cloud < min_cloud, \
+    mask_cloud)
+
+cloud_slopes = np.ma.masked_where(mask_cloud < min_cloud, \
+    lin_smth2_dict_v6['raw_slopes'][sfc_type_idx,:,:])
+clear_slopes = np.ma.masked_where(mask_cloud >= min_cloud, \
+    lin_smth2_dict_v6['raw_slopes'][sfc_type_idx,:,:])
+
+cloud_slopes = np.ma.masked_where(\
+    lin_smth2_dict_v6['raw_stderr'][sfc_type_idx,:,:] > maxerr, \
+    cloud_slopes)
+clear_slopes = np.ma.masked_where(\
+    lin_smth2_dict_v6['raw_stderr'][sfc_type_idx,:,:] > maxerr, \
+    clear_slopes)
+
+cloud_means = np.nanmean(cloud_slopes, axis = 0)
+clear_means = np.nanmean(clear_slopes, axis = 0)
+cloud_std   = np.std(cloud_slopes, axis = 0)
+clear_std   = np.std(clear_slopes, axis = 0)
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot(lin_smth2_dict_v6['sza_mins'], cloud_means, color = 'tab:blue')
+ax.plot(lin_smth2_dict_v6['sza_mins'], cloud_means - cloud_std, ':', color = 'tab:blue')
+ax.plot(lin_smth2_dict_v6['sza_mins'], cloud_means + cloud_std, ':', color = 'tab:blue')
+ax.plot(lin_smth2_dict_v6['sza_mins'], clear_means, color = 'tab:orange')
+ax.plot(lin_smth2_dict_v6['sza_mins'], clear_means - clear_std, ':', color = 'tab:orange')
+ax.plot(lin_smth2_dict_v6['sza_mins'], clear_means + clear_std, ':', color = 'tab:orange')
+
+plt.show()
+
+plot_slopes_cloud_types(lin_smth_dict_v6, save = False, vmin = -15, vmax = 15)
+
+sys.exit()
 sys.exit()
 
 plot_compare_grid_climo_stderr(lin_smth_dict, 'raw_land', 2, save = False)
@@ -503,6 +544,41 @@ plot_raw_grid_slopes(thl_raw_dict, save = False, vmin = -15, vmax = 15)
 plot_raw_grid_slopes(thl_smth_dict, save = False, vmin = -15, vmax = 15)
 plot_raw_grid_slopes(thl_smth2_dict, save = False, vmin = -15, vmax = 15)
 
+
+sys.exit()
+
+
+
+
+
+
+
+#coloc_data = '201807050048'
+#plot_compare_colocate_cloud(coloc_data, save = False)
+#sys.exit()
+
+run_list = ['20060724','20060725','20060726','20060727','20080422',\
+    '20140811','20140812','20150627','20150706','20150707','20150708',\
+    '20150709','20150710','20170816','20170817','20170818','20170819',\
+    '20180704','20180705','20180721','20180810','20180814']
+
+run_list = [\
+    '20180826','20190810','20190811','20210801']
+
+# NOTE: RERUN FOR THE 2017 DAYS, BUT TEMPORARILY MOVING THE GIANT
+#       CERES SSFL2 FILES THAT WERE USED FOR THE NAAPS ALBEDO
+#       STUDY. SLOWING DOWN THE RUNTIME SUBSTANTIALLY
+
+#run_list = ['20060725']
+#run_list = ['20200722', '20200723']
+#run_list = ['20180721','20180810','20180826','20180827']
+#run_list = ['20180721','20180810','20180814','20180826','20180827']
+#run_list = ['20180721','20170814','20100731','20100801']
+#final_list = entire_wrapper(min_AI = 2.0, minlat = 70., download = True, \
+#    images = False, process = False, run_list = run_list, copy_to_raindrop = False)
+final_list = entire_wrapper(min_AI = 2.0, minlat = 70., download = False, \
+    images = False, process = True, run_list = run_list, copy_to_raindrop = True, \
+    include_tropomi = True, remove_ch2_file = True)
 
 sys.exit()
 
