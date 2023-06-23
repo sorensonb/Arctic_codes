@@ -329,7 +329,7 @@ def download_TROPOMI_file(date_str, dest_dir = data_dir):
     else: 
         # Download the file
         # -----------------
-        base_cmnd = "wget --load-cookies ~/urs_cookies --save-cookies "+\
+        base_cmnd = "wget --load-cookies ~/.urs_cookies --save-cookies "+\
             "~/.urs_cookies --keep-session-cookies --content-disposition "
         cmnd = dt_date_str.strftime(base_cmnd + found_file)
         print(cmnd)

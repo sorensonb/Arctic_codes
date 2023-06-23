@@ -14,8 +14,9 @@ from Arctic_compare_lib import *
 #filename = 'comp_grid_climo_v3.hdf5'
 #filename = 'comp_grid_climo_v4.hdf5'
 #filename = 'comp_grid_climo_v5.hdf5'
-filename1 = 'comp_grid_climo_v6.hdf5'
+#filename1 = 'comp_grid_climo_v6.hdf5'
 #filename = 'comp_grid_climo_v7.hdf5'
+filename1 = 'comp_grid_climo_v8.hdf5'
 comp_grid_data_v6 = read_comp_grid_climo(filename1)
 #comp_grid_data_v7 = read_comp_grid_climo(filename)
 
@@ -163,6 +164,31 @@ dates = [
         '201908112019',\
         '201908112158',\
         '201908112337',\
+        '202107040232',\
+        '202107041722',\
+        '202107051627',\
+        '202107112225',\
+        '202107121454',\
+        '202107121633',\
+        '202107121812',\
+        '202107121950',\
+        '202107122129',\
+        '202107122308',\
+        '202107131219',\
+        '202107131537',\
+        '202107290046',\
+        '202107290225',\
+        '202107292033',\
+        '202107292212',\
+        '202107292351',\
+        '202107300129',\
+        '202107300308',\
+        '202107300447',\
+        '202107300626',\
+        '202107301937',\
+        '202107302116',\
+        '202107302255',\
+        # NOTE: All July 2021 times are added for comp_grid_climo_v8
         #'202108010117',\
         #'202108010256',\
         #'202108010435',\
@@ -341,7 +367,8 @@ minlat = 70.
 total_size = 0
 for ff in files:
     data = h5py.File(ff,'r')
-    local_data = np.ma.masked_invalid(data['omi_uvai_pert'])
+    local_data = np.ma.masked_invalid(data['omi_uvai_raw'])
+    local_data = np.ma.masked_where(abs(local_data) > 12, local_data)
     local_data = np.ma.masked_where(data['omi_lat'][:,:] < minlat, \
         local_data) 
     local_data = np.ma.masked_where((data['ceres_swf'][:,:] < -200.) | \
@@ -375,7 +402,10 @@ end_idx = 0
 for ff in files:
 
     data = h5py.File(ff,'r')
-    local_data = np.ma.masked_invalid(data['omi_uvai_pert'])
+    # NOTE: Changed the omi variable here from "pert" to "raw" on 20230623.
+    #       This move should allow for coloc data to be read after 2020
+    local_data = np.ma.masked_invalid(data['omi_uvai_raw'])
+    local_data = np.ma.masked_where(abs(local_data) > 12, local_data)
     local_data = np.ma.masked_where(data['omi_lat'][:,:] < minlat, \
         local_data) 
     local_data = np.ma.masked_where((data['ceres_swf'][:,:] < -200.) | \
@@ -547,6 +577,52 @@ plot_raw_grid_slopes(thl_smth2_dict, save = False, vmin = -15, vmax = 15)
 
 sys.exit()
 
+
+
+
+
+
+
+
+
+
+# NOTE: As of 20230623, dates "20210704" though "20210730" have been
+#       downloaded, processed, AND colocated on raindrop.
+run_list = [
+    '20210704',
+    '20210705',
+    '20210711',
+    '20210712',
+    '20210713',
+    '20210729',
+    '20210730',
+#    '20210731',
+#    '20210801',
+#    '20210802',
+#    '20210803',
+#    '20210804',
+#    '20210805',
+#    '20210806',
+#    '20210807',
+#    '20210808',
+#    '20210809',
+#    '20210810',
+#    '20210811',
+#    '20210812',
+#    '20210813',
+#    '20210911',
+#    '20210912',
+#    '20210913',
+]
+
+#final_list = entire_wrapper(min_AI = 2.0, minlat = 70., download = True, \
+#    images = False, process = False, run_list = run_list, copy_to_raindrop = False, \
+#    include_tropomi = True, remove_ch2_file = True)
+final_list = entire_wrapper(min_AI = 2.0, minlat = 70., download = False, \
+    images = True, process = True, run_list = run_list, copy_to_raindrop = True, \
+    include_tropomi = True, remove_ch2_file = True)
+
+sys.exit()
 
 
 

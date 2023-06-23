@@ -274,12 +274,13 @@ def automate_all_preprocess(date_str, download = True, images = True, \
 
 def single_wrap_function(date_str, minlat, min_AI, out_time_dict, download, \
         images, process, include_tropomi, new_only, copy_to_raindrop, \
-        remove_empty_scans, remove_ch2_file):
+        remove_empty_scans, remove_ch2_file, skiprows = [52]):
 
     print(date_str)
 
     good_list = download_identify_OMI_swaths(date_str, \
-        minlat = minlat, min_AI = min_AI, remove_bad = True)
+        minlat = minlat, min_AI = min_AI, remove_bad = True, \
+        skiprows = skiprows, screen_SZA = False)
 
     #final_good_list = final_good_list + good_list
 
@@ -308,7 +309,8 @@ def single_wrap_function(date_str, minlat, min_AI, out_time_dict, download, \
 def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
         download = True, images = False, process = False, run_list = None, \
         include_tropomi = True, copy_to_raindrop = True, \
-        remove_empty_scans = True, remove_ch2_file = False):
+        remove_empty_scans = True, remove_ch2_file = False, \
+        skiprows = [52]):
 
     if(home_dir + '/Research/OMI/' not in sys.path):
         sys.path.append(home_dir + '/Research/OMI/')
@@ -329,7 +331,8 @@ def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
 
             single_wrap_function(date_str, minlat, min_AI, out_time_dict, \
                 download, images, process, include_tropomi, new_only, \
-                copy_to_raindrop, remove_empty_scans, remove_ch2_file)
+                copy_to_raindrop, remove_empty_scans, remove_ch2_file, \
+                skiprows = skiprows)
 
     else:
     
@@ -355,7 +358,8 @@ def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
 
                 single_wrap_function(date_str, minlat, min_AI, out_time_dict, \
                     download, images, process, include_tropomi, new_only,\
-                    copy_to_raindrop, remove_empty_scans, remove_ch2_file)
+                    copy_to_raindrop, remove_empty_scans, remove_ch2_file, \
+                    skiprows = skiprows)
                 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
@@ -1087,7 +1091,7 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(date_str, ch1, \
 
     if(save):
         outname = 'omi_ceres_modis_nsidc_compare_' + omi_date + '.png'
-        fig1.savefig(outname, dpi = 300)
+        fig1.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
         plt.show()
@@ -1199,7 +1203,7 @@ def plot_compare_colocate_spatial(coloc_data, minlat = 65., zoom = False, \
     if(save):
         outname = 'arctic_compare_spatial_' + \
             dt_date_str.strftime('%Y%m%d%H%M') + '.png'
-        fig1.savefig(outname, dpi = 300)
+        fig1.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
         plt.show()
@@ -1260,7 +1264,7 @@ def plot_compare_scatter(coloc_data, var1, var2, var3 = None, minlat = 65., \
     if(save):
         outname = 'arctic_compare_scatter_' + coloc_data['date_str'] + '_' + \
             var1 + '_' + var2 + '.png'
-        fig.savefig(outname, dpi = 300)
+        fig.savefig(outname, dpi = 200)
         print("Saved image", outname) 
     else:
         plt.show()
@@ -1310,7 +1314,7 @@ def plot_compare_colocate_cloud(coloc_data, save = False):
 
     if(save):
         outname = 'arctic_comp_cloud_' + date_str + '.png'
-        fig.savefig(outname, dpi = 300)
+        fig.savefig(outname, dpi = 200)
         print("Saved image",outname)
     else:
         plt.show()
@@ -1409,7 +1413,7 @@ def plot_compare_colocate_spatial_category(coloc_data, cat = 'ALL', minlat = 65.
     if(save):
         outname = 'arctic_compare_spatial_' + \
             dt_date_str.strftime('%Y%m%d%H%M') + '.png'
-        fig1.savefig(outname, dpi = 300)
+        fig1.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
         plt.show()
@@ -1635,7 +1639,7 @@ def plot_compare_scatter_category(coloc_data, var1, var2, var3 = None, \
         if(save):
             outname = 'arctic_compare_scatter_' + cat + '_' + coloc_data['date_str'] + '_' + \
                 var1 + '_' + var2 + '.png'
-            fig.savefig(outname, dpi = 300)
+            fig.savefig(outname, dpi = 200)
             print("Saved image", outname) 
         else:
             plt.show()
@@ -1789,7 +1793,7 @@ def plot_compare_AI_combined_category(coloc_data, var2 = 'CERES_SWF', \
     if(save):
         date_str = dt_date_str.strftime('%Y%m%d%H%M')
         outname = 'arctic_compare_AI_combined_category_nomin_' + date_str + '.png'
-        fig1.savefig(outname, dpi = 300)
+        fig1.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
         plt.show()
@@ -1901,7 +1905,7 @@ def plot_compare_combined_category(coloc_data, var1 = 'OMI', \
     if(save):
         date_str = dt_date_str.strftime('%Y%m%d%H%M')
         outname = 'arctic_compare_combined_category_nomin_' + date_str + '.png'
-        fig1.savefig(outname, dpi = 300)
+        fig1.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
         plt.show()
@@ -1963,7 +1967,7 @@ def plot_compare_combined_category_event(coloc_data, var1 = 'OMI', \
     if(save):    
         date_str = dt_date_str.strftime('%Y%m%d')
         outname = 'arctic_daily_scatter_' + date_str + '.png'
-        fig.savefig(outname, dpi = 300)
+        fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:    
         plt.show()
@@ -2151,7 +2155,7 @@ def plot_compare_all_slopes(date_strs = None, save = False, \
 
     if(save):
         outname = 'omi_ceres_slope_histogram.png'
-        fig.savefig(outname, dpi = 300)
+        fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
         plt.show()
@@ -2735,7 +2739,7 @@ def plot_dual_combined_grid_climo(comp_grid_data, combined_data, \
 
     if(save):
         outname = 'comp_dual_' + filer + '.png'
-        fig.savefig(outname, dpi = 300)
+        fig.savefig(outname, dpi = 200)
         print("Saved image",outname)
     else:
         plt.show()
@@ -3178,7 +3182,7 @@ def plot_raw_grid_slopes(out_dict, vmin = -10, vmax = 10, \
 
         outname = 'comp_grid_ai_swf_slopes_highres' + type_adder + \
             out_adder + hatch_adder + '.png'
-        fig.savefig(outname, dpi = 300)
+        fig.savefig(outname, dpi = 200)
         print("Saved",outname)
     else: 
         plt.show()
@@ -3377,7 +3381,7 @@ def plot_slopes_cloud_types(out_dict, vmin = -10, vmax = 10, \
 
         outname = 'comp_grid_ai_swf_slopecloud_highres' + type_adder + \
             out_adder + hatch_adder + error_adder + '.png'
-        fig.savefig(outname, dpi = 300)
+        fig.savefig(outname, dpi = 200)
         print("Saved",outname)
     else: 
         plt.show()
@@ -3568,7 +3572,7 @@ def plot_slopes_cloud_types_szamean(out_dict,cld_idx = 0, maxerr = 2, \
 
         outname = 'comp_grid_ai_swf_slopecloud_' + xvar + 'means' + type_adder + \
             smth_adder + '.png'
-        fig.savefig(outname, dpi = 300)
+        fig.savefig(outname, dpi = 200)
         print("Saved",outname)
     else: 
         plt.show()
@@ -3634,7 +3638,7 @@ def plot_compare_grid_climo_stderr(comp_grid_data,  \
     fig.tight_layout()
     if(save):
         outname = 'comp_grid_climo_stderr_' + dtype + out_adder + '_' + label_dict[ice_idx] + '.png'
-        fig.savefig(outname, dpi = 300)
+        fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
         plt.show()

@@ -311,6 +311,138 @@ def plot_arctic_regions(pax, linewidth = 2):
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
+# date_str: YYYYMMDD
+# redownload_data: downloads all .hdf5 files for the given date_str
+#                  from the GES DISC archive
+# identify_xtrack: also picks out rows that have xtrack flags in them
+def identify_bad_rows(date_str, redownload_data = False, \
+        identify_xtrack = False):
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d')
+
+    total_list = glob(dt_date_str.strftime(h5_data_dir + \
+        'OMI-Aura_L2-OMAERUV_%Ym%m%dt*.he5'))
+
+    if(redownload_data | (len(total_list) == 0)):
+
+        # download H5 files
+        #  NOTE: could set up so that Raindrop data are downloaded if the
+        #        year is after 2020, but am choosing to only download from
+        #        the source here so that it doesn't matter if the UND VPN
+        #        is running.
+        print("Downloading data")
+        download_OMI_all_HDF(date_str)
+
+        total_list    = glob(dt_date_str.strftime(h5_data_dir + \
+            'OMI*_%Ym%m%dt*.he5')) 
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    #
+    # Grid the data
+    #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    whole_rows = np.zeros((len(total_list),60))
+    total_AI   = np.full((len(total_list),2000,60),np.nan)
+    if(identify_xtrack):
+        total_X   = np.full((len(total_list),2000,60),np.nan)
+    #total_AI   = np.full((len(total_list),2000,60),-99.)
+    #total_X   = np.full((len(total_list),2000,60),-99.)
+    for fileI in range(len(total_list)):
+        # read in data directly from HDF5 files
+        #print(total_list[fileI])
+        data = h5py.File(total_list[fileI],'r')
+
+        AI1     = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex'][:,:]
+        XTRACK1 = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/XTrackQualityFlags'][:,:]
+        XTRK_decode = np.array([[get_xtrack_flags(val) for val in XTRKrow] for XTRKrow in XTRACK1])
+        #print(AI1.shape)
+   
+        # Mask values with missing AI or XTrack values that are not 0 or 4
+        # NEW: After decoding the XTRACK values, only see where the row anomaly
+        #      flag isequal to zero
+        AI1[(AI1 < -2e5) | ((XTRACK1 != 0) & (XTRACK1 != 4))] = np.nan 
+
+        total_AI[fileI,:AI1.shape[0],:] = AI1[:,:]
+
+        if(identify_xtrack):
+            # NEW: After decoding the XTRACK values, only see where the row anomaly
+            #      flag is equal to zero. Ignoring the other bit values
+            total_X[fileI,:XTRACK1.shape[0],:] = XTRK_decode[:,:,0]
+   
+        data.close()
+
+    # Calculate the averages along each row in the current swath over the 
+    # Arctic. NOTE: This section should go in the file loop, but am
+    # too lazy to do it now.
+    # --------------------------------------------------------------------
+    total_avgs1 = np.array([[np.nanmean(total_AI[file_idx,1230:1500,idx]) \
+        for idx in range(60)] for file_idx in range(len(total_list))])
+
+    # Calculate the average xtrack value along each row in the current 
+    # swath over the Arctic. NOTE: This section should go in the file loop,
+    # but am too lazy to do it now. This is used for identifying known
+    # contaminted rows.
+    # --------------------------------------------------------------------
+    if(identify_xtrack):
+        total_avgs_X1 = np.array([[np.nanmean(total_X[file_idx,1230:1500,idx]) \
+            for idx in range(60)] for file_idx in range(len(total_list))])
+   
+    total_stds1 = np.array([[np.nanstd(total_AI[file_idx,1230:1500,idx]) \
+        for idx in range(60)] for file_idx in range(len(total_list))])
+   
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    #
+    # A row is identified as "bad" if the average of that row between the 
+    # 1230 and 1500 indices across each swath during the day is more than
+    # 2 standard deviations away from the average of all rows between 1230 and
+    # 1500 for the day..
+    #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+   
+    day_avgs = np.nanmean(total_avgs1,axis=0)
+    avg_day_avg = np.nanmean(day_avgs)
+    day_std  = np.nanstd(day_avgs)
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    #
+    # A row is identified as "contaminated" if it has at least 1 pixel within
+    # indices 1230 and 1500 with an Xtrack QC value that is not zero, meaning
+    # that it is not perfectly clean as defined by the flag. This is determined
+    # by taking the average of all the Xtrack QC values along indices 1230 to
+    # 1500 of each row, and if that average is not equal to 0, it has a non-zero
+    # pixel inside it and is therefore contaminated.
+    #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    if(identify_xtrack):
+        day_avgs_X = np.nanmean(total_avgs_X1,axis=0)
+
+        count_xtrack = True
+        if(np.count_nonzero(~np.isnan(day_avgs_X)) == 0):
+            count_xtrack = False
+   
+    # Deal with xtrack rows
+    # If a row has any XTRACK flags set, add to xtrack row list
+    # ---------------------------------------------------------
+    bad_rows = []
+    if(identify_xtrack):
+        xtrack_rows = []
+    for rowI in range(len(day_avgs)):
+        if((day_avgs[rowI] - avg_day_avg) > (day_std * 3)):
+            bad_rows.append(rowI+1)
+        if(identify_xtrack):
+            if(count_xtrack):
+                # If a row has any XTRACK flags set, add to xtrack row list
+                if(day_avgs_X[rowI] != 0):
+                    xtrack_rows.append(rowI+1)
+            #        print("Bad row number ", rowI+1) 
+
+    out_dict = {}
+    out_dict['bad_rows'] = bad_rows
+    if(identify_xtrack):
+        out_dict['xtrack_rows'] = xtrack_rows
+
+    return out_dict
+
 ##!#def plot_subplot_label(ax, label, xval = None, yval = None, transform = None, \
 ##!#        color = 'black', backgroundcolor = None, fontsize = 14, \
 ##!#        location = 'upper_left'):

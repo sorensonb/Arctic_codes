@@ -204,13 +204,13 @@ program gen_comp_grid_climo
   max_ice   = 105.0
   delta_ice = 5.0
 
-  !min_ch7   = 0.0
-  !max_ch7   = 0.350
-  !delta_ch7 = 0.025
-
   min_ch7   = 0.0
-  max_ch7   = 3.0
-  delta_ch7 = 1.
+  max_ch7   = 0.350
+  delta_ch7 = 0.025
+
+  !min_ch7   = 0.0
+  !max_ch7   = 3.0
+  !delta_ch7 = 1.
 
   !min_cld   = 0.0
   !max_cld   = 3.0
@@ -410,10 +410,12 @@ program gen_comp_grid_climo
               ai_idx  = minloc(abs(ai_bins - OMI_AI_raw_data(jj,ii)), dim = 1)
               sza_idx = minloc(abs(sza_bins - OMI_SZA_data(jj,ii)), dim = 1)
               ice_idx = minloc(abs(ice_bins - NSIDC_data(jj,ii)), dim = 1)
-              ! NOTE: For "v7", am substituting the MODIS CH7 values for
-              !       the MODIS CLD cloud mask values
-              ch7_idx = minloc(abs(ch7_bins - MODIS_CLD_data(jj,ii)), dim = 1)
-              !ch7_idx = minloc(abs(ch7_bins - MODIS_CH7_data(jj,ii)), dim = 1)
+              !! NOTE: For "v7", am substituting the MODIS CH7 values for
+              !!       the MODIS CLD cloud mask values
+              !ch7_idx = minloc(abs(ch7_bins - MODIS_CLD_data(jj,ii)), dim = 1)
+              ! NOTE: for 'v8', reverting back to the 'v6' style and binning
+              !        by CH7 reflectance.
+              ch7_idx = minloc(abs(ch7_bins - MODIS_CH7_data(jj,ii)), dim = 1)
               !cld_idx = minloc(abs(cld_bins - MODIS_CLD_data(jj,ii)), dim = 1)
 
               if(((CERES_SWF_data(jj,ii) > 0) .and. &
@@ -487,7 +489,8 @@ program gen_comp_grid_climo
   ! Open the output file
   ! --------------------
   !out_file_name = 'comp_grid_climo_v6.hdf5'
-  out_file_name = 'comp_grid_climo_v7.hdf5'
+  !out_file_name = 'comp_grid_climo_v7.hdf5'
+  out_file_name = 'comp_grid_climo_v8.hdf5'
   write(*,*) trim(out_file_name)
 
   call h5fcreate_f(trim(out_file_name), H5F_ACC_TRUNC_F, out_file_id, error)

@@ -5,7 +5,7 @@ cd $base_dir
 
 make -f Make_omi_colocate
 
-REDO_ALL=true
+REDO_ALL=false
 EXTRACT=true
 REPROCESS=false
 REMOVE_CH2=true

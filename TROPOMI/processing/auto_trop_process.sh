@@ -7,9 +7,9 @@ make -f Make_trop_colocate
 
 make -f Make_trop_colocate_thin
 
-REDO_ALL=true
+REDO_ALL=false
 EXTRACT=true
-REPROCESS=true
+REPROCESS=false
 
 #base_dir=$(pwd)
 #echo $base_dir
@@ -84,7 +84,7 @@ for d1 in ${dirlist} ; do
       # Run the OMI colocation executable
       # ---------------------------------
       echo $trop_file $omi_prep_file
-      ${base_dir}trop_coloc_thin_exec $trop_file $omi_prep_file
+      time ${base_dir}trop_coloc_thin_exec $trop_file $omi_prep_file
 
     else 
       echo "No OMI prep file found. Processing full data"
@@ -96,7 +96,7 @@ for d1 in ${dirlist} ; do
 
       # Run the OMI colocation executable
       # ---------------------------------
-      ${base_dir}trop_coloc_exec $trop_file $omi_name_file
+      time ${base_dir}trop_coloc_exec $trop_file $omi_name_file
     fi 
 
     echo

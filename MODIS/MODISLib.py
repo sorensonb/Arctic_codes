@@ -48,13 +48,14 @@ sys.path.append(home_dir)
 from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
     nearest_gridpoint, aerosol_event_dict, init_proj, \
     convert_radiance_to_temp, format_coord, circle, listFD, \
-    laads_daac_key
+    laads_daac_key, plot_point_on_map
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 # Set up global variables
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 modis_dir = home_dir  + '/data/MODIS/Aqua/'
 data_dir  = modis_dir + 'MYD/'
+myd08_dir  = modis_dir + 'MYD08/'
 cloud_dir = modis_dir + 'CLDMSK/'
 cloudL3_dir = home_dir + '/data/MODIS/combined/'
 cloudL3_daily_dir = home_dir + '/data/MODIS/combined/daily/'
@@ -720,6 +721,56 @@ def identify_MODIS_CLDL3(date_str, dest_dir = cloudL3_daily_dir):
         os.system(cmnd)
 
     return found_file 
+
+# date_str: %Y%m
+def identify_MODIS_MYD08(date_str, dest_dir = myd08_dir):
+
+    local_data_dir  = dest_dir
+
+    base_url = 'https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/61/'+\
+        'MYD08_M3/'
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m')
+
+    print(dt_date_str)
+
+    # For each desired channel, figure out the closest file time
+    # to the input date
+    # ----------------------------------------------------------
+    try:
+        files = listFD(dt_date_str.strftime(base_url + '/%Y/%j'), ext = '.hdf')
+    except subprocess.CalledProcessError:
+        print("ERROR: No MODIS MYD08 files for the input DTG",date_str)
+        return -2
+
+    if(len(files) == 0):
+        print("ERROR: No MODIS MYD08 files returned from the request. Exiting")
+        return -1
+    
+    # Remove the timestamps from the file strings
+    # -------------------------------------------
+    found_file = files[0].strip().split('/')[-1]
+
+    # Check if the file is already downloaded
+    # ---------------------------------------
+    if(os.path.exists(local_data_dir + found_file)):
+        print(found_file + ' already exists. Not downloading')
+    else: 
+        # Download the file
+        # -----------------
+        cmnd = dt_date_str.strftime("wget \"" + base_url + '/%Y/%j/' + found_file + \
+            "\" --header \"Authorization: Bearer " + laads_daac_key + "\" -P .")
+        print(cmnd)
+        os.system(cmnd)
+
+        # Move the file to the destination folder
+        # ---------------------------------------
+        cmnd = "mv " + found_file + " " + local_data_dir
+        print(cmnd) 
+        os.system(cmnd)
+
+    return found_file 
+
 
 # This downloads the MODIS l1b HDF5 file that is closest to the passed
 # date string from the LAADS DAAC archive. 
@@ -2220,7 +2271,7 @@ def read_MODIS_CLDL3_daily_allmonth(date_str, minlat = 65.5):
     return out_dict
 
 def read_MODIS_CLDL3_single_month(date_str, minlat = 65.5, \
-        local_data_dir = cloudL3_monthly_dir):
+        local_data_dir = cloudL3_monthly_dir,):
 
     dt_date_str = datetime.strptime(date_str, '%Y%m')
 
@@ -2253,6 +2304,57 @@ def read_MODIS_CLDL3_single_month(date_str, minlat = 65.5, \
     temp_lats = temp_lats[temp_lats >= minlat]
     out_dict['lat'] = temp_lats
     out_dict['lon'] = temp_lons
+        
+    data.close()
+
+    return out_dict
+
+def read_MODIS_MYD08_single_month(date_str, minlat = 65.5, \
+        local_data_dir = myd08_dir, transform_lat = True):
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m')
+
+    # Grab all the filenames for the matching year
+    # --------------------------------------------
+    found_file = glob(dt_date_str.strftime(\
+        local_data_dir + 'modis_MYD08_subset_%Y%m.nc'))[0]
+
+    print(found_file)
+    data = Dataset(found_file,'r')
+
+    out_dict = {}
+    out_dict['date_str']        = date_str
+    out_dict['lat']             = data['Latitude'][:]
+    out_dict['lon']             = data['Longitude'][:]
+
+    keep_idxs = np.where(out_dict['lat'] >= minlat)[0]
+
+    out_dict['cld_frac_mean']   = data['Cloud_Fraction_Mean'][keep_idxs,:]
+    out_dict['cld_frac_std']    = data['Cloud_Fraction_StDev'][keep_idxs,:]
+    out_dict['ob_count']        = data['Ob_Counts'][keep_idxs,:]
+    out_dict['day_cld_frac_mean']   = data['Cloud_Fraction_Day_Mean'][keep_idxs,:]
+    out_dict['day_cld_frac_std']    = data['Cloud_Fraction_Day_StDev'][keep_idxs,:]
+    out_dict['day_ob_count']        = data['Day_Ob_Counts'][keep_idxs,:]
+
+    out_dict['cld_frac_mean'] = np.ma.masked_where(\
+        out_dict['cld_frac_mean'] < 0, out_dict['cld_frac_mean'])
+    out_dict['day_cld_frac_mean'] = np.ma.masked_where(\
+        out_dict['day_cld_frac_mean'] < 0, out_dict['day_cld_frac_mean'])
+
+
+    # Since the MYD08 trends start at 89.5 and work down, while the CLDL3
+    # trends start at the min lat and work up, the MYD08 trends need to 
+    # be switched around
+    # -------------------------------------------------------------------
+    if(transform_lat):
+        comp_vars = ['cld_frac_mean', 'cld_frac_std', 'ob_count',\
+            'day_cld_frac_mean','day_cld_frac_std','day_ob_count']
+        for cvar in comp_vars:
+            new_data = np.full(out_dict[cvar].shape, np.nan)
+            for ii in range(new_data.shape[0]-1, -1, -1):
+                new_data[new_data.shape[0]-1 - ii,:] = out_dict[cvar][ii,:]
+            out_dict[cvar] = new_data
+        out_dict['lat'] = out_dict['lat'][::-1] 
         
     data.close()
 
@@ -2302,7 +2404,14 @@ def read_MODIS_CLDL3_monthrange(start_date,end_date,\
     good_idxs = np.where([tmonth.month in keep_months \
         for tmonth in datetimes])
     good_times = datetimes[good_idxs]
-    good_dstrs = [gtime.strftime('%Y%m') for gtime in good_times]
+
+    # Make sure the files are within the desired time range
+    # -----------------------------------------------------
+    within_range = np.where((good_times >= dt_start_date) & \
+                            (good_times <= dt_end_date))
+
+    good_times = np.array(good_times[within_range])
+    good_dstrs = np.array([gtime.strftime('%Y%m') for gtime in good_times])
 
 
     # Declare arrays to hold the data
@@ -2351,6 +2460,121 @@ def read_MODIS_CLDL3_monthrange(start_date,end_date,\
     ##!#    CERES_data = calcCERES_MonthClimo(CERES_data)
 
     return cloudL3_data
+
+# 2021/01/28: modified function to allow for Aqua data
+def read_MODIS_MYD08_monthrange(start_date,end_date,\
+        minlat=65.5, calc_month = True,season = 'sunlight'):
+    CERES_data = {}
+  
+    spring=False
+    summer=False
+    autumn=False
+    winter=False
+    sunlight=False
+    if(season=='spring'):
+        keep_months = [3,4,5]
+        spring=True
+    elif(season=='summer'):
+        keep_months = [6,7,8]
+        summer=True
+    elif(season=='autumn'):
+        keep_months = [9,10,11]
+        autumn=True
+    elif(season=='winter'):
+        keep_months = [12,1,2]
+        winter=True
+    elif(season=='sunlight'):
+        keep_months = [4,5,6,7,8,9]
+        sunlight=True
+  
+    dt_start_date = datetime.strptime(start_date, '%Y%m')
+    dt_end_date   = datetime.strptime(end_date, '%Y%m')
+ 
+    # Grab all the filenames for the matching year
+    # --------------------------------------------
+    allfiles = glob(myd08_dir + 'modis*subset*.nc')
+
+    # Grab just the dates
+    # -------------------
+    datetimes  = np.array([datetime.strptime(\
+        tname.strip().split('/')[-1].split('_')[3],'%Y%m.nc') \
+        for tname in allfiles])
+
+    # Figure out which files match with the desired month
+    # ---------------------------------------------------
+    good_idxs = np.where([tmonth.month in keep_months \
+        for tmonth in datetimes])
+    good_times = datetimes[good_idxs]
+
+    # Make sure the files are within the desired time range
+    # -----------------------------------------------------
+    within_range = np.where((good_times >= dt_start_date) & \
+                            (good_times <= dt_end_date))
+
+    good_times = np.array(good_times[within_range])
+    good_dstrs = np.array([gtime.strftime('%Y%m') for gtime in good_times])
+
+    # Declare arrays to hold the data
+    # -------------------------------
+    cloud_data = read_MODIS_MYD08_single_month(good_dstrs[0], \
+        minlat = minlat)
+    lat_ranges = cloud_data['lat'][:]
+    lon_ranges = cloud_data['lon'][:]
+
+    lat_indices = np.where(lat_ranges>=minlat)[0]
+    print(lat_indices)
+
+    # Grid the lat and data
+    grid_lon, grid_lat = np.meshgrid(lon_ranges,lat_ranges[lat_indices])
+
+    myd08_data = {}
+    myd08_data['cld_frac_mean']  = np.full((len(good_dstrs),\
+        len(lat_indices),len(lon_ranges)), np.nan)
+    myd08_data['cld_frac_std']   = np.full((len(good_dstrs),\
+        len(lat_indices),len(lon_ranges)), np.nan)
+    myd08_data['ob_count']       = np.full((len(good_dstrs),\
+        len(lat_indices),len(lon_ranges)), np.nan)
+    myd08_data['day_cld_frac_mean']  = np.full((len(good_dstrs),\
+        len(lat_indices),len(lon_ranges)), np.nan)
+    myd08_data['day_cld_frac_std']   = np.full((len(good_dstrs),\
+        len(lat_indices),len(lon_ranges)), np.nan)
+    myd08_data['day_ob_count']       = np.full((len(good_dstrs),\
+        len(lat_indices),len(lon_ranges)), np.nan)
+    myd08_data['dates']          = good_dstrs
+    myd08_data['lat']            = grid_lat
+    myd08_data['lon']            = grid_lon
+    myd08_data['season'] =season
+
+    del cloud_data
+
+    # Loop over good files and insert data into dictionary
+    for ii, dstr in enumerate(good_dstrs):
+        print(dstr)
+        cloud_data = read_MODIS_MYD08_single_month(dstr, minlat = minlat)
+
+        myd08_data['cld_frac_mean'][ii,:,:] = \
+            cloud_data['cld_frac_mean'][lat_indices,:]
+        myd08_data['cld_frac_std'][ii,:,:] = \
+            cloud_data['cld_frac_std'][lat_indices,:]
+        myd08_data['ob_count'][ii,:,:] = \
+            cloud_data['ob_count'][lat_indices,:]
+        myd08_data['day_cld_frac_mean'][ii,:,:] = \
+            cloud_data['day_cld_frac_mean'][lat_indices,:]
+        myd08_data['day_cld_frac_std'][ii,:,:] = \
+            cloud_data['day_cld_frac_std'][lat_indices,:]
+        myd08_data['day_ob_count'][ii,:,:] = \
+            cloud_data['day_ob_count'][lat_indices,:]
+
+    myd08_data['cld_frac_mean'] = np.ma.masked_where(\
+        myd08_data['cld_frac_mean'] < 0, myd08_data['cld_frac_mean'])
+    myd08_data['day_cld_frac_mean'] = np.ma.masked_where(\
+        myd08_data['day_cld_frac_mean'] < 0, myd08_data['day_cld_frac_mean'])
+
+    ##!#if(calc_month == True):
+    ##!#    CERES_data = calcCERES_MonthClimo(CERES_data)
+
+    return myd08_data
+
 
 def calcMODIS_CLDL3_grid_trend(cloud_data, month_idx, trend_type, minlat,\
         norm_to_decade = False):
@@ -2425,6 +2649,89 @@ def calcMODIS_CLDL3_grid_trend(cloud_data, month_idx, trend_type, minlat,\
 
     return ceres_trends, ceres_pvals, ceres_uncert
 
+def calcMODIS_MYD08_grid_trend(cloud_data, month_idx, trend_type, minlat,\
+        norm_to_decade = False, dtype = 'all'):
+
+
+    if(dtype == 'day'):
+        dtype_adder = dtype + '_'
+        print("Calculating daylight only")
+    else:
+        dtype_adder = ''
+
+    if(month_idx == None):
+        month_idx = 0
+        index_jumper = 1
+    else:
+        month_adder = '_month'
+        if(cloud_data['season'] == 'sunlight'):
+            index_jumper = 6
+        else:   
+            index_jumper = 12
+
+    lat_ranges = cloud_data['lat'][:,0]
+    #lat_ranges = np.arange(minlat,90,1.0)
+    lon_ranges = cloud_data['lon'][0,:]
+    #lon_ranges = np.arange(-180,180,1.0)
+
+    # Make copy of cloud_data array
+    print(cloud_data['dates'][month_idx::index_jumper])
+    local_data   = np.copy(cloud_data[dtype_adder + \
+        'cld_frac_mean'][month_idx::index_jumper,:,:])
+    #local_counts = np.copy(cloud_data['OB_COUNT'][month_idx::index_jumper,:,:])
+    #local_mask = np.ma.masked_where(local_counts == 0, local_data)
+    local_mask = np.ma.masked_where(((local_data < 0) | \
+        (cloud_data['lat'] < minlat)), local_data)
+    cloud_trends = np.full(local_data.shape[1:], np.nan)
+    cloud_pvals  = np.full(local_data.shape[1:], np.nan)
+    cloud_uncert = np.full(local_data.shape[1:], np.nan)
+
+    # Loop over all the keys and print the regression slopes 
+    # Grab the averages for the key
+    for i in range(0,len(lat_ranges)):
+        for j in range(0,len(lon_ranges)):
+            # Check the current max and min
+            #print(local_mask[:,i,j])
+            work_mask = local_mask[:,i,j]
+            #work_mask = local_mask[:,i,j][~local_mask[:,i,j].mask][0]
+            if(len(work_mask.compressed()) > 1):
+                x_vals = np.arange(0,len(work_mask.compressed()))
+                # Find the slope of the line of best fit for the time series of
+                # average data
+                if((trend_type=='standard') | (trend_type == 'linregress')): 
+                    result = stats.linregress(x_vals, work_mask.compressed())
+                    #slope, intercept, r_value, p_value, std_err = \
+                    #    stats.linregress(x_vals,work_mask.compressed())
+                    cloud_trends[i,j] = result.slope * len(x_vals)
+                    cloud_pvals[i,j]  = result.pvalue
+                    cloud_uncert[i,j] = result.stderr * len(x_vals)
+                else:
+                    res = stats.theilslopes(work_mask.compressed(), x_vals, 0.90)
+                    cloud_trends[i,j] = res[0]*len(x_vals)
+            else:
+                print('no data')
+
+    #ceres_trends = np.ma.masked_where(((cloud_data['lat'] < minlat) | \
+    #    (ceres_trends == -999.)), ceres_trends)
+    cloud_trends = np.ma.masked_where(cloud_data['lat'] < minlat, cloud_trends)
+    cloud_pvals  = np.ma.masked_where(cloud_data['lat'] < minlat, cloud_pvals)
+    cloud_uncert = np.ma.masked_where(cloud_data['lat'] < minlat, cloud_uncert)
+
+    # If the user wants to normalize the trends so that they reflect the
+    # trend per decade...
+    # ------------------------------------------------------------------
+    if(norm_to_decade):
+        local_dates = cloud_data['dates'][month_idx::index_jumper]
+        dt_begin_date = datetime.strptime(local_dates[0],'%Y%m')
+        dt_end_date   = datetime.strptime(local_dates[-1],'%Y%m')
+        num_decade = (dt_end_date.year - dt_begin_date.year) / 10
+        print("Number of decades:",num_decade)
+        cloud_trends = cloud_trends / num_decade
+
+    return cloud_trends, cloud_pvals, cloud_uncert
+
+
+
 ##!#def calcOMI_MonthClimo(cloud_data):
 ##!#
 ##!#    # Set up arrays to hold monthly climatologies
@@ -2483,7 +2790,7 @@ def write_MODIS_CLDL3_monthly(cloud_data, minlat = 65.5, \
     LON=nc.createVariable('Longitude','f4',('nx'))
     LON.description='Longitude (-180 to 180)'
     LON.units='Degrees'
-    LAT=nc.createVariable('Latitude','f4',('nx'))
+    LAT=nc.createVariable('Latitude','f4',('ny'))
     LAT.description='Latitude (-90 to 90)'
     LAT.units='Degrees'
 
@@ -2513,7 +2820,99 @@ def write_MODIS_CLDL3_monthly(cloud_data, minlat = 65.5, \
     nc.close()
 
     print("Saved file ",outfile)  
-     
+   
+# NOTE: This is not set up to read in the original MYD08 files. This
+#       just finds the corresponding file in the data directory and
+#       writes the desired files and desired lat ranges to a subset
+#       file. 
+def write_MODIS_MYD08_monthly(date_str, minlat = 65.5, \
+        save_path = myd08_dir):
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m')
+    data = identify_MODIS_MYD08(date_str)
+    data = Dataset(myd08_dir + data, 'r')
+
+    # Create a new netCDF dataset to write to the file
+    # ------------------------------------------------
+    outfile = dt_date_str.strftime(save_path + \
+        'modis_MYD08_subset_%Y%m.nc')
+
+    nc = Dataset(outfile,'w',format='NETCDF4')
+ 
+    # Figure out the latitude dimensions to use
+    # -----------------------------------------
+    good_idx = np.where(data['YDim'][:] >= minlat)[0]
+ 
+    # Dimensions = lon, lat
+    # Create the sizes of each dimension in the file. In this case,
+    # the dimensions are "# of latitude" and "# of longitude"
+    # -------------------------------------------------------------
+    num_y = data['YDim'][good_idx].shape[0]
+    num_x = data['XDim'].shape[0]
+    
+    # Use the dimension size variables to actually create dimensions in 
+    # the file.
+    # ----------------------------------------------------------------- 
+    n_y  = nc.createDimension('ny',num_y)
+    n_x  = nc.createDimension('nx',num_x)
+
+    # Create variables for the three dimensions. Note that since these
+    # are variables, they are still given 'dimensions' using 'dlat', 
+    # and 'dlon'. Latitude and longitude are each 2-d grids, so they are 
+    # given 2 dimensions (dlat, dlon).
+    # ------------------------------------------------------------------
+    LON=nc.createVariable('Longitude','f4',('nx'))
+    LON.description='Longitude (-180 to 180)'
+    LON.units='Degrees'
+    LAT=nc.createVariable('Latitude','f4',('ny'))
+    LAT.description='Latitude (-90 to 90)'
+    LAT.units='Degrees'
+
+    # Create a variable for the AI data, dimensioned using both 
+    # dimensions.
+    # ---------------------------------------------------------  
+    CLD_FRAC_MEAN = nc.createVariable('Cloud_Fraction_Mean','f4',('ny','nx'))
+    CLD_FRAC_MEAN.description='Monthly averaged MODIS MYD08 daily mean '+\
+        'cloud fraction'
+
+    CLD_FRAC_STD = nc.createVariable('Cloud_Fraction_StDev','f4',('ny','nx'))
+    CLD_FRAC_STD.description='Mean standard deviation of MODIS MYD08 '+\
+        'cloud fraction daily means'
+
+    OB_COUNT = nc.createVariable('Ob_Counts','f4',('ny','nx'))
+    OB_COUNT.description='Total Observation Counts'
+    
+    DAY_CLD_FRAC_MEAN = nc.createVariable('Cloud_Fraction_Day_Mean','f4',('ny','nx'))
+    DAY_CLD_FRAC_MEAN.description='Monthly averaged MODIS MYD08 daily mean '+\
+        'cloud fraction for day only'
+
+    DAY_CLD_FRAC_STD = nc.createVariable('Cloud_Fraction_Day_StDev','f4',('ny','nx'))
+    DAY_CLD_FRAC_STD.description='Mean standard deviation of MODIS MYD08 '+\
+        'cloud fraction daily means for day only'
+
+    DAY_OB_COUNT = nc.createVariable('Day_Ob_Counts','f4',('ny','nx'))
+    DAY_OB_COUNT.description='Total observation counts for day only'
+    
+    # Fill in dimension variables one-by-one.
+    # ---------------------------------------------------------------
+    LAT[:]                 = data['YDim'][good_idx]
+    LON[:]                 = data['XDim'][:]
+    CLD_FRAC_MEAN[:,:]     = data['Cloud_Fraction_Mean_Mean'][good_idx,:]
+    CLD_FRAC_STD[:,:]      = data['Cloud_Fraction_Mean_Std'][good_idx,:]
+    OB_COUNT[:,:]          = data['Cloud_Fraction_Pixel_Counts'][good_idx,:]
+    DAY_CLD_FRAC_MEAN[:,:] = data['Cloud_Fraction_Day_Mean_Mean'][good_idx,:]
+    DAY_CLD_FRAC_STD[:,:]  = data['Cloud_Fraction_Day_Mean_Std'][good_idx,:]
+    DAY_OB_COUNT[:,:]      = data['Cloud_Fraction_Day_Pixel_Counts'][good_idx,:]
+
+    data.close()
+
+    # Save, write, and close the netCDF file
+    # --------------------------------------
+    nc.close()
+
+    print("Saved file ",outfile)  
+
+ 
 def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False, \
         ax = None, swath = False, vmin = None, vmax = None, \
         ptitle = None, \
@@ -9694,6 +10093,131 @@ def plot_MODIS_CLDL3_2panel(cloud_data, var1 = 'cld_frac_mean', \
     else:
         plt.show()
 
+def plot_compare_CLDL3_MYD08_trend(cloud_data, myd08_data, month_idx = None, \
+        minlat = 65.5, season = '', myd08_var = 'all', ax = None, \
+        colorbar = True, trend_type = 'standard', comp_xidx = None, comp_yidx = None, \
+        norm_to_decade = True, show_pval = False, save = False):
+
+    fig = plt.figure(figsize = (9.5,7.5))
+    ax1 = fig.add_subplot(3,3,1, projection = ccrs.NorthPolarStereo())
+    ax2 = fig.add_subplot(3,3,2, projection = ccrs.NorthPolarStereo())
+    ax5 = fig.add_subplot(3,3,3, projection = ccrs.NorthPolarStereo())
+    ax6 = fig.add_subplot(3,3,4, projection = ccrs.NorthPolarStereo())
+    ax7 = fig.add_subplot(3,3,5, projection = ccrs.NorthPolarStereo())
+    ax3 = fig.add_subplot(3,3,7)
+    ax4 = fig.add_subplot(3,3,8)
+
+    myd08_trend = plotMODIS_MYD08_MonthTrend(myd08_data,month_idx=month_idx,\
+        trend_type=trend_type,pvar = myd08_var, season=season,minlat=65.5,\
+        colorbar = True, title = 'MYD08', \
+        ax = ax1, show_pval = show_pval, uncert_ax = ax6, \
+        norm_to_decade = norm_to_decade,vmin = -0.1, vmax = 0.1, \
+        return_trend = True)
+
+    cldl3_trend = plotMODIS_CLDL3_MonthTrend(cloud_data,month_idx=month_idx,\
+        trend_type=trend_type,season=season,minlat=minlat, \
+        colorbar = colorbar, title = 'CLDL3', \
+        ax = ax2, show_pval = show_pval, uncert_ax = ax7, \
+        norm_to_decade = norm_to_decade,vmin = -0.1, vmax = 0.1, \
+        return_trend = True)
+
+    trend_diffs = myd08_trend - cldl3_trend
+    mesh = ax5.pcolormesh(cloud_data['lon'], cloud_data['lat'], trend_diffs, \
+        transform = datacrs, shading = 'auto', cmap = 'seismic', \
+        vmin = -0.05, vmax = 0.05)
+    cbar = plt.colorbar(mesh, ax = ax5, pad = 0.03, extend = 'both')
+    cbar.set_label('Cloud Fraction Trend Difference')
+    ax5.coastlines()
+    ax5.set_extent([-180, 180, minlat, 90], datacrs) 
+    ax5.set_boundary(circle, transform=ax5.transAxes)
+    ax5.set_title('MYD08 - CLDL3')
+
+    xy = np.vstack([cldl3_trend.flatten(), myd08_trend.flatten()])
+    z = stats.gaussian_kde(xy)(xy)       
+    
+    ax3.scatter(cldl3_trend.flatten(), myd08_trend.flatten(), s = 6, c = z)
+    ax3.set_xlabel('CLDL3 trend')
+    ax3.set_ylabel('MYD08 trend')
+    ax3_ylims = ax3.get_ylim()
+    ax3_xlims = ax3.get_xlim()
+    lims = [
+        np.min([ax3_xlims, ax3_ylims]),\
+        np.max([ax3_xlims, ax3_ylims])
+    ]
+    ax3.plot(lims, lims, 'r-', alpha = 0.5)
+    ax3.set_xlim(lims)
+    ax3.set_ylim(lims)
+
+    r2_val = np.corrcoef(cldl3_trend.flatten(), myd08_trend.flatten())[0,1]**2.
+    ax3.set_title('r$^{2}$ = ' + str(np.round(r2_val,3)))
+
+    plt.suptitle(cloud_data['dates'][0] + ' - ' + \
+                 cloud_data['dates'][-1])
+    
+
+    # Plot time series
+    # ----------------
+    site_adder = ''
+    if((comp_xidx is not None) and (comp_yidx is not None)):
+        site_adder = '_' + str(comp_xidx) + 'x' + str(comp_yidx)
+        if(month_idx == None):
+            idx_jumper = 1
+        else:
+            idx_jumper = 6
+        ax4.plot(np.arange(len(cloud_data['dates'][month_idx::idx_jumper])), \
+            myd08_data['cld_frac_mean'][month_idx::idx_jumper,comp_xidx,\
+            comp_yidx], label = 'MYD08')
+        ax4.plot(np.arange(len(cloud_data['dates'][month_idx::idx_jumper])), \
+            cloud_data['cld_frac_mean'][month_idx::idx_jumper,comp_xidx,\
+            comp_yidx], label = 'CLDL3')
+        ax4.legend()
+        plot_point_on_map(ax1, cloud_data['lat'][comp_xidx,comp_yidx], \
+            cloud_data['lon'][comp_xidx,comp_yidx], markersize = 10)
+        plot_point_on_map(ax2, cloud_data['lat'][comp_xidx,comp_yidx], \
+            cloud_data['lon'][comp_xidx,comp_yidx], markersize = 10)
+        plot_point_on_map(ax5, cloud_data['lat'][comp_xidx,comp_yidx], \
+            cloud_data['lon'][comp_xidx,comp_yidx], markersize = 10)
+        plot_point_on_map(ax6, cloud_data['lat'][comp_xidx,comp_yidx], \
+            cloud_data['lon'][comp_xidx,comp_yidx], markersize = 10)
+        plot_point_on_map(ax7, cloud_data['lat'][comp_xidx,comp_yidx], \
+            cloud_data['lon'][comp_xidx,comp_yidx], markersize = 10)
+
+        plot_trend_line(ax4, \
+            np.arange(len(myd08_data['dates'][month_idx::idx_jumper])), \
+            myd08_data['cld_frac_mean'][\
+                month_idx::idx_jumper,comp_xidx,comp_yidx], \
+            color='tab:blue')
+        plot_trend_line(ax4, \
+            np.arange(len(cloud_data['dates'][month_idx::idx_jumper])), \
+            cloud_data['cld_frac_mean'][\
+                month_idx::idx_jumper,comp_xidx,comp_yidx], \
+            color='tab:orange')
+
+        r2_val = np.corrcoef(cloud_data['cld_frac_mean'][\
+                month_idx::idx_jumper,comp_xidx,comp_yidx], \
+                myd08_data['cld_frac_mean'][\
+                month_idx::idx_jumper,comp_xidx,comp_yidx])[0,1]**2.
+        ax4.set_title(str(cloud_data['lat'][comp_xidx,comp_yidx]) + 'N, ' + \
+                      str(cloud_data['lon'][comp_xidx,comp_yidx]) + 'E, \n'\
+                      'r$^{2}$ = ' + str(np.round(r2_val,3)))
+
+
+        ax4.set_ylabel('Monthly Cloud Fraction')
+                    
+
+    #plt.suptitle(outstr)
+    fig.tight_layout()
+
+    if(save):
+        out_date = cloud_data['dates'][month_idx::idx_jumper][0] + '_' + \
+            cloud_data['dates'][month_idx::idx_jumper][-1]
+        outname = '_'.join(['modis','cldl3','trend','comp',out_date]) + \
+            site_adder + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
 # Designed to work with the netCDF data
 def plotMODIS_CLDL3_MonthTrend(cloud_data,month_idx=None,save=False,\
         trend_type='standard',season='',minlat=65.,return_trend=False, \
@@ -9722,8 +10246,8 @@ def plotMODIS_CLDL3_MonthTrend(cloud_data,month_idx=None,save=False,\
         #vmax = 0.20
         #vmin = -0.20
 
-    lat_ranges = np.arange(minlat,90.5,1.0)
-    lon_ranges = np.arange(-179.5,180.5,1.0)
+    #lat_ranges = np.arange(minlat,90.5,1.0)
+    #lon_ranges = np.arange(-179.5,180.5,1.0)
 
     # --------------------------------------------------------------
     #
@@ -9733,6 +10257,151 @@ def plotMODIS_CLDL3_MonthTrend(cloud_data,month_idx=None,save=False,\
     cloud_trends, cloud_pvals, cloud_uncert = \
         calcMODIS_CLDL3_grid_trend(cloud_data, month_idx, trend_type, \
         minlat, norm_to_decade = norm_to_decade)
+
+    print('Max trend',np.max(cloud_trends))
+
+    if(not show_pval):
+        cloud_pvals = None
+    else:
+        print('month_idx = ',month_idx,' PVAL nanmean = ', \
+            np.nanmean(cloud_pvals))
+
+    if(uncert_ax is None):
+        cloud_uncert = None
+    # --------------------------------------------------------------
+    #
+    # Plot the calculated trends on a figure
+    #
+    # --------------------------------------------------------------
+
+    # Set up mapping variables 
+    colormap = plt.cm.seismic
+
+    # Pull the beginning and ending dates into datetime objects
+    start_date = datetime.strptime(cloud_data['dates'][month_idx::index_jumper][0],'%Y%m')
+    end_date   = datetime.strptime(cloud_data['dates'][month_idx::index_jumper][-1],'%Y%m')
+    
+    # Make figure title
+    #date_month = datetime(year = 1,month = month_idx+1, day = 1).strftime('%B')
+    month_string = ''
+    if(do_month == True):
+        month_string = start_date.strftime('%B') + ' '
+
+    if(title is None):
+        title = 'MODIS CLDL3 Cloud Fraction\n' + month_string + 'Trends'\
+            '\n'+start_date.strftime('%b. %Y') + ' - ' +\
+            end_date.strftime('%b. %Y')
+
+    # Call plotCERES_spatial to add the data to the figure
+
+    in_ax = True 
+    if(ax is None):
+        in_ax = False
+        plt.close('all')
+        fig1 = plt.figure()
+        mapcrs = ccrs.NorthPolarStereo()
+        ax = fig1.add_subplot(1,1,1, projection = mapcrs)
+
+    if((vmin is None) and (vmax is None)):
+        vmax = np.max(cloud_trends)
+        vmin = -vmax
+
+    colormap = plt.cm.seismic
+    norm = cm.BoundaryNorm(np.arange(vmin - 0.025, vmax + 0.05, 0.025), colormap.N)
+    mesh = ax.pcolormesh(cloud_data['lon'], cloud_data['lat'], cloud_trends, \
+        shading = 'auto', transform = datacrs,\
+        cmap = colormap,\
+        norm = norm)
+        #cmap = 'RdYlBu_r')
+    if(colorbar):
+        cbar = plt.colorbar(mesh, ax = ax, pad = 0.03, extend = 'both')
+        cbar.set_label('Cloud Fraction Trend')
+    ax.coastlines()
+    ax.set_extent([-180, 180, minlat, 90], datacrs)   
+    ax.set_boundary(circle, transform=ax.transAxes)
+    ax.set_title(title)
+    
+    if(not in_ax):
+        fig1.tight_layout()
+        if(save == True):
+            month_adder = ''
+            if(do_month == True):
+                month_adder = '_' + start_date.strftime('%b') 
+            out_name = 'cloud_frac_trend'+ month_adder + '_' + \
+                start_date.strftime('%Y%m') + '_' + end_date.strftime('%Y%m') + \
+                '_min' + str(int(minlat)) + '.png'
+            fig1.savefig(out_name,dpi=300)
+            print("Saved image",out_name)
+        else:
+            plt.show()
+    ##!#else:
+    ##!#    plotCERES_spatial(pax, cloud_data['lat'], cloud_data['lon'], \
+    ##!#        cloud_trends, 'trend', ptitle = title, plabel = 'W m$^{-2}$ per study period', \
+    ##!#        vmin = v_min, vmax = v_max, colorbar_label_size = colorbar_label_size, \
+    ##!#        minlat = minlat)
+
+    if(uncert_ax is not None):
+        vmin = 0.0
+        vmax = 0.08
+        colormap = plt.cm.viridis
+        norm = cm.BoundaryNorm(np.arange(vmin, vmax + 0.02, 0.02), colormap.N)
+        mesh = uncert_ax.pcolormesh(cloud_data['lon'], cloud_data['lat'], \
+            cloud_uncert, \
+            shading = 'auto', transform = datacrs,\
+            cmap = colormap,\
+            norm = norm)
+            #cmap = 'RdYlBu_r')
+        if(colorbar):
+            cbar = plt.colorbar(mesh, ax = uncert_ax, pad = 0.03, extend = 'both')
+            cbar.set_label('Cld. Frac. Trend Uncert.')
+        uncert_ax.coastlines()
+        uncert_ax.set_extent([-180, 180, minlat, 90], datacrs)   
+        uncert_ax.set_boundary(circle, transform=uncert_ax.transAxes)
+        uncert_ax.set_title(title)
+
+    if(return_trend == True):
+        return cloud_trends
+
+# Designed to work with the netCDF data
+# pvar = 'day' --> only plot day data
+def plotMODIS_MYD08_MonthTrend(cloud_data,month_idx=None,save=False,\
+        trend_type='standard',pvar = '', season='',minlat=65.,\
+        return_trend=False, colorbar = True, colorbar_label_size = None,\
+        title = None, ax = None, show_pval = False, uncert_ax = None, \
+        norm_to_decade = True, vmin = None, vmax = None):
+
+    trend_label=''
+    if(trend_type=='thiel-sen'):
+        trend_label='_thielSen'
+
+    if(month_idx == None):
+        month_adder = ''
+        month_idx = None
+        index_jumper = 1
+        do_month = False
+        #vmax = 0.2
+        #vmin = -0.2
+    else:
+        month_adder = '_month'
+        if(cloud_data['season'] == 'sunlight'):
+            index_jumper = 6
+        else:   
+            index_jumper = 12
+        do_month = True
+        #vmax = 0.20
+        #vmin = -0.20
+
+    #lat_ranges = np.arange(minlat,90.5,1.0)
+    #lon_ranges = np.arange(-179.5,180.5,1.0)
+
+    # --------------------------------------------------------------
+    #
+    # Use calcCERES_grid_trend to calculate the trends in the AI data
+    #
+    # --------------------------------------------------------------
+    cloud_trends, cloud_pvals, cloud_uncert = \
+        calcMODIS_MYD08_grid_trend(cloud_data, month_idx, trend_type, \
+        minlat, norm_to_decade = norm_to_decade, dtype = pvar)
 
     print('Max trend',np.max(cloud_trends))
 
@@ -9764,7 +10433,7 @@ def plotMODIS_CLDL3_MonthTrend(cloud_data,month_idx=None,save=False,\
         month_string = start_date.strftime('%B') + ' '
 
     if(title is None):
-        title = 'MODIS CLDL3 Cloud Fraction\n' + month_string + 'Trends'\
+        title = 'MODIS MYD08 Cloud Fraction\n' + month_string + 'Trends'\
             '\n'+start_date.strftime('%b. %Y') + ' - ' +\
             end_date.strftime('%b. %Y')
 
@@ -9782,15 +10451,20 @@ def plotMODIS_CLDL3_MonthTrend(cloud_data,month_idx=None,save=False,\
         vmax = np.max(cloud_trends)
         vmin = -vmax
 
+    colormap = plt.cm.seismic
+    norm = cm.BoundaryNorm(np.arange(vmin - 0.025, vmax + 0.05, 0.025), colormap.N)
     mesh = ax.pcolormesh(cloud_data['lon'], cloud_data['lat'], cloud_trends, \
-        shading = 'auto', transform = datacrs, vmin = vmin, vmax = vmax,\
-        cmap = 'bwr')
+        shading = 'auto', transform = datacrs,\
+        cmap = colormap,\
+        norm = norm)
+        #cmap = 'RdYlBu_r')
     if(colorbar):
         cbar = plt.colorbar(mesh, ax = ax, pad = 0.03, extend = 'both')
         cbar.set_label('Cloud Fraction Trend')
     ax.coastlines()
     ax.set_extent([-180, 180, minlat, 90], datacrs)   
     ax.set_boundary(circle, transform=ax.transAxes)
+    ax.set_title(title)
 
     if(not in_ax):
         fig1.tight_layout()
@@ -9811,11 +10485,23 @@ def plotMODIS_CLDL3_MonthTrend(cloud_data,month_idx=None,save=False,\
     ##!#        vmin = v_min, vmax = v_max, colorbar_label_size = colorbar_label_size, \
     ##!#        minlat = minlat)
 
-    ##!#if(uncert_ax is not None):
-    ##!#    plotCERES_spatial(uncert_ax, cloud_data['lat'], cloud_data['lon'], \
-    ##!#        cloud_uncert, 'uncert', ptitle = title, plabel = 'W/m2', \
-    ##!#        colorbar = colorbar, colorbar_label_size = colorbar_label_size, \
-    ##!#        vmin = 0, vmax = 20.0, minlat = minlat)
+    if(uncert_ax is not None):
+        vmin = 0.0
+        vmax = 0.08
+        colormap = plt.cm.viridis
+        norm = cm.BoundaryNorm(np.arange(vmin, vmax + 0.02, 0.02), colormap.N)
+        mesh = uncert_ax.pcolormesh(cloud_data['lon'], cloud_data['lat'], \
+            cloud_uncert, \
+            shading = 'auto', transform = datacrs,\
+            cmap = colormap,\
+            norm = norm)
+        if(colorbar):
+            cbar = plt.colorbar(mesh, ax = uncert_ax, pad = 0.03, extend = 'both')
+            cbar.set_label('Cld. Frac. Trend Uncert.')
+        uncert_ax.coastlines()
+        uncert_ax.set_extent([-180, 180, minlat, 90], datacrs)   
+        uncert_ax.set_boundary(circle, transform=uncert_ax.transAxes)
+        uncert_ax.set_title(title)
 
     if(return_trend == True):
         return cloud_trends
