@@ -36,6 +36,7 @@ program omi_colocate
     pixel_in_box, &
     MODIS_CH1_data, MODIS_CH1_dims, &
     MODIS_CH7_data, MODIS_CH7_dims, &
+    MODIS_COD_data, MODIS_COD_dims, &
     MODIS_CLD_data, MODIS_CLD_dims, &
     MODIS_LAT_data, MODIS_LAT_dims, &
     MODIS_LON_data, MODIS_LON_dims, &
@@ -62,6 +63,7 @@ program omi_colocate
     TROP_SSA2_data, TROP_SSA2_dims, &
     MODIS_out_CH1_data, &
     MODIS_out_CH7_data, &
+    MODIS_out_COD_data, &
     MODIS_out_CLD_data, &
     !MODIS_out_LAT_data, &
     !MODIS_out_LON_data, &
@@ -156,8 +158,10 @@ program omi_colocate
   real                   :: local_trop_ai
 
   real                   :: run_modis_total_ch1
+  real                   :: run_modis_total_cod
   real                   :: run_modis_total_ch7
   integer                :: count_modis_total 
+  integer                :: count_modis_cod 
   integer                :: count_modis_cld0
   integer                :: count_modis_cld1
   integer                :: count_modis_cld2
@@ -302,6 +306,7 @@ program omi_colocate
 
   call read_comp_MODIS_CH1(modis1_file_id)
   call read_comp_MODIS_CH7(modis2_file_id)
+  call read_comp_MODIS_COD(modis2_file_id)
   call read_comp_MODIS_CLD(modis2_file_id)
   call read_comp_MODIS_LAT(modis2_file_id)
   call read_comp_MODIS_LON(modis2_file_id)
@@ -439,12 +444,14 @@ program omi_colocate
         closest_dist = 999999.
 
         count_modis_total = 0
+        count_modis_cod   = 0
         count_modis_cld0  = 0
         count_modis_cld1  = 0
         count_modis_cld2  = 0
         count_modis_cld3  = 0
         run_modis_total_ch1 = 0.0
         run_modis_total_ch7 = 0.0
+        run_modis_total_cod = 0.0
         
         modis_loop1: do nii=1,MODIS_LAT_dims(2)
           modis_loop2: do njj=1,MODIS_LAT_dims(1) 
@@ -459,6 +466,19 @@ program omi_colocate
               run_modis_total_ch7 = &
                   run_modis_total_ch7 + MODIS_CH7_data(njj,nii)
               count_modis_total = count_modis_total + 1
+
+              ! Account for OMI grid pixel regions in which one of the
+              ! MODIS COD values is missing. Avoid having that missing
+              ! pixel throw off the whole OMI pixel
+              ! ------------------------------------------------------
+              if(isnan(run_modis_total_cod)) then
+                run_modis_total_cod = MODIS_COD_data(njj,nii)
+                count_modis_cod = 1
+              else
+                run_modis_total_cod = &
+                    run_modis_total_cod + MODIS_COD_data(njj,nii)
+                count_modis_cod = count_modis_cod + 1
+              endif
 
               if(MODIS_CLD_data(njj,nii) == 0.) then
                 count_modis_cld0 = count_modis_cld0 + 1
@@ -502,9 +522,11 @@ program omi_colocate
           MODIS_out_CH1_data(jj,ii) = -999.
           MODIS_out_CH7_data(jj,ii) = -999.
           MODIS_out_CLD_data(jj,ii) = -999.
+          MODIS_out_COD_data(jj,ii) = -999.
         else
           MODIS_out_CH1_data(jj,ii) = run_modis_total_ch1 / count_modis_total
           MODIS_out_CH7_data(jj,ii) = run_modis_total_ch7 / count_modis_total
+          MODIS_out_COD_data(jj,ii) = run_modis_total_COD / count_modis_cod
 
           ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
           !
@@ -610,6 +632,7 @@ program omi_colocate
         !MODIS_out_LON_data(jj,ii) = -999.
         MODIS_out_CH1_data(jj,ii) = -999.
         MODIS_out_CH7_data(jj,ii) = -999.
+        MODIS_out_COD_data(jj,ii) = -999.
         MODIS_out_CLD_data(jj,ii) = -999.
         num_nan = num_nan + 1
 
@@ -1371,6 +1394,52 @@ program omi_colocate
   endif
 
   write(*,*) 'Wrote MODIS CH7'
+
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  !
+  ! Write MODIS COD data
+  !
+  ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+  ! Create the dataspace
+  ! --------------------
+  call h5screate_simple_f(rank, test_dims, dspace_id_MC7, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataspace'
+    return
+  endif
+
+  ! Create the dataset
+  ! ------------------
+  call h5dcreate_f(out_file_id, 'modis_cod', H5T_NATIVE_DOUBLE, &
+                   dspace_id_MC7,  dset_id_MC7, error) 
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not open dataset '//'modis_cod'
+    return
+  endif
+
+  ! Write to the dataset
+  ! --------------------
+  call h5dwrite_f(dset_id_MC7, H5T_NATIVE_DOUBLE, MODIS_out_COD_data, &
+                  OMI_AI_dims, error)
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  ! Close the dataset
+  ! -----------------
+  call h5dclose_f(dset_id_MC7, error)
+
+  ! Close access to data space rank
+  call h5sclose_f(dspace_id_MC7, error)
+
+  if(error /= 0) then
+    write(*,*) 'FATAL ERROR: could not write to dataset'
+    return
+  endif
+
+  write(*,*) 'Wrote MODIS COD'
 
   ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
   !

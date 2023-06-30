@@ -11,6 +11,7 @@ OBJECTS = comp_grid_vars.o \
 			read_coloc_CERES_SWF.o \
 			read_coloc_MODIS_CH7.o \
 			read_coloc_MODIS_CLD.o \
+			read_coloc_MODIS_COD.o \
 			read_coloc_NSIDC_ICE.o \
 			read_coloc_OMI_AI_raw.o \
 			read_coloc_OMI_LAT.o \
@@ -64,6 +65,9 @@ read_coloc_MODIS_CH7.o: $(LIB_PATH)read_coloc_MODIS_CH7.f90
 
 read_coloc_MODIS_CLD.o: $(LIB_PATH)read_coloc_MODIS_CLD.f90
 	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_coloc_MODIS_CLD.f90
+
+read_coloc_MODIS_COD.o: $(LIB_PATH)read_coloc_MODIS_COD.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_coloc_MODIS_COD.f90
 #
 #read_comp_MODIS_LAT.o: $(LIB_PATH)read_comp_MODIS_LAT.f90
 #	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_MODIS_LAT.f90

@@ -9,6 +9,7 @@ import Arctic_compare_lib
 from Arctic_compare_lib import *
 
 
+
 #filename = 'comp_grid_climo_v1.hdf5'
 #filename = 'comp_grid_climo_v2.hdf5'
 #filename = 'comp_grid_climo_v3.hdf5'
@@ -16,7 +17,9 @@ from Arctic_compare_lib import *
 #filename = 'comp_grid_climo_v5.hdf5'
 #filename1 = 'comp_grid_climo_v6.hdf5'
 #filename = 'comp_grid_climo_v7.hdf5'
-filename1 = 'comp_grid_climo_v8.hdf5'
+#filename1 = 'comp_grid_climo_v8.hdf5'
+#filename1 = 'comp_grid_climo_v9.hdf5'
+filename1 = 'comp_grid_climo_v10.hdf5'
 comp_grid_data_v6 = read_comp_grid_climo(filename1)
 #comp_grid_data_v7 = read_comp_grid_climo(filename)
 
@@ -164,30 +167,30 @@ dates = [
         '201908112019',\
         '201908112158',\
         '201908112337',\
-        '202107040232',\
-        '202107041722',\
-        '202107051627',\
-        '202107112225',\
-        '202107121454',\
-        '202107121633',\
-        '202107121812',\
-        '202107121950',\
-        '202107122129',\
-        '202107122308',\
-        '202107131219',\
-        '202107131537',\
-        '202107290046',\
-        '202107290225',\
-        '202107292033',\
-        '202107292212',\
-        '202107292351',\
-        '202107300129',\
-        '202107300308',\
-        '202107300447',\
-        '202107300626',\
-        '202107301937',\
-        '202107302116',\
-        '202107302255',\
+        #'202107040232',\
+        #'202107041722',\
+        #'202107051627',\
+        #'202107112225',\
+        #'202107121454',\
+        #'202107121633',\
+        #'202107121812',\
+        #'202107121950',\
+        #'202107122129',\
+        #'202107122308',\
+        #'202107131219',\
+        #'202107131537',\
+        #'202107290046',\
+        #'202107290225',\
+        #'202107292033',\
+        #'202107292212',\
+        #'202107292351',\
+        #'202107300129',\
+        #'202107300308',\
+        #'202107300447',\
+        #'202107300626',\
+        #'202107301937',\
+        #'202107302116',\
+        #'202107302255',\
         # NOTE: All July 2021 times are added for comp_grid_climo_v8
         #'202108010117',\
         #'202108010256',\
@@ -385,8 +388,9 @@ for ff in files:
 # ----------------------------------------------
 combined_data = {}
 combined_data['omi_uvai_pert'] = np.full(total_size, np.nan)
-combined_data['omi_uvai_raw'] = np.full(total_size, np.nan)
+combined_data['omi_uvai_raw']  = np.full(total_size, np.nan)
 combined_data['modis_cld']     = np.full(total_size, np.nan)
+combined_data['modis_cod']     = np.full(total_size, np.nan)
 combined_data['ceres_swf']     = np.full(total_size, np.nan)
 combined_data['modis_ch7']     = np.full(total_size, np.nan)
 combined_data['omi_sza']       = np.full(total_size, np.nan)
@@ -530,21 +534,21 @@ plot_slopes_cloud_types_szamean(lin_smth2_dict,cld_idx = 0, maxerr = 2, \
 sys.exit()
 
 mask_cloud = np.ma.masked_where(\
-    lin_smth2_dict_v6['raw_cldvals'][sfc_type_idx,:,:,cld_idx] < -9, \
-    lin_smth2_dict_v6['raw_cldvals'][sfc_type_idx,:,:,cld_idx])
+    lin_smth2_dict['raw_cldvals'][sfc_type_idx,:,:,cld_idx] < -9, \
+    lin_smth2_dict['raw_cldvals'][sfc_type_idx,:,:,cld_idx])
 hasher = np.ma.masked_where(mask_cloud < min_cloud, \
     mask_cloud)
 
 cloud_slopes = np.ma.masked_where(mask_cloud < min_cloud, \
-    lin_smth2_dict_v6['raw_slopes'][sfc_type_idx,:,:])
+    lin_smth2_dict['raw_slopes'][sfc_type_idx,:,:])
 clear_slopes = np.ma.masked_where(mask_cloud >= min_cloud, \
-    lin_smth2_dict_v6['raw_slopes'][sfc_type_idx,:,:])
+    lin_smth2_dict['raw_slopes'][sfc_type_idx,:,:])
 
 cloud_slopes = np.ma.masked_where(\
-    lin_smth2_dict_v6['raw_stderr'][sfc_type_idx,:,:] > maxerr, \
+    lin_smth2_dict['raw_stderr'][sfc_type_idx,:,:] > maxerr, \
     cloud_slopes)
 clear_slopes = np.ma.masked_where(\
-    lin_smth2_dict_v6['raw_stderr'][sfc_type_idx,:,:] > maxerr, \
+    lin_smth2_dict['raw_stderr'][sfc_type_idx,:,:] > maxerr, \
     clear_slopes)
 
 cloud_means = np.nanmean(cloud_slopes, axis = 0)
@@ -563,7 +567,7 @@ ax.plot(lin_smth2_dict_v6['sza_mins'], clear_means + clear_std, ':', color = 'ta
 
 plt.show()
 
-plot_slopes_cloud_types(lin_smth_dict_v6, save = False, vmin = -15, vmax = 15)
+plot_slopes_cloud_types(lin_raw_dict, save = False, vmin = -15, vmax = 15)
 
 sys.exit()
 sys.exit()
@@ -586,19 +590,99 @@ sys.exit()
 
 
 
+
+
+
+data = h5py.File('comp_data/colocated_subset_200607260156.hdf5','r')
+#data = h5py.File('comp_data/colocated_subset_201507082016.hdf5','r')
+
+mask_cod = np.ma.masked_where(data['modis_cod'][:,:] <= 0, data['modis_cod'][:,:])
+mask_cod = np.ma.masked_invalid(mask_cod)
+lat = data['omi_lat'][:,:]
+lon = data['omi_lon'][:,:]
+mask_ch1 = np.ma.masked_where(data['modis_ch1'][:,:] < 0, data['modis_ch1'][:,:])
+mask_omi = np.ma.masked_where(data['omi_uvai_raw'][:,:] < -100, data['omi_uvai_raw'][:,:])
+
+data.close()
+
+fig = plt.figure(figsize = (7,6))
+ax1 = fig.add_subplot(2,2,1, projection = mapcrs)
+ax2 = fig.add_subplot(2,2,2, projection = mapcrs)
+ax3 = fig.add_subplot(2,2,3, projection = mapcrs)
+ax4 = fig.add_subplot(2,2,4)
+
+ax1.pcolormesh(lon, lat, mask_omi, transform = datacrs, shading = 'auto', cmap = 'jet')
+ax2.pcolormesh(lon, lat, mask_ch1, transform = datacrs, shading = 'auto', cmap = 'Greys_r')
+ax3.pcolormesh(lon, lat, mask_cod, transform = datacrs, shading = 'auto', cmap = 'viridis', vmax = 60)
+
+ax1.coastlines()
+ax2.coastlines()
+ax3.coastlines()
+
+ax1.set_extent([-180,180,65,90], datacrs)
+ax2.set_extent([-180,180,65,90], datacrs)
+ax3.set_extent([-180,180,65,90], datacrs)
+
+ax4.hist(mask_cod.compressed(), bins = 'auto')
+ax4.set_yscale('log')
+ax4.set_xlabel('MODIS COD')
+ax4.set_ylabel('Counts')
+
+ax1.set_title('OMI UVAI Raw')
+ax2.set_title('MODIS CH1 Reflectance')
+ax3.set_title('MODIS Cloud Optical Depth')
+
+fig.tight_layout()
+
+print(np.nanmax(mask_cod))
+
+plt.show()
+
+sys.exit()
+
+run_list = ['20060724','20060725','20060726','20060727', \
+            '20080422',\
+            '20140811','20140812','20150627','20150706','20150707','20150708',\
+            '20150709','20150710','20170816']
+run_list = ['20170817','20170818']
+
+run_list = ['20170819']
+run_list = [
+    '20180704','20180705','20180721','20180810','20180814', \
+    '20180826','20190810','20190811','20210801']
+
+#run_list = [\
+
+#final_list = entire_wrapper(min_AI = 2.0, minlat = 70., download = True, \
+#    images = False, process = False, run_list = run_list, copy_to_raindrop = False, \
+#    include_tropomi = True, remove_ch2_file = True)
+final_list = entire_wrapper(min_AI = 2.0, minlat = 70., download = False, \
+    images = False, process = True, run_list = run_list, copy_to_raindrop = True, \
+    include_tropomi = True, remove_ch2_file = True)
+
+sys.exit()
+
+
+date_strs = ['201507082016']
+automate_all_preprocess(date_strs, download = False, images = False, process = True,\
+    omi_dtype = 'ltc3', minlat = 70., copy_to_raindrop = True)
+sys.exit()
+
+
+
 # NOTE: As of 20230623, dates "20210704" though "20210730" have been
 #       downloaded, processed, AND colocated on raindrop.
 run_list = [
-    '20210704',
-    '20210705',
-    '20210711',
-    '20210712',
-    '20210713',
-    '20210729',
-    '20210730',
-#    '20210731',
-#    '20210801',
-#    '20210802',
+#    '20210704',
+#    '20210705',
+#    '20210711',
+#    '20210712',
+#    '20210713',
+#    '20210729',
+#    '20210730',
+    '20210731',
+    '20210801',
+    '20210802',
 #    '20210803',
 #    '20210804',
 #    '20210805',

@@ -39,6 +39,7 @@ module comp_grid_vars
   integer(hsize_t), dimension(:), allocatable       :: MODIS_CH2_dims
   integer(hsize_t), dimension(:), allocatable       :: MODIS_CH7_dims
   integer(hsize_t), dimension(:), allocatable       :: MODIS_CLD_dims
+  integer(hsize_t), dimension(:), allocatable       :: MODIS_COD_dims
   integer(hsize_t), dimension(:), allocatable       :: NSIDC_dims
   integer(hsize_t), dimension(:), allocatable       :: CERES_SWF_dims
   integer(hsize_t), dimension(:), allocatable       :: CERES_LWF_dims
@@ -90,6 +91,7 @@ module comp_grid_vars
   real(kind=8), dimension(:,:), allocatable, target   :: MODIS_CH2_data
   real(kind=8), dimension(:,:), allocatable, target   :: MODIS_CH7_data
   real(kind=8), dimension(:,:), allocatable, target   :: MODIS_CLD_data
+  real(kind=8), dimension(:,:), allocatable, target   :: MODIS_COD_data
   real(kind=8), dimension(:,:), allocatable, target   :: MODIS_LAT_data
   real(kind=8), dimension(:,:), allocatable, target   :: MODIS_LON_data
   real(kind=8), dimension(:,:), allocatable, target   :: NSIDC_data
@@ -204,6 +206,7 @@ module comp_grid_vars
       if(allocated(MODIS_CH2_dims))        deallocate(MODIS_CH2_dims)
       if(allocated(MODIS_CH7_dims))        deallocate(MODIS_CH7_dims)
       if(allocated(MODIS_CLD_dims))        deallocate(MODIS_CLD_dims)
+      if(allocated(MODIS_COD_dims))        deallocate(MODIS_COD_dims)
       !if(allocated(MODIS_LAT_dims))        deallocate(MODIS_LAT_dims)
       !if(allocated(MODIS_LON_dims))        deallocate(MODIS_LON_dims)
       if(allocated(NSIDC_dims))            deallocate(NSIDC_dims)
@@ -259,6 +262,7 @@ module comp_grid_vars
       if(allocated(MODIS_CH2_data))        deallocate(MODIS_CH2_data)
       if(allocated(MODIS_CH7_data))        deallocate(MODIS_CH7_data)
       if(allocated(MODIS_CLD_data))        deallocate(MODIS_CLD_data)
+      if(allocated(MODIS_COD_data))        deallocate(MODIS_COD_data)
       if(allocated(MODIS_LAT_data))        deallocate(MODIS_LAT_data)
       if(allocated(MODIS_LON_data))        deallocate(MODIS_LON_data)
       if(allocated(NSIDC_data))            deallocate(NSIDC_data)

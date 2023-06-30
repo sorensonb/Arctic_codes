@@ -8,7 +8,7 @@ make -f Make_omi_colocate
 REDO_ALL=false
 EXTRACT=true
 REPROCESS=false
-REMOVE_CH2=true
+REMOVE_CH2=false
 
 #base_dir=$(pwd)
 #echo $base_dir
@@ -70,7 +70,10 @@ for d1 in ${dirlist} ; do
       echo "$colocate_file does NOT exist. Processing data"
 
       modis_ch1=$(ls ${d2}modis_ch1*)
-      modis_ch2=$(ls ${d2}modis_ch2*)
+
+      if  ($REMOVE_CH2) ; then
+        modis_ch2=$(ls ${d2}modis_ch2*)
+      fi
       modis_ch7=$(ls ${d2}modis_ch7*)
       nsidc_file=$(ls ${d2}nsidc*)
       ceres_file=$(ls ${d2}ceres*)
@@ -82,9 +85,9 @@ for d1 in ${dirlist} ; do
       # error message and do not process anything.
       # ---------------------------------------------------------------------
 
-      if (test -f "$modis_ch2") ; then
-        echo "Old MODIS CH2 file found."
-        if ($REMOVE_CH2) ; then
+      if ($REMOVE_CH2) ; then
+        if (test -f "$modis_ch2") ; then
+          echo "Old MODIS CH2 file found."
           echo "Removing MODIS CH2 file."
           rm $modis_ch2
         fi

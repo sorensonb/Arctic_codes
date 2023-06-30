@@ -443,7 +443,7 @@ os.system(cmnd)
 
 # Automate the uploading to Github
 # --------------------------------
-
+sys.exit()
 # Change to Arctic codes directory
 os.chdir(dest_dir)
 #os.chdir('home_dir + /Arctic_codes/')

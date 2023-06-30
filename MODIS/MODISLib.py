@@ -55,6 +55,7 @@ from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 modis_dir = home_dir  + '/data/MODIS/Aqua/'
 data_dir  = modis_dir + 'MYD/'
+myd06_dir  = modis_dir + 'MYD06/'
 myd08_dir  = modis_dir + 'MYD08/'
 cloud_dir = modis_dir + 'CLDMSK/'
 cloudL3_dir = home_dir + '/data/MODIS/combined/'
@@ -450,7 +451,8 @@ def getCorners(centers):
 # -------------------------------------------------------------------
 def download_MODIS_swath(CERES_date_str, \
         dest_dir = modis_dir, download = True, \
-        download_cloud_mask = True):
+        download_cloud_mask = True, \
+        download_myd06 = True):
 
     if(home_dir + '/Research/CERES/' not in sys.path):
         sys.path.append(home_dir + '/Research/CERES/')
@@ -483,6 +485,7 @@ def download_MODIS_swath(CERES_date_str, \
     return_str = ''
     modis_file_list = ''
     cldmk_file_list = ''
+    myd06_file_list = ''
     download_return_dict = {}
     while(modis_time <= max_modis):
 
@@ -497,17 +500,23 @@ def download_MODIS_swath(CERES_date_str, \
         cldmk_file = glob(modis_time.strftime(local_cloud_dir + \
             '*A%Y%j.%H%M.*.nc'))
 
-        if((len(modis_file) == 0) | ((len(cldmk_file) == 0) & \
-                (download_cloud_mask))):
-            print("MYD or CLDMSK file not found. Must download")
+        myd06_file = glob(modis_time.strftime(myd06_dir + \
+            '*A%Y%j.%H%M.*.nc'))
+
+        if((len(modis_file) == 0) | \
+                ((len(cldmk_file) == 0) & (download_cloud_mask)) | \
+                ((len(myd06_file) == 0) & (download_myd06))):
+            print("MYD or CLDMSK or MYD06 file not found. Must download")
 
             if(download):
                 #modis_file = download_MODIS_file(local_time, \
                 return_dict = download_MODIS_file(local_time, \
                     dest_dir = dest_dir, \
-                    download_cloud_mask = download_cloud_mask)
+                    download_cloud_mask = download_cloud_mask, \
+                    download_myd06 = download_myd06)
                 modis_file = return_dict['modis_file']
                 cldmk_file = return_dict['cldmk_file']
+                myd06_file = return_dict['myd06_file']
 
                 # Check for download errors
                 # -------------------------
@@ -515,9 +524,11 @@ def download_MODIS_swath(CERES_date_str, \
                     print("No MODIS file returned. Continuing.")
                     continue
         else:
-            print("MODIS data downloaded",modis_file[0], cldmk_file[0])
+            print("MODIS data downloaded",modis_file[0], cldmk_file[0], \
+                myd06_file[0])
             modis_file = modis_file[0]
             cldmk_file = cldmk_file[0]
+            myd06_file = cldmk_file[0]
         
         ##!#try:
         ##!#    modis_file = subprocess.check_output('ls ' + \
@@ -544,12 +555,14 @@ def download_MODIS_swath(CERES_date_str, \
         return_str = return_str + local_time + ' '
         modis_file_list = modis_file_list + modis_file + ' '
         cldmk_file_list = cldmk_file_list + cldmk_file + ' '
+        myd06_file_list = myd06_file_list + myd06_file + ' '
 
         modis_time = modis_time + timedelta(minutes = 5)
    
     download_return_dict['modis_date_list'] = return_str.split()
     download_return_dict['modis_file_list'] = modis_file_list.split()
     download_return_dict['cldmk_file_list'] = cldmk_file_list.split()
+    download_return_dict['myd06_file_list'] = myd06_file_list.split()
 
     return download_return_dict
     #return return_str.split(), modis_file_list.split(), cldmk_file_list
@@ -722,6 +735,76 @@ def identify_MODIS_CLDL3(date_str, dest_dir = cloudL3_daily_dir):
 
     return found_file 
 
+
+# date_str: YYYYMMDDHHMM
+def identify_MODIS_MYD06(date_str, dest_dir = myd06_dir):
+
+    local_data_dir  = dest_dir
+
+    base_url = 'https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/61/'+\
+        'MYD06_L2/'
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+
+    print(dt_date_str)
+
+    # For each desired channel, figure out the closest file time
+    # to the input date
+    # ----------------------------------------------------------
+    try:
+        files = listFD(dt_date_str.strftime(base_url + '/%Y/%j'), ext = '.hdf')
+    except subprocess.CalledProcessError:
+        print("ERROR: No MODIS MYD08 files for the input DTG",date_str)
+        return -2
+
+    if(len(files) == 0):
+        print("ERROR: No MODIS MYD08 files returned from the request. Exiting")
+        return -1
+    
+    # Remove the timestamps from the file strings
+    # -------------------------------------------
+    files_only = [tfile.strip().split('/')[-1] for tfile in files]
+
+    # Use the actual file times to get timestamps
+    # -------------------------------------------
+    file_dates = [datetime.strptime(tfile[10:22],'%Y%j.%H%M') for tfile in files_only]
+
+    # Figure out where the closest files to the desired time are
+    # ----------------------------------------------------------
+    time_diffs = np.array([abs((dt_date_str - ddate).total_seconds()) \
+        for ddate in file_dates])
+
+    # Extract the index of the matching MODIS file
+    # --------------------------------------------
+    file_idx = np.argmin(time_diffs)
+    found_file = files_only[file_idx]
+
+    ## Remove the timestamps from the file strings
+    ## -------------------------------------------
+    #found_file = files[0].strip().split('/')[-1]
+
+    # Check if the file is already downloaded
+    # ---------------------------------------
+    if(os.path.exists(local_data_dir + found_file)):
+        print(found_file + ' already exists. Not downloading')
+    else: 
+        # Download the file
+        # -----------------
+        cmnd = dt_date_str.strftime("wget \"" + base_url + '/%Y/%j/' + found_file + \
+            "\" --header \"Authorization: Bearer " + laads_daac_key + "\" -P .")
+        print(cmnd)
+        os.system(cmnd)
+
+        # Move the file to the destination folder
+        # ---------------------------------------
+        cmnd = "mv " + found_file + " " + local_data_dir
+        print(cmnd) 
+        os.system(cmnd)
+
+    return found_file 
+
+
+
 # date_str: %Y%m
 def identify_MODIS_MYD08(date_str, dest_dir = myd08_dir):
 
@@ -776,7 +859,8 @@ def identify_MODIS_MYD08(date_str, dest_dir = myd08_dir):
 # date string from the LAADS DAAC archive. 
 # --------------------------------------------------------------------
 def download_MODIS_file(date_str, dest_dir = modis_dir, \
-        download_cloud_mask = True):
+        download_cloud_mask = True, \
+        download_myd06 = True):
 
     local_cloud_dir = modis_dir + 'CLDMSK/'
 
@@ -786,10 +870,16 @@ def download_MODIS_file(date_str, dest_dir = modis_dir, \
         cloud_file = identify_MODIS_CLDMSK(date_str, modis_dir)
     else:
         cloud_file = ''
-    
+
+    if(download_myd06):
+        myd06_file = identify_MODIS_MYD06(date_str, myd06_dir)
+    else:
+        myd06_file = ''   
+ 
     return_dict = {}
     return_dict['modis_file'] = found_file
     return_dict['cldmk_file'] = cloud_file
+    return_dict['myd06_file'] = myd06_file
     
     return return_dict
     #return found_file
@@ -814,11 +904,13 @@ def download_MODIS_CLDL3_monthly(date_str, dest_dir = cloudL3_daily_dir):
 # ----------------------------------------------------------------
 def write_MODIS_to_HDF5(MODIS_data, channel = 1, swath = True, \
         save_path = './', minlat = 20., remove_empty_scans = False, \
-        include_cloud_mask = True):
+        include_cloud_mask = True, include_myd06 = True, \
+        remove_large_files = False):
 
     if(isinstance(MODIS_data, str)):
         MODIS_data = read_MODIS_channel(MODIS_data, channel, swath = swath, \
-            include_cloud_mask = include_cloud_mask)
+            include_cloud_mask = include_cloud_mask, \
+            include_myd06 = include_myd06)
 
     if(remove_empty_scans):
         mask_data = np.ma.masked_where(MODIS_data['lat'] < minlat, \
@@ -849,13 +941,18 @@ def write_MODIS_to_HDF5(MODIS_data, channel = 1, swath = True, \
     if(include_cloud_mask):
         dset.create_dataset('cld', data = \
             MODIS_data['cloud_mask'][keep_idxs,:].squeeze())
-        
+    if(include_myd06):
+        dset.create_dataset('cod', data = \
+            MODIS_data['cloud_optical_depth'][keep_idxs,:].squeeze())
 
     # Save, write, and close the HDF5 file
     # --------------------------------------
     dset.close()
 
     print("Saved file ",outfile)  
+
+    if(remove_large_files):
+       print("REMOVE MODIS CLOUD FILE HERE") 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
@@ -1828,8 +1925,7 @@ def plot_true_color(filename,zoom=True):
 
     plt.show()
 
-def read_MODIS_granule(filename, channel, zoom = False, \
-            include_cloud_mask = False):
+def read_MODIS_granule(filename, channel, zoom = False):
 
     modis = SD.SD(filename)
 
@@ -1854,7 +1950,7 @@ def read_MODIS_granule(filename, channel, zoom = False, \
         if(str(channel) != 'wv_nir'):
             data = data[channel_dict[str(channel)]['Index']]
         data  = data[::5,::5]
-
+        # NOTE: Added on 20230627 to match these with the MYD06 files
         if(data.shape != lat5.shape):
             data = data[:lat5.shape[0], :lat5.shape[1]]
 
@@ -2041,6 +2137,17 @@ def read_MODIS_granule(filename, channel, zoom = False, \
 
     MODIS_data = {}
 
+    if(data.shape[1] == 271):
+        data = np.ma.masked_invalid(data[:,:-1])
+    if(lon5.shape[1] == 271):
+        lon5 = np.ma.masked_invalid(lon5[:,:-1])
+    if(lat5.shape[1] == 271):
+        lat5 = np.ma.masked_invalid(lat5[:,:-1])
+    if(sza.shape[1] == 271):
+        sza = np.ma.masked_invalid(sza[:,:-1])
+    if(vza.shape[1] == 271):
+        vza = np.ma.masked_invalid(vza[:,:-1])
+
     MODIS_data['data'] = data
     MODIS_data['lat']  = lat5
     MODIS_data['lon']  = lon5
@@ -2081,7 +2188,7 @@ def read_MODIS_granule(filename, channel, zoom = False, \
 
 # dt_date_str is of format YYYYMMDDHHMM
 def read_MODIS_channel(date_str, channel, zoom = False, swath = False, \
-        include_cloud_mask = False):
+        include_cloud_mask = False, include_myd06 = False):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
 
@@ -2100,6 +2207,9 @@ def read_MODIS_channel(date_str, channel, zoom = False, swath = False, \
             if(include_cloud_mask):
                 cloud_name = [aerosol_event_dict[ttime.strftime('%Y-%m-%d')][\
                     ttime.strftime('%H%M')]['modis_cloud'] for ttime in dt_times]
+            if(include_myd06):
+                myd06_name = [aerosol_event_dict[ttime.strftime('%Y-%m-%d')][\
+                    ttime.strftime('%H%M')]['modis_myd06'] for ttime in dt_times]
  
         else:
             filename = [aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
@@ -2107,6 +2217,9 @@ def read_MODIS_channel(date_str, channel, zoom = False, swath = False, \
             if(include_cloud_mask):
                 cloud_name = [aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
                     dt_date_str.strftime('%H%M')]['modis_cloud']]
+            if(include_myd06):
+                myd06_name = [aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+                    dt_date_str.strftime('%H%M')]['modis_myd06']]
    
     MODIS_holder = {}
     counter = 0
@@ -2123,14 +2236,28 @@ def read_MODIS_channel(date_str, channel, zoom = False, swath = False, \
             local_channel = channel
 
             
-        MODIS_data = read_MODIS_granule(ifile, local_channel, zoom = zoom, \
-            include_cloud_mask = include_cloud_mask)
+        MODIS_data = read_MODIS_granule(ifile, local_channel, zoom = zoom)
 
         if(include_cloud_mask):
             cloud_data = Dataset(cloud_name[ii])
             MODIS_data['cloud_mask'] = cloud_data[\
                 'geophysical_data/Integer_Cloud_Mask'][::5,::5]
+            if(MODIS_data['cloud_mask'].shape[1] == 271):
+                MODIS_data['cloud_mask'] = MODIS_data['cloud_mask'][:,:-1]
             cloud_data.close()
+        if(include_myd06):
+            myd06_data = Dataset(myd06_name[ii])
+            local_data = myd06_data['Cloud_Optical_Thickness'][::5,::5]
+            local_data[local_data < 0] = 0.0
+            local_data[local_data > 10000] = np.nan
+            MODIS_data['cloud_optical_depth'] = local_data
+            #MODIS_data['cloud_optical_depth'] = local_data[::5,::5] * \
+            #    myd06_data['Cloud_Optical_Thickness'].scale_factor
+            if(MODIS_data['cloud_optical_depth'].shape[1] == 271):
+                MODIS_data['cloud_optical_depth'] = MODIS_data['cloud_optical_depth'][:,:-1]
+            MODIS_data['cloud_optical_depth'] = np.ma.masked_invalid(\
+                MODIS_data['cloud_optical_depth'])
+            myd06_data.close()
  
         MODIS_holder[str(counter)] = MODIS_data 
 
@@ -2145,6 +2272,10 @@ def read_MODIS_channel(date_str, channel, zoom = False, swath = False, \
     if(include_cloud_mask):
         MODIS_final['cloud_mask'] = \
             np.concatenate([MODIS_holder[key]['cloud_mask']  \
+            for key in MODIS_holder.keys()], axis = 0)
+    if(include_myd06):
+        MODIS_final['cloud_optical_depth'] = \
+            np.concatenate([MODIS_holder[key]['cloud_optical_depth']  \
             for key in MODIS_holder.keys()], axis = 0)
     MODIS_final['variable'] = MODIS_holder['0']['variable']
     MODIS_final['cross_date'] = MODIS_holder['0']['cross_date']

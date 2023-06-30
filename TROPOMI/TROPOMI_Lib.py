@@ -206,7 +206,7 @@ def automate_TROPOMI_preprocess(date_str, download = True, images = True, \
 
 def generate_TROPOMI_prep_data(date_str, copy_to_raindrop = False, \
         minlat = 20., remove_empty_scans = False, \
-        trop_time = None):
+        trop_time = None, remove_large_files = False):
 
     if(trop_time is None):
         trop_name = download_TROPOMI_file(date_str)
@@ -273,6 +273,8 @@ def generate_TROPOMI_prep_data(date_str, copy_to_raindrop = False, \
         print(cmnd)
         os.system(cmnd)
 
+    if(remove_large_files):
+       print("REMOVE TROPOMI FILE HERE") 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #

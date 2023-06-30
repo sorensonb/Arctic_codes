@@ -1,6 +1,6 @@
 # Comment line
 
-EXEC = omi_comp_exec 
+EXEC = omi_comp_exec
 COMP = h5fc
 #COMP = gfortran
 LIB_PATH = /home/bsorenson/OMI/colocate_lib/
@@ -8,13 +8,13 @@ LIB_PATH = /home/bsorenson/OMI/colocate_lib/
 #LIB_PATH = ../JZ_lib/
 #FORT_LIB_PATH = ../../fort_lib/
 OBJECTS = colocate_vars.o \
-			#read_comp_CERES_CLD.o \
 			read_comp_CERES_LWF.o \
 			read_comp_CERES_SWF.o \
 			read_comp_CERES_LAT.o \
 			read_comp_CERES_LON.o \
 			read_comp_MODIS_CH1.o \
 			read_comp_MODIS_CH7.o \
+			read_comp_MODIS_COD.o \
 			read_comp_MODIS_CLD.o \
 			read_comp_MODIS_LAT.o \
 			read_comp_MODIS_LON.o \
@@ -80,6 +80,9 @@ read_comp_MODIS_CH1.o: $(LIB_PATH)read_comp_MODIS_CH1.f90
 
 read_comp_MODIS_CH7.o: $(LIB_PATH)read_comp_MODIS_CH7.f90
 	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_MODIS_CH7.f90
+
+read_comp_MODIS_COD.o: $(LIB_PATH)read_comp_MODIS_COD.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_MODIS_COD.f90
 
 read_comp_MODIS_CLD.o: $(LIB_PATH)read_comp_MODIS_CLD.f90
 	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_MODIS_CLD.f90

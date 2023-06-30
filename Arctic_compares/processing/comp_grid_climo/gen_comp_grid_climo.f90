@@ -37,6 +37,7 @@ program gen_comp_grid_climo
     MODIS_CH2_data, MODIS_CH2_dims, &
     MODIS_CH7_data, MODIS_CH7_dims, &
     MODIS_CLD_data, MODIS_CLD_dims, &
+    MODIS_COD_data, MODIS_COD_dims, &
     !MODIS_LAT_data, MODIS_LAT_dims, &
     !MODIS_LON_data, MODIS_LON_dims, &
     NSIDC_data,     NSIDC_dims, &
@@ -156,10 +157,27 @@ program gen_comp_grid_climo
   character(len = 12)                              :: single_file_date
   character(len = 255)                             :: out_file_name   
 
+  logical                                          :: l_use_cod
+
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
   io8 = 1999
   io5 = 2007
+
+  ! NOTE: This logical sets whether the "ch7" variables are actually used
+  !       for MODIS CH7 reflectances OR for MODIS COD.
+  !        
+  !       If .false., 
+  !         this uses all CH7 variables normally. The output file
+  !         will contain 'modiS_ch7'
+  !
+  !       If .true., 
+  !         all CH7 variables actually house COD values. Bins range
+  !         from 0 to 60 (?) every 4 (?) units. The output file
+  !         will contain 'modis_cod'
+  !         
+  !          
+  l_use_cod = .true.
   
   ! Check command line arguments
   ! ----------------------------
@@ -204,9 +222,15 @@ program gen_comp_grid_climo
   max_ice   = 105.0
   delta_ice = 5.0
 
-  min_ch7   = 0.0
-  max_ch7   = 0.350
-  delta_ch7 = 0.025
+  if(l_use_cod) then
+    min_ch7   = 0.0
+    max_ch7   = 50.0
+    delta_ch7 = 2.5
+  else
+    min_ch7   = 0.0
+    max_ch7   = 0.350
+    delta_ch7 = 0.025
+  endif
 
   !min_ch7   = 0.0
   !max_ch7   = 3.0
@@ -367,6 +391,7 @@ program gen_comp_grid_climo
         !  modis_ch2
         !  x modis_ch7
         !  x modis_cld
+        !  x modis_cod
         !  x nsidc_ice
         !  omi_azm
         !  omi_lat
@@ -380,7 +405,11 @@ program gen_comp_grid_climo
         !  trop_ssa2
         !  trop_uvai
         ! ------------------------------------
-        call read_coloc_MODIS_CH7(file_id)
+        if(l_use_cod) then
+          call read_coloc_MODIS_COD(file_id)
+        else
+          call read_coloc_MODIS_CH7(file_id)
+        endif
         call read_coloc_MODIS_CLD(file_id)
         call read_coloc_CERES_SWF(file_id)
         !call read_coloc_CERES_CLD(file_id)
@@ -415,7 +444,11 @@ program gen_comp_grid_climo
               !ch7_idx = minloc(abs(ch7_bins - MODIS_CLD_data(jj,ii)), dim = 1)
               ! NOTE: for 'v8', reverting back to the 'v6' style and binning
               !        by CH7 reflectance.
-              ch7_idx = minloc(abs(ch7_bins - MODIS_CH7_data(jj,ii)), dim = 1)
+              if(l_use_cod) then
+                ch7_idx = minloc(abs(ch7_bins - MODIS_COD_data(jj,ii)), dim = 1)
+              else
+                ch7_idx = minloc(abs(ch7_bins - MODIS_CH7_data(jj,ii)), dim = 1)
+              endif
               !cld_idx = minloc(abs(cld_bins - MODIS_CLD_data(jj,ii)), dim = 1)
 
               if(((CERES_SWF_data(jj,ii) > 0) .and. &
@@ -490,7 +523,9 @@ program gen_comp_grid_climo
   ! --------------------
   !out_file_name = 'comp_grid_climo_v6.hdf5'
   !out_file_name = 'comp_grid_climo_v7.hdf5'
-  out_file_name = 'comp_grid_climo_v8.hdf5'
+  !out_file_name = 'comp_grid_climo_v8.hdf5'
+  !out_file_name = 'comp_grid_climo_v9.hdf5'
+  out_file_name = 'comp_grid_climo_v10.hdf5'
   write(*,*) trim(out_file_name)
 
   call h5fcreate_f(trim(out_file_name), H5F_ACC_TRUNC_F, out_file_id, error)
@@ -639,7 +674,7 @@ program gen_comp_grid_climo
 
   ! = = = = = = = = = = = = = = = = = = = = = = = 
   !
-  ! Write MODIS CH7 bins
+  ! Write MODIS CH7/COD bins
   !
   ! = = = = = = = = = = = = = = = = = = = = = = = 
 
@@ -653,11 +688,20 @@ program gen_comp_grid_climo
 
   ! Create the dataset
   ! ------------------
-  call h5dcreate_f(out_file_id, 'modis_ch7_bins', H5T_NATIVE_REAL, dspace_id_OLT,  &
-                   dset_id_OLT, error) 
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open dataset '//'modis_ch7_bins'
-    return
+  if(l_use_cod) then
+    call h5dcreate_f(out_file_id, 'modis_cod_bins', H5T_NATIVE_REAL, dspace_id_OLT,  &
+                     dset_id_OLT, error) 
+    if(error /= 0) then
+      write(*,*) 'FATAL ERROR: could not open dataset '//'modis_cod_bins'
+      return
+    endif
+  else
+    call h5dcreate_f(out_file_id, 'modis_ch7_bins', H5T_NATIVE_REAL, dspace_id_OLT,  &
+                     dset_id_OLT, error) 
+    if(error /= 0) then
+      write(*,*) 'FATAL ERROR: could not open dataset '//'modis_ch7_bins'
+      return
+    endif
   endif
 
   ! Write to the dataset
@@ -681,7 +725,11 @@ program gen_comp_grid_climo
     return
   endif
 
-  write(*,*) 'Wrote modis ch7 bins'
+  if(l_use_cod) then
+    write(*,*) 'Wrote modis cod bins'
+  else
+    write(*,*) 'Wrote modis ch7 bins'
+  endif
 
   !!#!! = = = = = = = = = = = = = = = = = = = = = = = 
   !!#!!
@@ -915,7 +963,7 @@ program gen_comp_grid_climo
 
   ! = = = = = = = = = = = = = = = = = = = = = = = 
   !
-  ! Write MODIS CH7 edges
+  ! Write MODIS CH7/COD edges
   !
   ! = = = = = = = = = = = = = = = = = = = = = = = 
 
@@ -929,11 +977,20 @@ program gen_comp_grid_climo
 
   ! Create the dataset
   ! ------------------
-  call h5dcreate_f(out_file_id, 'modis_ch7_edges', H5T_NATIVE_REAL, &
-                   dspace_id_OLT, dset_id_OLT, error) 
-  if(error /= 0) then
-    write(*,*) 'FATAL ERROR: could not open dataset '//'modis_ch7_edges'
-    return
+  if(l_use_cod) then
+    call h5dcreate_f(out_file_id, 'modis_cod_edges', H5T_NATIVE_REAL, &
+                     dspace_id_OLT, dset_id_OLT, error) 
+    if(error /= 0) then
+      write(*,*) 'FATAL ERROR: could not open dataset '//'modis_cod_edges'
+      return
+    endif
+  else
+    call h5dcreate_f(out_file_id, 'modis_ch7_edges', H5T_NATIVE_REAL, &
+                     dspace_id_OLT, dset_id_OLT, error) 
+    if(error /= 0) then
+      write(*,*) 'FATAL ERROR: could not open dataset '//'modis_ch7_edges'
+      return
+    endif
   endif
 
   ! Write to the dataset
@@ -957,7 +1014,11 @@ program gen_comp_grid_climo
     return
   endif
 
-  write(*,*) 'Wrote modis ch7 edges'
+  if(l_use_cod) then
+    write(*,*) 'Wrote modis cod edges'
+  else
+    write(*,*) 'Wrote modis ch7 edges'
+  endif
 
   !!#!! = = = = = = = = = = = = = = = = = = = = = = = 
   !!#!!

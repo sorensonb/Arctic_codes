@@ -7,6 +7,118 @@
 
 from MODISLib import *
 
+
+
+#dt_date_str = '201807052305'
+#dt_date_str = '201807052310'
+dt_date_str = '201507082105'
+MODIS_ch1  = read_MODIS_channel(dt_date_str, 1,  zoom = False, swath = True, include_cloud_mask = True, include_myd06 = True)
+MODIS_ch7  = read_MODIS_channel(dt_date_str, 7,  zoom = False, swath = True, include_cloud_mask = True, include_myd06 = True)
+
+fig = plt.figure(figsize = (7,6))
+ax1 = fig.add_subplot(2,2,1, projection = ccrs.NorthPolarStereo())
+ax2 = fig.add_subplot(2,2,2, projection = ccrs.NorthPolarStereo())
+ax3 = fig.add_subplot(2,2,3, projection = ccrs.NorthPolarStereo())
+ax4 = fig.add_subplot(2,2,4, projection = ccrs.NorthPolarStereo())
+
+mesh = ax1.pcolormesh(MODIS_ch1['lon'], MODIS_ch1['lat'], MODIS_ch1['data'], \
+    transform = datacrs, shading = 'auto', cmap = MODIS_ch1['colors'], vmax = 0.7)
+cbar = plt.colorbar(mesh, ax = ax1, label = 'Reflectance')
+mesh = ax2.pcolormesh(MODIS_ch1['lon'], MODIS_ch1['lat'], MODIS_ch1['cloud_mask'], \
+    transform = datacrs, \
+    shading = 'auto', cmap = 'jet')
+cbar = plt.colorbar(mesh, ax = ax2, label = 'Cloud Mask')
+#ax2.pcolormesh(cldmsk_lon, cldmsk_lat, cldmsk_mask, transform = datacrs, \
+#    shading = 'auto', cmap = 'jet')
+mesh = ax3.pcolormesh(MODIS_ch1['lon'], MODIS_ch1['lat'], \
+    MODIS_ch1['cloud_optical_depth'], transform = datacrs, \
+    shading = 'auto', vmax = 40)
+cbar = plt.colorbar(mesh, ax = ax3, label = 'Cloud Optical Depth')
+mesh = ax4.pcolormesh(MODIS_ch7['lon'], MODIS_ch7['lat'], MODIS_ch7['data'], \
+    transform = datacrs, vmax = 0.4, shading = 'auto', cmap = MODIS_ch1['colors'])
+cbar = plt.colorbar(mesh, ax = ax4, label = 'Reflectance')
+#ax4.pcolormesh(myd06_lon, myd06_lat, myd06_dat, transform = datacrs, \
+#    shading = 'auto')
+
+ax1.coastlines()
+ax2.coastlines()
+ax3.coastlines()
+ax4.coastlines()
+
+ax1.set_title('0.64 μm')
+ax2.set_title('Cloud Mask\nBlue = Cloud, Red = Clear')
+ax3.set_title('MODIS COD')
+ax4.set_title('MODIS 2.1 μm Refl.')
+
+ax1.set_boundary(circle, transform=ax1.transAxes)
+ax2.set_boundary(circle, transform=ax2.transAxes)
+ax3.set_boundary(circle, transform=ax3.transAxes)
+ax4.set_boundary(circle, transform=ax4.transAxes)
+
+ax1.set_extent([-180,180,65,90], datacrs)
+ax2.set_extent([-180,180,65,90], datacrs)
+ax3.set_extent([-180,180,65,90], datacrs)
+ax4.set_extent([-180,180,65,90], datacrs)
+
+plt.suptitle(dt_date_str)
+
+fig.tight_layout()
+
+#fig.savefig('modis_cod_compare_' + dt_date_str + '.png', dpi = 200)
+
+plt.show()
+
+sys.exit()
+
+
+
+
+
+
+date_strs = [
+    "201708172135",
+    "201708172140",
+    "201708172145",
+    "201708172150"]
+for dstr in date_strs:
+    identify_MODIS_MYD06(dstr)
+
+sys.exit()
+
+
+#
+#MODIS_data = '201507082105'
+#minlat = 70
+#write_MODIS_to_HDF5(MODIS_data, channel = 1, swath = True, \
+#    save_path = './', minlat = minlat, remove_empty_scans = True, \
+#    include_cloud_mask = True, include_myd06 = True)
+#
+#sys.exit()
+
+
+
+CERES_date_str =  "2015070822"
+download = True
+download_dict = download_MODIS_swath(CERES_date_str,download = download)
+
+sys.exit()
+
+#myd06_files = [
+#    'MYD06_L2.A2018186.2305.061.2018187160426.hdf',\
+#    'MYD06_L2.A2018186.2310.061.2018187160720.hdf',\
+#    'MYD06_L2.A2018186.2315.061.2018187155509.hdf']
+##!#
+##!#date_strs = [
+##!#    '201507082105',\
+##!#    '201507082110',\
+##!#    '201507082115',\
+##!#    '201507082120',\
+##!#    ]
+##!#
+##!#for dstr in date_strs:
+##!#    identify_MODIS_MYD06(dstr)
+##!#
+##!#sys.exit()
 #start_date = '200207'
 #end_date   = '201909'
 start_date = '200504'

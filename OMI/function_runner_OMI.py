@@ -10,6 +10,47 @@ import OMILib
 from OMILib import *
 import sys
 
+
+#date_str = '201807052213'
+date_str = '201507082016'
+#download_OMI_single_HDF(date_str, dest_dir = h5_data_dir)
+dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+
+filename = glob(dt_date_str.strftime(h5_data_dir + 'OMI-Aura_L2-OMAERUV_%Ym%m%dt%H%M-*.he5*'))[0]
+
+data = h5py.File(filename)
+
+lat = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude'][:,:]
+lon = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude'][:,:]
+cod = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/CloudOpticalDepth'][:,:]
+
+cod = np.ma.masked_where(abs(cod) > 100, cod)
+
+data.close()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1, projection = ccrs.NorthPolarStereo())
+mesh = ax.pcolormesh(lon, lat, cod, vmax = 20, transform = datacrs, shading = 'auto')
+cbar = plt.colorbar(mesh, ax = ax, label = 'Cloud Optical Depth')
+ax.coastlines()
+ax.set_extent([-180,180,65,90], datacrs)
+
+ax.set_boundary(circle, transform=ax.transAxes)
+ax.set_title('OMI Cloud Optical Depth\n' + date_str)
+
+fig.tight_layout()
+fig.savefig('omi_cod_' + date_str + '.png', dpi = 200)
+
+plt.show()
+
+sys.exit()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1, projection = ccrs.NorthPolarStereo())
+
+
+sys.exit()
+
 date_strs = [
     '202107040908',
     '202107050812',
