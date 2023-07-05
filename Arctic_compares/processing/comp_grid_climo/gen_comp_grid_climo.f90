@@ -247,7 +247,11 @@ program gen_comp_grid_climo
   len_ai  = (max_ai  - min_ai  + delta_ai)  / delta_ai
   len_sza = (max_sza - min_sza + delta_sza) / delta_sza
   len_ice = (max_ice - min_ice + delta_ice) / delta_ice
-  len_ch7 = (max_ch7 - min_ch7 + delta_ch7) / delta_ch7
+  if(l_use_cod) then
+    len_ch7 = 9
+  else
+    len_ch7 = (max_ch7 - min_ch7 + delta_ch7) / delta_ch7
+  endif
   !len_cld = (max_cld - min_cld + delta_cld) / delta_cld
 
   allocate(ai_bins(len_ai))
@@ -274,9 +278,13 @@ program gen_comp_grid_climo
     ice_bins(ii) = min_ice + delta_ice*(ii-1)
   enddo
 
-  do ii = 1, len_ch7
-    ch7_bins(ii) = min_ch7 + delta_ch7*(ii-1)
-  enddo
+  if(l_use_cod) then
+    ch7_bins = (/0.0,0.5,2.0,4.0,6.0,8.0,12.0,20.0,32.0/)
+  else
+    do ii = 1, len_ch7
+      ch7_bins(ii) = min_ch7 + delta_ch7*(ii-1)
+    enddo
+  endif
 
   !do ii = 1, len_cld
   !  cld_bins(ii) = min_cld + delta_cld*(ii-1)
@@ -294,9 +302,16 @@ program gen_comp_grid_climo
     ice_edges(ii) = min_ice + delta_ice*((ii-1) - 0.5)
   enddo
 
-  do ii = 1, len_ch7 + 1 
-    ch7_edges(ii) = min_ch7 + delta_ch7*((ii-1) - 0.5)
-  enddo
+  !do ii = 1, len_ch7 + 1 
+  !  ch7_edges(ii) = min_ch7 + delta_ch7*((ii-1) - 0.5)
+  !enddo
+  if(l_use_cod) then
+    ch7_edges = (/-0.25,0.25,1.25,3.0,5.0,7.0,10.0,16.0,26.0,38.0/)
+  else
+    do ii = 1, len_ch7 + 1 
+      ch7_edges(ii) = min_ch7 + delta_ch7*((ii-1) - 0.5)
+    enddo
+  endif
 
   !do ii = 1, len_cld + 1 
   !  cld_edges(ii) = min_cld + delta_cld*((ii-1) - 0.5)
@@ -525,7 +540,8 @@ program gen_comp_grid_climo
   !out_file_name = 'comp_grid_climo_v7.hdf5'
   !out_file_name = 'comp_grid_climo_v8.hdf5'
   !out_file_name = 'comp_grid_climo_v9.hdf5'
-  out_file_name = 'comp_grid_climo_v10.hdf5'
+  !out_file_name = 'comp_grid_climo_v10.hdf5'
+  out_file_name = 'comp_grid_climo_v12.hdf5'
   write(*,*) trim(out_file_name)
 
   call h5fcreate_f(trim(out_file_name), H5F_ACC_TRUNC_F, out_file_id, error)

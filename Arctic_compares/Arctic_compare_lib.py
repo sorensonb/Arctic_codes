@@ -2291,12 +2291,28 @@ def select_combined_scatter_data(combined_data, xval, yval,
     local_xdata = local_xdata.compressed()
     local_ydata = local_ydata.compressed()
 
+    ##!#print("In selecter,")
+    ##!#if((ice_max is not None) and (ice_min is not None)):
+    ##!#    print("    ice:",ice_min - ice_diff, ice_max + ice_diff, \
+    ##!#              "ch7:",ch7_min - ch7_diff, ch7_max + ch7_diff, \
+    ##!#              "sza",sza_min - sza_diff, sza_max + sza_diff)
+    ##!#elif((ice_max is None) and (ice_min is not None)):
+    ##!#    print("    ice:",ice_min - ice_diff, 'None', \
+    ##!#              "ch7:",ch7_min - ch7_diff, ch7_max + ch7_diff, \
+    ##!#              "sza",sza_min - sza_diff, sza_max + sza_diff)
+    ##!#elif((ice_max is not None) and (ice_min is None)):
+    ##!#    print("    ice:",'None',ice_max + ice_diff,  \
+    ##!#              "ch7:",ch7_min - ch7_diff, ch7_max + ch7_diff, \
+    ##!#              "sza",sza_min - sza_diff, sza_max + sza_diff)
+    ##!#print("   xdata_size",local_xdata.shape[0])
+
     return local_xdata, local_ydata, local_cloud
 
 def plot_combined_scatter(combined_data, xval = 'omi_uvai_raw', \
         yval = 'ceres_swf', ax = None, \
         swf_min = None, swf_max = None, \
         #cld_min = None, cld_max = None, \
+        cod_min = None, cod_max = None, \
         ch7_min = None, ch7_max = None, \
         sza_min = None, sza_max = None, \
         ice_min = None, ice_max = None, \
@@ -2305,7 +2321,8 @@ def plot_combined_scatter(combined_data, xval = 'omi_uvai_raw', \
         ice_diff = None, ch7_diff = None,\
         cld_diff = None, \
         trend_type = 'theil-sen', \
-        show_trend = False, shade_density = False):
+        show_trend = False, shade_density = False,\
+        cloud_var = 'ch7'):
 
     ##!#local_xdata = np.copy(combined_data[xval])
     ##!#local_ydata = np.copy(combined_data[yval])
@@ -2350,7 +2367,7 @@ def plot_combined_scatter(combined_data, xval = 'omi_uvai_raw', \
     ##!#local_xdata = local_xdata.compressed()
     ##!#local_ydata = local_ydata.compressed()
 
-    local_xdata, local_ydata = \
+    local_xdata, local_ydata, local_cloud  = \
         select_combined_scatter_data(combined_data, xval, yval, 
             swf_min = swf_min, swf_max = swf_max, \
             #cld_min = None, cld_max = None, \
@@ -2361,7 +2378,19 @@ def plot_combined_scatter(combined_data, xval = 'omi_uvai_raw', \
             ai_diff = ai_diff, sza_diff = sza_diff, \
             ice_diff = ice_diff, ch7_diff = ch7_diff, \
             #cld_diff = cld_diff, \
+            cloud_var = cloud_var 
             )
+
+    if(trend_type == 'theil-sen'):
+        if((len(local_xdata) > 20)):
+            res = stats.theilslopes(local_ydata, local_xdata, 0.90)
+            print("IN HERE: Theil slope:",res[0])
+
+    elif(trend_type == 'linregress'):
+        if((len(local_xdata) > 20)):
+            result1 = stats.linregress(local_xdata,local_ydata)
+            print("IN HERE: Lin slope:",result1.slope)
+
 
     print(local_xdata.shape, local_ydata.shape)
 
@@ -2683,6 +2712,8 @@ def plot_comp_grid_scatter(comp_grid_data, xval = 'ai', \
         if(len(local_xdata) > 10000):
             print("ERROR: Plotting trend line with too many points")
             print("       Preventing this for the sake of computer safety")
+        elif(len(local_xdata) < 2):
+            print("ERROR: No valid data points for these grid bin ranges")
         else:
             plot_trend_line(ax, local_xdata, local_ydata, color='tab:red', \
                 linestyle = '-',  slope = trend_type)
@@ -2979,6 +3010,10 @@ def calc_raw_grid_slopes(combined_data, comp_grid_data, \
         np.nan)
     grid_pvals   = np.full((ice_mins.size, ch7_mins.size, sza_mins.size), \
         np.nan)
+    raw_counts   = np.full((ice_mins.size, ch7_mins.size, sza_mins.size), \
+        np.nan)
+    grid_counts  = np.full((ice_mins.size, ch7_mins.size, sza_mins.size), \
+        np.nan)
 
     # 0: "cloudy"
     # 1: "probably cloudy"
@@ -3040,7 +3075,7 @@ def calc_raw_grid_slopes(combined_data, comp_grid_data, \
                 # ----------------
                 #if((len(grid_xdata) > 20) & (len(raw_xdata) > 20)):
                 if(trend_type == 'theil-sen'):
-                    if((len(raw_xdata) > 20)):
+                    if((len(raw_xdata) >= 20)):
                         res = stats.theilslopes(raw_ydata, raw_xdata, 0.90)
                         raw_slopes[ii,jj,kk]   = res[0]
 
@@ -3048,28 +3083,30 @@ def calc_raw_grid_slopes(combined_data, comp_grid_data, \
                         res = stats.theilslopes(grid_ydata, grid_xdata, 0.90)
                         grid_slopes[ii,jj,kk]   = res[0]
                 elif(trend_type == 'linregress'):
-                    if((len(raw_xdata) > 20)):
+                    if((len(raw_xdata) >= 20)):
                         result1 = stats.linregress(raw_xdata,raw_ydata)
                         raw_slopes[ii,jj,kk] = result1.slope 
                         raw_stderr[ii,jj,kk] = result1.stderr
                         raw_pvals[ii,jj,kk]  = result1.pvalue
 
-                    if((len(grid_xdata) > 20)):
+                    if((len(grid_xdata) >= 20)):
                         result2 = stats.linregress(grid_xdata,grid_ydata)
                         grid_slopes[ii,jj,kk] = result2.slope 
                         grid_stderr[ii,jj,kk] = result2.stderr
                         grid_pvals[ii,jj,kk]  = result2.pvalue
                 else:
                     print("WARNING: invalid trend_type specified. Using theil-sen")
-                    if((len(raw_xdata) > 20)):
+                    if((len(raw_xdata) >= 20)):
                         res = stats.theilslopes(raw_ydata, raw_xdata, 0.90)
                         raw_slopes[ii,jj,kk]   = res[0]
 
-                    if((len(grid_xdata) > 20)):
+                    if((len(grid_xdata) >= 20)):
                         res = stats.theilslopes(grid_ydata, grid_xdata, 0.90)
                         grid_slopes[ii,jj,kk]   = res[0]
-    
-                print(raw_xdata.shape, grid_xdata.shape, grid_slopes[ii,jj,kk])
+   
+                raw_counts[ii,jj,kk]  = raw_xdata.shape[0]
+                grid_counts[ii,jj,kk] = grid_xdata.shape[0]
+                print(raw_xdata.shape, grid_xdata.shape, raw_slopes[ii,jj,kk], grid_slopes[ii,jj,kk])
     
                 #raw_slopes[ii,jj,kk]   = 
     
@@ -3080,6 +3117,8 @@ def calc_raw_grid_slopes(combined_data, comp_grid_data, \
     grid_stderr = np.ma.masked_invalid(grid_stderr)
     raw_pvals   = np.ma.masked_invalid(raw_pvals)
     grid_pvals  = np.ma.masked_invalid(grid_pvals)
+    raw_counts  = np.ma.masked_invalid(raw_counts)
+    grid_counts = np.ma.masked_invalid(grid_counts)
 
     out_dict = {}
     out_dict['raw_slopes'] = raw_slopes
@@ -3090,6 +3129,8 @@ def calc_raw_grid_slopes(combined_data, comp_grid_data, \
     out_dict['grid_stderr'] = grid_stderr
     out_dict['raw_pvals'] = raw_pvals
     out_dict['grid_pvals'] = grid_pvals
+    out_dict['raw_counts'] = raw_counts
+    out_dict['grid_counts'] = grid_counts
     out_dict['sza_mins'] = sza_mins
     out_dict['sza_maxs'] = sza_maxs
     out_dict[cloud_var + '_mins'] = ch7_mins
@@ -3711,3 +3752,250 @@ def plot_compare_grid_climo_stderr(comp_grid_data,  \
         print("Saved image", outname)
     else:
         plt.show()
+
+# dtype: 'raw','grid'
+def plot_compare_grid_climo_counts(comp_grid_data,  \
+        dtype, ice_idx, save = False, hatch_counts = False, hatch_style = '///'):
+
+    vmin = -15
+    vmax = 15
+   
+    label_dict = {
+        0: 'Ocean',
+        1: 'Ice',\
+        2: 'Land',
+    }
+
+    if('cod_mins' in comp_grid_data.keys()):
+        cloud_var = 'cod'
+    else:
+        cloud_var = 'ch7'
+    plt.close('all') 
+    fig = plt.figure(figsize = (7.5, 3.5))
+    ax1 = fig.add_subplot(1,2,1)
+    ax2 = fig.add_subplot(1,2,2)
+   
+    cmap = 'bwr' 
+    shrk = 1.0
+    cmap2 = plt.get_cmap('viridis')
+        
+    mesh = ax1.pcolormesh(comp_grid_data['sza_mins'], \
+        comp_grid_data[cloud_var + '_mins'], \
+        comp_grid_data[dtype + '_slopes'][ice_idx,:,:], \
+        cmap = cmap, shading = 'auto', vmin = vmin, vmax = vmax)
+    cbar = plt.colorbar(mesh,\
+        ax = ax1, orientation='vertical',shrink = shrk, extend = 'both')
+    cbar.set_label('AI - SWF slope [Wm$^{-2}$/AI]')
+    ax1.set_xlabel('SZA')
+    ax1.set_ylabel(cloud_var.upper())
+    ax1.set_title(dtype.title() + ' ' + label_dict[ice_idx] + ' Forcing')
+
+
+    mesh = ax2.pcolormesh(comp_grid_data['sza_mins'], \
+        comp_grid_data[cloud_var + '_mins'], \
+        comp_grid_data[dtype + '_counts'][ice_idx,:,:], \
+        cmap = 'viridis', shading = 'auto')
+    cbar = plt.colorbar(mesh, ax = ax2, orientation='vertical', \
+        shrink = shrk, extend = 'both')
+    cbar.set_label('Bin Counts')
+    ax2.set_xlabel('SZA')
+    ax2.set_ylabel(cloud_var.upper())
+    ax2.set_title(dtype.title() + ' ' + label_dict[ice_idx] + ' Bin Counts')
+
+    if(hatch_counts):
+        hasher = np.ma.masked_where(comp_grid_data[dtype + '_counts'][ice_idx,:,:] > 20, \
+            comp_grid_data[dtype + '_counts'][ice_idx,:,:])
+        ax2.pcolor(comp_grid_data['sza_mins'], comp_grid_data[cloud_var + '_mins'], \
+            hasher, hatch = hatch_style, alpha=0., shading = 'auto')
+
+    
+    if(comp_grid_data['smoother'] == 'None'):
+        title_str = 'Unsmoothed'
+        out_adder = ''
+    elif(comp_grid_data['smoother'] == 'smooth'):
+        title_str = '1-Bin Smoothed'
+        out_adder = '_smooth1bin'
+    elif(comp_grid_data['smoother'] == 'smoother'):
+        title_str = '2-Bin Smoothed'
+        out_adder = '_smooth2bin'
+
+    plt.suptitle(title_str)
+
+    fig.tight_layout()
+    if(save):
+        outname = 'comp_grid_climo_counts_' + dtype + out_adder + '_' + label_dict[ice_idx] + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+# Plots the calculated slopes in the 2-d pcolormesh on one subplot.
+# Then, on the other subplot, shows the scatter data for a desired
+# bin value from the first subplot
+def plot_compare_slopes_scatter(out_dict, combined_data, comp_grid_data, \
+        x_idx, y_idx, dtype = 'raw', ice_idx = 0, ai_min = 2, \
+        ai_max = None, show_trend = False, save = False):
+
+    if('cod_mins' in out_dict.keys()):
+        cloud_var = 'cod'
+    else:
+        cloud_var = 'ch7'
+
+    ice_mins = np.array([0,80,105])
+    ice_maxs = np.array([20,100,None])
+
+    sizer = out_dict['sizer']
+    if(out_dict['smoother'] == 'None'):    
+        if('cod_bins' in comp_grid_data.keys()):
+            cloud_var = 'cod'
+            ch7_mins = comp_grid_data['cod_bins'][0::sizer]
+            ch7_maxs = comp_grid_data['cod_bins'][0::sizer]
+        else:
+            cloud_var = 'ch7'
+            ch7_mins = comp_grid_data['ch7_bins'][0::sizer]
+            ch7_maxs = comp_grid_data['ch7_bins'][0::sizer]
+        
+        sza_mins = comp_grid_data['sza_bins'][4::sizer]
+        sza_maxs = comp_grid_data['sza_bins'][4::sizer]
+    elif(out_dict['smoother'] == 'smooth'): 
+        if('cod_bins' in comp_grid_data.keys()):
+            cloud_var = 'cod'
+            ch7_mins = comp_grid_data['cod_bins'][0:-1:sizer]
+            ch7_maxs = comp_grid_data['cod_bins'][1::sizer]
+        else:
+            cloud_var = 'ch7'
+            ch7_mins = comp_grid_data['ch7_bins'][0:-1:sizer]
+            ch7_maxs = comp_grid_data['ch7_bins'][1::sizer]
+        
+        sza_mins = comp_grid_data['sza_bins'][4:-1:sizer]
+        sza_maxs = comp_grid_data['sza_bins'][5::sizer]
+    elif(out_dict['smoother'] == 'smoother'):
+        if('cod_bins' in comp_grid_data.keys()):
+            cloud_var = 'cod'
+            ch7_mins = comp_grid_data['cod_bins'][0:-2:sizer]
+            ch7_maxs = comp_grid_data['cod_bins'][2::sizer]
+        else:
+            cloud_var = 'ch7'
+            ch7_mins = comp_grid_data['ch7_bins'][0:-2:sizer]
+            ch7_maxs = comp_grid_data['ch7_bins'][2::sizer]
+        
+        sza_mins = comp_grid_data['sza_bins'][4:-2:sizer]
+        sza_maxs = comp_grid_data['sza_bins'][6::sizer]
+    
+    ai_diff  = comp_grid_data['ai_bins'][2] - comp_grid_data['ai_edges'][2]
+    sza_diff = comp_grid_data['sza_bins'][2] - comp_grid_data['sza_edges'][2]
+    ice_diff = comp_grid_data['ice_bins'][2] - comp_grid_data['ice_edges'][2]
+    ch7_diff = comp_grid_data[cloud_var + '_bins'][2] - \
+        comp_grid_data[cloud_var + '_edges'][2]
+    
+    ## Calculate slopes 
+    ## ----------------
+    ##if((len(grid_xdata) > 20) & (len(raw_xdata) > 20)):
+    #if(trend_type == 'theil-sen'):
+    #    if((len(raw_xdata) > 20)):
+    #        res = stats.theilslopes(raw_ydata, raw_xdata, 0.90)
+    #        raw_slopes[ii,jj,kk]   = res[0]
+
+    #    if((len(grid_xdata) > 20)):
+    #        res = stats.theilslopes(grid_ydata, grid_xdata, 0.90)
+    #        grid_slopes[ii,jj,kk]   = res[0]
+    #elif(trend_type == 'linregress'):
+    #    if((len(raw_xdata) > 20)):
+    #        result1 = stats.linregress(raw_xdata,raw_ydata)
+    #        raw_slopes[ii,jj,kk] = result1.slope 
+    #        raw_stderr[ii,jj,kk] = result1.stderr
+    #        raw_pvals[ii,jj,kk]  = result1.pvalue
+
+    #    if((len(grid_xdata) > 20)):
+    #        result2 = stats.linregress(grid_xdata,grid_ydata)
+    #        grid_slopes[ii,jj,kk] = result2.slope 
+    #        grid_stderr[ii,jj,kk] = result2.stderr
+    #        grid_pvals[ii,jj,kk]  = result2.pvalue
+    #else:
+    #    print("WARNING: invalid trend_type specified. Using theil-sen")
+    #    if((len(raw_xdata) > 20)):
+    #        res = stats.theilslopes(raw_ydata, raw_xdata, 0.90)
+    #        raw_slopes[ii,jj,kk]   = res[0]
+
+    #    if((len(grid_xdata) > 20)):
+    #        res = stats.theilslopes(grid_ydata, grid_xdata, 0.90)
+    #        grid_slopes[ii,jj,kk]   = res[0]
+   
+
+    titles = ['Ocean','Ice','Land']
+   
+    plt.close('all') 
+    fig = plt.figure(figsize = (7,6))
+    ax1 = fig.add_subplot(2,2,1) # Raw pcolor
+    ax2 = fig.add_subplot(2,2,2) # Raw scatter
+    ax3 = fig.add_subplot(2,2,3) # Grid pcolor
+    ax4 = fig.add_subplot(2,2,4) # Grid scatter
+
+    vmin = -15
+    vmax = 15 
+    shrk = 1.0
+    cmap = 'bwr'
+    mesh = ax1.pcolormesh(out_dict['sza_mins'], out_dict[cloud_var + '_mins'], \
+        out_dict['raw_slopes'][ice_idx,:,:], \
+        cmap = cmap, shading = 'auto', vmin = vmin, vmax = vmax)
+    cbar = plt.colorbar(mesh,\
+        ax = ax1, orientation='vertical',shrink = shrk, extend = 'both')
+    ax1.set_xlabel('SZA')
+    ax1.set_ylabel(cloud_var.upper())
+    ax1.set_title('Raw ' + titles[ice_idx])
+    #if(hatch_stderr):
+    #    hasher = np.ma.masked_where(out_dict['raw_stderr'][0,:,:] > maxerr, \
+    #        out_dict['raw_stderr'][0,:,:])
+    #    ax1.pcolor(out_dict['sza_mins'], out_dict[cloud_var + '_mins'], \
+    #        hasher, hatch = hatch_style, alpha=0., shading = 'auto')
+
+    print("SZA Mins:")
+    print("    ",sza_mins[x_idx], sza_maxs[x_idx])
+    print("CH7 Ranges:")
+    print("    ",ch7_mins[y_idx],ch7_maxs[y_idx])
+    ax1.plot(sza_mins[x_idx], ch7_mins[y_idx], 'o', color = 'tab:purple')
+
+
+    plot_combined_scatter(combined_data, ax = ax2, \
+        #cld_min = None, cld_max = None, \
+        ch7_min = ch7_mins[y_idx], ch7_max = ch7_maxs[y_idx], \
+        sza_min = sza_mins[x_idx], sza_max = sza_maxs[x_idx], \
+        ice_min = ice_mins[ice_idx], ice_max = ice_maxs[ice_idx], \
+        omi_min = ai_min, omi_max = ai_max, \
+        ai_diff = ai_diff, sza_diff = sza_diff, \
+        ice_diff = ice_diff, ch7_diff = ch7_diff,\
+        cld_diff = None, \
+        trend_type = out_dict['trend_type'], \
+        show_trend = show_trend, shade_density = False,\
+        cloud_var = cloud_var)
+
+    mesh = ax3.pcolormesh(out_dict['sza_mins'], out_dict[cloud_var + '_mins'], \
+        out_dict['grid_slopes'][ice_idx,:,:], \
+        cmap = cmap, shading = 'auto', vmin = vmin, vmax = vmax)
+    cbar = plt.colorbar(mesh,\
+        ax = ax3, orientation='vertical',shrink = shrk, extend = 'both')
+    ax3.set_xlabel('SZA')
+    ax3.set_ylabel(cloud_var.upper())
+    ax3.set_title('Grid ' + titles[ice_idx])
+    
+    ax3.plot(sza_mins[x_idx], ch7_mins[y_idx], 'o', color = 'tab:purple')
+
+
+    plot_comp_grid_scatter(comp_grid_data, ax = ax4, xval = 'ai', \
+        ai_min = ai_min,  ai_max  = ai_max, \
+        ch7_min = ch7_mins[y_idx], ch7_max = ch7_mins[y_idx], \
+        sza_min = sza_mins[x_idx], sza_max = sza_maxs[x_idx], \
+        ice_min = ice_mins[ice_idx], ice_max = ice_maxs[ice_idx], \
+        #cld_min = cld_min, cld_max = cld_max, \
+        show_trend = show_trend, trend_type = out_dict['trend_type'])
+
+
+    fig.tight_layout()
+
+    plt.show()
+
+
+
+
+
+

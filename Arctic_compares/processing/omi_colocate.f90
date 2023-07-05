@@ -458,7 +458,8 @@ program omi_colocate
 
             ! Check if the current pixel is within the OMI pixel bounds
             ! ---------------------------------------------------------
-            if(pixel_in_box(OMI_LATCRNR_data(:,jj,ii), OMI_LONCRNR_data(:,jj,ii), &
+            if(pixel_in_box(OMI_LATCRNR_data(:,jj,ii), &
+                            OMI_LONCRNR_data(:,jj,ii), &
                 MODIS_LAT_data(njj,nii), MODIS_LON_data(njj,nii))) then
 
               run_modis_total_ch1 = &

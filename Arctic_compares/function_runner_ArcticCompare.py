@@ -15,13 +15,38 @@ from Arctic_compare_lib import *
 #filename = 'comp_grid_climo_v3.hdf5'
 #filename = 'comp_grid_climo_v4.hdf5'
 #filename = 'comp_grid_climo_v5.hdf5'
-#filename1 = 'comp_grid_climo_v6.hdf5'
+filename1 = 'comp_grid_climo_v6.hdf5'
 #filename = 'comp_grid_climo_v7.hdf5'
 #filename1 = 'comp_grid_climo_v8.hdf5'
 #filename1 = 'comp_grid_climo_v9.hdf5'
-filename1 = 'comp_grid_climo_v10.hdf5'
+#filename1 = 'comp_grid_climo_v10.hdf5'
+filename2 = 'comp_grid_climo_v11.hdf5'
+filename3 = 'comp_grid_climo_v12.hdf5'
 comp_grid_data_v6 = read_comp_grid_climo(filename1)
+comp_grid_data_v11 = read_comp_grid_climo(filename2)
+comp_grid_data_v12 = read_comp_grid_climo(filename3)
 #comp_grid_data_v7 = read_comp_grid_climo(filename)
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#  = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#
+# NOTE: Beginning with comp_grid_climo version 10, the new comp_grid_climo
+#       versions use 'modis_cod' as a binning variable. Since the
+#       comp_grid_climo dictionary is used for binning the raw data, 
+#       use of the new comp_grid_climo versions causes the raw data binning
+#       to be switched to 'modis_cod'. 
+#
+#       Thus, to go back to the old way of binning by 'modis_ch7' rather
+#       than 'modis_cod', run this code using version 6.
+#
+#       As a note, reworking this code to specifically use separate
+#       bins (CH7 vs COD) apart from relying on the comp_grid_climo
+#       dictionary would simplify this process. 
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#  = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
 #files = glob(home_dir + \
 #    '/Research/Arctic_compares/comp_data/colocated_subset_20*.hdf5')
@@ -456,19 +481,111 @@ ch7_max = None
 cld_min = None
 cld_max = None
 
+#trend_type = 'theil-sen'
+trend_type = 'linregress'
+lin_raw_dict_v6 = calc_raw_grid_slopes(\
+        combined_data, comp_grid_data_v6, \
+        ai_min = ai_min, ai_max = ai_max, \
+        trend_type = trend_type, \
+        smoother = 'smoother', sizer = 1)
+lin_smth_dict_v6 = calc_raw_grid_slopes(\
+        combined_data, comp_grid_data_v6, \
+        ai_min = ai_min, ai_max = ai_max, \
+        trend_type = trend_type, \
+        smoother = 'smoother', sizer = 1)
+lin_smth2_dict_v6 = calc_raw_grid_slopes(\
+        combined_data, comp_grid_data_v6, \
+        ai_min = ai_min, ai_max = ai_max, \
+        trend_type = trend_type, \
+        smoother = 'smoother', sizer = 1)
+lin_raw_dict_v11 = calc_raw_grid_slopes(\
+        combined_data, comp_grid_data_v11, \
+        ai_min = ai_min, ai_max = ai_max, \
+        trend_type = trend_type)
+lin_smth_dict_v11 = calc_raw_grid_slopes(\
+        combined_data, comp_grid_data_v11, \
+        ai_min = ai_min, ai_max = ai_max, \
+        trend_type = trend_type, \
+        smoother = 'smooth', sizer = 1)
+lin_smth2_dict_v11 = calc_raw_grid_slopes(\
+        combined_data, comp_grid_data_v11, \
+        ai_min = ai_min, ai_max = ai_max, \
+        trend_type = trend_type, \
+        smoother = 'smoother', sizer = 1)
+lin_raw_dict_v12 = calc_raw_grid_slopes(\
+        combined_data, comp_grid_data_v12, \
+        ai_min = ai_min, ai_max = ai_max, \
+        trend_type = trend_type)
+lin_smth_dict_v12 = calc_raw_grid_slopes(\
+        combined_data, comp_grid_data_v12, \
+        ai_min = ai_min, ai_max = ai_max, \
+        trend_type = trend_type, \
+        smoother = 'smooth', sizer = 1)
+lin_smth2_dict_v12 = calc_raw_grid_slopes(\
+        combined_data, comp_grid_data_v12, \
+        ai_min = ai_min, ai_max = ai_max, \
+        trend_type = trend_type, \
+        smoother = 'smoother', sizer = 1)
+
+trend_type = 'theil-sen'
+thl_raw_dict_v6 = calc_raw_grid_slopes(\
+        combined_data, comp_grid_data_v6, \
+        ai_min = ai_min, ai_max = ai_max, \
+        trend_type = trend_type, \
+        smoother = 'smoother', sizer = 1)
+thl_smth_dict_v6 = calc_raw_grid_slopes(\
+        combined_data, comp_grid_data_v6, \
+        ai_min = ai_min, ai_max = ai_max, \
+        trend_type = trend_type, \
+        smoother = 'smoother', sizer = 1)
+thl_smth2_dict_v6 = calc_raw_grid_slopes(\
+        combined_data, comp_grid_data_v6, \
+        ai_min = ai_min, ai_max = ai_max, \
+        trend_type = trend_type, \
+        smoother = 'smoother', sizer = 1)
+thl_raw_dict_v11 = calc_raw_grid_slopes(\
+        combined_data, comp_grid_data_v11, \
+        ai_min = ai_min, ai_max = ai_max, \
+        trend_type = trend_type)
+thl_smth_dict_v11 = calc_raw_grid_slopes(\
+        combined_data, comp_grid_data_v11, \
+        ai_min = ai_min, ai_max = ai_max, \
+        trend_type = trend_type, \
+        smoother = 'smooth', sizer = 1)
+thl_smth2_dict_v11 = calc_raw_grid_slopes(\
+        combined_data, comp_grid_data_v11, \
+        ai_min = ai_min, ai_max = ai_max, \
+        trend_type = trend_type, \
+        smoother = 'smoother', sizer = 1)
+thl_raw_dict_v12 = calc_raw_grid_slopes(\
+        combined_data, comp_grid_data_v12, \
+        ai_min = ai_min, ai_max = ai_max, \
+        trend_type = trend_type)
+thl_smth_dict_v12 = calc_raw_grid_slopes(\
+        combined_data, comp_grid_data_v12, \
+        ai_min = ai_min, ai_max = ai_max, \
+        trend_type = trend_type, \
+        smoother = 'smooth', sizer = 1)
+thl_smth2_dict_v12 = calc_raw_grid_slopes(\
+        combined_data, comp_grid_data_v12, \
+        ai_min = ai_min, ai_max = ai_max, \
+        trend_type = trend_type, \
+        smoother = 'smoother', sizer = 1)
+sys.exit()
+
 trend_type = 'linregress'
 lin_raw_dict = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v6, \
+        combined_data, comp_grid_data, \
         ai_min = ai_min, ai_max = ai_max, \
         trend_type = trend_type, \
         )
 lin_smth_dict = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v6, \
+        combined_data, comp_grid_data, \
         ai_min = ai_min, ai_max = ai_max, \
         trend_type = trend_type, \
         smoother = 'smooth', sizer = 1)
 lin_smth2_dict = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v6, \
+        combined_data, comp_grid_data, \
         ai_min = ai_min, ai_max = ai_max, \
         trend_type = trend_type, \
         smoother = 'smoother', sizer = 1)
@@ -492,17 +609,17 @@ lin_smth2_dict = calc_raw_grid_slopes(\
 
 trend_type = 'theil-sen'
 thl_raw_dict = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v6, \
+        combined_data, comp_grid_data, \
         ai_min = ai_min, ai_max = ai_max, \
         trend_type = trend_type, \
         )
 thl_smth_dict = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v6, \
+        combined_data, comp_grid_data, \
         ai_min = ai_min, ai_max = ai_max, \
         trend_type = trend_type, \
         smoother = 'smooth', sizer = 1)
 thl_smth2_dict = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v6, \
+        combined_data, comp_grid_data, \
         ai_min = ai_min, ai_max = ai_max, \
         trend_type = trend_type, \
         smoother = 'smoother', sizer = 1)
@@ -581,6 +698,19 @@ plot_raw_grid_slopes(thl_smth2_dict, save = False, vmin = -15, vmax = 15)
 
 sys.exit()
 
+
+plot_combined_scatter(combined_data, ax = ax1, \
+    omi_min = ai_min,  omi_max  = ai_max, \
+    sza_min = sza_min, sza_max = sza_max, \
+    ice_min = ice_min, ice_max = ice_max, \
+    ch7_min = ch7_min, ch7_max = ch7_max, \
+    trend_type = 'theil-sen', show_trend = False)
+
+plot_comp_grid_scatter(comp_grid_data, ax = ax2, xval = 'ai', \
+    ai_min = ai_min,  ai_max  = ai_max, \
+    sza_min = sza_min, sza_max = sza_max, \
+    ice_min = ice_min, ice_max = ice_max, \
+    ch7_min = ch7_min, ch7_max = ch7_max)
 
 
 
