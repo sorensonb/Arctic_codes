@@ -487,12 +487,12 @@ lin_raw_dict_v6 = calc_raw_grid_slopes(\
         combined_data, comp_grid_data_v6, \
         ai_min = ai_min, ai_max = ai_max, \
         trend_type = trend_type, \
-        smoother = 'smoother', sizer = 1)
+        )
 lin_smth_dict_v6 = calc_raw_grid_slopes(\
         combined_data, comp_grid_data_v6, \
         ai_min = ai_min, ai_max = ai_max, \
         trend_type = trend_type, \
-        smoother = 'smoother', sizer = 1)
+        smoother = 'smooth', sizer = 1)
 lin_smth2_dict_v6 = calc_raw_grid_slopes(\
         combined_data, comp_grid_data_v6, \
         ai_min = ai_min, ai_max = ai_max, \
@@ -531,13 +531,12 @@ trend_type = 'theil-sen'
 thl_raw_dict_v6 = calc_raw_grid_slopes(\
         combined_data, comp_grid_data_v6, \
         ai_min = ai_min, ai_max = ai_max, \
-        trend_type = trend_type, \
-        smoother = 'smoother', sizer = 1)
+        trend_type = trend_type)
 thl_smth_dict_v6 = calc_raw_grid_slopes(\
         combined_data, comp_grid_data_v6, \
         ai_min = ai_min, ai_max = ai_max, \
         trend_type = trend_type, \
-        smoother = 'smoother', sizer = 1)
+        smoother = 'smooth', sizer = 1)
 thl_smth2_dict_v6 = calc_raw_grid_slopes(\
         combined_data, comp_grid_data_v6, \
         ai_min = ai_min, ai_max = ai_max, \

@@ -12,6 +12,21 @@ home_dir = os.environ['HOME']
 
 base_dir = home_dir + "/Research/"
 dest_dir = home_dir + "/Arctic_codes/"
+# Change to Arctic codes directory
+#os.chdir(dest_dir)
+##os.chdir('home_dir + /Arctic_codes/')
+#
+## Add new stuff
+#os.system('git add .')
+#
+## Determine today's date for the command
+#today_str = datetime.today().strftime('%Y/%m/%d')
+#cmnd = 'git commit -m \"Backup '+today_str + '\"'
+#os.system(cmnd)
+#
+## Push
+#os.system('git push origin master')
+#sys.exit()
 ##!## Add new stuff
 ##!#os.chdir(dest_dir)
 ##!#os.system('git add .')
@@ -444,17 +459,3 @@ os.system(cmnd)
 # Automate the uploading to Github
 # --------------------------------
 
-# Change to Arctic codes directory
-#os.chdir(dest_dir)
-##os.chdir('home_dir + /Arctic_codes/')
-#
-## Add new stuff
-#os.system('git add .')
-#
-## Determine today's date for the command
-#today_str = datetime.today().strftime('%Y/%m/%d')
-#cmnd = 'git commit -m \"Backup '+today_str + '\"'
-#os.system(cmnd)
-#
-## Push
-#os.system('git push origin master')
