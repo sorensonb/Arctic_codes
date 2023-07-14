@@ -8,6 +8,18 @@
 from GOESLib import *
 import sys
 
+plot_GOES_ASOS_comp(date_str = '202107202100', \
+    goes_ch1 = 'true_color', goes_ch2 = 6, goes_ch3 = 13, \
+    goes_ch4 = 8, goes_ch5 = 9, goes_ch6 = 10, \
+    ch_idx1 = 0, ch_idx2 = 1, ch_idx3 = 2,\
+    ttype1 = 'asos', ttype2 = 'asos', \
+    idx1 = 0, idx2 = 1, \
+    date_idx = 25, 
+    show_smoke = False, composite = True, double_fig = False, \
+    zoom = True, save=False)
+
+sys.exit()
+
 begin_date = '202306122100'
 end_date   = '202306122200'
 var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel0 = \
@@ -35,18 +47,6 @@ sys.exit()
 date_str = '202107222120'
 plot_GOES_satpy_5panel(date_str, 'true_color', 13, 8, 9, 10, \
     zoom = True, save_dir = './', sat = 'goes16', save = False)
-
-sys.exit()
-
-plot_GOES_ASOS_comp(date_str = '202107202100', \
-    goes_ch1 = 'true_color', goes_ch2 = 6, goes_ch3 = 13, \
-    goes_ch4 = 8, goes_ch5 = 9, goes_ch6 = 10, \
-    ch_idx1 = 0, ch_idx2 = 1, ch_idx3 = 2,\
-    ttype1 = 'asos', ttype2 = 'asos', \
-    idx1 = 0, idx2 = 1, \
-    date_idx = 25, 
-    show_smoke = False, composite = True, double_fig = False, \
-    zoom = True, save=False)
 
 sys.exit()
 

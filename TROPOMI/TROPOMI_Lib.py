@@ -345,6 +345,83 @@ def download_TROPOMI_file(date_str, dest_dir = data_dir):
 
     return local_file
 
+# This downloads all the TROPOMI l1b HDF5 files for a given day
+# date_str is of the format YYYYMMDD
+# -------------------------------------------------------------
+def download_TROPOMI_single_day(date_str, dest_dir = data_dir):
+
+    base_url = 'https://measures.gesdisc.eosdis.nasa.gov/data/AER/TROPOMAER.1'
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d')
+
+    # For each desired channel, figure out the closest file time
+    # to the input date
+    # ----------------------------------------------------------
+    try:
+        files = listFD(dt_date_str.strftime(base_url + '/%Y/%j'), ext = '.nc')
+    except subprocess.CalledProcessError:
+        print("ERROR: No TROPOMI files for the input DTG",date_str)
+        return -2
+
+    if(len(files) == 0):
+        print("ERROR: No TROPOMI files returned from the request. Exiting")
+        return -1
+  
+    total_files = files[::2]
+ 
+    # Loop over each filename and download
+    # ------------------------------------
+    for tfile in total_files:
+        base_cmnd = "wget --load-cookies ~/.urs_cookies --save-cookies "+\
+            "~/.urs_cookies --keep-session-cookies --content-disposition "
+        cmnd = base_cmnd + tfile
+        print(cmnd)
+        #os.system(cmnd)
+        
+        #print(tfile)
+     
+    ##!## Remove the timestamps from the file strings
+    ##!## -------------------------------------------
+    ##!#total_files = files[::2]
+    ##!#files_only = [tfile.strip().split('/')[-1] for tfile in total_files]
+
+    ##!## Use the actual file times to get timestamps
+    ##!## -------------------------------------------
+    ##!#file_dates = [datetime.strptime(tfile[33:49],'%Ym%m%dt%H%M%S') for tfile in files_only]
+
+    ##!## Figure out where the closest files to the desired time are
+    ##!## ----------------------------------------------------------
+    ##!#time_diffs = np.array([abs((dt_date_str - ddate).total_seconds()) \
+    ##!#    for ddate in file_dates])
+
+    ##!## Extract the index of the matching TROPOMI file
+    ##!## --------------------------------------------
+    ##!#file_idx = np.argmin(time_diffs)
+    ##!#local_file = files_only[file_idx]
+    ##!#found_file = total_files[file_idx]
+ 
+    ##!## Check if the file is already downloaded
+    ##!## ---------------------------------------
+    ##!#if(os.path.exists(dest_dir + local_file)):
+    ##!#    print(found_file + ' already exists. Not downloading')
+    ##!#else: 
+    ##!#    # Download the file
+    ##!#    # -----------------
+    ##!#    base_cmnd = "wget --load-cookies ~/.urs_cookies --save-cookies "+\
+    ##!#        "~/.urs_cookies --keep-session-cookies --content-disposition "
+    ##!#    cmnd = dt_date_str.strftime(base_cmnd + found_file)
+    ##!#    print(cmnd)
+    ##!#    os.system(cmnd)
+
+    ##!#    # Move the file to the destination folder
+    ##!#    # ---------------------------------------
+    ##!#    cmnd = "mv " + local_file + " " + dest_dir
+    ##!#    print(cmnd) 
+    ##!#    os.system(cmnd)
+
+    ##!#return local_file
+
+
 def download_TROPOMI_match_OMI(date_str, \
         save_path = home_dir + '/Research/TROPOMI'):
 

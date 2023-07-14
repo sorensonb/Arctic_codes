@@ -2288,26 +2288,8 @@ def select_combined_scatter_data(combined_data, xval, yval,
     else:
         local_cloud = None   
  
-    local_sza = np.copy(combined_data['omi_sza'])
-    local_sza = local_sza[~local_xdata.mask]
-
-    local_cld = np.copy(combined_data['modis_' + cloud_var])
-    local_cld = local_cld[~local_xdata.mask]
-
     local_xdata = local_xdata.compressed()
     local_ydata = local_ydata.compressed()
-
-    # Now, remove data that have missing COD/CH7 values
-    # -------------------------------------------------
-    local_cld = np.ma.masked_invalid(local_cld)
-    local_xdata = np.ma.masked_where(local_cld.mask, local_xdata)
-    local_ydata = np.ma.masked_where(local_cld.mask, local_ydata)
-    local_sza   = np.ma.masked_where(local_cld.mask, local_sza)
-
-    local_xdata = local_xdata[~local_cld.mask]
-    local_ydata = local_ydata[~local_cld.mask]
-    local_sza   = local_sza[~local_cld.mask]
-    local_cld   = local_cld[~local_cld.mask]
 
     ##!#print("In selecter,")
     ##!#if((ice_max is not None) and (ice_min is not None)):
@@ -2324,15 +2306,7 @@ def select_combined_scatter_data(combined_data, xval, yval,
     ##!#              "sza",sza_min - sza_diff, sza_max + sza_diff)
     ##!#print("   xdata_size",local_xdata.shape[0])
 
-    out_dict = {}
-    out_dict['local_xdata'] = np.round(local_xdata, 4)
-    out_dict['local_ydata'] = np.round(local_ydata, 4)
-    out_dict['local_sza']   = np.round(local_sza, 4)
-    out_dict['local_cld']   = np.round(local_cld, 4)
-    out_dict['local_cloud'] = np.round(local_cloud, 4)
-
-    return out_dict
-    #return local_xdata, local_ydata, local_cloud
+    return local_xdata, local_ydata, local_cloud
 
 def plot_combined_scatter(combined_data, xval = 'omi_uvai_raw', \
         yval = 'ceres_swf', ax = None, \
@@ -2393,8 +2367,7 @@ def plot_combined_scatter(combined_data, xval = 'omi_uvai_raw', \
     ##!#local_xdata = local_xdata.compressed()
     ##!#local_ydata = local_ydata.compressed()
 
-    #local_xdata, local_ydata, local_cloud  = \
-    return_dict  = \
+    local_xdata, local_ydata, local_cloud  = \
         select_combined_scatter_data(combined_data, xval, yval, 
             swf_min = swf_min, swf_max = swf_max, \
             #cld_min = None, cld_max = None, \
@@ -2407,10 +2380,6 @@ def plot_combined_scatter(combined_data, xval = 'omi_uvai_raw', \
             #cld_diff = cld_diff, \
             cloud_var = cloud_var 
             )
-
-    local_xdata = return_dict['local_xdata']
-    local_ydata = return_dict['local_ydata']
-    local_cloud = return_dict['local_cloud']
 
     if(trend_type == 'theil-sen'):
         if((len(local_xdata) > 20)):
@@ -2455,8 +2424,6 @@ def plot_combined_scatter(combined_data, xval = 'omi_uvai_raw', \
 
     if(not in_ax):
         plt.show()
-
-    return return_dict
 
 def select_comp_grid_scatter_data(comp_grid_data, xval = 'ai', \
         ch7_min = None, ch7_max = None,\
@@ -3069,10 +3036,8 @@ def calc_raw_grid_slopes(combined_data, comp_grid_data, \
         for jj in range(ch7_mins.size):
             for kk in range(sza_mins.size):
                 print(ii,jj,kk)
-   
-                 
-                #raw_xdata, raw_ydata, raw_cloud = \
-                return_dict = \
+    
+                raw_xdata, raw_ydata, raw_cloud = \
                     select_combined_scatter_data(combined_data, \
                         xval = 'omi_uvai_raw', yval = 'ceres_swf', 
                         #cld_min = None, cld_max = None, \
@@ -3086,11 +3051,7 @@ def calc_raw_grid_slopes(combined_data, comp_grid_data, \
                         #cld_diff = cld_diff, \
                         cloud_var = cloud_var 
                         )
-   
-                raw_xdata = return_dict['local_xdata']
-                raw_ydata = return_dict['local_ydata']
-                raw_cloud = return_dict['local_cloud']
- 
+    
                 grid_xdata, grid_ydata, xlabel = \
                         select_comp_grid_scatter_data(comp_grid_data, xval = 'ai', \
                             ch7_min = ch7_mins[jj], ch7_max = ch7_maxs[jj],\
@@ -4056,8 +4017,7 @@ def plot_compare_slopes_scatter(out_dict, combined_data, comp_grid_data, \
     ax1.plot(sza_mins[x_idx], ch7_mins[y_idx], 'o', color = 'tab:purple')
 
 
-    return_dict = \
-        plot_combined_scatter(combined_data, ax = ax2, \
+    plot_combined_scatter(combined_data, ax = ax2, \
         #cld_min = None, cld_max = None, \
         ch7_min = ch7_mins[y_idx], ch7_max = ch7_maxs[y_idx], \
         sza_min = sza_mins[x_idx], sza_max = sza_maxs[x_idx], \
@@ -4101,7 +4061,7 @@ def plot_compare_slopes_scatter(out_dict, combined_data, comp_grid_data, \
 
     plt.show()
 
-    return return_dict
+
 
 
 

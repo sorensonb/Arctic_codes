@@ -570,6 +570,37 @@ thl_smth2_dict_v12 = calc_raw_grid_slopes(\
         ai_min = ai_min, ai_max = ai_max, \
         trend_type = trend_type, \
         smoother = 'smoother', sizer = 1)
+
+
+return_dict = \
+    plot_compare_slopes_scatter(thl_raw_dict_v12, combined_data, comp_grid_data_v12, \
+    5, 3, dtype = 'raw', ice_idx = 0, ai_min = 2, \
+    ai_max = None, show_trend = False, save = False)
+
+debug_data = pd.read_csv('debug_file_iceidx0_szaidx5_ch7idx3.txt', \
+    delim_whitespace = True, names = \
+    ['lat','lon','ai','sza','swf','sza_bin','sza_low_edge',\
+    'sza_hgh_edge','ch7_bin','ch7_low_edge','ch7_hgh_edge'])
+
+# Figure out which local pixels are in the debug file from raindrop
+found_pixels = np.array([ppixel in debug_data['swf'].values \
+    for ppixel in return_dict['local_ydata']])
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+
+ax.scatter(return_dict['local_xdata'][found_pixels], \
+    return_dict['local_ydata'][found_pixels], s = 6, color = 'g', \
+    label = 'used in comp_grid')
+ax.scatter(return_dict['local_xdata'][~found_pixels], \
+    return_dict['local_ydata'][~found_pixels], s = 6, color = 'r', \
+    label = 'not in comp_grid')
+ax.legend()
+plt.show()
+
+sys.exit()
+
+
 sys.exit()
 
 trend_type = 'linregress'
@@ -649,6 +680,15 @@ plot_slopes_cloud_types_szamean(lin_smth2_dict,cld_idx = 0, maxerr = 2, \
     min_cloud = 0.95, save = False)
 sys.exit()
 
+plot_compare_grid_climo_counts_3version(\
+    thl_smth_dict_v6, thl_smth_dict_v11, thl_smth_dict_v12, 'raw', 1)
+
+sys.exit()
+
+
+plot_raw_grid_slopes(thl_raw_dict, save = False, vmin = -15, vmax = 15)
+sys.exit()
+
 mask_cloud = np.ma.masked_where(\
     lin_smth2_dict['raw_cldvals'][sfc_type_idx,:,:,cld_idx] < -9, \
     lin_smth2_dict['raw_cldvals'][sfc_type_idx,:,:,cld_idx])
@@ -685,7 +725,6 @@ plt.show()
 
 plot_slopes_cloud_types(lin_raw_dict, save = False, vmin = -15, vmax = 15)
 
-sys.exit()
 sys.exit()
 
 plot_compare_grid_climo_stderr(lin_smth_dict, 'raw_land', 2, save = False)

@@ -24,6 +24,8 @@ if(home_dir + '/Research/OMI/' not in sys.path):
 from OMILib import readOMI_swath_shawn, plotOMI_single_swath, \
     readOMI_swath_hdf
 
+date_str = '20220910'
+download_TROPOMI_single_day(date_str, dest_dir = data_dir)
 sys.exit()
 
 #date_str = '201807052142'

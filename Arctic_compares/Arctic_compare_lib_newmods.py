@@ -2236,21 +2236,23 @@ def select_combined_scatter_data(combined_data, xval, yval,
         sza_min = None, sza_max = None, \
         ice_min = None, ice_max = None, \
         omi_min = None, omi_max = None, \
-        ai_diff = None, sza_diff = None, \
-        ice_diff = None, ch7_diff = None,\
-        cld_diff = None,\
+        ai_low_edge = None, ai_hgh_edge = None, \
+        sza_low_edge = None, sza_hgh_edge = None, \
+        ice_low_edge = None, ice_hgh_edge = None, \
+        ch7_low_edge = None, ch7_hgh_edge = None, \
+        cld_low_edge = None, cld_hgh_edge = None, \
         include_cloud = True, \
-        cloud_var = 'ch7'):
+        cloud_var = 'ch7', x_idx = None, y_idx = None):
 
     local_xdata = np.copy(combined_data[xval])
     local_ydata = np.copy(combined_data[yval])
 
     def check_range_vals(local_xdata, local_ydata, lvar,\
-            var_min, var_max, var_diff):
+            var_min, var_max, var_low_edge, var_hgh_edge):
 
         if(var_min is not None):
-            if(var_diff is not None):
-                checker = var_min - var_diff
+            if(var_low_edge is not None):
+                checker = var_low_edge
             else:
                 checker = var_min
             local_xdata = np.ma.masked_where(\
@@ -2258,8 +2260,8 @@ def select_combined_scatter_data(combined_data, xval, yval,
             local_ydata = np.ma.masked_where(\
                 combined_data[lvar] < checker,local_ydata)
         if(var_max is not None):
-            if(var_diff is not None):
-                checker = var_max + var_diff
+            if(var_hgh_edge is not None):
+                checker = var_hgh_edge
             else:
                 checker = var_max
             local_xdata = np.ma.masked_where(\
@@ -2272,13 +2274,13 @@ def select_combined_scatter_data(combined_data, xval, yval,
     #local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
     #    'ceres_cld', cld_min, cld_max, cld_diff)
     local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
-        'modis_' + cloud_var, ch7_min, ch7_max, ch7_diff)
+        'modis_' + cloud_var, ch7_min, ch7_max, ch7_low_edge, ch7_hgh_edge)
     local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
-        'nsidc_ice', ice_min, ice_max, ice_diff)
+        'nsidc_ice', ice_min, ice_max, ice_low_edge, ice_hgh_edge)
     local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
-        'omi_sza', sza_min, sza_max, sza_diff)
+        'omi_sza', sza_min, sza_max, sza_low_edge, sza_hgh_edge)
     local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
-        'omi_uvai_raw', omi_min, omi_max, ai_diff)
+        'omi_uvai_raw', omi_min, omi_max, ai_low_edge, ai_hgh_edge)
     local_xdata, local_ydata = check_range_vals(local_xdata, local_ydata,\
         'ceres_swf', swf_min, swf_max, None)
 
@@ -2288,26 +2290,8 @@ def select_combined_scatter_data(combined_data, xval, yval,
     else:
         local_cloud = None   
  
-    local_sza = np.copy(combined_data['omi_sza'])
-    local_sza = local_sza[~local_xdata.mask]
-
-    local_cld = np.copy(combined_data['modis_' + cloud_var])
-    local_cld = local_cld[~local_xdata.mask]
-
     local_xdata = local_xdata.compressed()
     local_ydata = local_ydata.compressed()
-
-    # Now, remove data that have missing COD/CH7 values
-    # -------------------------------------------------
-    local_cld = np.ma.masked_invalid(local_cld)
-    local_xdata = np.ma.masked_where(local_cld.mask, local_xdata)
-    local_ydata = np.ma.masked_where(local_cld.mask, local_ydata)
-    local_sza   = np.ma.masked_where(local_cld.mask, local_sza)
-
-    local_xdata = local_xdata[~local_cld.mask]
-    local_ydata = local_ydata[~local_cld.mask]
-    local_sza   = local_sza[~local_cld.mask]
-    local_cld   = local_cld[~local_cld.mask]
 
     ##!#print("In selecter,")
     ##!#if((ice_max is not None) and (ice_min is not None)):
@@ -2324,15 +2308,7 @@ def select_combined_scatter_data(combined_data, xval, yval,
     ##!#              "sza",sza_min - sza_diff, sza_max + sza_diff)
     ##!#print("   xdata_size",local_xdata.shape[0])
 
-    out_dict = {}
-    out_dict['local_xdata'] = np.round(local_xdata, 4)
-    out_dict['local_ydata'] = np.round(local_ydata, 4)
-    out_dict['local_sza']   = np.round(local_sza, 4)
-    out_dict['local_cld']   = np.round(local_cld, 4)
-    out_dict['local_cloud'] = np.round(local_cloud, 4)
-
-    return out_dict
-    #return local_xdata, local_ydata, local_cloud
+    return local_xdata, local_ydata, local_cloud
 
 def plot_combined_scatter(combined_data, xval = 'omi_uvai_raw', \
         yval = 'ceres_swf', ax = None, \
@@ -2348,7 +2324,7 @@ def plot_combined_scatter(combined_data, xval = 'omi_uvai_raw', \
         cld_diff = None, \
         trend_type = 'theil-sen', \
         show_trend = False, shade_density = False,\
-        cloud_var = 'ch7'):
+        cloud_var = 'ch7', x_idx = None, y_idx = None):
 
     ##!#local_xdata = np.copy(combined_data[xval])
     ##!#local_ydata = np.copy(combined_data[yval])
@@ -2393,8 +2369,7 @@ def plot_combined_scatter(combined_data, xval = 'omi_uvai_raw', \
     ##!#local_xdata = local_xdata.compressed()
     ##!#local_ydata = local_ydata.compressed()
 
-    #local_xdata, local_ydata, local_cloud  = \
-    return_dict  = \
+    local_xdata, local_ydata, local_cloud  = \
         select_combined_scatter_data(combined_data, xval, yval, 
             swf_min = swf_min, swf_max = swf_max, \
             #cld_min = None, cld_max = None, \
@@ -2405,12 +2380,8 @@ def plot_combined_scatter(combined_data, xval = 'omi_uvai_raw', \
             ai_diff = ai_diff, sza_diff = sza_diff, \
             ice_diff = ice_diff, ch7_diff = ch7_diff, \
             #cld_diff = cld_diff, \
-            cloud_var = cloud_var 
+            cloud_var = cloud_var, x_idx = x_idx, y_idx = y_idx 
             )
-
-    local_xdata = return_dict['local_xdata']
-    local_ydata = return_dict['local_ydata']
-    local_cloud = return_dict['local_cloud']
 
     if(trend_type == 'theil-sen'):
         if((len(local_xdata) > 20)):
@@ -2455,8 +2426,6 @@ def plot_combined_scatter(combined_data, xval = 'omi_uvai_raw', \
 
     if(not in_ax):
         plt.show()
-
-    return return_dict
 
 def select_comp_grid_scatter_data(comp_grid_data, xval = 'ai', \
         ch7_min = None, ch7_max = None,\
@@ -3064,15 +3033,35 @@ def calc_raw_grid_slopes(combined_data, comp_grid_data, \
     ice_diff = comp_grid_data['ice_bins'][2] - comp_grid_data['ice_edges'][2]
     ch7_diff = comp_grid_data[cloud_var + '_bins'][2] - \
         comp_grid_data[cloud_var + '_edges'][2]
-    
+  
+    ai_low_edge = ai_min - ai_diff
+    ai_hgh_edge = ai_max + ai_diff
+ 
     for ii in range(ice_mins.size):
+        # Extract the ice bin edges
+        # -------------------------
+        ice_low_edge = comp_grid_data['ice_edges'][ii]
+        ice_hgh_edge = comp_grid_data['ice_edges'][ii + 1]
         for jj in range(ch7_mins.size):
+            # Extract the ice bin edges
+            # -------------------------
+            ch7_low_edge = comp_grid_data[cloud_var + '_edges'][jj]
+            ch7_hgh_edge = comp_grid_data[cloud_var + '_edges'][jj + 1]
             for kk in range(sza_mins.size):
+                # Extract the ice bin edges
+                # -------------------------
+                sza_low_edge = comp_grid_data['sza_edges'][kk]
+                sza_hgh_edge = comp_grid_data['sza_edges'][kk + 1]
+
+                # = = = = = = = = = = = = = = = = = = =
+                #
+                # CONTINUE BIN MODIFYING HERE
+                #
+                # = = = = = = = = = = = = = = = = = = =
+
                 print(ii,jj,kk)
-   
-                 
-                #raw_xdata, raw_ydata, raw_cloud = \
-                return_dict = \
+    
+                raw_xdata, raw_ydata, raw_cloud = \
                     select_combined_scatter_data(combined_data, \
                         xval = 'omi_uvai_raw', yval = 'ceres_swf', 
                         #cld_min = None, cld_max = None, \
@@ -3080,17 +3069,19 @@ def calc_raw_grid_slopes(combined_data, comp_grid_data, \
                         sza_min = sza_mins[kk], sza_max = sza_maxs[kk], \
                         ice_min = ice_mins[ii], ice_max = ice_maxs[ii], \
                         omi_min = ai_min, omi_max = ai_max, \
-                        ai_diff = ai_diff, sza_diff = sza_diff, \
-                        ice_diff = ice_diff, ch7_diff = ch7_diff, \
+                        ai_low_edge = ai_low_edge, \
+                        ai_hgh_edge = ai_hgh_edge, \
+                        sza_low_edge = sza_low_edge, \
+                        sza_hgh_edge = sza_hgh_edge, \
+                        ice_low_edge = ice_low_edge, \
+                        ice_hgh_edge = ice_hgh_edge, \
+                        ch7_low_edge = ch7_low_edge, \
+                        ch7_hgh_edge = ch7_hgh_edge, \
                         include_cloud = True,
                         #cld_diff = cld_diff, \
                         cloud_var = cloud_var 
                         )
-   
-                raw_xdata = return_dict['local_xdata']
-                raw_ydata = return_dict['local_ydata']
-                raw_cloud = return_dict['local_cloud']
- 
+    
                 grid_xdata, grid_ydata, xlabel = \
                         select_comp_grid_scatter_data(comp_grid_data, xval = 'ai', \
                             ch7_min = ch7_mins[jj], ch7_max = ch7_maxs[jj],\
@@ -4056,8 +4047,7 @@ def plot_compare_slopes_scatter(out_dict, combined_data, comp_grid_data, \
     ax1.plot(sza_mins[x_idx], ch7_mins[y_idx], 'o', color = 'tab:purple')
 
 
-    return_dict = \
-        plot_combined_scatter(combined_data, ax = ax2, \
+    plot_combined_scatter(combined_data, ax = ax2, \
         #cld_min = None, cld_max = None, \
         ch7_min = ch7_mins[y_idx], ch7_max = ch7_maxs[y_idx], \
         sza_min = sza_mins[x_idx], sza_max = sza_maxs[x_idx], \
@@ -4068,7 +4058,7 @@ def plot_compare_slopes_scatter(out_dict, combined_data, comp_grid_data, \
         cld_diff = None, \
         trend_type = out_dict['trend_type'], \
         show_trend = show_trend, shade_density = False,\
-        cloud_var = cloud_var)
+        cloud_var = cloud_var, y_idx = y_idx, x_idx = x_idx)
 
     mesh = ax3.pcolormesh(out_dict['sza_mins'], out_dict[cloud_var + '_mins'], \
         out_dict['grid_slopes'][ice_idx,:,:], \
@@ -4101,7 +4091,7 @@ def plot_compare_slopes_scatter(out_dict, combined_data, comp_grid_data, \
 
     plt.show()
 
-    return return_dict
+
 
 
 

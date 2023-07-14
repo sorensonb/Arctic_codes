@@ -541,13 +541,15 @@ def plot_NEXRAD_GOES_2panel(date_str, radar, variable, channel, ax = None, \
     ax2 = fig.add_subplot(1,2,2, projection = crs0)
     plot_GOES_satpy(NEXRAD_dict['radar_date'], channel, ax = ax1, var = var0, \
         crs = crs0, lons = lons0, lats = lats0, lat_lims = lat_lims, \
-        lon_lims = lon_lims, vmin = 5, vmax = 80, ptitle = '', \
+        lon_lims = lon_lims, vmin = 5, vmax = 40, ptitle = '', \
         plabel = plabel_goes, colorbar = True, labelsize = labelsize + 1, \
         counties = counties, zoom=True,save=False) 
     plot_NEXRAD_ppi(NEXRAD_dict, variable, ax = ax2, angle = angle, \
         counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
         mask_outside = mask_outside, crs = None)
         #mask_outside = mask_outside, crs = crs0)
+
+    fig.tight_layout()
 
     plt.show()
 
@@ -685,7 +687,13 @@ def plot_NEXRAD_ppi(NEXRAD_dict, variable, ax = None, angle = None, ptitle = Non
     # Begin section adapted from Alec Sczepanski's ASGSA PyArt Tools of the 
     # Trade
     # ---------------------------------------------------------------------
-    display = pyart.graph.RadarMapDisplay(NEXRAD_dict['radar'])
+    if(variable == 'composite_reflectivity'):
+        compz = pyart.retrieve.composite_reflectivity(\
+            NEXRAD_dict['radar'], field = 'reflectivity_horizontal', \
+            gatefilter = gatefilter)
+        display = pyart.graph.RadarMapDisplay(compz)
+    else:
+        display = pyart.graph.RadarMapDisplay(NEXRAD_dict['radar'])
 
     if(counties):
         ax.add_feature(USCOUNTIES.with_scale('5m'))    

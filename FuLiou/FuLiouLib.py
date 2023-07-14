@@ -56,6 +56,58 @@ def read_fuliou_output(outfile = 'fuliouout.txt'):
      
     return df
 
+# This reads the three output files for the cloud testing stuff
+# -------------------------------------------------------------
+def read_fuliou_cloud_output(aertype = 11):
+
+    data1 = read_fuliou_output(outfile = 'fuliou_cloud_test_aertype'+\
+        str(aertype) + '_alb1.txt')
+    data2 = read_fuliou_output(outfile = 'fuliou_cloud_test_aertype'+\
+        str(aertype) + '_alb2.txt')
+    data3 = read_fuliou_output(outfile = 'fuliou_cloud_test_aertype'+\
+        str(aertype) + '_alb3.txt')
+
+    albs = np.array([[0.06, 0.11, 0.61]])
+
+    unique_szas = np.unique(data1['SolarZenith'])
+    unique_cods = np.unique(data1['CloudOptDepth'])
+    unique_cfrc = np.unique(data1['CloudFrac'])
+    unique_aods = np.unique(data1['AOD'])
+    unique_albs = albs
+   
+    fu_dict = {}
+    fu_dict['aertype']       = aertype
+    fu_dict['ALB']           = unique_albs
+    fu_dict['SolarZenith']   = unique_szas
+    fu_dict['CloudOptDepth'] = unique_cods
+    fu_dict['CloudFrac']     = unique_cfrc
+    fu_dict['AOD']           = unique_aods
+
+    fu_dict['dims'] = ['ALB','SolarZenith','CloudOptDepth','CloudFrac','AOD']
+
+    swfvars = ['SWF_CLR', 'SWF_TOTAL', 'SWF_PRISTINE', 'SWF_TOTAL_NO_AER']
+    for svar in swfvars:
+ 
+        fu_dict[svar] = np.array([\
+            np.reshape(data1[svar].values, \
+            (np.unique(data1['SolarZenith']).shape[0], \
+             np.unique(data1['CloudOptDepth']).shape[0], \
+             np.unique(data1['CloudFrac']).shape[0], \
+             np.unique(data1['AOD']).shape[0])), \
+            np.reshape(data2[svar].values, \
+            (np.unique(data2['SolarZenith']).shape[0], \
+             np.unique(data2['CloudOptDepth']).shape[0], \
+             np.unique(data2['CloudFrac']).shape[0], \
+             np.unique(data2['AOD']).shape[0])), \
+            np.reshape(data3[svar].values, \
+            (np.unique(data3['SolarZenith']).shape[0], \
+             np.unique(data3['CloudOptDepth']).shape[0], \
+             np.unique(data3['CloudFrac']).shape[0], \
+             np.unique(data3['AOD']).shape[0])), \
+            ])
+
+    return fu_dict 
+
 def plot_FuLiou_boxes(axs = None, save = False):
 
     # Read the data

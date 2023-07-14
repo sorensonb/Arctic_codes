@@ -15,6 +15,7 @@ OBJECTS = comp_grid_vars.o \
 			read_coloc_NSIDC_ICE.o \
 			read_coloc_OMI_AI_raw.o \
 			read_coloc_OMI_LAT.o \
+			read_coloc_OMI_LON.o \
 			read_coloc_OMI_SZA.o \
 			gen_comp_grid_climo.o
 
@@ -92,9 +93,9 @@ read_coloc_OMI_AI_raw.o: $(LIB_PATH)read_coloc_OMI_AI_raw.f90
 #
 read_coloc_OMI_LAT.o: $(LIB_PATH)read_coloc_OMI_LAT.f90
 	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_coloc_OMI_LAT.f90
-#
-#read_comp_OMI_LON.o: $(LIB_PATH)read_comp_OMI_LON.f90
-#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_LON.f90
+
+read_coloc_OMI_LON.o: $(LIB_PATH)read_coloc_OMI_LON.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_coloc_OMI_LON.f90
 #
 #read_comp_OMI_LATCRNR.o: $(LIB_PATH)read_comp_OMI_LATCRNR.f90
 #	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_LATCRNR.f90

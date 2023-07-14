@@ -13,11 +13,20 @@ radar = 'KBBX'
 variable = 'differential_reflectivity'
 variable = 'cross_correlation_ratio'
 variable = 'reflectivity'
+#variable = 'composite_reflectivity'
 #angle = 8
 #plot_NEXRAD_ppi_figure(date_str, radar, variable, angle = angle, \
 #    save_dir = './', vmin = None, \
 #    mask_outside = True, zoom = True, save = False)
 #sys.exit()
+
+radar = 'KRGX'
+channel = 6
+plot_NEXRAD_GOES_2panel(date_str, radar, variable, channel, ax = None, \
+    angle = 2, ptitle = None, plabel = None, vmin = -5, vmax = 90, \
+    labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+    alpha = 1.0, mask_outside = True, zoom=True, save=False)
+sys.exit()
 radar = 'KBBX'
 azimuth = 37.
 plot_NEXRAD_rhi_figure(date_str, radar, variable, azimuth = azimuth, \

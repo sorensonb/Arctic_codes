@@ -102,8 +102,16 @@ program gen_comp_grid_climo
   integer                                       :: ch7_idx
   !integer                                       :: cld_idx
 
-  integer                                       :: io8
-  integer                                       :: io5
+  integer                                       :: debug_sza_idx
+  integer                                       :: debug_ice_idx
+  integer                                       :: debug_min_ice_idx
+  integer                                       :: debug_max_ice_idx
+  integer                                       :: debug_ch7_idx
+  real                                          :: debug_min_ai
+  integer                                       :: debug_min_ai_idx
+
+  integer                                       :: io8   ! file list file
+  integer                                       :: io5   ! debug file
 
   real, dimension(:), allocatable                  :: ai_bins
   real, dimension(:), allocatable                  :: sza_bins
@@ -157,12 +165,21 @@ program gen_comp_grid_climo
   character(len = 12)                              :: single_file_date
   character(len = 255)                             :: out_file_name   
 
+  character(len = 255)                             :: debug_filename
+  character(len = 80)                              :: name_format
+
   logical                                          :: l_use_cod
+  logical                                          :: l_bad_data
 
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
   io8 = 1999
   io5 = 2007
+
+  debug_sza_idx = 5
+  debug_ch7_idx = 3
+  debug_ice_idx = 0
+  debug_min_ai  = 2.0
 
   ! NOTE: This logical sets whether the "ch7" variables are actually used
   !       for MODIS CH7 reflectances OR for MODIS COD.
@@ -201,6 +218,32 @@ program gen_comp_grid_climo
   endif
   write(*,*) "Interface opened"
 
+  ! Set up the debug filename based on the decided debug indices
+  ! ------------------------------------------------------------
+  if(debug_sza_idx > 9) then
+    name_format = '(a17,i1,a7,i2,a7'
+  else
+    name_format = '(a17,i1,a7,i1,a7'
+  endif 
+ 
+  if(debug_ch7_idx > 9) then
+    name_format = trim(name_format)//'i2,a4)'
+  else
+    name_format = trim(name_format)//'i1,a4)'
+  endif
+
+  write(debug_filename, name_format) 'debug_file_iceidx',debug_ice_idx,&
+    '_szaidx',debug_sza_idx, '_ch7idx',debug_ch7_idx,'.txt' 
+  
+  write(*,*) trim(debug_filename)
+
+  ! Open the debug file
+  ! -------------------
+  open(io5, file = trim(debug_filename), iostat = istatus)
+  if(istatus > 0) then
+    write(*,*) "ERROR: Problem opening "//trim(debug_filename)
+    return 
+  endif
 
   ! = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
   !
@@ -248,7 +291,11 @@ program gen_comp_grid_climo
   len_sza = (max_sza - min_sza + delta_sza) / delta_sza
   len_ice = (max_ice - min_ice + delta_ice) / delta_ice
   if(l_use_cod) then
-    len_ch7 = 9
+    !! Used in v12 + v13
+    !len_ch7 = 9
+
+    ! Used in v14 + v11
+    len_ch7 = (max_ch7 - min_ch7 + delta_ch7) / delta_ch7
   else
     len_ch7 = (max_ch7 - min_ch7 + delta_ch7) / delta_ch7
   endif
@@ -279,7 +326,13 @@ program gen_comp_grid_climo
   enddo
 
   if(l_use_cod) then
-    ch7_bins = (/0.0,0.5,2.0,4.0,6.0,8.0,12.0,20.0,32.0/)
+    !! Used in v12 + v13
+    !ch7_bins = (/0.0,0.5,2.0,4.0,6.0,8.0,12.0,20.0,32.0/)
+
+    ! Used in v14 + v11
+    do ii = 1, len_ch7
+      ch7_bins(ii) = min_ch7 + delta_ch7*(ii-1)
+    enddo
   else
     do ii = 1, len_ch7
       ch7_bins(ii) = min_ch7 + delta_ch7*(ii-1)
@@ -306,7 +359,13 @@ program gen_comp_grid_climo
   !  ch7_edges(ii) = min_ch7 + delta_ch7*((ii-1) - 0.5)
   !enddo
   if(l_use_cod) then
-    ch7_edges = (/-0.25,0.25,1.25,3.0,5.0,7.0,10.0,16.0,26.0,38.0/)
+    !! used in v12 + v13
+    !ch7_edges = (/-0.25,0.25,1.25,3.0,5.0,7.0,10.0,16.0,26.0,38.0/)
+
+    ! used in v14 + v11
+    do ii = 1, len_ch7 + 1 
+      ch7_edges(ii) = min_ch7 + delta_ch7*((ii-1) - 0.5)
+    enddo
   else
     do ii = 1, len_ch7 + 1 
       ch7_edges(ii) = min_ch7 + delta_ch7*((ii-1) - 0.5)
@@ -318,6 +377,29 @@ program gen_comp_grid_climo
   !enddo
 
   write(*,*) 'total_size = ',len_ai * len_sza * len_ice * len_ch7
+
+  ! Correct for the chopping off of the lowest 5 SZA indices
+  ! --------------------------------------------------------
+  if(min_sza == 35.) then
+    write(*,*) sza_bins
+    write(*,*) 'HERE:', sza_bins(debug_sza_idx)
+    debug_sza_idx = debug_sza_idx + 5
+    write(*,*) 'HERE2:', sza_bins(debug_sza_idx)
+  endif
+  debug_ch7_idx = debug_ch7_idx + 1
+
+
+  if(debug_ice_idx == 0) then
+    debug_min_ice_idx = minloc(abs(ice_bins - 0.0), dim = 1)
+    debug_max_ice_idx = minloc(abs(ice_bins - 20.0), dim = 1)
+  else if(debug_ice_idx == 1) then
+    debug_min_ice_idx = minloc(abs(ice_bins - 80.0), dim = 1)
+    debug_max_ice_idx = minloc(abs(ice_bins - 100.0), dim = 1)
+  else
+    debug_min_ice_idx = minloc(abs(ice_bins - 105.0), dim = 1)
+    debug_max_ice_idx = minloc(abs(ice_bins - 105.0), dim = 1)
+  endif
+  debug_min_ai_idx = minloc(abs(ai_bins - debug_min_ai), dim = 1)
 
   ai_dims   = (/size(ai_bins)/)
   sza_dims  = (/size(sza_bins)/)
@@ -431,6 +513,7 @@ program gen_comp_grid_climo
         call read_coloc_NSIDC_ICE(file_id)
         call read_coloc_OMI_AI_raw(file_id)
         call read_coloc_OMI_LAT(file_id)
+        call read_coloc_OMI_LON(file_id)
         call read_coloc_OMI_SZA(file_id)
 
         !!write(*,*) sza_bins, OMI_SZA_data(12,120)
@@ -461,13 +544,21 @@ program gen_comp_grid_climo
               !        by CH7 reflectance.
               if(l_use_cod) then
                 ch7_idx = minloc(abs(ch7_bins - MODIS_COD_data(jj,ii)), dim = 1)
+                l_bad_data = isnan(MODIS_COD_data(jj,ii))
               else
                 ch7_idx = minloc(abs(ch7_bins - MODIS_CH7_data(jj,ii)), dim = 1)
+                l_bad_data = isnan(MODIS_CH7_data(jj,ii))
               endif
               !cld_idx = minloc(abs(cld_bins - MODIS_CLD_data(jj,ii)), dim = 1)
 
+
+              ! NOTE: For version 13, adding check to avoid using data
+              !         with missing COD values. Also applying to missing
+              !         missing SZA pixels. 
               if(((CERES_SWF_data(jj,ii) > 0) .and. &
                   (CERES_SWF_data(jj,ii) < 5000)) .and. &
+                  (.not. isnan(OMI_SZA_data(jj,ii))) .and. &
+                  (.not. l_bad_data) .and. &
                  (abs(OMI_AI_raw_data(jj,ii)) < max_ai)) then
                 !if(grid_swf_count(ai_idx, sza_idx,ice_idx,ch7_idx,cld_idx) &
                 if(grid_swf_count(ai_idx, sza_idx,ice_idx,ch7_idx) &
@@ -487,6 +578,27 @@ program gen_comp_grid_climo
 
                 if(OMI_AI_raw_data(jj,ii) > found_max_ai) then
                   found_max_ai = OMI_AI_raw_data(jj,ii)
+                endif
+
+                ! Insert pixel information into debug file here
+                ! ---------------------------------------------
+                if((ai_idx >= debug_min_ai_idx) .and. &
+                   ((ice_idx >= debug_min_ice_idx) .and. &
+                    (ice_idx <= debug_max_ice_idx)) .and. &
+                   (sza_idx == debug_sza_idx) .and. &
+                   (ch7_idx == debug_ch7_idx)) then
+                  !write(io5,'(4(f8.3,2x))') OMI_LAT_data(jj,ii), OMI_LON_data(jj,ii), &
+                  !write(io5,'(7(i4,2x), 2(f5.2,2x))') ice_idx, sza_idx, ch7_idx, &
+                  !  debug_min_ice_idx, debug_max_ice_idx, debug_sza_idx, &
+                  !  debug_ch7_idx, sza_bins(sza_idx), ch7_bins(ch7_idx)
+
+                  write(io5,'(5(f9.4, 2x), 6(f4.1, 2x))') OMI_LAT_data(jj,ii), &
+                    OMI_LON_data(jj,ii), OMI_AI_raw_data(jj,ii), &
+                    OMI_SZA_data(jj,ii), CERES_SWF_data(jj,ii), &
+                    sza_bins(sza_idx), sza_edges(sza_idx), &
+                    sza_edges(sza_idx + 1), &
+                    ch7_bins(ch7_idx), ch7_edges(ch7_idx), &
+                    ch7_edges(ch7_idx + 1)
                 endif
 
               endif 
@@ -541,7 +653,10 @@ program gen_comp_grid_climo
   !out_file_name = 'comp_grid_climo_v8.hdf5'
   !out_file_name = 'comp_grid_climo_v9.hdf5'
   !out_file_name = 'comp_grid_climo_v10.hdf5'
-  out_file_name = 'comp_grid_climo_v12.hdf5'
+  !out_file_name = 'comp_grid_climo_v11.hdf5'
+  !out_file_name = 'comp_grid_climo_v12.hdf5'
+  !out_file_name = 'comp_grid_climo_v13.hdf5'
+  out_file_name = 'comp_grid_climo_v14.hdf5'
   write(*,*) trim(out_file_name)
 
   call h5fcreate_f(trim(out_file_name), H5F_ACC_TRUNC_F, out_file_id, error)
@@ -1214,6 +1329,10 @@ program gen_comp_grid_climo
   deallocate(ice_edges)
   deallocate(ch7_edges)
   !deallocate(cld_edges)
+
+  ! Close the debug file
+  ! --------------------
+  close(io5)
 
   ! Close the HDF5 interface
   ! ------------------------
