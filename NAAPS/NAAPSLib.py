@@ -1061,7 +1061,8 @@ def readgridNAAPS_monthly(start_date,end_date,param,minlat=60.5,\
 
 # Could modify to allow user to calculate either daily or monthly
 # average.
-def calc_NAAPS_month_avg(date_str, minlat = 65., mask_zero = False):
+def calc_NAAPS_month_avg(date_str, minlat = 65., mask_zero = False, \
+        dtype = 'no_AI'):
 
     # Make sure date string is of correct format
     # ------------------------------------------
@@ -1074,7 +1075,8 @@ def calc_NAAPS_month_avg(date_str, minlat = 65., mask_zero = False):
 
     # Determine if the associated directory is untarred
     # -------------------------------------------------
-    if(not os.path.isdir(dt_date_str.strftime(data_dir + '%Y/%Y%m/'))):
+    #if(not os.path.isdir(dt_date_str.strftime(data_dir + '%Y/%Y%m/'))):
+    if(not os.path.isdir(dt_date_str.strftime(data_dir + dtype + '/%Y/%Y%m/'))):
         print("ERROR: data directory for ",date_str," is not untarred")
         print("       Must untar associated NAAPS gzip tarfile before")
         print("       continuing")
@@ -1082,14 +1084,17 @@ def calc_NAAPS_month_avg(date_str, minlat = 65., mask_zero = False):
 
     # Find all relevant files in the associated directory
     # ---------------------------------------------------
-    files = glob(dt_date_str.strftime(data_dir + '%Y/%Y%m/NVA_*%Y%m*.nc'))
+    files = glob(dt_date_str.strftime(data_dir + dtype + \
+        '/%Y/%Y%m/NVA_*%Y%m*.nc'))
     num_files = len(files)
 
     # Allocate array to hold all the data north of minlat before averaging
     # --------------------------------------------------------------------
     num_lats = int(90 - minlat)
     test_lats = np.arange(-89.5, 90.5, 1)
-    all_data = np.full((num_files,  num_lats, 360), np.nan)
+    conc_sfc_data = np.full((num_files,  num_lats, 360), np.nan)
+    drysink_data = np.full((num_files,  num_lats, 360), np.nan)
+    wetsink_data = np.full((num_files,  num_lats, 360), np.nan)
 
     # Insert all the data for this month into the array
     # -------------------------------------------------
@@ -1099,22 +1104,33 @@ def calc_NAAPS_month_avg(date_str, minlat = 65., mask_zero = False):
         print(files[ii])
         data = Dataset(files[ii], 'r')
  
-        all_data[ii,:,:] = data['smoke_conc_sfc'][beg_idx:,:]
+        conc_sfc_data[ii,:,:] = data['smoke_conc_sfc'][beg_idx:,:]
+        drysink_data[ii,:,:]  = data['smoke_drysink'][beg_idx:,:]
+        wetsink_data[ii,:,:]  = data['smoke_wetsink'][beg_idx:,:]
 
         data.close()
 
     # Average the data down into a single monthly average
     # ---------------------------------------------------
     if(mask_zero):
-        all_data = np.ma.masked_where(all_data == 0., all_data)
+        conc_sfc_data = np.ma.masked_where(conc_sfc_data == 0., conc_sfc_data)
+        drysink_data = np.ma.masked_where(drysink_data == 0., drysink_data)
+        wetsink_data = np.ma.masked_where(wetsink_data == 0., wetsink_data)
 
-    all_data = np.nanmean(all_data, axis = 0)
+    conc_sfc_data = np.nanmean(conc_sfc_data, axis = 0)
+    drysink_data = np.nanmean(drysink_data, axis = 0)
+    wetsink_data = np.nanmean(wetsink_data, axis = 0)
 
     # Return the averaged data
-    return all_data
+    out_dict = {}
+    out_dict['conc_sfc'] = conc_sfc_data
+    out_dict['drysink'] = drysink_data
+    out_dict['wetsink'] = wetsink_data
+    return out_dict
+    #return all_data
 
 def calc_NAAPS_all_avgs(begin_date, end_date, minlat = 65., \
-        mask_zero = False):
+        mask_zero = False, dtype = 'no_AI'):
 
     begin_date_str = datetime.strptime(begin_date, '%Y%m')
     end_date_str   = datetime.strptime(end_date, '%Y%m')
@@ -1135,27 +1151,37 @@ def calc_NAAPS_all_avgs(begin_date, end_date, minlat = 65., \
     num_lats = int(90 - minlat)
     local_lats = np.arange(minlat + 0.5, 90.5, 1)
     local_lons = np.arange(-179.5, 180.5, 1)
-    all_data = np.full((num_months, num_lats, 360), np.nan)
+    conc_sfc_data = np.full((num_months, num_lats, 360), np.nan)
+    drysink_data  = np.full((num_months, num_lats, 360), np.nan)
+    wetsink_data  = np.full((num_months, num_lats, 360), np.nan)
 
     for ii, dstr in enumerate(date_strs):
         print(dstr)
-        all_data[ii,:,:] = calc_NAAPS_month_avg(dstr, minlat = minlat, \
-            mask_zero = mask_zero)
+        out_dict = calc_NAAPS_month_avg(dstr, minlat = minlat, \
+            mask_zero = mask_zero, dtype = dtype)
+        conc_sfc_data[ii,:,:] = out_dict['conc_sfc']
+        drysink_data[ii,:,:]  = out_dict['drysink']
+        wetsink_data[ii,:,:]  = out_dict['wetsink']
+        
+        del out_dict
     
     grid_lons, grid_lats = np.meshgrid(local_lons, local_lats)
      
     NAAPS_avgs = {}
     NAAPS_avgs['begin_str'] = begin_date
     NAAPS_avgs['end_str']   = end_date
+    NAAPS_avgs['dtype'] = dtype
     NAAPS_avgs['dates']     = date_strs
-    NAAPS_avgs['data']      = all_data   
+    NAAPS_avgs['smoke_conc_sfc'] = conc_sfc_data
+    NAAPS_avgs['smoke_drysink']  = drysink_data
+    NAAPS_avgs['smoke_wetsink']  = wetsink_data
     NAAPS_avgs['lats']      = grid_lats
     NAAPS_avgs['lons']      = grid_lons
  
     return NAAPS_avgs
 
 def calcNAAPS_grid_trend(NAAPS_data, month_idx, trend_type, minlat, \
-        param = 'data'):
+        param = 'smoke_conc_sfc'):
 
     if(month_idx == None):
         month_idx = 0
@@ -1209,7 +1235,7 @@ def calcNAAPS_grid_trend(NAAPS_data, month_idx, trend_type, minlat, \
 
 # This function assumes the data is being read from the netCDF file
 # NOTE: Assume user is using new NAAPS climo file which starts in January
-def calcNAAPS_MonthClimo(NAAPS_data, param = 'data'):
+def calcNAAPS_MonthClimo(NAAPS_data, param = 'smoke_conc_sfc'):
 
     # Set up arrays to hold monthly climatologies
     month_climo = np.zeros((6, NAAPS_data[param].shape[1], \
@@ -1301,6 +1327,10 @@ def writeNAAPS_toNCDF(NAAPS_data,file_name, minlat = 65.):
     CONC = nc.createVariable('smoke_conc_sfc','f4',('nmth','dlat','dlon'))
     CONC.description = 'Monthly averaged NAAPS smoke aerosol concentration '+\
         'in the lowest NAAPS model layer'
+    DSNK = nc.createVariable('smoke_drysink','f4',('nmth','dlat','dlon'))
+    DSNK.description = 'Monthly averaged NAAPS smoke dry sink'
+    WSNK = nc.createVariable('smoke_wetsink','f4',('nmth','dlat','dlon'))
+    WSNK.description = 'Monthly averaged NAAPS smoke wet sink'
 
     # Fill in dimension variables one-by-one.
     # NOTE: not sure if you can insert the entire data array into the
@@ -1321,7 +1351,10 @@ def writeNAAPS_toNCDF(NAAPS_data,file_name, minlat = 65.):
     # I have a bunch of extra stuff in here for handling the dictionary
     # keys, which you will likely not need for your data
     # ------------------------------------------------------------------
-    CONC[:,:,:] = NAAPS_data['data'][:,:,:]
+    #CONC[:,:,:] = NAAPS_data['data'][:,:,:]
+    CONC[:,:,:] = NAAPS_data['smoke_conc_sfc'][:,:,:]
+    DSNK[:,:,:] = NAAPS_data['smoke_drysink'][:,:,:]
+    WSNK[:,:,:] = NAAPS_data['smoke_wetsink'][:,:,:]
     #for ii in range(num_time):
     ##!#for i in range(num_lat):
     ##!#    print(lat_ranges[i])
@@ -1366,7 +1399,7 @@ def readgridNAAPS_NCDF(infile=home_dir + \
     # Use minlat to restrict the data to only the desired minimum
     # latitude
     # ------------------------------------------------------------
-    min_idx =  np.where(in_data['Latitude'][:,0] > minlat)[0][0]
+    min_idx =  np.where(in_data['Latitude'][:,0] >= minlat)[0][0]
 
     # Use the file dates to select just the data within the user-specified
     # timeframe
@@ -1379,7 +1412,9 @@ def readgridNAAPS_NCDF(infile=home_dir + \
     NAAPS_data['begin_str'] = str_dates[0]
     NAAPS_data['end_str']   = str_dates[-1]
     NAAPS_data['dates']     = str_dates
-    NAAPS_data['data']      = in_data['smoke_conc_sfc'][:,min_idx:,:]
+    NAAPS_data['smoke_conc_sfc']  = in_data['smoke_conc_sfc'][:,min_idx:,:]
+    NAAPS_data['smoke_drysink']   = in_data['smoke_drysink'][:,min_idx:,:]
+    NAAPS_data['smoke_wetsink']   = in_data['smoke_wetsink'][:,min_idx:,:]
     NAAPS_data['lats']      = in_data['Latitude'][min_idx:,:]
     NAAPS_data['lons']      = in_data['Longitude'][min_idx:,:]
  
@@ -1481,7 +1516,7 @@ def plotNAAPS_MonthTrend(NAAPS_data,month_idx=None,save=False,\
         trend_type='standard',minlat=65.,return_trend=False, colorbar = True, \
         title = '', label = '', colorbar_label_size = 14, pax = None, \
         show_pval = False, uncert_ax = None, vmax = None, \
-        param = 'data'):
+        param = 'smoke_conc_sfc'):
 
     trend_label=''
     if(trend_type=='theil-sen'):
@@ -1592,7 +1627,8 @@ def plotNAAPS_MonthTrend(NAAPS_data,month_idx=None,save=False,\
 # Generate a 15-panel figure comparing the climatology and trend between 3
 # versions of the NAAPS data for all months
 def plotNAAPS_ClimoTrend_all(NAAPS_data,\
-        trend_type = 'standard', minlat=65,save=False):
+        trend_type = 'standard', param = 'smoke_conc_sfc', \
+        minlat=65,save=False):
 
     colormap = plt.cm.jet
 

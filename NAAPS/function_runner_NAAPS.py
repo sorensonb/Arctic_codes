@@ -7,6 +7,22 @@
 
 from NAAPSLib import *
 
+# NOTE: to regenerate the entire NAAPS monthly climatology dataset
+NAAPS_data = calc_NAAPS_all_avgs('200504', '202009', minlat = 65., \
+    mask_zero = False, dtype = 'no_AI')
+sys.exit()
+
+NAAPS_data = readgridNAAPS_NCDF(infile=home_dir + \
+    '/Research/NAAPS/naaps_grid_smoke_conc_sfc_2005_2020.nc',\
+    start_date = 200504, end_date = 202009, calc_month = True, \
+    minlat = 65)
+
+#plotNAAPS_ClimoTrend_all(NAAPS_data,\
+#    trend_type = 'standard', minlat=70,save=True)
+
+sys.exit()
+
+
 #x = 1010
 #
 #for ii in range(5):
@@ -119,16 +135,6 @@ sys.exit()
 
 # NOTE: Remake gridded NAAPS data to include
 #       drysink and wetsink?
-
-NAAPS_data = readgridNAAPS_NCDF(infile=home_dir + \
-    '/Research/NAAPS/naaps_grid_smoke_conc_sfc_2005_2020.nc',\
-    start_date = 200504, end_date = 202009, calc_month = True, \
-    minlat = 65)
-
-plotNAAPS_ClimoTrend_all(NAAPS_data,\
-    trend_type = 'standard', minlat=70,save=True)
-
-sys.exit()
 
 #date_str = '20080422'
 date_str = '20120615'
@@ -404,10 +410,6 @@ sys.exit()
 
 sys.exit()
 
-# NOTE: to regenerate the entire NAAPS monthly climatology dataset
-##!#NAAPS_data = calc_NAAPS_all_avgs('200504', '202009', minlat = 65., \
-##!#    mask_zero = False)
-##!#sys.exit()
 
 
 

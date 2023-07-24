@@ -58,14 +58,18 @@ def read_fuliou_output(outfile = 'fuliouout.txt'):
 
 # This reads the three output files for the cloud testing stuff
 # -------------------------------------------------------------
-def read_fuliou_cloud_output(aertype = 11):
+def read_fuliou_cloud_output(aertype = 11, spec_type = ''):
 
+    if(spec_type == ''):
+        file_ender = '.txt'
+    elif(spec_type == 'loftplume'):
+        file_ender = '_loftplume.txt' 
     data1 = read_fuliou_output(outfile = 'fuliou_cloud_test_aertype'+\
-        str(aertype) + '_alb1.txt')
+        str(aertype) + '_alb1' + file_ender)
     data2 = read_fuliou_output(outfile = 'fuliou_cloud_test_aertype'+\
-        str(aertype) + '_alb2.txt')
+        str(aertype) + '_alb2' + file_ender)
     data3 = read_fuliou_output(outfile = 'fuliou_cloud_test_aertype'+\
-        str(aertype) + '_alb3.txt')
+        str(aertype) + '_alb3' + file_ender)
 
     albs = np.array([[0.06, 0.11, 0.61]])
 

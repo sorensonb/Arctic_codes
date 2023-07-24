@@ -9,6 +9,16 @@ from MODISLib import *
 
 
 
+date_str = '202107222110'
+
+MODIS_ch31 = read_MODIS_channel(date_str, 31)
+
+filename = '/home/bsorenson/data/MODIS/Aqua/MYD/MYD021KM.A2021203.2110.061.2021204155922.hdf'
+data1 = Dataset(filename)
+data2 = SD.SD(filename)
+
+sys.exit()
+
 #dt_date_str = '201807052305'
 #dt_date_str = '201807052310'
 dt_date_str = '201507082105'

@@ -12,6 +12,20 @@ home_dir = os.environ['HOME']
 
 base_dir = home_dir + "/Research/"
 dest_dir = home_dir + "/Arctic_codes/"
+## Change to Arctic codes directory
+#os.chdir(dest_dir)
+##os.chdir('home_dir + /Arctic_codes/')
+#
+## Add new stuff
+#os.system('git add .')
+#
+## Determine today's date for the command
+#today_str = datetime.today().strftime('%Y/%m/%d')
+#cmnd = 'git commit -m \"Backup '+today_str + '\"'
+#os.system(cmnd)
+#
+## Push
+#os.system('git push origin master')
 ##!## Add new stuff
 ##!#os.chdir(dest_dir)
 ##!#os.system('git add .')
@@ -293,6 +307,16 @@ cmnd = "find "+base_dir+"FuLiou/ -type f -name \"*.py\" | xargs cp -t "+final_di
 print(cmnd)
 os.system(cmnd)
 
+cmnd = "cp "+base_dir+"FuLiou/Ed4_LaRC_FuLiou/src/simple/*.f90 "+final_dir
+#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
+
+cmnd = "cp "+base_dir+"FuLiou/Ed4_LaRC_FuLiou/src/simple/REAMDE_FuLiou "+final_dir
+#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
+
 # ---------------------------------------------------------------------------- 
 # GOES analysis
 # ---------------------------------------------------------------------------- 
@@ -444,17 +468,3 @@ os.system(cmnd)
 # Automate the uploading to Github
 # --------------------------------
 
-## Change to Arctic codes directory
-#os.chdir(dest_dir)
-##os.chdir('home_dir + /Arctic_codes/')
-#
-## Add new stuff
-#os.system('git add .')
-#
-## Determine today's date for the command
-#today_str = datetime.today().strftime('%Y/%m/%d')
-#cmnd = 'git commit -m \"Backup '+today_str + '\"'
-#os.system(cmnd)
-#
-## Push
-#os.system('git push origin master')
