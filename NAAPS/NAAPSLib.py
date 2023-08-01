@@ -1387,6 +1387,8 @@ def readgridNAAPS_NCDF(infile=home_dir + \
     # Read in data to netCDF object
     in_data = Dataset(infile,'r')
 
+    dtype = infile.strip().split('/')[-1].split('_')[-1][:-3]
+
     # Set up dictionary to hold data
     NAAPS_data = {}
 
@@ -1412,6 +1414,7 @@ def readgridNAAPS_NCDF(infile=home_dir + \
     NAAPS_data['begin_str'] = str_dates[0]
     NAAPS_data['end_str']   = str_dates[-1]
     NAAPS_data['dates']     = str_dates
+    NAAPS_data['dtype']     = dtype
     NAAPS_data['smoke_conc_sfc']  = in_data['smoke_conc_sfc'][:,min_idx:,:]
     NAAPS_data['smoke_drysink']   = in_data['smoke_drysink'][:,min_idx:,:]
     NAAPS_data['smoke_wetsink']   = in_data['smoke_wetsink'][:,min_idx:,:]
@@ -1705,7 +1708,7 @@ def plotNAAPS_ClimoTrend_all(NAAPS_data,\
     plotNAAPS_MonthTrend(NAAPS_data,month_idx=0,trend_type=trend_type,label = ' ',\
         minlat=minlat,title = ' ', pax = ax01, colorbar = cbar_switch, \
         colorbar_label_size = colorbar_label_size, show_pval = True, \
-        uncert_ax = ax02)
+        uncert_ax = ax02, param = param)
 
     # Plot the figures in the first row: May
     # ---------------------------------------
@@ -1715,7 +1718,7 @@ def plotNAAPS_ClimoTrend_all(NAAPS_data,\
     plotNAAPS_MonthTrend(NAAPS_data,month_idx=1,trend_type=trend_type,label = ' ',\
         minlat=minlat,title = ' ', pax = ax11, colorbar = cbar_switch, \
         colorbar_label_size = colorbar_label_size, show_pval = True, \
-        uncert_ax = ax12)
+        uncert_ax = ax12, param = param)
 
     # Plot the figures in the first row: June
     # ---------------------------------------
@@ -1725,7 +1728,7 @@ def plotNAAPS_ClimoTrend_all(NAAPS_data,\
     plotNAAPS_MonthTrend(NAAPS_data,month_idx=2,trend_type=trend_type,label = ' ',\
         minlat=minlat,title = ' ', pax = ax21, colorbar = cbar_switch, \
         colorbar_label_size = colorbar_label_size, show_pval = True, \
-        uncert_ax = ax22)
+        uncert_ax = ax22, param = param)
 
     # Plot the figures in the second row: July
     # ----------------------------------------
@@ -1735,7 +1738,7 @@ def plotNAAPS_ClimoTrend_all(NAAPS_data,\
     plotNAAPS_MonthTrend(NAAPS_data,month_idx=3,trend_type=trend_type,label = ' ',\
         minlat=minlat,title = ' ', pax = ax31, colorbar = cbar_switch, \
         colorbar_label_size = colorbar_label_size, show_pval = True, \
-        uncert_ax = ax32)
+        uncert_ax = ax32, param = param)
 
     # Plot the figures in the third row: August
     # -----------------------------------------
@@ -1745,7 +1748,7 @@ def plotNAAPS_ClimoTrend_all(NAAPS_data,\
     plotNAAPS_MonthTrend(NAAPS_data,month_idx=4,trend_type=trend_type,label = ' ',\
         minlat=minlat,title = ' ', pax = ax41, colorbar = cbar_switch, \
         colorbar_label_size = colorbar_label_size, show_pval = True, \
-        uncert_ax = ax42)
+        uncert_ax = ax42, param = param)
 
     # Plot the figures in the third row: September
     # --------------------------------------------
@@ -1755,7 +1758,7 @@ def plotNAAPS_ClimoTrend_all(NAAPS_data,\
     plotNAAPS_MonthTrend(NAAPS_data,month_idx=5,trend_type=trend_type,label = ' ',\
         minlat=minlat,title = ' ', pax = ax51, colorbar = cbar_switch, \
         colorbar_label_size = colorbar_label_size, show_pval = True, \
-        uncert_ax = ax52)
+        uncert_ax = ax52, param = param)
 
     fig.text(0.10, 0.82, 'April', ha='center', va='center', \
         rotation='vertical',weight='bold',fontsize=row_label_size + 1)
@@ -1795,9 +1798,11 @@ def plotNAAPS_ClimoTrend_all(NAAPS_data,\
 
     #fig.tight_layout()
 
-    outname = 'naaps_grid_comps_all6_2.png'
+    #outname = 'naaps_grid_comps_all6_2.png'
     if(save == True):
-        plt.savefig(outname,dpi=300)
+        outname = 'naaps_grid_comps_climotrend_' + NAAPS_data['dtype'] + \
+            '_' + param + '.png'
+        plt.savefig(outname,dpi=200)
         print("Saved image",outname)
     else:
         plt.show()

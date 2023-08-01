@@ -15,7 +15,9 @@ import metpy.calc as mpcalc
 from metpy.units import units
 import scipy
 
-sys.path.append('/home/bsorenson/')
+home_dir = os.environ['HOME']
+sys.path.append(home_dir)
+#sys.path.append('/home/bsorenson/')
 from python_lib import *
 
 h_const = 6.626e-34 #J*s
