@@ -761,7 +761,7 @@ def plot_NEXRAD_ppi(NEXRAD_dict, variable, ax = None, angle = None, ptitle = Non
             outname = save_dir + NEXRAD_dict['radar_name'] + '_' + variable + '_angle' \
                 + str(angle) + '_' +  NEXRAD_dict['radar_date'] + zoom_add + \
                 '.png'
-            plt.savefig(outname,dpi=300)
+            plt.savefig(outname,dpi=200)
             print("Saved image",outname)
         else:
             plt.show()

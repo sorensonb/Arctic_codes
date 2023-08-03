@@ -774,6 +774,13 @@ def read_colocated(date_str, minlat = 70., zoom = True, \
         data['nsidc_ice'])
     coloc_data['NSIDC_ICE'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
         coloc_data['NSIDC_ICE'])
+    coloc_data['NSIDC_IO_MIX'] = np.ma.masked_where((\
+        #data['nsidc_ice'][:,:] == -999.) | (data['nsidc_ice'][:,:] > 100.), \
+        data['nsidc_ice'][:,:] == -999.) | (data['nsidc_ice'][:,:] >= 80.) | \
+        (data['nsidc_ice'][:,:] <= 0.), \
+        data['nsidc_ice'])
+    coloc_data['NSIDC_IOMIX'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
+        coloc_data['NSIDC_IO_MIX'])
     coloc_data['NSIDC_OCEAN'] = np.ma.masked_where((\
         data['nsidc_ice'][:,:] == -999.) | (data['nsidc_ice'][:,:] > 0.), \
         data['nsidc_ice'])

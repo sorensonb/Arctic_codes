@@ -8,6 +8,19 @@ import importlib, NEXRADLib
 from NEXRADLib import *
 import sys
 
+begin_date = '202107221430'
+end_date   = '202107230330'
+
+#plot_NEXRAD_ppi_auto(begin_date, end_date, 'KBBX', 'differential_reflectivity', \
+#    save_dir = './', angle_idx = 4, zoom = True, save = True)
+plot_NEXRAD_ppi_auto(begin_date, end_date, 'KRGX', 'reflectivity', \
+    save_dir = './', angle_idx = 2, zoom = True, save = True)
+sys.exit()
+
+# Every 5 minutes from 202107202100 to 202107210330
+auto_NEXRAD_download(begin_date, end_date, 15, 'KRGX')
+sys.exit()
+
 date_str = '202107210000'
 radar = 'KBBX'
 variable = 'differential_reflectivity'
@@ -35,14 +48,6 @@ plot_NEXRAD_rhi_figure(date_str, radar, variable, azimuth = azimuth, \
 
 
 sys.exit()
-begin_date = '202107201200'
-end_date   = '202107211200'
-sys.exit()
-plot_NEXRAD_ppi_auto(begin_date, end_date, 'KBBX', 'differential_reflectivity', \
-    save_dir = './', angle_idx = 4, zoom = True, save = True)
-plot_NEXRAD_ppi_auto(begin_date, end_date, 'KRGX', 'differential_reflectivity', \
-    save_dir = './', angle_idx = 2, zoom = True, save = True)
-#auto_NEXRAD_download(begin_date, end_date, 30, 'KRGX')
 
 begin_date = '202107201200'
 end_date   = '202107140300'

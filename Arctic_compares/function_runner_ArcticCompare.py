@@ -8,8 +8,6 @@
 import Arctic_compare_lib
 from Arctic_compare_lib import *
 
-
-
 #filename = 'comp_grid_climo_v1.hdf5'
 #filename = 'comp_grid_climo_v2.hdf5'
 #filename = 'comp_grid_climo_v3.hdf5'
@@ -23,9 +21,11 @@ filename1 = 'comp_grid_climo_v6.hdf5'
 #filename2 = 'comp_grid_climo_v11.hdf5'
 filename2 = 'comp_grid_climo_v12.hdf5'
 filename3 = 'comp_grid_climo_v14.hdf5'
-comp_grid_data_v6 = read_comp_grid_climo(filename1)
-comp_grid_data_v11 = read_comp_grid_climo(filename2)
-comp_grid_data_v14 = read_comp_grid_climo(filename3)
+##!#comp_grid_data_v6 = read_comp_grid_climo(filename1)
+##!#comp_grid_data_v11 = read_comp_grid_climo(filename2)
+##!#comp_grid_data_v14 = read_comp_grid_climo(filename3)
+
+
 #comp_grid_data_v7 = read_comp_grid_climo(filename)
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
@@ -388,6 +388,42 @@ dates = [
 #         '202108012242',
 #        ]
 
+thresh_ai = 2.0
+for date in dates:
+    coloc_data = read_colocated(date)
+
+    # Test finding the indices with high aerosol
+    # ------------------------------------------
+    
+    mask_data = np.ma.masked_where(coloc_data['OMI_RAW'] < thresh_ai, coloc_data['OMI_RAW'])
+    
+    mask_ice = np.ma.masked_where((coloc_data['NSIDC_ICE'].mask == True), \
+        mask_data)
+    mask_io_mix = np.ma.masked_where((coloc_data['NSIDC_IO_MIX'].mask == True), \
+        mask_data)
+    mask_ocean = np.ma.masked_where((coloc_data['NSIDC_OCEAN'].mask == True), \
+        mask_data)
+    mask_land = np.ma.masked_where((coloc_data['NSIDC_LAND'].mask == True), \
+        mask_data)
+   
+    mask_ice_cloud = np.ma.masked_where(coloc_data['MODIS_CLD'] > 0, mask_ice)
+    mask_ice_clear = np.ma.masked_where(coloc_data['MODIS_CLD'] != 0, mask_ice)
+ 
+    count_data = mask_data.compressed().size
+    count_ice  = mask_ice.compressed().size
+    count_mix  = mask_io_mix.compressed().size
+    count_ocean  = mask_ocean.compressed().size
+    count_land  = mask_land.compressed().size
+    totals = count_ice + count_mix + count_ocean + count_land
+  
+    pcnt_ice = np.round((count_ice / count_data) * 100., 3)
+    pcnt_mix = np.round((count_mix / count_data) * 100., 3)
+    pcnt_ocn = np.round((count_ocean / count_data) * 100., 3)
+    pcnt_lnd = np.round((count_land / count_data) * 100., 3)
+ 
+    print(date, count_data, pcnt_ice, pcnt_mix, pcnt_ocn, pcnt_lnd, totals)
+ 
+sys.exit()
 files = [data_path + date + '.hdf5' for date in dates]
 
 # Figure out the total size to insert the data

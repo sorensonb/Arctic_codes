@@ -2173,9 +2173,9 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
     # Read the GOES time series data
     # ------------------------------
     file_name1 = home_dir + '/Research/GOES/goes_cross_data_' + \
-        ttype1 + '_202107201201_202107210331_v3.nc'
+        ttype1 + '_202107201201_202107210331.nc'
     file_name2 = home_dir + '/Research/GOES/goes_cross_data_' + \
-        ttype2 + '_202107201201_202107210331_v3.nc'
+        ttype2 + '_202107201201_202107210331.nc'
     GOES_dict  = read_GOES_time_series_NCDF(file_name1)
     GOES_dict2 = read_GOES_time_series_NCDF(file_name2)
 

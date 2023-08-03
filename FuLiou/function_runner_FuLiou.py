@@ -9,14 +9,19 @@ import importlib, FuLiouLib
 from FuLiouLib import *
 import sys
 
-infile = 'fuliou_profile_aertype11_alb1_aertop22_aerbot24_cldhgt28.txt'
+file_list = 'fuliouout_file_list.txt'
+fu_data = read_fuliou_cloudaer_output(file_list)
+
+sys.exit()
+
+infile = 'Ed4_LaRC_FuLiou/src/simple/fuliou_profile_aertype11_alb1_aertop22_aerbot24_cldhgt28.txt'
 
 data = pd.read_csv(infile, delim_whitespace = True, header = 0)
 
-z1s = data['Z1'].values
-z2s = data['Z2'].values
-aprof = data['aprofs'].values
-cld   = data['cldpres'].values
+z1s   = np.asarray(data['Z1'].values)
+z2s   = np.asarray(data['Z2'].values)
+aprof = np.asarray(data['aprofs'].values)
+cld   = np.asarray(data['cldpres'].values)
 
 cloud_idx = np.where(cld == 1)
 

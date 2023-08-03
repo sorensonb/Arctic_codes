@@ -48,7 +48,7 @@ def radiance(wavelength,tmp):
 # ---------------------------------------------------------------
 def read_fuliou_output(outfile = 'fuliouout.txt'):
     
-    totalfile = fu_path + '/src/simple/' + outfile
+    totalfile = fu_path + 'src/simple/' + outfile
 
     # Read the file with pandas
     # -------------------------
@@ -57,6 +57,163 @@ def read_fuliou_output(outfile = 'fuliouout.txt'):
     df = df.round(3)
      
     return df
+
+# file_list: a list of FuLiou output text files of format
+#     fuliou_cloud_test_aertypeAA_albB_aertopCC_aerbotDD_cldhgtEE.txt
+#
+#     - AA: aerosol type index (1 for continental, 11 for soot)
+#     - B:  surface albedo index (1 for 0.06, 2 for 0.11, 3 for 0.61)
+#     - CC: aerosol layer top index
+#     - DD: aerosol layer bottom index
+#     - EE: cloud height index (cloud assumed to be at only 1 level)
+#
+# NOTE: A similar file containing the corresponding atmosphere
+#       and aerosol profiles MUST exist 
+def read_fuliou_cloudaer_output(file_list):
+    print(file_list)
+
+    data_dict = {}
+
+    with open(file_list, 'r') as fin:
+        filelines = fin.readlines()
+
+    unique_aers = np.unique([int(fline.strip().split('_')[3][7:]) \
+        for fline in filelines]) 
+    unique_albs = np.unique([int(fline.strip().split('_')[4][3:]) \
+        for fline in filelines]) 
+    unique_aertops = np.unique([int(fline.strip().split('_')[5][6:]) \
+        for fline in filelines]) 
+    unique_aerbots = np.unique([int(fline.strip().split('_')[6][6:]) \
+        for fline in filelines]) 
+    unique_cldhgts = np.unique([int(fline.strip().split('_')[7].split('.')[0][6:]) \
+        for fline in filelines]) 
+    
+    aertop_pvals = np.full(unique_aertops.shape, np.nan)
+    aerbot_pvals = np.full(unique_aerbots.shape, np.nan)
+    cldhgt_pvals = np.full(unique_cldhgts.shape, np.nan)
+    
+    # Read the data for the first file to figure out the dimensions
+    # needed for the rest of the data
+    # ------------------------------------------------------------ 
+    test_data = read_fuliou_output(outfile = filelines[0].strip())
+
+    unique_szas = np.unique(test_data['SolarZenith'])
+    unique_cods = np.unique(test_data['CloudOptDepth'])
+    unique_cfrc = np.unique(test_data['CloudFrac'])
+    unique_aods = np.unique(test_data['AOD'])
+
+    # NOTE: for now, all aerosol heights have the same depth, so there are 3 
+    #       aerosol tops and aerosol bottoms. Can add another dimension later
+    #       if the user wants thicker aerosol plumes.
+    print(unique_aers.shape, unique_albs.shape, unique_aertops.shape, \
+        unique_aerbots.shape, unique_cldhgts.shape, unique_szas.shape, \
+        unique_cods.shape, unique_cfrc.shape, unique_aods.shape)
+
+    full_clr_data = np.full((unique_aers.shape[0], unique_albs.shape[0], \
+        #unique_aertops.shape[0], unique_aerbots.shape[0], unique_cldhgts.shape[0], \
+        unique_aertops.shape[0], unique_cldhgts.shape[0], \
+        unique_szas.shape[0], unique_cods.shape[0], unique_cfrc.shape[0], \
+        unique_aods.shape[0]), np.nan)
+    full_total_data = np.full((unique_aers.shape[0], unique_albs.shape[0], \
+        #unique_aertops.shape[0], unique_aerbots.shape[0], unique_cldhgts.shape[0], \
+        unique_aertops.shape[0], unique_cldhgts.shape[0], \
+        unique_szas.shape[0], unique_cods.shape[0], unique_cfrc.shape[0], \
+        unique_aods.shape[0]), np.nan)
+    full_pris_data = np.full((unique_aers.shape[0], unique_albs.shape[0], \
+        #unique_aertops.shape[0], unique_aerbots.shape[0], unique_cldhgts.shape[0], \
+        unique_aertops.shape[0], unique_cldhgts.shape[0], \
+        unique_szas.shape[0], unique_cods.shape[0], unique_cfrc.shape[0], \
+        unique_aods.shape[0]), np.nan)
+    full_noaer_data = np.full((unique_aers.shape[0], unique_albs.shape[0], \
+        #unique_aertops.shape[0], unique_aerbots.shape[0], unique_cldhgts.shape[0], \
+        unique_aertops.shape[0], unique_cldhgts.shape[0], \
+        unique_szas.shape[0], unique_cods.shape[0], unique_cfrc.shape[0], \
+        unique_aods.shape[0]), np.nan)
+    
+    fu_dict = {}
+    fu_dict['aertype']       = unique_aers
+    fu_dict['ALB']           = unique_albs
+    fu_dict['aertop']        = unique_aertops
+    fu_dict['aerbot']        = unique_aerbots
+    fu_dict['cldhgt']        = unique_cldhgts
+    fu_dict['SolarZenith']   = unique_szas
+    fu_dict['CloudOptDepth'] = unique_cods
+    fu_dict['CloudFrac']     = unique_cfrc
+    fu_dict['AOD']           = unique_aods
+
+    fu_dict['dims'] = ['aertype','ALB','aertop_bot','cldhgt',\
+        'SolarZenith','CloudOptDepth','CloudFrac','AOD']
+
+    swfvars = ['SWF_CLR', 'SWF_TOTAL', 'SWF_PRISTINE', 'SWF_TOTAL_NO_AER']
+
+    fu_dict['SWF_CLR'] = full_clr_data
+    fu_dict['SWF_TOTAL'] = full_total_data
+    fu_dict['SWF_PRISTINE'] = full_pris_data
+    fu_dict['SWF_TOTAL_NO_AER'] = full_noaer_data
+ 
+    ###    fu_dict[svar] = np.array([\
+    ###        np.reshape(data1[svar].values, \
+    ###        (np.unique(data1['SolarZenith']).shape[0], \
+    ###         np.unique(data1['CloudOptDepth']).shape[0], \
+    ###         np.unique(data1['CloudFrac']).shape[0], \
+    ###         np.unique(data1['AOD']).shape[0])), \
+    ###        np.reshape(data2[svar].values, \
+    ###        (np.unique(data2['SolarZenith']).shape[0], \
+    ###         np.unique(data2['CloudOptDepth']).shape[0], \
+    ###         np.unique(data2['CloudFrac']).shape[0], \
+    ###         np.unique(data2['AOD']).shape[0])), \
+    ###        np.reshape(data3[svar].values, \
+    ###        (np.unique(data3['SolarZenith']).shape[0], \
+    ###         np.unique(data3['CloudOptDepth']).shape[0], \
+    ###         np.unique(data3['CloudFrac']).shape[0], \
+    ###         np.unique(data3['AOD']).shape[0])), \
+    ###        ])
+
+
+    for line in filelines:
+        print(line.strip())
+
+        local_data = read_fuliou_output(outfile = line.strip())
+
+        # Figure out into which indices of the combined file to 
+        # insert the current data.
+        # -----------------------------------------------------
+        title_split = line.strip().split('_')
+        local_aeridx     = np.where(unique_aers == int(title_split[3][7:]))[0][0]
+        local_albidx     = np.where(unique_albs == int(title_split[4][3:]))[0][0]
+        local_aertop_idx = np.where(unique_aertops == int(title_split[5][6:]))[0][0]
+        #local_aerbot_idx = np.where(unique_aerbots == int(title_split[6][6:]))[0][0]
+        local_cldhgt_idx = np.where(unique_cldhgts == int(title_split[7].split('.')[0][6:]))[0][0]
+
+        for svar in swfvars:
+            fu_dict[svar][local_aeridx, local_albidx, local_aertop_idx, \
+                local_cldhgt_idx, :,:,:,:] = np.reshape(local_data[svar].values, \
+                (np.unique(test_data['SolarZenith']).shape[0], \
+                 np.unique(test_data['CloudOptDepth']).shape[0], \
+                 np.unique(test_data['CloudFrac']).shape[0], \
+                 np.unique(test_data['AOD']).shape[0]))
+
+        file_end = line.strip()[17:]
+        #profile_file = 'fuliou_profile_alb1' + file_end
+        #print(file_end, profile_file)
+       
+    # Figure out how many scenarios are in the simulations given in
+    # file_list?
+ 
+    # Read the profile data and insert into the dictionary
+    # NOTE: For current simplicity, am assuming that the same atmosphere
+    #       profile is being used. Just load the last file name and 
+    #       grab the profile data that way.
+    # ---------------------------------------------------- 
+    profile_name = '_'.join(['fuliou','profile',title_split[3],'alb1',\
+        title_split[5],title_split[6],title_split[7]])
+
+    profile_data = read_fuliou_output(outfile = profile_name)
+
+    for key in profile_data.keys()[1:]:
+        fu_dict[key] = profile_data[key].values
+ 
+    return fu_dict
 
 # This reads the three output files for the cloud testing stuff
 # -------------------------------------------------------------
