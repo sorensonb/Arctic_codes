@@ -1,0 +1,237 @@
+# Comment line
+
+EXEC = type_exec
+COMP = h5fc
+#COMP = gfortran
+LIB_PATH = /home/bsorenson/OMI/comp_grid_climo/
+#TROP_LIB_PATH = /home/bsorenson/OMI/tropomi_colocate/
+#LIB_PATH = ../JZ_lib/
+FORT_LIB_PATH = ../fort_lib/
+OBJECTS = comp_grid_vars.o \
+			omi_fort_lib.o \
+			type_vars.o \
+			average_final_grid_data.o \
+			bin_MODIS_CLD_values.o \
+			bin_NSIDC_ICE_values.o \
+			count_num_days.o \
+			fill_lat_lon_arrays.o \
+			grid_comp_data.o \
+			read_coloc_CERES_SWF.o \
+			read_coloc_MODIS_CH7.o \
+			read_coloc_MODIS_CLD.o \
+			read_coloc_MODIS_COD.o \
+			read_coloc_NSIDC_ICE.o \
+			read_coloc_OMI_AI_raw.o \
+			read_coloc_OMI_LAT.o \
+			read_coloc_OMI_LON.o \
+			read_coloc_OMI_SZA.o \
+			read_coloc_TROP_AI.o \
+			write_output_file.o \
+			write_day_values.o \
+			write_grid_areas.o \
+			write_lat_values.o \
+			write_lon_values.o \
+			write_grid_OMI_AI_raw.o \
+			write_grid_MODIS_CH7.o \
+			write_grid_MODIS_CLD.o \
+			write_grid_NSIDC_ICE.o \
+			write_grid_TROP_AI.o \
+			type_analysis.o
+			#read_coloc_CERES_LWF.o \
+			#read_coloc_CERES_SWF.o \
+			#read_coloc_CERES_LAT.o \
+			#read_coloc_CERES_LON.o \
+			#read_coloc_MODIS_CH1.o \
+			#read_coloc_MODIS_CH7.o \
+			#read_coloc_MODIS_COD.o \
+			#read_coloc_MODIS_CLD.o \
+			#read_coloc_MODIS_LAT.o \
+			#read_coloc_MODIS_LON.o \
+			#read_coloc_NSIDC_ICE.o \
+			#read_coloc_NSIDC_LAT.o \
+			#read_coloc_NSIDC_LON.o \
+			#read_coloc_OMI_AI.o \
+			#read_coloc_OMI_AI_raw.o \
+			#read_coloc_OMI_LAT.o \
+			#read_coloc_OMI_LON.o \
+			#read_coloc_OMI_LATCRNR.o \
+			#read_coloc_OMI_LONCRNR.o \
+			#read_coloc_OMI_SZA.o \
+			#read_coloc_OMI_VZA.o \
+			#read_coloc_OMI_AZM.o \
+			#read_coloc_TROP_AI.o \
+			#read_coloc_TROP_SSA0.o \
+			#read_coloc_TROP_SSA1.o \
+			#read_coloc_TROP_SSA2.o \
+
+FFLAGS = -g -O2 -Wall -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
+LDFLAGS = -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
+
+$(EXEC): $(OBJECTS)
+	$(COMP) $(LDFLAGS) $(OBJECTS) -o $(EXEC)
+
+comp_grid_vars.o: $(LIB_PATH)comp_grid_vars.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)comp_grid_vars.f90
+
+omi_fort_lib.o: $(FORT_LIB_PATH)omi_fort_lib.f90
+	$(COMP) $(FFLAGS) -c $(FORT_LIB_PATH)omi_fort_lib.f90
+
+type_vars.o: type_vars.f90
+	$(COMP) $(FFLAGS) -c type_vars.f90
+
+average_final_grid_data.o: average_final_grid_data.f90
+	$(COMP) $(FFLAGS) -c average_final_grid_data.f90
+
+bin_MODIS_CLD_values.o: bin_MODIS_CLD_values.f90
+	$(COMP) $(FFLAGS) -c bin_MODIS_CLD_values.f90
+
+bin_NSIDC_ICE_values.o: bin_NSIDC_ICE_values.f90
+	$(COMP) $(FFLAGS) -c bin_NSIDC_ICE_values.f90
+
+count_num_days.o: count_num_days.f90
+	$(COMP) $(FFLAGS) -c count_num_days.f90
+
+fill_lat_lon_arrays.o: fill_lat_lon_arrays.f90
+	$(COMP) $(FFLAGS) -c fill_lat_lon_arrays.f90
+
+grid_comp_data.o: grid_comp_data.f90
+	$(COMP) $(FFLAGS) -c grid_comp_data.f90
+
+#check_bad_rows.o: $(LIB_PATH)check_bad_rows.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)check_bad_rows.f90
+#
+#grid_raw_data_climo.o: grid_raw_data_climo.f90
+#	$(COMP) $(FFLAGS) -c grid_raw_data_climo.f90
+#
+#read_h5_AI.o: $(LIB_PATH)read_h5_AI.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_AI.f90
+#
+#read_h5_AZM.o: $(LIB_PATH)read_h5_AZM.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_AZM.f90
+#
+#read_h5_GPQF.o: $(LIB_PATH)read_h5_GPQF.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_GPQF.f90
+#
+#read_coloc_CERES_CLD.o: $(LIB_PATH)read_coloc_CERES_CLD.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_coloc_CERES_CLD.f90
+
+#read_comp_CERES_LWF.o: $(LIB_PATH)read_comp_CERES_LWF.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_CERES_LWF.f90
+#
+read_coloc_CERES_SWF.o: $(LIB_PATH)read_coloc_CERES_SWF.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_coloc_CERES_SWF.f90
+#
+#read_comp_CERES_LAT.o: $(LIB_PATH)read_comp_CERES_LAT.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_CERES_LAT.f90
+#
+#read_comp_CERES_LON.o: $(LIB_PATH)read_comp_CERES_LON.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_CERES_LON.f90
+#
+#read_comp_MODIS_CH2.o: $(LIB_PATH)read_comp_MODIS_CH2.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_MODIS_CH2.f90
+#
+read_coloc_MODIS_CH7.o: $(LIB_PATH)read_coloc_MODIS_CH7.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_coloc_MODIS_CH7.f90
+
+read_coloc_MODIS_CLD.o: $(LIB_PATH)read_coloc_MODIS_CLD.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_coloc_MODIS_CLD.f90
+
+read_coloc_MODIS_COD.o: $(LIB_PATH)read_coloc_MODIS_COD.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_coloc_MODIS_COD.f90
+#
+#read_comp_MODIS_LAT.o: $(LIB_PATH)read_comp_MODIS_LAT.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_MODIS_LAT.f90
+#
+#read_comp_MODIS_LON.o: $(LIB_PATH)read_comp_MODIS_LON.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_MODIS_LON.f90
+#
+read_coloc_NSIDC_ICE.o: $(LIB_PATH)read_coloc_NSIDC_ICE.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_coloc_NSIDC_ICE.f90
+#
+#read_comp_NSIDC_LAT.o: $(LIB_PATH)read_comp_NSIDC_LAT.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_NSIDC_LAT.f90
+#
+#read_comp_NSIDC_LON.o: $(LIB_PATH)read_comp_NSIDC_LON.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_NSIDC_LON.f90
+#
+#read_comp_OMI_AI.o: $(LIB_PATH)read_comp_OMI_AI.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_AI.f90
+#
+read_coloc_OMI_AI_raw.o: $(LIB_PATH)read_coloc_OMI_AI_raw.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_coloc_OMI_AI_raw.f90
+
+read_coloc_OMI_LAT.o: $(LIB_PATH)read_coloc_OMI_LAT.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_coloc_OMI_LAT.f90
+
+read_coloc_OMI_LON.o: $(LIB_PATH)read_coloc_OMI_LON.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_coloc_OMI_LON.f90
+#
+#read_comp_OMI_LATCRNR.o: $(LIB_PATH)read_comp_OMI_LATCRNR.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_LATCRNR.f90
+#
+#read_comp_OMI_LONCRNR.o: $(LIB_PATH)read_comp_OMI_LONCRNR.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_LONCRNR.f90
+#
+read_coloc_OMI_SZA.o: $(LIB_PATH)read_coloc_OMI_SZA.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_coloc_OMI_SZA.f90
+#
+#read_comp_OMI_VZA.o: $(LIB_PATH)read_comp_OMI_VZA.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_VZA.f90
+#
+#read_comp_OMI_AZM.o: $(LIB_PATH)read_comp_OMI_AZM.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_OMI_AZM.f90
+#
+read_coloc_TROP_AI.o: $(LIB_PATH)read_coloc_TROP_AI.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_coloc_TROP_AI.f90
+
+#read_comp_TROP_SSA0.o: $(LIB_PATH)read_comp_TROP_SSA0.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_TROP_SSA0.f90
+#
+#read_comp_TROP_SSA1.o: $(LIB_PATH)read_comp_TROP_SSA1.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_TROP_SSA1.f90
+#
+#read_comp_TROP_SSA2.o: $(LIB_PATH)read_comp_TROP_SSA2.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_comp_TROP_SSA2.f90
+
+#
+#read_h5_XTRACK.o: $(LIB_PATH)read_h5_XTRACK.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_XTRACK.f90
+
+write_output_file.o: write_output_file.f90
+	$(COMP) $(FFLAGS) -c write_output_file.f90
+
+write_day_values.o: write_day_values.f90
+	$(COMP) $(FFLAGS) -c write_day_values.f90
+
+write_grid_areas.o: write_grid_areas.f90
+	$(COMP) $(FFLAGS) -c write_grid_areas.f90
+
+write_lat_values.o: write_lat_values.f90
+	$(COMP) $(FFLAGS) -c write_lat_values.f90
+
+write_lon_values.o: write_lon_values.f90
+	$(COMP) $(FFLAGS) -c write_lon_values.f90
+
+write_grid_OMI_AI_raw.o: write_grid_OMI_AI_raw.f90
+	$(COMP) $(FFLAGS) -c write_grid_OMI_AI_raw.f90
+
+write_grid_MODIS_CH7.o: write_grid_MODIS_CH7.f90
+	$(COMP) $(FFLAGS) -c write_grid_MODIS_CH7.f90
+
+write_grid_MODIS_CLD.o: write_grid_MODIS_CLD.f90
+	$(COMP) $(FFLAGS) -c write_grid_MODIS_CLD.f90
+
+write_grid_NSIDC_ICE.o: write_grid_NSIDC_ICE.f90
+	$(COMP) $(FFLAGS) -c write_grid_NSIDC_ICE.f90
+
+write_grid_TROP_AI.o: write_grid_TROP_AI.f90
+	$(COMP) $(FFLAGS) -c write_grid_TROP_AI.f90
+
+#print_climo.o: $(FORT_LIB_PATH)print_climo.f90
+#	$(COMP) $(FFLAGS) -c $(FORT_LIB_PATH)print_climo.f90
+
+type_analysis.o: type_analysis.f90 $(LIB_PATH)comp_grid_vars.f90 $(FORT_LIB_PATH)omi_fort_lib.f90 type_vars.f90
+	$(COMP) $(FFLAGS) -c type_analysis.f90
+
+clean:
+	rm $(EXEC) $(OBJECTS) *.mod

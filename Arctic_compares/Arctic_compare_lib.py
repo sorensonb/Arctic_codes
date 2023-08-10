@@ -1124,7 +1124,7 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(date_str, ch1, \
 
 def plot_spatial(ax, lon, lat, data, date_str, cmap = 'Greys_r', \
         plabel = '', colorbar = True, zoom = False, vmin = None, \
-        vmax = None):
+        vmax = None, minlat = 65):
   
     if(vmin is not None):
         data = np.ma.masked_where(data < xmin, data) 
@@ -1150,7 +1150,7 @@ def plot_spatial(ax, lon, lat, data, date_str, cmap = 'Greys_r', \
                        aerosol_event_dict[date_str]['Lat'][1]],\
                        datacrs)
     else:
-        ax.set_extent([-180, 180, 60, 90], datacrs)
+        ax.set_extent([-180, 180, minlat, 90], datacrs)
 
 def plot_compare_colocate_spatial(coloc_data, minlat = 65., zoom = False, \
         save = False):
@@ -1203,7 +1203,7 @@ def plot_compare_colocate_spatial(coloc_data, minlat = 65., zoom = False, \
 
     # Plot the OMI coloc_data
     # -----------------
-    plot_spatial(ax4, coloc_data['LON'], coloc_data['LAT'], coloc_data['OMI'], \
+    plot_spatial(ax4, coloc_data['LON'], coloc_data['LAT'], coloc_data['OMI_RAW'], \
         pdate, cmap = 'jet', zoom = zoom)
     ##!#ax4.pcolormesh(coloc_data['LON'], coloc_data['LAT'], coloc_data['OMI'], \
     ##!#    transform = datacrs, shading = 'auto', cmap = 'jet')
@@ -4110,6 +4110,275 @@ def plot_compare_slopes_scatter(out_dict, combined_data, comp_grid_data, \
 
     return return_dict
 
+def calc_pcnt_aerosol_over_type(date_list, min_AI): 
 
+    count_data  = np.full(len(date_list), np.nan)
+    total_count = np.full(len(date_list), np.nan)
+    total2_count = np.full(len(date_list), np.nan)
+    pcnt_ice    = np.full(len(date_list), np.nan)
+    pcnt_mix    = np.full(len(date_list), np.nan)
+    pcnt_ocn    = np.full(len(date_list), np.nan)
+    pcnt_lnd    = np.full(len(date_list), np.nan)
+    pcnt_ice_cld    = np.full(len(date_list), np.nan)
+    pcnt_mix_cld    = np.full(len(date_list), np.nan)
+    pcnt_ocn_cld    = np.full(len(date_list), np.nan)
+    pcnt_lnd_cld    = np.full(len(date_list), np.nan)
+    pcnt_ice_clr    = np.full(len(date_list), np.nan)
+    pcnt_mix_clr    = np.full(len(date_list), np.nan)
+    pcnt_ocn_clr    = np.full(len(date_list), np.nan)
+    pcnt_lnd_clr    = np.full(len(date_list), np.nan)
+    
+    for ii, date in enumerate(date_list):
+        coloc_data = read_colocated(date)
+    
+        # Test finding the indices with high aerosol
+        # ------------------------------------------
+        
+        mask_data = np.ma.masked_where(coloc_data['OMI_RAW'] < min_AI, coloc_data['OMI_RAW'])
+        
+        mask_ice = np.ma.masked_where((coloc_data['NSIDC_ICE'].mask == True), \
+            mask_data)
+        mask_io_mix = np.ma.masked_where((coloc_data['NSIDC_IO_MIX'].mask == True), \
+            mask_data)
+        mask_ocean = np.ma.masked_where((coloc_data['NSIDC_OCEAN'].mask == True), \
+            mask_data)
+        mask_land = np.ma.masked_where((coloc_data['NSIDC_LAND'].mask == True), \
+            mask_data)
+       
+        mask_ice_clr = np.ma.masked_where(coloc_data['MODIS_CLD'] <= 2, mask_ice)
+        mask_ice_cld = np.ma.masked_where(coloc_data['MODIS_CLD'] > 2, mask_ice)
+         
+        mask_mix_clr = np.ma.masked_where(coloc_data['MODIS_CLD'] <= 2, mask_io_mix)
+        mask_mix_cld = np.ma.masked_where(coloc_data['MODIS_CLD'] > 2, mask_io_mix)
+         
+        mask_ocn_clr = np.ma.masked_where(coloc_data['MODIS_CLD'] <= 2, mask_ocean)
+        mask_ocn_cld = np.ma.masked_where(coloc_data['MODIS_CLD'] > 2, mask_ocean)
+         
+        mask_lnd_clr = np.ma.masked_where(coloc_data['MODIS_CLD'] <= 2, mask_land)
+        mask_lnd_cld = np.ma.masked_where(coloc_data['MODIS_CLD'] > 2, mask_land)
+     
+        count_data_val = mask_data.compressed().size
+        count_ice      = mask_ice.compressed().size
+        count_mix      = mask_io_mix.compressed().size
+        count_ocean    = mask_ocean.compressed().size
+        count_land     = mask_land.compressed().size
 
+        count_cld_ice      = mask_ice_cld.compressed().size
+        count_cld_mix      = mask_mix_cld.compressed().size
+        count_cld_ocn      = mask_ocn_cld.compressed().size
+        count_cld_lnd      = mask_lnd_cld.compressed().size
 
+        count_clr_ice      = mask_ice_clr.compressed().size
+        count_clr_mix      = mask_mix_clr.compressed().size
+        count_clr_ocn      = mask_ocn_clr.compressed().size
+        count_clr_lnd      = mask_lnd_clr.compressed().size
+
+        totals         = count_ice + count_mix + count_ocean + count_land
+        total2         = count_cld_ice + count_clr_ice + \
+                         count_cld_mix + count_clr_mix + \
+                         count_cld_ocn + count_clr_ocn + \
+                         count_cld_lnd + count_clr_lnd
+    
+        pcnt_ice_val = np.round((count_ice / count_data_val) * 100., 3)
+        pcnt_mix_val = np.round((count_mix / count_data_val) * 100., 3)
+        pcnt_ocn_val = np.round((count_ocean / count_data_val) * 100., 3)
+        pcnt_lnd_val = np.round((count_land / count_data_val) * 100., 3)
+    
+        count_data[ii]  = count_data_val
+        pcnt_ice[ii]    = pcnt_ice_val 
+        pcnt_mix[ii]    = pcnt_mix_val 
+        pcnt_ocn[ii]    = pcnt_ocn_val 
+        pcnt_lnd[ii]    = pcnt_lnd_val 
+        total_count[ii] = totals
+        total2_count[ii] = total2
+
+    print('    date      cnt    ice   mix    ocn    lnd     tot')
+    for ii, date in enumerate(date_list):
+        print("%s %5d %6.3f %6.3f %6.3f %6.3f %5d %5d" % \
+            (date, count_data[ii], pcnt_ice[ii], pcnt_mix[ii], pcnt_ocn[ii], \
+            pcnt_lnd[ii], total_count[ii], total2_count[ii]))
+
+    fig = plt.figure(figsize = (10, 4))
+    ax = fig.add_subplot(1,1,1)
+    xvals = np.arange(len(date_list))
+    
+    ax.bar(xvals, pcnt_ice, label = 'Ice')
+    ax.bar(xvals, pcnt_mix, bottom = pcnt_ice, label = 'Mix')
+    ax.bar(xvals, pcnt_ocn, bottom = pcnt_ice + pcnt_mix, label = 'Ocean')
+    ax.bar(xvals, pcnt_lnd, bottom = pcnt_ice + pcnt_mix + pcnt_ocn, label = 'Land')
+    ax.legend()
+
+    fig.tight_layout()
+
+    plt.show() 
+
+def plot_aerosol_over_types(coloc_data, min_AI = 1.0, minlat = 70, \
+        ai_val = 'OMI_RAW', save = False):
+
+    if(isinstance(coloc_data, str)):
+        dt_date_str = datetime.strptime(coloc_data, '%Y%m%d%H%M')
+        coloc_data = read_colocated(coloc_data)
+    else:
+        dt_date_str = datetime.strptime(coloc_data['date_str'], '%Y%m%d%H%M')
+
+    mask_data = np.ma.masked_where(coloc_data[ai_val] < min_AI, \
+        coloc_data[ai_val])
+    
+    mask_ice = np.ma.masked_where((coloc_data['NSIDC_ICE'].mask == True), \
+        mask_data)
+    mask_mix = np.ma.masked_where((coloc_data['NSIDC_IO_MIX'].mask == True), \
+        mask_data)
+    mask_ocn = np.ma.masked_where((coloc_data['NSIDC_OCEAN'].mask == True), \
+        mask_data)
+    mask_lnd = np.ma.masked_where((coloc_data['NSIDC_LAND'].mask == True), \
+        mask_data)
+
+    mask_data_clear = np.ma.masked_where(coloc_data['MODIS_CLD'] <= 2, mask_data)
+    mask_data_cloud = np.ma.masked_where(coloc_data['MODIS_CLD'] > 2, mask_data)
+
+    mask_ice_clear = np.ma.masked_where(coloc_data['MODIS_CLD'] <= 2, mask_ice)
+    mask_ice_cloud = np.ma.masked_where(coloc_data['MODIS_CLD'] > 2, mask_ice)
+     
+    mask_mix_clear = np.ma.masked_where(coloc_data['MODIS_CLD'] <= 2, mask_mix)
+    mask_mix_cloud = np.ma.masked_where(coloc_data['MODIS_CLD'] > 2, mask_mix)
+     
+    mask_ocn_clear = np.ma.masked_where(coloc_data['MODIS_CLD'] <= 2, mask_ocn)
+    mask_ocn_cloud = np.ma.masked_where(coloc_data['MODIS_CLD'] > 2, mask_ocn)
+     
+    mask_lnd_clear = np.ma.masked_where(coloc_data['MODIS_CLD'] <= 2, mask_lnd)
+    mask_lnd_cloud = np.ma.masked_where(coloc_data['MODIS_CLD'] > 2, mask_lnd)
+
+    fig = plt.figure(figsize = (9, 12))
+    ax1  = fig.add_subplot(5,3,1 , projection = mapcrs)
+    ax2  = fig.add_subplot(5,3,2 , projection = mapcrs)
+    ax3  = fig.add_subplot(5,3,3 , projection = mapcrs)
+    ax4  = fig.add_subplot(5,3,4 , projection = mapcrs)
+    ax5  = fig.add_subplot(5,3,5 , projection = mapcrs)
+    ax6  = fig.add_subplot(5,3,6 , projection = mapcrs)
+    ax7  = fig.add_subplot(5,3,7 , projection = mapcrs)
+    ax8  = fig.add_subplot(5,3,8 , projection = mapcrs)
+    ax9  = fig.add_subplot(5,3,9 , projection = mapcrs)
+    ax10 = fig.add_subplot(5,3,10, projection = mapcrs)
+    ax11 = fig.add_subplot(5,3,11, projection = mapcrs)
+    ax12 = fig.add_subplot(5,3,12, projection = mapcrs)
+    ax13 = fig.add_subplot(5,3,13, projection = mapcrs)
+    ax14 = fig.add_subplot(5,3,14, projection = mapcrs)
+    ax15 = fig.add_subplot(5,3,15, projection = mapcrs)
+
+    plt.suptitle(dt_date_str.strftime('%Y%m%d%H%M'))
+
+    ax1.pcolormesh(coloc_data['LON'], coloc_data['LAT'], mask_data, \
+        transform = datacrs, shading = 'auto', cmap = 'jet')
+    ax2.pcolormesh(coloc_data['LON'], coloc_data['LAT'], mask_data_clear, \
+        transform = datacrs, shading = 'auto', cmap = 'jet')
+    ax3.pcolormesh(coloc_data['LON'], coloc_data['LAT'], mask_data_cloud, \
+        transform = datacrs, shading = 'auto', cmap = 'jet')
+
+    ax4.pcolormesh(coloc_data['LON'], coloc_data['LAT'], mask_ice, \
+        transform = datacrs, shading = 'auto', cmap = 'jet')
+    ax5.pcolormesh(coloc_data['LON'], coloc_data['LAT'], mask_ice_clear, \
+        transform = datacrs, shading = 'auto', cmap = 'jet')
+    ax6.pcolormesh(coloc_data['LON'], coloc_data['LAT'], mask_ice_cloud, \
+        transform = datacrs, shading = 'auto', cmap = 'jet')
+
+    ax7.pcolormesh(coloc_data['LON'], coloc_data['LAT'], mask_mix, \
+        transform = datacrs, shading = 'auto', cmap = 'jet')
+    ax8.pcolormesh(coloc_data['LON'], coloc_data['LAT'], mask_mix_clear, \
+        transform = datacrs, shading = 'auto', cmap = 'jet')
+    ax9.pcolormesh(coloc_data['LON'], coloc_data['LAT'], mask_mix_cloud, \
+        transform = datacrs, shading = 'auto', cmap = 'jet')
+
+    ax10.pcolormesh(coloc_data['LON'], coloc_data['LAT'], mask_ocn, \
+        transform = datacrs, shading = 'auto', cmap = 'jet')
+    ax11.pcolormesh(coloc_data['LON'], coloc_data['LAT'], mask_ocn_clear, \
+        transform = datacrs, shading = 'auto', cmap = 'jet')
+    ax12.pcolormesh(coloc_data['LON'], coloc_data['LAT'], mask_ocn_cloud, \
+        transform = datacrs, shading = 'auto', cmap = 'jet')
+
+    ax13.pcolormesh(coloc_data['LON'], coloc_data['LAT'], mask_lnd, \
+        transform = datacrs, shading = 'auto', cmap = 'jet')
+    ax14.pcolormesh(coloc_data['LON'], coloc_data['LAT'], mask_lnd_clear, \
+        transform = datacrs, shading = 'auto', cmap = 'jet')
+    ax15.pcolormesh(coloc_data['LON'], coloc_data['LAT'], mask_lnd_cloud, \
+        transform = datacrs, shading = 'auto', cmap = 'jet')
+
+    ax1.set_title('Total AI')
+    ax2.set_title('Total Clear AI')
+    ax3.set_title('Total Cloud AI')
+
+    ax4.set_title('Ice AI')
+    ax5.set_title('Ice Clear AI')
+    ax6.set_title('Ice Cloud AI')
+
+    ax7.set_title('Mix AI')
+    ax8.set_title('Mix Clear AI')
+    ax9.set_title('Mix Cloud AI')
+
+    ax10.set_title('Ocean AI')
+    ax11.set_title('Ocean Clear AI')
+    ax12.set_title('Ocean Cloud AI')
+
+    ax13.set_title('Land AI')
+    ax14.set_title('Land Clear AI')
+    ax15.set_title('Land Cloud AI')
+
+    ax1.coastlines()
+    ax2.coastlines()
+    ax3.coastlines()
+    ax4.coastlines()
+    ax5.coastlines()
+    ax6.coastlines()
+    ax7.coastlines()
+    ax8.coastlines()
+    ax9.coastlines()
+    ax10.coastlines()
+    ax11.coastlines()
+    ax12.coastlines()
+    ax13.coastlines()
+    ax14.coastlines()
+    ax15.coastlines()
+
+    ax1.set_extent( [-180, 180, minlat, 90], datacrs)
+    ax2.set_extent( [-180, 180, minlat, 90], datacrs)
+    ax3.set_extent( [-180, 180, minlat, 90], datacrs)
+    ax4.set_extent( [-180, 180, minlat, 90], datacrs)
+    ax5.set_extent( [-180, 180, minlat, 90], datacrs)
+    ax6.set_extent( [-180, 180, minlat, 90], datacrs)
+    ax7.set_extent( [-180, 180, minlat, 90], datacrs)
+    ax8.set_extent( [-180, 180, minlat, 90], datacrs)
+    ax9.set_extent( [-180, 180, minlat, 90], datacrs)
+    ax10.set_extent([-180, 180, minlat, 90], datacrs)
+    ax11.set_extent([-180, 180, minlat, 90], datacrs)
+    ax12.set_extent([-180, 180, minlat, 90], datacrs)
+    ax13.set_extent([-180, 180, minlat, 90], datacrs)
+    ax14.set_extent([-180, 180, minlat, 90], datacrs)
+    ax15.set_extent([-180, 180, minlat, 90], datacrs)
+
+    fig.tight_layout()
+
+    date_str = dt_date_str.strftime('%Y%m%d%H%M')
+
+    fig2 = plt.figure()
+    ax21 = fig2.add_subplot(2,2,1, projection = mapcrs)
+    ax22 = fig2.add_subplot(2,2,2, projection = mapcrs)
+    ax23 = fig2.add_subplot(2,2,3, projection = mapcrs)
+    ax24 = fig2.add_subplot(2,2,4, projection = mapcrs)
+
+    plot_spatial(ax21, coloc_data['LON'], coloc_data['LAT'], coloc_data[ai_val], \
+        date_str, cmap = 'jet', zoom = False, minlat = minlat)
+    plot_spatial(ax22, coloc_data['LON'], coloc_data['LAT'], coloc_data['MODIS_CH1'], \
+        date_str, cmap = 'Greys_r', zoom = False, minlat = minlat)
+    plot_spatial(ax23, coloc_data['LON'], coloc_data['LAT'], coloc_data['MODIS_CLD'], \
+        date_str, cmap = 'jet', zoom = False, minlat = minlat)
+    plot_spatial(ax24, coloc_data['LON'], coloc_data['LAT'], coloc_data['MODIS_CH7'], \
+        date_str, cmap = 'Greys_r', zoom = False, minlat = minlat)
+
+    fig2.tight_layout()
+
+    plt.show()
+
+#def calc_pcnt_aerosol_mid_swath(date_list, min_AI):
+#    
+#    for ii, date in enumerate(date_list):
+#        coloc_data = read_colocated(date)
+#

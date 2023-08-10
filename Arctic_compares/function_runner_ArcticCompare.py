@@ -8,6 +8,71 @@
 import Arctic_compare_lib
 from Arctic_compare_lib import *
 
+testfile = 'grid_coloc_test_res050.hdf5'
+#testfile = 'grid_coloc_test_res100.hdf5'
+
+data = h5py.File(testfile)
+
+mask_ai  = np.ma.masked_where(data['omi_ai_raw'][:,:,:] == -999., data['omi_ai_raw'][:,:,:])
+mask_ai_count  = data['omi_ai_raw_count'][:,:,:]
+mask_trop  = np.ma.masked_where(abs(data['trop_ai'][:,:,:]) > 10, data['trop_ai'][:,:,:])
+mask_ch7 = np.ma.masked_where(data['modis_ch7'][:,:,:] < 0., data['modis_ch7'][:,:,:])
+mask_cld = np.ma.masked_where(data['modis_cld'][:,:,:] < 0., data['modis_cld'][:,:,:])
+mask_ice = np.ma.masked_where((data['nsidc_ice'][:,:,:] < 1.) | \
+                              (data['nsidc_ice'][:,:,:] > 100.), data['nsidc_ice'][:,:,:])
+mask_lnd = np.ma.masked_where( (data['nsidc_ice'][:,:,:] != 254.),  data['nsidc_ice'][:,:,:])
+
+mask_ai = np.ma.masked_invalid(mask_ai)
+
+
+
+for idx in range(mask_ai.shape[2]):
+
+    fig = plt.figure(figsize = (9,7))
+    ax1 = fig.add_subplot(2,3,1, projection = mapcrs)
+    ax2 = fig.add_subplot(2,3,2, projection = mapcrs)
+    ax3 = fig.add_subplot(2,3,3, projection = mapcrs)
+    ax4 = fig.add_subplot(2,3,4, projection = mapcrs)
+    ax5 = fig.add_subplot(2,3,5, projection = mapcrs)
+    ax6 = fig.add_subplot(2,3,6, projection = mapcrs)
+    
+    ax1.pcolormesh(data['longitude'][:], data['latitude'][:], mask_ai[:,:,idx].T, \
+        transform = datacrs, shading = 'auto', cmap = 'jet')
+    ax2.pcolormesh(data['longitude'][:], data['latitude'][:], mask_ch7[:,:,idx].T, \
+        transform = datacrs, shading = 'auto', cmap = 'Greys_r', vmin = 0, vmax = 0.3)
+    ax3.pcolormesh(data['longitude'][:], data['latitude'][:], mask_ice[:,:,idx].T, \
+        transform = datacrs, shading = 'auto', cmap = 'ocean')
+    ax4.pcolormesh(data['longitude'][:], data['latitude'][:], mask_lnd[:,:,idx].T, \
+        transform = datacrs, shading = 'auto', cmap = 'ocean')
+    ax5.pcolormesh(data['longitude'][:], data['latitude'][:], mask_trop[:,:,idx].T, \
+        transform = datacrs, shading = 'auto', cmap = 'jet')
+    ax6.pcolormesh(data['longitude'][:], data['latitude'][:], mask_cld[:,:,idx].T, \
+        transform = datacrs, shading = 'auto', cmap = 'jet')
+    
+    ax1.coastlines()
+    ax2.coastlines()
+    ax3.coastlines()
+    ax4.coastlines()
+    ax5.coastlines()
+    ax6.coastlines()
+    
+    ax1.set_extent([-180, 180, 70, 90], datacrs)
+    ax2.set_extent([-180, 180, 70, 90], datacrs)
+    ax3.set_extent([-180, 180, 70, 90], datacrs)
+    ax4.set_extent([-180, 180, 70, 90], datacrs)
+    ax5.set_extent([-180, 180, 70, 90], datacrs)
+    ax6.set_extent([-180, 180, 70, 90], datacrs)
+    
+    plt.suptitle(str(data['dates'][idx]))
+    
+    fig.tight_layout()
+    plt.show()
+
+data.close()
+    
+sys.exit()
+
+
 #filename = 'comp_grid_climo_v1.hdf5'
 #filename = 'comp_grid_climo_v2.hdf5'
 #filename = 'comp_grid_climo_v3.hdf5'
@@ -388,42 +453,11 @@ dates = [
 #         '202108012242',
 #        ]
 
-thresh_ai = 2.0
-for date in dates:
-    coloc_data = read_colocated(date)
-
-    # Test finding the indices with high aerosol
-    # ------------------------------------------
-    
-    mask_data = np.ma.masked_where(coloc_data['OMI_RAW'] < thresh_ai, coloc_data['OMI_RAW'])
-    
-    mask_ice = np.ma.masked_where((coloc_data['NSIDC_ICE'].mask == True), \
-        mask_data)
-    mask_io_mix = np.ma.masked_where((coloc_data['NSIDC_IO_MIX'].mask == True), \
-        mask_data)
-    mask_ocean = np.ma.masked_where((coloc_data['NSIDC_OCEAN'].mask == True), \
-        mask_data)
-    mask_land = np.ma.masked_where((coloc_data['NSIDC_LAND'].mask == True), \
-        mask_data)
-   
-    mask_ice_cloud = np.ma.masked_where(coloc_data['MODIS_CLD'] > 0, mask_ice)
-    mask_ice_clear = np.ma.masked_where(coloc_data['MODIS_CLD'] != 0, mask_ice)
- 
-    count_data = mask_data.compressed().size
-    count_ice  = mask_ice.compressed().size
-    count_mix  = mask_io_mix.compressed().size
-    count_ocean  = mask_ocean.compressed().size
-    count_land  = mask_land.compressed().size
-    totals = count_ice + count_mix + count_ocean + count_land
-  
-    pcnt_ice = np.round((count_ice / count_data) * 100., 3)
-    pcnt_mix = np.round((count_mix / count_data) * 100., 3)
-    pcnt_ocn = np.round((count_ocean / count_data) * 100., 3)
-    pcnt_lnd = np.round((count_land / count_data) * 100., 3)
- 
-    print(date, count_data, pcnt_ice, pcnt_mix, pcnt_ocn, pcnt_lnd, totals)
- 
+#plot_aerosol_over_types(dates[102], min_AI = 2.0, ai_val = 'TROP_AI', save = False)
+#plot_aerosol_over_types(dates[125], min_AI = 2.0, ai_val = 'TROP_AI', save = False)
+calc_pcnt_aerosol_over_type(dates, 1.5)
 sys.exit()
+
 files = [data_path + date + '.hdf5' for date in dates]
 
 # Figure out the total size to insert the data

@@ -88,6 +88,8 @@ module omi_fort_lib
     
       endif
 
+    end function
+
     ! -------------------------------------------------------------
     ! This function returns the surface area of a lat x lon box in
     ! square kilometers.

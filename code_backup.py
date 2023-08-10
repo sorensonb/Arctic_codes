@@ -235,6 +235,15 @@ os.system(cmnd)
 cmnd = "scp "+rain_dir+"comp_grid_climo/Make* "+final_dir
 print(cmnd)
 os.system(cmnd)
+
+# type_analysis stuff
+final_dir = dest_dir + 'Arctic_compares/processing/type_analysis/'
+cmnd = "scp "+rain_dir+"type_analysis/*.f90 "+final_dir
+print(cmnd)
+os.system(cmnd)
+cmnd = "scp "+rain_dir+"type_analysis/Make* "+final_dir
+print(cmnd)
+os.system(cmnd)
 #cmnd = "scp "+rain_dir+"arctic_comp/auto_process.sh "+final_dir
 #print(cmnd)
 #os.system(cmnd)
@@ -454,7 +463,7 @@ os.system(cmnd)
 # Automate the uploading to Github
 # --------------------------------
 
-## Change to Arctic codes directory
+# Change to Arctic codes directory
 #os.chdir(dest_dir)
 ##os.chdir('home_dir + /Arctic_codes/')
 #
