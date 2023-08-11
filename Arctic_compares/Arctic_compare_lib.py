@@ -791,6 +791,12 @@ def read_colocated(date_str, minlat = 70., zoom = True, \
         data['nsidc_ice'])
     coloc_data['NSIDC_LAND'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
         coloc_data['NSIDC_LAND'])
+    coloc_data['NSIDC_OTHER'] = np.ma.masked_where((\
+        data['nsidc_ice'][:,:] == -999.) |  (data['nsidc_ice'][:,:] < 251.) | \
+        (data['nsidc_ice'][:,:] > 253.), \
+        data['nsidc_ice'])
+    coloc_data['NSIDC_OTHER'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
+        coloc_data['NSIDC_OTHER'])
     coloc_data['CERES_SWF'] = np.ma.masked_where((\
         data['ceres_swf'][:,:] == -999.) | (data['ceres_swf'][:,:] > 5000.), \
         data['ceres_swf'])
@@ -4110,7 +4116,7 @@ def plot_compare_slopes_scatter(out_dict, combined_data, comp_grid_data, \
 
     return return_dict
 
-def calc_pcnt_aerosol_over_type(date_list, min_AI): 
+def calc_pcnt_aerosol_over_type(date_list, min_AI, ax = None): 
 
     count_data  = np.full(len(date_list), np.nan)
     total_count = np.full(len(date_list), np.nan)
@@ -4119,14 +4125,17 @@ def calc_pcnt_aerosol_over_type(date_list, min_AI):
     pcnt_mix    = np.full(len(date_list), np.nan)
     pcnt_ocn    = np.full(len(date_list), np.nan)
     pcnt_lnd    = np.full(len(date_list), np.nan)
+    pcnt_oth    = np.full(len(date_list), np.nan)
     pcnt_ice_cld    = np.full(len(date_list), np.nan)
     pcnt_mix_cld    = np.full(len(date_list), np.nan)
     pcnt_ocn_cld    = np.full(len(date_list), np.nan)
     pcnt_lnd_cld    = np.full(len(date_list), np.nan)
+    pcnt_oth_cld    = np.full(len(date_list), np.nan)
     pcnt_ice_clr    = np.full(len(date_list), np.nan)
     pcnt_mix_clr    = np.full(len(date_list), np.nan)
     pcnt_ocn_clr    = np.full(len(date_list), np.nan)
     pcnt_lnd_clr    = np.full(len(date_list), np.nan)
+    pcnt_oth_clr    = np.full(len(date_list), np.nan)
     
     for ii, date in enumerate(date_list):
         coloc_data = read_colocated(date)
@@ -4144,6 +4153,8 @@ def calc_pcnt_aerosol_over_type(date_list, min_AI):
             mask_data)
         mask_land = np.ma.masked_where((coloc_data['NSIDC_LAND'].mask == True), \
             mask_data)
+        mask_othr = np.ma.masked_where((coloc_data['NSIDC_OTHER'].mask == True), \
+            mask_data)
        
         mask_ice_clr = np.ma.masked_where(coloc_data['MODIS_CLD'] <= 2, mask_ice)
         mask_ice_cld = np.ma.masked_where(coloc_data['MODIS_CLD'] > 2, mask_ice)
@@ -4157,60 +4168,329 @@ def calc_pcnt_aerosol_over_type(date_list, min_AI):
         mask_lnd_clr = np.ma.masked_where(coloc_data['MODIS_CLD'] <= 2, mask_land)
         mask_lnd_cld = np.ma.masked_where(coloc_data['MODIS_CLD'] > 2, mask_land)
      
+        mask_oth_clr = np.ma.masked_where(coloc_data['MODIS_CLD'] <= 2, mask_othr)
+        mask_oth_cld = np.ma.masked_where(coloc_data['MODIS_CLD'] > 2, mask_othr)
+     
         count_data_val = mask_data.compressed().size
         count_ice      = mask_ice.compressed().size
         count_mix      = mask_io_mix.compressed().size
         count_ocean    = mask_ocean.compressed().size
         count_land     = mask_land.compressed().size
+        count_othr     = mask_othr.compressed().size
 
         count_cld_ice      = mask_ice_cld.compressed().size
         count_cld_mix      = mask_mix_cld.compressed().size
         count_cld_ocn      = mask_ocn_cld.compressed().size
         count_cld_lnd      = mask_lnd_cld.compressed().size
+        count_cld_oth      = mask_oth_cld.compressed().size
 
         count_clr_ice      = mask_ice_clr.compressed().size
         count_clr_mix      = mask_mix_clr.compressed().size
         count_clr_ocn      = mask_ocn_clr.compressed().size
         count_clr_lnd      = mask_lnd_clr.compressed().size
+        count_clr_oth      = mask_oth_clr.compressed().size
 
-        totals         = count_ice + count_mix + count_ocean + count_land
+        totals         = count_ice + count_mix + count_ocean + count_land + \
+            count_othr
         total2         = count_cld_ice + count_clr_ice + \
                          count_cld_mix + count_clr_mix + \
                          count_cld_ocn + count_clr_ocn + \
-                         count_cld_lnd + count_clr_lnd
+                         count_cld_lnd + count_clr_lnd + \
+                         count_cld_oth + count_clr_oth
     
         pcnt_ice_val = np.round((count_ice / count_data_val) * 100., 3)
         pcnt_mix_val = np.round((count_mix / count_data_val) * 100., 3)
         pcnt_ocn_val = np.round((count_ocean / count_data_val) * 100., 3)
         pcnt_lnd_val = np.round((count_land / count_data_val) * 100., 3)
+        pcnt_oth_val = np.round((count_othr / count_data_val) * 100., 3)
     
         count_data[ii]  = count_data_val
         pcnt_ice[ii]    = pcnt_ice_val 
         pcnt_mix[ii]    = pcnt_mix_val 
         pcnt_ocn[ii]    = pcnt_ocn_val 
         pcnt_lnd[ii]    = pcnt_lnd_val 
+        pcnt_oth[ii]    = pcnt_oth_val 
         total_count[ii] = totals
         total2_count[ii] = total2
 
-    print('    date      cnt    ice   mix    ocn    lnd     tot')
+    print('    date      cnt    ice   mix    ocn    lnd    oth     tot')
     for ii, date in enumerate(date_list):
-        print("%s %5d %6.3f %6.3f %6.3f %6.3f %5d %5d" % \
+        print("%s %5d %6.3f %6.3f %6.3f %6.3f %6.3f %5d %5d" % \
             (date, count_data[ii], pcnt_ice[ii], pcnt_mix[ii], pcnt_ocn[ii], \
-            pcnt_lnd[ii], total_count[ii], total2_count[ii]))
+            pcnt_lnd[ii], pcnt_oth[ii], total_count[ii], total2_count[ii]))
 
-    fig = plt.figure(figsize = (10, 4))
-    ax = fig.add_subplot(1,1,1)
+    in_ax = True 
+    if(ax is None): 
+        plt.close('all')
+        in_ax = False
+        fig = plt.figure(figsize = (10, 4))
+        ax = fig.add_subplot(1,1,1)
+
     xvals = np.arange(len(date_list))
     
     ax.bar(xvals, pcnt_ice, label = 'Ice')
     ax.bar(xvals, pcnt_mix, bottom = pcnt_ice, label = 'Mix')
     ax.bar(xvals, pcnt_ocn, bottom = pcnt_ice + pcnt_mix, label = 'Ocean')
     ax.bar(xvals, pcnt_lnd, bottom = pcnt_ice + pcnt_mix + pcnt_ocn, label = 'Land')
+    ax.bar(xvals, pcnt_oth, bottom = pcnt_ice + pcnt_mix + pcnt_ocn + pcnt_lnd, label = 'Other')
     ax.legend()
 
-    fig.tight_layout()
 
-    plt.show() 
+    if(not in_ax):
+        fig.tight_layout()
+        plt.show() 
+
+def calc_pcnt_aerosol_over_type_dayavgs(day_data, min_AI, ax = None, \
+        area_calc = False, hatch_cloud = False): 
+
+    count_data   = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
+    total_count  = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
+    total2_count = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
+    pcnt_ice     = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
+    pcnt_mix     = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
+    pcnt_ocn     = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
+    pcnt_lnd     = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
+    pcnt_oth     = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
+    pcnt_ice_cld = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
+    pcnt_mix_cld = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
+    pcnt_ocn_cld = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
+    pcnt_lnd_cld = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
+    pcnt_oth_cld = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
+    pcnt_ice_clr = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
+    pcnt_mix_clr = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
+    pcnt_ocn_clr = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
+    pcnt_lnd_clr = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
+    pcnt_oth_clr = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
+    
+    for ii in range(day_data['omi_ai_raw'].shape[2]):
+    
+        # Test finding the indices with high aerosol
+        # ------------------------------------------
+        mask_data = np.ma.masked_where(day_data['omi_ai_raw'][:,:,ii] < min_AI, \
+            day_data['omi_ai_raw'][:,:,ii])
+      
+     
+
+        mask_ice = np.ma.masked_where((\
+            #data['nsidc_ice'][:,:] == -999.) | (data['nsidc_ice'][:,:] > 100.), \
+            day_data['nsidc_ice'][:,:,ii] == -999.) | \
+            (day_data['nsidc_ice'][:,:,ii] > 100.) | \
+            (day_data['nsidc_ice'][:,:,ii] < 80.), \
+            mask_data)
+        #coloc_data['NSIDC_ICE'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
+        #    coloc_data['NSIDC_ICE'])
+        mask_io_mix = np.ma.masked_where((\
+            #data['nsidc_ice'][:,:] == -999.) | (data['nsidc_ice'][:,:] > 100.), \
+            day_data['nsidc_ice'][:,:,ii] == -999.) | \
+            (day_data['nsidc_ice'][:,:,ii] >= 80.) | \
+            (day_data['nsidc_ice'][:,:,ii] <= 0.), \
+            mask_data)
+        #coloc_data['NSIDC_IOMIX'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
+        #    coloc_data['NSIDC_IO_MIX'])
+        mask_ocean = np.ma.masked_where((\
+            day_data['nsidc_ice'][:,:,ii] == -999.) | \
+            (day_data['nsidc_ice'][:,:,ii] > 0.), \
+            mask_data)
+        #coloc_data['NSIDC_OCEAN'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
+        #    coloc_data['NSIDC_OCEAN'])
+        mask_land = np.ma.masked_where((\
+            day_data['nsidc_ice'][:,:,ii] == -999.) | \
+            (day_data['nsidc_ice'][:,:,ii] != 254.), \
+            mask_data)
+        mask_othr = np.ma.masked_where((\
+            day_data['nsidc_ice'][:,:,ii] == -999.) | \
+            (day_data['nsidc_ice'][:,:,ii] < 251) | \
+            (day_data['nsidc_ice'][:,:,ii] > 253), \
+            mask_data) 
+        #coloc_data['NSIDC_LAND'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
+        #    coloc_data['NSIDC_LAND'])
+
+        mask_ice_clr = np.ma.masked_where(day_data['modis_cld'][:,:,ii] <= 2, mask_ice)
+        mask_ice_cld = np.ma.masked_where(day_data['modis_cld'][:,:,ii] > 2, mask_ice)
+         
+        mask_mix_clr = np.ma.masked_where(day_data['modis_cld'][:,:,ii] <= 2, mask_io_mix)
+        mask_mix_cld = np.ma.masked_where(day_data['modis_cld'][:,:,ii] > 2, mask_io_mix)
+         
+        mask_ocn_clr = np.ma.masked_where(day_data['modis_cld'][:,:,ii] <= 2, mask_ocean)
+        mask_ocn_cld = np.ma.masked_where(day_data['modis_cld'][:,:,ii] > 2, mask_ocean)
+         
+        mask_lnd_clr = np.ma.masked_where(day_data['modis_cld'][:,:,ii] <= 2, mask_land)
+        mask_lnd_cld = np.ma.masked_where(day_data['modis_cld'][:,:,ii] > 2, mask_land)
+     
+        mask_oth_clr = np.ma.masked_where(day_data['modis_cld'][:,:,ii] <= 2, mask_othr)
+        mask_oth_cld = np.ma.masked_where(day_data['modis_cld'][:,:,ii] > 2, mask_othr)
+    
+        if(area_calc):
+            mask_data   = np.ma.masked_where(mask_data.mask == True, day_data['grid_areas'][:,:])
+            mask_ice    = np.ma.masked_where(mask_ice.mask == True, day_data['grid_areas'][:,:])
+            mask_io_mix = np.ma.masked_where(mask_io_mix.mask == True, day_data['grid_areas'][:,:])
+            mask_ocean  = np.ma.masked_where(mask_ocean.mask == True, day_data['grid_areas'][:,:])
+            mask_land   = np.ma.masked_where(mask_land.mask == True, day_data['grid_areas'][:,:])
+            mask_othr   = np.ma.masked_where(mask_othr.mask == True, day_data['grid_areas'][:,:])
+
+            mask_ice_clr = np.ma.masked_where(mask_ice_clr.mask == True, day_data['grid_areas'][:,:])
+            mask_ice_cld = np.ma.masked_where(mask_ice_cld.mask == True, day_data['grid_areas'][:,:])
+
+            mask_mix_clr = np.ma.masked_where(mask_mix_clr.mask == True, day_data['grid_areas'][:,:])
+            mask_mix_cld = np.ma.masked_where(mask_mix_cld.mask == True, day_data['grid_areas'][:,:])
+
+            mask_ocn_clr = np.ma.masked_where(mask_ocn_clr.mask == True, day_data['grid_areas'][:,:])
+            mask_ocn_cld = np.ma.masked_where(mask_ocn_cld.mask == True, day_data['grid_areas'][:,:])
+
+            mask_lnd_clr = np.ma.masked_where(mask_lnd_clr.mask == True, day_data['grid_areas'][:,:])
+            mask_lnd_cld = np.ma.masked_where(mask_lnd_cld.mask == True, day_data['grid_areas'][:,:])
+
+            mask_oth_clr = np.ma.masked_where(mask_oth_clr.mask == True, day_data['grid_areas'][:,:])
+            mask_oth_cld = np.ma.masked_where(mask_oth_cld.mask == True, day_data['grid_areas'][:,:])
+
+            count_data_val = sum(mask_data.compressed())
+            count_ice      = sum(mask_ice.compressed())
+            count_mix      = sum(mask_io_mix.compressed())
+            count_ocean    = sum(mask_ocean.compressed())
+            count_land     = sum(mask_land.compressed())
+            count_othr     = sum(mask_othr.compressed())
+
+            count_cld_ice  = sum(mask_ice_cld.compressed())
+            count_cld_mix  = sum(mask_mix_cld.compressed())
+            count_cld_ocn  = sum(mask_ocn_cld.compressed())
+            count_cld_lnd  = sum(mask_lnd_cld.compressed())
+            count_cld_oth  = sum(mask_oth_cld.compressed())
+
+            count_clr_ice  = sum(mask_ice_clr.compressed())
+            count_clr_mix  = sum(mask_mix_clr.compressed())
+            count_clr_ocn  = sum(mask_ocn_clr.compressed())
+            count_clr_lnd  = sum(mask_lnd_clr.compressed())
+            count_clr_oth  = sum(mask_oth_clr.compressed())
+
+        else:
+    
+            count_data_val = mask_data.compressed().size
+            count_ice      = mask_ice.compressed().size
+            count_mix      = mask_io_mix.compressed().size
+            count_ocean    = mask_ocean.compressed().size
+            count_land     = mask_land.compressed().size
+            count_othr     = mask_othr.compressed().size
+
+            count_cld_ice  = mask_ice_cld.compressed().size
+            count_cld_mix  = mask_mix_cld.compressed().size
+            count_cld_ocn  = mask_ocn_cld.compressed().size
+            count_cld_lnd  = mask_lnd_cld.compressed().size
+            count_cld_oth  = mask_oth_cld.compressed().size
+
+            count_clr_ice  = mask_ice_clr.compressed().size
+            count_clr_mix  = mask_mix_clr.compressed().size
+            count_clr_ocn  = mask_ocn_clr.compressed().size
+            count_clr_lnd  = mask_lnd_clr.compressed().size
+            count_clr_oth  = mask_oth_clr.compressed().size
+
+        totals         = count_ice + count_mix + count_ocean + count_land + \
+            count_othr
+        total2         = count_cld_ice + count_clr_ice + \
+                         count_cld_mix + count_clr_mix + \
+                         count_cld_ocn + count_clr_ocn + \
+                         count_cld_lnd + count_clr_lnd + \
+                         count_cld_oth + count_clr_oth
+    
+        pcnt_ice_val = np.round((count_ice / count_data_val) * 100., 3)
+        pcnt_mix_val = np.round((count_mix / count_data_val) * 100., 3)
+        pcnt_ocn_val = np.round((count_ocean / count_data_val) * 100., 3)
+        pcnt_lnd_val = np.round((count_land / count_data_val) * 100., 3)
+        pcnt_oth_val = np.round((count_othr / count_data_val) * 100., 3)
+
+
+        pcnt_ice_clr_val = np.round((count_clr_ice / count_data_val) * 100., 3)
+        pcnt_ice_cld_val = np.round((count_cld_ice / count_data_val) * 100., 3)
+        pcnt_mix_clr_val = np.round((count_clr_mix / count_data_val) * 100., 3)
+        pcnt_mix_cld_val = np.round((count_cld_mix / count_data_val) * 100., 3)
+        pcnt_ocn_clr_val = np.round((count_clr_ocn / count_data_val) * 100., 3)
+        pcnt_ocn_cld_val = np.round((count_cld_ocn / count_data_val) * 100., 3)
+        pcnt_lnd_clr_val = np.round((count_clr_lnd / count_data_val) * 100., 3)
+        pcnt_lnd_cld_val = np.round((count_cld_lnd / count_data_val) * 100., 3)
+        pcnt_oth_clr_val = np.round((count_clr_oth / count_data_val) * 100., 3)
+        pcnt_oth_cld_val = np.round((count_cld_oth / count_data_val) * 100., 3)
+    
+        count_data[ii]  = count_data_val
+        pcnt_ice[ii]    = pcnt_ice_val 
+        pcnt_mix[ii]    = pcnt_mix_val 
+        pcnt_ocn[ii]    = pcnt_ocn_val 
+        pcnt_lnd[ii]    = pcnt_lnd_val 
+        pcnt_oth[ii]    = pcnt_oth_val 
+
+        pcnt_ice_clr[ii]    = pcnt_ice_clr_val 
+        pcnt_ice_cld[ii]    = pcnt_ice_cld_val 
+        pcnt_mix_clr[ii]    = pcnt_mix_clr_val 
+        pcnt_mix_cld[ii]    = pcnt_mix_cld_val 
+        pcnt_ocn_clr[ii]    = pcnt_ocn_clr_val 
+        pcnt_ocn_cld[ii]    = pcnt_ocn_cld_val 
+        pcnt_lnd_clr[ii]    = pcnt_lnd_clr_val 
+        pcnt_lnd_cld[ii]    = pcnt_lnd_cld_val 
+        pcnt_oth_clr[ii]    = pcnt_oth_clr_val 
+        pcnt_oth_cld[ii]    = pcnt_oth_cld_val 
+
+        total_count[ii] = totals
+        total2_count[ii] = total2
+
+    if(area_calc):
+        print_fmt = "%s %8d %6.3f %6.3f %6.3f %6.3f %6.3f %8d %8d"
+    else:
+        print_fmt = "%s %5d %6.3f %6.3f %6.3f %6.3f %6.3f %5d %5d"
+    print('  date    cnt    ice   mix    ocn    lnd    oth    tot')
+    for ii in range(day_data['omi_ai_raw'].shape[2]):
+    
+        print(print_fmt % \
+            (day_data['dates'][ii], count_data[ii], pcnt_ice[ii], pcnt_mix[ii], pcnt_ocn[ii], \
+            pcnt_lnd[ii], pcnt_oth[ii], total_count[ii], total2_count[ii]))
+
+    in_ax = True 
+    if(ax is None): 
+        plt.close('all')
+        in_ax = False
+        fig = plt.figure(figsize = (10, 4))
+        ax = fig.add_subplot(1,1,1)
+
+    xvals = np.arange(day_data['omi_ai_raw'].shape[2])
+   
+    if(not hatch_cloud): 
+        ax.bar(xvals, pcnt_ice, label = 'Ice')
+        ax.bar(xvals, pcnt_mix, bottom = pcnt_ice, label = 'Mix')
+        ax.bar(xvals, pcnt_ocn, bottom = pcnt_ice + pcnt_mix, label = 'Ocean')
+        ax.bar(xvals, pcnt_lnd, bottom = pcnt_ice + pcnt_mix + pcnt_ocn, label = 'Land')
+        ax.bar(xvals, pcnt_oth, bottom = pcnt_ice + pcnt_mix + pcnt_ocn + pcnt_lnd, \
+            label = 'Other')
+    else:
+        ax.bar(xvals, pcnt_ice_clr, label = 'Ice')
+        ax.bar(xvals, pcnt_ice_cld, bottom = pcnt_ice_clr, color = 'tab:blue', hatch = '///')
+        ax.bar(xvals, pcnt_mix_clr, bottom = pcnt_ice_clr + pcnt_ice_cld, \
+            label = 'Mix')
+        ax.bar(xvals, pcnt_mix_cld, bottom = pcnt_ice_clr + pcnt_ice_cld + \
+            pcnt_mix_clr, color = 'tab:orange', hatch = '///')
+        ax.bar(xvals, pcnt_ocn_clr, bottom = pcnt_ice_clr + pcnt_ice_cld + \
+            pcnt_mix_clr + pcnt_mix_cld, \
+            label = 'Ocean')
+        ax.bar(xvals, pcnt_ocn_cld, bottom = pcnt_ice_clr + pcnt_ice_cld + \
+            pcnt_mix_clr + pcnt_mix_cld + pcnt_ocn_clr, \
+            color = 'tab:green', hatch = '///')
+        ax.bar(xvals, pcnt_lnd_clr, bottom = pcnt_ice_clr + pcnt_ice_cld + \
+            pcnt_mix_clr + pcnt_mix_cld + pcnt_ocn_clr + pcnt_ocn_cld, \
+            label = 'Land')
+        ax.bar(xvals, pcnt_lnd_cld, bottom = pcnt_ice_clr + pcnt_ice_cld + \
+            pcnt_mix_clr + pcnt_mix_cld + pcnt_ocn_clr + pcnt_ocn_cld + \
+            pcnt_lnd_clr, \
+            color = 'tab:red', hatch = '///')
+        ax.bar(xvals, pcnt_oth_clr, bottom = pcnt_ice_clr + pcnt_ice_cld + \
+            pcnt_mix_clr + pcnt_mix_cld + pcnt_ocn_clr + pcnt_ocn_cld + \
+            pcnt_lnd_clr + pcnt_lnd_cld, \
+            label = 'Other')
+        ax.bar(xvals, pcnt_oth_clr, bottom = pcnt_ice_clr + pcnt_ice_cld + \
+            pcnt_mix_clr + pcnt_mix_cld + pcnt_ocn_clr + pcnt_ocn_cld + \
+            pcnt_lnd_clr + pcnt_lnd_cld + pcnt_oth_clr, \
+            color = 'tab:purple', hatch = '///')
+    ax.legend()
+
+    if(not in_ax):
+        fig.tight_layout()
+        plt.show() 
+
 
 def plot_aerosol_over_types(coloc_data, min_AI = 1.0, minlat = 70, \
         ai_val = 'OMI_RAW', save = False):
