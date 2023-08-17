@@ -11,32 +11,39 @@ import sys
 #begin_date = '202306122100'
 #end_date   = '202306122200'
 
-begin_date = '202107221800'
-end_date   = '202107230400'
-#begin_date = '202107202100'
-#end_date   = '202107210330'
-auto_GOES_download(begin_date, end_date, 30, sat = 'goes16', \
-    channels = [2, 6, 13])
-    #channels = [1, 2, 3, 6, 13, 8, 9, 10])
+###begin_date = '202107221800'
+###end_date   = '202107230400'
+####begin_date = '202107202100'
+####end_date   = '202107210330'
+###auto_GOES_download(begin_date, end_date, 30, sat = 'goes16', \
+###    channels = [2, 6, 13])
+###    #channels = [1, 2, 3, 6, 13, 8, 9, 10])
+###
+###sys.exit()
+###
+###goes_file = 'goes_cross_data_up_202107201201_202107210331.nc'
+###GOES_dict = read_GOES_time_series_NCDF(goes_file)
+###plot_GOES_time_series_mesh(GOES_dict, date_idx = 42, ch_idx1 = 0, \
+###    ch_idx2 = 0)
+###
+###sys.exit()
+begin_date = datetime(2021,7,20,21)
+end_date   = datetime(2021,7,21,2)
+local_date = begin_date
+while(local_date <= end_date):
+    date_str = local_date.strftime('%Y%m%d%H%M')
+    plot_GOES_figure2_v2(date_str = date_str, \
+        goes_ch1 = 'true_color', goes_ch2 = 6, goes_ch3 = 13, \
+        goes_ch4 = 8, goes_ch5 = 9, goes_ch6 = 10, \
+        ch_idx1 = 0, ch_idx2 = 1, ch_idx3 = 2,\
+        ttype1 = 'mid', ttype2 = 'mid', \
+        #ttype1 = 'low', ttype2 = 'ml', \
+        idx1 = 0, idx2 = 3, idx3 = 6,
+        date_idx = 25, 
+        show_smoke = False, composite = True, double_fig = False, \
+        zoom = True, save = True)
 
-sys.exit()
-
-goes_file = 'goes_cross_data_up_202107201201_202107210331.nc'
-GOES_dict = read_GOES_time_series_NCDF(goes_file)
-plot_GOES_time_series_mesh(GOES_dict, date_idx = 42, ch_idx1 = 0, \
-    ch_idx2 = 0)
-
-sys.exit()
-plot_GOES_figure2_v2(date_str = '202107210000', \
-    goes_ch1 = 'true_color', goes_ch2 = 6, goes_ch3 = 13, \
-    goes_ch4 = 8, goes_ch5 = 9, goes_ch6 = 10, \
-    ch_idx1 = 0, ch_idx2 = 1, ch_idx3 = 2,\
-    ttype1 = 'mid', ttype2 = 'up', \
-    #ttype1 = 'low', ttype2 = 'ml', \
-    idx1 = 3, idx2 = 8, idx3 = 15,
-    date_idx = 25, 
-    show_smoke = False, composite = True, double_fig = False, \
-    zoom = True, save = False)
+    local_date = local_date + timedelta(minutes = 30)
 
 sys.exit()
 

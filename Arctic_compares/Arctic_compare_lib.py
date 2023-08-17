@@ -4241,7 +4241,7 @@ def calc_pcnt_aerosol_over_type(date_list, min_AI, ax = None):
         plt.show() 
 
 def calc_pcnt_aerosol_over_type_dayavgs(day_data, min_AI, ax = None, \
-        area_calc = False, hatch_cloud = False): 
+        area_calc = False, hatch_cloud = False, plot_map = False): 
 
     count_data   = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
     total_count  = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
@@ -4261,6 +4261,12 @@ def calc_pcnt_aerosol_over_type_dayavgs(day_data, min_AI, ax = None, \
     pcnt_ocn_clr = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
     pcnt_lnd_clr = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
     pcnt_oth_clr = np.full(day_data['omi_ai_raw'].shape[2], np.nan)
+   
+    base_ones   = np.full(day_data['omi_ai_raw'][:,:,0].shape, 1)
+    base_twos   = np.full(day_data['omi_ai_raw'][:,:,0].shape, 2)
+    base_threes = np.full(day_data['omi_ai_raw'][:,:,0].shape, 3)
+    base_fours  = np.full(day_data['omi_ai_raw'][:,:,0].shape, 4)
+    base_fives  = np.full(day_data['omi_ai_raw'][:,:,0].shape, 5)
     
     for ii in range(day_data['omi_ai_raw'].shape[2]):
     
@@ -4269,8 +4275,6 @@ def calc_pcnt_aerosol_over_type_dayavgs(day_data, min_AI, ax = None, \
         mask_data = np.ma.masked_where(day_data['omi_ai_raw'][:,:,ii] < min_AI, \
             day_data['omi_ai_raw'][:,:,ii])
       
-     
-
         mask_ice = np.ma.masked_where((\
             #data['nsidc_ice'][:,:] == -999.) | (data['nsidc_ice'][:,:] > 100.), \
             day_data['nsidc_ice'][:,:,ii] == -999.) | \
@@ -4305,6 +4309,61 @@ def calc_pcnt_aerosol_over_type_dayavgs(day_data, min_AI, ax = None, \
         #coloc_data['NSIDC_LAND'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
         #    coloc_data['NSIDC_LAND'])
 
+        if(plot_map):
+            #plt.close('all')
+            fig = plt.figure(figsize = (9, 4)) 
+            #fig = plt.figure(figsize = (6, 6)) 
+            #ax1 = fig.add_subplot(1,1,1, projection = mapcrs)
+            ax1 = fig.add_subplot(1,2,1, projection = mapcrs)
+            ax2 = fig.add_subplot(1,2,2, projection = mapcrs)
+
+            print(mask_ice.compressed().shape[0], mask_io_mix.compressed().shape[0], \
+                mask_ocean.compressed().shape[0], mask_land.compressed().shape[0], \
+                mask_othr.compressed().shape[0])
+
+            if(mask_ice.compressed().shape[0] > 0):
+                ones = np.ma.masked_where(mask_ice.mask == True, base_ones).T
+                ax1.pcolormesh(day_data['longitude'][:], day_data['latitude'][:], \
+                    ones, transform = datacrs, shading = 'auto', \
+                    vmin = 1, vmax = 10, cmap = 'tab10')
+            if(mask_io_mix.compressed().shape[0] > 0):
+                twos = np.ma.masked_where(mask_io_mix.mask == True, base_twos).T
+                ax1.pcolormesh(day_data['longitude'][:], day_data['latitude'][:], \
+                    twos, transform = datacrs, shading = 'auto', \
+                    vmin = 1, vmax = 10, cmap = 'tab10')
+            if(mask_ocean.compressed().shape[0] > 0):
+                threes = np.ma.masked_where(mask_ocean.mask == True, base_threes).T
+                ax1.pcolormesh(day_data['longitude'][:], day_data['latitude'][:], \
+                    threes, transform = datacrs, shading = 'auto', \
+                    vmin = 1, vmax = 10, cmap = 'tab10')
+            if(mask_land.compressed().shape[0] > 0):
+                fours = np.ma.masked_where(mask_land.mask == True, base_fours).T
+                ax1.pcolormesh(day_data['longitude'][:], day_data['latitude'][:], \
+                    fours, transform = datacrs, shading = 'auto', \
+                    vmin = 1, vmax = 10, cmap = 'tab10')
+            if(mask_othr.compressed().shape[0] > 0):
+                fives = np.ma.masked_where(mask_othr.mask == True, base_fives).T
+                ax1.pcolormesh(day_data['longitude'][:], day_data['latitude'][:], \
+                    fives, transform = datacrs, shading = 'auto', \
+                    vmin = 1, vmax = 10, cmap = 'tab10')
+
+            ax1.coastlines()
+            ax1.set_extent([-180, 180, 65, 90], datacrs)
+
+            masker = np.ma.masked_where(day_data['omi_ai_raw'][:,:,ii] < -20, \
+                day_data['omi_ai_raw'][:,:,ii]).T
+            ax2.pcolormesh(day_data['longitude'][:], day_data['latitude'][:], \
+                masker, transform = datacrs, shading = 'auto', \
+                cmap = 'jet')
+            ax2.coastlines()
+            ax2.set_extent([-180, 180, 65, 90], datacrs)
+       
+            plt.suptitle(str(day_data['dates'][ii]) + ' ' + str(ii))
+ 
+            fig.tight_layout()
+
+            plt.show()
+    
         mask_ice_clr = np.ma.masked_where(day_data['modis_cld'][:,:,ii] <= 2, mask_ice)
         mask_ice_cld = np.ma.masked_where(day_data['modis_cld'][:,:,ii] > 2, mask_ice)
          
@@ -4481,7 +4540,7 @@ def calc_pcnt_aerosol_over_type_dayavgs(day_data, min_AI, ax = None, \
             pcnt_mix_clr + pcnt_mix_cld + pcnt_ocn_clr + pcnt_ocn_cld + \
             pcnt_lnd_clr + pcnt_lnd_cld, \
             label = 'Other')
-        ax.bar(xvals, pcnt_oth_clr, bottom = pcnt_ice_clr + pcnt_ice_cld + \
+        ax.bar(xvals, pcnt_oth_cld, bottom = pcnt_ice_clr + pcnt_ice_cld + \
             pcnt_mix_clr + pcnt_mix_cld + pcnt_ocn_clr + pcnt_ocn_cld + \
             pcnt_lnd_clr + pcnt_lnd_cld + pcnt_oth_clr, \
             color = 'tab:purple', hatch = '///')

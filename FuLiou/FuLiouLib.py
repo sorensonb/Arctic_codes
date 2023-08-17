@@ -319,6 +319,112 @@ def plot_FuLiou_boxes(axs = None, save = False):
         else:
             plt.show()
 
+
+# dim options: ['aertop_bot','cldhgt','SolarZenith','CloudOptDepth','CloudFrac','AOD']
+# fu_var options: 'SWF_CLR','SWF_TOTAL','SWF_PRISTINE','SWF_TOTAL_NO_AER'
+def plot_FuLiou_cloudaer_multivar(fu_data, xvar, zvar, fu_var = 'SWF_TOTAL', \
+        aerhgt_idx = 0, cldhgt_idx = 0, zen_idx = 0, cod_idx = 5, \
+        cldfrac_idx = 5, divide_by_aod = False, save = False):
+
+    sfc_types = ['Ocean','Land','Ice']
+    
+    aer_titles = ['Continental Aerosol','Soot (BC) Aerosol']
+
+    fig = plt.figure(figsize = (11, 7))
+    axs = fig.subplots(2,3)
+    for aertype_idx in range(2):
+        local_title = aer_titles[aertype_idx]
+        for sfc_idx in range(3):
+            local_sfctype = sfc_types[sfc_idx]
+
+            # new_dims: ['aertype','ALB','aertop_bot','cldhgt','SolarZenith','CloudOptDepth','CloudFrac','AOD']
+            #(2,) (3,) (3,) (3,) (2,) (21,) (21,) (6,) (20,) 
+            #local_data = fu_data[fu_var][:,:,aerhgt_idx,cldhgt_idx,zen_idx,cod_idx,cldfrac_idx,:]
+
+            if((xvar == 'aertop') | (xvar == 'aerbot')):
+                if(zvar == 'cldhgt'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,:,:,zen_idx,cod_idx,cldfrac_idx,:]
+                elif(zvar == 'SolarZenith'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,:,cldhgt_idx,:,cod_idx,cldfrac_idx,:]
+                elif(zvar == 'CloudOptDepth'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,:,cldhgt_idx,zen_idx,:,cldfrac_idx,:]
+                elif(zvar == 'CloudFrac'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,:,cldhgt_idx,zen_idx,cod_idx,:,:]
+            elif(xvar == 'cldhgt'):
+                if((zvar == 'aertop') | (zvar == 'aerbot')):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,:,:,zen_idx,cod_idx,cldfrac_idx,:]
+                elif(zvar == 'SolarZenith'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,:,:,cod_idx,cldfrac_idx,:]
+                elif(zvar == 'CloudOptDepth'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,:,zen_idx,:,cldfrac_idx,:]
+                elif(zvar == 'CloudFrac'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,:,zen_idx,cod_idx,:,:]
+            elif(xvar == 'SolarZenith'):
+                if((zvar == 'aertop') | (zvar == 'aerbot')):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,:,cldhgt_idx,:,cod_idx,cldfrac_idx,:]
+                elif(zvar == 'cldhgt'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,:,:,cod_idx,cldfrac_idx,:]
+                elif(zvar == 'CloudOptDepth'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,cldhgt_idx,:,:,cldfrac_idx,:]
+                elif(zvar == 'CloudFrac'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,cldhgt_idx,:,cod_idx,:,:]
+            elif(xvar == 'CloudOptDepth'):
+                if((zvar == 'aertop') | (zvar == 'aerbot')):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,:,cldhgt_idx,zen_idx,:,cldfrac_idx,:]
+                elif(zvar == 'cldhgt'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,:,zen_idx,:,cldfrac_idx,:]
+                elif(zvar == 'SolarZenith'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,cldhgt_idx,:,:,cldfrac_idx,:]
+                elif(zvar == 'CloudFrac'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,cldhgt_idx,zen_idx,:,:,:]
+            elif(xvar == 'CloudFrac'):
+                if((zvar == 'aertop') | (zvar == 'aerbot')):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,:,cldhgt_idx,zen_idx,cod_idx,:,:]
+                elif(zvar == 'cldhgt'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,:,zen_idx,cod_idx,:,:]
+                elif(zvar == 'SolarZenith'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,cldhgt_idx,:,cod_idx,:,:]
+                elif(zvar == 'CloudOptDepth'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,cldhgt_idx,zen_idx,:,:,:]
+
+            if((zvar == 'aertop') | (zvar == 'aerbot')):
+                zrange = np.arange(len(fu_data[zvar]))
+            elif(zvar == 'cldhgt'):
+                zrange = np.arange(len(fu_data[zvar]))
+            elif(zvar == 'SolarZenith'):
+                zrange = np.arange(len(fu_data[zvar]))[::int(len(fu_data[zvar])/5)]
+            elif(zvar == 'CloudOptDepth'):
+                zrange = np.arange(len(fu_data[zvar]))[::int(len(fu_data[zvar])/5)]
+            elif(zvar == 'CloudFrac'):
+                zrange = np.arange(len(fu_data[zvar]))
+        
+            #for cldfrac_idx in range(fu_data['CloudFrac'].shape[0]):
+            print(zvar, zrange, fu_data[zvar][zrange])
+            for z_idx in zrange: 
+                delt_swf_delt_aod = local_data[:,z_idx,-1] - local_data[:,z_idx,0]
+                #delt_swf_delt_aod = (fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,cldhgt_idx,zen_idx,:,cldfrac_idx,-1] - \
+                #                    fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,cldhgt_idx,zen_idx,:,cldfrac_idx,0])
+                if(divide_by_aod):
+                    delt_swf_delt_aod = delt_swf_delt_aod / \
+                                       (fu_data['AOD'][-1] - fu_data['AOD'][0])
+
+                #ax.plot(fu_data['SolarZenith'], delt_swf_delt_aod)
+                axs[aertype_idx,sfc_idx].plot(fu_data[xvar], delt_swf_delt_aod, \
+                    label = zvar + ' = ' + str(fu_data[zvar][z_idx]))
+    
+            #ax.set_xlabel('SZA')
+            axs[aertype_idx,sfc_idx].set_xlabel(xvar)
+            axs[aertype_idx,sfc_idx].set_ylabel('ΔSWF/ΔAOD')
+            #axs[aertype_idx,sfc_idx].set_title(sfc_types[sfc_idx])
+            axs[aertype_idx,sfc_idx].set_title(local_title + '\n' + local_sfctype)
+    
+    axs[0,2].legend()
+    
+    fig.tight_layout()
+
+    plt.show()
+
+
 ##!## Reads the SBDART model profile. If infile is '', the default
 ##!## profile will be used. If not, a model profile from 
 ##!## /home/bsorenson/Research/SBDART/model/ and reformats into the 

@@ -8,8 +8,8 @@
 import Arctic_compare_lib
 from Arctic_compare_lib import *
 
-#testfile = 'grid_coloc_test_res050.hdf5'
-testfile = 'grid_coloc_test_res100.hdf5'
+testfile = 'grid_coloc_test_res050.hdf5'
+#testfile = 'grid_coloc_test_res100.hdf5'
 
 data = h5py.File(testfile)
 ##!#mask_ai  = np.ma.masked_where(data['omi_ai_raw'][:,:,:] == -999., data['omi_ai_raw'][:,:,:])
@@ -459,7 +459,7 @@ ax1 = fig.add_subplot(3,1,1)
 ax2 = fig.add_subplot(3,1,2)
 ax3 = fig.add_subplot(3,1,3)
 calc_pcnt_aerosol_over_type(dates, 1.5, ax = ax1)
-calc_pcnt_aerosol_over_type_dayavgs(data, 1.5, ax = ax2, hatch_cloud = True)
+calc_pcnt_aerosol_over_type_dayavgs(data, 1.5, ax = ax2, hatch_cloud = True, plot_map = True)
 calc_pcnt_aerosol_over_type_dayavgs(data, 1.5, ax = ax3, area_calc = True)
 
 ax1.set_ylabel('Pcnt of OMI Pixels')

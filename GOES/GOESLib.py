@@ -1286,7 +1286,7 @@ def plot_GOES_satpy(date_str, channel, ax = None, var = None, crs = None, \
     ax.add_feature(cfeature.STATES)
 
     if(counties):
-        ax.add_feature(USCOUNTIES.with_scale('5m'))    
+        ax.add_feature(USCOUNTIES.with_scale('5m'), alpha = 0.5)    
 
     # Zoom in the figure if desired
     # -----------------------------
@@ -2216,7 +2216,7 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
         zoom=True,save=False)
     plot_GOES_satpy(date_str, 13, ax = ax6, var = var4, crs = crs0, \
         lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
-        vmin = None, vmax = None, \
+        vmin = 270, vmax = 330, \
         ptitle = '', plabel = plabel4, colorbar = True, labelsize = labelsize, \
         zoom=True,save=False)
     plot_GOES_satpy(date_str, 8, ax = ax7, var = var5, crs = crs0, \
@@ -2344,6 +2344,7 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
         label = str(goes_channel_dict[\
         str(GOES_dict2['channels'][ch_idx2])]['wavelength']) + \
         ' μm', linestyle = '--', color = 'tab:green')
+
     #ax10.axvline(GOES_dict['dt_dates'][date_idx], color = 'black',\
     #    linestyle = ':')
 
@@ -2374,6 +2375,7 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
     ax102.set_ylabel('Brightness Temperature [K]', weight = 'bold')
     ax10.grid()
     ax10.xaxis.set_major_formatter(DateFormatter('%m/%d\n%H:%MZ'))
+    ax10.axvline(dt_date_str2, color = 'black', linestyle = ':')
     ax10.tick_params(axis="x", labelsize = font_size + 1)
 
     ##!#labs = [l.get_label() for l in lns]
@@ -2459,8 +2461,9 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
     fig.tight_layout()
 
     if(save):
-        outname = 'goes_combined_fig2_' + date_str + '_v2.png'
-        fig.savefig(outname, dpi=300)
+        outname = 'goes_combined_fig2_' + date_str + '_' + ttype1 + '_' + \
+            ttype2 + '_v2.png'
+        fig.savefig(outname, dpi=200)
         print("Saved",outname)
     else:
         plt.show()

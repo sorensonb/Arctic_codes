@@ -76,6 +76,12 @@ from glob import glob
 import os
 from pathlib import Path
 
+import copy
+from netCDF4 import num2date
+from pandas import to_datetime
+from pyart.core import Radar
+from scipy.interpolate import interp2d
+
 sys.path.append('/home/bsorenson/')
 from python_lib import *
 
@@ -312,6 +318,193 @@ def init_proj(NEXRAD_dict):
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
+# Composite Reflectivity function from PyART 
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def composite_reflectivity(radar, field="reflectivity", gatefilter=None):
+    """
+    Composite Reflectivity
+
+    Often a legacy product, composite reflectivity is:
+    "A display or mapping of the maximum radar reflectivity factor at any
+    altitude as a function of position on the ground." - AMS Glossary
+    This is more useful for the dry regions of the world, where maximum
+    reflectivity values are found aloft, as opposed to the lowest scan.
+    Alternatively this is useful for comparing to NWP since composite Z
+    is a standard output of NWP.
+
+    Why this is not as easy as one would think: Turns out the data are
+    not natively stored with index 0 being azimuth 0. Likely due to the
+    physical spinning of the radar antenna.
+
+    Author: Randy J. Chase (@dopplerchase)
+
+    Parameters
+    ----------
+    radar : Radar
+        Radar object used.
+    field : str
+        Reflectivity field name to use to look up reflectivity data. In the
+        radar object. Default field name is 'reflectivity'.
+    gatefilter : GateFilter
+        GateFilter instance. None will result in no gatefilter mask being
+        applied to data.
+
+    Returns
+    -------
+    radar : Radar
+        The radar object containing the radar dimensions, metadata and
+        composite field.
+
+    References
+    ----------
+    American Meteorological Society, 2022: "Composite reflectivity". Glossary of Meteorology,
+    http://glossary.ametsoc.org/wiki/Composite_reflectivity
+
+    """
+
+    # Determine the lowest sweep (used for metadata and such)
+    minimum_sweep = np.min(radar.sweep_number["data"])
+
+    # loop over all measured sweeps
+    for sweep in sorted(radar.sweep_number["data"]):
+        # get start and stop index numbers
+        sweep_slice = radar.get_slice(sweep)
+
+        # grab radar data
+        z = radar.get_field(sweep, field)
+        z_dtype = z.dtype
+
+        # Use gatefilter
+        if gatefilter is not None:
+            mask_sweep = gatefilter.gate_excluded[sweep_slice, :]
+            z = np.ma.masked_array(z, mask_sweep)
+
+        # extract lat lons
+        lon = radar.gate_longitude["data"][sweep_slice, :]
+        lat = radar.gate_latitude["data"][sweep_slice, :]
+
+        # get the range and time
+        ranges = radar.range["data"]
+        time = radar.time["data"]
+
+        # get azimuth
+        az = radar.azimuth["data"][sweep_slice]
+        # get order of azimuths
+        az_ids = np.argsort(az)
+
+        # reorder azs so they are in order
+        az = az[az_ids]
+        z = z[az_ids]
+        lon = lon[az_ids]
+        lat = lat[az_ids]
+        time = time[az_ids]
+
+        # if the first sweep, store re-ordered lons/lats
+        if sweep == minimum_sweep:
+            azimuth_final = az
+            time_final = time
+            lon_0 = copy.deepcopy(lon)
+            lon_0[-1, :] = lon_0[0, :]
+            lat_0 = copy.deepcopy(lat)
+            lat_0[-1, :] = lat_0[0, :]
+
+        else:
+            # Configure the intperpolator
+            z_interpolator = interp2d(ranges, az, z, kind="linear")
+
+            # Apply the interpolation
+            z = z_interpolator(ranges, azimuth_final)
+
+        # if first sweep, create new dim, otherwise concat them up
+        if sweep == minimum_sweep:
+            z_stack = copy.deepcopy(z[np.newaxis, :, :])
+        else:
+            z_stack = np.concatenate([z_stack, z[np.newaxis, :, :]])
+
+    # now that the stack is made, take max across vertical
+    compz = z_stack.max(axis=0).astype(z_dtype)
+
+    # since we are using the whole volume scan, report mean time
+    try:
+        dtime = to_datetime(
+            num2date(radar.time["data"], radar.time["units"]).astype(str),
+            format="ISO8601",
+        )
+    except ValueError:
+        dtime = to_datetime(
+            num2date(radar.time["data"], radar.time["units"]).astype(str)
+        )
+    dtime = dtime.mean()
+
+    # return dict, because this is was pyart does with lots of things
+    fields = {}
+    fields["composite_reflectivity"] = {
+        "data": compz,
+        "units": "dBZ",
+        "long_name": "composite_reflectivity",
+        "comment": "composite reflectivity computed from calculating the max radar value in each radar gate vertically after reordering",
+    }
+
+    time = radar.time.copy()
+    time["data"] = time_final
+    time["mean"] = dtime
+
+    gate_longitude = radar.gate_longitude.copy()
+    gate_longitude["data"] = lon_0
+    gate_longitude["comment"] = "reordered longitude grid, [az,range]"
+    gate_latitude = radar.gate_latitude.copy()
+    gate_latitude["data"] = lat_0
+    gate_latitude["comment"] = "reordered latitude grid, [az,range]"
+
+    _range = radar.range.copy()
+    metadata = radar.metadata.copy()
+    scan_type = radar.scan_type
+    latitude = radar.latitude.copy()
+    longitude = radar.longitude.copy()
+    altitude = radar.altitude.copy()
+    instrument_parameters = radar.instrument_parameters
+
+    sweep_number = radar.sweep_number.copy()
+    sweep_number["data"] = np.array([0], dtype="int32")
+    sweep_mode = radar.sweep_mode.copy()
+    sweep_mode["data"] = np.array([radar.sweep_mode["data"][0]])
+    ray_shape = compz.shape[0]
+    azimuth = radar.azimuth.copy()
+    azimuth["data"] = azimuth_final
+    elevation = radar.elevation.copy()
+    elevation["data"] = np.zeros(ray_shape, dtype="float32")
+    fixed_angle = radar.fixed_angle.copy()
+    fixed_angle["data"] = np.array([0.0], dtype="float32")
+    sweep_start_ray_index = radar.sweep_start_ray_index.copy()
+    sweep_start_ray_index["data"] = np.array([0], dtype="int32")
+    sweep_end_ray_index = radar.sweep_end_ray_index.copy()
+    sweep_end_ray_index["data"] = np.array([ray_shape - 1], dtype="int32")
+
+    return Radar(
+        time,
+        _range,
+        fields,
+        metadata,
+        scan_type,
+        latitude,
+        longitude,
+        altitude,
+        sweep_number,
+        sweep_mode,
+        fixed_angle,
+        sweep_start_ray_index,
+        sweep_end_ray_index,
+        azimuth,
+        elevation,
+        instrument_parameters=instrument_parameters,
+    ), z_stack
+
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
 # Download data
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -412,6 +605,138 @@ def auto_NEXRAD_download(begin_date, end_date, interval, radar, \
 # Miscellaneous plotting functions
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def find_NEXRAD_value_point(radar, field, xidx, yidx, angle):
+
+    #sweep_slice = radar.get_slice(angle)
+   
+    #data = radar.fields[field]['data'][sweep_slice]
+
+    sweep_slice = radar.get_slice(angle)
+
+    # grab radar data
+    z = radar.get_field(angle, field)
+
+    print(z.shape)
+
+    point_value = z[xidx, yidx]
+    #point_value = data[xidx, yidx]
+
+    return point_value
+ 
+    ##!## grab radar data
+    ##!#z = radar.get_field(sweep, field)
+    ##!#z_dtype = z.dtype
+
+    ##!### Use gatefilter
+    ##!##if gatefilter is not None:
+    ##!##    mask_sweep = gatefilter.gate_excluded[sweep_slice, :]
+    ##!##    z = np.ma.masked_array(z, mask_sweep)
+
+    ##!## extract lat lons
+    ##!#lon = radar.gate_longitude["data"][sweep_slice, :]
+    ##!#lat = radar.gate_latitude["data"][sweep_slice, :]
+
+    ##!## get the range and time
+    ##!#ranges = radar.range["data"]
+    ##!#time = radar.time["data"]
+
+    ##!## get azimuth
+    ##!#az = radar.azimuth["data"][sweep_slice]
+    ##!## get order of azimuths
+    ##!#az_ids = np.argsort(az)
+
+    ##!## reorder azs so they are in order
+    ##!#az = az[az_ids]
+    ##!#z = z[az_ids]
+    ##!#lon = lon[az_ids]
+    ##!#lat = lat[az_ids]
+    ##!#time = time[az_ids]
+
+    ##!#azimuth_final = az
+    ##!#time_final = time
+    ##!#lon_0 = copy.deepcopy(lon)
+    ##!#lon_0[-1, :] = lon_0[0, :]
+    ##!#lat_0 = copy.deepcopy(lat)
+    ##!#lat_0[-1, :] = lat_0[0, :]
+
+    ##!## Configure the intperpolator
+    ##!#z_interpolator = interp2d(ranges, az, z, kind="linear")
+
+    ##!## Apply the interpolation
+    ##!#z = z_interpolator(ranges, azimuth_final)
+   
+    ##!#return z[xidx, yidx]
+
+
+
+def find_NEXRAD_profile_point(radar, field, xidx, yidx):
+
+    # Determine the lowest sweep (used for metadata and such)
+    minimum_sweep = np.min(radar.sweep_number["data"])
+
+    # loop over all measured sweeps
+    for sweep in sorted(radar.sweep_number["data"]):
+        # get start and stop index numbers
+        sweep_slice = radar.get_slice(sweep)
+
+        # grab radar data
+        z = radar.get_field(sweep, field)
+        z_dtype = z.dtype
+
+        ## Use gatefilter
+        #if gatefilter is not None:
+        #    mask_sweep = gatefilter.gate_excluded[sweep_slice, :]
+        #    z = np.ma.masked_array(z, mask_sweep)
+
+        # extract lat lons
+        lon = radar.gate_longitude["data"][sweep_slice, :]
+        lat = radar.gate_latitude["data"][sweep_slice, :]
+
+        # get the range and time
+        ranges = radar.range["data"]
+        time = radar.time["data"]
+
+        # get azimuth
+        az = radar.azimuth["data"][sweep_slice]
+        # get order of azimuths
+        az_ids = np.argsort(az)
+
+        # reorder azs so they are in order
+        az = az[az_ids]
+        z = z[az_ids]
+        lon = lon[az_ids]
+        lat = lat[az_ids]
+        time = time[az_ids]
+
+        # if the first sweep, store re-ordered lons/lats
+        if sweep == minimum_sweep:
+            azimuth_final = az
+            time_final = time
+            lon_0 = copy.deepcopy(lon)
+            lon_0[-1, :] = lon_0[0, :]
+            lat_0 = copy.deepcopy(lat)
+            lat_0[-1, :] = lat_0[0, :]
+
+        else:
+            # Configure the intperpolator
+            z_interpolator = interp2d(ranges, az, z, kind="linear")
+
+            # Apply the interpolation
+            z = z_interpolator(ranges, azimuth_final)
+
+        # if first sweep, create new dim, otherwise concat them up
+        if sweep == minimum_sweep:
+            z_stack = copy.deepcopy(z[np.newaxis, :, :])
+        else:
+            z_stack = np.concatenate([z_stack, z[np.newaxis, :, :]])
+
+    profile_val = z_stack[:, xidx, yidx]
+
+    # now that the stack is made, take max across vertical
+    #compz = z_stack.max(axis=0).astype(z_dtype)
+
+    return profile_val 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
@@ -536,7 +861,7 @@ def plot_NEXRAD_GOES_2panel(date_str, radar, variable, channel, ax = None, \
     # Set up the figure
     # -----------------
     plt.close('all')
-    fig = plt.figure()
+    fig = plt.figure(figsize = (9, 4))
     ax1 = fig.add_subplot(1,2,1, projection = crs0)
     ax2 = fig.add_subplot(1,2,2, projection = crs0)
     plot_GOES_satpy(NEXRAD_dict['radar_date'], channel, ax = ax1, var = var0, \
@@ -552,6 +877,376 @@ def plot_NEXRAD_GOES_2panel(date_str, radar, variable, channel, ax = None, \
     fig.tight_layout()
 
     plt.show()
+
+# Plots GOES data, KBBX and KRGX radar data
+def plot_NEXRAD_GOES_3panel(date_str, radar1, radar2, variable, channel, ax = None, \
+        angle = 0, ptitle = None, plabel = None, vmin = -5, vmax = 90, \
+        labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+        alpha = 1.0, mask_outside = True, zoom=True, save=False):
+
+    if('/home/bsorenson/Research/GOES' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/GOES')
+    from GOESLib import read_GOES_satpy, plot_GOES_satpy
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+    #dt_date_str = datetime.strptime(NEXRAD_dict['radar_date'],"%Y%m%d%H%M")
+
+    # Read the NEXRAD data
+    # --------------------
+    NEXRAD_dict1 = read_NEXRAD(date_str, radar1, angle = angle)
+    NEXRAD_dict2 = read_NEXRAD(date_str, radar2, angle = angle)
+
+    # Read the GOES data
+    # ------------------
+    var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel_goes = \
+        read_GOES_satpy(date_str, channel)
+
+    labelsize = 10
+    # Set up the figure
+    # -----------------
+    plt.close('all')
+    mapcrs = init_proj(NEXRAD_dict1)
+    fig = plt.figure(figsize = (11, 4))
+    ax1 = fig.add_subplot(1,3,1, projection = crs0)
+    ax2 = fig.add_subplot(1,3,2, projection = mapcrs)
+    ax3 = fig.add_subplot(1,3,3, projection = mapcrs)
+    plot_GOES_satpy(NEXRAD_dict1['radar_date'], channel, ax = ax1, var = var0, \
+        crs = crs0, lons = lons0, lats = lats0, lat_lims = lat_lims, \
+        lon_lims = lon_lims, vmin = 5, vmax = 40, ptitle = '', \
+        plabel = plabel_goes, colorbar = True, labelsize = labelsize + 1, \
+        counties = counties, zoom=True,save=False) 
+    plot_NEXRAD_ppi(NEXRAD_dict1, variable, ax = ax2, angle = angle, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = None)
+    plot_NEXRAD_ppi(NEXRAD_dict2, variable, ax = ax3, angle = angle, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = None)
+
+    plt.suptitle(date_str)
+
+    fig.tight_layout()
+
+    del(NEXRAD_dict1)
+    del(NEXRAD_dict2)
+    del(var0)
+
+    if(save):
+        outname = 'nexrad_goes_3panel_' + radar1 + '_' + radar2 + '_' + date_str + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+
+
+#def plot_NEXRAD_GOES(NEXRAD_dict, variable, channel, ax = None, \
+def plot_NEXRAD_GOES_4panel(date_str, radar, variable, channel, ax = None, \
+        angle1 = 0, angle2 = 2, angle3 = 4, ptitle = None, plabel = None, \
+        vmin = -5, vmax = 90, \
+        labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+        alpha = 1.0, mask_outside = True, zoom=True, save=False):
+
+    if('/home/bsorenson/Research/GOES' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/GOES')
+    from GOESLib import read_GOES_satpy, plot_GOES_satpy
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+    #dt_date_str = datetime.strptime(NEXRAD_dict['radar_date'],"%Y%m%d%H%M")
+
+    # Read the NEXRAD data
+    # --------------------
+    NEXRAD_dict1 = read_NEXRAD(date_str, radar, angle = angle1)
+    NEXRAD_dict2 = read_NEXRAD(date_str, radar, angle = angle2)
+    NEXRAD_dict3 = read_NEXRAD(date_str, radar, angle = angle3)
+
+    # Read the GOES data
+    # ------------------
+    var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel_goes = \
+        read_GOES_satpy(date_str, channel)
+
+    labelsize = 10
+    # Set up the figure
+    # -----------------
+    plt.close('all')
+    fig = plt.figure(figsize = (7, 7))
+    ax1 = fig.add_subplot(2,2,1, projection = crs0)
+    ax2 = fig.add_subplot(2,2,2, projection = crs0)
+    ax3 = fig.add_subplot(2,2,3, projection = crs0)
+    ax4 = fig.add_subplot(2,2,4, projection = crs0)
+    plot_GOES_satpy(NEXRAD_dict1['radar_date'], channel, ax = ax1, var = var0, \
+        crs = crs0, lons = lons0, lats = lats0, lat_lims = lat_lims, \
+        lon_lims = lon_lims, vmin = 2.5, vmax = 40, ptitle = '', \
+        plabel = plabel_goes, colorbar = True, labelsize = labelsize + 1, \
+        counties = counties, zoom=True,save=False) 
+    plot_NEXRAD_ppi(NEXRAD_dict1, variable, ax = ax2, angle = angle1, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = None)
+    plot_NEXRAD_ppi(NEXRAD_dict2, variable, ax = ax3, angle = angle2, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = None)
+    plot_NEXRAD_ppi(NEXRAD_dict3, variable, ax = ax4, angle = angle3, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = None)
+        #mask_outside = mask_outside, crs = crs0)
+
+    fig.tight_layout()
+
+    if(save):
+        outname = 'nexrad_goes_4panel_' + radar + '_' + date_str + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+#def plot_NEXRAD_GOES(NEXRAD_dict, variable, channel, ax = None, \
+def plot_NEXRAD_GOES_5panel(date_str, ch1, ch2, ch3, \
+        variable = 'composite_reflectivity', \
+        ax = None, ptitle = None, plabel = None, \
+        vmin = -5, vmax = 90, \
+        labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+        alpha = 1.0, mask_outside = True, zoom=True, save=False):
+
+    if('/home/bsorenson/Research/GOES' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/GOES')
+    from GOESLib import read_GOES_satpy, plot_GOES_satpy, goes_channel_dict
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+    #dt_date_str = datetime.strptime(NEXRAD_dict['radar_date'],"%Y%m%d%H%M")
+
+    # Read the NEXRAD data
+    # --------------------
+    NEXRAD_dict1 = read_NEXRAD(date_str, 'KBBX', angle = 0)
+    NEXRAD_dict2 = read_NEXRAD(date_str, 'KRGX', angle = 0) 
+
+    # Read the GOES data
+    # ------------------
+    var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel_goes1 = \
+        read_GOES_satpy(date_str, ch1)
+    var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel_goes2 = \
+        read_GOES_satpy(date_str, ch2)
+    var2, crs2, lons2, lats2, lat_lims, lon_lims, plabel_goes3 = \
+        read_GOES_satpy(date_str, ch3)
+
+    labelsize = 10
+    # Set up the figure
+    # -----------------
+    plt.close('all')
+    fig = plt.figure(figsize = (11, 7))
+    ax1 = fig.add_subplot(2,3,1, projection = crs0)
+    ax2 = fig.add_subplot(2,3,2, projection = crs0)
+    ax3 = fig.add_subplot(2,3,3, projection = crs0)
+    ax4 = fig.add_subplot(2,3,5, projection = crs0)
+    ax5 = fig.add_subplot(2,3,6, projection = crs0)
+    plot_GOES_satpy(NEXRAD_dict1['radar_date'], ch1, ax = ax1, var = var0, \
+        crs = crs0, lons = lons0, lats = lats0, lat_lims = lat_lims, \
+        lon_lims = lon_lims, vmin = 0, vmax = 60, ptitle = '', \
+        plabel = plabel_goes1, colorbar = True, labelsize = labelsize + 1, \
+        counties = counties, zoom=True,save=False) 
+    plot_GOES_satpy(NEXRAD_dict1['radar_date'], ch2, ax = ax2, var = var1, \
+        crs = crs1, lons = lons1, lats = lats1, lat_lims = lat_lims, \
+        lon_lims = lon_lims, vmin = 2.5, vmax = 40, ptitle = '', \
+        plabel = plabel_goes2, colorbar = True, labelsize = labelsize + 1, \
+        counties = counties, zoom=True,save=False) 
+    plot_GOES_satpy(NEXRAD_dict1['radar_date'], ch3, ax = ax3, var = var2, \
+        crs = crs2, lons = lons2, lats = lats2, lat_lims = lat_lims, \
+        lon_lims = lon_lims, vmin = 270, vmax = 320, ptitle = '', \
+        plabel = plabel_goes3, colorbar = True, labelsize = labelsize + 1, \
+        counties = counties, zoom=True,save=False) 
+    plot_NEXRAD_ppi(NEXRAD_dict1, variable, ax = ax4, angle = 0, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = None)
+    plot_NEXRAD_ppi(NEXRAD_dict2, variable, ax = ax5, angle = 0, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = None)
+        #mask_outside = mask_outside, crs = crs0)
+
+    font_size = 10
+    plot_figure_text(ax1, \
+        str(goes_channel_dict[str(ch1)]['wavelength']) + ' μm', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+    plot_figure_text(ax2, \
+        str(goes_channel_dict[str(ch2)]['wavelength']) + ' μm', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+    plot_figure_text(ax3, \
+        str(goes_channel_dict[str(ch3)]['wavelength']) + ' μm', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+
+    plt.suptitle(date_str)
+    
+    fig.tight_layout()
+
+    del(NEXRAD_dict1)
+    del(NEXRAD_dict2)
+    del(var0)
+    del(var1)
+    del(var2)
+
+    if(save):
+        outname = 'nexrad_goes_5panel_KBBX_KRGX_' + date_str + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+
+
+# Plots 
+def plot_NEXRAD_multiangle(date_str, radar, variable, \
+        ptitle = None, plabel = None, vmin = -5, vmax = 90, \
+        labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+        alpha = 1.0, mask_outside = True, zoom=True, save=False):
+
+    # Read the NEXRAD data
+    # --------------------
+    NEXRAD_dict = read_NEXRAD(date_str, radar, angle = 2)
+
+    labelsize = 10
+    # Set up the figure
+    # -----------------
+    plt.close('all')
+    mapcrs = init_proj(NEXRAD_dict)
+    fig = plt.figure(figsize = (13, 6))
+    ax1  = fig.add_subplot(2,5,1, projection = mapcrs)
+    ax2  = fig.add_subplot(2,5,2, projection = mapcrs)
+    ax3  = fig.add_subplot(2,5,3, projection = mapcrs)
+    ax4  = fig.add_subplot(2,5,4, projection = mapcrs)
+    ax5  = fig.add_subplot(2,5,5, projection = mapcrs)
+    ax6  = fig.add_subplot(2,5,6, projection = mapcrs)
+    ax7  = fig.add_subplot(2,5,7, projection = mapcrs)
+    ax8  = fig.add_subplot(2,5,8, projection = mapcrs)
+    ax9  = fig.add_subplot(2,5,9, projection = mapcrs)
+    ax10 = fig.add_subplot(2,5,10, projection = mapcrs)
+
+    plot_NEXRAD_ppi(NEXRAD_dict, 'composite_reflectivity', ax = ax1, angle = None, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = mapcrs)
+    plot_NEXRAD_ppi(NEXRAD_dict, 'reflectivity', ax = ax2, angle = 0, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = mapcrs)
+
+    plot_NEXRAD_ppi(NEXRAD_dict, 'reflectivity', ax = ax3, angle = 1, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = mapcrs)
+    plot_NEXRAD_ppi(NEXRAD_dict, 'reflectivity', ax = ax4, angle = 2, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = mapcrs)
+
+    plot_NEXRAD_ppi(NEXRAD_dict, 'reflectivity', ax = ax5, angle = 3, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = mapcrs)
+    plot_NEXRAD_ppi(NEXRAD_dict, 'reflectivity', ax = ax6, angle = 4, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = mapcrs)
+
+    plot_NEXRAD_ppi(NEXRAD_dict, 'reflectivity', ax = ax7, angle = 5, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = mapcrs)
+    plot_NEXRAD_ppi(NEXRAD_dict, 'reflectivity', ax = ax8, angle = 6, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = mapcrs)
+
+    plot_NEXRAD_ppi(NEXRAD_dict, 'reflectivity', ax = ax9, angle = 7, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = mapcrs)
+    plot_NEXRAD_ppi(NEXRAD_dict, 'reflectivity', ax = ax10, angle = 8, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = mapcrs)
+
+    plt.suptitle(date_str)
+
+    fig.tight_layout()
+
+    del(NEXRAD_dict)
+    #del(var0)
+
+    if(save):
+        outname = 'nexrad_multiangle_' + radar + '_' + date_str + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+# Plots GOES data, KBBX and KRGX radar data
+def plot_NEXRAD_multiradar_multiangle(date_str, radar1, radar2, variable, \
+        ptitle = None, plabel = None, vmin = -5, vmax = 90, \
+        labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+        alpha = 1.0, mask_outside = True, zoom=True, save=False):
+
+    # Read the NEXRAD data
+    # --------------------
+    NEXRAD_dict1 = read_NEXRAD(date_str, radar1, angle = 2)
+    NEXRAD_dict2 = read_NEXRAD(date_str, radar2, angle = 2)
+
+    labelsize = 10
+    # Set up the figure
+    # -----------------
+    plt.close('all')
+    mapcrs = init_proj(NEXRAD_dict1)
+    fig = plt.figure(figsize = (13, 6))
+    ax1  = fig.add_subplot(2,5,1, projection = mapcrs)
+    ax2  = fig.add_subplot(2,5,6, projection = mapcrs)
+    ax3  = fig.add_subplot(2,5,2, projection = mapcrs)
+    ax4  = fig.add_subplot(2,5,7, projection = mapcrs)
+    ax5  = fig.add_subplot(2,5,3, projection = mapcrs)
+    ax6  = fig.add_subplot(2,5,8, projection = mapcrs)
+    ax7  = fig.add_subplot(2,5,4, projection = mapcrs)
+    ax8  = fig.add_subplot(2,5,9, projection = mapcrs)
+    ax9  = fig.add_subplot(2,5,5, projection = mapcrs)
+    ax10 = fig.add_subplot(2,5,10, projection = mapcrs)
+
+    plot_NEXRAD_ppi(NEXRAD_dict1, 'composite_reflectivity', ax = ax1, angle = None, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = mapcrs)
+    plot_NEXRAD_ppi(NEXRAD_dict2, 'composite_reflectivity', ax = ax2, angle = None, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = mapcrs)
+
+    plot_NEXRAD_ppi(NEXRAD_dict1, 'reflectivity', ax = ax3, angle = 0, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = mapcrs)
+    plot_NEXRAD_ppi(NEXRAD_dict2, 'reflectivity', ax = ax4, angle = 0, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = mapcrs)
+
+    plot_NEXRAD_ppi(NEXRAD_dict1, 'reflectivity', ax = ax5, angle = 3, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = mapcrs)
+    plot_NEXRAD_ppi(NEXRAD_dict2, 'reflectivity', ax = ax6, angle = 3, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = mapcrs)
+
+    plot_NEXRAD_ppi(NEXRAD_dict1, 'reflectivity', ax = ax7, angle = 6, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = mapcrs)
+    plot_NEXRAD_ppi(NEXRAD_dict2, 'reflectivity', ax = ax8, angle = 6, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = mapcrs)
+
+    plot_NEXRAD_ppi(NEXRAD_dict1, 'reflectivity', ax = ax9, angle = 9, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = mapcrs)
+    plot_NEXRAD_ppi(NEXRAD_dict2, 'reflectivity', ax = ax10, angle = 9, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = mapcrs)
+
+    plt.suptitle(date_str)
+
+    fig.tight_layout()
+
+    del(NEXRAD_dict1)
+    del(NEXRAD_dict2)
+    #del(var0)
+
+    if(save):
+        outname = 'nexrad_multipanel_' + radar1 + '_' + radar2 + '_' + date_str + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
 
 #def plot_NEXRAD_GOES(NEXRAD_dict, variable, channel, ax = None, \
 def plot_NEXRAD_GOES(date_str, radar, variable, channel, ax = None, \
@@ -682,21 +1377,28 @@ def plot_NEXRAD_ppi(NEXRAD_dict, variable, ax = None, angle = None, ptitle = Non
         fig = plt.figure()
         mapcrs = init_proj(NEXRAD_dict)
         crs = mapcrs
+        #ax = fig.add_subplot(1,1,1)
         ax = fig.add_subplot(1,1,1, projection = mapcrs)
 
     # Begin section adapted from Alec Sczepanski's ASGSA PyArt Tools of the 
     # Trade
     # ---------------------------------------------------------------------
+    gatefilter = pyart.filters.GateFilter(NEXRAD_dict['radar'])
+    #gatefilter.exclude_below('reflectivity', -20)
     if(variable == 'composite_reflectivity'):
-        compz = pyart.retrieve.composite_reflectivity(\
-            NEXRAD_dict['radar'], field = 'reflectivity_horizontal', \
-            gatefilter = gatefilter)
+        compz, z_stack = composite_reflectivity(NEXRAD_dict['radar'], \
+            field = 'reflectivity', gatefilter = gatefilter)
+        gatefilter = pyart.filters.GateFilter(compz)
+        gatefilter.exclude_below('composite_reflectivity', -20)
+        #compz = pyart.retrieve.composite_reflectivity(\
+        #    NEXRAD_dict['radar'], field = 'reflectivity_horizontal', \
+        #    gatefilter = gatefilter)
         display = pyart.graph.RadarMapDisplay(compz)
     else:
         display = pyart.graph.RadarMapDisplay(NEXRAD_dict['radar'])
 
     if(counties):
-        ax.add_feature(USCOUNTIES.with_scale('5m'))    
+        ax.add_feature(USCOUNTIES.with_scale('5m'), alpha = 0.25)
 
     if(angle is None):
         angle = NEXRAD_dict['angle_idx']
@@ -714,36 +1416,61 @@ def plot_NEXRAD_ppi(NEXRAD_dict, variable, ax = None, angle = None, ptitle = Non
             ' - Elevation = %.3f' % (NEXRAD_dict['angles'][angle]) + \
             '\n' + dt_date_str.strftime('%Y%m%d %H:%M')
 
-    gatefilter = pyart.filters.GateFilter(NEXRAD_dict['radar'])
+    #if(variable != 'composite_reflectivity'):
     gatefilter.exclude_below(variable, vmin)
 
     if(crs is None):
         crs = datacrs
 
-    display.plot_ppi_map(variable, # Variable name
-        angle, # Elevation angle
-        vmin = vmin,  # min value
-        vmax = vmax,  # max value
-        min_lon = NEXRAD_dict['min_lon'], # Min longitude of plot
-        max_lon = NEXRAD_dict['max_lon'], # Max longitude of plot
-        min_lat = NEXRAD_dict['min_lat'], # Min latitude of plot
-        max_lat = NEXRAD_dict['max_lat'], # Max latitude of plot
-        resolution = '10m', # Projection resolution
-        projection = crs, # Set projection
-        #projection = mapcrs, # Set projection
-        colorbar_flag = colorbar_flag, # Turn on colorbar?
-        #fig = fig, # Where to plot data
-        ax = ax, 
-        lat_0 = NEXRAD_dict['center_lat'], 
-        lon_0 = NEXRAD_dict['center_lon'],
-        cmap = cmap_dict[variable], 
-        title = ptitle,
-        colorbar_label  = title_dict[variable],\
-        gatefilter = gatefilter, \
-        alpha = alpha, \
-        mask_outside = mask_outside)
+    if(variable == 'composite_reflectivity'):
+        #display.plot_ppi_map('composite_reflectivity', ax = ax, vmin = None, vmax = None, \
+        #    cmap = 'pyart_HomeyerRainbow', gatefilter = gatefilter, projection = crs)
+        display.plot_ppi_map(variable, # Variable name
+            vmin = vmin,  # min value
+            vmax = vmax,  # max value
+            min_lon = NEXRAD_dict['min_lon'], # Min longitude of plot
+            max_lon = NEXRAD_dict['max_lon'], # Max longitude of plot
+            min_lat = NEXRAD_dict['min_lat'], # Min latitude of plot
+            max_lat = NEXRAD_dict['max_lat'], # Max latitude of plot
+            resolution = '10m', # Projection resolution
+            projection = crs, # Set projection
+            #projection = mapcrs, # Set projection
+            colorbar_flag = colorbar_flag, # Turn on colorbar?
+            #fig = fig, # Where to plot data
+            ax = ax, 
+            lat_0 = NEXRAD_dict['center_lat'], 
+            lon_0 = NEXRAD_dict['center_lon'],
+            cmap = cmap_dict[variable], 
+            title = ptitle,
+            colorbar_label  = title_dict[variable],\
+            gatefilter = gatefilter, \
+            alpha = alpha, \
+            mask_outside = mask_outside)
+    else:
+        display.plot_ppi_map(variable, # Variable name
+            angle, # Elevation angle
+            vmin = vmin,  # min value
+            vmax = vmax,  # max value
+            min_lon = NEXRAD_dict['min_lon'], # Min longitude of plot
+            max_lon = NEXRAD_dict['max_lon'], # Max longitude of plot
+            min_lat = NEXRAD_dict['min_lat'], # Min latitude of plot
+            max_lat = NEXRAD_dict['max_lat'], # Max latitude of plot
+            resolution = '10m', # Projection resolution
+            projection = crs, # Set projection
+            #projection = mapcrs, # Set projection
+            colorbar_flag = colorbar_flag, # Turn on colorbar?
+            #fig = fig, # Where to plot data
+            ax = ax, 
+            lat_0 = NEXRAD_dict['center_lat'], 
+            lon_0 = NEXRAD_dict['center_lon'],
+            cmap = cmap_dict[variable], 
+            title = ptitle,
+            colorbar_label  = title_dict[variable],\
+            gatefilter = gatefilter, \
+            alpha = alpha, \
+            mask_outside = mask_outside)
 
-    ax.add_feature(cfeature.STATES)
+    #ax.add_feature(cfeature.STATES)
 
     # Zoom in the figure if desired
     # -----------------------------
