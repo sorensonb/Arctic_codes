@@ -4716,6 +4716,32 @@ def plot_aerosol_over_types(coloc_data, min_AI = 1.0, minlat = 70, \
 
     plt.show()
 
+def plot_aerosol_over_type_combined(data, dates, min_ai = 1.5, save = False, plot_map = False):
+
+    fig = plt.figure(figsize = (9, 6))
+    ax1 = fig.add_subplot(2,1,1)
+    ax2 = fig.add_subplot(2,1,2)
+    #ax3 = fig.add_subplot(3,1,3)
+    calc_pcnt_aerosol_over_type(dates, min_ai, ax = ax1)
+    calc_pcnt_aerosol_over_type_dayavgs(data, min_ai, ax = ax2, area_calc = True, hatch_cloud = True, \
+        plot_map = plot_map)
+    #calc_pcnt_aerosol_over_type_dayavgs(data, 1.5, ax = ax3, area_calc = True, hatch_cloud = True)
+    
+    ax1.set_ylabel('Pcnt of OMI Pixels')
+    #ax2.set_ylabel('Pcnt of 0.5 deg. Grid Boxes')
+    ax2.set_ylabel('Pcnt oF Aerosol Area')
+   
+    plt.suptitle('Minimum AI = ' + str(min_ai))
+ 
+    fig.tight_layout()
+
+    if(save):
+        outname = 'aerosol_over_type_minAI_' + str(int(min_ai*10)) + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
 #def calc_pcnt_aerosol_mid_swath(date_list, min_AI):
 #    
 #    for ii, date in enumerate(date_list):

@@ -213,6 +213,18 @@ def read_fuliou_cloudaer_output(file_list):
     for key in profile_data.keys()[1:]:
         fu_dict[key] = profile_data[key].values
  
+    # Set up the aerosol and cloud height stuff
+    # -----------------------------------------
+    fu_dict['aertop_pp'] = np.array([fu_dict['pp_top'][idx] for idx in fu_dict['aertop']])
+    fu_dict['aerbot_pp'] = np.array([fu_dict['pp_bot'][idx] for idx in fu_dict['aerbot']])
+    fu_dict['aertop_zz'] = np.array([fu_dict['Z1'][idx] for idx in fu_dict['aertop']])
+    fu_dict['aerbot_zz'] = np.array([fu_dict['Z2'][idx] for idx in fu_dict['aerbot']])
+
+    fu_dict['cldtop_pp'] = np.array([fu_dict['pp_top'][idx] for idx in fu_dict['cldhgt']])
+    fu_dict['cldbot_pp'] = np.array([fu_dict['pp_bot'][idx] for idx in fu_dict['cldhgt']])
+    fu_dict['cldtop_zz'] = np.array([fu_dict['Z1'][idx] for idx in fu_dict['cldhgt']])
+    fu_dict['cldbot_zz'] = np.array([fu_dict['Z1'][idx] for idx in fu_dict['cldhgt']])
+
     return fu_dict
 
 # This reads the three output files for the cloud testing stuff
@@ -330,6 +342,49 @@ def plot_FuLiou_cloudaer_multivar(fu_data, xvar, zvar, fu_var = 'SWF_TOTAL', \
     
     aer_titles = ['Continental Aerosol','Soot (BC) Aerosol']
 
+    ylabel = 'ΔSWF'
+    if(divide_by_aod):
+        ylabel = ylabel + '/ΔAOD'
+
+    var_names = ['aertop','cldhgt','SolarZenith','CloudOptDepth','CloudFrac']
+    var_idxs  = [aerhgt_idx, cldhgt_idx, zen_idx, cod_idx, cldfrac_idx]
+
+    work_xvar = xvar
+    if(xvar == 'aerbot'):
+        work_xvar = 'aertop' 
+
+    # Check which variables are being used so that the title can be set
+    #   accordingly
+    # -----------------------------------------------------------------
+    xidx = var_names.index(work_xvar)
+    zidx = var_names.index(zvar)
+    used_list = [var_names[xidx], var_names[zidx]]
+    
+    not_used = np.array([pvar not in used_list for pvar in var_names])
+    
+    print(used_list, not_used)
+    unused_vars = np.array(var_names)[not_used]
+    unused_idxs = np.array(var_idxs)[not_used]
+    
+    print(used_list, unused_vars) 
+
+    title_str = ''
+    name_str = ''
+    for uvar, uidx in zip(unused_vars, unused_idxs):
+        if(uvar == 'aertop'):
+            title_str = title_str + uvar + ' = ' + str(fu_data['aertop_zz'][uidx]) + ' km, '
+        elif(uvar == 'aerbot'):
+            title_str = title_str + uvar + ' = ' + str(fu_data['aerbot_zz'][uidx]) + ' km, '
+        elif(uvar == 'cldhgt'):
+            title_str = title_str + uvar + ' = ' + str(fu_data['cldtop_zz'][uidx]) + ' km, '
+        else:
+            title_str = title_str + uvar + ' = ' + str(fu_data[uvar][uidx]) + ', '
+        name_str = name_str + '_' + uvar + str(int(fu_data[uvar][uidx] * 10))
+
+    print(title_str)
+    print(name_str)
+    
+
     fig = plt.figure(figsize = (11, 7))
     axs = fig.subplots(2,3)
     for aertype_idx in range(2):
@@ -401,7 +456,10 @@ def plot_FuLiou_cloudaer_multivar(fu_data, xvar, zvar, fu_var = 'SWF_TOTAL', \
             #for cldfrac_idx in range(fu_data['CloudFrac'].shape[0]):
             print(zvar, zrange, fu_data[zvar][zrange])
             for z_idx in zrange: 
-                delt_swf_delt_aod = local_data[:,z_idx,-1] - local_data[:,z_idx,0]
+                if(zidx > xidx):
+                    delt_swf_delt_aod = local_data[:,z_idx,-1] - local_data[:,z_idx,0]
+                else:
+                    delt_swf_delt_aod = local_data[z_idx,:,-1] - local_data[z_idx,:,0]
                 #delt_swf_delt_aod = (fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,cldhgt_idx,zen_idx,:,cldfrac_idx,-1] - \
                 #                    fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,cldhgt_idx,zen_idx,:,cldfrac_idx,0])
                 if(divide_by_aod):
@@ -414,15 +472,217 @@ def plot_FuLiou_cloudaer_multivar(fu_data, xvar, zvar, fu_var = 'SWF_TOTAL', \
     
             #ax.set_xlabel('SZA')
             axs[aertype_idx,sfc_idx].set_xlabel(xvar)
-            axs[aertype_idx,sfc_idx].set_ylabel('ΔSWF/ΔAOD')
+            axs[aertype_idx,sfc_idx].set_ylabel(ylabel)
             #axs[aertype_idx,sfc_idx].set_title(sfc_types[sfc_idx])
             axs[aertype_idx,sfc_idx].set_title(local_title + '\n' + local_sfctype)
     
     axs[0,2].legend()
-    
+   
+    plt.suptitle(title_str)
+     
     fig.tight_layout()
 
-    plt.show()
+    if(save):
+        outname = 'fuliou_cloudaer_multivar_lines_' + fu_var.lower() +'_' + \
+            xvar + '_' + zvar + name_str + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+# dim options: ['aertop_bot','cldhgt','SolarZenith','CloudOptDepth','CloudFrac','AOD']
+# fu_var options: 'SWF_CLR','SWF_TOTAL','SWF_PRISTINE','SWF_TOTAL_NO_AER'
+def plot_FuLiou_cloudaer_multivar_mesh(fu_data, xvar, zvar, fu_var = 'SWF_TOTAL', \
+        aerhgt_idx = 0, cldhgt_idx = 0, zen_idx = 0, cod_idx = 5, \
+        cldfrac_idx = 5, divide_by_aod = False, save = False):
+
+    sfc_types = ['Ocean','Land','Ice']
+    
+    aer_titles = ['Continental Aerosol','Soot (BC) Aerosol']
+
+    ylabel = 'ΔSWF'
+    if(divide_by_aod):
+        ylabel = ylabel + '/ΔAOD'
+
+    var_names = ['aertop','cldhgt','SolarZenith','CloudOptDepth','CloudFrac']
+    var_idxs  = [aerhgt_idx, cldhgt_idx, zen_idx, cod_idx, cldfrac_idx]
+
+    work_xvar = xvar
+    if(xvar == 'aerbot'):
+        work_xvar = 'aertop' 
+
+    # Check which variables are being used so that the title can be set
+    #   accordingly
+    # -----------------------------------------------------------------
+    xidx = var_names.index(work_xvar)
+    zidx = var_names.index(zvar)
+    used_list = [var_names[xidx], var_names[zidx]]
+    
+    not_used = np.array([pvar not in used_list for pvar in var_names])
+    
+    print(used_list, not_used)
+    unused_vars = np.array(var_names)[not_used]
+    unused_idxs = np.array(var_idxs)[not_used]
+    
+    print(used_list, unused_vars) 
+
+    title_str = ''
+    name_str = ''
+    for uvar, uidx in zip(unused_vars, unused_idxs):
+        if(uvar == 'aertop'):
+            title_str = title_str + uvar + ' = ' + str(fu_data['aertop_zz'][uidx]) + ' km, '
+        elif(uvar == 'aerbot'):
+            title_str = title_str + uvar + ' = ' + str(fu_data['aerbot_zz'][uidx]) + ' km, '
+        elif(uvar == 'cldhgt'):
+            title_str = title_str + uvar + ' = ' + str(fu_data['cldtop_zz'][uidx]) + ' km, '
+        else:
+            title_str = title_str + uvar + ' = ' + str(fu_data[uvar][uidx]) + ', '
+
+        name_str = name_str + '_' + uvar + str(int(fu_data[uvar][uidx] * 10))
+
+    print(title_str)
+    print(name_str)
+
+    print(title_str)
+    
+    fig = plt.figure(figsize = (11, 7))
+    axs = fig.subplots(2,3)
+    for aertype_idx in range(2):
+        local_title = aer_titles[aertype_idx]
+        for sfc_idx in range(3):
+            local_sfctype = sfc_types[sfc_idx]
+
+            # new_dims: ['aertype','ALB','aertop_bot','cldhgt','SolarZenith','CloudOptDepth','CloudFrac','AOD']
+            #(2,) (3,) (3,) (3,) (2,) (21,) (21,) (6,) (20,) 
+            #local_data = fu_data[fu_var][:,:,aerhgt_idx,cldhgt_idx,zen_idx,cod_idx,cldfrac_idx,:]
+
+            if((xvar == 'aertop') | (xvar == 'aerbot')):
+                if(zvar == 'cldhgt'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,:,:,zen_idx,cod_idx,cldfrac_idx,:]
+                elif(zvar == 'SolarZenith'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,:,cldhgt_idx,:,cod_idx,cldfrac_idx,:]
+                elif(zvar == 'CloudOptDepth'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,:,cldhgt_idx,zen_idx,:,cldfrac_idx,:]
+                elif(zvar == 'CloudFrac'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,:,cldhgt_idx,zen_idx,cod_idx,:,:]
+            elif(xvar == 'cldhgt'):
+                if((zvar == 'aertop') | (zvar == 'aerbot')):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,:,:,zen_idx,cod_idx,cldfrac_idx,:]
+                elif(zvar == 'SolarZenith'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,:,:,cod_idx,cldfrac_idx,:]
+                elif(zvar == 'CloudOptDepth'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,:,zen_idx,:,cldfrac_idx,:]
+                elif(zvar == 'CloudFrac'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,:,zen_idx,cod_idx,:,:]
+            elif(xvar == 'SolarZenith'):
+                if((zvar == 'aertop') | (zvar == 'aerbot')):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,:,cldhgt_idx,:,cod_idx,cldfrac_idx,:]
+                elif(zvar == 'cldhgt'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,:,:,cod_idx,cldfrac_idx,:]
+                elif(zvar == 'CloudOptDepth'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,cldhgt_idx,:,:,cldfrac_idx,:]
+                elif(zvar == 'CloudFrac'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,cldhgt_idx,:,cod_idx,:,:]
+            elif(xvar == 'CloudOptDepth'):
+                if((zvar == 'aertop') | (zvar == 'aerbot')):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,:,cldhgt_idx,zen_idx,:,cldfrac_idx,:]
+                elif(zvar == 'cldhgt'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,:,zen_idx,:,cldfrac_idx,:]
+                elif(zvar == 'SolarZenith'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,cldhgt_idx,:,:,cldfrac_idx,:]
+                elif(zvar == 'CloudFrac'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,cldhgt_idx,zen_idx,:,:,:]
+            elif(xvar == 'CloudFrac'):
+                if((zvar == 'aertop') | (zvar == 'aerbot')):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,:,cldhgt_idx,zen_idx,cod_idx,:,:]
+                elif(zvar == 'cldhgt'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,:,zen_idx,cod_idx,:,:]
+                elif(zvar == 'SolarZenith'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,cldhgt_idx,:,cod_idx,:,:]
+                elif(zvar == 'CloudOptDepth'):
+                    local_data = fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,cldhgt_idx,zen_idx,:,:,:]
+
+            ##!#if((xvar == 'aertop') | (xvar == 'aerbot')):
+            ##!#    x_range = np.arange(len(fu_data[xvar]))
+            ##!#elif(xvar == 'cldhgt'):
+            ##!#    x_range = np.arange(len(fu_data[xvar]))
+            ##!#elif(xvar == 'SolarZenith'):
+            ##!#    x_range = np.arange(len(fu_data[xvar]))[::int(len(fu_data[xvar])/5)]
+            ##!#elif(xvar == 'CloudOptDepth'):
+            ##!#    x_range = np.arange(len(fu_data[xvar]))[::int(len(fu_data[xvar])/5)]
+            ##!#elif(xvar == 'CloudFrac'):
+            ##!#    x_range = np.arange(len(fu_data[xvar]))
+        
+            ##!#if((zvar == 'aertop') | (zvar == 'aerbot')):
+            ##!#    zrange = np.arange(len(fu_data[zvar]))
+            ##!#elif(zvar == 'cldhgt'):
+            ##!#    zrange = np.arange(len(fu_data[zvar]))
+            ##!#elif(zvar == 'SolarZenith'):
+            ##!#    zrange = np.arange(len(fu_data[zvar]))[::int(len(fu_data[zvar])/5)]
+            ##!#elif(zvar == 'CloudOptDepth'):
+            ##!#    zrange = np.arange(len(fu_data[zvar]))[::int(len(fu_data[zvar])/5)]
+            ##!#elif(zvar == 'CloudFrac'):
+            ##!#    zrange = np.arange(len(fu_data[zvar]))
+      
+        
+            x_range = np.arange(len(fu_data[xvar]))
+            zrange  = np.arange(len(fu_data[zvar]))
+ 
+            mesh_data = np.full((x_range.shape[0], zrange.shape[0]), np.nan)
+         
+            #for cldfrac_idx in range(fu_data['CloudFrac'].shape[0]):
+            print(zvar, zrange, fu_data[zvar][zrange])
+
+            if(zidx > xidx):
+                delt_swf_delt_aod = np.array([[local_data[x_idx, z_idx, -1] - \
+                    local_data[x_idx,z_idx,0] for x_idx in x_range ] \
+                    for z_idx in zrange])
+            else:
+                delt_swf_delt_aod = np.array([[local_data[z_idx, x_idx, -1] - \
+                    local_data[z_idx,x_idx,0] for x_idx in x_range ] \
+                    for z_idx in zrange])
+
+            if(divide_by_aod):
+                delt_swf_delt_aod = delt_swf_delt_aod / \
+                                    (fu_data['AOD'][-1] - fu_data['AOD'][0])
+
+            ##!#for z_idx in zrange: 
+            ##!#    for x_idx in x_range:
+            ##!#        if(zidx > xidx):
+            ##!#            delt_swf_delt_aod = local_data[x_idx,z_idx,-1] - local_data[x_idx,z_idx,0]
+            ##!#        else:
+            ##!#            delt_swf_delt_aod = local_data[z_idx,x_idx,-1] - local_data[z_idx,:,0]
+            ##!#        #delt_swf_delt_aod = (fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,cldhgt_idx,zen_idx,:,cldfrac_idx,-1] - \
+            ##!#        #                    fu_data[fu_var][aertype_idx,sfc_idx,aerhgt_idx,cldhgt_idx,zen_idx,:,cldfrac_idx,0])
+            ##!#        if(divide_by_aod):
+            ##!#            delt_swf_delt_aod = delt_swf_delt_aod / \
+            ##!#                               (fu_data['AOD'][-1] - fu_data['AOD'][0])
+
+            print('Xsize', x_range.shape, 'Zsize', zrange.shape, 'Data size', \
+                delt_swf_delt_aod.shape)
+
+            #ax.plot(fu_data['SolarZenith'], delt_swf_delt_aod)
+            mesh = axs[aertype_idx,sfc_idx].pcolormesh(fu_data[xvar], fu_data[zvar], \
+                delt_swf_delt_aod, shading = 'auto', cmap = 'viridis')
+            cbar = plt.colorbar(mesh, ax = axs[aertype_idx, sfc_idx], label = ylabel)   
+ 
+            #ax.set_xlabel('SZA')
+            axs[aertype_idx,sfc_idx].set_xlabel(xvar)
+            axs[aertype_idx,sfc_idx].set_ylabel(zvar)
+            #axs[aertype_idx,sfc_idx].set_title(sfc_types[sfc_idx])
+            axs[aertype_idx,sfc_idx].set_title(local_title + '\n' + local_sfctype)
+    
+    plt.suptitle(title_str)
+    fig.tight_layout()
+
+    if(save):
+        outname = 'fuliou_cloudaer_multivar_mesh_' + fu_var.lower() +'_' + \
+            xvar + '_' + zvar + name_str + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
 
 
 ##!## Reads the SBDART model profile. If infile is '', the default

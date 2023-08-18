@@ -347,7 +347,6 @@ def readNSIDC_monthly_grid_all(begin_date, end_date, season, minlat = 70., \
     NSIDC_data['lon'] = NSIDC_local['lon'] 
     NSIDC_data['area'] = NSIDC_local['area'] 
 
-
     NSIDC_data = grid_data_conc(NSIDC_data, minlat = minlat)
 
     if(calc_month == True):
@@ -355,6 +354,8 @@ def readNSIDC_monthly_grid_all(begin_date, end_date, season, minlat = 70., \
     
     NSIDC_data['data'] = np.ma.masked_where((NSIDC_data['data'] < 0) | \
         (NSIDC_data['data'] > 100), NSIDC_data['data'])
+    NSIDC_data['grid_land'] = np.ma.masked_where(\
+        (NSIDC_data['grid_ice_conc'] < 253), NSIDC_data['grid_ice_conc'])
     NSIDC_data['grid_ice_conc'] = np.ma.masked_where((NSIDC_data['grid_ice_conc'] < 0) | \
         (NSIDC_data['grid_ice_conc'] > 100), NSIDC_data['grid_ice_conc'])
     NSIDC_data['MONTH_CLIMO'] = np.ma.masked_where((NSIDC_data['MONTH_CLIMO'] < 0) | \
@@ -446,9 +447,12 @@ def readNSIDC_daily(date_str, grid_data = False):
         # --------------------
         in_data = Dataset(net_filename, 'r')
         if('F17_ICECON' in in_data.variables.keys()):
-            data = in_data['F17_ICECON'][0,:,:] * 100.
+            data = in_data['F17_ICECON'][0,:,:].data
+            data[data <= 1.0] = data[data <= 1.0] * 100.
+            #data = in_data['F17_ICECON'][0,:,:] * 100.
         elif('F13_ICECON' in in_data.variables.keys()):
-            data = in_data['F13_ICECON'][0,:,:] * 100.
+            data = in_data['F13_ICECON'][0,:,:].data
+            data[data <= 1.0] = data[data <= 1.0] * 100.
         else:
             print("ERROR: incorrect NSIDC ice variable name")
             in_data.close()
@@ -1406,6 +1410,8 @@ def grid_data_conc(NSIDC_data, minlat = 65.):
     lat_ranges  = np.arange(minlat,90.,1.0)
     grid_ice_conc    = np.full((len(NSIDC_data['data'][:,0,0]),\
         len(lat_ranges),len(lon_ranges)),-99.)
+    grid_land_conc    = np.full((len(NSIDC_data['data'][:,0,0]),\
+        len(lat_ranges),len(lon_ranges)),np.nan)
     grid_ice_area    = np.zeros((len(lat_ranges),len(lon_ranges)))
     grid_ice_area_trend    = np.full((len(lat_ranges),len(lon_ranges)),\
         -999.)
@@ -1445,22 +1451,26 @@ def grid_data_conc(NSIDC_data, minlat = 65.):
                             #                                 NSIDC_data['data'][nt,xi,yj])/(grid_ice_conc_cc[nt,lat_index,lon_index]+1.)
                             grid_ice_conc_cc[nt,lat_index,lon_index] += 1
                     else:
-                        if(nt==0): grid_ice_area[lat_index,lon_index] = np.nan
+                        grid_land_conc[nt,lat_index,lon_index] = \
+                            NSIDC_data['data'][nt,xi,yj]
+                        #if(nt==0): grid_ice_area[lat_index,lon_index] = np.nan
 
                     # end else
                 # end if good ice check
             # end y grid loop
         # end x grid loop
-        
-        # Calc averages here
-        final_grid_ice_conc = np.copy(grid_ice_conc)
-        final_grid_ice_conc[grid_ice_conc_cc > 0] = \
-            grid_ice_conc[grid_ice_conc_cc > 0] / \
-            grid_ice_conc_cc[grid_ice_conc_cc > 0]
-
     # end time loop 
+        
+    # Calc averages here
+    final_grid_ice_conc = np.copy(grid_ice_conc)
+    final_grid_ice_conc[grid_ice_conc_cc > 0] = \
+        grid_ice_conc[grid_ice_conc_cc > 0] / \
+        grid_ice_conc_cc[grid_ice_conc_cc > 0]
+    final_grid_land_conc = np.ma.masked_invalid(grid_land_conc)
+        
     xx, yy = np.meshgrid(lon_ranges, lat_ranges)
     NSIDC_data['grid_ice_conc'] = final_grid_ice_conc
+    NSIDC_data['grid_land_conc'] = final_grid_land_conc
     NSIDC_data['grid_ice_conc_cc'] = grid_ice_conc_cc
     NSIDC_data['grid_total_area'] = grid_ice_area
     NSIDC_data['grid_ice_area_trend'] = grid_ice_area_trend

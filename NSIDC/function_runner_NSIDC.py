@@ -13,12 +13,12 @@ import sys
 # Set up the overall figure
 # ----------------------------------------------------
 
-NSIDC_data = readNSIDC_daily('20180705')
-minlat = 65.
-writeNSIDC_to_HDF5(NSIDC_data, save_path = './', minlat = minlat, \
-    remove_empty_scans = True)
-
-sys.exit()
+##!#NSIDC_data = readNSIDC_daily('20180705')
+##!#minlat = 65.
+##!#writeNSIDC_to_HDF5(NSIDC_data, save_path = './', minlat = minlat, \
+##!#    remove_empty_scans = True)
+##!#
+##!#sys.exit()
 
 begin_date = '200504'
 end_date   = '202009'
@@ -26,6 +26,112 @@ season     = 'sunlight'
 NSIDC_data = readNSIDC_monthly_grid_all(begin_date, end_date, \
     season, calc_month = True)
 
+total_array    = np.full(len(NSIDC_data['dates']), np.nan)
+combined_array = np.full(len(NSIDC_data['dates']), np.nan)
+land_array     = np.full(len(NSIDC_data['dates']), np.nan)
+ocean_array    = np.full(len(NSIDC_data['dates']), np.nan)
+ice_array      = np.full(len(NSIDC_data['dates']), np.nan)
+mix_array      = np.full(len(NSIDC_data['dates']), np.nan)
+
+max_ice_for_ocean = 0
+min_ice_for_ice   = 80
+
+for tidx in range(len(NSIDC_data['dates'])):
+
+    # Figure out the total number of grid boxes here. 
+    # Land pixels also include pixels that are nonmissing in both land and ice data
+    total_pixels = np.where(\
+        (NSIDC_data['grid_land_conc'][tidx,:,:].mask == False) | \
+        (NSIDC_data['grid_ice_conc'][tidx,:,:].mask == False))[0].shape[0]
+    
+    combined_pixels = np.where(\
+        (NSIDC_data['grid_land_conc'][tidx,:,:].mask == False) & \
+        (NSIDC_data['grid_ice_conc'][tidx,:,:].mask == False))
+    num_combined = combined_pixels[0].shape[0]
+    # The land only pixels are 
+    land_only = np.where(\
+        (NSIDC_data['grid_land_conc'][tidx,:,:].mask == False) & \
+        (NSIDC_data['grid_ice_conc'][tidx,:,:].mask == True))
+    num_land = land_only[0].shape[0]
+    oceanice_only = np.where(\
+        (NSIDC_data['grid_land_conc'][tidx,:,:].mask == True) & \
+        (NSIDC_data['grid_ice_conc'][tidx,:,:].mask == False))
+    ocean_only = np.where( \
+        (((NSIDC_data['grid_land_conc'][tidx,:,:].mask == True) & \
+        (NSIDC_data['grid_ice_conc'][tidx,:,:].mask == False))) & 
+                           (NSIDC_data['grid_ice_conc'][tidx,:,:] <= max_ice_for_ocean))
+    num_ocean_only = ocean_only[0].shape[0]
+    ice_only   = np.where( \
+        (((NSIDC_data['grid_land_conc'][tidx,:,:].mask == True) & \
+        (NSIDC_data['grid_ice_conc'][tidx,:,:].mask == False))) & 
+                           (NSIDC_data['grid_ice_conc'][tidx,:,:] >= min_ice_for_ice))
+    num_ice_only = ice_only[0].shape[0]
+    mix_only   = np.where( \
+        (((NSIDC_data['grid_land_conc'][tidx,:,:].mask == True) & \
+        (NSIDC_data['grid_ice_conc'][tidx,:,:].mask == False))) & 
+                           ((NSIDC_data['grid_ice_conc'][tidx,:,:] > max_ice_for_ocean) &
+                           (NSIDC_data['grid_ice_conc'][tidx,:,:] < min_ice_for_ice))\
+        )
+    num_mix_only = mix_only[0].shape[0]
+  
+    total_array[tidx]    = total_pixels
+    combined_array[tidx] = num_combined
+    land_array[tidx]     = num_land
+    ocean_array[tidx]    = num_ocean_only
+    ice_array[tidx]      = num_ice_only
+    mix_array[tidx]      = num_mix_only
+
+    calc_total = num_combined + num_land + num_ocean_only + num_ice_only + num_mix_only
+
+    print(NSIDC_data['dates'][tidx], total_pixels, calc_total, num_combined, num_land, num_ocean_only,num_ice_only,num_mix_only)
+
+pcnt_combined = ((combined_array   / total_array) * 100.)[4::6]
+pcnt_land     = ((land_array       / total_array) * 100.)[4::6]
+pcnt_ocean    = ((ocean_array      / total_array) * 100.)[4::6]
+pcnt_ice      = ((ice_array        / total_array) * 100.)[4::6]
+pcnt_mix      = ((mix_array        / total_array) * 100.)[4::6]
+
+xvals = np.arange(NSIDC_data['data'][::6].shape[0])
+
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.bar(xvals, pcnt_combined, label = 'Combined')
+ax.bar(xvals, pcnt_land, bottom = pcnt_combined, label = 'Land')
+ax.bar(xvals, pcnt_ocean, bottom = pcnt_combined + pcnt_land, label = 'Ocean')
+ax.bar(xvals, pcnt_ice, bottom = pcnt_combined + pcnt_land + pcnt_ocean, label = 'Ice')
+ax.bar(xvals, pcnt_mix, bottom = pcnt_combined + pcnt_land + pcnt_ocean + pcnt_ice, \
+    label = 'Mix Ice/Ocn')
+
+ax.legend()
+fig.tight_layout()
+
+plt.show()
+ 
+sys.exit() 
+
+fig = plt.figure()
+ax1 = fig.add_subplot(1,2,1, projection = mapcrs)
+ax2 = fig.add_subplot(1,2,2, projection = mapcrs)
+
+ax1.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], NSIDC_data['grid_land_conc'][tidx,:,:], \
+    transform = datacrs, shading = 'auto')
+ax2.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], NSIDC_data['grid_ice_conc'][tidx,:,:], \
+    transform = datacrs, shading = 'auto')
+
+ax1.coastlines()
+ax2.coastlines()
+
+ax1.set_extent([-180, 180, 65, 90], datacrs)
+ax2.set_extent([-180, 180, 65, 90], datacrs)
+
+plt.suptitle(NSIDC_data['dates'][tidx])
+
+fig.tight_layout()
+
+plt.show()
+
+sys.exit()
 plotNSIDC_MonthTrend(NSIDC_data,month_idx=4,save=False,\
     trend_type='theil-sen',season='',minlat=70.,return_trend=False, \
     colorbar = True, colorbar_label_size = None,title = None, \

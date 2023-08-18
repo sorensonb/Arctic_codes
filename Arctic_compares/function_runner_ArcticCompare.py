@@ -454,21 +454,25 @@ dates = [
 
 #plot_aerosol_over_types(dates[102], min_AI = 2.0, ai_val = 'TROP_AI', save = False)
 #plot_aerosol_over_types(dates[125], min_AI = 2.0, ai_val = 'TROP_AI', save = False)
-fig = plt.figure(figsize = (9, 9))
-ax1 = fig.add_subplot(3,1,1)
-ax2 = fig.add_subplot(3,1,2)
-ax3 = fig.add_subplot(3,1,3)
-calc_pcnt_aerosol_over_type(dates, 1.5, ax = ax1)
-calc_pcnt_aerosol_over_type_dayavgs(data, 1.5, ax = ax2, hatch_cloud = True, plot_map = True)
-calc_pcnt_aerosol_over_type_dayavgs(data, 1.5, ax = ax3, area_calc = True)
 
-ax1.set_ylabel('Pcnt of OMI Pixels')
-ax2.set_ylabel('Pcnt of 0.5 deg. Grid Boxes')
-ax3.set_ylabel('Pcnt oF Aerosol Area')
 
-fig.tight_layout()
+plot_aerosol_over_type_combined(data, dates, min_ai = 1.5, save = False, plot_map = True)
 
-plt.show()
+##!#fig = plt.figure(figsize = (9, 6))
+##!#ax1 = fig.add_subplot(2,1,1)
+##!#ax2 = fig.add_subplot(2,1,2)
+##!##ax3 = fig.add_subplot(3,1,3)
+##!#calc_pcnt_aerosol_over_type(dates, 1.5, ax = ax1)
+##!#calc_pcnt_aerosol_over_type_dayavgs(data, 1.5, ax = ax2, area_calc = True, hatch_cloud = True, plot_map = False)
+##!##calc_pcnt_aerosol_over_type_dayavgs(data, 1.5, ax = ax3, area_calc = True, hatch_cloud = True)
+##!#
+##!#ax1.set_ylabel('Pcnt of OMI Pixels')
+##!##ax2.set_ylabel('Pcnt of 0.5 deg. Grid Boxes')
+##!#ax2.set_ylabel('Pcnt oF Aerosol Area')
+##!#
+##!#fig.tight_layout()
+##!#
+##!#plt.show()
 sys.exit()
 
 files = [data_path + date + '.hdf5' for date in dates]
