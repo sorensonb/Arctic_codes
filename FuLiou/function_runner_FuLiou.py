@@ -18,8 +18,8 @@ fu_data = read_fuliou_cloudaer_output(file_list)
 #    cldfrac_idx = 5, divide_by_aod = True, save = True)
 #plot_FuLiou_cloudaer_multivar_mesh(fu_data, 'SolarZenith', 'CloudOptDepth', fu_var = 'SWF_TOTAL', \
 plot_FuLiou_cloudaer_multivar_mesh(fu_data, 'CloudOptDepth', 'CloudFrac', fu_var = 'SWF_TOTAL', \
-    aerhgt_idx = 0, cldhgt_idx = 0, zen_idx = 0, cod_idx = 5, \
-    cldfrac_idx = 5, divide_by_aod = True, save = True)
+    aerhgt_idx = 0, cldhgt_idx = 0, zen_idx = 10, cod_idx = 5, \
+    cldfrac_idx = 5, divide_by_aod = True, save = False)
 
 
 sys.exit()

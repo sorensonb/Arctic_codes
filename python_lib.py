@@ -168,6 +168,15 @@ def convert_radiance_to_temp(lmbda, radiance):
 
     return data
 
+def lat_lon_area(lat1,lat0,lon1,lon0):
+
+    pi = 3.1415926535
+
+    area_out = (pi/180.) * (6371.**2.) * abs(np.sin(lat1 * pi/180.) - \
+               np.sin(lat0 * pi/180.)) * abs(lon1 - lon0)
+
+    return area_out
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
 # Plotting functions
@@ -361,7 +370,7 @@ def plot_subplot_label(ax, label, xval = None, yval = None, transform = None, \
 
 def plot_figure_text(ax, text, xval = None, yval = None, transform = None, \
         color = 'black', fontsize = 12, backgroundcolor = 'white',\
-        halign = 'left', location = 'lower_right'):
+        halign = 'left', location = 'lower_right', weight = ''):
 
     if(location == 'lower_right'):
         if(xval is None):
@@ -372,18 +381,24 @@ def plot_figure_text(ax, text, xval = None, yval = None, transform = None, \
         if(xval is None):
             xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * 0.95
         if(yval is None):
-            yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.90
+            yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.80
+            #yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.90
+    elif((location == 'mid_left') | (location == 'middle_left')):
+        if(xval is None):
+            xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * 0.1
+        if(yval is None):
+            yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.50
 
     print('Xval = ',xval, 'Yval = ',yval)
 
     if(transform is None):
         ax.text(xval,yval,text, \
-            color=color, weight='bold', \
+            color=color, weight=weight, \
             fontsize=fontsize, backgroundcolor = backgroundcolor, \
             horizontalalignment = halign)
     else:
         ax.text(xval,yval,text, \
-            color=color, weight='bold', \
+            color=color, weight=weight, \
             transform = transform, fontsize=fontsize, \
             backgroundcolor = backgroundcolor, \
             horizontalalignment = halign)

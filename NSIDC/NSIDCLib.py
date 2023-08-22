@@ -34,7 +34,7 @@ home_dir = os.environ['HOME']
 sys.path.append(home_dir)
 from python_lib import circle, plot_trend_line, nearest_gridpoint, \
     aerosol_event_dict, init_proj, plot_lat_circles, plot_figure_text, \
-    plot_subplot_label
+    plot_subplot_label, lat_lon_area
 
 data_dir = home_dir + '/data/NSIDC/'
 datacrs = ccrs.PlateCarree()
@@ -274,10 +274,8 @@ def download_NSIDC_monthly(date_str, save_dir = data_dir + 'monthly/'):
         os.system(total_cmnd)
 
 def readNSIDC_monthly_grid_all(begin_date, end_date, season, minlat = 70., \
-        calc_month = True):
+        maxlat = 90., calc_month = True):
 
-    NSIDC_data = {}
-  
     spring=False
     summer=False
     autumn=False
@@ -294,7 +292,6 @@ def readNSIDC_monthly_grid_all(begin_date, end_date, season, minlat = 70., \
     elif(season=='sunlight'):
         sunlight=True
    
-
     # Grab all the files
     base_path = home_dir + '/data/NSIDC/monthly/'
     total_list = sorted(glob.glob(base_path+'*.nc')) 
@@ -339,38 +336,61 @@ def readNSIDC_monthly_grid_all(begin_date, end_date, season, minlat = 70., \
 
     for ii, work_str in enumerate(dates):
         #work_str = ffile[0].strip().split('/')[-1].split('_')[-2]
-        NSIDC_local = readNSIDC_monthly(work_str)
+        NSIDC_local = readNSIDC_monthly(work_str, maxlat = maxlat)
 
         NSIDC_data['data'][ii,:,:] = NSIDC_local['data']
+        NSIDC_data['maxlat'] = maxlat
    
     NSIDC_data['lat'] = NSIDC_local['lat'] 
     NSIDC_data['lon'] = NSIDC_local['lon'] 
     NSIDC_data['area'] = NSIDC_local['area'] 
 
-    NSIDC_data = grid_data_conc(NSIDC_data, minlat = minlat)
+    NSIDC_data = grid_data_conc(NSIDC_data, minlat = minlat, maxlat = maxlat)
 
     if(calc_month == True):
         NSIDC_data = calcNSIDC_MonthClimo(NSIDC_data)
-    
+   
+    # Process the original 25x25 data
+    # ------------------------------- 
+    NSIDC_data['pole_hole'] = np.ma.masked_where((NSIDC_data['data'] != 251), \
+        NSIDC_data['data'])
+    NSIDC_data['unused'] = np.ma.masked_where((NSIDC_data['data'] != 252), \
+        NSIDC_data['data'])
+    NSIDC_data['coastline'] = np.ma.masked_where((NSIDC_data['data'] != 253), \
+        NSIDC_data['data'])
+    NSIDC_data['land'] = np.ma.masked_where((NSIDC_data['data'] != 254), \
+        NSIDC_data['data'])
     NSIDC_data['data'] = np.ma.masked_where((NSIDC_data['data'] < 0) | \
         (NSIDC_data['data'] > 100), NSIDC_data['data'])
-    NSIDC_data['grid_land'] = np.ma.masked_where(\
-        (NSIDC_data['grid_ice_conc'] < 253), NSIDC_data['grid_ice_conc'])
+
+    # Process the 1x1 gridded data
+    # ---------------------------- 
+    ##!#NSIDC_data['grid_pole_hole'] = np.ma.masked_where(\
+    ##!#    (NSIDC_data['grid_ice_conc'] != 251), NSIDC_data['grid_ice_conc'])
+    ##!#NSIDC_data['grid_unused'] = np.ma.masked_where(\
+    ##!#    (NSIDC_data['grid_ice_conc'] != 252), NSIDC_data['grid_ice_conc'])
+    ##!#NSIDC_data['grid_coastline'] = np.ma.masked_where(\
+    ##!#    (NSIDC_data['grid_ice_conc'] != 253), NSIDC_data['grid_ice_conc'])
+    ##!#NSIDC_data['grid_land'] = np.ma.masked_where(\
+    ##!#    (NSIDC_data['grid_ice_conc'] != 254), NSIDC_data['grid_ice_conc'])
     NSIDC_data['grid_ice_conc'] = np.ma.masked_where((NSIDC_data['grid_ice_conc'] < 0) | \
         (NSIDC_data['grid_ice_conc'] > 100), NSIDC_data['grid_ice_conc'])
     NSIDC_data['MONTH_CLIMO'] = np.ma.masked_where((NSIDC_data['MONTH_CLIMO'] < 0) | \
         (NSIDC_data['MONTH_CLIMO'] > 100), NSIDC_data['MONTH_CLIMO'])
 
-    return NSIDC_data
-
-
-def readNSIDC_monthly(date_str, grid_data = False):
-
-    NSIDC_data = readNSIDC_daily(date_str, grid_data = grid_data)
+    NSIDC_data['minlat'] = minlat
+    NSIDC_data['maxlat'] = maxlat
 
     return NSIDC_data
 
-def readNSIDC_daily(date_str, grid_data = False):
+
+def readNSIDC_monthly(date_str, grid_data = False, maxlat = 90.):
+
+    NSIDC_data = readNSIDC_daily(date_str, grid_data = grid_data, maxlat = maxlat)
+
+    return NSIDC_data
+
+def readNSIDC_daily(date_str, grid_data = False, maxlat = 90):
 
     if(len(date_str) == 8):
         str_fmt = '%Y%m%d'
@@ -460,12 +480,14 @@ def readNSIDC_daily(date_str, grid_data = False):
 
         in_data.close()
 
+    data = np.ma.masked_where(lats >= maxlat, data)
     NSIDC_data = {}
     NSIDC_data['data'] = data
     NSIDC_data['lat']  = lats
     NSIDC_data['lon']  = lons
     NSIDC_data['area']  = areas
     NSIDC_data['date'] = date_str
+    NSIDC_data['maxlat'] = maxlat
 
     if(grid_data):
         NSIDC_data = grid_NSIDC_data(NSIDC_data)
@@ -1405,9 +1427,13 @@ def ice_gridtrendCalc(NSIDC_data,area=True,thielSen=False):
 
 # grid_data_conc grids the 25x25 km gridded ice concentration data into
 # a 1x1 degree lat/lon grid
-def grid_data_conc(NSIDC_data, minlat = 65.):
+def grid_data_conc(NSIDC_data, minlat = 65., maxlat = 90):
     lon_ranges  = np.arange(-180.,180.,1.0)
-    lat_ranges  = np.arange(minlat,90.,1.0)
+    lat_ranges  = np.arange(minlat,maxlat,1.0)
+
+    #lon_ranges += 0.5
+    #lat_ranges += 0.5
+
     grid_ice_conc    = np.full((len(NSIDC_data['data'][:,0,0]),\
         len(lat_ranges),len(lon_ranges)),-99.)
     grid_land_conc    = np.full((len(NSIDC_data['data'][:,0,0]),\
@@ -1417,6 +1443,14 @@ def grid_data_conc(NSIDC_data, minlat = 65.):
         -999.)
     grid_ice_conc_cc = np.full((len(NSIDC_data['data'][:,0,0]),\
         len(lat_ranges),len(lon_ranges)),-999.)
+    grid_pole_hole_cc = np.full((len(NSIDC_data['data'][:,0,0]),\
+        len(lat_ranges),len(lon_ranges)),-999.)
+    grid_unused_cc = np.full((len(NSIDC_data['data'][:,0,0]),\
+        len(lat_ranges),len(lon_ranges)),-999.)
+    grid_coastline_cc = np.full((len(NSIDC_data['data'][:,0,0]),\
+        len(lat_ranges),len(lon_ranges)),-999.)
+    grid_land_cc = np.full((len(NSIDC_data['data'][:,0,0]),\
+        len(lat_ranges),len(lon_ranges)),-999.)
     print("Size of grid array: ",grid_ice_conc.shape)
     for nt in range(len(NSIDC_data['data'][:,0,0])):
         print(nt)
@@ -1424,7 +1458,7 @@ def grid_data_conc(NSIDC_data, minlat = 65.):
             # Don't grid the data if any portion of the lat/lon box is over land.
             # Don't include land data
             for yj in range(304):
-                if(NSIDC_data['lat'][xi,yj] > minlat):
+                if((NSIDC_data['lat'][xi,yj] > minlat) & (NSIDC_data['lat'][xi,yj] < maxlat)):
                     lat_index = np.where(np.floor(NSIDC_data['lat'][xi,yj])>=\
                         lat_ranges)[-1][-1]
                     lon_index = np.where(np.floor(NSIDC_data['lon'][xi,yj])>=\
@@ -1436,7 +1470,27 @@ def grid_data_conc(NSIDC_data, minlat = 65.):
                     #    print("Current grid area = ",grid_ice_area[lat_index,lon_index])
                     #if((lat_index==20) & (lon_index==10)):
                     #    print("    New grid area = ",grid_ice_area[lat_index,lon_index])
-                    if(NSIDC_data['data'][nt,xi,yj] < 251):
+                    if(NSIDC_data['data'][nt,xi,yj] == 251):
+                        if(grid_pole_hole_cc[nt,lat_index,lon_index] == -999.):
+                            grid_pole_hole_cc[nt,lat_index,lon_index] = 1
+                        else:
+                            grid_pole_hole_cc[nt,lat_index,lon_index] += 1
+                    elif(NSIDC_data['data'][nt,xi,yj] == 252):
+                        if(grid_unused_cc[nt,lat_index,lon_index] == -999.):
+                            grid_unused_cc[nt,lat_index,lon_index] = 1
+                        else:
+                            grid_unused_cc[nt,lat_index,lon_index] += 1
+                    elif(NSIDC_data['data'][nt,xi,yj] == 253):
+                        if(grid_coastline_cc[nt,lat_index,lon_index] == -999.):
+                            grid_coastline_cc[nt,lat_index,lon_index] = 1
+                        else:
+                            grid_coastline_cc[nt,lat_index,lon_index] += 1
+                    elif(NSIDC_data['data'][nt,xi,yj] == 254):
+                        if(grid_land_cc[nt,lat_index,lon_index] == -999.):
+                            grid_land_cc[nt,lat_index,lon_index] = 1
+                        else:
+                            grid_land_cc[nt,lat_index,lon_index] += 1
+                    elif(NSIDC_data['data'][nt,xi,yj] < 251):
                         if(nt==0): 
                             grid_ice_area[lat_index,lon_index] += \
                             NSIDC_data['area'][xi,yj]
@@ -1447,12 +1501,16 @@ def grid_data_conc(NSIDC_data, minlat = 65.):
                         else:
                             grid_ice_conc[nt,lat_index,lon_index] += \
                                 NSIDC_data['data'][nt,xi,yj]
-                            #grid_ice_conc[nt,lat_index,lon_index] = ((grid_ice_conc[nt,lat_index,lon_index]*grid_ice_conc_cc[nt,lat_index,lon_index])+\
-                            #                                 NSIDC_data['data'][nt,xi,yj])/(grid_ice_conc_cc[nt,lat_index,lon_index]+1.)
                             grid_ice_conc_cc[nt,lat_index,lon_index] += 1
+                            #grid_ice_conc[nt,lat_index,lon_index] = \
+                            #((grid_ice_conc[nt,lat_index,lon_index]*\
+                            #grid_ice_conc_cc[nt,lat_index,lon_index])+\
+                            #NSIDC_data['data'][nt,xi,yj])/\
+                            #(grid_ice_conc_cc[nt,lat_index,lon_index]+1.)
                     else:
-                        grid_land_conc[nt,lat_index,lon_index] = \
-                            NSIDC_data['data'][nt,xi,yj]
+                        print("WARNING: SHOULD NOT FIND NSIDC PIXELS HERE")
+                        #grid_land_conc[nt,lat_index,lon_index] = \
+                        #    NSIDC_data['data'][nt,xi,yj]
                         #if(nt==0): grid_ice_area[lat_index,lon_index] = np.nan
 
                     # end else
@@ -1466,16 +1524,61 @@ def grid_data_conc(NSIDC_data, minlat = 65.):
     final_grid_ice_conc[grid_ice_conc_cc > 0] = \
         grid_ice_conc[grid_ice_conc_cc > 0] / \
         grid_ice_conc_cc[grid_ice_conc_cc > 0]
-    final_grid_land_conc = np.ma.masked_invalid(grid_land_conc)
-        
+
+    final_pole_hole = np.where((grid_pole_hole_cc != -999.) & \
+        ((grid_pole_hole_cc > grid_unused_cc) & \
+         (grid_pole_hole_cc > grid_coastline_cc) & \
+         (grid_pole_hole_cc > grid_land_cc)), \
+        251, np.nan)
+    final_unused = np.where((grid_unused_cc != -999.) & \
+        ((grid_unused_cc > grid_pole_hole_cc) & \
+         (grid_unused_cc > grid_coastline_cc) & \
+         (grid_unused_cc > grid_land_cc)), \
+        252, np.nan)
+    final_coastline = np.where((grid_coastline_cc != -999.) & \
+        ((grid_coastline_cc > grid_pole_hole_cc) & \
+         (grid_coastline_cc > grid_unused_cc) & \
+         (grid_coastline_cc > grid_land_cc)), \
+        253, np.nan)
+    final_land = np.where((grid_land_cc != -999.) & \
+        ((grid_land_cc >= grid_pole_hole_cc) & \
+         (grid_land_cc >= grid_unused_cc) & \
+         (grid_land_cc >= grid_coastline_cc)), \
+        254, np.nan)
+
+    final_pole_hole = np.ma.masked_invalid(final_pole_hole)
+    final_unused    = np.ma.masked_invalid(final_unused)
+    final_coastline = np.ma.masked_invalid(final_coastline)
+    final_land      = np.ma.masked_invalid(final_land)
+       
+    #print("HERE:", final_pole_hole.compressed().shape, final_unused.compressed().shape, \
+    #    final_coastline.compressed().shape, final_land.compressed().shape)
+ 
+    # Calculate the areas of each grid box
+    # ------------------------------------
+    lat_ranges += 0.5
+    lon_ranges += 0.5
+    grid_areas = np.array([[lat_lon_area(tlat+0.5, tlat-0.5, tlon+0.5, tlon-0.5) \
+        for tlon in lon_ranges] for tlat in lat_ranges])
+
     xx, yy = np.meshgrid(lon_ranges, lat_ranges)
-    NSIDC_data['grid_ice_conc'] = final_grid_ice_conc
-    NSIDC_data['grid_land_conc'] = final_grid_land_conc
-    NSIDC_data['grid_ice_conc_cc'] = grid_ice_conc_cc
-    NSIDC_data['grid_total_area'] = grid_ice_area
+    NSIDC_data['grid_ice_conc']       = final_grid_ice_conc
+    NSIDC_data['grid_pole_hole']      = final_pole_hole
+    NSIDC_data['grid_unused']         = final_unused
+    NSIDC_data['grid_coastline']      = final_coastline
+    NSIDC_data['grid_land']           = final_land
+    NSIDC_data['grid_pole_hole_cc']   = grid_pole_hole_cc
+    NSIDC_data['grid_unused_cc']      = grid_unused_cc
+    NSIDC_data['grid_coastline_cc']   = grid_coastline_cc
+    NSIDC_data['grid_land_cc']        = grid_land_cc
+    NSIDC_data['grid_total_area']     = grid_ice_area
     NSIDC_data['grid_ice_area_trend'] = grid_ice_area_trend
     NSIDC_data['grid_lat'] = yy
     NSIDC_data['grid_lon'] = xx
+    NSIDC_data['grid_area'] = grid_areas
+
+    #print("HERE AGAIN:", NSIDC_data['grid_pole_hole'].compressed().shape, NSIDC_data['grid_unused'].compressed().shape, \
+    #    NSIDC_data['grid_coastline'].compressed().shape, NSIDC_data['grid_land'].compressed().shape)
     
     return NSIDC_data
 
@@ -1824,7 +1927,414 @@ def plot_apr_sep_changes(NSIDC_data):
     plt.show()
     plt.close()
 
+def calc_NSIDC_sfc_type_coverages(NSIDC_data, max_ice_for_ocean = 0, \
+        min_ice_for_ice = 80, use_area = True, use_pcnt = True):
+
+    total_array     = np.full(len(NSIDC_data['dates']), np.nan)
+    combined_array  = np.full(len(NSIDC_data['dates']), np.nan)
+    coastline_array = np.full(len(NSIDC_data['dates']), np.nan)
+    land_array      = np.full(len(NSIDC_data['dates']), np.nan)
+    ocean_array     = np.full(len(NSIDC_data['dates']), np.nan)
+    ice_array       = np.full(len(NSIDC_data['dates']), np.nan)
+    mix_array       = np.full(len(NSIDC_data['dates']), np.nan)
+    
+    for tidx in range(len(NSIDC_data['dates'])):
+    
+        # Figure out the total number of grid boxes here. 
+        # Land pixels also include pixels that are nonmissing in both land and ice data
+        type_dict = calc_NSIDC_sfc_types(NSIDC_data, tidx, \
+            max_ice_for_ocean = max_ice_for_ocean, \
+            min_ice_for_ice   = min_ice_for_ice, \
+            use_grid_data = use_area
+            )
+     
+        if(use_area):
+            total_array[tidx]    = sum(NSIDC_data['grid_area'][type_dict['total_idxs']])
+            combined_array[tidx] = sum(NSIDC_data['grid_area'][type_dict['combined_idxs']])
+            land_array[tidx]     = sum(NSIDC_data['grid_area'][type_dict['land_idxs']])
+            ocean_array[tidx]    = sum(NSIDC_data['grid_area'][type_dict['ocean_idxs']])
+            ice_array[tidx]      = sum(NSIDC_data['grid_area'][type_dict['ice_idxs']])
+            mix_array[tidx]      = sum(NSIDC_data['grid_area'][type_dict['mix_idxs']])
+    
+            calc_total = sum(NSIDC_data['grid_area'][type_dict['combined_idxs']]) + \
+                         sum(NSIDC_data['grid_area'][type_dict['land_idxs']]) + \
+                         sum(NSIDC_data['grid_area'][type_dict['ocean_idxs']]) + \
+                         sum(NSIDC_data['grid_area'][type_dict['ice_idxs']]) + \
+                         sum(NSIDC_data['grid_area'][type_dict['mix_idxs']])
+    
+        else: 
+            total_array[tidx]    = type_dict['total_pixels']
+            combined_array[tidx] = type_dict['num_combined']
+            combined_array[tidx] = type_dict['num_combined']
+            land_array[tidx]     = type_dict['num_land']
+            ocean_array[tidx]    = type_dict['num_ocean_only']
+            ice_array[tidx]      = type_dict['num_ice_only']
+            mix_array[tidx]      = type_dict['num_mix_only']
+    
+            calc_total = type_dict['num_combined'] + \
+                         type_dict['num_land'] + \
+                         type_dict['num_ocean_only'] + \
+                         type_dict['num_ice_only'] + \
+                         type_dict['num_mix_only']
+    
+        print(NSIDC_data['dates'][tidx], type_dict['total_pixels'], calc_total, type_dict['num_combined'] + \
+              type_dict['num_land'], type_dict['num_ocean_only'],type_dict['num_ice_only'],type_dict['num_mix_only'])
+   
+    if(use_pcnt): 
+        pcnt_combined = ((combined_array   / total_array) * 100.)
+        pcnt_land     = ((land_array       / total_array) * 100.)
+        pcnt_ocean    = ((ocean_array      / total_array) * 100.)
+        pcnt_ice      = ((ice_array        / total_array) * 100.)
+        pcnt_mix      = ((mix_array        / total_array) * 100.)
+    else:
+        pcnt_combined = combined_array
+        pcnt_land     = land_array    
+        pcnt_ocean    = ocean_array   
+        pcnt_ice      = ice_array     
+        pcnt_mix      = mix_array     
+
+    out_dict = {}
+    out_dict['pcnt_combined'] = pcnt_combined    
+    out_dict['pcnt_land']     = pcnt_land    
+    out_dict['pcnt_ocean']    = pcnt_ocean
+    out_dict['pcnt_ice']      = pcnt_ice
+    out_dict['pcnt_mix']      = pcnt_mix
+    out_dict['use_area']      = use_area
+    out_dict['use_pcnt']      = use_pcnt
+    
+    return out_dict
+
+def calc_NSIDC_sfc_types(NSIDC_data, tidx, max_ice_for_ocean = 0, \
+        min_ice_for_ice = 80, use_grid_data = False):
+
+    if(use_grid_data):
+        total_idx = np.where(\
+            (NSIDC_data['grid_pole_hole'][tidx,:,:].mask == False) | \
+            #(NSIDC_data['grid_unused'][tidx,:,:].mask == False) | \
+            (NSIDC_data['grid_coastline'][tidx,:,:].mask == False) | \
+            (NSIDC_data['grid_land'][tidx,:,:].mask == False) | \
+            (NSIDC_data['grid_ice_conc'][tidx,:,:].mask == False))
+        total_pixels = np.where(\
+            (NSIDC_data['grid_pole_hole'][tidx,:,:].mask == False) | \
+            #(NSIDC_data['grid_unused'][tidx,:,:].mask == False) | \
+            (NSIDC_data['grid_coastline'][tidx,:,:].mask == False) | \
+            (NSIDC_data['grid_land'][tidx,:,:].mask == False) | \
+            (NSIDC_data['grid_ice_conc'][tidx,:,:].mask == False))[0].shape[0]
+        combined_pixels = np.where(\
+            (NSIDC_data['grid_pole_hole'][tidx,:,:].mask == False) & \
+            #(NSIDC_data['grid_unused'][tidx,:,:].mask == False) & \
+            (NSIDC_data['grid_coastline'][tidx,:,:].mask == False) & \
+            (NSIDC_data['grid_land'][tidx,:,:].mask == False) & \
+            (NSIDC_data['grid_ice_conc'][tidx,:,:].mask == False))
+        num_combined = combined_pixels[0].shape[0]
+        # The land only pixels are either "land" or "coastline"
+        pole_unused = np.where(\
+            ((NSIDC_data['grid_pole_hole'][tidx,:,:].mask == False) | \
+            (NSIDC_data['grid_unused'][tidx,:,:].mask == False)) & \
+            (NSIDC_data['grid_ice_conc'][tidx,:,:].mask == True))
+        num_pole_unused = pole_unused[0].shape[0]
+        land_only = np.where(\
+            ((NSIDC_data['grid_coastline'][tidx,:,:].mask == False) | \
+            (NSIDC_data['grid_land'][tidx,:,:].mask == False)) & \
+            (NSIDC_data['grid_ice_conc'][tidx,:,:].mask == True))
+        num_land = land_only[0].shape[0]
+        oceanice_only = np.where(\
+            (NSIDC_data['grid_land'][tidx,:,:].mask == True) & \
+            (NSIDC_data['grid_ice_conc'][tidx,:,:].mask == False))
+        ocean_only = np.where( \
+            (((NSIDC_data['grid_land'][tidx,:,:].mask == True) & \
+            (NSIDC_data['grid_ice_conc'][tidx,:,:].mask == False))) & 
+                               (NSIDC_data['grid_ice_conc'][tidx,:,:] <= max_ice_for_ocean))
+        num_ocean_only = ocean_only[0].shape[0]
+        ice_only   = np.where( \
+            (((NSIDC_data['grid_land'][tidx,:,:].mask == True) & \
+            (NSIDC_data['grid_ice_conc'][tidx,:,:].mask == False))) & 
+                               (NSIDC_data['grid_ice_conc'][tidx,:,:] >= min_ice_for_ice))
+        num_ice_only = ice_only[0].shape[0]
+        mix_only   = np.where( \
+            (((NSIDC_data['grid_land'][tidx,:,:].mask == True) & \
+            (NSIDC_data['grid_ice_conc'][tidx,:,:].mask == False))) & 
+                               ((NSIDC_data['grid_ice_conc'][tidx,:,:] > max_ice_for_ocean) &
+                               (NSIDC_data['grid_ice_conc'][tidx,:,:] < min_ice_for_ice))\
+            )
+        num_mix_only = mix_only[0].shape[0]
+
+    else:
+        total_pixels = np.where(\
+            (NSIDC_data['pole_hole'][tidx,:,:].mask == False) | \
+            #(NSIDC_data['grid_unused'][tidx,:,:].mask == False) | \
+            (NSIDC_data['coastline'][tidx,:,:].mask == False) | \
+            (NSIDC_data['land'][tidx,:,:].mask == False) | \
+            (NSIDC_data['data'][tidx,:,:].mask == False))[0].shape[0]
+        combined_pixels = np.where(\
+            (NSIDC_data['pole_hole'][tidx,:,:].mask == False) & \
+            #(NSIDC_data['grid_unused'][tidx,:,:].mask == False) & \
+            (NSIDC_data['coastline'][tidx,:,:].mask == False) & \
+            (NSIDC_data['land'][tidx,:,:].mask == False) & \
+            (NSIDC_data['data'][tidx,:,:].mask == False))
+        num_combined = combined_pixels[0].shape[0]
+        # The land only pixels are either "land" or "coastline"
+        pole_unused = np.where(\
+            ((NSIDC_data['pole_hole'][tidx,:,:].mask == False) | \
+            (NSIDC_data['unused'][tidx,:,:].mask == False)) & \
+            (NSIDC_data['data'][tidx,:,:].mask == True))
+        num_pole_unused = pole_unused[0].shape[0]
+        land_only = np.where(\
+            ((NSIDC_data['coastline'][tidx,:,:].mask == False) | \
+            (NSIDC_data['land'][tidx,:,:].mask == False)) & \
+            (NSIDC_data['data'][tidx,:,:].mask == True))
+        num_land = land_only[0].shape[0]
+        oceanice_only = np.where(\
+            (NSIDC_data['land'][tidx,:,:].mask == True) & \
+            (NSIDC_data['data'][tidx,:,:].mask == False))
+        ocean_only = np.where( \
+            (((NSIDC_data['land'][tidx,:,:].mask == True) & \
+            (NSIDC_data['data'][tidx,:,:].mask == False))) & 
+                               (NSIDC_data['data'][tidx,:,:] <= max_ice_for_ocean))
+        num_ocean_only = ocean_only[0].shape[0]
+        ice_only   = np.where( \
+            (((NSIDC_data['land'][tidx,:,:].mask == True) & \
+            (NSIDC_data['data'][tidx,:,:].mask == False))) & 
+                               (NSIDC_data['data'][tidx,:,:] >= min_ice_for_ice))
+        num_ice_only = ice_only[0].shape[0]
+        mix_only   = np.where( \
+            (((NSIDC_data['land'][tidx,:,:].mask == True) & \
+            (NSIDC_data['data'][tidx,:,:].mask == False))) & 
+                               ((NSIDC_data['data'][tidx,:,:] > max_ice_for_ocean) &
+                                (NSIDC_data['data'][tidx,:,:] < min_ice_for_ice))\
+            )
+        num_mix_only = mix_only[0].shape[0]
+
+    out_dict = {}
+    out_dict['total_idxs']    = total_idx
+    out_dict['total_pixels']  = total_pixels
+    out_dict['combined_idxs'] = combined_pixels
+    out_dict['num_combined']  = num_combined
+    out_dict['pole_idxs']     = pole_unused
+    out_dict['num_pole']      = num_pole_unused
+    out_dict['land_idxs']     = land_only
+    out_dict['num_land']      = num_land
+    out_dict['ocean_idxs']    = ocean_only
+    out_dict['num_ocean_only']     = num_ocean_only
+    out_dict['ice_idxs']      = ice_only
+    out_dict['num_ice_only']       = num_ice_only
+    out_dict['mix_idxs']      = mix_only
+    out_dict['num_mix_only']       = num_mix_only
+
+    return out_dict
+
+# Plots the surface types for a given month
+# NSIDC_data: monthly data object
+def plot_NSIDC_month_sfc_types(NSIDC_data, date_str, ax = None, save = False, \
+        use_grid_data = False):
+
+    # Figure out the matching index
+    # ------------------------------
+    tidx = np.where(np.array(NSIDC_data['dates']) == date_str)[0][0]
+
+    type_dict = calc_NSIDC_sfc_types(NSIDC_data, tidx, \
+        use_grid_data = use_grid_data)
+
+    var_add = ''
+    if(use_grid_data):
+        var_add = 'grid_'
+    ones   = np.full(NSIDC_data[var_add + 'lon'].shape, np.nan)
+    twos   = np.full(NSIDC_data[var_add + 'lon'].shape, np.nan)
+    threes = np.full(NSIDC_data[var_add + 'lon'].shape, np.nan)
+    fours  = np.full(NSIDC_data[var_add + 'lon'].shape, np.nan)
+    fives  = np.full(NSIDC_data[var_add + 'lon'].shape, np.nan)
+    sixs   = np.full(NSIDC_data[var_add + 'lon'].shape, np.nan)
+  
+    ones[type_dict['combined_idxs']] = 1.
+    twos[type_dict['land_idxs']]     = 2. 
+    threes[type_dict['ocean_idxs']]  = 3. 
+    fours[type_dict['ice_idxs']]     = 4. 
+    fives[type_dict['mix_idxs']]     = 5.
+    sixs[type_dict['pole_idxs']]     = 6.
+ 
+    #ones = np.ma.masked_where(type_dict['combined_idxs'].mask == False, \
+    #    ones)
+    #twos = np.ma.masked_where(type_dict['land_idxs'].mask == False, \
+    #    twos)
+    #three = np.ma.masked_where(type_dict['ocean_idxs'].mask == False, \
+    #    threes)
+    #fours = np.ma.masked_where(type_dict['ice_idxs'].mask == False, \
+    #    fours)
+    #fives = np.ma.masked_where(type_dict['mix_idxs'].mask == False, \
+    #    fives)
+
+    ones   = np.ma.masked_invalid(ones)
+    twos   = np.ma.masked_invalid(twos)
+    threes = np.ma.masked_invalid(threes)
+    fours  = np.ma.masked_invalid(fours)
+    fives  = np.ma.masked_invalid(fives)
+    sixs   = np.ma.masked_invalid(sixs)
+    #ones = np.ma.masked_where(mask_ice.mask == True, base_ones).T
 
 
+    in_ax = True 
+    if(ax is None): 
+        in_ax = False
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1,projection = mapcrs)
 
+    ax.pcolormesh(NSIDC_data[var_add + 'lon'], NSIDC_data[var_add + 'lat'], \
+        ones, transform = datacrs, shading = 'auto', \
+        vmin = 1, vmax = 10, cmap = 'tab10', label = 'Coastline')
+    ax.pcolormesh(NSIDC_data[var_add + 'lon'], NSIDC_data[var_add + 'lat'], \
+        twos, transform = datacrs, shading = 'auto', \
+        vmin = 1, vmax = 10, cmap = 'tab10', label = 'Land')
+    ax.pcolormesh(NSIDC_data[var_add + 'lon'], NSIDC_data[var_add + 'lat'], \
+        threes, transform = datacrs, shading = 'auto', \
+        vmin = 1, vmax = 10, cmap = 'tab10', label = 'Ocean')
+    ax.pcolormesh(NSIDC_data[var_add + 'lon'], NSIDC_data[var_add + 'lat'], \
+        fours, transform = datacrs, shading = 'auto', \
+        vmin = 1, vmax = 10, cmap = 'tab10', label = 'Ice')
+    ax.pcolormesh(NSIDC_data[var_add + 'lon'], NSIDC_data[var_add + 'lat'], \
+        fives, transform = datacrs, shading = 'auto', \
+        vmin = 1, vmax = 10, cmap = 'tab10', label = 'Mix')
+    ax.pcolormesh(NSIDC_data[var_add + 'lon'], NSIDC_data[var_add + 'lat'], \
+        sixs, transform = datacrs, shading = 'auto', \
+        vmin = 1, vmax = 10, cmap = 'tab10', label = 'Pole')
+
+    ax.coastlines()
+    ax.set_extent([-180, 180, 65, 90], datacrs)
+    
+    if(not in_ax):
+        fig.tight_layout()
+        plt.show()
+
+
+def plot_NSIDC_sfc_type_change_bar(NSIDC_data, max_ice_for_ocean = 0, \
+        min_ice_for_ice = 80, use_area = True, use_pcnt = True, save = False):
+
+
+    pcnt_coverages =  calc_NSIDC_sfc_type_coverages(NSIDC_data, \
+            max_ice_for_ocean = max_ice_for_ocean, \
+            min_ice_for_ice = min_ice_for_ice, \
+            use_area = use_area, use_pcnt = True)
+    
+    pcnt_combined = pcnt_coverages['pcnt_combined']
+    pcnt_land     = pcnt_coverages['pcnt_land']
+    pcnt_ocean    = pcnt_coverages['pcnt_ocean']
+    pcnt_ice      = pcnt_coverages['pcnt_ice']
+    pcnt_mix      = pcnt_coverages['pcnt_mix']
+    
+    int_years = np.array([int(tyear[:4]) for tyear in NSIDC_data['dates']])
+    xvals = int_years[::6]
+
+    if(use_area):
+        ylabel = 'Percent Area Coverage [%]'
+    else:
+        ylabel = 'Percent Grid Box [%]'
+  
+    fig = plt.figure(figsize = (9, 6))
+    axs = fig.subplots(2,3)
+    flat_ax = axs.flatten()
+    for ii, ax in enumerate(flat_ax):
+        #ax = fig.add_subplot(1,1,1)
+        ax.bar(xvals, pcnt_combined[ii::6], label = 'Combined')
+        ax.bar(xvals, pcnt_land[ii::6],  bottom = pcnt_combined[ii::6], label = 'Land')
+        ax.bar(xvals, pcnt_ocean[ii::6], bottom = pcnt_combined[ii::6] + pcnt_land[ii::6], label = 'Ocean')
+        ax.bar(xvals, pcnt_ice[ii::6],   bottom = pcnt_combined[ii::6] + pcnt_land[ii::6] + pcnt_ocean[ii::6], label = 'Ice')
+        ax.bar(xvals, pcnt_mix[ii::6],   bottom = pcnt_combined[ii::6] + pcnt_land[ii::6] + pcnt_ocean[ii::6] + pcnt_ice[ii::6], \
+            label = 'Mix Ice/Ocn')
+        local_datetime = datetime(2000,4+ii,1)
+        ax.set_title(local_datetime.strftime('%B'))
+        ax.set_ylabel(ylabel)
+
+    axs[0,0].legend()
+
+    if(use_area):
+        plt.suptitle('Percent Area Coverage Per Surface Type\n' + \
+            str(int(NSIDC_data['minlat'])) + '${^o}$ N - 87${^o}$ N\n2005 - 2020')
+    else: 
+        plt.suptitle('Percent 1$^{0}$ Grid Box Coverage Per Surface Type\n2005 - 2020')
+
+    fig.tight_layout()
+
+    if(save):
+        outname = 'nsidc_sfc_type_change_bar.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+def plot_NSIDC_sfc_type_change_line(NSIDC_data, max_ice_for_ocean = 0, \
+        min_ice_for_ice = 80, use_area = True, use_pcnt = True, save = False):
+
+    pcnt_coverages =  calc_NSIDC_sfc_type_coverages(NSIDC_data, \
+            max_ice_for_ocean = max_ice_for_ocean, \
+            min_ice_for_ice = min_ice_for_ice, \
+            use_area = use_area, use_pcnt = use_pcnt)
+    
+    pcnt_combined = pcnt_coverages['pcnt_combined']
+    pcnt_land     = pcnt_coverages['pcnt_land']
+    pcnt_ocean    = pcnt_coverages['pcnt_ocean']
+    pcnt_ice      = pcnt_coverages['pcnt_ice']
+    pcnt_mix      = pcnt_coverages['pcnt_mix']
+    
+    int_years = np.array([int(tyear[:4]) for tyear in NSIDC_data['dates']])
+    xvals = int_years[::6]
+    
+    fig2 = plt.figure(figsize = (9, 6))
+    axs = fig2.subplots(2,3)
+    flat_ax2 = axs.flatten()
+    
+    if(use_area):
+        ylabel = 'Percent Area Coverage [%]'
+    else:
+        ylabel = 'Percent Grid Box [%]'
+    
+    for ii, ax in enumerate(flat_ax2):
+        #ax.plot(xvals, pcnt_combined[ii::6], label = 'Combined') 
+        #ax.plot(xvals, pcnt_land[ii::6], label = 'Land') 
+        ax.plot(xvals, pcnt_ocean[ii::6], label = 'Ocean') 
+        #ax.plot(xvals, pcnt_ice[ii::6], label = 'Ice') 
+        #ax.plot(xvals, pcnt_mix[ii::6], label = 'Mix Ice/Ocn') 
+        ax.plot(xvals, pcnt_mix[ii::6] + pcnt_ice[ii::6], label = 'Mix + Ice') 
+        local_datetime = datetime(2000,4+ii,1)
+        ax.set_title(local_datetime.strftime('%B'))
+        
+        first_out = plot_trend_line(ax, xvals, pcnt_ocean[ii::6], color='tab:green', linestyle = '--', \
+            slope = 'thiel-sen')
+        second_out = plot_trend_line(ax, xvals, pcnt_mix[ii::6] + pcnt_ice[ii::6], color='tab:brown', linestyle = '--', \
+            slope = 'thiel-sen')
+    
+        first_slope = np.round(first_out[0], 3)
+        first_change = np.round(first_slope * len(xvals), 1)
+        second_slope  = np.round(second_out[0], 3)
+        second_change = np.round(second_slope * len(xvals), 1)
+    
+        print("    Ocean:   {0}x, total = {1}".format(first_slope, first_change))
+        print("    Mix+Ice: {0}x, total = {1}".format(second_slope, second_change))
+    
+        if(ii == 5):
+            location = 'upper_right'
+            align = 'right'
+        else:
+            location = 'mid_left'
+            align = 'left'
+        plot_figure_text(ax, 'ΔOcean = {0}%\nΔIce = {1}%'.format(first_change, second_change), \
+            location = location, halign = align, fontsize = 10, weight = 'normal')
+   
+        ax.set_ylabel(ylabel)
+ 
+    axs[0,0].legend()
+    
+    if(use_area):
+        plt.suptitle('Change in Ocean vs. Ice Percent Area Coverage\n' + \
+            str(int(NSIDC_data['minlat'])) + '${^o}$ N - 87${^o}$ N\n2005 - 2020')
+    else: 
+        plt.suptitle('Change in Ocean vs. Ice Percent 1$^{0}$ Grid Box Coverage\n2005 - 2020')
+    
+    fig2.tight_layout()
+    
+    if(save):
+        outname = 'nsidc_sfc_type_change_line.png'
+        fig2.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+ 
 
