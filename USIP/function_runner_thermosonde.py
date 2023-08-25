@@ -15,11 +15,41 @@ from cn2_lib import *
 from compare_cn2 import *
 from datetime import datetime
 
+plot_monthly_cn2_boxplots_multi('201705 12','201705 00','201707 00','201702 00',save = True)
+
+##!#date_str = '201705'
+##!#time = '12'
+##!##data = calc_monthly_climatology(date_str, time, location = 'BIS')
+##!#fig = plt.figure(figsize = (8, 8))
+##!#ax1 = fig.add_subplot(2,2,1)
+##!#ax2 = fig.add_subplot(2,2,2)
+##!#ax3 = fig.add_subplot(2,2,3)
+##!#ax4 = fig.add_subplot(2,2,4)
+##!#plot_monthly_cn2_boxplots('201705', '12', location = 'BIS', ax = ax1)
+##!#plot_monthly_cn2_boxplots('201705', '00', location = 'BIS', ax = ax2)
+##!#plot_monthly_cn2_boxplots('201711', '12', location = 'BIS', ax = ax3)
+##!#plot_monthly_cn2_boxplots('201711', '00', location = 'BIS', ax = ax4)
+##!#
+##!#plot_subplot_label(ax1, '(a)', location = 'upper_right')
+##!#plot_subplot_label(ax2, '(b)', location = 'upper_right')
+##!#plot_subplot_label(ax3, '(c)', location = 'upper_right')
+##!#plot_subplot_label(ax4, '(d)', location = 'upper_right')
+##!#
+##!#plt.suptitle('Monthly C$_{n}^{2}$ Estimated Climatology\nBismarck, ND')
+##!#ax1.set_title('May 2017\nGenerated with 00Z Soundings ', fontsize = 10)
+##!#ax2.set_title('May 2017\nGenerated with 12Z Soundings ', fontsize = 10)
+##!#ax3.set_title('Nov. 2017\nGenerated with 00Z Soundings', fontsize = 10)
+##!#ax4.set_title('Nov. 2017\nGenerated with 12Z Soundings', fontsize = 10)
+##!#
+##!#fig.tight_layout()
+##!#plt.show()
+
+sys.exit()
 
 date_str = '2018050505'
+plot_combined_figure(date_str, save = True)
 date_str = '2019050403'
-
-plot_combined_figure(date_str, save = False)
+plot_combined_figure(date_str, save = True)
 
 sys.exit()
 

@@ -10,13 +10,14 @@ import sys
 import matplotlib.pyplot as plt
 import os
 import warnings
-import datetime as dt
+from datetime import datetime
 import pandas as pd
 import subprocess
 import random
 from scipy import interpolate
 from scipy.optimize import curve_fit
 from sklearn.metrics import r2_score
+from glob import glob
 from adpaa import ADPAA
 from readsounding import *
 from compare_cn2 import cn2_calc, cn2_calc_thermo, smooth, plot_cn2
@@ -354,6 +355,158 @@ def read_temp_diffs(radio_file, thermo_file, save = False):
     thermo_scn2['matchalt_thermo'] = matchalt_thermo
 
     return thermo_scn2
+
+# A module version of sounding_splitter.py
+def split_soundings(archive_file):
+    start_indices = []
+    end_indices = []
+
+    infile = archive_file   
+ 
+    # Get the year from the archive file's name
+    year = infile.split('/')[-1].split('_')[1]
+    # Read in all the lines from the archive file with readlines
+    lines = open(infile,'r').readlines()
+    
+    total_lines = 0
+    with open(infile) as g:
+        num_lines = sum(1 for line in g)
+        total_lines = num_lines
+    
+    # Find the indices of the beginning line of each sounding in the large file
+    with open(infile) as f:
+        for i, line in enumerate(f):
+            if(line[0]=='7'):
+                start_indices.append(i)
+    
+    # Find the indices of the end of each sounding
+    for i in range(1,len(start_indices)):
+        end_indices.append(start_indices[i]-1)
+    
+    # Add the last index in the file to the end list 
+    end_indices.append(total_lines-2)
+    
+    # Convert the lists into numpy arrays
+    start_indices = np.array(start_indices)
+    end_indices = np.array(end_indices)
+    
+    file_dump = '/home/bsorenson/Research/thermosonde/monthly_analysis/sounding_analysis/'+year+'/'
+    #file_dump = '/nas/home/bsorenson/prg/thermosonde1617/monthly_analysis/sounding_archive/'+year+'/'
+    # Loop over all the files and make extra files for each sounding
+
+    for i in range(0, len(start_indices)):
+        # Grab the first line of each sounding that contains date and time info
+        first_line = lines[start_indices[i]:end_indices[i]][0].split(' ')
+        # Get the sounding 
+        location = first_line[1]
+        str_year  = first_line[-1].strip()[2:]
+        int_month = datetime.strptime(first_line[-2],'%b').month
+        if(int_month<10):
+            str_month = '0'+str(int_month)
+        else:
+            str_month = str(int_month)
+        str_day   = first_line[-3]
+        str_time  = first_line[-4][:2]
+        filename = file_dump+location+'/soundings/'+str_year+str_month+str_day+'_'+str_time+'0000_'+location+'_UWYO.txt'
+        
+        outfile = open(filename,'w')
+        outfile.writelines(lines[start_indices[i]:end_indices[i]])
+        outfile.close()    
+        print("Saved file: "+filename)
+
+# date_str: YYYYMM
+#    time:  00 or 12
+def calc_monthly_climatology(date_str, time, location = 'BIS', METER = False):
+
+    #work_path='/nas/home/bsorenson/prg/thermosonde1617/monthly_analysis/'
+    work_path='/home/bsorenson/Research/thermosonde/monthly_analysis/'
+
+    dt_date_str = datetime.strptime(date_str + ' ' + time, '%Y%m %H')
+
+    # Build the climatology file filename based on the input information
+    # ------------------------------------------------------------------
+    #archive_file = work_path + 'sounding_analysis/
+    
+    # Extract the individual soundings from the archive file
+    #infile = sys.argv[2]
+    # Grab the month information from the monthly archive file name
+    #date = infile.split('/')[-1].split('_')
+    #month = date[0]
+    #month_no = strptime(month[:3],'%b').tm_mon
+    #str_monthno = str(month_no)
+    #if(dt_date_str.month < 10):
+    #    str_monthno = '0'+str_monthno
+    #tmonth = month_name[month_no]
+    #year = date[1]
+    #location = date[2]
+    year = dt_date_str.strftime('%Y')
+    file_path = '/home/bsorenson/Research/thermosonde/monthly_analysis/sounding_analysis/'+year+'/'+location+'/soundings/'
+    archive_path = '/home/bsorenson/Research/thermosonde/monthly_analysis/sounding_analysis/'+year+'/'+location+'/'
+    # If the files are already extracted and located in 
+    #   /nas/home/bsorenson/prg/thermosonde1617/monthly_analysis/2017/***/soundings/,
+    # ignore this step
+    files_there = glob(dt_date_str.strftime(file_path + '%y%m*.txt'))
+    if(len(files_there) == 0):
+        print("Extracting soundings from archive file")
+        month_name = dt_date_str.strftime('%B').lower()
+        archive_file = dt_date_str.strftime(work_path + 'sounding_analysis/%Y/' + \
+            location + '/soundings/' + month_name + '_%Y_' + location + '_archive.txt')
+        split_soundings(archive_file)
+    else:
+        print("Soundings already extracted from archive file. Proceeding")
+    
+    # Get the file names from the recently split archive file
+    files = glob(dt_date_str.strftime(file_path + '%y%m*_%H0000_' + location + '_UWYO.txt'))
+    list.sort(files)
+
+    # Calculate Cn2 for each sounding and calculate the average and standard deviation
+    # for each sounding
+    avgs = []
+    stdevs = []
+    cn2_sfcto925 = []
+    cn2_925to850 = []
+    cn2_850to700 = []
+    cn2_700to500 = []
+    cn2_500to400 = []
+    cn2_400to300 = []
+    cn2_300to200 = []
+    cn2_200to150 = []
+    cn2_150to100 = []
+    cn2_100to50 = []
+    cn2_50totop = []
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        for f in files:
+            data = readsounding(f)
+            data = cn2_calc(data) 
+        #    log_cn2 = np.log10(data['CN2'])
+            cn2_sfcto925.append(np.average(data['CN2'][np.where(data['PRESS']>925)]))
+            cn2_925to850.append(np.average(data['CN2'][np.where((data['PRESS']<=925) & (data['PRESS']>850))]))
+            cn2_850to700.append(np.average(data['CN2'][np.where((data['PRESS']<=850) & (data['PRESS']>700))]))
+            cn2_700to500.append(np.average(data['CN2'][np.where((data['PRESS']<=700) & (data['PRESS']>500))]))
+            cn2_500to400.append(np.average(data['CN2'][np.where((data['PRESS']<=500) & (data['PRESS']>400))]))
+            cn2_400to300.append(np.average(data['CN2'][np.where((data['PRESS']<=400) & (data['PRESS']>300))]))
+            cn2_300to200.append(np.average(data['CN2'][np.where((data['PRESS']<=300) & (data['PRESS']>200))]))
+            cn2_200to150.append(np.average(data['CN2'][np.where((data['PRESS']<=200) & (data['PRESS']>150))]))
+            cn2_150to100.append(np.average(data['CN2'][np.where((data['PRESS']<=150) & (data['PRESS']>100))]))
+            cn2_100to50.append(np.average(data['CN2'][np.where((data['PRESS']<=100) & (data['PRESS']>50))]))
+            cn2_50totop.append(np.average(data['CN2'][np.where(data['PRESS']<=50)]))
+    
+    log_data_list = [np.log10(cn2_sfcto925),np.log10(cn2_925to850),\
+        np.log10(cn2_850to700),np.log10(cn2_700to500),\
+        np.log10(cn2_500to400),np.log10(cn2_400to300),\
+        np.log10(cn2_300to200),np.log10(cn2_200to150),\
+        np.log10(cn2_150to100),np.log10(cn2_100to50),\
+        np.log10(cn2_50totop)]
+    
+    #avg_data_list = [np.average(x) for x in log_data_list]
+    #stdev_data_list = [np.std(y) for y in log_data_list]
+    
+    # Get rid of missing values
+    for i,s in enumerate(log_data_list):
+        log_data_list[i] = log_data_list[i][np.logical_not(np.isnan(log_data_list[i]))]
+
+    return log_data_list
 
 # date_str = 'YYYYmm HH'
 def read_synthetic(date_str, location):
@@ -1038,13 +1191,13 @@ def plot_combined_figure(date_str, save = False):
     in_data = [file_dict[date_str]['radio_file'], \
         file_dict[date_str]['model_file']]
     
-    fig = plt.figure(figsize = (7,7))
+    fig = plt.figure(figsize = (10,4))
     #fig = plt.figure(figsize = (14,4))
-    gs = fig.add_gridspec(2,2)
+    gs = fig.add_gridspec(1,3)
     #gs = fig.add_gridspec(1,3, hspace = 0.3)
     #ax0  = fig.add_subplot(gs[0,0])   # true color    
-    ax1  = fig.add_subplot(gs[1,0])   # true color    
-    ax2  = fig.add_subplot(gs[1,1])   # true color 
+    ax1  = fig.add_subplot(gs[0,1])   # true color    
+    ax2  = fig.add_subplot(gs[0,2])   # true color 
     plot_sounding_figure(in_data, fig = fig, skew = gs[0,0], \
         save = False, color = None)
     #plot_sounding_figure(file_dict[date_str]['bis_files'], fig = fig, skew = gs[0,1], \
@@ -1072,7 +1225,8 @@ def plot_combined_figure(date_str, save = False):
     ax2.set_title('  c)', loc = 'left', weight = 'bold')
     fig.tight_layout()
     if(save):
-        outname = 'combined_cn2_'+date_str+'.png'
+        outname = 'combined_cn2_'+date_str+'_singlerow.png'
+        #outname = 'combined_cn2_'+date_str+'.png'
         fig.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else:
@@ -1256,3 +1410,84 @@ def plot_calibration_curves_both(save = False):
     ##!#fig.tight_layout()
 
     ##!#plt.show()
+
+def plot_monthly_cn2_boxplots(date_str, time, location = 'BIS', ax = None, \
+        save = False):
+
+    dt_date_str = datetime.strptime(date_str + ' ' + time, '%Y%m %H')
+
+    log_data_list = calc_monthly_climatology(date_str, time, \
+        location = location, METER = False)
+
+    plot_title=dt_date_str.strftime('Daily %HZ Averaged C$_n^2$ ' + \
+        'Profiles: '+location+' %b %Y')
+   
+    in_ax = True
+    if(ax is None): 
+        in_ax = False
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+
+    bx = ax.boxplot(log_data_list,vert=0)
+    
+    ax.set_yticklabels(['Sfc-925','925-850','850-700','700-500','500-400',\
+        '400-300','300-200','200-150','150-100','100-50','50-top'])
+    ax.tick_params(axis="y", labelsize = 8, rotation = 45)
+    #ax.yticks(rotation=45,fontsize=6)
+    ax.set_title(plot_title)
+    ax.set_xlabel('$log_{10}$ $C_n^2$')
+    ax.set_ylabel('Pressure levels [mb]',fontsize=10)
+    ax.set_xlim(-20,-13)
+  
+    if(not in_ax): 
+        if(save): 
+            fig.tight_layout()
+            #if(METER is True):
+            #    image_name = month+'_'+year+'_'+location+'_'+stime+'Z_temp_meter_boxplots.png'
+            #else:
+            outname = dt_date_str.strftime('monthly_cn2_boxplots_' + location + '%Y%m_%HZ.png')
+            fig.savefig(outname,dpi=200)
+            print("Saved image: " + outname)
+        else:
+            plt.show()
+
+def plot_monthly_cn2_boxplots_multi(date_str1, date_str2, date_str3, \
+        date_str4, save = False):
+    
+    dt_date_str1 = datetime.strptime(date_str1, '%Y%m %H')
+    dt_date_str2 = datetime.strptime(date_str2, '%Y%m %H')
+    dt_date_str3 = datetime.strptime(date_str3, '%Y%m %H')
+    dt_date_str4 = datetime.strptime(date_str4, '%Y%m %H')
+
+    fig = plt.figure(figsize = (8, 8))
+    ax1 = fig.add_subplot(2,2,1)
+    ax2 = fig.add_subplot(2,2,2)
+    ax3 = fig.add_subplot(2,2,3)
+    ax4 = fig.add_subplot(2,2,4)
+    plot_monthly_cn2_boxplots(dt_date_str1.strftime('%Y%m'), \
+        dt_date_str1.strftime('%H'), location = 'BIS', ax = ax1)
+    plot_monthly_cn2_boxplots(dt_date_str2.strftime('%Y%m'), \
+        dt_date_str2.strftime('%H'), location = 'BIS', ax = ax2)
+    plot_monthly_cn2_boxplots(dt_date_str3.strftime('%Y%m'), \
+        dt_date_str3.strftime('%H'), location = 'BIS', ax = ax3)
+    plot_monthly_cn2_boxplots(dt_date_str4.strftime('%Y%m'), \
+        dt_date_str4.strftime('%H'), location = 'BIS', ax = ax4)
+    
+    plot_subplot_label(ax1, '(a)', location = 'upper_right')
+    plot_subplot_label(ax2, '(b)', location = 'upper_right')
+    plot_subplot_label(ax3, '(c)', location = 'upper_right')
+    plot_subplot_label(ax4, '(d)', location = 'upper_right')
+    
+    plt.suptitle('Monthly C$_{n}^{2}$ Estimated Climatology\nBismarck, ND')
+    ax1.set_title(dt_date_str1.strftime('%B %Y\nGenerated with %HZ Soundings'), fontsize = 10)
+    ax2.set_title(dt_date_str2.strftime('%B %Y\nGenerated with %HZ Soundings'), fontsize = 10)
+    ax3.set_title(dt_date_str3.strftime('%B %Y\nGenerated with %HZ Soundings'), fontsize = 10)
+    ax4.set_title(dt_date_str4.strftime('%B %Y\nGenerated with %HZ Soundings'), fontsize = 10)
+    
+    fig.tight_layout()
+    if(save):
+        outname = 'monthly_cn2_boxplots_multi_201705_201711.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()

@@ -2205,8 +2205,10 @@ def plot_compare_all_slopes(date_strs = None, save = False, \
         
         return return_dict
 
+
+def calculate_type_forcing(
      
-def calculate_type_forcing(month_idx, trend_type = 'linear', minlat = 65.):
+def calculate_type_forcing_old(month_idx, trend_type = 'linear', minlat = 65.):
 
     # Calculate gridded OMI trends
     OMI_data   = readOMI_NCDF(infile = \

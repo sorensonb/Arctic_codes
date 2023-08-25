@@ -85,9 +85,9 @@ filename1 = 'comp_grid_climo_v6.hdf5'
 #filename2 = 'comp_grid_climo_v11.hdf5'
 filename2 = 'comp_grid_climo_v12.hdf5'
 filename3 = 'comp_grid_climo_v14.hdf5'
-##!#comp_grid_data_v6 = read_comp_grid_climo(filename1)
-##!#comp_grid_data_v11 = read_comp_grid_climo(filename2)
-##!#comp_grid_data_v14 = read_comp_grid_climo(filename3)
+comp_grid_data_v6 = read_comp_grid_climo(filename1)
+comp_grid_data_v11 = read_comp_grid_climo(filename2)
+comp_grid_data_v14 = read_comp_grid_climo(filename3)
 
 
 #comp_grid_data_v7 = read_comp_grid_climo(filename)
@@ -473,7 +473,7 @@ plot_aerosol_over_type_combined(data, dates, min_ai = 1.5, save = False, plot_ma
 ##!#fig.tight_layout()
 ##!#
 ##!#plt.show()
-sys.exit()
+#sys.exit()
 
 files = [data_path + date + '.hdf5' for date in dates]
 
@@ -664,6 +664,17 @@ return_dict = \
     plot_compare_slopes_scatter(thl_raw_dict_v14, combined_data, comp_grid_data_v14, \
     5, 3, dtype = 'raw', ice_idx = 0, ai_min = 2, \
     ai_max = None, show_trend = False, save = False)
+
+
+# Calculate gridded OMI trends
+OMI_data   = readOMI_NCDF(infile = \
+    '/home/bsorenson/Research/OMI/omi_ai_VSJ4_2005_2020.nc', \
+    minlat = minlat)
+
+ai_trends, ai_pvals, ai_uncert = calcOMI_grid_trend(OMI_data, month_idx, trend_type, \
+    minlat)
+
+sys.exit()
 
 debug_data = pd.read_csv('debug_file_iceidx0_szaidx5_ch7idx3.txt', \
     delim_whitespace = True, names = \

@@ -27,13 +27,47 @@ minlat = 70.
 NSIDC_data = readNSIDC_monthly_grid_all(begin_date, end_date, \
     season, calc_month = True, minlat = minlat, maxlat = 87.)
 
+plotNSIDC_ClimoTrend_all(NSIDC_data,\
+    trend_type = 'standard', minlat=minlat,save=False)
+
+sys.exit()
+
+type_dict = calc_NSIDC_sfc_types(NSIDC_data, 50, \
+    use_grid_data = True)
+
+
+
 use_area = True
+def temp_plot(NSIDC_data, date_str):
+    fig = plt.figure(figsize = (9, 4))
+    ax1 = fig.add_subplot(1,2,1, projection = mapcrs)
+    ax2 = fig.add_subplot(1,2,2, projection = mapcrs)
+    plot_NSIDC_month_sfc_types(NSIDC_data, date_str, ax = ax1, save = False, \
+        use_grid_data = True, max_ice_for_ocean = 0)
+    plot_NSIDC_month_sfc_types(NSIDC_data, date_str, ax = ax2, save = False, \
+        use_grid_data = True, max_ice_for_ocean = 20)
+    
+    ax1.coastlines()
+    ax2.coastlines()
+    ax1.set_extent([-180, 180, 70, 90], datacrs)
+    ax2.set_extent([-180, 180, 70, 90], datacrs)
 
-plot_NSIDC_sfc_type_change_bar(NSIDC_data,  max_ice_for_ocean = 0, \
-    min_ice_for_ice = 80, use_area = True, use_pcnt = True, save = True)
+    ax1.set_title('Max ice for ocean = 0')
+    ax2.set_title('Max ice for ocean = 20')
+   
+    plt.suptitle(date_str)
+ 
+    fig.tight_layout()
+    plt.show()
 
+temp_plot(NSIDC_data, '201807')
+sys.exit()
+
+
+#plot_NSIDC_sfc_type_change_bar(NSIDC_data,  max_ice_for_ocean = 20, \
+#    min_ice_for_ice = 80, use_area = True, use_pcnt = True, save = True)
 plot_NSIDC_sfc_type_change_line(NSIDC_data, max_ice_for_ocean = 0, \
-    min_ice_for_ice = 80, use_area = True, use_pcnt = True, save = True)
+    min_ice_for_ice = 80, use_area = True, use_pcnt = True, save = False)
 
 sys.exit() 
 
@@ -63,11 +97,6 @@ plotNSIDC_MonthTrend(NSIDC_data,month_idx=4,save=False,\
     trend_type='theil-sen',season='',minlat=70.,return_trend=False, \
     colorbar = True, colorbar_label_size = None,title = None, \
     pax = None, show_pval = False, uncert_ax = None)
-
-sys.exit()
-
-plotNSIDC_ClimoTrend_all(NSIDC_data,\
-    trend_type = 'standard', minlat=65.,save=False)
 
 sys.exit()
 
