@@ -8,68 +8,15 @@
 import Arctic_compare_lib
 from Arctic_compare_lib import *
 
-testfile = 'grid_coloc_test_res050.hdf5'
-#testfile = 'grid_coloc_test_res100.hdf5'
 
+#testfile = 'grid_coloc_test_res050.hdf5'
+testfile = 'grid_coloc_test_res100.hdf5'
 data = h5py.File(testfile)
-##!#mask_ai  = np.ma.masked_where(data['omi_ai_raw'][:,:,:] == -999., data['omi_ai_raw'][:,:,:])
-##!#mask_ai_count  = data['omi_ai_raw_count'][:,:,:]
-##!#mask_trop  = np.ma.masked_where(abs(data['trop_ai'][:,:,:]) > 10, data['trop_ai'][:,:,:])
-##!#mask_ch7 = np.ma.masked_where(data['modis_ch7'][:,:,:] < 0., data['modis_ch7'][:,:,:])
-##!#mask_cld = np.ma.masked_where(data['modis_cld'][:,:,:] < 0., data['modis_cld'][:,:,:])
-##!#mask_ice = np.ma.masked_where((data['nsidc_ice'][:,:,:] < 1.) | \
-##!#                              (data['nsidc_ice'][:,:,:] > 100.), data['nsidc_ice'][:,:,:])
-##!#mask_lnd = np.ma.masked_where( (data['nsidc_ice'][:,:,:] != 254.),  data['nsidc_ice'][:,:,:])
-##!#
-##!#mask_ai = np.ma.masked_invalid(mask_ai)
-##!#
-##!#
-##!#
-##!#for idx in range(mask_ai.shape[2]):
-##!#
-##!#    fig = plt.figure(figsize = (9,7))
-##!#    ax1 = fig.add_subplot(2,3,1, projection = mapcrs)
-##!#    ax2 = fig.add_subplot(2,3,2, projection = mapcrs)
-##!#    ax3 = fig.add_subplot(2,3,3, projection = mapcrs)
-##!#    ax4 = fig.add_subplot(2,3,4, projection = mapcrs)
-##!#    ax5 = fig.add_subplot(2,3,5, projection = mapcrs)
-##!#    ax6 = fig.add_subplot(2,3,6, projection = mapcrs)
-##!#    
-##!#    ax1.pcolormesh(data['longitude'][:], data['latitude'][:], mask_ai[:,:,idx].T, \
-##!#        transform = datacrs, shading = 'auto', cmap = 'jet')
-##!#    ax2.pcolormesh(data['longitude'][:], data['latitude'][:], mask_ch7[:,:,idx].T, \
-##!#        transform = datacrs, shading = 'auto', cmap = 'Greys_r', vmin = 0, vmax = 0.3)
-##!#    ax3.pcolormesh(data['longitude'][:], data['latitude'][:], mask_ice[:,:,idx].T, \
-##!#        transform = datacrs, shading = 'auto', cmap = 'ocean')
-##!#    ax4.pcolormesh(data['longitude'][:], data['latitude'][:], mask_lnd[:,:,idx].T, \
-##!#        transform = datacrs, shading = 'auto', cmap = 'ocean')
-##!#    ax5.pcolormesh(data['longitude'][:], data['latitude'][:], mask_trop[:,:,idx].T, \
-##!#        transform = datacrs, shading = 'auto', cmap = 'jet')
-##!#    ax6.pcolormesh(data['longitude'][:], data['latitude'][:], mask_cld[:,:,idx].T, \
-##!#        transform = datacrs, shading = 'auto', cmap = 'jet')
-##!#    
-##!#    ax1.coastlines()
-##!#    ax2.coastlines()
-##!#    ax3.coastlines()
-##!#    ax4.coastlines()
-##!#    ax5.coastlines()
-##!#    ax6.coastlines()
-##!#    
-##!#    ax1.set_extent([-180, 180, 70, 90], datacrs)
-##!#    ax2.set_extent([-180, 180, 70, 90], datacrs)
-##!#    ax3.set_extent([-180, 180, 70, 90], datacrs)
-##!#    ax4.set_extent([-180, 180, 70, 90], datacrs)
-##!#    ax5.set_extent([-180, 180, 70, 90], datacrs)
-##!#    ax6.set_extent([-180, 180, 70, 90], datacrs)
-##!#    
-##!#    plt.suptitle(str(data['dates'][idx]))
-##!#    
-##!#    fig.tight_layout()
-##!#    plt.show()
-##!#
-##!#data.close()
-##!#    
-##!#sys.exit()
+
+#idx_dict, lats, lons = match_aeronet_to_grid_AI(data, aeronet_file = 'aeronet_site_info.txt', \
+#    min_ai = 1.5)
+#
+#sys.exit()
 
 
 #filename = 'comp_grid_climo_v1.hdf5'
@@ -456,7 +403,8 @@ dates = [
 #plot_aerosol_over_types(dates[125], min_AI = 2.0, ai_val = 'TROP_AI', save = False)
 
 
-plot_aerosol_over_type_combined(data, dates, min_ai = 1.5, save = False, plot_map = True)
+#plot_aerosol_over_type_combined(data, dates, min_ai = 1.5, save = False, plot_map = True)
+
 
 ##!#fig = plt.figure(figsize = (9, 6))
 ##!#ax1 = fig.add_subplot(2,1,1)
@@ -660,19 +608,53 @@ thl_smth2_dict_v14 = calc_raw_grid_slopes(\
         smoother = 'smoother', sizer = 1)
 
 
-return_dict = \
-    plot_compare_slopes_scatter(thl_raw_dict_v14, combined_data, comp_grid_data_v14, \
-    5, 3, dtype = 'raw', ice_idx = 0, ai_min = 2, \
-    ai_max = None, show_trend = False, save = False)
+#return_dict = \
+#    plot_compare_slopes_scatter(thl_raw_dict_v14, combined_data, comp_grid_data_v14, \
+#    5, 3, dtype = 'raw', ice_idx = 0, ai_min = 2, \
+#    ai_max = None, show_trend = False, save = False)
 
 
-# Calculate gridded OMI trends
+min_cloud = 0.95
+maxerr = 2
+data_type = 'raw'
+ocean_slopes = calc_slope_clear_clean_sfctype(lin_smth2_dict_v6, 0, 0, \
+    maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
+ice_slopes   = calc_slope_clear_clean_sfctype(lin_smth2_dict_v6, 1, 0, \
+    maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
+land_slopes  = calc_slope_clear_clean_sfctype(lin_smth2_dict_v6, 2, 0, \
+    maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
+
+combined_slope_dict = {
+    'ocean': ocean_slopes, \
+    'ice': ice_slopes, \
+    'land': land_slopes
+}
+
+# Calculate solar declination angles
+# ----------------------------------
+
+begin_date = '200504'
+end_date   = '202009'
+season     = 'sunlight'
+minlat = 65.
+maxlat = 87.
+NSIDC_data = readNSIDC_monthly_grid_all(begin_date, end_date, \
+    season, calc_month = True, minlat = minlat, maxlat = maxlat)
+
 OMI_data   = readOMI_NCDF(infile = \
     '/home/bsorenson/Research/OMI/omi_ai_VSJ4_2005_2020.nc', \
-    minlat = minlat)
+    minlat = minlat, maxlat = maxlat - 1)
 
-ai_trends, ai_pvals, ai_uncert = calcOMI_grid_trend(OMI_data, month_idx, trend_type, \
-    minlat)
+
+calc_slope_clear_clean_sfctype(out_dict, sfc_type_idx, \
+    cld_idx, min_cloud = 0.95, maxerr = 2, data_type = 'raw'):
+
+plot_type_forcing_all_months(OMI_data, NSIDC_data, 'average', \
+        minlat = minlat, save = False, calc_slopes = combined_slope_dict)
+
+sys.exit()
+
+
 
 sys.exit()
 

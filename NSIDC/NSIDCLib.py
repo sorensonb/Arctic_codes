@@ -34,11 +34,34 @@ home_dir = os.environ['HOME']
 sys.path.append(home_dir)
 from python_lib import circle, plot_trend_line, nearest_gridpoint, \
     aerosol_event_dict, init_proj, plot_lat_circles, plot_figure_text, \
-    plot_subplot_label, lat_lon_area
+    plot_subplot_label, lat_lon_area, plot_point_on_map
 
 data_dir = home_dir + '/data/NSIDC/'
 datacrs = ccrs.PlateCarree()
 mapcrs = ccrs.NorthPolarStereo()
+
+rval_dict = {
+    'Unchanged ocean':       0,   # 0
+    'Unchanged mix':         1,   # 1
+    'Unchanged ice':         2,   # 2 
+    'Still primarily ocean': 3,   # 0
+    'Mix to ocean':          4,   # 3
+    'Ice to ocean':          5,   # 3
+    'Still primarily mix':   6,   # 1
+    'Ocean to mix':          7,   # 4
+    'Ice to mix':            8,   # 4
+    'Still primarily ice':   9,   # 2
+    'Ocean to ice':         10,   # 5
+    'Mix to ice':           11,   #
+    'Pole Hole':            12,
+    'Unused':               13,
+    'Coastline':            14,
+    'Land':                 15,
+    'Other':                -1,
+}
+   
+
+
 
 def plot_NSIDC_data(NSIDC_data,index):
     data = NSIDC_data['data'][index,:,:]
@@ -613,7 +636,8 @@ def plotNSIDC_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
         colormap = plt.cm.bwr
     elif(ptype == 'uncert'):
         #colormap = plt.cm.plasma
-        colormap = plt.cm.get_cmap('jet', 6)
+        colormap = plt.cm.get_cmap('jet', 10)
+        vmax = 30
     else:
         colormap = plt.cm.jet
 
@@ -2367,5 +2391,293 @@ def plot_NSIDC_sfc_type_change_line(NSIDC_data, max_ice_for_ocean = 0, \
         print("Saved image", outname)
     else:
         plt.show()
+
+def check_type_change(NSIDC_data, month_idx, xidx, yidx, \
+        max_ice_for_ocean = 20, min_ice_for_ice = 80, bin_size = 5, \
+        plot_line = False, debug = False):
+
+    data_before = NSIDC_data['grid_ice_conc'][month_idx::6,xidx,yidx][:bin_size]
+    data_after  = NSIDC_data['grid_ice_conc'][month_idx::6,xidx,yidx][-bin_size:]
+
+    # Check for other surface types
+    # -----------------------------
+    if(len(NSIDC_data[\
+        'grid_pole_hole'][month_idx::6,xidx,yidx][:bin_size].compressed()\
+         != 0)):
+        type_str = 'Pole Hole' 
+    elif(len(NSIDC_data[\
+        'grid_unused'][month_idx::6,xidx,yidx][:bin_size].compressed()\
+         != 0)):
+        type_str = 'Unused' 
+    elif(len(NSIDC_data[\
+        'grid_coastline'][month_idx::6,xidx,yidx][:bin_size].compressed()\
+         != 0)):
+        type_str = 'Coastline' 
+    elif(len(NSIDC_data[\
+        'grid_land'][month_idx::6,xidx,yidx][:bin_size].compressed()\
+         != 0)):
+        type_str = 'Land' 
+    else:    
+        if(len(data_before.compressed()) == 0):
+            type_str = 'Other'
+        else:
+            before_counts = np.full(3, np.nan)
+            after_counts  = np.full(3, np.nan)
+
+            before_count_ocean = len(data_before[data_before <= max_ice_for_ocean])
+            before_count_mix   = len(data_before[(data_before > max_ice_for_ocean) & \
+                                    (data_before < min_ice_for_ice)])
+            before_count_ice   = len(data_before[data_before >= min_ice_for_ice])
+
+            before_counts[0] = before_count_ocean
+            before_counts[1] = before_count_mix
+            before_counts[2] = before_count_ice
+
+            after_count_ocean = len(data_after[data_after <= max_ice_for_ocean])
+            after_count_mix   = len(data_after[(data_after > max_ice_for_ocean) & \
+                                   (data_after < min_ice_for_ice)])
+            after_count_ice   = len(data_after[data_after >= min_ice_for_ice])
+
+            after_counts[0] = after_count_ocean
+            after_counts[1] = after_count_mix
+            after_counts[2] = after_count_ice
+
+            delta_counts = after_counts - before_counts
+
+            if(debug):        
+                print(before_count_ocean, before_count_mix, before_count_ice) 
+                print(after_count_ocean, after_count_mix, after_count_ice) 
+                print(delta_counts[0], delta_counts[1], delta_counts[2]) 
+
+            # NEED TO: add a check for the trend here. If the trend is very
+            #           small, don't call for a change
+
+            return_val = -9
+            # First check: none of the counts per type changed
+            if(delta_counts[0] == delta_counts[1] == delta_counts[2] == 0):
+                if( np.argmax(before_counts) == 0):
+                    type_str = "Unchanged ocean"
+                elif( np.argmax(before_counts) == 1):
+                    type_str = "Unchanged mix"
+                else:
+                    type_str = "Unchanged ice"
+            else:
+                # Check if this box has changed more to ocean
+                if(np.argmax(delta_counts) == 0):
+
+                    # First, see if it was also primarily ocean before
+                    if(np.argmax(before_counts) == 0):
+                        type_str = "Still primarily ocean"
+                    # Now, see if the change is not significant
+                    # -----------------------------------------
+                    elif((np.argmax(before_counts) == 1) & \
+                         (np.argmax(after_counts) == 1)):
+                        type_str = 'Still primarily mix'
+                    elif((np.argmax(before_counts) == 2) & \
+                         (np.argmax(after_counts) == 2)):
+                        type_str = "Still primarily ice"
+                    else:
+                        # Check if changing from mix or ice
+            
+                        # See if it was primarily mix before
+                        if(before_counts[1] >= before_counts[2]):
+                            type_str = "Mix to ocean"
+                        else:               
+                            type_str = "Ice to ocean"
+
+                # Check if this box has changed more to mix
+                elif(np.argmax(delta_counts) == 1):
+                    # First, see if it was also primarily ocean before
+                    if(np.argmax(before_counts) == 1):
+                        type_str = "Still primarily mix"
+                    # Now, see if the change is not significant
+                    # -----------------------------------------
+                    elif((np.argmax(before_counts) == 0) & \
+                         (np.argmax(after_counts) == 0)):
+                        type_str = "Still primarily ocean"
+                    elif((np.argmax(before_counts) == 2) & \
+                         (np.argmax(after_counts) == 2)):
+                        type_str = "Still primarily ice"
+                    else:
+                        # See if it was primarily ocean before
+                        if(before_counts[0] >= before_counts[2]):
+                            type_str = "Ocean to mix"
+                        else:               
+                            type_str = "Ice to mix"
+
+                # Check if this box has changed more to ice
+                elif(np.argmax(delta_counts) == 2):
+                    # First, see if it was also primarily ocean before
+                    if(np.argmax(before_counts) == 2):
+                        type_str = "Still primarily ice"
+                    # Now, see if the change is not significant
+                    # -----------------------------------------
+                    elif((np.argmax(before_counts) == 0) & \
+                         (np.argmax(after_counts) == 0)):
+                        type_str = "Still primarily ocean"
+                    elif((np.argmax(before_counts) == 1) & \
+                         (np.argmax(after_counts) == 1)):
+                        type_str = "Still primarily mix"
+                    else:
+                        # See if it was primarily ocean before
+                        if(before_counts[0] > before_counts[1]):
+                            type_str = "Ocean to ice"
+                        else:               
+                            type_str = "Mix to ice"
+            if(plot_line): 
+                fig = plt.figure()
+                ax = fig.add_subplot(1,1,1)
+                ax.plot(NSIDC_data['grid_ice_conc'][month_idx::6,xidx,yidx])
+                ax.axhline(max_ice_for_ocean, linestyle = ':', color = 'k')
+                ax.axhline(min_ice_for_ice, linestyle = ':', color = 'k')
+                ax.set_ylim(-5, 105)
+                ax.set_title(type_str)
+                fig.tight_layout()
+                plt.show()
+
+    if(debug): print(type_str)
+    return_val = rval_dict[type_str]
+    
+    if(return_val == -9):
+        print("SOMETHING WENT WRONG")
+    return return_val
  
+def plot_NSIDC_coverage_change(NSIDC_data, month_idx, xidx, yidx, \
+        max_ice_for_ocean = 20, min_ice_for_ice = 80, bin_size = 5, \
+        minlat = 70.5, save = False, cbar_switch = False):
+
+    # Plotting types:
+    # 0: unchanged ocean
+    # 1: unchanged mix
+    # 2: unchanged ice
+    # 3: decrease in ice
+    # 4: increase in ice
+
+    #    'Unchanged ocean':       0,   # 0
+    #    'Unchanged mix':         1,   # 1
+    #    'Unchanged ice':         2,   # 2 
+    #    'Still primarily ocean': 3,   # 0
+    #    'Mix to ocean':          4,   # 3
+    #    'Ice to ocean':          5,   # 3
+    #    'Still primarily mix':   6,   # 1
+    #    'Ocean to mix':          7,   # 4
+    #    'Ice to mix':            8,   # 4
+    #    'Still primarily ice':   9,   # 2
+    #    'Ocean to ice':         10,   # 5
+    #    'Mix to ice':           11,   #
+    #    'Pole Hole':            12,
+    #    'Unused':               13,
+    #    'Coastline':            14,
+    #    'Land':                 15,
+    #    'Other':                -1,
+
+
+    # ones:   all ocean all the time
+    # twos:   all mix   all the time
+    # threes: all ice   all the time
+    # fours:  change from mix to ocean
+    # fives:  change from ocean to mix
+    # sixs:   change from ice to mix 
+    base_ones   = np.full(NSIDC_data['grid_lat'].shape, 1)
+    base_twos   = np.full(NSIDC_data['grid_lat'].shape, 2)
+    base_threes = np.full(NSIDC_data['grid_lat'].shape, 3)
+    base_fours  = np.full(NSIDC_data['grid_lat'].shape, 4)
+    base_fives  = np.full(NSIDC_data['grid_lat'].shape, 5)
+    base_sixs   = np.full(NSIDC_data['grid_lat'].shape, 6)
+
+    # Go through and calculate the sfc type changes for each grid box
+    # ---------------------------------------------------------------
+    type_vals = np.array([[\
+        check_type_change(NSIDC_data, month_idx, ii, jj, \
+        min_ice_for_ice = min_ice_for_ice, \
+        max_ice_for_ocean = max_ice_for_ocean, 
+        bin_size = bin_size) \
+        for jj in range(NSIDC_data['grid_lon'].shape[1])] \
+        for ii in range(NSIDC_data['grid_lon'].shape[0])])
+
+    ones    = np.ma.masked_where( ((type_vals != 0) & (type_vals != 3)), base_ones)
+    twos    = np.ma.masked_where( ((type_vals != 1) & (type_vals != 6)), base_twos)
+    threes  = np.ma.masked_where( ((type_vals != 2) & (type_vals != 9)), base_threes)
+    fours   = np.ma.masked_where(  (type_vals != 4), base_fours)
+    fives   = np.ma.masked_where(  (type_vals != 7), base_fives)
+    sixs    = np.ma.masked_where(  (type_vals != 8), base_fives)
+    #ax1.pcolormesh(day_data['longitude'][:], day_data['latitude'][:], \
+    #    ones, transform = datacrs, shading = 'auto', \
+    #    vmin = 1, vmax = 10, cmap = 'tab10')
+
+    plt.close('all')
+    fig = plt.figure(figsize = (9, 6))
+    ax1 = fig.add_subplot(2,3,1, projection = mapcrs)
+    ax2 = fig.add_subplot(2,3,2, projection = mapcrs)
+    ax3 = fig.add_subplot(2,3,3, projection = mapcrs)
+    ax4 = fig.add_subplot(2,3,4, projection = mapcrs)
+    ax5 = fig.add_subplot(2,3,5, projection = mapcrs)
+    ax6 = fig.add_subplot(2,3,6)
+    
+    plotNSIDC_MonthClimo(NSIDC_data, month_idx, minlat = minlat, ax = ax1, \
+        title = '', colorbar = cbar_switch)
+    plotNSIDC_MonthTrend(NSIDC_data,month_idx=month_idx,save=False,\
+        trend_type='standard',season='sunlight',minlat=minlat,\
+        return_trend=False, colorbar = cbar_switch, \
+        colorbar_label_size = 10, \
+        pax = ax2, show_pval = True, uncert_ax = ax3, title = '')
+
+    avg1 = np.nanmean(NSIDC_data['grid_ice_conc'][month_idx::6,:,:][:5,:,:], \
+        axis = 0)
+    avg2 = np.nanmean(NSIDC_data['grid_ice_conc'][month_idx::6,:,:][-5:,:,:], \
+        axis = 0)
+
+    ax4.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+        avg1, transform = datacrs, shading = 'auto', cmap = 'ocean')
+    ax4.coastlines()
+    ax4.set_extent([-180,180,minlat,90], datacrs)
+
+    #ax5.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+    #    avg2, transform = datacrs, shading = 'auto', cmap = 'ocean')
+    #ax5.coastlines()
+    #ax5.set_extent([-180,180,minlat,90], datacrs)
+
+    ax5.pcolormesh(NSIDC_data['grid_lon'][:,:], NSIDC_data['grid_lat'][:,:], \
+        ones, transform = datacrs, shading = 'auto', \
+        vmin = 1, vmax = 10, cmap = 'tab10')
+    ax5.pcolormesh(NSIDC_data['grid_lon'][:,:], NSIDC_data['grid_lat'][:,:], \
+        twos, transform = datacrs, shading = 'auto', \
+        vmin = 1, vmax = 10, cmap = 'tab10')
+    ax5.pcolormesh(NSIDC_data['grid_lon'][:,:], NSIDC_data['grid_lat'][:,:], \
+        threes, transform = datacrs, shading = 'auto', \
+        vmin = 1, vmax = 10, cmap = 'tab10')
+    ax5.pcolormesh(NSIDC_data['grid_lon'][:,:], NSIDC_data['grid_lat'][:,:], \
+        fours, transform = datacrs, shading = 'auto', \
+        vmin = 1, vmax = 10, cmap = 'tab10')
+    ax5.pcolormesh(NSIDC_data['grid_lon'][:,:], NSIDC_data['grid_lat'][:,:], \
+        fives, transform = datacrs, shading = 'auto', \
+        vmin = 1, vmax = 10, cmap = 'tab10')
+    ax5.pcolormesh(NSIDC_data['grid_lon'][:,:], NSIDC_data['grid_lat'][:,:], \
+        sixs, transform = datacrs, shading = 'auto', \
+        vmin = 1, vmax = 10, cmap = 'tab10')
+    ax5.coastlines()
+    ax5.set_extent([-180,180,minlat,90], datacrs)
+
+    plot_point_on_map(ax1, NSIDC_data['grid_lat'][xidx,yidx], \
+        NSIDC_data['grid_lon'][xidx,yidx], markersize = 10, color = 'red')
+    plot_point_on_map(ax2, NSIDC_data['grid_lat'][xidx,yidx], \
+        NSIDC_data['grid_lon'][xidx,yidx], markersize = 10, color = 'red')
+    plot_point_on_map(ax3, NSIDC_data['grid_lat'][xidx,yidx], \
+        NSIDC_data['grid_lon'][xidx,yidx], markersize = 10, color = 'red')
+    plot_point_on_map(ax4, NSIDC_data['grid_lat'][xidx,yidx], \
+        NSIDC_data['grid_lon'][xidx,yidx], markersize = 10, color = 'red')
+    plot_point_on_map(ax5, NSIDC_data['grid_lat'][xidx,yidx], \
+        NSIDC_data['grid_lon'][xidx,yidx], markersize = 10, color = 'red')
+ 
+    
+    ax6.plot(NSIDC_data['grid_ice_conc'][month_idx::6,xidx,yidx])
+    ax6.set_ylim(-5, 105)
+    ax6.axhline(max_ice_for_ocean, linestyle = ':', color = 'k')
+    ax6.axhline(min_ice_for_ice, linestyle = ':', color = 'k')
+    ax6.set_title('Type idx = ' + str(type_vals[xidx, yidx]) )
+ 
+    fig.tight_layout()
+    plt.show()
+
+
 

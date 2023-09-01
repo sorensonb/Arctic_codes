@@ -17,6 +17,11 @@
       - HRRR
       - NAM
 
+
+    WEBSITE: https://www.ready.noaa.gov/READYamet.php
+      This contains the tool for accessing archived HRRR soundings. Only
+      goes back about 4 years.
+
   SYNTAX:
     ./convert_ARl.py archived_sounding_file > output_file_name
 

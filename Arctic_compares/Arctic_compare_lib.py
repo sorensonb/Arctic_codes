@@ -2206,7 +2206,131 @@ def plot_compare_all_slopes(date_strs = None, save = False, \
         return return_dict
 
 
-def calculate_type_forcing(
+# NSIDC_dict: also output from NSIDC library
+# dtype: 'cloud', or 'clear'
+def calculate_type_forcing(OMI_data, NSIDC_data, month_idx, dtype, minlat = 70.,\
+        debug = False, use_szas = False, calc_slopes = None): 
+
+    # Calculate the type values for this month
+    # ----------------------------------------
+    type_vals = np.array([[\
+        check_type_change(NSIDC_data, month_idx, ii, jj, \
+        min_ice_for_ice = 80., \
+        max_ice_for_ocean = 20., 
+        bin_size = 6) \
+        for jj in range(NSIDC_data['grid_lon'].shape[1])] \
+        for ii in range(NSIDC_data['grid_lon'].shape[0])])
+
+    ai_trends, ai_pvals, ai_uncert = \
+        calcOMI_grid_trend(OMI_data, month_idx, 'standard', \
+        minlat)
+
+    if(calc_slopes is not None):
+        # Calculate the average declination angles for each month
+        days = np.arange(1, 366)
+        del_angles = -23.45 * np.cos( np.radians((360 / 365) * (days + 10)))
+        base_date = datetime(2005, 1, 1)
+        months = np.array(\
+            [(base_date + timedelta(days = int(ii - 1))).month \
+            for ii in days])
+        latitudes = np.arange(minlat + 0.5, maxlat + 0.5, 1.0)
+        lat_szas = np.array([[\
+            tlat - np.mean(del_angles[np.where(months == ii)]) \
+            for tlat in latitudes] \
+            for ii in range(1,13)])[4:10]
+
+        # Interpolate the bin SZAs to the calculated solar zenith angles
+        # --------------------------------------------------------------
+
+        
+        # Extract the interpolated bin forcing efficiency values
+        # ------------------------------------------------------
+
+
+        
+
+    else:
+        # NOTE: THESE VALUES ARE ROUGH ESTIMATES!
+        # 
+        # NOTE: ALSO, USING THE ICE FORCING VALUE FOR BOTH 'Ice' AND 'Mix'
+        # ----------------------------------------------------------------
+        if(dtype == 'clear'):
+            land_forcing = 5
+            ocean_forcing = 5
+            mix_forcing = -10
+            #mix_forcing = -4
+            ice_forcing = -10
+        elif(dtype == 'cloud'): 
+            # cloud values
+            land_forcing = -5
+            ocean_forcing = -5
+            mix_forcing = -12
+            #mix_forcing = -4
+            ice_forcing = -12
+        else:
+            print("WARNING: INCORRECT DATA TYPE")
+            return 0
+
+        land_forcing_values  = np.full(OMI_data['LAT'].shape[0], land_forcing)
+        ocean_forcing_values = np.full(OMI_data['LAT'].shape[0], ocean_forcing)
+        ice_forcing_values   = np.full(OMI_data['LAT'].shape[0], ice_forcing)
+        #mix_forcing_values   = np.full(OMI_data['LAT'].shape[0], mix_forcing)
+ 
+    estimate_forcings = np.full(ai_trends.shape, np.nan)
+    
+    for ii in range(OMI_data['LAT'].shape[0]):
+        local_land_forcing  = land_forcing_values[ii]
+        local_ocean_forcing = ocean_forcing_values[ii]
+        local_ice_forcing   = ice_forcing_values[ii]
+        for jj in range(OMI_data['LAT'].shape[1]):
+            # Grab the curent NSIDC type flag
+            # -------------------------------
+            local_type = type_vals[ii,jj]
+    
+            # Land
+            # ----
+            if(local_type == 15):
+                if(debug): print(ii,jj,"Land",local_land_forcing, \
+                    np.round(ai_trends[ii,jj] * local_land_forcing, 3))
+                estimate_forcings[ii,jj] = \
+                    np.round(ai_trends[ii,jj] * local_land_forcing, 3)
+     
+            # Pure Ocean
+            # ----------
+            elif(((local_type == 0) | (local_type == 3))):
+                if(debug): print(ii,jj,"Ocean",local-ocean_forcing, \
+                    np.round(ai_trends[ii,jj] * local_ocean_forcing, 3))
+                estimate_forcings[ii,jj] = \
+                    np.round(ai_trends[ii,jj] * local_ocean_forcing, 3)
+    
+            # Pure Ice (For now, include pure "mix" here)
+            # -------------------------------------------
+            elif(((local_type == 1) | (local_type == 6)) | \
+                 ((local_type == 2) | (local_type == 9))):
+                if(debug): print(ii,jj,"Ice/Mix",local_ice_forcing, \
+                    np.round(ai_trends[ii,jj] * local_ice_forcing, 3))
+                estimate_forcings[ii,jj] = \
+                    np.round(ai_trends[ii,jj] * local_ice_forcing, 3)
+    
+            # Change: ice (and, for now, "mix") to ocean
+            # ------------------------------------------
+            elif(((local_type == 4) | (local_type == 5) | \
+                  (local_type == 7))):
+    
+                num_ice   = len(np.where(NSIDC_data['grid_ice_conc'][month_idx::6,ii,jj] >= 20)[0])
+                num_ocean = len(np.where(NSIDC_data['grid_ice_conc'][month_idx::6,ii,jj] < 20)[0])
+    
+                weight_forcing = local_ice_forcing * (num_ice / (num_ocean + num_ice)) + \
+                                 local_ocean_forcing * (num_ocean / (num_ocean + num_ice))
+    
+                if(debug): print(ii,jj,"Change", weight_forcing, num_ice,\
+                    num_ocean, np.round(ai_trends[ii,jj] * weight_forcing, 3))
+                estimate_forcings[ii,jj] = np.round(ai_trends[ii,jj] * weight_forcing, 3)
+    
+            else:
+                if(debug): print(ii,jj, "NOT HANDLED", local_type)
+
+    return estimate_forcings
      
 def calculate_type_forcing_old(month_idx, trend_type = 'linear', minlat = 65.):
 
@@ -3579,6 +3703,7 @@ def calc_slope_clear_clean_sfctype(out_dict, sfc_type_idx, \
         out_var = 'cod'
     else:
         out_var = 'ch7'
+
     return_dict['sza_cloud_means'] = sza_cloud_means
     return_dict['sza_cloud_std']   = sza_cloud_std
     return_dict['sza_clear_means'] = sza_clear_means
@@ -4749,3 +4874,242 @@ def plot_aerosol_over_type_combined(data, dates, min_ai = 1.5, save = False, plo
 #    for ii, date in enumerate(date_list):
 #        coloc_data = read_colocated(date)
 #
+
+def match_aeronet_to_grid_AI(data, aeronet_file = 'aeronet_site_info.txt', \
+    min_ai = 1.5):
+
+    tester = pd.read_csv(aeronet_file)
+
+    mask_all_data = np.ma.masked_where((data['omi_ai_raw_count'][:,:,:] == 0) | \
+        (data['omi_ai_raw'][:,:,:] < min_ai), data['omi_ai_raw'][:,:,:])
+
+    grid_lat, grid_lon = np.meshgrid(data['latitude'][:], data['longitude'])
+
+    # Figure out the grid indices for each AERONET site
+    # ------------------------------------------------
+    idx_dict = {}
+    for ii in range(len(tester)):
+        print(tester['Site_name'][ii], tester['Lat'][ii], tester['Lon'][ii])
+        idxs = nearest_gridpoint(float(tester['Lat'][ii]), \
+                                 float(tester['Lon'][ii]),\
+                                 grid_lat, grid_lon)
+
+        # Make sure the lats and lons are actually within the grid
+        # --------------------------------------------------------
+        if(    (abs(float(tester['Lat'][ii]) - grid_lat[idxs]) < 1.) & \
+               (abs(float(tester['Lon'][ii]) - grid_lon[idxs]) < 1.)):
+            print("This site is in the grid")
+            idx_dict[tester['Site_name'][ii]] = idxs
+        else:
+            print("This site is NOT in the grid")
+
+    # Loop over the dates
+    # -------------------
+    for ii in range(mask_all_data.shape[2]):
+        print(data['dates'][ii])
+        # Loop over each site 
+        # -------------------
+        for key in idx_dict.keys():
+            # Check the mask of the grid value for this site
+            # ----------------------------------------------
+            #print("HERE:",mask_all_data[:,:,ii][idx_dict[key]])
+            mask_val = mask_all_data[:,:,ii][idx_dict[key]]
+            if(not isinstance(mask_val, list)):
+                mask_val = [mask_val] 
+
+            mask_val = np.ma.masked_array(mask_all_data[:,:,ii][idx_dict[key]]).mask
+                
+            if(mask_val == False):
+                print('Aeronet data for site',key)
+
+
+    return idx_dict, grid_lat, grid_lon
+
+# dtype: 'cloud', or 'clear', or 'average'
+def plot_type_forcing_all_months(OMI_data, NSIDC_data, dtype, minlat = 70., \
+        use_szas = False, save = False, calc_slopes = None):
+
+    full_forcings = np.full((6, OMI_data['LAT'].shape[0], \
+            OMI_data['LAT'].shape[1]), np.nan)
+    if(dtype == 'average'):
+        full_cloud = np.full((6, OMI_data['LAT'].shape[0], \
+                OMI_data['LAT'].shape[1]), np.nan)
+        full_clear = np.full((6, OMI_data['LAT'].shape[0], \
+                OMI_data['LAT'].shape[1]), np.nan)
+    
+    for month_idx in range(6):
+        if(dtype == 'average'):
+            full_cloud[month_idx,:,:] = \
+                calculate_type_forcing(OMI_data, NSIDC_data, month_idx, \
+                    'cloud', minlat = minlat, calc_slopes = calc_slopes)
+            full_clear[month_idx,:,:] = \
+                calculate_type_forcing(OMI_data, NSIDC_data, month_idx, \
+                    'clear', minlat = minlat, calc_slopes = calc_slopes)
+        else:
+            full_forcings[month_idx,:,:] = \
+                calculate_type_forcing(OMI_data, NSIDC_data, month_idx, \
+                    dtype, minlat = minlat, calc_slopes = calc_slopes)
+
+    if(dtype == 'average'):
+        full_forcings = \
+            np.nanmean(np.ma.masked_invalid(\
+            np.array([full_cloud, full_clear])), axis = 0)
+    else:
+        full_forcings = np.ma.masked_invalid(full_forcings)
+ 
+    fig = plt.figure(figsize = (9, 12))
+    
+    ax1 = fig.add_subplot(4,3,1, projection = mapcrs)
+    ax2 = fig.add_subplot(4,3,2, projection = mapcrs)
+    ax3 = fig.add_subplot(4,3,3, projection = mapcrs)
+    ax4 = fig.add_subplot(4,3,4, projection = mapcrs)
+    ax5 = fig.add_subplot(4,3,5, projection = mapcrs)
+    ax6 = fig.add_subplot(4,3,6, projection = mapcrs)
+
+    ax7  = fig.add_subplot(4,3,7)
+    ax8  = fig.add_subplot(4,3,8)
+    ax9  = fig.add_subplot(4,3,9)
+    ax10 = fig.add_subplot(4,3,10)
+    ax11 = fig.add_subplot(4,3,11)
+    ax12 = fig.add_subplot(4,3,12)
+    
+    mesh = ax1.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+            full_forcings[0,:,:], transform = datacrs, shading = 'auto', \
+            vmin = -4, vmax = 4, cmap = 'bwr')
+    cbar = plt.colorbar(mesh, ax = ax1)
+    ax1.coastlines()
+    ax1.set_extent([-180,180,minlat,90], datacrs)
+    ax1.set_title('April')   
+ 
+    mesh = ax2.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+            full_forcings[1,:,:], transform = datacrs, shading = 'auto', \
+            vmin = -4, vmax = 4, cmap = 'bwr')
+    cbar = plt.colorbar(mesh, ax = ax2)
+    ax2.coastlines()
+    ax2.set_extent([-180,180,minlat,90], datacrs)
+    ax2.set_title('May')   
+    
+    mesh = ax3.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+            full_forcings[2,:,:], transform = datacrs, shading = 'auto', \
+            vmin = -4, vmax = 4, cmap = 'bwr')
+    cbar = plt.colorbar(mesh, ax = ax3)
+    ax3.coastlines()
+    ax3.set_extent([-180,180,minlat,90], datacrs)
+    ax3.set_title('June')   
+    
+    mesh = ax4.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+            full_forcings[3,:,:], transform = datacrs, shading = 'auto', \
+            vmin = -4, vmax = 4, cmap = 'bwr')
+    cbar = plt.colorbar(mesh, ax = ax4)
+    ax4.coastlines()
+    ax4.set_extent([-180,180,minlat,90], datacrs)
+    ax4.set_title('July')   
+    
+    mesh = ax5.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+            full_forcings[4,:,:], transform = datacrs, shading = 'auto', \
+            vmin = -4, vmax = 4, cmap = 'bwr')
+    cbar = plt.colorbar(mesh, ax = ax5)
+    ax5.coastlines()
+    ax5.set_extent([-180,180,minlat,90], datacrs)
+    ax5.set_title('August')  
+    
+    mesh = ax6.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+            full_forcings[5,:,:], transform = datacrs, shading = 'auto', \
+            vmin = -4, vmax = 4, cmap = 'bwr')
+    cbar = plt.colorbar(mesh, ax = ax6)
+    ax6.coastlines()
+    ax6.set_extent([-180,180,minlat,90], datacrs)
+    ax6.set_title('September')
+  
+    # Plot line-graph zonal averages
+    # ------------------------------
+ 
+    # Calculate the average of each of the daily standard deviations,
+    # following the methodology I found on :
+    # https://www.statology.org/averaging-standard-deviations/
+    # -----------------------------------------------------------------
+    #out_dict['cld_frac_std'] = \
+    #    np.sqrt((np.sum((all_counts_data - 1) * (all_std_data**2.), \
+    #    axis = 0)) / \
+    #    (np.sum(all_counts_data, axis = 0) - all_counts_data.shape[0]))
+    zonal_avgs = np.nanmean(full_forcings, axis = 2)
+    if(dtype == 'average'):
+        #zonal_cloud_avgs = np.nanmean(full_cloud, axis = 2)
+        #zonal_clear_avgs = np.nanmean(full_clear, axis = 2)
+        zonal_cloud_stds = np.nanstd(full_cloud, axis = 2)
+        zonal_clear_stds = np.nanstd(full_clear, axis = 2)
+
+        # Average the cloud and clear data
+        # --------------------------------
+        #zonal_avgs = np.concatenate([zonal_cloud_avgs, zonal_clear_avgs])
+        #zonal_avgs = np.nanmean(zonal_avgs, axis = 0)
+
+        # Calculate the average of the standard deviations
+        # ------------------------------------------------
+        zonal_stds = np.sqrt( \
+            (zonal_cloud_stds**2. + zonal_clear_stds**2.) / 2)
+        #np.sqrt((np.sum((all_counts_data - 1) * (all_std_data**2.), axis = 0)) / \
+        #        (np.sum(all_counts_data, axis = 0) - all_counts_data.shape[0]))
+        
+
+    else:
+        zonal_stds = np.nanstd(full_forcings, axis = 2)
+
+    ax7.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[0])
+    ax7.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[0] + zonal_stds[0], linestyle = '--', color = 'tab:blue')
+    ax7.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[0] - zonal_stds[0], linestyle = '--', color = 'tab:blue')
+    ax7.axhline(0, linestyle = ':', color = 'k')
+    ax7.set_title('April')
+    ax7.set_xlabel('Latitude')    
+    ax7.set_ylabel('Zonal Avg. Forcing')    
+ 
+    ax8.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[1])
+    ax8.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[1] + zonal_stds[1], linestyle = '--', color = 'tab:blue')
+    ax8.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[1] - zonal_stds[1], linestyle = '--', color = 'tab:blue')
+    ax8.axhline(0, linestyle = ':', color = 'k')
+    ax8.set_title('May')
+    ax8.set_xlabel('Latitude')    
+    ax8.set_ylabel('Zonal Avg. Forcing')    
+ 
+    ax9.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[2])
+    ax9.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[2] + zonal_stds[2], linestyle = '--', color = 'tab:blue')
+    ax9.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[2] - zonal_stds[2], linestyle = '--', color = 'tab:blue')
+    ax9.axhline(0, linestyle = ':', color = 'k')
+    ax9.set_title('June')
+    ax9.set_xlabel('Latitude')    
+    ax9.set_ylabel('Zonal Avg. Forcing')    
+ 
+    ax10.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[3])
+    ax10.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[3] + zonal_stds[3], linestyle = '--', color = 'tab:blue')
+    ax10.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[3] - zonal_stds[3], linestyle = '--', color = 'tab:blue')
+    ax10.axhline(0, linestyle = ':', color = 'k')
+    ax10.set_title('July')
+    ax10.set_xlabel('Latitude')    
+    ax10.set_ylabel('Zonal Avg. Forcing')    
+ 
+    ax11.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[4])
+    ax11.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[4] + zonal_stds[4], linestyle = '--', color = 'tab:blue')
+    ax11.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[4] - zonal_stds[4], linestyle = '--', color = 'tab:blue')
+    ax11.axhline(0, linestyle = ':', color = 'k')
+    ax11.set_title('August')
+    ax11.set_xlabel('Latitude')    
+    ax11.set_ylabel('Zonal Avg. Forcing')    
+ 
+    ax12.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[5])
+    ax12.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[5] + zonal_stds[5], linestyle = '--', color = 'tab:blue')
+    ax12.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[5] - zonal_stds[5], linestyle = '--', color = 'tab:blue')
+    ax12.axhline(0, linestyle = ':', color = 'k')
+    ax12.set_title('September')
+    ax12.set_xlabel('Latitude')    
+    ax12.set_ylabel('Zonal Avg. Forcing')    
+
+ 
+    plt.suptitle(dtype)
+    fig.tight_layout()
+
+    if(save):
+        outname = 'calc_arctic_forcing_' + dtype + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else: 
+        plt.show()

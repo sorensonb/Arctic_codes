@@ -1,0 +1,12 @@
+Site_name,Lat,Lon
+Hornsund,77.0,15.6
+Thule,76.5,-68.8
+Kangerlussuaq,67.0,-50.6
+Ittoqqortoormiit,70.5,-21.0
+Andenes,69.3,16.0
+Resolute_Bay,74.7,-94.9
+Barrow,71.3,-156.7
+Tiksi,71.6,129.0
+Yakutsk,61.7,129.34
+OPAL,79.9,-85.9
+PEARL,80.054,-86.417

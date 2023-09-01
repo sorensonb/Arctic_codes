@@ -1425,7 +1425,7 @@ def readOMI_single_swath(plot_time,row_max, row_min = 0, only_sea_ice = True,\
 
 def readOMI_NCDF(infile=home_dir + '/Research/OMI/omi_ai_V003_2005_2020.nc',\
                  start_date = 200504, end_date = 202009, calc_month = True, \
-                 minlat=50):
+                 minlat=50, maxlat = 90):
     # Read in data to netCDF object
     in_data = Dataset(infile,'r')
 
@@ -1452,7 +1452,8 @@ def readOMI_NCDF(infile=home_dir + '/Research/OMI/omi_ai_V003_2005_2020.nc',\
     # Use minlat to restrict the data to only the desired minimum
     # latitude
     # ------------------------------------------------------------
-    min_idx =  np.where(in_data['Latitude'][:,0] > minlat)[0][0]
+    min_idx =  np.where(in_data['Latitude'][:,0] >= minlat)[0][0]
+    max_idx =  np.where(in_data['Latitude'][:,0] <= maxlat)[0][-1] + 1
 
     #check_int_dates
     #check_int_dates = np.array([\
@@ -1460,10 +1461,10 @@ def readOMI_NCDF(infile=home_dir + '/Research/OMI/omi_ai_V003_2005_2020.nc',\
     #     for mi in in_data['MONTH']])
 
     
-    OMI_data['AI']       = in_data['AI'][time_indices,min_idx:,:]
-    OMI_data['OB_COUNT'] = in_data['OB_COUNT'][time_indices,min_idx:,:]
-    OMI_data['LAT']      = in_data['Latitude'][min_idx:,:]
-    OMI_data['LON']      = in_data['Longitude'][min_idx:,:]
+    OMI_data['AI']       = in_data['AI'][time_indices,min_idx:max_idx,:]
+    OMI_data['OB_COUNT'] = in_data['OB_COUNT'][time_indices,min_idx:max_idx,:]
+    OMI_data['LAT']      = in_data['Latitude'][min_idx:max_idx,:]
+    OMI_data['LON']      = in_data['Longitude'][min_idx:max_idx,:]
     OMI_data['MONTH']    = in_data['MONTH'][time_indices]
     OMI_data['DATES']    = str_dates[time_indices]
     OMI_data['VERSION']  = version
@@ -2189,7 +2190,7 @@ def calcOMI_grid_trend(OMI_data, month_idx, trend_type, minlat):
 
     # Loop over all the keys and print the regression slopes 
     # Grab the averages for the key
-    for i in range(0,len(np.arange(np.min(OMI_data['LAT']),90))):
+    for i in range(0,len(np.arange(np.min(OMI_data['LAT']),np.max(OMI_data['LAT'])))):
         for j in range(0,len(lon_ranges)):
             # Check the current max and min
             x_vals = np.arange(0,len(local_mask[:,i,j]))

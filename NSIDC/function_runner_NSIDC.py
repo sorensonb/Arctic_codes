@@ -9,6 +9,8 @@ import NSIDCLib
 from NSIDCLib import *
 import sys
 
+sys.path.append(home_dir + '/Research/OMI')
+from OMILib import *
 # ----------------------------------------------------
 # Set up the overall figure
 # ----------------------------------------------------
@@ -23,12 +25,122 @@ import sys
 begin_date = '200504'
 end_date   = '202009'
 season     = 'sunlight'
-minlat = 70.
+minlat = 65.
 NSIDC_data = readNSIDC_monthly_grid_all(begin_date, end_date, \
     season, calc_month = True, minlat = minlat, maxlat = 87.)
 
-plotNSIDC_ClimoTrend_all(NSIDC_data,\
-    trend_type = 'standard', minlat=minlat,save=False)
+#nsidc_trends, nsidc_pvals, nsidc_uncert = \
+#    calcNSIDC_grid_trend(NSIDC_data, 4, 'theil-sen', \
+#    minlat)
+
+###OMI_data   = readOMI_NCDF(infile = \
+###    '/home/bsorenson/Research/OMI/omi_ai_VSJ4_2005_2020.nc', \
+###    minlat = minlat, maxlat = 86.)
+###
+###full_forcings = np.full((6, OMI_data['LAT'].shape[0], \
+###        OMI_data['LAT'].shape[1]), np.nan)
+###
+###for month_idx in range(6):
+###    full_forcings[ii,:,:] = calculate_type_forcing(OMI_data, NSIDC_data, month_idx)
+###
+###sys.exit()
+
+month_idx = 4
+tidx = 10
+xidx = 10
+yidx = 300
+
+
+plot_NSIDC_coverage_change(NSIDC_data, month_idx, xidx, yidx, \
+    save = False, max_ice_for_ocean = 20)
+sys.exit()
+
+type_vals = np.array([[\
+    check_type_change(NSIDC_data, month_idx, ii, jj, \
+    min_ice_for_ice = 80., \
+    max_ice_for_ocean = 20., 
+    bin_size = 6) \
+    for jj in range(NSIDC_data['grid_lon'].shape[1])] \
+    for ii in range(NSIDC_data['grid_lon'].shape[0])])
+
+##!#ai_trends, ai_pvals, ai_uncert = calcOMI_grid_trend(OMI_data, month_idx, 'standard', \
+##!#    minlat)
+##!#
+##!## ones:   all ocean all the time
+##!## twos:   all mix   all the time
+##!## threes: all ice   all the time
+##!## fours:  change from mix to ocean
+##!## fives:  change from ocean to mix
+##!## sixs:   change from ice to mix 
+##!###!#ones    = np.ma.masked_where( ((type_vals != 0) & (type_vals != 3)), base_ones)
+##!###!#twos    = np.ma.masked_where( ((type_vals != 1) & (type_vals != 6)), base_twos)
+##!###!#threes  = np.ma.masked_where( ((type_vals != 2) & (type_vals != 9)), base_threes)
+##!###!#fours   = np.ma.masked_where(  (type_vals != 4), base_fours)
+##!###!#fives   = np.ma.masked_where(  (type_vals != 7), base_fives)
+##!###!#sixs    = np.ma.masked_where(  (type_vals != 8), base_fives)
+##!#
+##!#land_forcing = 5
+##!#ocean_forcing = 5
+##!#mix_forcing = -10
+##!##mix_forcing = -4
+##!#ice_forcing = -10
+##!#
+##!#estimate_forcings = np.full(ai_trends.shape, np.nan)
+##!#
+##!#for ii in range(OMI_data['LAT'].shape[0]):
+##!#    for jj in range(OMI_data['LAT'].shape[1]):
+##!#        # Grab the curent NSIDC type flag
+##!#        # -------------------------------
+##!#        local_type = type_vals[ii,jj]
+##!#
+##!#        # Land
+##!#        # ----
+##!#        if(local_type == 15):
+##!#            print(ii,jj,"Land",land_forcing, np.round(ai_trends[ii,jj] * land_forcing, 3))
+##!#            estimate_forcings[ii,jj] = np.round(ai_trends[ii,jj] * land_forcing, 3)
+##!# 
+##!#        # Pure Ocean
+##!#        # ----------
+##!#        elif(((local_type == 0) | (local_type == 3))):
+##!#            print(ii,jj,"Ocean",ocean_forcing, np.round(ai_trends[ii,jj] * ocean_forcing, 3))
+##!#            estimate_forcings[ii,jj] = np.round(ai_trends[ii,jj] * ocean_forcing, 3)
+##!#
+##!#        # Pure Ice (For now, include pure "mix" here)
+##!#        # -------------------------------------------
+##!#        elif(((local_type == 1) | (local_type == 6)) | \
+##!#             ((local_type == 2) | (local_type == 9))):
+##!#            print(ii,jj,"Ice/Mix",ice_forcing, np.round(ai_trends[ii,jj] * ice_forcing, 3))
+##!#            estimate_forcings[ii,jj] = np.round(ai_trends[ii,jj] * ice_forcing, 3)
+##!#
+##!#        # Change: ice (and, for now, "mix") to ocean
+##!#        # ------------------------------------------
+##!#        elif(((local_type == 4) | (local_type == 5) | \
+##!#              (local_type == 7))):
+##!#
+##!#            num_ice   = len(np.where(NSIDC_data['grid_ice_conc'][month_idx::6,ii,jj] >= 20)[0])
+##!#            num_ocean = len(np.where(NSIDC_data['grid_ice_conc'][month_idx::6,ii,jj] < 20)[0])
+##!#
+##!#            weight_forcing = ice_forcing * (num_ice / (num_ocean + num_ice)) + \
+##!#                             ocean_forcing * (num_ocean / (num_ocean + num_ice))
+##!#
+##!#            print(ii,jj,"Change", weight_forcing, num_ice, num_ocean, np.round(ai_trends[ii,jj] * weight_forcing, 3))
+##!#            estimate_forcings[ii,jj] = np.round(ai_trends[ii,jj] * weight_forcing, 3)
+##!#
+##!#        else:
+##!#            print(ii,jj, "NOT HANDLED", local_type)
+
+#num_ice = len(np.where(NSIDC_data['grid_ice_conc'][4::6,5,30] <= 20)[0])
+#num_mix = len(np.where(NSIDC_data['grid_ice_conc'][4::6,5,30] > 20)[0])
+#
+#weight_forcing = mix_forcing * (num_mix / (num_mix + num_ice)) + \
+#                 ice_forcing * (num_ice / (num_mix + num_ice))
+
+##plot_NSIDC_coverage_change(NSIDC_data, month_idx, tidx, xidx, yidx, \
+##    save = False)
+sys.exit()
+
+#plotNSIDC_ClimoTrend_all(NSIDC_data,\
+#    trend_type = 'standard', minlat=minlat,save=False)
 
 sys.exit()
 
