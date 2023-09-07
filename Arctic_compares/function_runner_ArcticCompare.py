@@ -617,6 +617,7 @@ thl_smth2_dict_v14 = calc_raw_grid_slopes(\
 min_cloud = 0.95
 maxerr = 2
 data_type = 'raw'
+# data_type: 'raw' or 'grid'
 ocean_slopes = calc_slope_clear_clean_sfctype(lin_smth2_dict_v6, 0, 0, \
     maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
 ice_slopes   = calc_slope_clear_clean_sfctype(lin_smth2_dict_v6, 1, 0, \
@@ -636,21 +637,61 @@ combined_slope_dict = {
 begin_date = '200504'
 end_date   = '202009'
 season     = 'sunlight'
-minlat = 65.
+minlat = 70.
 maxlat = 87.
 NSIDC_data = readNSIDC_monthly_grid_all(begin_date, end_date, \
     season, calc_month = True, minlat = minlat, maxlat = maxlat)
 
-OMI_data   = readOMI_NCDF(infile = \
+OMI_VSJ4   = readOMI_NCDF(infile = \
     '/home/bsorenson/Research/OMI/omi_ai_VSJ4_2005_2020.nc', \
     minlat = minlat, maxlat = maxlat - 1)
+OMI_VJZ211 = readOMI_NCDF(infile = \
+    '/home/bsorenson/Research/OMI/omi_ai_VJZ211_2005_2020.nc', \
+    minlat = minlat, maxlat = maxlat - 1)
+
+myd08_data = read_MODIS_MYD08_monthrange(begin_date,end_date,\
+    minlat = minlat, maxlat = maxlat, calc_month = False)
+
+##!#def plot_test_data(OMI_data, tidx, min_ai):
+##!#    local_data = np.ma.masked_where(OMI_data['AI'][tidx,:,:] < min_ai, OMI_data['AI'][tidx,:,:])
+##!#
+##!#    fig = plt.figure(figsize = (7, 3))
+##!#    ax1 = fig.add_subplot(1,2,1, projection = mapcrs)
+##!#    ax2 = fig.add_subplot(1,2,2)
+##!#    mesh = ax1.pcolormesh(OMI_data['LON'], OMI_data['LAT'], local_data, \
+##!#        transform = datacrs, shading = 'auto', cmap = 'jet', vmin = -0.75, vmax = 1.)
+##!#    cbar = fig.colorbar(mesh, ax = ax1)
+##!#    ax1.coastlines()
+##!#    ax1.set_extent([-180,180,65,90], datacrs)
+##!#    ax2.hist(local_data.flatten(), bins = 'auto')
+##!#    plt.suptitle(OMI_data['DATES'][tidx])
+##!#    fig.tight_layout()
+##!#    plt.show()
+
+     
+
+##!## This uses method 1: trend
+##!## -------------------------
+##!#plot_type_forcing_all_months(OMI_data, NSIDC_data, 'clear', minlat = minlat, \
+##!#    maxlat = maxlat, use_szas = False, save = False, coloc_dict = lin_smth2_dict_v6)
+
+# This uses method 2: individual month-based
+# ------------------------------------------
+
+ai_thresh = -0.15
 
 
-calc_slope_clear_clean_sfctype(out_dict, sfc_type_idx, \
-    cld_idx, min_cloud = 0.95, maxerr = 2, data_type = 'raw'):
-
-plot_type_forcing_all_months(OMI_data, NSIDC_data, 'average', \
-        minlat = minlat, save = False, calc_slopes = combined_slope_dict)
+sys.exit()
+#plot_type_forcing_all_months(OMI_data, NSIDC_data, 'average', \
+#        minlat = minlat, maxlat = maxlat, \
+#        save = False, coloc_dict = lin_smth2_dict_v6)
+min_cloud = 0.95
+cld_idx = 0
+sfc_type_idx = 2
+maxerr = 2
+plot_slopes_cloud_types_szamean(lin_smth2_dict_v6,cld_idx = 0, maxerr = 2, \
+    data_type = 'raw', remove_high_error = True, hatch_cloud = False, \
+    min_cloud = 0.95, save = False)
 
 sys.exit()
 
@@ -756,7 +797,7 @@ min_cloud = 0.95
 cld_idx = 0
 sfc_type_idx = 2
 maxerr = 2
-plot_slopes_cloud_types_szamean(lin_smth2_dict,cld_idx = 0, maxerr = 2, \
+plot_slopes_cloud_types_szamean(lin_smth2_dict_v6,cld_idx = 0, maxerr = 2, \
     data_type = 'raw', remove_high_error = True, hatch_cloud = False, \
     min_cloud = 0.95, save = False)
 sys.exit()

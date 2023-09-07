@@ -9,6 +9,7 @@ import os
 home_dir = os.environ['HOME']
 import sys
 import json
+from scipy.interpolate import interp1d
 sys.path.append(home_dir)
 import python_lib
 import importlib
@@ -2208,8 +2209,10 @@ def plot_compare_all_slopes(date_strs = None, save = False, \
 
 # NSIDC_dict: also output from NSIDC library
 # dtype: 'cloud', or 'clear'
+# data_type: 'raw' or 'grid'
 def calculate_type_forcing(OMI_data, NSIDC_data, month_idx, dtype, minlat = 70.,\
-        debug = False, use_szas = False, calc_slopes = None): 
+        maxlat = 87., debug = False, use_szas = False, coloc_dict = None, \
+        min_cloud = 0.95, maxerr = 2, data_type = 'raw'): 
 
     # Calculate the type values for this month
     # ----------------------------------------
@@ -2225,8 +2228,24 @@ def calculate_type_forcing(OMI_data, NSIDC_data, month_idx, dtype, minlat = 70.,
         calcOMI_grid_trend(OMI_data, month_idx, 'standard', \
         minlat)
 
-    if(calc_slopes is not None):
-        # Calculate the average declination angles for each month
+    if(coloc_dict is not None):
+
+        ocean_slopes = calc_slope_clear_clean_sfctype(coloc_dict, 0, 0, \
+            maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
+        ice_slopes   = calc_slope_clear_clean_sfctype(coloc_dict, 1, 0, \
+            maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
+        land_slopes  = calc_slope_clear_clean_sfctype(coloc_dict, 2, 0, \
+            maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
+        if(coloc_dict['raw_slopes'].shape[0] == 4):
+            include_mix = True
+            mix_slopes  = calc_slope_clear_clean_sfctype(coloc_dict, 3, 0, \
+                maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
+        else:
+            include_mix = False
+
+        # Calculate the average declination angles for each month.
+        # The resulting array is of shape (num_months, num_latitudes)
+        # -----------------------------------------------------------
         days = np.arange(1, 366)
         del_angles = -23.45 * np.cos( np.radians((360 / 365) * (days + 10)))
         base_date = datetime(2005, 1, 1)
@@ -2239,16 +2258,36 @@ def calculate_type_forcing(OMI_data, NSIDC_data, month_idx, dtype, minlat = 70.,
             for tlat in latitudes] \
             for ii in range(1,13)])[4:10]
 
-        # Interpolate the bin SZAs to the calculated solar zenith angles
+        # Calculate the SZA bins from the combined arctic comp output   
+        # dictionary. This dictionary contains three sub-dictionaries, 
+        # which are the 
         # --------------------------------------------------------------
+        sza_bins = np.nanmean(np.array([coloc_dict['sza_mins'], \
+                                        coloc_dict['sza_maxs']]), axis = 0)
+       
+        # NOTE: FOR NOW, SETTING ANY LATITUDE-CALCULATED SZA VALUES THAT
+        #       LIE OUTSIDE OF THE SZA BIN VALUES TO EITHER THE MINIMUM
+        #       OR MAXIMUM SZA VALUE. ANOTHER OPTION IS TO MASK LATITUDE
+        #       SZA VALUES THAT ARE OUTSIDE OF THIS RANGE.
+        # --------------------------------------------------------------
+        lat_szas = np.where( lat_szas < np.min(sza_bins), np.min(sza_bins), \
+            lat_szas)
+        lat_szas = np.where( lat_szas > np.max(sza_bins), np.max(sza_bins), \
+            lat_szas)
 
-        
+        # Interpolate the bin SZAs to the calculated solar zenith angles
         # Extract the interpolated bin forcing efficiency values
         # ------------------------------------------------------
-
-
-        
-
+        land_forcing_values  = interp1d(sza_bins, \
+            land_slopes['sza_' + dtype + '_means'])(lat_szas[month_idx])
+        ocean_forcing_values = interp1d(sza_bins, \
+            ocean_slopes['sza_' + dtype + '_means'])(lat_szas[month_idx])
+        ice_forcing_values   = interp1d(sza_bins, \
+            ice_slopes['sza_' + dtype + '_means'])(lat_szas[month_idx])
+        if(include_mix):
+            mix_forcing_values  = interp1d(sza_bins, \
+                mix_slopes['sza_clear_means'])(lat_szas[month_idx])
+       
     else:
         # NOTE: THESE VALUES ARE ROUGH ESTIMATES!
         # 
@@ -2258,14 +2297,14 @@ def calculate_type_forcing(OMI_data, NSIDC_data, month_idx, dtype, minlat = 70.,
             land_forcing = 5
             ocean_forcing = 5
             mix_forcing = -10
-            #mix_forcing = -4
+            mix_forcing = -4
             ice_forcing = -10
         elif(dtype == 'cloud'): 
             # cloud values
             land_forcing = -5
             ocean_forcing = -5
             mix_forcing = -12
-            #mix_forcing = -4
+            mix_forcing = -10
             ice_forcing = -12
         else:
             print("WARNING: INCORRECT DATA TYPE")
@@ -2274,7 +2313,7 @@ def calculate_type_forcing(OMI_data, NSIDC_data, month_idx, dtype, minlat = 70.,
         land_forcing_values  = np.full(OMI_data['LAT'].shape[0], land_forcing)
         ocean_forcing_values = np.full(OMI_data['LAT'].shape[0], ocean_forcing)
         ice_forcing_values   = np.full(OMI_data['LAT'].shape[0], ice_forcing)
-        #mix_forcing_values   = np.full(OMI_data['LAT'].shape[0], mix_forcing)
+        mix_forcing_values   = np.full(OMI_data['LAT'].shape[0], mix_forcing)
  
     estimate_forcings = np.full(ai_trends.shape, np.nan)
     
@@ -2282,14 +2321,16 @@ def calculate_type_forcing(OMI_data, NSIDC_data, month_idx, dtype, minlat = 70.,
         local_land_forcing  = land_forcing_values[ii]
         local_ocean_forcing = ocean_forcing_values[ii]
         local_ice_forcing   = ice_forcing_values[ii]
+        if(include_mix):
+            local_mix_forcing   = mix_forcing_values[ii]
         for jj in range(OMI_data['LAT'].shape[1]):
             # Grab the curent NSIDC type flag
             # -------------------------------
             local_type = type_vals[ii,jj]
     
-            # Land
-            # ----
-            if(local_type == 15):
+            # Land or coastline
+            # -----------------
+            if((local_type == 15) | (local_type == 14)):
                 if(debug): print(ii,jj,"Land",local_land_forcing, \
                     np.round(ai_trends[ii,jj] * local_land_forcing, 3))
                 estimate_forcings[ii,jj] = \
@@ -2298,40 +2339,184 @@ def calculate_type_forcing(OMI_data, NSIDC_data, month_idx, dtype, minlat = 70.,
             # Pure Ocean
             # ----------
             elif(((local_type == 0) | (local_type == 3))):
-                if(debug): print(ii,jj,"Ocean",local-ocean_forcing, \
+                if(debug): print(ii,jj,"Ocean",local_ocean_forcing, \
                     np.round(ai_trends[ii,jj] * local_ocean_forcing, 3))
                 estimate_forcings[ii,jj] = \
                     np.round(ai_trends[ii,jj] * local_ocean_forcing, 3)
     
-            # Pure Ice (For now, include pure "mix" here)
-            # -------------------------------------------
-            elif(((local_type == 1) | (local_type == 6)) | \
-                 ((local_type == 2) | (local_type == 9))):
-                if(debug): print(ii,jj,"Ice/Mix",local_ice_forcing, \
+            # Pure Ice
+            # --------
+            elif((local_type == 2) | (local_type == 9)):
+                if(debug): print(ii,jj,"Ice",local_ice_forcing, \
                     np.round(ai_trends[ii,jj] * local_ice_forcing, 3))
                 estimate_forcings[ii,jj] = \
                     np.round(ai_trends[ii,jj] * local_ice_forcing, 3)
-    
-            # Change: ice (and, for now, "mix") to ocean
-            # ------------------------------------------
-            elif(((local_type == 4) | (local_type == 5) | \
-                  (local_type == 7))):
-    
-                num_ice   = len(np.where(NSIDC_data['grid_ice_conc'][month_idx::6,ii,jj] >= 20)[0])
+
+            # Pure Mix   
+            # --------
+            elif((local_type == 1) | (local_type == 6)):
+                if(debug): print(ii,jj,"Mix",local_mix_forcing, \
+                    np.round(ai_trends[ii,jj] * local_mix_forcing, 3))
+                estimate_forcings[ii,jj] = \
+                    np.round(ai_trends[ii,jj] * local_mix_forcing, 3)
+
+    #'Unchanged ocean':       0,   # 0
+    #'Unchanged mix':         1,   # 1
+    #'Unchanged ice':         2,   # 2 
+    #'Still primarily ocean': 3,   # 0
+    #'Mix to ocean':          4,   # 3
+    #'Ice to ocean':          5,   # 3
+    #'Still primarily mix':   6,   # 1
+    #'Ocean to mix':          7,   # 4
+    #'Ice to mix':            8,   # 4
+    #'Still primarily ice':   9,   # 2
+    #'Ocean to ice':         10,   # 5
+    #'Mix to ice':           11,   #
+    #'Pole Hole':            12,
+    #'Unused':               13,
+    #'Coastline':            14,
+    #'Land':                 15,
+    #'Other':                -1,
+
+            # Change: ice to ocean (or ocean to ice)
+            # --------------------------------------
+            elif((local_type == 5) | (local_type == 10)):
+                num_ice   = len(np.where(NSIDC_data['grid_ice_conc'][month_idx::6,ii,jj] >= 80)[0])
                 num_ocean = len(np.where(NSIDC_data['grid_ice_conc'][month_idx::6,ii,jj] < 20)[0])
-    
+ 
                 weight_forcing = local_ice_forcing * (num_ice / (num_ocean + num_ice)) + \
                                  local_ocean_forcing * (num_ocean / (num_ocean + num_ice))
-    
-                if(debug): print(ii,jj,"Change", weight_forcing, num_ice,\
+
+                if(debug): print(ii,jj,"Change Ice/Ocean", weight_forcing, num_ice,\
                     num_ocean, np.round(ai_trends[ii,jj] * weight_forcing, 3))
+                estimate_forcings[ii,jj] = np.round(ai_trends[ii,jj] * weight_forcing, 3)
+
+            # Change: mix to ocean (or ocean to mix)
+            # --------------------------------------
+            elif((local_type == 4) | (local_type == 7)):
+                num_mix   = len(np.where( (NSIDC_data['grid_ice_conc'][month_idx::6,ii,jj] >= 20) & \
+                                          (NSIDC_data['grid_ice_conc'][month_idx::6,ii,jj] < 80))[0])
+                num_ocean = len(np.where(NSIDC_data['grid_ice_conc'][month_idx::6,ii,jj] < 20)[0])
+ 
+                weight_forcing = local_mix_forcing * (num_mix / (num_ocean + num_mix)) + \
+                                 local_ocean_forcing * (num_ocean / (num_ocean + num_mix))
+
+                if(debug): print(ii,jj,"Change Mix/Ocean", weight_forcing, num_mix,\
+                    num_ocean, np.round(ai_trends[ii,jj] * weight_forcing, 3))
+                estimate_forcings[ii,jj] = np.round(ai_trends[ii,jj] * weight_forcing, 3)
+
+            # Change: ice to mix (or mix to ice)
+            # --------------------------------------
+            elif((local_type == 8) | (local_type == 11)):
+                num_mix   = len(np.where( (NSIDC_data['grid_ice_conc'][month_idx::6,ii,jj] >= 20) & \
+                                          (NSIDC_data['grid_ice_conc'][month_idx::6,ii,jj] < 80))[0])
+                num_ice = len(np.where(NSIDC_data['grid_ice_conc'][month_idx::6,ii,jj] >= 80)[0])
+ 
+                weight_forcing = local_mix_forcing * (num_mix / (num_ice + num_mix)) + \
+                                 local_ice_forcing * (num_ice / (num_ice + num_mix))
+
+                if(debug): print(ii,jj,"Change Ice/Mix", weight_forcing, num_ice,\
+                    num_mix, np.round(ai_trends[ii,jj] * weight_forcing, 3))
                 estimate_forcings[ii,jj] = np.round(ai_trends[ii,jj] * weight_forcing, 3)
     
             else:
                 if(debug): print(ii,jj, "NOT HANDLED", local_type)
 
     return estimate_forcings
-     
+
+# 
+def calculate_type_forcing_v2(OMI_data, NSIDC_data, MYD08_data, coloc_dict, \
+        minlat = 70., maxlat = 87., ai_thresh = -0.15):
+    
+    # Necessary pieces:
+    # 2. Monthly AI values
+    # 4. NSIDC surface type classification for each individual month
+    # 5. MODIS monthly cloud fraction 
+    #    (/home/bsorenson/data/MODIS/Aqua/MYD08/modis_MYD08_subset_YYYYMM.nc)
+    # 6. Arctic comp colocation output dictionary
+    # 1. Baseline OMI AI clear-sky climatology (for each month (April, May, etc.))
+    # 3. Threshold monthly AI value below which is clear-sky (no forcing) and
+    #       above which is aerosol-sky 
+    
+    # Steps:
+    # 1.  Determine the clear-sky climatology of AI. Generate by calculating the
+    #     average only of months with AI below the threshold value.
+    # --------------------------------------------------------------------------
+    clear_sky_AI = np.array([np.nanmean(\
+        np.ma.masked_where(OMI_data['AI'][tidx::6,:,:] > ai_thresh, \
+        OMI_data['AI'][tidx::6,:,:]), axis = 0) for tidx in range(6)])
+
+    # Calculate the average declination angles for each month.
+    # The resulting array is of shape (num_months, num_latitudes)
+    # -----------------------------------------------------------
+    days = np.arange(1, 366)
+    del_angles = -23.45 * np.cos( np.radians((360 / 365) * (days + 10)))
+    base_date = datetime(2005, 1, 1)
+    months = np.array(\
+        [(base_date + timedelta(days = int(ii - 1))).month \
+        for ii in days])
+    latitudes = np.arange(minlat + 0.5, maxlat + 0.5, 1.0)
+    lat_szas = np.array([[\
+        tlat - np.mean(del_angles[np.where(months == ii)]) \
+        for tlat in latitudes] \
+        for ii in range(1,13)])[4:10]
+
+    land_mask   = NSIDC_data['grid_land'][:,:,:].mask
+    coast_mask  = NSIDC_data['grid_coastline'][:,:,:].mask
+    pole_mask   = NSIDC_data['grid_pole_hole'][:,:,:].mask
+    unused_mask = NSIDC_data['grid_unused'][:,:,:].mask
+    ice_mask    = NSIDC_data['grid_ice_conc'][:,:,:].mask
+
+    # 2.  Loop over each individual month
+    # -----------------------------------
+    for nn in range(OMI_data['AI'].shape[0]):
+        for ii in range(OMI_data['AI'].shape[1]):
+            for jj in range(OMI_data['AI'].shape[1]):
+        
+            # 3.  Determine if a single gridbox has AI above the threshold
+            if(OMI_data['AI'][nn,ii,jj] < ai_thresh): 
+                # 3a. If not above the threshold, set forcing to 0 and continue
+                calc_forcing = 0.
+            else:
+                # 3b. If above the threshold,
+                # 4.  Determine the difference between this pixel's AI and the clear-sky
+                #     climatology.
+                delta_ai = OMI_data['AI'][nn,ii,jj] - \
+                           clear_sky_AI[nn % 6, ii,jj]
+
+                # 6.  Extract the MODIS MYD08 value and weigh the "clear" and "cloud"
+                #     forcing values according to that cloud fraction.
+                ##myd08_data['cld_frac_mean'][nn,ii,jj]
+
+                # 5.  Extract the NSIDC surface type to figure out which forcing value
+                #     to use.
+                if( (pole_mask[nn,ii,jj]) | (unused_mask[nn,ii,jj])):
+                    # Bad grid points. NO forcing
+                    calc_forcing =  0.
+
+                elif( (land_mask[nn,ii,jj]) | (coast_mask[nn,ii,jj])):
+                    # Use land forcing value
+
+                elif( not ice_mask[nn,ii,jj]):
+                    # Use either ice, mix, or ocean forcing value
+
+                    if( (NSIDC_data['grid_ice_conc'] < 20) ):
+                        # Use ocean forcing
+
+                    elif( (NSIDC_data['grid_ice_conc'] >= 20)  & \
+                          (NSIDC_data['grid_ice_conc'] < 80)):
+                        # Use mix forcing
+
+                    elif( (NSIDC_data['grid_ice_conc'] > 80) ):
+                        # Use land forcing
+
+                    else:
+                        # SHOULD NOT GET HERE
+ 
+                # 8.  Multiply the ΔAI by the associated forcing value.
+
+
+ 
 def calculate_type_forcing_old(month_idx, trend_type = 'linear', minlat = 65.):
 
     # Calculate gridded OMI trends
@@ -3130,8 +3315,10 @@ def calc_raw_grid_slopes(combined_data, comp_grid_data, \
         trend_type = 'theil-sen', \
         smoother = 'None', sizer = 1):
 
-    ice_mins = np.array([0,80,105])
-    ice_maxs = np.array([20,100,None])
+    ice_mins = np.array([0,  80, 105, 21])
+    ice_maxs = np.array([20,100,None, 79])
+    #ice_mins = np.array([0,80,105])
+    #ice_maxs = np.array([20,100,None])
 
     if(smoother == 'None'):    
         if('cod_bins' in comp_grid_data.keys()):
@@ -3734,22 +3921,34 @@ def plot_slopes_cloud_types_szamean(out_dict,cld_idx = 0, maxerr = 2, \
         maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
     land_slopes  = calc_slope_clear_clean_sfctype(out_dict, 2, cld_idx, \
         maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
+    if(out_dict['raw_slopes'].shape[0] == 4):
+        include_mix = True
+        mix_slopes  = calc_slope_clear_clean_sfctype(out_dict, 3, cld_idx, \
+            maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
+        figsize = (6, 6)
+    else:
+        include_mix = False
+        figsize = (9, 3)
+        
 
     plt.close('all')
-    fig = plt.figure(figsize = (9, 3))
+    fig = plt.figure(figsize = figsize)
     # Trends
-    axs = fig.subplots(nrows = 1, ncols = 3, sharey = True)
-    ax1 = axs[0]
-    ax2 = axs[1]
-    ax3 = axs[2]
-    #ax1 = fig.add_subplot(1,3,1)
-    #ax2 = fig.add_subplot(1,3,2)
-    #ax3 = fig.add_subplot(1,3,3)
+    if(include_mix):
+        axs = fig.subplots(nrows = 2, ncols = 2, sharey = True)
+        ax1 = axs[0,0]
+        ax2 = axs[0,1]
+        ax3 = axs[1,0]
+        ax4 = axs[1,1]
+    else:
+        axs = fig.subplots(nrows = 1, ncols = 3, sharey = True)
+        ax1 = axs[0]
+        ax2 = axs[1]
 
     ax1.axhline(0, color = 'k', linestyle = '--')
     ax2.axhline(0, color = 'k', linestyle = '--')
     ax3.axhline(0, color = 'k', linestyle = '--')
-
+    if(include_mix): ax4.axhline(0, color = 'k', linestyle = '--')
  
     # Ocean stuff 
     ax1.plot(out_dict[xvar + '_mins'], ocean_slopes[xvar + '_cloud_means'], \
@@ -3808,8 +4007,6 @@ def plot_slopes_cloud_types_szamean(out_dict,cld_idx = 0, maxerr = 2, \
         land_slopes[xvar + '_clear_std'], ':', \
         color = 'tab:orange')
 
-    ax3.legend()
-
     ax1_mins = ax1.get_ylim()[0]
     ax2_mins = ax2.get_ylim()[0]
     ax3_mins = ax3.get_ylim()[0]
@@ -3817,29 +4014,67 @@ def plot_slopes_cloud_types_szamean(out_dict,cld_idx = 0, maxerr = 2, \
     ax2_maxs = ax2.get_ylim()[1]
     ax3_maxs = ax3.get_ylim()[1]
 
+    if(include_mix):
+        ax4.plot(out_dict[xvar + '_mins'], mix_slopes[xvar + '_cloud_means'], \
+            color = 'tab:blue', label = 'Cloud')
+        ax4.plot(out_dict[xvar + '_mins'], mix_slopes[xvar + '_cloud_means'] - \
+            mix_slopes[xvar + '_cloud_std'], ':', \
+            color = 'tab:blue')
+        ax4.plot(out_dict[xvar + '_mins'], mix_slopes[xvar + '_cloud_means'] + \
+            mix_slopes[xvar + '_cloud_std'], ':', \
+            color = 'tab:blue')
+
+        ax4.plot(out_dict[xvar + '_mins'], mix_slopes[xvar + '_clear_means'], \
+            color = 'tab:orange', label = 'Clear')
+        ax4.plot(out_dict[xvar + '_mins'], mix_slopes[xvar + '_clear_means'] - \
+            mix_slopes[xvar + '_clear_std'], ':', \
+            color = 'tab:orange')
+        ax4.plot(out_dict[xvar + '_mins'], mix_slopes[xvar + '_clear_means'] + \
+            mix_slopes[xvar + '_clear_std'], ':', \
+            color = 'tab:orange')
+        ax4.legend()
+
+        ax4_mins = ax4.get_ylim()[0]
+        ax4_maxs = ax4.get_ylim()[1]
+    else:
+        ax3.legend()
+
     all_mins = [ax1_mins, ax2_mins, ax3_mins]
     all_maxs = [ax1_maxs, ax2_maxs, ax3_maxs]
+    if(include_mix):
+        all_mins += [ax4_mins]
+        all_maxs += [ax4_maxs]
 
     ax1.set_ylim(np.min(all_mins), np.max(all_maxs))
     ax2.set_ylim(np.min(all_mins), np.max(all_maxs))
     ax3.set_ylim(np.min(all_mins), np.max(all_maxs))
+    if(include_mix): 
+        ax4.set_ylim(np.min(all_mins), np.max(all_maxs))
 
     ax1.grid(alpha = 0.5)
     ax2.grid(alpha = 0.5)
     ax3.grid(alpha = 0.5)
+    if(include_mix): 
+        ax4.grid(alpha = 0.5)
 
     ax1.set_title('Ocean')
     ax2.set_title('Ice')
     ax3.set_title('Land')
-   
+    if(include_mix):  
+        ax4.set_title('Mix')
+ 
     if(xvar == 'sza'): labeltxt = 'OMI SZA'
     elif(xvar == 'ch7'): labeltxt = 'MODIS CH7'
     elif(xvar == 'cod'): labeltxt = 'MODIS COD'
     ax1.set_xlabel(labeltxt)
     ax2.set_xlabel(labeltxt)
     ax3.set_xlabel(labeltxt)
+    if(include_mix):
+        ax4.set_xlabel(labeltxt)
  
     ax1.set_ylabel('AI-SWF Slope [Wm$^{-2}$AI$^{-1}$]')
+    if(include_mix):
+        ax3.set_ylabel('AI-SWF Slope [Wm$^{-2}$AI$^{-1}$]')
     #ax2.set_ylabel('AI-SWF Slope [Wm$^{-2}$]')
     #ax3.set_ylabel('AI-SWF Slope [Wm$^{-2}$]')
 
@@ -3859,8 +4094,12 @@ def plot_slopes_cloud_types_szamean(out_dict,cld_idx = 0, maxerr = 2, \
         elif(out_dict['trend_type'] == 'theil-sen'):
             type_adder = '_thl'
 
+        if(include_mix):
+            mix_add = '_mix'
+        else:
+            mix_add = ''
         outname = 'comp_grid_ai_swf_slopecloud_' + xvar + 'means' + type_adder + \
-            smth_adder + '.png'
+            smth_adder + mix_add + '.png'
         fig.savefig(outname, dpi = 200)
         print("Saved",outname)
     else: 
@@ -3877,7 +4116,8 @@ def plot_compare_grid_climo_stderr(comp_grid_data,  \
     label_dict = {
         0: 'Ocean',
         1: 'Ice',\
-        2: 'Land',
+        2: 'Land',\
+        3: 'Mix',
     }
 
     if('cod_mins' in comp_grid_data.keys()):
@@ -3948,7 +4188,8 @@ def plot_compare_grid_climo_counts(comp_grid_data,  \
     label_dict = {
         0: 'Ocean',
         1: 'Ice',\
-        2: 'Land',
+        2: 'Land',\
+        3: 'Mix',
     }
 
     if('cod_mins' in comp_grid_data.keys()):
@@ -4027,7 +4268,8 @@ def plot_compare_grid_climo_counts_3version(comp_data1, comp_data2, \
     label_dict = {
         0: 'Ocean',
         1: 'Ice',\
-        2: 'Land',
+        2: 'Land',\
+        3: 'Mix',
     }
 
     plt.close('all')
@@ -4081,8 +4323,10 @@ def plot_compare_slopes_scatter(out_dict, combined_data, comp_grid_data, \
     else:
         cloud_var = 'ch7'
 
-    ice_mins = np.array([0,80,105])
-    ice_maxs = np.array([20,100,None])
+    #ice_mins = np.array([0,80,105])
+    #ice_maxs = np.array([20,100,None])
+    ice_mins = np.array([0,  80, 105, 21])
+    ice_maxs = np.array([20,100,None, 79])
 
     sizer = out_dict['sizer']
     if(out_dict['smoother'] == 'None'):    
@@ -4162,7 +4406,7 @@ def plot_compare_slopes_scatter(out_dict, combined_data, comp_grid_data, \
     #        grid_slopes[ii,jj,kk]   = res[0]
    
 
-    titles = ['Ocean','Ice','Land']
+    titles = ['Ocean','Ice','Land','Mix']
    
     plt.close('all') 
     fig = plt.figure(figsize = (7,6))
@@ -4927,7 +5171,8 @@ def match_aeronet_to_grid_AI(data, aeronet_file = 'aeronet_site_info.txt', \
 
 # dtype: 'cloud', or 'clear', or 'average'
 def plot_type_forcing_all_months(OMI_data, NSIDC_data, dtype, minlat = 70., \
-        use_szas = False, save = False, calc_slopes = None):
+        maxlat = 87., use_szas = False, save = False, coloc_dict = None, \
+        debug = False):
 
     full_forcings = np.full((6, OMI_data['LAT'].shape[0], \
             OMI_data['LAT'].shape[1]), np.nan)
@@ -4941,14 +5186,17 @@ def plot_type_forcing_all_months(OMI_data, NSIDC_data, dtype, minlat = 70., \
         if(dtype == 'average'):
             full_cloud[month_idx,:,:] = \
                 calculate_type_forcing(OMI_data, NSIDC_data, month_idx, \
-                    'cloud', minlat = minlat, calc_slopes = calc_slopes)
+                    'cloud', minlat = minlat, maxlat = maxlat, \
+                     coloc_dict = coloc_dict, debug = debug)
             full_clear[month_idx,:,:] = \
                 calculate_type_forcing(OMI_data, NSIDC_data, month_idx, \
-                    'clear', minlat = minlat, calc_slopes = calc_slopes)
+                    'clear', minlat = minlat, maxlat = maxlat, \
+                    coloc_dict = coloc_dict, debug = debug)
         else:
             full_forcings[month_idx,:,:] = \
                 calculate_type_forcing(OMI_data, NSIDC_data, month_idx, \
-                    dtype, minlat = minlat, calc_slopes = calc_slopes)
+                    dtype, minlat = minlat, maxlat = maxlat, \
+                    coloc_dict = coloc_dict, debug = debug)
 
     if(dtype == 'average'):
         full_forcings = \
@@ -5103,6 +5351,20 @@ def plot_type_forcing_all_months(OMI_data, NSIDC_data, dtype, minlat = 70., \
     ax12.set_xlabel('Latitude')    
     ax12.set_ylabel('Zonal Avg. Forcing')    
 
+    min_val = np.min([np.min(ax7.get_ylim()),  np.min(ax8.get_ylim()), \
+              np.min(ax9.get_ylim()),  np.min(ax10.get_ylim()),
+              np.min(ax11.get_ylim()), np.min(ax12.get_ylim())])
+    max_val = np.max([np.max(ax7.get_ylim()),  np.max(ax8.get_ylim()), \
+            np.max(ax9.get_ylim()),  np.max(ax10.get_ylim()),
+            np.max(ax11.get_ylim()), np.max(ax12.get_ylim())])
+
+    rangers = [min_val, max_val]
+    ax7.set_ylim(rangers)
+    ax8.set_ylim(rangers)
+    ax9.set_ylim(rangers)
+    ax10.set_ylim(rangers)
+    ax11.set_ylim(rangers)
+    ax12.set_ylim(rangers)
  
     plt.suptitle(dtype)
     fig.tight_layout()

@@ -2441,7 +2441,8 @@ def read_MODIS_CLDL3_single_month(date_str, minlat = 65.5, \
     return out_dict
 
 def read_MODIS_MYD08_single_month(date_str, minlat = 65.5, \
-        local_data_dir = myd08_dir, transform_lat = True):
+        maxlat = 89.5, local_data_dir = myd08_dir, \
+        transform_lat = True):
 
     dt_date_str = datetime.strptime(date_str, '%Y%m')
 
@@ -2458,14 +2459,15 @@ def read_MODIS_MYD08_single_month(date_str, minlat = 65.5, \
     out_dict['lat']             = data['Latitude'][:]
     out_dict['lon']             = data['Longitude'][:]
 
-    keep_idxs = np.where(out_dict['lat'] >= minlat)[0]
+    keep_idxs = np.where((out_dict['lat'] >= minlat) & \
+        (out_dict['lat'] <= maxlat))[0]
 
-    out_dict['cld_frac_mean']   = data['Cloud_Fraction_Mean'][keep_idxs,:]
-    out_dict['cld_frac_std']    = data['Cloud_Fraction_StDev'][keep_idxs,:]
-    out_dict['ob_count']        = data['Ob_Counts'][keep_idxs,:]
-    out_dict['day_cld_frac_mean']   = data['Cloud_Fraction_Day_Mean'][keep_idxs,:]
-    out_dict['day_cld_frac_std']    = data['Cloud_Fraction_Day_StDev'][keep_idxs,:]
-    out_dict['day_ob_count']        = data['Day_Ob_Counts'][keep_idxs,:]
+    out_dict['cld_frac_mean']     = data['Cloud_Fraction_Mean'][keep_idxs,:]
+    out_dict['cld_frac_std']      = data['Cloud_Fraction_StDev'][keep_idxs,:]
+    out_dict['ob_count']          = data['Ob_Counts'][keep_idxs,:]
+    out_dict['day_cld_frac_mean'] = data['Cloud_Fraction_Day_Mean'][keep_idxs,:]
+    out_dict['day_cld_frac_std']  = data['Cloud_Fraction_Day_StDev'][keep_idxs,:]
+    out_dict['day_ob_count']      = data['Day_Ob_Counts'][keep_idxs,:]
 
     out_dict['cld_frac_mean'] = np.ma.masked_where(\
         out_dict['cld_frac_mean'] < 0, out_dict['cld_frac_mean'])
@@ -2594,7 +2596,7 @@ def read_MODIS_CLDL3_monthrange(start_date,end_date,\
 
 # 2021/01/28: modified function to allow for Aqua data
 def read_MODIS_MYD08_monthrange(start_date,end_date,\
-        minlat=65.5, calc_month = True,season = 'sunlight'):
+        minlat=65.5, maxlat = 89.5, calc_month = True,season = 'sunlight'):
     CERES_data = {}
   
     spring=False
@@ -2652,8 +2654,8 @@ def read_MODIS_MYD08_monthrange(start_date,end_date,\
     lat_ranges = cloud_data['lat'][:]
     lon_ranges = cloud_data['lon'][:]
 
-    lat_indices = np.where(lat_ranges>=minlat)[0]
-    print(lat_indices)
+    lat_indices = np.where((lat_ranges>=minlat) & (lat_ranges <= maxlat))[0]
+    print(lat_indices, lat_ranges[lat_indices])
 
     # Grid the lat and data
     grid_lon, grid_lat = np.meshgrid(lon_ranges,lat_ranges[lat_indices])
@@ -2681,20 +2683,21 @@ def read_MODIS_MYD08_monthrange(start_date,end_date,\
     # Loop over good files and insert data into dictionary
     for ii, dstr in enumerate(good_dstrs):
         print(dstr)
-        cloud_data = read_MODIS_MYD08_single_month(dstr, minlat = minlat)
+        cloud_data = read_MODIS_MYD08_single_month(dstr, minlat = minlat, \
+            maxlat = maxlat)
 
         myd08_data['cld_frac_mean'][ii,:,:] = \
-            cloud_data['cld_frac_mean'][lat_indices,:]
+            cloud_data['cld_frac_mean'][:,:]
         myd08_data['cld_frac_std'][ii,:,:] = \
-            cloud_data['cld_frac_std'][lat_indices,:]
+            cloud_data['cld_frac_std'][:,:]
         myd08_data['ob_count'][ii,:,:] = \
-            cloud_data['ob_count'][lat_indices,:]
+            cloud_data['ob_count'][:,:]
         myd08_data['day_cld_frac_mean'][ii,:,:] = \
-            cloud_data['day_cld_frac_mean'][lat_indices,:]
+            cloud_data['day_cld_frac_mean'][:,:]
         myd08_data['day_cld_frac_std'][ii,:,:] = \
-            cloud_data['day_cld_frac_std'][lat_indices,:]
+            cloud_data['day_cld_frac_std'][:,:]
         myd08_data['day_ob_count'][ii,:,:] = \
-            cloud_data['day_ob_count'][lat_indices,:]
+            cloud_data['day_ob_count'][:,:]
 
     myd08_data['cld_frac_mean'] = np.ma.masked_where(\
         myd08_data['cld_frac_mean'] < 0, myd08_data['cld_frac_mean'])

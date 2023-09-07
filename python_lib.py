@@ -96,9 +96,10 @@ def nearest_gridpoint(slat, slon, grid_lat, grid_lon):
     # comment this out
     # -------------------------------------------------------------
     if(len(m_idx[0]) > 1):
-        print("ERROR:", m_idx, m_idx[0][0])
-        m_idx = m_idx[0][0]
-    
+        print("ERROR:", m_idx, m_idx[0], m_idx[0][0])
+        #m_idx = m_idx[0][0]
+        m_idx = (np.array(m_idx[0][0]), np.array(m_idx[1][0])) 
+ 
     return m_idx
 
 def covariance(x,y):
@@ -241,11 +242,11 @@ def init_proj(date_str):
 
     return mapcrs
 
-def plot_point_on_map(pax, plat, plon, markersize = 10):
+def plot_point_on_map(pax, plat, plon, markersize = 10, color = None):
     pax.plot(plon, plat, linewidth=2, markersize = markersize + 2, marker='.',
             color = 'black', transform=datacrs)
     pax.plot(plon, plat, linewidth=2, markersize = markersize, marker='.',
-            transform=datacrs)
+            transform=datacrs, color = color)
 
 def plot_theil_sen_trend(pax, xdata, ydata, color, linestyle, linewidth):
     res = stats.theilslopes(ydata, xdata, 0.90)
