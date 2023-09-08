@@ -2206,13 +2206,83 @@ def plot_compare_all_slopes(date_strs = None, save = False, \
         
         return return_dict
 
+# dtype: 'clear', or 'cloud'
+def calculate_interp_forcings(coloc_dict, month_idx, minlat, maxlat, \
+        dtype, cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw'):
+
+    ocean_slopes = calc_slope_clear_clean_sfctype(coloc_dict, 0, cld_idx, \
+        maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
+    ice_slopes   = calc_slope_clear_clean_sfctype(coloc_dict, 1, cld_idx, \
+        maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
+    land_slopes  = calc_slope_clear_clean_sfctype(coloc_dict, 2, cld_idx, \
+        maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
+    if(coloc_dict['raw_slopes'].shape[0] == 4):
+        include_mix = True
+        mix_slopes  = calc_slope_clear_clean_sfctype(coloc_dict, 3, cld_idx, \
+            maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
+    else:
+        include_mix = False
+
+    # Calculate the average declination angles for each month.
+    # The resulting array is of shape (num_months, num_latitudes)
+    # -----------------------------------------------------------
+    days = np.arange(1, 366)
+    del_angles = -23.45 * np.cos( np.radians((360 / 365) * (days + 10)))
+    base_date = datetime(2005, 1, 1)
+    months = np.array(\
+        [(base_date + timedelta(days = int(ii - 1))).month \
+        for ii in days])
+    latitudes = np.arange(minlat + 0.5, maxlat + 0.5, 1.0)
+    lat_szas = np.array([[\
+        tlat - np.mean(del_angles[np.where(months == ii)]) \
+        for tlat in latitudes] \
+        for ii in range(1,13)])[4:10]
+
+    # Calculate the SZA bins from the combined arctic comp output   
+    # dictionary. This dictionary contains three sub-dictionaries, 
+    # which are the 
+    # --------------------------------------------------------------
+    sza_bins = np.nanmean(np.array([coloc_dict['sza_mins'], \
+                                    coloc_dict['sza_maxs']]), axis = 0)
+    
+    # NOTE: FOR NOW, SETTING ANY LATITUDE-CALCULATED SZA VALUES THAT
+    #       LIE OUTSIDE OF THE SZA BIN VALUES TO EITHER THE MINIMUM
+    #       OR MAXIMUM SZA VALUE. ANOTHER OPTION IS TO MASK LATITUDE
+    #       SZA VALUES THAT ARE OUTSIDE OF THIS RANGE.
+    # --------------------------------------------------------------
+    lat_szas = np.where( lat_szas < np.min(sza_bins), np.min(sza_bins), \
+        lat_szas)
+    lat_szas = np.where( lat_szas > np.max(sza_bins), np.max(sza_bins), \
+        lat_szas)
+
+    # Interpolate the bin SZAs to the calculated solar zenith angles
+    # Extract the interpolated bin forcing efficiency values
+    # ------------------------------------------------------
+    land_forcing_values  = interp1d(sza_bins, \
+        land_slopes['sza_' + dtype + '_means'])(lat_szas[month_idx])
+    ocean_forcing_values = interp1d(sza_bins, \
+        ocean_slopes['sza_' + dtype + '_means'])(lat_szas[month_idx])
+    ice_forcing_values   = interp1d(sza_bins, \
+        ice_slopes['sza_' + dtype + '_means'])(lat_szas[month_idx])
+    if(include_mix):
+        mix_forcing_values  = interp1d(sza_bins, \
+            mix_slopes['sza_clear_means'])(lat_szas[month_idx])
+      
+    interp_dict = {}
+    interp_dict['land_forcing']  = land_forcing_values
+    interp_dict['ocean_forcing'] = ocean_forcing_values 
+    interp_dict['ice_forcing']  = ice_forcing_values 
+    if(include_mix):
+        interp_dict['mix_forcing'] = mix_forcing_values
+
+    return interp_dict
 
 # NSIDC_dict: also output from NSIDC library
 # dtype: 'cloud', or 'clear'
 # data_type: 'raw' or 'grid'
 def calculate_type_forcing(OMI_data, NSIDC_data, month_idx, dtype, minlat = 70.,\
         maxlat = 87., debug = False, use_szas = False, coloc_dict = None, \
-        min_cloud = 0.95, maxerr = 2, data_type = 'raw'): 
+        cld_idx = 0, min_cloud = 0.95, maxerr = 2, data_type = 'raw'): 
 
     # Calculate the type values for this month
     # ----------------------------------------
@@ -2228,66 +2298,23 @@ def calculate_type_forcing(OMI_data, NSIDC_data, month_idx, dtype, minlat = 70.,
         calcOMI_grid_trend(OMI_data, month_idx, 'standard', \
         minlat)
 
+    include_mix = True
     if(coloc_dict is not None):
 
-        ocean_slopes = calc_slope_clear_clean_sfctype(coloc_dict, 0, 0, \
-            maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
-        ice_slopes   = calc_slope_clear_clean_sfctype(coloc_dict, 1, 0, \
-            maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
-        land_slopes  = calc_slope_clear_clean_sfctype(coloc_dict, 2, 0, \
-            maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
-        if(coloc_dict['raw_slopes'].shape[0] == 4):
+        interp_dict = calculate_interp_forcings(coloc_dict, month_idx, \
+            minlat, maxlat, dtype, cld_idx = cld_idx, maxerr = maxerr, \
+            min_cloud = min_cloud, data_type = data_type)
+
+        land_forcing_values  = interp_dict['land_forcing']
+        ocean_forcing_values = interp_dict['ocean_forcing']
+        ice_forcing_values   = interp_dict['ice_forcing']
+        if('mix_forcing' in interp_dict.keys()):
             include_mix = True
-            mix_slopes  = calc_slope_clear_clean_sfctype(coloc_dict, 3, 0, \
-                maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
+            mix_forcing_values = interp_dict['mix_forcing']
         else:
+            mix_forcing_values = interp_dict['ice_forcing']
             include_mix = False
 
-        # Calculate the average declination angles for each month.
-        # The resulting array is of shape (num_months, num_latitudes)
-        # -----------------------------------------------------------
-        days = np.arange(1, 366)
-        del_angles = -23.45 * np.cos( np.radians((360 / 365) * (days + 10)))
-        base_date = datetime(2005, 1, 1)
-        months = np.array(\
-            [(base_date + timedelta(days = int(ii - 1))).month \
-            for ii in days])
-        latitudes = np.arange(minlat + 0.5, maxlat + 0.5, 1.0)
-        lat_szas = np.array([[\
-            tlat - np.mean(del_angles[np.where(months == ii)]) \
-            for tlat in latitudes] \
-            for ii in range(1,13)])[4:10]
-
-        # Calculate the SZA bins from the combined arctic comp output   
-        # dictionary. This dictionary contains three sub-dictionaries, 
-        # which are the 
-        # --------------------------------------------------------------
-        sza_bins = np.nanmean(np.array([coloc_dict['sza_mins'], \
-                                        coloc_dict['sza_maxs']]), axis = 0)
-       
-        # NOTE: FOR NOW, SETTING ANY LATITUDE-CALCULATED SZA VALUES THAT
-        #       LIE OUTSIDE OF THE SZA BIN VALUES TO EITHER THE MINIMUM
-        #       OR MAXIMUM SZA VALUE. ANOTHER OPTION IS TO MASK LATITUDE
-        #       SZA VALUES THAT ARE OUTSIDE OF THIS RANGE.
-        # --------------------------------------------------------------
-        lat_szas = np.where( lat_szas < np.min(sza_bins), np.min(sza_bins), \
-            lat_szas)
-        lat_szas = np.where( lat_szas > np.max(sza_bins), np.max(sza_bins), \
-            lat_szas)
-
-        # Interpolate the bin SZAs to the calculated solar zenith angles
-        # Extract the interpolated bin forcing efficiency values
-        # ------------------------------------------------------
-        land_forcing_values  = interp1d(sza_bins, \
-            land_slopes['sza_' + dtype + '_means'])(lat_szas[month_idx])
-        ocean_forcing_values = interp1d(sza_bins, \
-            ocean_slopes['sza_' + dtype + '_means'])(lat_szas[month_idx])
-        ice_forcing_values   = interp1d(sza_bins, \
-            ice_slopes['sza_' + dtype + '_means'])(lat_szas[month_idx])
-        if(include_mix):
-            mix_forcing_values  = interp1d(sza_bins, \
-                mix_slopes['sza_clear_means'])(lat_szas[month_idx])
-       
     else:
         # NOTE: THESE VALUES ARE ROUGH ESTIMATES!
         # 
@@ -2426,7 +2453,8 @@ def calculate_type_forcing(OMI_data, NSIDC_data, month_idx, dtype, minlat = 70.,
 
 # 
 def calculate_type_forcing_v2(OMI_data, NSIDC_data, MYD08_data, coloc_dict, \
-        minlat = 70., maxlat = 87., ai_thresh = -0.15):
+        month_idx, minlat = 70., maxlat = 87., ai_thresh = -0.15, \
+        cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw'):
     
     # Necessary pieces:
     # 2. Monthly AI values
@@ -2437,85 +2465,222 @@ def calculate_type_forcing_v2(OMI_data, NSIDC_data, MYD08_data, coloc_dict, \
     # 1. Baseline OMI AI clear-sky climatology (for each month (April, May, etc.))
     # 3. Threshold monthly AI value below which is clear-sky (no forcing) and
     #       above which is aerosol-sky 
-    
-    # Steps:
-    # 1.  Determine the clear-sky climatology of AI. Generate by calculating the
-    #     average only of months with AI below the threshold value.
-    # --------------------------------------------------------------------------
+
     clear_sky_AI = np.array([np.nanmean(\
-        np.ma.masked_where(OMI_data['AI'][tidx::6,:,:] > ai_thresh, \
+        np.ma.masked_where(OMI_data['AI'][tidx::6,:,:] > ai_thresh,\
         OMI_data['AI'][tidx::6,:,:]), axis = 0) for tidx in range(6)])
+    
+    clear_dict = calculate_interp_forcings(coloc_dict, month_idx, \
+        minlat, maxlat, 'clear', cld_idx = cld_idx, maxerr = maxerr, \
+        min_cloud = min_cloud, data_type = data_type)
+    cloud_dict = calculate_interp_forcings(coloc_dict, month_idx, \
+        minlat, maxlat, 'cloud', cld_idx = cld_idx, maxerr = maxerr, \
+        min_cloud = min_cloud, data_type = data_type)
 
-    # Calculate the average declination angles for each month.
-    # The resulting array is of shape (num_months, num_latitudes)
-    # -----------------------------------------------------------
-    days = np.arange(1, 366)
-    del_angles = -23.45 * np.cos( np.radians((360 / 365) * (days + 10)))
-    base_date = datetime(2005, 1, 1)
-    months = np.array(\
-        [(base_date + timedelta(days = int(ii - 1))).month \
-        for ii in days])
-    latitudes = np.arange(minlat + 0.5, maxlat + 0.5, 1.0)
-    lat_szas = np.array([[\
-        tlat - np.mean(del_angles[np.where(months == ii)]) \
-        for tlat in latitudes] \
-        for ii in range(1,13)])[4:10]
+    land_mask   = NSIDC_data['grid_land'][month_idx::6,:,:].mask
+    coast_mask  = NSIDC_data['grid_coastline'][month_idx::6,:,:].mask
+    pole_mask   = NSIDC_data['grid_pole_hole'][month_idx::6,:,:].mask
+    unused_mask = NSIDC_data['grid_unused'][month_idx::6,:,:].mask
+    ice_mask    = NSIDC_data['grid_ice_conc'][month_idx::6,:,:].mask
 
-    land_mask   = NSIDC_data['grid_land'][:,:,:].mask
-    coast_mask  = NSIDC_data['grid_coastline'][:,:,:].mask
-    pole_mask   = NSIDC_data['grid_pole_hole'][:,:,:].mask
-    unused_mask = NSIDC_data['grid_unused'][:,:,:].mask
-    ice_mask    = NSIDC_data['grid_ice_conc'][:,:,:].mask
+    estimate_forcings = np.full(OMI_data['AI'][month_idx::6,:,:].shape, np.nan)
 
     # 2.  Loop over each individual month
     # -----------------------------------
-    for nn in range(OMI_data['AI'].shape[0]):
+    for nn in range(OMI_data['AI'][month_idx::6,:,:].shape[0]):
         for ii in range(OMI_data['AI'].shape[1]):
-            for jj in range(OMI_data['AI'].shape[1]):
+            for jj in range(OMI_data['AI'].shape[2]):
         
-            # 3.  Determine if a single gridbox has AI above the threshold
-            if(OMI_data['AI'][nn,ii,jj] < ai_thresh): 
-                # 3a. If not above the threshold, set forcing to 0 and continue
-                calc_forcing = 0.
-            else:
-                # 3b. If above the threshold,
-                # 4.  Determine the difference between this pixel's AI and the clear-sky
-                #     climatology.
-                delta_ai = OMI_data['AI'][nn,ii,jj] - \
-                           clear_sky_AI[nn % 6, ii,jj]
+                # 3.  Determine if a single gridbox has AI above the threshold
+                if(OMI_data['AI'][month_idx::6,ii,jj][nn] < ai_thresh): 
+                    # 3a. If not above the threshold, set forcing to 0 and continue
+                    estimate_forcings[nn,ii,jj] = 0.
+                else:
+                    # 3b. If above the threshold,
+                    # 4.  Determine the difference between this pixel's AI and the clear-sky
+                    #     climatology.
+                    delta_ai = OMI_data['AI'][month_idx::6,ii,jj][nn] - \
+                               clear_sky_AI[nn % 6, ii,jj]
 
-                # 6.  Extract the MODIS MYD08 value and weigh the "clear" and "cloud"
-                #     forcing values according to that cloud fraction.
-                ##myd08_data['cld_frac_mean'][nn,ii,jj]
+                    # 6.  Extract the MODIS MYD08 value and weigh the "clear" and "cloud"
+                    #     forcing values according to that cloud fraction.
+                    cld_frac = MYD08_data['cld_frac_mean'][month_idx::6,ii,jj][nn]
 
-                # 5.  Extract the NSIDC surface type to figure out which forcing value
-                #     to use.
-                if( (pole_mask[nn,ii,jj]) | (unused_mask[nn,ii,jj])):
-                    # Bad grid points. NO forcing
-                    calc_forcing =  0.
+                    # 5.  Extract the NSIDC surface type to figure out which forcing value
+                    #     to use.
+                    if( not ((pole_mask[nn,ii,jj]) | (unused_mask[nn,ii,jj]))):
+                        # Bad grid points. NO forcing
+                        calc_forcing =  0.
 
-                elif( (land_mask[nn,ii,jj]) | (coast_mask[nn,ii,jj])):
-                    # Use land forcing value
+                    elif( not ((land_mask[nn,ii,jj]) | (coast_mask[nn,ii,jj]))):
+                        # Use land forcing value
+                        calc_forcing = cld_frac * cloud_dict['land_forcing'][ii] + \
+                                       (1 - cld_frac) * clear_dict['land_forcing'][ii]
 
-                elif( not ice_mask[nn,ii,jj]):
-                    # Use either ice, mix, or ocean forcing value
+                    elif( not ice_mask[nn,ii,jj]):
+                        # Use either ice, mix, or ocean forcing value
 
-                    if( (NSIDC_data['grid_ice_conc'] < 20) ):
-                        # Use ocean forcing
+                        if( (NSIDC_data['grid_ice_conc'][month_idx::6,ii,jj][nn] < 20) ):
+                            # Use ocean forcing
+                            calc_forcing = cld_frac * cloud_dict['ocean_forcing'][ii] + \
+                                           (1 - cld_frac) * clear_dict['ocean_forcing'][ii]
+                            
 
-                    elif( (NSIDC_data['grid_ice_conc'] >= 20)  & \
-                          (NSIDC_data['grid_ice_conc'] < 80)):
-                        # Use mix forcing
+                        elif( (NSIDC_data['grid_ice_conc'][month_idx::6,ii,jj][nn] >= 20)  & \
+                              (NSIDC_data['grid_ice_conc'][month_idx::6,ii,jj][nn] < 80)):
+                            # Use mix forcing
+                            calc_forcing = cld_frac * cloud_dict['mix_forcing'][ii] + \
+                                           (1 - cld_frac) * clear_dict['mix_forcing'][ii]
 
-                    elif( (NSIDC_data['grid_ice_conc'] > 80) ):
-                        # Use land forcing
+                        elif( (NSIDC_data['grid_ice_conc'][month_idx::6,ii,jj][nn] > 80) ):
+                            # Use land forcing
+                            calc_forcing = cld_frac * cloud_dict['ice_forcing'][ii] + \
+                                           (1 - cld_frac) * clear_dict['ice_forcing'][ii]
 
-                    else:
-                        # SHOULD NOT GET HERE
+                        else:
+                            # SHOULD NOT GET HERE
+                            calc_forcing = 0.
  
-                # 8.  Multiply the ΔAI by the associated forcing value.
+                    # 8.  Multiply the ΔAI by the associated forcing value.
+                    estimate_forcings[nn,ii,jj] = calc_forcing * delta_ai
+
+    estimate_forcings = np.ma.masked_invalid(estimate_forcings) 
+
+    return estimate_forcings
+
+def calc_forcing_grid_trend(forcing_data, trend_type):
+
+    index_jumper = 6
+
+    # Make copy of NSIDC_data array
+    local_data   = np.copy(forcing_data)
+    local_data = np.ma.masked_invalid(local_data)
+    #local_mask = np.ma.masked_where((local_data < 0., local_data)
+    local_mask = local_data
+    forcing_trends = np.full(local_data.shape[1:], np.nan)
+    forcing_pvals  = np.full(local_data.shape[1:], np.nan)
+    forcing_uncert = np.full(local_data.shape[1:], np.nan)
+
+    # Loop over all the keys and print the regression slopes 
+    # Grab the averages for the key
+    for i in range(local_data.shape[1]):
+        for j in range(local_data.shape[2]):
+            # Check the current max and min
+            #print(local_mask[:,i,j])
+            work_mask = local_mask[:,i,j]
+            #work_mask = local_mask[:,i,j][~local_mask[:,i,j].mask][0]
+            if(len(work_mask.compressed()) > 1):
+                x_vals = np.arange(0,len(work_mask.compressed()))
+                # Find the slope of the line of best fit for the time series of
+                # average data
+                if(trend_type=='standard'): 
+                    result = stats.linregress(x_vals, work_mask.compressed())
+                    #slope, intercept, r_value, p_value, std_err = \
+                    #    stats.linregress(x_vals,work_mask.compressed())
+                    forcing_trends[i,j] = result.slope * len(x_vals)
+                    forcing_pvals[i,j]  = result.pvalue
+                    forcing_uncert[i,j] = result.stderr * len(x_vals)
+                else:
+                    res = stats.theilslopes(work_mask.compressed(), x_vals, 0.90)
+                    forcing_trends[i,j] = res[0]*len(x_vals)
+            #else:
+            #    print('no data')
+
+    #nsidc_trends = np.ma.masked_where(((NSIDC_data['grid_lat'] < mingrid_lat) | \
+    #    (nsidc_trends == -999.)), nsidc_trends)
+    #nsidc_trends = np.ma.masked_where(NSIDC_data['grid_lat'] < mingrid_lat, nsidc_trends)
+    #nsidc_pvals  = np.ma.masked_where(NSIDC_data['grid_lat'] < mingrid_lat, nsidc_pvals)
+    #nsidc_uncert = np.ma.masked_where(NSIDC_data['grid_lat'] < mingrid_lat, nsidc_uncert)
+
+    return forcing_trends, forcing_pvals, forcing_uncert
 
 
+def plot_test_forcing_v2(OMI_data, NSIDC_data, MYD08_data, coloc_dict, \
+        tidx, minlat = 70., maxlat = 87., ai_thresh = -0.15, \
+        cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw', \
+        save = False):
+
+    estimate_forcing = \
+        calculate_type_forcing_v2(OMI_data, NSIDC_data, MYD08_data, \
+        coloc_dict, tidx % 6, minlat = minlat, maxlat = maxlat, \
+        ai_thresh = ai_thresh, cld_idx = cld_idx, maxerr = maxerr, \
+        min_cloud = min_cloud, data_type = data_type)
+
+    clear_sky_AI = np.array([np.nanmean(\
+        np.ma.masked_where(OMI_data['AI'][midx::6,:,:] > ai_thresh,\
+        OMI_data['AI'][midx::6,:,:]), axis = 0) for midx in range(6)])
+
+    local_departure = np.where(OMI_data['AI'][tidx,:,:] >= ai_thresh, \
+        OMI_data['AI'][tidx,:,:] - clear_sky_AI[tidx % 6,:,:], \
+        np.nan)
+    local_departure = np.ma.masked_invalid(local_departure)
+    
+    plt.close('all')
+    fig = plt.figure(figsize = (9, 5))
+    ax1 = fig.add_subplot(2,3,1, projection = mapcrs)  # Map of original AI
+    ax2 = fig.add_subplot(2,3,2, projection = mapcrs)  # Map of climatology departure
+    ax3 = fig.add_subplot(2,3,3, projection = mapcrs)  # Map of departure
+    ax4 = fig.add_subplot(2,3,4, projection = mapcrs)  # Map of cloud fraction
+    ax5 = fig.add_subplot(2,3,5, projection = mapcrs)  # Map of forcing value
+    ax6 = fig.add_subplot(2,3,6)  # histogram
+
+    mesh = ax1.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+        OMI_data['AI'][tidx,:,:], shading = 'auto', transform = datacrs, \
+        cmap = 'jet', vmin = -0.75, vmax = 1.0)
+    cbar = fig.colorbar(mesh, ax = ax1, label =  'Monthly AI')
+    ax1.set_extent([-180,180,minlat,90], datacrs)
+    ax1.set_boundary(circle, transform=ax1.transAxes)
+    ax1.coastlines()
+
+    mesh = ax2.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+        clear_sky_AI[tidx % 6,:,:], shading = 'auto', transform = datacrs, \
+        cmap = 'jet', vmin = -0.75, vmax = 1.0)
+    cbar = fig.colorbar(mesh, ax = ax2, label = 'AI Climatology')
+    ax2.set_extent([-180,180,minlat,90], datacrs)
+    ax2.set_boundary(circle, transform=ax2.transAxes)
+    ax2.coastlines()
+
+    mesh = ax3.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+        local_departure[:,:], shading = 'auto', transform = datacrs, \
+        cmap = 'jet', vmin = 0.0, vmax = 1.0)
+    cbar = fig.colorbar(mesh, ax = ax3, label = 'ΔAI (AI$_{i}$ - AI$_{clim}$)')
+    ax3.set_extent([-180,180,minlat,90], datacrs)
+    ax3.set_boundary(circle, transform=ax3.transAxes)
+    ax3.coastlines()
+
+    mesh = ax4.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+        MYD08_data['cld_frac_mean'][tidx,:,:], shading = 'auto', transform = datacrs, \
+        cmap = 'viridis', vmin = 0.0, vmax = 1.0)
+    cbar = fig.colorbar(mesh, ax = ax4, label = 'MODIS Cloud Frac')
+    ax4.set_extent([-180,180,minlat,90], datacrs)
+    ax4.set_boundary(circle, transform=ax4.transAxes)
+    ax4.coastlines()
+
+    work_idx = np.where(\
+        np.arange(tidx % 6, OMI_data['AI'].shape[0], 6) == tidx)[0][0]
+    mesh = ax5.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+        estimate_forcing[work_idx,:,:], shading = 'auto', transform = datacrs, \
+        cmap = 'viridis')
+    cbar = fig.colorbar(mesh, ax = ax5, label = 'Estimated Forcing [W/m2]')
+    ax5.set_extent([-180,180,minlat,90], datacrs)
+    ax5.set_boundary(circle, transform=ax5.transAxes)
+    ax5.coastlines()
+
+    ax6.hist(np.ma.masked_where(estimate_forcing[work_idx,:,:] == 0, \
+        estimate_forcing[work_idx,:,:]).compressed(), bins = 'auto')
+    #ax6.set_yscale('log')
+    ax6.set_xlabel('Estimated Forcing [W/m2]')
+    ax6.set_ylabel('Counts')
+
+    plt.suptitle(OMI_data['DATES'][tidx])
+
+    fig.tight_layout()
+    if(save):
+        outname = 'test_calc_forcing_v2_' + OMI_data['DATES'][tidx] + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
  
 def calculate_type_forcing_old(month_idx, trend_type = 'linear', minlat = 65.):
 
@@ -5370,7 +5535,186 @@ def plot_type_forcing_all_months(OMI_data, NSIDC_data, dtype, minlat = 70., \
     fig.tight_layout()
 
     if(save):
-        outname = 'calc_arctic_forcing_' + dtype + '.png'
+        outname = 'calc_arctic_forcing_' + dtype + '_mix.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else: 
+        plt.show()
+
+
+def plot_type_forcing_v2_all_months(OMI_data, NSIDC_data, MYD08_data, \
+        coloc_dict, minlat = 70., maxlat = 87., use_szas = False, \
+        ai_thresh = -0.15, cld_idx = 0, maxerr = 2, \
+        min_cloud = 0.95, data_type = 'raw', save = False,debug = False):
+
+    forcing_trends = np.full((6, OMI_data['LAT'].shape[0], \
+            OMI_data['LAT'].shape[1]), np.nan)
+    forcing_pval   = np.full((6, OMI_data['LAT'].shape[0], \
+            OMI_data['LAT'].shape[1]), np.nan)
+    forcing_uncert = np.full((6, OMI_data['LAT'].shape[0], \
+            OMI_data['LAT'].shape[1]), np.nan)
+  
+    for ii in range(6): 
+        # Find the estimated forcing values for the current month series
+        # --------------------------------------------------------------
+        estimated_forcing = \
+            calculate_type_forcing_v2(OMI_data, NSIDC_data, MYD08_data, \
+            coloc_dict, ii, minlat = minlat, maxlat = maxlat, \
+            ai_thresh = ai_thresh, cld_idx = cld_idx, maxerr = maxerr, \
+            min_cloud = min_cloud, data_type = data_type)
+
+        # Calculate the trend in the forcings
+        # -----------------------------------
+        forcing_trends[ii,:,:], forcing_pval[ii,:,:], \
+            forcing_uncert[ii,:,:] = calc_forcing_grid_trend(\
+            estimated_forcing, 'standard')
+
+    fig = plt.figure(figsize = (9, 12))
+    
+    ax1 = fig.add_subplot(4,3,1, projection = mapcrs)
+    ax2 = fig.add_subplot(4,3,2, projection = mapcrs)
+    ax3 = fig.add_subplot(4,3,3, projection = mapcrs)
+    ax4 = fig.add_subplot(4,3,4, projection = mapcrs)
+    ax5 = fig.add_subplot(4,3,5, projection = mapcrs)
+    ax6 = fig.add_subplot(4,3,6, projection = mapcrs)
+
+    ax7  = fig.add_subplot(4,3,7)
+    ax8  = fig.add_subplot(4,3,8)
+    ax9  = fig.add_subplot(4,3,9)
+    ax10 = fig.add_subplot(4,3,10)
+    ax11 = fig.add_subplot(4,3,11)
+    ax12 = fig.add_subplot(4,3,12)
+    
+    mesh = ax1.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+            forcing_trends[0,:,:], transform = datacrs, shading = 'auto', \
+            vmin = -4, vmax = 4, cmap = 'bwr')
+    cbar = plt.colorbar(mesh, ax = ax1, label = 'Forcing [W/m2]')
+    ax1.coastlines()
+    ax1.set_extent([-180,180,minlat,90], datacrs)
+    ax1.set_title('April')   
+ 
+    mesh = ax2.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+            forcing_trends[1,:,:], transform = datacrs, shading = 'auto', \
+            vmin = -4, vmax = 4, cmap = 'bwr')
+    cbar = plt.colorbar(mesh, ax = ax2, label = 'Forcing [W/m2]')
+    ax2.coastlines()
+    ax2.set_extent([-180,180,minlat,90], datacrs)
+    ax2.set_title('May')   
+    
+    mesh = ax3.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+            forcing_trends[2,:,:], transform = datacrs, shading = 'auto', \
+            vmin = -4, vmax = 4, cmap = 'bwr')
+    cbar = plt.colorbar(mesh, ax = ax3, label = 'Forcing [W/m2]')
+    ax3.coastlines()
+    ax3.set_extent([-180,180,minlat,90], datacrs)
+    ax3.set_title('June')   
+    
+    mesh = ax4.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+            forcing_trends[3,:,:], transform = datacrs, shading = 'auto', \
+            vmin = -4, vmax = 4, cmap = 'bwr')
+    cbar = plt.colorbar(mesh, ax = ax4, label = 'Forcing [W/m2]')
+    ax4.coastlines()
+    ax4.set_extent([-180,180,minlat,90], datacrs)
+    ax4.set_title('July')   
+    
+    mesh = ax5.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+            forcing_trends[4,:,:], transform = datacrs, shading = 'auto', \
+            vmin = -4, vmax = 4, cmap = 'bwr')
+    cbar = plt.colorbar(mesh, ax = ax5, label = 'Forcing [W/m2]')
+    ax5.coastlines()
+    ax5.set_extent([-180,180,minlat,90], datacrs)
+    ax5.set_title('August')  
+    
+    mesh = ax6.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
+            forcing_trends[5,:,:], transform = datacrs, shading = 'auto', \
+            vmin = -4, vmax = 4, cmap = 'bwr')
+    cbar = plt.colorbar(mesh, ax = ax6, label = 'Forcing [W/m2]')
+    ax6.coastlines()
+    ax6.set_extent([-180,180,minlat,90], datacrs)
+    ax6.set_title('September')
+  
+    # Plot line-graph zonal averages
+    # ------------------------------
+ 
+    # Calculate the average of each of the daily standard deviations,
+    # following the methodology I found on :
+    # https://www.statology.org/averaging-standard-deviations/
+    # -----------------------------------------------------------------
+    #out_dict['cld_frac_std'] = \
+    #    np.sqrt((np.sum((all_counts_data - 1) * (all_std_data**2.), \
+    #    axis = 0)) / \
+    #    (np.sum(all_counts_data, axis = 0) - all_counts_data.shape[0]))
+    zonal_avgs = np.nanmean(forcing_trends, axis = 2)
+    zonal_stds = np.nanstd(forcing_trends, axis = 2)
+
+    ax7.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[0])
+    ax7.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[0] + zonal_stds[0], linestyle = '--', color = 'tab:blue')
+    ax7.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[0] - zonal_stds[0], linestyle = '--', color = 'tab:blue')
+    ax7.axhline(0, linestyle = ':', color = 'k')
+    ax7.set_title('April')
+    ax7.set_xlabel('Latitude')    
+    ax7.set_ylabel('Zonal Avg. Forcing')    
+ 
+    ax8.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[1])
+    ax8.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[1] + zonal_stds[1], linestyle = '--', color = 'tab:blue')
+    ax8.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[1] - zonal_stds[1], linestyle = '--', color = 'tab:blue')
+    ax8.axhline(0, linestyle = ':', color = 'k')
+    ax8.set_title('May')
+    ax8.set_xlabel('Latitude')    
+    ax8.set_ylabel('Zonal Avg. Forcing')    
+ 
+    ax9.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[2])
+    ax9.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[2] + zonal_stds[2], linestyle = '--', color = 'tab:blue')
+    ax9.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[2] - zonal_stds[2], linestyle = '--', color = 'tab:blue')
+    ax9.axhline(0, linestyle = ':', color = 'k')
+    ax9.set_title('June')
+    ax9.set_xlabel('Latitude')    
+    ax9.set_ylabel('Zonal Avg. Forcing')    
+ 
+    ax10.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[3])
+    ax10.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[3] + zonal_stds[3], linestyle = '--', color = 'tab:blue')
+    ax10.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[3] - zonal_stds[3], linestyle = '--', color = 'tab:blue')
+    ax10.axhline(0, linestyle = ':', color = 'k')
+    ax10.set_title('July')
+    ax10.set_xlabel('Latitude')    
+    ax10.set_ylabel('Zonal Avg. Forcing')    
+ 
+    ax11.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[4])
+    ax11.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[4] + zonal_stds[4], linestyle = '--', color = 'tab:blue')
+    ax11.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[4] - zonal_stds[4], linestyle = '--', color = 'tab:blue')
+    ax11.axhline(0, linestyle = ':', color = 'k')
+    ax11.set_title('August')
+    ax11.set_xlabel('Latitude')    
+    ax11.set_ylabel('Zonal Avg. Forcing')    
+ 
+    ax12.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[5])
+    ax12.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[5] + zonal_stds[5], linestyle = '--', color = 'tab:blue')
+    ax12.plot(NSIDC_data['grid_lat'][:,0], zonal_avgs[5] - zonal_stds[5], linestyle = '--', color = 'tab:blue')
+    ax12.axhline(0, linestyle = ':', color = 'k')
+    ax12.set_title('September')
+    ax12.set_xlabel('Latitude')    
+    ax12.set_ylabel('Zonal Avg. Forcing')    
+
+    min_val = np.min([np.min(ax7.get_ylim()),  np.min(ax8.get_ylim()), \
+              np.min(ax9.get_ylim()),  np.min(ax10.get_ylim()),
+              np.min(ax11.get_ylim()), np.min(ax12.get_ylim())])
+    max_val = np.max([np.max(ax7.get_ylim()),  np.max(ax8.get_ylim()), \
+            np.max(ax9.get_ylim()),  np.max(ax10.get_ylim()),
+            np.max(ax11.get_ylim()), np.max(ax12.get_ylim())])
+
+    rangers = [min_val, max_val]
+    ax7.set_ylim(rangers)
+    ax8.set_ylim(rangers)
+    ax9.set_ylim(rangers)
+    ax10.set_ylim(rangers)
+    ax11.set_ylim(rangers)
+    ax12.set_ylim(rangers)
+
+    plt.suptitle('Forcing Estimate 2: Single Month Based', weight = 'bold', fontsize = 12) 
+    fig.tight_layout()
+
+    if(save):
+        outname = 'calc_arctic_forcing_v2.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else: 

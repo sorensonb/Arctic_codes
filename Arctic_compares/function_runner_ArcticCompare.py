@@ -32,9 +32,9 @@ filename1 = 'comp_grid_climo_v6.hdf5'
 #filename2 = 'comp_grid_climo_v11.hdf5'
 filename2 = 'comp_grid_climo_v12.hdf5'
 filename3 = 'comp_grid_climo_v14.hdf5'
-comp_grid_data_v6 = read_comp_grid_climo(filename1)
-comp_grid_data_v11 = read_comp_grid_climo(filename2)
-comp_grid_data_v14 = read_comp_grid_climo(filename3)
+#comp_grid_data_v6 = read_comp_grid_climo(filename1)
+#comp_grid_data_v11 = read_comp_grid_climo(filename2)
+#comp_grid_data_v14 = read_comp_grid_climo(filename3)
 
 
 #comp_grid_data_v7 = read_comp_grid_climo(filename)
@@ -403,8 +403,8 @@ dates = [
 #plot_aerosol_over_types(dates[125], min_AI = 2.0, ai_val = 'TROP_AI', save = False)
 
 
-#plot_aerosol_over_type_combined(data, dates, min_ai = 1.5, save = False, plot_map = True)
-
+plot_aerosol_over_type_combined(data, dates, min_ai = 1.5, save = False, plot_map = True)
+sys.exit()
 
 ##!#fig = plt.figure(figsize = (9, 6))
 ##!#ax1 = fig.add_subplot(2,1,1)
