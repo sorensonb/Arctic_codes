@@ -2485,6 +2485,8 @@ def calculate_type_forcing_v2(OMI_data, NSIDC_data, MYD08_data, coloc_dict, \
 
     estimate_forcings = np.full(OMI_data['AI'][month_idx::6,:,:].shape, np.nan)
 
+    print("HERE:", OMI_data['AI'][month_idx::6,:,:].shape)
+
     # 2.  Loop over each individual month
     # -----------------------------------
     for nn in range(OMI_data['AI'][month_idx::6,:,:].shape[0]):
@@ -2626,7 +2628,7 @@ def plot_test_forcing_v2(OMI_data, NSIDC_data, MYD08_data, coloc_dict, \
 
     mesh = ax1.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
         OMI_data['AI'][tidx,:,:], shading = 'auto', transform = datacrs, \
-        cmap = 'jet', vmin = -0.75, vmax = 1.0)
+        cmap = 'jet', vmin = 0, vmax = 1.0)
     cbar = fig.colorbar(mesh, ax = ax1, label =  'Monthly AI')
     ax1.set_extent([-180,180,minlat,90], datacrs)
     ax1.set_boundary(circle, transform=ax1.transAxes)
@@ -2634,7 +2636,7 @@ def plot_test_forcing_v2(OMI_data, NSIDC_data, MYD08_data, coloc_dict, \
 
     mesh = ax2.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
         clear_sky_AI[tidx % 6,:,:], shading = 'auto', transform = datacrs, \
-        cmap = 'jet', vmin = -0.75, vmax = 1.0)
+        cmap = 'jet', vmin = 0, vmax = 1.0)
     cbar = fig.colorbar(mesh, ax = ax2, label = 'AI Climatology')
     ax2.set_extent([-180,180,minlat,90], datacrs)
     ax2.set_boundary(circle, transform=ax2.transAxes)

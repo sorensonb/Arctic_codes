@@ -11,6 +11,75 @@ from OMILib import *
 import sys
 
 
+daily_VSJ4   = h5py.File('omi_shawn_daily_2005_2020.hdf5')
+daily_VJZ211 = h5py.File('omi_VJZ211_daily_2005_2020.hdf5')
+
+plot_monthly_AI_from_daily(daily_VSJ4, 86, min_AI = -20., max_AI = 20., \
+    minlat = 65., maxlat = 90.)
+
+sys.exit()
+
+# Extract the dates
+# -----------------
+
+# Create datetime objects for each date
+# -------------------------------------
+#mod_dates = np.array([datetime.strptime(str(ttime), '%Y%m%d').strftime('%Y%m')
+#    for ttime in daily_VSJ4['day_values']])
+
+mod_dates = np.array([str(ttime)[:6] for ttime in daily_VSJ4['day_values']])
+unique_months = np.unique(mod_dates)
+
+#mod_dt_dates = np.array([ dtd.strftime('%Y%m') for dtd in dt_dates])
+
+# Figure out which dates correspond to each month
+# -----------------------------------------------
+
+# Apply masking to the data according to lat/AI here
+# --------------------------------------------------
+
+# Calculate the monthly averages
+# ------------------------------
+monthly_VSJ4 = np.array([ np.nanmean(daily_VSJ4['grid_AI'][\
+    np.where(mod_dates == t_unique_month)[0],:,:], axis = 0) \
+    for t_unique_month in unique_months])
+monthly_VJZ211 = np.array([ np.nanmean(daily_VJZ211['grid_AI'][\
+    np.where(mod_dates == t_unique_month)[0],:,:], axis = 0) \
+    for t_unique_month in unique_months])
+
+
+def plot_temp_time(data1, data2, tidx, min_ai = -2., minlat = 65.):
+
+    mask_data1 = np.ma.masked_where(daily_VSJ4['count_AI'][tidx,:,:] == 0, \
+        daily_VSJ4['grid_AI'][tidx,:,:])
+    mask_data2 = np.ma.masked_where(daily_VJZ211['count_AI'][tidx,:,:] == 0, \
+        daily_VJZ211['grid_AI'][tidx,:,:])
+
+    fig = plt.figure(figsize = (7, 4))
+
+    ax1 = fig.add_subplot(1,2,1, projection = mapcrs)
+    ax2 = fig.add_subplot(1,2,2, projection = mapcrs)
+
+    ax1.pcolormesh(data1['lon_values'][:], data1['lat_values'][:], mask_data1, \
+        transform = datacrs, shading = 'auto', cmap = 'jet', vmin = -2.0, \
+        vmax = 4.0)
+    ax1.coastlines()
+    ax1.set_extent([-180,180,minlat, 90], datacrs)
+
+    ax2.pcolormesh(data2['lon_values'][:], data2['lat_values'][:], mask_data2, \
+        transform = datacrs, shading = 'auto', cmap = 'jet', vmin = -2.0, \
+        vmax = 4.0)
+    ax2.coastlines()
+    ax2.set_extent([-180,180,minlat, 90], datacrs)
+
+    plt.suptitle(str(data1['day_values'][tidx]))
+
+    fig.tight_layout()
+
+    plt.show() 
+
+sys.exit()
+
 #date_str = '201807052213'
 date_str = '201507082016'
 #download_OMI_single_HDF(date_str, dest_dir = h5_data_dir)

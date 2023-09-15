@@ -32,9 +32,9 @@ filename1 = 'comp_grid_climo_v6.hdf5'
 #filename2 = 'comp_grid_climo_v11.hdf5'
 filename2 = 'comp_grid_climo_v12.hdf5'
 filename3 = 'comp_grid_climo_v14.hdf5'
-#comp_grid_data_v6 = read_comp_grid_climo(filename1)
-#comp_grid_data_v11 = read_comp_grid_climo(filename2)
-#comp_grid_data_v14 = read_comp_grid_climo(filename3)
+comp_grid_data_v6 = read_comp_grid_climo(filename1)
+comp_grid_data_v11 = read_comp_grid_climo(filename2)
+comp_grid_data_v14 = read_comp_grid_climo(filename3)
 
 
 #comp_grid_data_v7 = read_comp_grid_climo(filename)
@@ -403,8 +403,8 @@ dates = [
 #plot_aerosol_over_types(dates[125], min_AI = 2.0, ai_val = 'TROP_AI', save = False)
 
 
-plot_aerosol_over_type_combined(data, dates, min_ai = 1.5, save = False, plot_map = True)
-sys.exit()
+#plot_aerosol_over_type_combined(data, dates, min_ai = 1.5, save = False, plot_map = True)
+#sys.exit()
 
 ##!#fig = plt.figure(figsize = (9, 6))
 ##!#ax1 = fig.add_subplot(2,1,1)
@@ -642,6 +642,14 @@ maxlat = 87.
 NSIDC_data = readNSIDC_monthly_grid_all(begin_date, end_date, \
     season, calc_month = True, minlat = minlat, maxlat = maxlat)
 
+# HERE: Calculate the daily-averaged monthly averages, can use as a substitute
+#       for the old monthly data
+shawn_file = home_dir + '/Research/OMI/omi_shawn_daily_2005_2020.hdf5'
+jz_file    = home_dir + '/Research/OMI/omi_VJZ211_daily_2005_2020.hdf5'
+OMI_daily_VSJ4  = calcOMI_MonthAvg_FromDaily(shawn_file, min_AI = -0.25, minlat = minlat, maxlat = maxlat)
+OMI_daily_VJZ211 = calcOMI_MonthAvg_FromDaily(jz_file, min_AI = -0.25, minlat = minlat, maxlat = maxlat)
+
+
 OMI_VSJ4   = readOMI_NCDF(infile = \
     '/home/bsorenson/Research/OMI/omi_ai_VSJ4_2005_2020.nc', \
     minlat = minlat, maxlat = maxlat - 1)
@@ -649,8 +657,13 @@ OMI_VJZ211 = readOMI_NCDF(infile = \
     '/home/bsorenson/Research/OMI/omi_ai_VJZ211_2005_2020.nc', \
     minlat = minlat, maxlat = maxlat - 1)
 
-myd08_data = read_MODIS_MYD08_monthrange(begin_date,end_date,\
+MYD08_data = read_MODIS_MYD08_monthrange(begin_date,end_date,\
     minlat = minlat, maxlat = maxlat, calc_month = False)
+
+plot_test_forcing_v2(OMI_VSJ4, NSIDC_data, MYD08_data, coloc_dict, \
+    tidx, minlat = 70., maxlat = 87., ai_thresh = -0.15, \
+    cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw', \
+    save = False)
 
 ##!#def plot_test_data(OMI_data, tidx, min_ai):
 ##!#    local_data = np.ma.masked_where(OMI_data['AI'][tidx,:,:] < min_ai, OMI_data['AI'][tidx,:,:])
@@ -679,6 +692,11 @@ myd08_data = read_MODIS_MYD08_monthrange(begin_date,end_date,\
 # ------------------------------------------
 
 ai_thresh = -0.15
+
+plot_test_forcing_v2(OMI_data, NSIDC_data, MYD08_data, lin_smth2_dict_v6, \
+    tidx, minlat = 70., maxlat = 87., ai_thresh = ai_thresh, \
+    cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw', \
+    save = False)
 
 
 sys.exit()

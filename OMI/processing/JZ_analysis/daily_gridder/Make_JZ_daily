@@ -1,0 +1,96 @@
+# Comment line
+
+EXEC = omi_JZ_climo_exec 
+COMP = h5fc
+#COMP = gfortran
+LIB_PATH = ../JZ_lib/
+FORT_LIB_PATH = ../../fort_lib/
+OBJECTS = h5_vars.o \
+			daily_vars.o \
+			calc_grid_avgs.o \
+			check_bad_rows.o \
+			count_num_days.o \
+			grid_raw_data_daily_climo.o \
+            print_climo.o \
+			read_h5_AI.o \
+			read_h5_AZM.o \
+			read_h5_CLD.o \
+			read_h5_GPQF.o \
+			read_h5_LAT.o \
+			read_h5_LON.o \
+			read_h5_XTRACK.o \
+			write_day_dates.o \
+			write_day_lat.o \
+			write_day_lon.o \
+			write_day_grid_AI.o \
+			write_output_file.o \
+			omi_JZ_daily_climo.o
+
+FFLAGS = -g -O2 -Wall -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
+LDFLAGS = -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
+
+$(EXEC): $(OBJECTS)
+	$(COMP) $(LDFLAGS) $(OBJECTS) -o $(EXEC)
+
+h5_vars.o: $(LIB_PATH)h5_vars.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)h5_vars.f90
+
+daily_vars.o: daily_vars.f90
+	$(COMP) $(FFLAGS) -c daily_vars.f90
+
+calc_grid_avgs.o: calc_grid_avgs.f90
+	$(COMP) $(FFLAGS) -c calc_grid_avgs.f90
+
+check_bad_rows.o: $(LIB_PATH)check_bad_rows.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)check_bad_rows.f90
+
+count_num_days.o: count_num_days.f90
+	$(COMP) $(FFLAGS) -c count_num_days.f90
+
+grid_raw_data_daily_climo.o: grid_raw_data_daily_climo.f90
+	$(COMP) $(FFLAGS) -c grid_raw_data_daily_climo.f90
+
+read_h5_AI.o: $(LIB_PATH)read_h5_AI.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_AI.f90
+
+read_h5_AZM.o: $(LIB_PATH)read_h5_AZM.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_AZM.f90
+
+read_h5_CLD.o: $(LIB_PATH)read_h5_CLD.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_CLD.f90
+
+read_h5_GPQF.o: $(LIB_PATH)read_h5_GPQF.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_GPQF.f90
+
+read_h5_LAT.o: $(LIB_PATH)read_h5_LAT.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_LAT.f90
+
+read_h5_LON.o: $(LIB_PATH)read_h5_LON.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_LON.f90
+
+read_h5_XTRACK.o: $(LIB_PATH)read_h5_XTRACK.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_XTRACK.f90
+
+write_day_dates.o: write_day_dates.f90
+	$(COMP) $(FFLAGS) -c write_day_dates.f90
+
+write_day_lat.o: write_day_lat.f90
+	$(COMP) $(FFLAGS) -c write_day_lat.f90
+
+write_day_lon.o: write_day_lon.f90
+	$(COMP) $(FFLAGS) -c write_day_lon.f90
+
+write_day_grid_AI.o: write_day_grid_AI.f90
+	$(COMP) $(FFLAGS) -c write_day_grid_AI.f90
+
+write_output_file.o: write_output_file.f90
+	$(COMP) $(FFLAGS) -c write_output_file.f90
+
+print_climo.o: $(FORT_LIB_PATH)print_climo.f90
+	$(COMP) $(FFLAGS) -c $(FORT_LIB_PATH)print_climo.f90
+
+omi_JZ_daily_climo.o: omi_JZ_daily_climo.f90 $(LIB_PATH)h5_vars.f90 daily_vars.f90
+	$(COMP) $(FFLAGS) -c omi_JZ_daily_climo.f90
+
+clean:
+	rm $(EXEC) $(OBJECTS) *.mod

@@ -7793,6 +7793,64 @@ def read_OMI_fort_out(file_name, min_lat, vtype = 'areas', max_lat = None, \
 
     return omi_fort_dict   
 
+def calcOMI_MonthAvg_FromDaily(infile, min_AI = -20., max_AI = 20., 
+        minlat = 65., maxlat = 90., weight_count = True):
+
+    daily_data = h5py.File(infile, 'r')
+
+    dtype = infile.strip().split('/')[-1].split('_')[1]
+
+    # Use minlat to restrict the data to only the desired minimum
+    # latitude
+    # ------------------------------------------------------------
+    min_idx =  np.where(daily_data['lat_values'][:] >= minlat)[0][0]
+    max_idx =  np.where(daily_data['lat_values'][:] <= maxlat)[0][-1] + 1
+    
+    grid_lon, grid_lat =  \
+        np.meshgrid(daily_data['lon_values'][:], \
+        daily_data['lat_values'][min_idx:max_idx])
+
+    local_data  = daily_data['grid_AI'][:,min_idx:max_idx,:]
+    local_count = daily_data['count_AI'][:,min_idx:max_idx,:]
+
+    # Extract the dates
+    # -----------------
+    mod_dates = np.array([str(ttime)[:6] for ttime in \
+        daily_data['day_values']])
+    unique_months = np.unique(mod_dates)
+    
+    # Apply masking to the data according to lat/AI here
+    # --------------------------------------------------
+    mask_data = np.ma.masked_where( (local_count == 0)  | \
+        (grid_lat < minlat) | (grid_lat > maxlat) | \
+        (local_data < min_AI) | (local_data > max_AI) \
+        , local_data)   
+
+ 
+    # Calculate the monthly averages
+    # ------------------------------
+    if(weight_count): 
+        monthly_data = np.array([ np.ma.average(mask_data[\
+            np.where(mod_dates == t_unique_month)[0],:,:], \
+            weights = local_count[np.where(\
+            mod_dates == t_unique_month)[0],:,:], axis = 0) \
+            for t_unique_month in unique_months])
+    else:
+        monthly_data = np.array([ np.nanmean(mask_data[\
+            np.where(mod_dates == t_unique_month)[0],:,:], axis = 0) \
+            for t_unique_month in unique_months])
+
+    daily_data.close()
+
+    monthly_dict = {}
+    monthly_dict['DTYPE'] = dtype
+    monthly_dict['LON'] = grid_lon
+    monthly_dict['LAT'] = grid_lat
+    monthly_dict['DATES']   = unique_months
+    monthly_dict['AI']     = monthly_data
+
+    return monthly_dict        
+
 def calc_aerosol_event_dates(infile, minlat = 70., vtype = 'areas', \
         max_lat = None):
 
@@ -8681,3 +8739,70 @@ def plotOMI_drift_figure(version, month_idx, plot_counts = False, \
         print("Saved image", outname)
     else:
         plt.show()
+
+def plot_single_month_AI_from_daily(daily_data, tidx, min_AI = -20., max_AI = 20., \
+        weight_count = True, minlat = 65., maxlat = 90., save = False):
+
+    if(isinstance(daily_data, str)):
+        monthly_dict = calcOMI_MonthAvg_FromDaily(daily_data, min_AI = min_AI, \
+            max_AI = max_AI, minlat = minlat, maxlat = maxlat)
+    else:
+        monthly_dict = daily_data
+        print("HERE")
+
+    plotter = monthly_dict['AI'][tidx,:,:]
+
+    plt.close('all')
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1, projection = mapcrs)
+    mesh = ax.pcolormesh(monthly_dict['LON'], monthly_dict['LAT'], plotter, \
+        transform = datacrs, shading = 'auto', cmap = 'jet', \
+        vmin = None, vmax = 1)
+    cbar = fig.colorbar(mesh, ax = ax, label = 'AI')
+    ax.coastlines()
+    ax.set_extent([-180, 180, minlat, 90], datacrs)
+
+    ax.set_title(monthly_dict['DATES'][tidx] + '\nMin_AI = ' + str(min_AI) + \
+        '\nDatmin = ' + str(np.round(np.nanmin(plotter), 3)) + ' Datmax = ' + \
+        str(np.round(np.nanmax(plotter), 3)))
+    fig.tight_layout()
+
+    if(save):
+        if(min_AI < 0):
+            min_str = 'N' + str(abs(int(min_AI * 100))).zfill(4)
+        else:
+            min_str = str(abs(int(min_AI * 100))).zfill(4)
+        outname = 'omi_monthly_fromdaily_' + monthly_dict['DTYPE'] + '_' + \
+            min_str + '_' + monthly_dict['DATES'][tidx] + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+def plot_MonthClimo_AI_from_daily(daily_data, month_idx, min_AI = -20., \
+        max_AI = 20., minlat = 65., maxlat = 90.):
+
+    if(isinstance(daily_data, str)):
+        monthly_dict = calcOMI_MonthAvg_FromDaily(daily_data, min_AI = min_AI, \
+            max_AI = max_AI, minlat = minlat, maxlat = maxlat)
+    else:
+        monthly_dict = daily_data
+
+    plotter = np.average(monthly_dict['AI'][month_idx::6,:,:], axis = 0)
+
+    plt.close('all')
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1, projection = mapcrs)
+    ax.pcolormesh(monthly_dict['LON'], monthly_dict['LAT'], plotter, \
+        transform = datacrs, shading = 'auto', cmap = 'jet', \
+        vmin = -2., vmax = 3)
+    ax.coastlines()
+    ax.set_extent([-180, 180, minlat, 90], datacrs)
+
+    ax.set_title(monthly_dict['DATES'][month_idx][:6] + '\nMin_AI = ' + str(min_AI) + \
+        '\nDatmin = ' + str(np.round(np.nanmin(plotter), 3)) + ' Datmax = ' + \
+        str(np.round(np.nanmax(plotter), 3)))
+    fig.tight_layout()
+    plt.show()
+
+
