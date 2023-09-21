@@ -12,18 +12,18 @@ home_dir = os.environ['HOME']
 
 base_dir = home_dir + "/Research/"
 dest_dir = home_dir + "/Arctic_codes/"
-#### Add new stuff
-###os.chdir(dest_dir)
-###os.system('git add .')
-###
-#### Determine today's date for the command
-###today_str = datetime.today().strftime('%Y/%m/%d')
-###cmnd = 'git commit -m \"Backup '+today_str + '\"'
-###os.system(cmnd)
-###
-#### Push
-###os.system('git push origin master')
-###sys.exit()
+## Add new stuff
+#os.chdir(dest_dir)
+#os.system('git add .')
+#
+## Determine today's date for the command
+#today_str = datetime.today().strftime('%Y/%m/%d')
+#cmnd = 'git commit -m \"Backup '+today_str + '\"'
+#os.system(cmnd)
+#
+## Push
+#os.system('git push origin master')
+#sys.exit()
 # ---------------------------------------------------------------------------- 
 # Backup the backup script
 # ---------------------------------------------------------------------------- 
@@ -169,6 +169,14 @@ cmnd = "scp "+rain_dir+"shawn_analysis/climo_analysis/Make* "+final_dir
 print(cmnd)
 os.system(cmnd)
 
+final_dir = dest_dir + 'OMI/processing/shawn_analysis/daily_gridder/'
+cmnd = "scp "+rain_dir+"shawn_analysis/daily_gridder/*.f90 "+final_dir
+print(cmnd)
+os.system(cmnd)
+cmnd = "scp "+rain_dir+"shawn_analysis/daily_gridder/Make* "+final_dir
+print(cmnd)
+os.system(cmnd)
+
 final_dir = dest_dir + 'OMI/processing/JZ_analysis/climo_analysis/'
 cmnd = "scp "+rain_dir+"JZ_analysis/climo_analysis/*.f90 "+final_dir
 print(cmnd)
@@ -182,6 +190,14 @@ cmnd = "scp "+rain_dir+"JZ_analysis/count_analysis/*.f90 "+final_dir
 print(cmnd)
 os.system(cmnd)
 cmnd = "scp "+rain_dir+"JZ_analysis/count_analysis/Make* "+final_dir
+print(cmnd)
+os.system(cmnd)
+
+final_dir = dest_dir + 'OMI/processing/JZ_analysis/daily_gridder/'
+cmnd = "scp "+rain_dir+"JZ_analysis/daily_gridder/*.f90 "+final_dir
+print(cmnd)
+os.system(cmnd)
+cmnd = "scp "+rain_dir+"JZ_analysis/daily_gridder/Make* "+final_dir
 print(cmnd)
 os.system(cmnd)
 

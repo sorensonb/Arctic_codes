@@ -646,8 +646,8 @@ NSIDC_data = readNSIDC_monthly_grid_all(begin_date, end_date, \
 #       for the old monthly data
 shawn_file = home_dir + '/Research/OMI/omi_shawn_daily_2005_2020.hdf5'
 jz_file    = home_dir + '/Research/OMI/omi_VJZ211_daily_2005_2020.hdf5'
-OMI_daily_VSJ4  = calcOMI_MonthAvg_FromDaily(shawn_file, min_AI = -0.25, minlat = minlat, maxlat = maxlat)
-OMI_daily_VJZ211 = calcOMI_MonthAvg_FromDaily(jz_file, min_AI = -0.25, minlat = minlat, maxlat = maxlat)
+OMI_daily_VSJ4  = calcOMI_MonthAvg_FromDaily(shawn_file, min_AI = -0.10, minlat = minlat, maxlat = maxlat)
+OMI_daily_VJZ211 = calcOMI_MonthAvg_FromDaily(jz_file, min_AI = -0.10, minlat = minlat, maxlat = maxlat)
 
 
 OMI_VSJ4   = readOMI_NCDF(infile = \
@@ -691,7 +691,8 @@ plot_test_forcing_v2(OMI_VSJ4, NSIDC_data, MYD08_data, coloc_dict, \
 # This uses method 2: individual month-based
 # ------------------------------------------
 
-ai_thresh = -0.15
+ai_thresh = 0.05
+#ai_thresh = -0.15
 
 plot_test_forcing_v2(OMI_data, NSIDC_data, MYD08_data, lin_smth2_dict_v6, \
     tidx, minlat = 70., maxlat = 87., ai_thresh = ai_thresh, \

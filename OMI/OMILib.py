@@ -7821,11 +7821,16 @@ def calcOMI_MonthAvg_FromDaily(infile, min_AI = -20., max_AI = 20.,
     
     # Apply masking to the data according to lat/AI here
     # --------------------------------------------------
+    #mask_data = np.ma.masked_where( (local_count == 0)  | \
+    #    (grid_lat < minlat) | (grid_lat > maxlat) | \
+    #    (local_data < min_AI) | (local_data > max_AI) \
+    #    , local_data)   
     mask_data = np.ma.masked_where( (local_count == 0)  | \
-        (grid_lat < minlat) | (grid_lat > maxlat) | \
-        (local_data < min_AI) | (local_data > max_AI) \
-        , local_data)   
+        (grid_lat < minlat) | (grid_lat > maxlat), \
+        local_data)   
 
+    mask_data = np.ma.where( (mask_data < min_AI), min_AI, mask_data)
+    mask_data = np.ma.where( (mask_data > max_AI), max_AI, mask_data)
  
     # Calculate the monthly averages
     # ------------------------------
@@ -8757,7 +8762,7 @@ def plot_single_month_AI_from_daily(daily_data, tidx, min_AI = -20., max_AI = 20
     ax = fig.add_subplot(1,1,1, projection = mapcrs)
     mesh = ax.pcolormesh(monthly_dict['LON'], monthly_dict['LAT'], plotter, \
         transform = datacrs, shading = 'auto', cmap = 'jet', \
-        vmin = None, vmax = 1)
+        vmin = None, vmax = 1.0)
     cbar = fig.colorbar(mesh, ax = ax, label = 'AI')
     ax.coastlines()
     ax.set_extent([-180, 180, minlat, 90], datacrs)

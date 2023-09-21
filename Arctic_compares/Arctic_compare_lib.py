@@ -2469,6 +2469,9 @@ def calculate_type_forcing_v2(OMI_data, NSIDC_data, MYD08_data, coloc_dict, \
     clear_sky_AI = np.array([np.nanmean(\
         np.ma.masked_where(OMI_data['AI'][tidx::6,:,:] > ai_thresh,\
         OMI_data['AI'][tidx::6,:,:]), axis = 0) for tidx in range(6)])
+    #clear_sky_AI = np.array([np.nanmean(\
+    #    np.ma.masked_where(OMI_data['AI'][tidx::6,:,:] > ai_thresh,\
+    #    OMI_data['AI'][tidx::6,:,:]), axis = 0) for tidx in range(6)])
     
     clear_dict = calculate_interp_forcings(coloc_dict, month_idx, \
         minlat, maxlat, 'clear', cld_idx = cld_idx, maxerr = maxerr, \
@@ -2628,7 +2631,7 @@ def plot_test_forcing_v2(OMI_data, NSIDC_data, MYD08_data, coloc_dict, \
 
     mesh = ax1.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
         OMI_data['AI'][tidx,:,:], shading = 'auto', transform = datacrs, \
-        cmap = 'jet', vmin = 0, vmax = 1.0)
+        cmap = 'jet', vmin = 0, vmax = 0.5)
     cbar = fig.colorbar(mesh, ax = ax1, label =  'Monthly AI')
     ax1.set_extent([-180,180,minlat,90], datacrs)
     ax1.set_boundary(circle, transform=ax1.transAxes)
@@ -2636,7 +2639,7 @@ def plot_test_forcing_v2(OMI_data, NSIDC_data, MYD08_data, coloc_dict, \
 
     mesh = ax2.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
         clear_sky_AI[tidx % 6,:,:], shading = 'auto', transform = datacrs, \
-        cmap = 'jet', vmin = 0, vmax = 1.0)
+        cmap = 'jet', vmin = 0, vmax = 0.5)
     cbar = fig.colorbar(mesh, ax = ax2, label = 'AI Climatology')
     ax2.set_extent([-180,180,minlat,90], datacrs)
     ax2.set_boundary(circle, transform=ax2.transAxes)
@@ -2644,7 +2647,7 @@ def plot_test_forcing_v2(OMI_data, NSIDC_data, MYD08_data, coloc_dict, \
 
     mesh = ax3.pcolormesh(NSIDC_data['grid_lon'], NSIDC_data['grid_lat'], \
         local_departure[:,:], shading = 'auto', transform = datacrs, \
-        cmap = 'jet', vmin = 0.0, vmax = 1.0)
+        cmap = 'jet', vmin = 0.0, vmax = 0.5)
     cbar = fig.colorbar(mesh, ax = ax3, label = 'ΔAI (AI$_{i}$ - AI$_{clim}$)')
     ax3.set_extent([-180,180,minlat,90], datacrs)
     ax3.set_boundary(circle, transform=ax3.transAxes)
