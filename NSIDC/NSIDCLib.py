@@ -256,7 +256,7 @@ def read_ice(season,pre2001=False):
 # NOTE: This function may not work if not already logged in to Earthdata.
 #       May need to fix this to account for URS cookies.
 # ---------------------------------------------------------------------------
-def download_NSIDC_daily(date_str, save_dir = data_dir):
+def download_NSIDC_daily(date_str, save_dir = data_dir + 'daily/'):
 
     dt_date_str = datetime.strptime(date_str, '%Y%m%d')
     base_link = "https://n5eil01u.ecs.nsidc.org/PM/NSIDC-0051.002/"
@@ -417,7 +417,7 @@ def readNSIDC_daily(date_str, grid_data = False, maxlat = 90):
 
     if(len(date_str) == 8):
         str_fmt = '%Y%m%d'
-        file_dir = data_dir
+        file_dir = data_dir + 'daily/'
     elif(len(date_str) == 6):
         str_fmt = '%Y%m'
         file_dir = data_dir + 'monthly/'
@@ -517,6 +517,43 @@ def readNSIDC_daily(date_str, grid_data = False, maxlat = 90):
  
     return NSIDC_data
 
+def write_NSIDC_daily_to_file(begin_date, end_date, minlat = 65.5):
+
+    print("HIIII")
+
+    dt_begin_str = datetime.strptime(begin_date, '%Y%m%d')
+    dt_end_str   = datetime.strptime(end_date, '%Y%m%d')
+
+    # Grab all the files
+    base_path = home_dir + '/data/NSIDC/'
+    total_list = sorted(glob.glob(base_path+'*.nc')) 
+
+    # Loop over all files and find the ones that match with the desired times
+
+    # Step 1: Find all the filenames to analyze
+    # -----------------------------------------
+
+    # Step 1b: Read in the daily OMI file to ensure that the file times
+    # match those in the daily OMI product. There are some days missing
+    # from the daily OMI product, so need to avoid including those 
+    # missing times in the NSIDC daily products
+    # ----------------------------------------------------------------
+
+    # Step 2: From the number of daily filenames, allocate data arrays
+    # to hold the final, combined data
+    # ----------------------------------------------------------------
+
+    # Step 3: Loop over each of the filenames
+    # ---------------------------------------
+
+    # Step 4: Load in the current day's data
+    # --------------------------------------
+
+    # Step 5: Grid the current data to the lat/lon grid
+    # -------------------------------------------------
+
+    # Step 6: Insert the current gridded data into the final array
+    # ------------------------------------------------------------
 
 def calcNSIDC_MonthClimo(NSIDC_data):
 
@@ -1458,13 +1495,13 @@ def grid_data_conc(NSIDC_data, minlat = 65., maxlat = 90):
     #lon_ranges += 0.5
     #lat_ranges += 0.5
 
+    if(NSIDC_data['data'].shape[0] == 448):
+        NSIDC_data['data'] = np.expand_dims(NSIDC_data['data'], 0)
+
     grid_ice_conc    = np.full((len(NSIDC_data['data'][:,0,0]),\
         len(lat_ranges),len(lon_ranges)),-99.)
     grid_land_conc    = np.full((len(NSIDC_data['data'][:,0,0]),\
         len(lat_ranges),len(lon_ranges)),np.nan)
-    grid_ice_area    = np.zeros((len(lat_ranges),len(lon_ranges)))
-    grid_ice_area_trend    = np.full((len(lat_ranges),len(lon_ranges)),\
-        -999.)
     grid_ice_conc_cc = np.full((len(NSIDC_data['data'][:,0,0]),\
         len(lat_ranges),len(lon_ranges)),-999.)
     grid_pole_hole_cc = np.full((len(NSIDC_data['data'][:,0,0]),\
@@ -1475,8 +1512,11 @@ def grid_data_conc(NSIDC_data, minlat = 65., maxlat = 90):
         len(lat_ranges),len(lon_ranges)),-999.)
     grid_land_cc = np.full((len(NSIDC_data['data'][:,0,0]),\
         len(lat_ranges),len(lon_ranges)),-999.)
+    grid_ice_area    = np.zeros((len(lat_ranges),len(lon_ranges)))
+    grid_ice_area_trend    = np.full((len(lat_ranges),len(lon_ranges)),\
+        -999.)
     print("Size of grid array: ",grid_ice_conc.shape)
-    for nt in range(len(NSIDC_data['data'][:,0,0])):
+    for nt in range(grid_ice_conc.shape[0]):
         print(nt)
         for xi in range(448):
             # Don't grid the data if any portion of the lat/lon box is over land.
@@ -1542,33 +1582,35 @@ def grid_data_conc(NSIDC_data, minlat = 65., maxlat = 90):
             # end y grid loop
         # end x grid loop
     # end time loop 
-        
+       
+    NSIDC_data['data'] = NSIDC_data['data'].squeeze()
+ 
     # Calc averages here
     final_grid_ice_conc = np.copy(grid_ice_conc)
     final_grid_ice_conc[grid_ice_conc_cc > 0] = \
         grid_ice_conc[grid_ice_conc_cc > 0] / \
-        grid_ice_conc_cc[grid_ice_conc_cc > 0]
+        grid_ice_conc_cc[grid_ice_conc_cc > 0].squeeze()
 
     final_pole_hole = np.where((grid_pole_hole_cc != -999.) & \
         ((grid_pole_hole_cc > grid_unused_cc) & \
          (grid_pole_hole_cc > grid_coastline_cc) & \
          (grid_pole_hole_cc > grid_land_cc)), \
-        251, np.nan)
+        251, np.nan).squeeze()
     final_unused = np.where((grid_unused_cc != -999.) & \
         ((grid_unused_cc > grid_pole_hole_cc) & \
          (grid_unused_cc > grid_coastline_cc) & \
          (grid_unused_cc > grid_land_cc)), \
-        252, np.nan)
+        252, np.nan).squeeze()
     final_coastline = np.where((grid_coastline_cc != -999.) & \
         ((grid_coastline_cc > grid_pole_hole_cc) & \
          (grid_coastline_cc > grid_unused_cc) & \
          (grid_coastline_cc > grid_land_cc)), \
-        253, np.nan)
+        253, np.nan).squeeze()
     final_land = np.where((grid_land_cc != -999.) & \
         ((grid_land_cc >= grid_pole_hole_cc) & \
          (grid_land_cc >= grid_unused_cc) & \
          (grid_land_cc >= grid_coastline_cc)), \
-        254, np.nan)
+        254, np.nan).squeeze()
 
     final_pole_hole = np.ma.masked_invalid(final_pole_hole)
     final_unused    = np.ma.masked_invalid(final_unused)
@@ -1586,17 +1628,17 @@ def grid_data_conc(NSIDC_data, minlat = 65., maxlat = 90):
         for tlon in lon_ranges] for tlat in lat_ranges])
 
     xx, yy = np.meshgrid(lon_ranges, lat_ranges)
-    NSIDC_data['grid_ice_conc']       = final_grid_ice_conc
+    NSIDC_data['grid_ice_conc']       = final_grid_ice_conc.squeeze()
     NSIDC_data['grid_pole_hole']      = final_pole_hole
     NSIDC_data['grid_unused']         = final_unused
     NSIDC_data['grid_coastline']      = final_coastline
     NSIDC_data['grid_land']           = final_land
-    NSIDC_data['grid_pole_hole_cc']   = grid_pole_hole_cc
-    NSIDC_data['grid_unused_cc']      = grid_unused_cc
-    NSIDC_data['grid_coastline_cc']   = grid_coastline_cc
-    NSIDC_data['grid_land_cc']        = grid_land_cc
-    NSIDC_data['grid_total_area']     = grid_ice_area
-    NSIDC_data['grid_ice_area_trend'] = grid_ice_area_trend
+    NSIDC_data['grid_pole_hole_cc']   = grid_pole_hole_cc.squeeze()
+    NSIDC_data['grid_unused_cc']      = grid_unused_cc.squeeze()
+    NSIDC_data['grid_coastline_cc']   = grid_coastline_cc.squeeze()
+    NSIDC_data['grid_land_cc']        = grid_land_cc.squeeze()
+    NSIDC_data['grid_total_area']     = grid_ice_area.squeeze()
+    NSIDC_data['grid_ice_area_trend'] = grid_ice_area_trend.squeeze()
     NSIDC_data['grid_lat'] = yy
     NSIDC_data['grid_lon'] = xx
     NSIDC_data['grid_area'] = grid_areas

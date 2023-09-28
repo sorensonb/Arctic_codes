@@ -8,6 +8,99 @@
 import Arctic_compare_lib
 from Arctic_compare_lib import *
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#
+# Steps for daily Arctic comp analysis
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+
+begin_date = '200504'
+end_date   = '202009'
+season     = 'sunlight'
+minlat = 70.
+maxlat = 87.
+#NSIDC_data = readNSIDC_monthly_grid_all(begin_date, end_date, \
+#    season, calc_month = True, minlat = minlat, maxlat = maxlat)
+
+# HERE: Calculate the daily-averaged monthly averages, can use as a substitute
+#       for the old monthly data
+shawn_file = home_dir + '/Research/OMI/omi_shawn_daily_2005_2020.hdf5'
+jz_file    = home_dir + '/Research/OMI/omi_VJZ211_daily_2005_2020.hdf5'
+#daily_VSJ4 = h5py.File(shawn_file, 'r')
+daily_VSJ4 = readOMI_daily_HDF5(shawn_file, minlat = minlat, maxlat = maxlat)
+#OMI_daily_VSJ4  = calcOMI_MonthAvg_FromDaily(shawn_file, min_AI = -0.10, minlat = minlat, maxlat = maxlat)
+#OMI_daily_VJZ211 = calcOMI_MonthAvg_FromDaily(jz_file, min_AI = -0.10, minlat = minlat, maxlat = maxlat)
+
+# BEGIN SINGLE-DAY FUNCTION HERE
+
+date_str = '20180704'
+#tidx = 100
+
+# Load in the single-day MODIS cloud fraction
+MYD08_data = read_MODIS_MYD08_single(date_str, minlat = minlat, \
+    maxlat = maxlat)
+
+# Load in the single-day NSIDC ice concentration
+NSIDC_data =  readNSIDC_daily(date_str, maxlat = maxlat)
+NSIDC_data = grid_data_conc(NSIDC_data, minlat = minlat, maxlat = maxlat)
+
+# Figure out which OMI day index matches the date_str
+file_strs = np.array([str(tval) for tval in daily_VSJ4['day_values']])
+match_idx = np.where(date_str == file_strs)[0][0]
+
+local_shawn = np.ma.masked_where(daily_VSJ4['count_AI'][match_idx,:,:] == 0, \
+    daily_VSJ4['grid_AI'][match_idx,:,:])
+
+min_idx = np.where(MYD08_data['lat'][:] >= minlat)[0][0]
+max_idx = np.where(MYD08_data['lat'][:] <= maxlat)[0][-1] + 1
+
+mask_ice = np.ma.masked_where(NSIDC_data['grid_ice_conc'][:,:] < 0, \
+    NSIDC_data['grid_ice_conc'][:,:])
+
+
+
+
+
+fig = plt.figure()
+ax1 = fig.add_subplot(2,2,1, projection = mapcrs)
+ax2 = fig.add_subplot(2,2,2, projection = mapcrs)
+ax3 = fig.add_subplot(2,2,3, projection = mapcrs)
+
+ax1.pcolormesh(daily_VSJ4['lon_values'][:], daily_VSJ4['lat_values'][:], \
+    local_shawn, transform = datacrs, \
+    shading = 'auto', cmap = 'jet')
+ax1.coastlines()
+ax1.set_extent([-180,180,65,90], datacrs)
+
+ax2.pcolormesh(MYD08_data['lon'][:], MYD08_data['lat'][min_idx:max_idx], \
+    MYD08_data['cld_frac_mean'][:,:], transform = datacrs, \
+    shading = 'auto')
+ax2.coastlines()
+ax2.set_extent([-180,180,65,90], datacrs)
+
+ax3.pcolormesh(NSIDC_data['grid_lon'][:,:], NSIDC_data['grid_lat'][:,:], \
+    mask_ice, transform = datacrs, \
+    shading = 'auto')
+ax3.coastlines()
+ax3.set_extent([-180,180,65,90], datacrs)
+
+plt.suptitle(file_strs[match_idx])
+
+fig.tight_layout()
+plt.show()
+
+sys.exit()
+
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#
+# End daily Arctic comp analysis
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+
+# Read in the OMI data
+# ---------------------
 
 #testfile = 'grid_coloc_test_res050.hdf5'
 testfile = 'grid_coloc_test_res100.hdf5'
@@ -660,10 +753,10 @@ OMI_VJZ211 = readOMI_NCDF(infile = \
 MYD08_data = read_MODIS_MYD08_monthrange(begin_date,end_date,\
     minlat = minlat, maxlat = maxlat, calc_month = False)
 
-plot_test_forcing_v2(OMI_VSJ4, NSIDC_data, MYD08_data, coloc_dict, \
-    tidx, minlat = 70., maxlat = 87., ai_thresh = -0.15, \
-    cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw', \
-    save = False)
+#plot_test_forcing_v2(OMI_VSJ4, NSIDC_data, MYD08_data, lin_smth2_dict_v6, \
+#    tidx, minlat = 70., maxlat = 87., ai_thresh = -0.15, \
+#    cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw', \
+#    save = False)
 
 ##!#def plot_test_data(OMI_data, tidx, min_ai):
 ##!#    local_data = np.ma.masked_where(OMI_data['AI'][tidx,:,:] < min_ai, OMI_data['AI'][tidx,:,:])
@@ -694,8 +787,8 @@ plot_test_forcing_v2(OMI_VSJ4, NSIDC_data, MYD08_data, coloc_dict, \
 ai_thresh = 0.05
 #ai_thresh = -0.15
 
-plot_test_forcing_v2(OMI_data, NSIDC_data, MYD08_data, lin_smth2_dict_v6, \
-    tidx, minlat = 70., maxlat = 87., ai_thresh = ai_thresh, \
+plot_test_forcing_v2(OMI_daily_VSJ4, NSIDC_data, MYD08_data, lin_smth2_dict_v6, \
+    81, minlat = 70., maxlat = 87., ai_thresh = ai_thresh, \
     cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw', \
     save = False)
 

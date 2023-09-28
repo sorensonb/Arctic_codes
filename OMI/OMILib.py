@@ -1480,6 +1480,27 @@ def readOMI_NCDF(infile=home_dir + '/Research/OMI/omi_ai_V003_2005_2020.nc',\
    
     return OMI_data
 
+def readOMI_daily_HDF5(infile, minlat = 65.5, maxlat = 89.5):
+
+    data = h5py.File(infile)
+
+    # Use minlat to restrict the data to only the desired minimum
+    # latitude
+    # ------------------------------------------------------------
+    min_idx =  np.where(data['lat_values'][:] >= minlat)[0][0]
+    max_idx =  np.where(data['lat_values'][:] <= maxlat)[0][-1] + 1
+
+    out_dict = {}
+    out_dict['grid_AI']    = data['grid_AI'][:,min_idx:max_idx,:]
+    out_dict['count_AI']   = data['count_AI'][:,min_idx:max_idx,:]
+    out_dict['lat_values'] = data['lat_values'][min_idx:max_idx]
+    out_dict['lon_values'] = data['lon_values'][:]
+    out_dict['day_values'] = data['day_values'][:]
+
+    data.close()
+    
+    return out_dict
+    
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
 # Data writing functions

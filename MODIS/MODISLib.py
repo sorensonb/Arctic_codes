@@ -754,11 +754,11 @@ def identify_MODIS_MYD06(date_str, dest_dir = myd06_dir):
     try:
         files = listFD(dt_date_str.strftime(base_url + '/%Y/%j'), ext = '.hdf')
     except subprocess.CalledProcessError:
-        print("ERROR: No MODIS MYD08 files for the input DTG",date_str)
+        print("ERROR: No MODIS MYD06 files for the input DTG",date_str)
         return -2
 
     if(len(files) == 0):
-        print("ERROR: No MODIS MYD08 files returned from the request. Exiting")
+        print("ERROR: No MODIS MYD06 files returned from the request. Exiting")
         return -1
     
     # Remove the timestamps from the file strings
@@ -805,15 +805,24 @@ def identify_MODIS_MYD06(date_str, dest_dir = myd06_dir):
 
 
 
-# date_str: %Y%m
+# date_str: %Y%m or YYYYMMDD
 def identify_MODIS_MYD08(date_str, dest_dir = myd08_dir):
 
-    local_data_dir  = dest_dir
+    if(len(date_str) == 6):
+        dt_date_str = datetime.strptime(date_str, '%Y%m')
+        dtype = 'monthly'
+    elif(len(date_str) == 8):
+        dt_date_str = datetime.strptime(date_str, '%Y%m%d')
+        dtype = 'daily'
+    else:
+        print("ERROR: Invalid date format. Must be YYYYMM or YYYYMMDD")
+        return -3 
+
+    local_data_dir  = dest_dir + dtype + '/'
 
     base_url = 'https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/61/'+\
-        'MYD08_M3/'
+        'MYD08_' + dtype[0].upper() + '3/'
 
-    dt_date_str = datetime.strptime(date_str, '%Y%m')
 
     print(dt_date_str)
 
@@ -2440,16 +2449,29 @@ def read_MODIS_CLDL3_single_month(date_str, minlat = 65.5, \
 
     return out_dict
 
-def read_MODIS_MYD08_single_month(date_str, minlat = 65.5, \
+def read_MODIS_MYD08_single(date_str, minlat = 65.5, \
         maxlat = 89.5, local_data_dir = myd08_dir, \
         transform_lat = True):
 
-    dt_date_str = datetime.strptime(date_str, '%Y%m')
+    if(len(date_str) == 6):
+        date_fmt = '%Y%m'
+        dtype = 'monthly'
+    elif(len(date_str) == 8):
+        date_fmt = '%Y%m%d'
+        dtype = 'daily'
+    else:
+        print("ERROR: INVALID DATE FORMAT")
+        return
+
+    dt_date_str = datetime.strptime(date_str, date_fmt)
+
+    local_data_dir = local_data_dir + dtype + '/'
 
     # Grab all the filenames for the matching year
     # --------------------------------------------
     found_file = glob(dt_date_str.strftime(\
-        local_data_dir + 'modis_MYD08_subset_%Y%m.nc'))[0]
+        local_data_dir + 'modis_MYD08_subset_' + date_fmt + \
+            '.nc'))[0]
 
     print(found_file)
     data = Dataset(found_file,'r')
@@ -2625,7 +2647,7 @@ def read_MODIS_MYD08_monthrange(start_date,end_date,\
  
     # Grab all the filenames for the matching year
     # --------------------------------------------
-    allfiles = glob(myd08_dir + 'modis*subset*.nc')
+    allfiles = glob(myd08_dir + 'monthly/modis*subset*.nc')
 
     # Grab just the dates
     # -------------------
@@ -2649,7 +2671,7 @@ def read_MODIS_MYD08_monthrange(start_date,end_date,\
 
     # Declare arrays to hold the data
     # -------------------------------
-    cloud_data = read_MODIS_MYD08_single_month(good_dstrs[0], \
+    cloud_data = read_MODIS_MYD08_single(good_dstrs[0], \
         minlat = minlat)
     lat_ranges = cloud_data['lat'][:]
     lon_ranges = cloud_data['lon'][:]
@@ -2683,7 +2705,7 @@ def read_MODIS_MYD08_monthrange(start_date,end_date,\
     # Loop over good files and insert data into dictionary
     for ii, dstr in enumerate(good_dstrs):
         print(dstr)
-        cloud_data = read_MODIS_MYD08_single_month(dstr, minlat = minlat, \
+        cloud_data = read_MODIS_MYD08_single(dstr, minlat = minlat, \
             maxlat = maxlat)
 
         myd08_data['cld_frac_mean'][ii,:,:] = \
@@ -2959,17 +2981,29 @@ def write_MODIS_CLDL3_monthly(cloud_data, minlat = 65.5, \
 #       just finds the corresponding file in the data directory and
 #       writes the desired files and desired lat ranges to a subset
 #       file. 
-def write_MODIS_MYD08_monthly(date_str, minlat = 65.5, \
+# date_str: 'YYYYMM' or 'YYYYMMDD'
+def write_MODIS_MYD08(date_str, minlat = 65.5, \
         save_path = myd08_dir):
-
-    dt_date_str = datetime.strptime(date_str, '%Y%m')
-    data = identify_MODIS_MYD08(date_str)
-    data = Dataset(myd08_dir + data, 'r')
 
     # Create a new netCDF dataset to write to the file
     # ------------------------------------------------
+    if(len(date_str) == 6):
+        out_fmt = '%Y%m'
+        dtype = 'monthly'
+    elif(len(date_str) == 8):
+        out_fmt = '%Y%m%d'
+        dtype = 'daily'
+    else:
+        print("ERROR: Invalid data type. Must be YYYYMM or YYYYMMDD")
+        return -3   
+
+    dt_date_str = datetime.strptime(date_str, out_fmt)
+    data = identify_MODIS_MYD08(date_str)
+    data = Dataset(myd08_dir + dtype + '/' + data, 'r')
+
+ 
     outfile = dt_date_str.strftime(save_path + \
-        'modis_MYD08_subset_%Y%m.nc')
+        dtype + '/modis_MYD08_subset_' + out_fmt + '.nc')
 
     nc = Dataset(outfile,'w',format='NETCDF4')
  
@@ -3006,12 +3040,21 @@ def write_MODIS_MYD08_monthly(date_str, minlat = 65.5, \
     # dimensions.
     # ---------------------------------------------------------  
     CLD_FRAC_MEAN = nc.createVariable('Cloud_Fraction_Mean','f4',('ny','nx'))
-    CLD_FRAC_MEAN.description='Monthly averaged MODIS MYD08 daily mean '+\
+    temp_desc = 'MODIS MYD08 daily mean '+\
         'cloud fraction'
+    if(dtype == 'monthly'):
+        temp_desc = 'Monthly averaged ' + temp_desc
+    CLD_FRAC_MEAN.description=temp_desc
 
-    CLD_FRAC_STD = nc.createVariable('Cloud_Fraction_StDev','f4',('ny','nx'))
-    CLD_FRAC_STD.description='Mean standard deviation of MODIS MYD08 '+\
+    if(dtype == 'monthly'):
+        var_desc = 'Mean standard deviation of MODIS MYD08 '+\
         'cloud fraction daily means'
+    else:
+        var_desc = 'Standard deviation of MODIS MYD08 '+\
+        'cloud fraction'       
+ 
+    CLD_FRAC_STD = nc.createVariable('Cloud_Fraction_StDev','f4',('ny','nx'))
+    CLD_FRAC_STD.description=var_desc
 
     OB_COUNT = nc.createVariable('Ob_Counts','f4',('ny','nx'))
     OB_COUNT.description='Total Observation Counts'
@@ -3031,12 +3074,20 @@ def write_MODIS_MYD08_monthly(date_str, minlat = 65.5, \
     # ---------------------------------------------------------------
     LAT[:]                 = data['YDim'][good_idx]
     LON[:]                 = data['XDim'][:]
-    CLD_FRAC_MEAN[:,:]     = data['Cloud_Fraction_Mean_Mean'][good_idx,:]
-    CLD_FRAC_STD[:,:]      = data['Cloud_Fraction_Mean_Std'][good_idx,:]
-    OB_COUNT[:,:]          = data['Cloud_Fraction_Pixel_Counts'][good_idx,:]
-    DAY_CLD_FRAC_MEAN[:,:] = data['Cloud_Fraction_Day_Mean_Mean'][good_idx,:]
-    DAY_CLD_FRAC_STD[:,:]  = data['Cloud_Fraction_Day_Mean_Std'][good_idx,:]
-    DAY_OB_COUNT[:,:]      = data['Cloud_Fraction_Day_Pixel_Counts'][good_idx,:]
+    if(dtype == 'monthly'):
+        CLD_FRAC_MEAN[:,:]     = data['Cloud_Fraction_Mean_Mean'][good_idx,:]
+        CLD_FRAC_STD[:,:]      = data['Cloud_Fraction_Mean_Std'][good_idx,:]
+        OB_COUNT[:,:]          = data['Cloud_Fraction_Pixel_Counts'][good_idx,:]
+        DAY_CLD_FRAC_MEAN[:,:] = data['Cloud_Fraction_Day_Mean_Mean'][good_idx,:]
+        DAY_CLD_FRAC_STD[:,:]  = data['Cloud_Fraction_Day_Mean_Std'][good_idx,:]
+        DAY_OB_COUNT[:,:]      = data['Cloud_Fraction_Day_Pixel_Counts'][good_idx,:]
+    else:
+        CLD_FRAC_MEAN[:,:]     = data['Cloud_Fraction_Mean'][good_idx,:]
+        CLD_FRAC_STD[:,:]      = data['Cloud_Fraction_Standard_Deviation'][good_idx,:]
+        OB_COUNT[:,:]          = data['Cloud_Fraction_Pixel_Counts'][good_idx,:]
+        DAY_CLD_FRAC_MEAN[:,:] = data['Cloud_Fraction_Day_Mean'][good_idx,:]
+        DAY_CLD_FRAC_STD[:,:]  = data['Cloud_Fraction_Day_Standard_Deviation'][good_idx,:]
+        DAY_OB_COUNT[:,:]      = data['Cloud_Fraction_Day_Pixel_Counts'][good_idx,:]
 
     data.close()
 

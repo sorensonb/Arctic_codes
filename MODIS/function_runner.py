@@ -8,6 +8,38 @@
 from MODISLib import *
 
 
+base_date = datetime(2020,9,22)
+end_date  = datetime(2020,9,30)
+local_date = base_date
+#tester = identify_MODIS_MYD08(date_str, dest_dir = myd08_dir, dtype = 'daily')
+#write_MODIS_MYD08(date_str, minlat = 65.5)
+
+while(local_date <= end_date):
+    
+    date_str = local_date.strftime('%Y%m%d') 
+    print(date_str)
+    
+    write_MODIS_MYD08(date_str, minlat = 65.5)
+    ##write_MODIS_MYD08_monthly(date_str, minlat = 65.5)
+
+    # Remove the old single-day files 
+    cmnd = local_date.strftime('rm ' + myd08_dir + 'daily/MYD08_D3*.A%Y%j.*.hdf')
+    #cmnd = local_date.strftime('rm ' + myd08_dir + 'MYD08_M3*.A%Y%j.*.hdf')
+    print(cmnd)
+    os.system(cmnd)
+
+    # Increment the month and continue
+    local_date = local_date + timedelta(days = 1)
+
+    if(local_date.month == 10):
+        local_date = local_date + relativedelta(months = 6)
+
+
+sys.exit()
+
+
+
+
 
 date_str = '202107222110'
 
@@ -226,30 +258,6 @@ while(local_date <= end_date):
     local_date = local_date + relativedelta(months = 1)
 
 sys.exit()
-
-
-
-base_date = datetime(2002,7,1)
-end_date  = datetime(2005,3,1)
-local_date = base_date
-
-while(local_date <= end_date):
-    
-    date_str = local_date.strftime('%Y%m') 
-    print(date_str)
-    
-    write_MODIS_MYD08_monthly(date_str, minlat = 65.5)
-
-    # Remove the old single-day files 
-    cmnd = local_date.strftime('rm ' + myd08_dir + 'MYD08_M3*.A%Y%j.*.hdf')
-    print(cmnd)
-    os.system(cmnd)
-
-    # Increment the month and continue
-    local_date = local_date + relativedelta(months = 1)
-
-sys.exit()
-
 
 
 

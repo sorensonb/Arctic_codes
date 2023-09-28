@@ -11,9 +11,146 @@ import sys
 
 sys.path.append(home_dir + '/Research/OMI')
 from OMILib import *
+
+#begin_date = datetime(2017,4,1)
+#end_date   = datetime(2020,9,30)
+##begin_date = datetime(2012,4,1)
+##end_date   = datetime(2016,9,30)
+##begin_date = datetime(2007,7,12)
+##end_date   = datetime(2011,9,30)
+#
+#local_date = begin_date
+#while(local_date <= end_date):
+#    print(local_date)
+#
+#    download_NSIDC_daily(local_date.strftime('%Y%m%d'))
+#
+#    # Increment the month and continue
+#    local_date = local_date + timedelta(days = 1)
+#
+#    if(local_date.month == 10):
+#        local_date = local_date + relativedelta(months = 6)
+#
+#sys.exit()
+#
+
+
 # ----------------------------------------------------
 # Set up the overall figure
 # ----------------------------------------------------
+
+begin_date = '20050401'
+end_date   = '20200930'
+minlat = 65.
+maxlat = 90.
+
+dt_begin_str = datetime.strptime(begin_date, '%Y%m%d')
+dt_end_str   = datetime.strptime(end_date, '%Y%m%d')
+
+shawn_file = home_dir + '/Research/OMI/omi_shawn_daily_2005_2020.hdf5'
+shawn_data = h5py.File(shawn_file)
+shawn_dates = np.array([str(tdate) for tdate in shawn_data['day_values']])
+
+base_path = home_dir + '/data/NSIDC/daily/'
+total_list = np.array(sorted(glob(base_path+'*.nc')))
+
+just_dates = np.array([datetime.strptime(tname.strip().split('_')[-2], \
+    '%Y%m%d') for tname in total_list])
+dates = np.array([tdate.strftime('%Y%m%d') for tdate in just_dates])
+    
+just_months = np.array([tdate.month for tdate in just_dates])
+
+keep_idxs = np.where( (just_dates >= dt_begin_str) & \
+    (just_dates <= dt_end_str) & (just_months >= 4) & \
+    (just_months <= 9))
+
+# Now, screen out any times that are not in the OMI data
+# ------------------------------------------------------
+local_nsidc_dates = dates[keep_idxs]
+nsidc_in_omi = np.array([ttime in shawn_dates for ttime in local_nsidc_dates])
+keep_idxs = np.where(nsidc_in_omi == True)
+
+final_files = total_list[keep_idxs]
+
+lat_ranges = np.arange(minlat, maxlat)
+lon_ranges = np.arange(-179.5, 180.5)
+time_dim = final_files.shape[0]
+
+    #NSIDC_data['grid_ice_conc']       = final_grid_ice_conc
+    #NSIDC_data['grid_pole_hole']      = final_pole_hole
+    #NSIDC_data['grid_unused']         = final_unused
+    #NSIDC_data['grid_coastline']      = final_coastline
+    #NSIDC_data['grid_land']           = final_land
+    #NSIDC_data['grid_pole_hole_cc']   = grid_pole_hole_cc.squeeze()
+    #NSIDC_data['grid_unused_cc']      = grid_unused_cc.squeeze()
+    #NSIDC_data['grid_coastline_cc']   = grid_coastline_cc.squeeze()
+    #NSIDC_data['grid_land_cc']        = grid_land_cc.squeeze()
+
+NSIDC_data = {}
+NSIDC_data['begin_dt_date'] = begin_date
+NSIDC_data['end_dt_date']   = end_date
+NSIDC_data['dates']         = dates
+NSIDC_data['grid_ice_conc'] = np.full((time_dim, lat_ranges.shape[0], lon_ranges.shape[0]), np.nan)
+#NSIDC_data['grid_pole_hole'] = np.full((time_dim, lat_ranges.shape[0], lon_ranges.shape[0]), np.nan)
+#NSIDC_data['grid_unused'] = np.full((time_dim, lat_ranges.shape[0], lon_ranges.shape[0]), np.nan)
+#NSIDC_data['grid_coastline'] = np.full((time_dim, lat_ranges.shape[0], lon_ranges.shape[0]), np.nan)
+#NSIDC_data['grid_land'] = np.full((time_dim, lat_ranges.shape[0], lon_ranges.shape[0]), np.nan)
+#NSIDC_data['grid_pole_hole_cc'] = np.full((time_dim, lat_ranges.shape[0], lon_ranges.shape[0]), np.nan)
+#NSIDC_data['grid_unused_cc'] = np.full((time_dim, lat_ranges.shape[0], lon_ranges.shape[0]), np.nan)
+#NSIDC_data['grid_coastline_cc'] = np.full((time_dim, lat_ranges.shape[0], lon_ranges.shape[0]), np.nan)
+#NSIDC_data['grid_land_cc'] = np.full((time_dim, lat_ranges.shape[0], lon_ranges.shape[0]), np.nan)
+###NSIDC_data['area']          = np.full((448, 304), np.nan)
+
+for ii, work_date in enumerate(just_dates[keep_idxs]):
+    #work_str = ffile[0].strip().split('/')[-1].split('_')[-2]
+    work_str = work_date.strftime('%Y%m%d')
+ 
+    NSIDC_local = readNSIDC_daily(work_str, maxlat = maxlat)
+
+    NSIDC_local = grid_data_conc(NSIDC_local, minlat = minlat, maxlat = maxlat)
+
+    NSIDC_data['grid_ice_conc'][ii,:,:] = NSIDC_local['grid_ice_conc']
+
+#NSIDC_data['lat'] = NSIDC_local['lat'] 
+#NSIDC_data['lon'] = NSIDC_local['lon'] 
+#NSIDC_data['area'] = NSIDC_local['area'] 
+
+##!#NSIDC_data = grid_data_conc(NSIDC_data, minlat = minlat, maxlat = maxlat)
+##!#
+##!## Process the original 25x25 data
+##!## ------------------------------- 
+##!#NSIDC_data['pole_hole'] = np.ma.masked_where((NSIDC_data['data'] != 251), \
+##!#    NSIDC_data['data'])
+##!#NSIDC_data['unused'] = np.ma.masked_where((NSIDC_data['data'] != 252), \
+##!#    NSIDC_data['data'])
+##!#NSIDC_data['coastline'] = np.ma.masked_where((NSIDC_data['data'] != 253), \
+##!#    NSIDC_data['data'])
+##!#NSIDC_data['land'] = np.ma.masked_where((NSIDC_data['data'] != 254), \
+##!#    NSIDC_data['data'])
+##!#NSIDC_data['data'] = np.ma.masked_where((NSIDC_data['data'] < 0) | \
+##!#    (NSIDC_data['data'] > 100), NSIDC_data['data'])
+##!#
+##!## Process the 1x1 gridded data
+##!## ---------------------------- 
+##!###!#NSIDC_data['grid_pole_hole'] = np.ma.masked_where(\
+##!###!#    (NSIDC_data['grid_ice_conc'] != 251), NSIDC_data['grid_ice_conc'])
+##!###!#NSIDC_data['grid_unused'] = np.ma.masked_where(\
+##!###!#    (NSIDC_data['grid_ice_conc'] != 252), NSIDC_data['grid_ice_conc'])
+##!###!#NSIDC_data['grid_coastline'] = np.ma.masked_where(\
+##!###!#    (NSIDC_data['grid_ice_conc'] != 253), NSIDC_data['grid_ice_conc'])
+##!###!#NSIDC_data['grid_land'] = np.ma.masked_where(\
+##!###!#    (NSIDC_data['grid_ice_conc'] != 254), NSIDC_data['grid_ice_conc'])
+##!#NSIDC_data['grid_ice_conc'] = np.ma.masked_where((NSIDC_data['grid_ice_conc'] < 0) | \
+##!#    (NSIDC_data['grid_ice_conc'] > 100), NSIDC_data['grid_ice_conc'])
+
+NSIDC_data['minlat'] = minlat
+NSIDC_data['maxlat'] = maxlat
+
+sys.exit()
+
+date_str = '20080426'
+download_NSIDC_daily(date_str, save_dir = '/home/bsorenson/data/NSIDC/')
+sys.exit()
 
 ##!#NSIDC_data = readNSIDC_daily('20180705')
 ##!#minlat = 65.
