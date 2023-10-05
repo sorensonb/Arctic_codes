@@ -612,93 +612,93 @@ cld_max = None
 
 #trend_type = 'theil-sen'
 trend_type = 'linregress'
-lin_raw_dict_v6 = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v6, \
-        ai_min = ai_min, ai_max = ai_max, \
-        trend_type = trend_type, \
-        )
-lin_smth_dict_v6 = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v6, \
-        ai_min = ai_min, ai_max = ai_max, \
-        trend_type = trend_type, \
-        smoother = 'smooth', sizer = 1)
+##!#lin_raw_dict_v6 = calc_raw_grid_slopes(\
+##!#        combined_data, comp_grid_data_v6, \
+##!#        ai_min = ai_min, ai_max = ai_max, \
+##!#        trend_type = trend_type, \
+##!#        )
+##!#lin_smth_dict_v6 = calc_raw_grid_slopes(\
+##!#        combined_data, comp_grid_data_v6, \
+##!#        ai_min = ai_min, ai_max = ai_max, \
+##!#        trend_type = trend_type, \
+##!#        smoother = 'smooth', sizer = 1)
 lin_smth2_dict_v6 = calc_raw_grid_slopes(\
         combined_data, comp_grid_data_v6, \
         ai_min = ai_min, ai_max = ai_max, \
         trend_type = trend_type, \
         smoother = 'smoother', sizer = 1)
-lin_raw_dict_v11 = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v11, \
-        ai_min = ai_min, ai_max = ai_max, \
-        trend_type = trend_type)
-lin_smth_dict_v11 = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v11, \
-        ai_min = ai_min, ai_max = ai_max, \
-        trend_type = trend_type, \
-        smoother = 'smooth', sizer = 1)
-lin_smth2_dict_v11 = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v11, \
-        ai_min = ai_min, ai_max = ai_max, \
-        trend_type = trend_type, \
-        smoother = 'smoother', sizer = 1)
-lin_raw_dict_v14 = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v14, \
-        ai_min = ai_min, ai_max = ai_max, \
-        trend_type = trend_type)
-lin_smth_dict_v14 = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v14, \
-        ai_min = ai_min, ai_max = ai_max, \
-        trend_type = trend_type, \
-        smoother = 'smooth', sizer = 1)
-lin_smth2_dict_v14 = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v14, \
-        ai_min = ai_min, ai_max = ai_max, \
-        trend_type = trend_type, \
-        smoother = 'smoother', sizer = 1)
-
-trend_type = 'theil-sen'
-thl_raw_dict_v6 = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v6, \
-        ai_min = ai_min, ai_max = ai_max, \
-        trend_type = trend_type)
-thl_smth_dict_v6 = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v6, \
-        ai_min = ai_min, ai_max = ai_max, \
-        trend_type = trend_type, \
-        smoother = 'smooth', sizer = 1)
-thl_smth2_dict_v6 = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v6, \
-        ai_min = ai_min, ai_max = ai_max, \
-        trend_type = trend_type, \
-        smoother = 'smoother', sizer = 1)
-thl_raw_dict_v11 = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v11, \
-        ai_min = ai_min, ai_max = ai_max, \
-        trend_type = trend_type)
-thl_smth_dict_v11 = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v11, \
-        ai_min = ai_min, ai_max = ai_max, \
-        trend_type = trend_type, \
-        smoother = 'smooth', sizer = 1)
-thl_smth2_dict_v11 = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v11, \
-        ai_min = ai_min, ai_max = ai_max, \
-        trend_type = trend_type, \
-        smoother = 'smoother', sizer = 1)
-thl_raw_dict_v14 = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v14, \
-        ai_min = ai_min, ai_max = ai_max, \
-        trend_type = trend_type)
-thl_smth_dict_v14 = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v14, \
-        ai_min = ai_min, ai_max = ai_max, \
-        trend_type = trend_type, \
-        smoother = 'smooth', sizer = 1)
-thl_smth2_dict_v14 = calc_raw_grid_slopes(\
-        combined_data, comp_grid_data_v14, \
-        ai_min = ai_min, ai_max = ai_max, \
-        trend_type = trend_type, \
-        smoother = 'smoother', sizer = 1)
+##!#lin_raw_dict_v11 = calc_raw_grid_slopes(\
+##!#        combined_data, comp_grid_data_v11, \
+##!#        ai_min = ai_min, ai_max = ai_max, \
+##!#        trend_type = trend_type)
+##!#lin_smth_dict_v11 = calc_raw_grid_slopes(\
+##!#        combined_data, comp_grid_data_v11, \
+##!#        ai_min = ai_min, ai_max = ai_max, \
+##!#        trend_type = trend_type, \
+##!#        smoother = 'smooth', sizer = 1)
+##!#lin_smth2_dict_v11 = calc_raw_grid_slopes(\
+##!#        combined_data, comp_grid_data_v11, \
+##!#        ai_min = ai_min, ai_max = ai_max, \
+##!#        trend_type = trend_type, \
+##!#        smoother = 'smoother', sizer = 1)
+##!#lin_raw_dict_v14 = calc_raw_grid_slopes(\
+##!#        combined_data, comp_grid_data_v14, \
+##!#        ai_min = ai_min, ai_max = ai_max, \
+##!#        trend_type = trend_type)
+##!#lin_smth_dict_v14 = calc_raw_grid_slopes(\
+##!#        combined_data, comp_grid_data_v14, \
+##!#        ai_min = ai_min, ai_max = ai_max, \
+##!#        trend_type = trend_type, \
+##!#        smoother = 'smooth', sizer = 1)
+##!#lin_smth2_dict_v14 = calc_raw_grid_slopes(\
+##!#        combined_data, comp_grid_data_v14, \
+##!#        ai_min = ai_min, ai_max = ai_max, \
+##!#        trend_type = trend_type, \
+##!#        smoother = 'smoother', sizer = 1)
+##!#
+##!#trend_type = 'theil-sen'
+##!#thl_raw_dict_v6 = calc_raw_grid_slopes(\
+##!#        combined_data, comp_grid_data_v6, \
+##!#        ai_min = ai_min, ai_max = ai_max, \
+##!#        trend_type = trend_type)
+##!#thl_smth_dict_v6 = calc_raw_grid_slopes(\
+##!#        combined_data, comp_grid_data_v6, \
+##!#        ai_min = ai_min, ai_max = ai_max, \
+##!#        trend_type = trend_type, \
+##!#        smoother = 'smooth', sizer = 1)
+##!#thl_smth2_dict_v6 = calc_raw_grid_slopes(\
+##!#        combined_data, comp_grid_data_v6, \
+##!#        ai_min = ai_min, ai_max = ai_max, \
+##!#        trend_type = trend_type, \
+##!#        smoother = 'smoother', sizer = 1)
+##!#thl_raw_dict_v11 = calc_raw_grid_slopes(\
+##!#        combined_data, comp_grid_data_v11, \
+##!#        ai_min = ai_min, ai_max = ai_max, \
+##!#        trend_type = trend_type)
+##!#thl_smth_dict_v11 = calc_raw_grid_slopes(\
+##!#        combined_data, comp_grid_data_v11, \
+##!#        ai_min = ai_min, ai_max = ai_max, \
+##!#        trend_type = trend_type, \
+##!#        smoother = 'smooth', sizer = 1)
+##!#thl_smth2_dict_v11 = calc_raw_grid_slopes(\
+##!#        combined_data, comp_grid_data_v11, \
+##!#        ai_min = ai_min, ai_max = ai_max, \
+##!#        trend_type = trend_type, \
+##!#        smoother = 'smoother', sizer = 1)
+##!#thl_raw_dict_v14 = calc_raw_grid_slopes(\
+##!#        combined_data, comp_grid_data_v14, \
+##!#        ai_min = ai_min, ai_max = ai_max, \
+##!#        trend_type = trend_type)
+##!#thl_smth_dict_v14 = calc_raw_grid_slopes(\
+##!#        combined_data, comp_grid_data_v14, \
+##!#        ai_min = ai_min, ai_max = ai_max, \
+##!#        trend_type = trend_type, \
+##!#        smoother = 'smooth', sizer = 1)
+##!#thl_smth2_dict_v14 = calc_raw_grid_slopes(\
+##!#        combined_data, comp_grid_data_v14, \
+##!#        ai_min = ai_min, ai_max = ai_max, \
+##!#        trend_type = trend_type, \
+##!#        smoother = 'smoother', sizer = 1)
 
 
 #return_dict = \
@@ -789,11 +789,15 @@ MYD08_data = read_MODIS_MYD08_monthrange(begin_date,end_date,\
 ai_thresh = 0.05
 #ai_thresh = -0.15
 
-plot_test_forcing_v2(OMI_daily_VSJ4, NSIDC_data, MYD08_data, lin_smth2_dict_v6, \
-    81, minlat = 70., maxlat = 87., ai_thresh = ai_thresh, \
-    cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw', \
-    save = False)
+#plot_test_forcing_v2(OMI_daily_VSJ4, NSIDC_data, MYD08_data, lin_smth2_dict_v6, \
+#    81, minlat = 70., maxlat = 87., ai_thresh = ai_thresh, \
+#    cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw', \
+#    save = False)
 
+plot_test_forcing_v3(daily_VSJ4, OMI_daily_VSJ4, '20080422', \
+    coloc_dict, minlat = 65., maxlat = 87., ai_thresh = 0.7, \
+    cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw', \
+    save = False, filter_bad_vals = False)
 
 sys.exit()
 #plot_type_forcing_all_months(OMI_data, NSIDC_data, 'average', \

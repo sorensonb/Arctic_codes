@@ -2779,7 +2779,75 @@ def calculate_type_forcing_v3_monthly(OMI_daily_data, OMI_monthly_data, \
 
     # Set up arrays to hold the monthly-averaged forcing calculations
     # ---------------------------------------------------------------
-    
+    xdim = OMI_daily_data['grid_AI'].shape[1]
+    ydim = OMI_daily_data['grid_AI'].shape[2]
+    daily_force_vals = np.full( (31, xdim, ydim), np.nan)
+
+    month_force_vals = np.full(\
+        (OMI_monthly_data['DATES'][::6].shape[0], xdim, ydim), \
+        np.nan)
+
+    begin_date_str = datetime.strptime(\
+        OMI_monthly_data['DATES'][month_idx], '%Y%m')
+    end_date_str = datetime.strptime(\
+        OMI_monthly_data['DATES'][month_idx::6][-1], '%Y%m') + \
+        relativedelta(months = 1) - timedelta(days = 1)
+
+    local_date_str = begin_date_str
+
+    day_count = 0
+    month_count = 0
+    while(local_date_str <= end_date_str):
+
+        date_str = local_date_str.strftime('%Y%m%d')
+
+        print(date_str, day_count, month_count)
+
+        # Calculate the forcing value for this current day
+        # ------------------------------------------------
+        ##!#estimate_forcing = \
+        ##!#    calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, \
+        ##!#        coloc_dict, date_str, minlat = minlat, maxlat = maxlat, \
+        ##!#        ai_thresh = ai_thresh, cld_idx = cld_idx, maxerr = maxerr,\
+        ##!#        min_cloud = min_cloud, data_type = data_type,\
+        ##!#        filter_bad_vals = filter_bad_vals, \
+        ##!#        return_modis_nsidc = False)
+
+        ##!## Insert the values into the daily holding array
+        ##!## ----------------------------------------------
+        ##!#daily_force_vals[day_count,:,:] = estimate_forcing[:,:] 
+
+        # Increment working date
+        # ----------------------
+        new_work_date = local_date_str + timedelta(days = 1)
+
+        # If the new working date has a different month than
+        # the previous working date, then average the daily values
+        # and move the working date to the next desired month
+        # --------------------------------------------------------
+        if(new_work_date.month != local_date_str.month):
+            ##!#month_force_vals[month_count,:,:] = np.nanmean(\
+            ##!#    daily_force_vals[:,:,:], axis = 0)
+            day_count = 0
+            month_count += 1            
+
+            new_work_date = new_work_date + relativedelta(months = 11)
+            #new_work_date = datetime.strptime(
+            #    OMI_monthly_data['DATES'][month_idx::6][month_count], \
+            #    '%Y%m')
+
+            daily_force_vals[:,:,:] = np.nan 
+ 
+        # If the new working date has the same month as the 
+        # previous working date, just increment the day counter
+        # and the date string and continue
+        # -----------------------------------------------------
+        else:
+            day_count += 1
+
+        local_date_str = new_work_date
+
+    return month_force_vals
 
 def calc_forcing_grid_trend(forcing_data, trend_type):
 
