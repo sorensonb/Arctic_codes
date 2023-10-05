@@ -22,7 +22,10 @@ program omi_shawn_climo
 
   use hdf5
   use daily_vars, only: grid_AI, count_AI, day_values, lat_values, &
-        lon_values, clear_daily_arrays
+        lon_values, clear_daily_arrays, allocate_daily_arrays, &
+        count_sfland, count_seaice, &
+        count_permice, count_drysnow, count_ocean, count_mixpixel, &
+        count_other   
 
   implicit none
 
@@ -102,15 +105,9 @@ program omi_shawn_climo
     lon_values(ii) = -180. + (ii-1) + 0.5
   enddo
 
-  allocate(day_values(i_num_days))
-  allocate(grid_AI(360, i_size, i_num_days))
-  allocate(count_AI(360, i_size, i_num_days))
-
-  ! Initialize grid arrays and set to 0 initially
-  ! ----------------------------------------------
-  day_values(:)   = 0
-  grid_AI(:,:,:)  = 0.
-  count_AI(:,:,:) = 0 
+  ! Call routine to allocate the grid data arrays
+  ! ---------------------------------------------
+  call allocate_daily_arrays(360, i_size, i_num_days)
 
   ! open debug file
   ! ---------------

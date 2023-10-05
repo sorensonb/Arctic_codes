@@ -2571,7 +2571,7 @@ def calculate_type_forcing_v2(OMI_data, NSIDC_data, MYD08_data, coloc_dict, \
 def calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, coloc_dict, \
         date_str, minlat = 70., maxlat = 87., ai_thresh = -0.15, \
         cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw',\
-        filter_bad_vals = True):
+        filter_bad_vals = True, return_modis_nsidc = True, debug = False):
     
     # Necessary pieces:
     # 2. Monthly AI values
@@ -2597,7 +2597,9 @@ def calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, coloc_dict, \
 
     MYD08_data = read_MODIS_MYD08_single(date_str, minlat = minlat, \
         maxlat = maxlat)
-    
+   
+    print("HERE:", np.max(MYD08_data['cld_frac_mean']))
+ 
     # Load in the single-day NSIDC ice concentration
     NSIDC_data =  readNSIDC_daily(date_str, maxlat = maxlat)
     NSIDC_data = grid_data_conc(NSIDC_data, minlat = minlat, maxlat = maxlat)
@@ -2619,6 +2621,14 @@ def calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, coloc_dict, \
         minlat, maxlat, 'cloud', cld_idx = cld_idx, maxerr = maxerr, \
         min_cloud = min_cloud, data_type = data_type)
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    # NOTE: the 'ii' latitude subscript on the cloud and clear forcing
+    # efficiency values in the loops below is correct: in the 
+    # 'calculate_interp_forcings' function, the forcing efficiency 
+    # values are calculated as functions of 1-degree latitude bins,
+    # which the OMI daily data here are gridded into as well.
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     land_mask   = NSIDC_data['grid_land'][:,:].mask
     coast_mask  = NSIDC_data['grid_coastline'][:,:].mask
     pole_mask   = NSIDC_data['grid_pole_hole'][:,:].mask
@@ -2627,9 +2637,10 @@ def calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, coloc_dict, \
 
     estimate_forcings = np.full(local_OMI_daily.shape, np.nan)
 
-    print("OMI SHAPE = ", local_OMI_daily.shape)
-    print("MOD SHAPE = ", MYD08_data['cld_frac_mean'].shape)
-    print("NSI SHAPE = ", NSIDC_data['grid_ice_conc'].shape)
+    if(debug):
+        print("OMI SHAPE = ", local_OMI_daily.shape)
+        print("MOD SHAPE = ", MYD08_data['day_cld_frac_mean'].shape)
+        print("NSI SHAPE = ", NSIDC_data['grid_ice_conc'].shape)
 
     # 2.  Loop over each individual month
     # -----------------------------------
@@ -2649,41 +2660,91 @@ def calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, coloc_dict, \
 
                 # 6.  Extract the MODIS MYD08 value and weigh the "clear" and "cloud"
                 #     forcing values according to that cloud fraction.
-                cld_frac = MYD08_data['cld_frac_mean'][ii,jj]
+                cld_frac = MYD08_data['day_cld_frac_mean'][ii,jj]
 
                 # 5.  Extract the NSIDC surface type to figure out which forcing value
                 #     to use.
-                if( not ((pole_mask[ii,jj]) | (unused_mask[ii,jj]))):
-                    # Bad grid points. NO forcing
-                    calc_forcing =  0.
+                if( (pole_mask[ii,jj] == True) & (unused_mask[ii,jj] == True) & \
+                    (land_mask[ii,jj] == True) & (coast_mask[ii,jj] == True) & \
+                    (ice_mask[ii,jj] == True)):
+                    if(debug):
+                        print(pole_mask[ii,jj], unused_mask[ii,jj], \
+                            land_mask[ii,jj], coast_mask[ii,jj], \
+                            ice_mask[ii,jj], 'ALL MASKED')
+                    calc_forcing = 0.
+                else:
+                    if((pole_mask[ii,jj] == False) | \
+                       (unused_mask[ii,jj] == False)):
+                        # Bad grid points. NO forcing
+                        calc_forcing =  0.
+                        if(debug):
+                            print(pole_mask[ii,jj], unused_mask[ii,jj], \
+                                land_mask[ii,jj], coast_mask[ii,jj], \
+                                ice_mask[ii,jj], 'POLE/UNUSED')
 
-                elif( not ((land_mask[ii,jj]) | (coast_mask[ii,jj]))):
-                    # Use land forcing value
-                    calc_forcing = cld_frac * cloud_dict['land_forcing'][ii] + \
-                                   (1 - cld_frac) * clear_dict['land_forcing'][ii]
+                    elif((land_mask[ii,jj] == False) | \
+                         (coast_mask[ii,jj] == False)):
+                        # Use land forcing value
+                        if(debug):
+                            print(pole_mask[ii,jj], unused_mask[ii,jj], \
+                                land_mask[ii,jj], coast_mask[ii,jj], \
+                                ice_mask[ii,jj], 'LAND/COAST')
 
-                elif( not ice_mask[ii,jj]):
-                    # Use either ice, mix, or ocean forcing value
+                        # 2023/10/05 - added check to see if the smoke
+                        #   is above permanent ice (or above dry snow).
+                        #   If it is, use the ice forcing values. 
+                        #   Although, is it fair to do this since dry
+                        #   snow was removed from the initial forcing
+                        #   efficiency calculations...
+                        #
+                        # Check if the current grid box is permanent ice. 
+                        # In that case, use the ice forcing eff. values
+                        # -----------------------------------------------
+                        if(OMI_daily_data['grid_GPQF'][match_idx,ii,jj] == 3):
+                            calc_forcing = cld_frac * \
+                                cloud_dict['ice_forcing'][ii] + \
+                                (1 - cld_frac) * clear_dict['ice_forcing'][ii]
+                        else:
+                            calc_forcing = cld_frac * \
+                                cloud_dict['land_forcing'][ii] + \
+                                (1 - cld_frac) * clear_dict['land_forcing'][ii]
+                        estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai 
 
-                    if( (NSIDC_data['grid_ice_conc'][ii,jj] < 20) ):
-                        # Use ocean forcing
-                        calc_forcing = cld_frac * cloud_dict['ocean_forcing'][ii] + \
-                                       (1 - cld_frac) * clear_dict['ocean_forcing'][ii]
-                        
+                    elif(ice_mask[ii,jj] == False):
+                        # Use either ice, mix, or ocean forcing value
+                        if(debug):
+                            print(pole_mask[ii,jj], unused_mask[ii,jj], \
+                                land_mask[ii,jj], coast_mask[ii,jj], \
+                                ice_mask[ii,jj], 'ICE/MIX/OCEAN')
 
-                    elif( (NSIDC_data['grid_ice_conc'][ii,jj] >= 20)  & \
-                          (NSIDC_data['grid_ice_conc'][ii,jj] < 80)):
-                        # Use mix forcing
-                        calc_forcing = cld_frac * cloud_dict['mix_forcing'][ii] + \
-                                       (1 - cld_frac) * clear_dict['mix_forcing'][ii]
+                        if( (NSIDC_data['grid_ice_conc'][ii,jj] < 20) ):
+                            # Use ocean forcing
+                            calc_forcing = cld_frac * cloud_dict['ocean_forcing'][ii] + \
+                                           (1 - cld_frac) * clear_dict['ocean_forcing'][ii]
+                            estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai 
+                            
 
-                    elif( (NSIDC_data['grid_ice_conc'][ii,jj] > 80) ):
-                        # Use land forcing
-                        calc_forcing = cld_frac * cloud_dict['ice_forcing'][ii] + \
-                                       (1 - cld_frac) * clear_dict['ice_forcing'][ii]
+                        elif( (NSIDC_data['grid_ice_conc'][ii,jj] >= 20)  & \
+                              (NSIDC_data['grid_ice_conc'][ii,jj] < 80)):
+                            # Use mix forcing
+                            calc_forcing = cld_frac * cloud_dict['mix_forcing'][ii] + \
+                                           (1 - cld_frac) * clear_dict['mix_forcing'][ii]
+                            estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai 
+
+                        elif( (NSIDC_data['grid_ice_conc'][ii,jj] > 80) ):
+                            # Use land forcing
+                            calc_forcing = cld_frac * cloud_dict['ice_forcing'][ii] + \
+                                           (1 - cld_frac) * clear_dict['ice_forcing'][ii]
+                            estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai 
+
+                        else:
+                            if(debug):
+                                print("FAILED ICE")
+                            calc_forcing = 0.
 
                     else:
-                        # SHOULD NOT GET HERE
+                        if(debug):
+                            print("FAILED EVERYTHING")
                         calc_forcing = 0.
  
                 # 8.  Multiply the ΔAI by the associated forcing value.
@@ -2691,8 +2752,8 @@ def calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, coloc_dict, \
                 #       which is "clear-sky - aerosol-sky". Assuming that
                 #       "clear-sky" forcing would give 0 W/m2 of aerosol
                 #       forcing, calculate as 0 - calc_forcing * delta_ai
-                estimate_forcings[ii,jj] = 0 - \
-                    calc_forcing * delta_ai
+                #estimate_forcings[ii,jj] = 0 - \
+                #    calc_forcing * delta_ai
 
     estimate_forcings = np.ma.masked_invalid(estimate_forcings) 
 
@@ -2703,8 +2764,22 @@ def calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, coloc_dict, \
         estimate_forcings = np.ma.masked_where(estimate_forcings > \
             (mean_val + 8.0 * std_val), estimate_forcings)
 
-    return estimate_forcings
+    if(return_modis_nsidc):
+        return estimate_forcings, MYD08_data, NSIDC_data
+    else:
+        return estimate_forcings
 
+# This verison is set up to use daily data, but still needs the monthly
+# OMI data to determine the clear-sky climatology.
+# ---------------------------------------------------------------------
+def calculate_type_forcing_v3_monthly(OMI_daily_data, OMI_monthly_data, \
+        coloc_dict, month_idx, minlat = 70., maxlat = 87., ai_thresh = -0.15, \
+        cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw',\
+        filter_bad_vals = True, return_modis_nsidc = True, debug = False):
+
+    # Set up arrays to hold the monthly-averaged forcing calculations
+    # ---------------------------------------------------------------
+    
 
 def calc_forcing_grid_trend(forcing_data, trend_type):
 
@@ -2843,23 +2918,26 @@ def plot_test_forcing_v2(OMI_data, NSIDC_data, MYD08_data, coloc_dict, \
 def plot_test_forcing_v3(OMI_daily_data, OMI_month_data, date_str, \
         coloc_dict, minlat = 70., maxlat = 87., ai_thresh = -0.15, \
         cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw', \
-        save = False):
+        save = False, filter_bad_vals = False):
 
-    estimate_forcing = \
+    estimate_forcing, MYD08_data, NSIDC_data = \
         calculate_type_forcing_v3(OMI_daily_data, OMI_month_data, \
             coloc_dict, date_str, minlat = minlat, maxlat = maxlat, \
             ai_thresh = ai_thresh, cld_idx = cld_idx, maxerr = maxerr,\
             min_cloud = min_cloud, data_type = data_type,\
-            filter_bad_vals = True)
+            filter_bad_vals = filter_bad_vals, return_modis_nsidc = True)
 
     file_strs = np.array([str(tval) for tval in OMI_daily_data['day_values']])
     match_idx = np.where(date_str == file_strs)[0][0]
     
     plt.close('all')
-    fig = plt.figure(figsize = (9, 3))
-    ax1 = fig.add_subplot(1,3,1, projection = mapcrs)  # Map of original AI
-    ax2 = fig.add_subplot(1,3,2, projection = mapcrs)  # Map of forcing values
-    ax3 = fig.add_subplot(1,3,3)  # histogram
+    fig = plt.figure(figsize = (9, 5))
+    ax1 = fig.add_subplot(2,3,1, projection = mapcrs)  # Map of original AI
+    ax4 = fig.add_subplot(2,3,2, projection = mapcrs)  # Map of cloud fraction
+    ax5 = fig.add_subplot(2,3,3, projection = mapcrs)  # Map of ice concentration
+    ax2 = fig.add_subplot(2,3,4, projection = mapcrs)  # Map of forcing values
+    ax6 = fig.add_subplot(2,3,5, projection = mapcrs)  # Map of GPQF values
+    ax3 = fig.add_subplot(2,3,6)  # histogram
 
     mesh = ax1.pcolormesh(OMI_daily_data['lon_values'], \
         OMI_daily_data['lat_values'], \
@@ -2870,14 +2948,47 @@ def plot_test_forcing_v3(OMI_daily_data, OMI_month_data, date_str, \
     ax1.set_boundary(circle, transform=ax1.transAxes)
     ax1.coastlines()
 
+    mesh = ax4.pcolormesh(MYD08_data['lon'], \
+        MYD08_data['lat'], MYD08_data['cld_frac_mean'][:,:], shading = 'auto',\
+        transform = datacrs, \
+        cmap = 'viridis')
+    cbar = fig.colorbar(mesh, ax = ax4, label = 'Daily Cloud Fraction')
+    ax4.set_extent([-180,180,minlat,90], datacrs)
+    ax4.set_boundary(circle, transform=ax4.transAxes)
+    ax4.coastlines()
+
+    mesh = ax5.pcolormesh(NSIDC_data['grid_lon'], \
+        NSIDC_data['grid_lat'], NSIDC_data['grid_ice_conc'][:,:], shading = 'auto',\
+        transform = datacrs, \
+        cmap = 'ocean', vmin = 0, vmax = 100)
+    cbar = fig.colorbar(mesh, ax = ax5, label = 'Sea Ice Conc')
+    ax5.set_extent([-180,180,minlat,90], datacrs)
+    ax5.set_boundary(circle, transform=ax5.transAxes)
+    ax5.coastlines()
+
+    min_force = np.nanmin(estimate_forcing[:,:])
+    max_force = np.nanmax(estimate_forcing[:,:])
+    if(abs(max_force) > abs(min_force)):
+        lims = [-abs(max_force), abs(max_force)]
+    else:
+        lims = [-abs(min_force), abs(min_force)]
     mesh = ax2.pcolormesh(OMI_daily_data['lon_values'], \
         OMI_daily_data['lat_values'], estimate_forcing[:,:], shading = 'auto',\
         transform = datacrs, \
-        cmap = 'viridis')
+        cmap = 'bwr', vmin = lims[0], vmax = lims[1])
     cbar = fig.colorbar(mesh, ax = ax2, label = 'Estimated Forcing [W/m2]')
     ax2.set_extent([-180,180,minlat,90], datacrs)
     ax2.set_boundary(circle, transform=ax2.transAxes)
     ax2.coastlines()
+
+    mesh = ax6.pcolormesh(OMI_daily_data['lon_values'], \
+        OMI_daily_data['lat_values'], \
+        OMI_daily_data['grid_GPQF'][match_idx,:,:], shading = 'auto', \
+        transform = datacrs, cmap = 'jet', vmin = None, vmax = None)
+    cbar = fig.colorbar(mesh, ax = ax6, label =  'Daily GPQF')
+    ax6.set_extent([-180,180,minlat,90], datacrs)
+    ax6.set_boundary(circle, transform=ax6.transAxes)
+    ax6.coastlines()
 
     ax3.hist(np.ma.masked_where(estimate_forcing[:,:] == 0, \
         estimate_forcing[:,:]).compressed(), bins = 'auto')

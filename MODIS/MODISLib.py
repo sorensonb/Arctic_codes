@@ -2479,22 +2479,18 @@ def read_MODIS_MYD08_single(date_str, minlat = 65.5, \
     out_dict = {}
     out_dict['date_str']        = date_str
     out_dict['lat']             = data['Latitude'][:]
-    out_dict['lon']             = data['Longitude'][:]
 
     keep_idxs = np.where((out_dict['lat'] >= minlat) & \
         (out_dict['lat'] <= maxlat))[0]
 
+    out_dict['lat']               = data['Latitude'][keep_idxs]
+    out_dict['lon']               = data['Longitude'][:]
     out_dict['cld_frac_mean']     = data['Cloud_Fraction_Mean'][keep_idxs,:]
     out_dict['cld_frac_std']      = data['Cloud_Fraction_StDev'][keep_idxs,:]
     out_dict['ob_count']          = data['Ob_Counts'][keep_idxs,:]
     out_dict['day_cld_frac_mean'] = data['Cloud_Fraction_Day_Mean'][keep_idxs,:]
     out_dict['day_cld_frac_std']  = data['Cloud_Fraction_Day_StDev'][keep_idxs,:]
     out_dict['day_ob_count']      = data['Day_Ob_Counts'][keep_idxs,:]
-
-    out_dict['cld_frac_mean'] = np.ma.masked_where(\
-        out_dict['cld_frac_mean'] < 0, out_dict['cld_frac_mean'])
-    out_dict['day_cld_frac_mean'] = np.ma.masked_where(\
-        out_dict['day_cld_frac_mean'] < 0, out_dict['day_cld_frac_mean'])
 
 
     # Since the MYD08 trends start at 89.5 and work down, while the CLDL3
@@ -2511,6 +2507,15 @@ def read_MODIS_MYD08_single(date_str, minlat = 65.5, \
             out_dict[cvar] = new_data
         out_dict['lat'] = out_dict['lat'][::-1] 
         
+    out_dict['cld_frac_mean'] = np.ma.masked_where(\
+        (out_dict['cld_frac_mean'] < 0) | (out_dict['cld_frac_mean'] > 1.0) | \
+        (out_dict['cld_frac_mean'] == data['Cloud_Fraction_Mean'][:].fill_value), \
+        out_dict['cld_frac_mean'])
+    out_dict['day_cld_frac_mean'] = np.ma.masked_where(\
+        (out_dict['day_cld_frac_mean'] < 0) | \
+        (out_dict['day_cld_frac_mean'] > 1.0), out_dict['day_cld_frac_mean'])
+
+
     data.close()
 
     return out_dict

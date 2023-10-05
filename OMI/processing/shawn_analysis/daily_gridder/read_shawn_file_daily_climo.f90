@@ -16,7 +16,10 @@ subroutine read_shawn_file_daily_climo(io7,errout,c_total_file_name,i_day_idx, &
 !
 !  ###########################################################################
 
-  use daily_vars, only: grid_AI, count_AI
+  use daily_vars, only: grid_AI, count_AI, count_sfland, count_seaice, &
+        count_permice, count_drysnow, count_ocean, count_mixpixel, &
+        count_other   
+    
 
   implicit none
 
@@ -47,7 +50,7 @@ subroutine read_shawn_file_daily_climo(io7,errout,c_total_file_name,i_day_idx, &
   real                   :: v11                     ! Normalized Radiance 1
   real                   :: v12                     ! Normalized Radiance 2
   real                   :: cld_frc                 ! Cloud (flag?)
-  real                   :: v14                     ! Ground flag
+  real                   :: gpqf                    ! Ground flag
   real                   :: v15  ! added for SJ5    ! Row number (base 1)                                             
                                               
   ! # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -57,7 +60,7 @@ subroutine read_shawn_file_daily_climo(io7,errout,c_total_file_name,i_day_idx, &
   data_loop: do
     read(io7, *, iostat = istatus)  &
             lat, lon, raw_ai, filter, clean_ai,v5,v6,v7,v8,v9,v10,&
-              v11,v12,cld_frc,v14,v15
+              v11,v12,cld_frc,gpqf,v15
     if(istatus > 0) then
       write(errout, *) "ERROR: error reading data from ", &
           trim(c_total_file_name)
@@ -97,6 +100,34 @@ subroutine read_shawn_file_daily_climo(io7,errout,c_total_file_name,i_day_idx, &
           grid_AI(index2,index1,i_day_idx) + clean_ai
 
       count_AI(index2,index1,i_day_idx) = count_AI(index2,index1,i_day_idx) + 1
+
+      ! Increment the ground pixel values
+      ! ---------------------------------
+      if(gpqf == 1) then
+        count_sfland(index2, index1, i_day_idx) = &
+            count_sfland(index2, index1, i_day_idx) + 1
+      else if(gpqf == 2) then 
+        count_seaice(index2, index1, i_day_idx) = &
+            count_seaice(index2, index1, i_day_idx) + 1
+      else if(gpqf == 3) then 
+        count_permice(index2, index1, i_day_idx) = &
+            count_permice(index2, index1, i_day_idx) + 1
+      else if(gpqf == 4) then 
+        count_drysnow(index2, index1, i_day_idx) = &
+            count_drysnow(index2, index1, i_day_idx) + 1
+      else if(gpqf == 5) then 
+        count_ocean(index2, index1, i_day_idx) = &
+            count_ocean(index2, index1, i_day_idx) + 1
+      else if(gpqf == 6) then 
+        count_mixpixel(index2, index1, i_day_idx) = &
+            count_mixpixel(index2, index1, i_day_idx) + 1
+      else if(gpqf == 7) then 
+        count_other(index2, index1, i_day_idx) = &
+            count_other(index2, index1, i_day_idx) + 1
+      else
+        write(*,*) 'ERROR IN GPQF'
+      endif
+
       !!#!endif
       !endif
     endif

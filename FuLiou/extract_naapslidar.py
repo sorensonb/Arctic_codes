@@ -188,95 +188,65 @@ fmt_str = "{0:7.1f} {2:8.1f} {3:8.1f} {4:7.2f} " + \
 # totaod = [aod1, aod2, aod3, aod4, aod5]
 # totaod: [UNUSED, sulfate, dust, smoke, salt]
 
-foutname = 'test_naaps_file.txt'
-with open(foutname, 'w') as fout:
-
-    #for ii in range(time.shape[0]):
-    ii = 1567
+for ii in range(time.shape[0]):
+    #ii = 1567
+    foutname = 'test_naaps_file.txt'
+    with open(foutname, 'w') as fout:
     
-    
-    #print("{0} {1:8.5f} {2:8.5f} {3:8.5f} {4:8.5f}".format(\
-    #    local_date, lat[ii], lon[ii], aot_532[ii], naaps_tot_aot[ii]))
-    """
-      call fuliou(latt,lont,alb,ems,
-        tau_aer, totaod,csza,
-        dustext,smokeext,saltext,sulext,
-        dustssa,smokessa,saltssa,sulssa,
-        dustasy,smokeasy,saltasy,sulasy,
-        wave_mex,wave_wo,wave_g,wave,kwave,
-        napsp,napst,napsrh,napso3,napssh,surft )
-    
-    Modified needed vars:
-    
-        date,latt,lont,tau_aer,
-        totaod,
-        dustext,smokeext,saltext,sulext,
-        dustssa,smokessa,saltssa,sulssa,
-        dustasy,smokeasy,saltasy,sulasy,
-        wave_mex,wave_wo,wave_g,
-        napsp,napst,napsrh,napssh)
-    
-    Output format
-    YYYYMMDDHHMM lat lon tau_aer
-     sulfate_aod, dust_aod, smoke_aod, salt_aod
-     press NAAPS_z dz temp rhum spechum abf_ext dust_ext smoke_ext salt_ext abf_mas dust_mas smoke_mas salt_mas
-     ...
-     ...
-     ...
-    
+        
+        """
+        
+        Output format
+        YYYYMMDDHHMM lat lon tau_aer
+         sulfate_aod, dust_aod, smoke_aod, salt_aod
+         press NAAPS_z dz temp rhum spechum abf_ext dust_ext smoke_ext salt_ext abf_mas dust_mas smoke_mas salt_mas
+         ...
+         ...
+         ...
+        
+         
+        """
      
-    """
+   
+        # Print the metadata information
+        # ------------------------------
+        local_dt_date = base_date + timedelta(seconds = time[ii]) 
+        local_date = local_dt_date.strftime('%Y%m%d%H%M')
+        print(ii, local_dt_date.strftime('%Y%m%d %H:%M:%S'))
+
+        fout.write("{0} {1:8.5f} {2:8.5f} {3:8.5f}\n".format(\
+            local_date, lat[ii], lon[ii], naaps_tot_aot[ii]))
+        
+        fout.write("{0:10.3e} {1:10.3e} {2:10.3e} {3:10.3e}\n".format(\
+            naaps_abf_aot[ii], naaps_dust_aot[ii], \
+            naaps_smoke_aot[ii], naaps_salt_aot[ii]))
+        
+        # Print the profile information. NOTE: You'll notice that there are more
+        # variables in the print statement here than there are in the output
+        # file. Variables can be easily removed by modifing the print format
+        # statement above, so, for example, the lidar height (z) is not being
+        # printed, even though it is at spot "1" here.
+        # ----------------------------------------------------------------------
+        for jj in range(ext_532.shape[1]):
+            fout.write(fmt_str.format(\
+                naaps_press[ii,jj], z[jj], naaps_masl[ii,jj], naaps_dz[ii,jj], \
+                naaps_temp[ii,jj], naaps_relhum[ii,jj], \
+                naaps_spechum[ii,jj], \
+                naaps_abf_ext[ii,jj], naaps_dust_ext[ii,jj], \
+                naaps_smoke_ext[ii,jj], naaps_salt_ext[ii,jj], \
+                naaps_abf_mass[ii,jj], naaps_dust_mass[ii,jj], \
+                naaps_smoke_mass[ii,jj], naaps_salt_mass[ii,jj], \
+                ext_532[ii,jj]
+            ))
     
-    # Print the metadata information
-    # ------------------------------
-    local_date = (base_date + timedelta(seconds = time[ii])).strftime('%Y%m%d%H%M')
-    fout.write("{0} {1:8.5f} {2:8.5f} {3:8.5f}\n".format(\
-        local_date, lat[ii], lon[ii], naaps_tot_aot[ii]))
-    
-    fout.write("{0:10.3e} {1:10.3e} {2:10.3e} {3:10.3e}\n".format(\
-        naaps_abf_aot[ii], naaps_dust_aot[ii], \
-        naaps_smoke_aot[ii], naaps_salt_aot[ii]))
-    
-    #print(naaps_press.shape, z.shape, naaps_masl.shape, naaps_dz.shape, \
-    #        naaps_temp.shape, naaps_relhum.shape, \
-    #        naaps_spechum.shape, \
-    #        naaps_abf_ext.shape, naaps_dust_ext.shape, \
-    #        naaps_smoke_ext.shape, naaps_salt_ext.shape, \
-    #        naaps_abf_mass.shape, naaps_dust_mass.shape, \
-    #        naaps_smoke_mass.shape, naaps_salt_mass.shape, \
-    #        ext_532.shape)
-    # Print the profile information. NOTE: You'll notice that there are more
-    # variables in the print statement here than there are in the output
-    # file. Variables can be easily removed by modifing the print format
-    # statement above, so, for example, the lidar height (z) is not being
-    # printed, even though it is at spot "1" here.
-    # ----------------------------------------------------------------------
-    for jj in range(ext_532.shape[1]):
-        fout.write(fmt_str.format(\
-            naaps_press[ii,jj], z[jj], naaps_masl[ii,jj], naaps_dz[ii,jj], \
-            naaps_temp[ii,jj], naaps_relhum[ii,jj], \
-            naaps_spechum[ii,jj], \
-            naaps_abf_ext[ii,jj], naaps_dust_ext[ii,jj], \
-            naaps_smoke_ext[ii,jj], naaps_salt_ext[ii,jj], \
-            naaps_abf_mass[ii,jj], naaps_dust_mass[ii,jj], \
-            naaps_smoke_mass[ii,jj], naaps_salt_mass[ii,jj], \
-            ext_532[ii,jj]
-            #naaps_
-        ))
+        # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+        #
+        #  Call the FuLiou code
+        #
+        # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+        #print("Calling FuLiou code") 
 
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-#
-#
-#
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-
-    
-
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-#
-#
-#
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-
-
-
+# Close the file object
+# ---------------------
+print("Closing file object")
+nc_data.close()

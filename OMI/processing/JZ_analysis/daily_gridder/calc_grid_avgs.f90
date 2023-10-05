@@ -13,8 +13,9 @@ subroutine calc_grid_avgs(i_num_days, i_lat_size, i_lon_size)
 !
 !  ############################################################################
 
-  use daily_vars, only: grid_AI, count_AI, day_values, lat_values, &
-        lon_values, clear_daily_arrays
+  use daily_vars, only: grid_AI, count_AI, &
+    count_sfland, count_seaice, count_permice, count_drysnow, count_ocean, &
+    count_mixpixel, count_other
 
   implicit none
 
@@ -44,6 +45,20 @@ subroutine calc_grid_avgs(i_num_days, i_lat_size, i_lon_size)
         else
           grid_AI(kk,jj,ii) = -9.
         endif
+
+        ! Handle the GPQF flag values
+        ! ---------------------------
+        if((count_sfland(kk,jj,ii)   > 0) .or. &
+           (count_seaice(kk,jj,ii)   > 0) .or. &
+           (count_permice(kk,jj,ii)  > 0) .or. &
+           (count_drysnow(kk,jj,ii)  > 0) .or. &
+           (count_ocean(kk,jj,ii)    > 0) .or. & 
+           (count_mixpixel(kk,jj,ii) > 0)) then
+
+          call bin_OMI_GPQF_values(kk,jj,ii)
+
+        endif
+
       enddo lon_loop
     enddo lat_loop
   enddo day_loop

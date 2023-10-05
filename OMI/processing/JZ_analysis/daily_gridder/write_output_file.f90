@@ -68,6 +68,7 @@ subroutine write_output_file(out_file_name, i_num_days, i_lat_size, i_lon_size)
   call write_day_lat(out_file_id, lat_dims)
   call write_day_lon(out_file_id, lon_dims)
   call write_day_grid_AI(out_file_id, grid_data_dims)
+  call write_day_grid_GPQF(out_file_id, grid_data_dims)
  
   !!#!call write_day_values(out_file_id, day_dims)
   !!#!call write_lat_values(out_file_id, lat_dims)

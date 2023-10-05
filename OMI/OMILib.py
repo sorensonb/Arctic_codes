@@ -1496,6 +1496,30 @@ def readOMI_daily_HDF5(infile, minlat = 65.5, maxlat = 89.5):
     out_dict['lat_values'] = data['lat_values'][min_idx:max_idx]
     out_dict['lon_values'] = data['lon_values'][:]
     out_dict['day_values'] = data['day_values'][:]
+    if('grid_GPQF' in data.keys()):
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+        #
+        # the grid_GPQF values are as follows, following Shawn's 
+        # OMIProcess.py code:
+        # - 1: snow-free land
+        # - 2: sea ice
+        # - 3: permanent ice (Greenland or Antarctica)
+        # - 4: dry snow (seasonal land snow cover)
+        # - 5: ocean
+        # - 6: mixed pixel at coastline
+        # - 7: other (suspect ice, corners, error, other)
+        #
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+        out_dict['grid_GPQF']    = data['grid_GPQF'][:,min_idx:max_idx,:]
+        out_dict['grid_GPQF']    = \
+            np.ma.masked_where(out_dict['grid_GPQF'] == 0, \
+            out_dict['grid_GPQF'])
+        
+
+    out_dict['grid_AI'] = np.ma.masked_where(out_dict['count_AI'] == 0, \
+        out_dict['grid_AI'])
 
     data.close()
     
