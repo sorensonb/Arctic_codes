@@ -249,6 +249,10 @@ def plot_point_on_map(pax, plat, plon, markersize = 10, color = None):
             transform=datacrs, color = color)
 
 def plot_theil_sen_trend(pax, xdata, ydata, color, linestyle, linewidth):
+
+    class Object(object):
+        pass
+
     res = stats.theilslopes(ydata, xdata, 0.90)
     print("Theil-Sen: {0}x + {1}".format(res[0], res[1]))
 
@@ -258,8 +262,13 @@ def plot_theil_sen_trend(pax, xdata, ydata, color, linestyle, linewidth):
     # Then, plot the trend line on the figure
     pax.plot(xdata, res[1] + res[0] * xdata, \
         color=color, linestyle = linestyle)
-   
-    return res[0], res[1]
+  
+    out_data = Object()
+    out_data.slope = res[0]
+    out_data.intercept = res[1]
+    return out_data
+     
+    #return res[0], res[1]
  
 def plot_lin_regress_trend(pax, xdata, ydata, color, linestyle, linewidth):
     # First, calculate the trend
@@ -371,7 +380,7 @@ def plot_subplot_label(ax, label, xval = None, yval = None, transform = None, \
 
 def plot_figure_text(ax, text, xval = None, yval = None, transform = None, \
         color = 'black', fontsize = 12, backgroundcolor = 'white',\
-        halign = 'left', location = 'lower_right', weight = ''):
+        halign = 'left', location = 'lower_right', weight = None):
 
     if(location == 'lower_right'):
         if(xval is None):
@@ -389,7 +398,20 @@ def plot_figure_text(ax, text, xval = None, yval = None, transform = None, \
             xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * 0.1
         if(yval is None):
             yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.50
-
+    elif(location == 'upper_left'):
+        if(xval is None):
+            xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * 0.1
+        if(yval is None):
+            yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.80
+            #yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.90
+    else:
+        print("NO SPOT CHOSEN. USING UPPER_RIGHT")
+        if(xval is None):
+            xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * 0.95
+        if(yval is None):
+            yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.80
+            #yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.90
+    
     print('Xval = ',xval, 'Yval = ',yval)
 
     if(transform is None):

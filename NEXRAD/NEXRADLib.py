@@ -305,6 +305,60 @@ nexrad_area_dict = {
     } 
 }
 
+min_dict = {
+    'composite_reflectivity': {\
+        'ppi': -5, \
+        'rhi': -5, \
+    },
+    'reflectivity': {\
+        'ppi': -10,\
+        'rhi': -10,\
+    },
+    'velocity':  {\
+        'ppi': -30,\
+        'rhi': -30,\
+    },
+    'differential_reflectivity': {\
+        'ppi':-2.5, \
+        'rhi':-2.5, \
+    },
+    'cross_correlation_ratio': {\
+        'ppi': 0.5,\
+        'rhi': 0.5,\
+    }
+}
+max_dict = {
+    'composite_reflectivity': {\
+        'ppi': 90, \
+        'rhi': 64, \
+    },
+    'reflectivity': {\
+        'ppi': 70,\
+        'rhi': 70,\
+    },
+    'velocity':  {\
+        'ppi': 30,\
+        'rhi': 30,\
+    },
+    'differential_reflectivity': {\
+        'ppi': 5.0, \
+        'rhi': 5.0, \
+    },
+    'cross_correlation_ratio': {\
+        'ppi': 1.,\
+        'rhi': 1.,\
+    }
+}
+cmap_dict = {
+    'composite_reflectivity': 'gist_ncar',\
+    'reflectivity': 'gist_ncar',\
+    'velocity':    'bwr',\
+    'differential_reflectivity': 'gist_ncar', \
+    'cross_correlation_ratio': 'pyart_RefDiff',\
+}
+
+
+
 def init_proj(NEXRAD_dict):
     #mapcrs = Miller()
     if(NEXRAD_dict == None):
@@ -1092,6 +1146,151 @@ def plot_NEXRAD_GOES_5panel(date_str, ch1, ch2, ch3, \
         plt.show()
 
 
+def plot_NEXRAD_rhi_multipanel(date_str, radar, azimuth, \
+        angle_idx = 0, range_min = 0, range_max = 150, \
+        save = True, save_dir = './'):
+
+    NEXRAD_dict = read_NEXRAD(date_str, radar)
+    
+    mapcrs = init_proj(NEXRAD_dict)
+    fig = plt.figure(figsize = (9, 10))
+    ax1 = fig.add_subplot(3,3,1, projection = mapcrs)
+    ax2 = fig.add_subplot(3,3,2, projection = mapcrs)
+    ax3 = fig.add_subplot(3,3,3, projection = mapcrs)
+    ax4 = fig.add_subplot(3,3,4)
+    ax5 = fig.add_subplot(3,3,5)
+    ax6 = fig.add_subplot(3,3,6)
+    ax7 = fig.add_subplot(3,3,7)
+    ax8 = fig.add_subplot(3,3,8)
+    ax9 = fig.add_subplot(3,3,9)
+    
+    plot_NEXRAD_ppi(NEXRAD_dict, 'reflectivity', zoom = True, \
+        angle = angle_idx, ax = ax1)
+    plot_NEXRAD_ppi(NEXRAD_dict, 'cross_correlation_ratio', zoom = True, \
+        angle = angle_idx, ax = ax2)
+    plot_NEXRAD_ppi(NEXRAD_dict, 'differential_reflectivity', zoom = True, \
+        angle = angle_idx, ax = ax3)
+    
+    az_tol = 0.8
+    plot_my_rhi(NEXRAD_dict, 'reflectivity', azimuth, \
+            az_tol = az_tol, vmin = None, vmax = None, \
+            range_min = range_min, range_max = range_max,\
+            ax = ax4)
+    plot_my_rhi(NEXRAD_dict, 'cross_correlation_ratio', azimuth, \
+            az_tol = az_tol, vmin = None, vmax = None, \
+            range_min = range_min, range_max = range_max,\
+            ax = ax5)
+    plot_my_rhi(NEXRAD_dict, 'differential_reflectivity', azimuth, \
+            az_tol = az_tol, vmin = None, vmax = None, \
+            range_min = range_min, range_max = range_max,\
+            ax = ax6)
+    
+    plot_NEXRAD_rhi(NEXRAD_dict, 'reflectivity', azimuth, \
+        vmin = None, vmax = None, range_min = range_min, \
+        range_max = range_max, ax = ax7)
+    plot_NEXRAD_rhi(NEXRAD_dict, 'cross_correlation_ratio', azimuth, \
+        vmin = None, vmax = None, range_min = range_min, \
+        range_max = range_max, ax = ax8)
+    plot_NEXRAD_rhi(NEXRAD_dict, 'differential_reflectivity', azimuth, \
+        vmin = None, vmax = None, range_min = range_min, \
+        range_max = range_max, ax = ax9)
+    
+    xsect = pyart.util.cross_section_ppi(NEXRAD_dict['radar'], [azimuth])
+    test_lats = xsect.gate_latitude['data'][0][::30]
+    test_lons = xsect.gate_longitude['data'][0][::30]
+    radar_lat = xsect.latitude['data'][0]
+    radar_lon = xsect.longitude['data'][0]
+    
+    dists = np.array([find_distance_between_points(radar_lat, radar_lon, xx, yy) for xx, yy in zip(test_lats, test_lons)])
+    keep_idxs = np.where( (dists >= range_min) & (dists <= range_max) )[0]
+    lat1 = test_lats[keep_idxs[0]]
+    lon1 = test_lons[keep_idxs[0]]
+    lat2 = test_lats[keep_idxs[-1]]
+    lon2 = test_lons[keep_idxs[-1]]
+    
+    ax1.plot([lon1, lon2], [lat1, lat2], transform = datacrs, linewidth = 2.5, markersize = 2.0, marker = 'o', color = 'k')
+    ax1.plot([lon1, lon2], [lat1, lat2], transform = datacrs, linewidth = 1, markersize = 1.5, marker = 'o', color = 'tab:red')
+    ax2.plot([lon1, lon2], [lat1, lat2], transform = datacrs, linewidth = 2.5, markersize = 2.0, marker = 'o', color = 'k')
+    ax2.plot([lon1, lon2], [lat1, lat2], transform = datacrs, linewidth = 1, markersize = 1.5, marker = 'o', color = 'tab:red')
+    ax3.plot([lon1, lon2], [lat1, lat2], transform = datacrs, linewidth = 2.5, markersize = 2.0, marker = 'o', color = 'k')
+    ax3.plot([lon1, lon2], [lat1, lat2], transform = datacrs, linewidth = 1, markersize = 1.5, marker = 'o', color = 'tab:red')
+    
+    fig.tight_layout()
+
+    if(save):
+        
+        outname = save_dir + NEXRAD_dict['radar_name'] + \
+            '_multi_myrhi_' + str(azimuth) + '_' + \
+            NEXRAD_dict['radar_date'] + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+def plot_NEXRAD_rhi_multipanel_auto_varyazm(date_str, radar, min_azm, \
+        max_azm, delta_azm = 3, angle_idx = 0, range_min = 0, range_max = 190, \
+        save_dir = './', save = True):
+
+    # Convert the input date_str to datetime
+    # --------------------------------------
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    # See if the output directory exists
+    # ----------------------------------
+    total_save_dir = save_dir + 'ppi_rhi/' + radar + '/vary_azm/' + date_str + '/'
+        
+    try:
+        Path(total_save_dir).mkdir(parents = True, exist_ok = False)
+    except FileExistsError:
+        print("Save directory already exists. Overwriting images there")
+
+    # Set up the range of azimuth angles
+    # ----------------------------------
+    azimuths = np.arange(min_azm, max_azm + 1, delta_azm)
+
+    print(total_save_dir)
+
+    for azm in azimuths:
+        print(azm)
+        plot_NEXRAD_rhi_multipanel(date_str, radar, azm, \
+            angle_idx = angle_idx, range_min = range_min, range_max = range_max, \
+            save_dir = total_save_dir, save = True)
+
+# delta_time : minutes
+def plot_NEXRAD_rhi_multipanel_auto_varytime(radar, azm, \
+        begin_str, end_str, delta_time = 30, \
+        angle_idx = 0, range_min = 0, range_max = 190, \
+        save_dir = './', save = True):
+
+    # Convert the input date_str to datetime
+    # --------------------------------------
+    dt_begin_str = datetime.strptime(begin_str,"%Y%m%d%H%M")
+    dt_end_str   = datetime.strptime(end_str,"%Y%m%d%H%M")
+
+    # See if the output directory exists
+    # ----------------------------------
+    total_save_dir = save_dir + 'ppi_rhi/' + radar + '/vary_time/' + str(azm) + '/'
+        
+    try:
+        Path(total_save_dir).mkdir(parents = True, exist_ok = False)
+    except FileExistsError:
+        print("Save directory already exists. Overwriting images there")
+
+    # Set up the range of azimuth angles
+    # ----------------------------------
+    num_times = int(((dt_end_str - dt_begin_str).seconds / 60) / delta_time)
+
+    print(total_save_dir, num_times)
+
+    for ntime in range(num_times):
+        local_date = dt_begin_str + timedelta(minutes = int(delta_time * ntime))
+        print(local_date)
+        local_str = local_date.strftime('%Y%m%d%H%M')      
+  
+        plot_NEXRAD_rhi_multipanel(local_str, radar, azm, \
+            angle_idx = angle_idx, range_min = range_min, range_max = range_max, \
+            save_dir = total_save_dir, save = True)
+
 
 # Plots 
 def plot_NEXRAD_multiangle(date_str, radar, variable, \
@@ -1286,58 +1485,6 @@ def plot_NEXRAD_GOES(date_str, radar, variable, channel, ax = None, \
 
     plt.show()
 
-min_dict = {
-    'composite_reflectivity': {\
-        'ppi': -5, \
-        'rhi': -5, \
-    },
-    'reflectivity': {\
-        'ppi': -5,\
-        'rhi': -5,\
-    },
-    'velocity':  {\
-        'ppi': -30,\
-        'rhi': -30,\
-    },
-    'differential_reflectivity': {\
-        'ppi':-2.5, \
-        'rhi':-2.5, \
-    },
-    'cross_correlation_ratio': {\
-        'ppi': 0,\
-        'rhi': 0,\
-    }
-}
-max_dict = {
-    'composite_reflectivity': {\
-        'ppi': 90, \
-        'rhi': 64, \
-    },
-    'reflectivity': {\
-        'ppi': 90,\
-        'rhi': 64,\
-    },
-    'velocity':  {\
-        'ppi': 30,\
-        'rhi': 30,\
-    },
-    'differential_reflectivity': {\
-        'ppi': 5.0, \
-        'rhi': 5.0, \
-    },
-    'cross_correlation_ratio': {\
-        'ppi': 1.,\
-        'rhi': 1.,\
-    }
-}
-cmap_dict = {
-    'composite_reflectivity': 'gist_ncar',\
-    'reflectivity': 'gist_ncar',\
-    'velocity':    'bwr',\
-    'differential_reflectivity': 'gist_ncar', \
-    'cross_correlation_ratio': 'gist_rainbow',\
-}
-
 def plot_NEXRAD_ppi_figure(date_str, radar, variable, angle = 0, \
     save_dir = './', vmin = None, vmax = None,\
     mask_outside = True, zoom = True, save = False):
@@ -1384,7 +1531,7 @@ def plot_NEXRAD_ppi(NEXRAD_dict, variable, ax = None, angle = None, ptitle = Non
     # Trade
     # ---------------------------------------------------------------------
     gatefilter = pyart.filters.GateFilter(NEXRAD_dict['radar'])
-    #gatefilter.exclude_below('reflectivity', -20)
+    gatefilter.exclude_below('reflectivity', -20)
     if(variable == 'composite_reflectivity'):
         compz, z_stack = composite_reflectivity(NEXRAD_dict['radar'], \
             field = 'reflectivity', gatefilter = gatefilter)
@@ -1493,9 +1640,81 @@ def plot_NEXRAD_ppi(NEXRAD_dict, variable, ax = None, angle = None, ptitle = Non
         else:
             plt.show()
 
+def calc_my_rhi(NEXRAD_dict, azimuth, variable, az_tol = 0.5):
+    avg_rhi = np.full((NEXRAD_dict['radar'].nsweeps, NEXRAD_dict['radar'].ngates), np.nan)
+    rng_rhi = np.full((NEXRAD_dict['radar'].nsweeps, NEXRAD_dict['radar'].ngates), np.nan)
+    elv_rhi = np.full((NEXRAD_dict['radar'].nsweeps, NEXRAD_dict['radar'].ngates), np.nan)
+
+    radar_height = NEXRAD_dict['radar'].altitude['data'][0] / 1e3
+    for ii, sweep_slice in enumerate(NEXRAD_dict['radar'].iter_slice()):
+        start_idx = sweep_slice.start
+        end_idx   = start_idx+NEXRAD_dict['radar'].get_azimuth(ii).shape[0]
+        az_idxs_swp = np.where( np.abs(NEXRAD_dict['radar'].get_azimuth(ii) - azimuth) < az_tol)[0]
+        avg_rhi[ii,:] = np.nanmean(NEXRAD_dict['radar'].fields[variable]['data'][\
+           start_idx:end_idx][az_idxs_swp,:], axis = 0)
+        elv_rhi[ii,:] = (np.nanmean(NEXRAD_dict['radar'].gate_altitude['data'][start_idx:end_idx,:][\
+           az_idxs_swp,:], axis = 0) / 1e3) - radar_height
+        rng_rhi[ii,:] = NEXRAD_dict['radar'].range['data'] / 1e3
+
+    return avg_rhi, rng_rhi, elv_rhi
+
+    #NEXRAD_dict['avg_rhi'] = avg_rhi
+    #NEXRAD_dict['rng_rhi'] = rng_rhi
+    #NEXRAD_dict['elv_rhi'] = elv_rhi
+    #return NEXRAD_dict
+
+def plot_my_rhi(NEXRAD_dict, variable, azimuth,  az_tol = 0.2, \
+        range_min = 0, range_max = 100, height_lim = 8,\
+        vmin = None, vmax = None, \
+        ax = None
+        ):
+    
+    #NEXRAD_dict = calc_my_rhi(NEXRAD_dict, azimuth, az_tol = az_tol)
+    avg_rhi, rng_rhi, elv_rhi = calc_my_rhi(NEXRAD_dict, azimuth, variable, az_tol = az_tol)
+
+    if(vmin is None):
+        vmin = min_dict[variable]['rhi']
+    if(vmax is None):
+        vmax = max_dict[variable]['rhi']
+
+    # Plot the NEXRAD data
+    # ------------------
+    in_ax = True 
+    if(ax is None):
+        in_ax = False
+        plt.close('all')
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+
+    mask_rhi = np.ma.masked_invalid(avg_rhi)
+    mesh = ax.pcolormesh(rng_rhi, elv_rhi, mask_rhi, vmin = vmin, vmax = vmax, \
+        cmap = cmap_dict[variable], shading = 'auto') 
+    cbar = plt.colorbar(mesh, ax = ax, label = title_dict[variable])
+    ax.set_xlim(range_min, range_max)
+    ax.set_ylim(0, height_lim)
+    ax.set_xlabel('Distance from radar (km)')
+    ax.set_ylabel('Distance above radar (km)')
+    ax.set_title(NEXRAD_dict['radar_name'] + ' ' + str(azimuth) + '$^{o}$ RHI')
+
+    if(not in_ax): 
+        if(save):
+            outname = save_dir + NEXRAD_dict['radar_name'] + '_' + variable + \
+                '_myrhi' + str(int(azimuth[0])) + '_' + \
+                NEXRAD_dict['radar_date'] + '.png'
+            plt.savefig(outname,dpi=200)
+            print("Saved image",outname)
+        else:
+            plt.show()
+
+
+# plot_type: 'default' for the normal pyart version
+#            anything else for my version
 def plot_NEXRAD_rhi_figure(date_str, radar, variable, azimuth = 0, \
     save_dir = './', vmin = None, vmax = None,\
-    mask_outside = True, zoom = True, save = False):
+    range_min = 0, range_max = 100, \
+    az_tol = 0.5, \
+    mask_outside = True, zoom = True, \
+    plot_type = 'default', save = False):
 
     # Read in the NEXRAD data
     # -----------------------
@@ -1503,8 +1722,13 @@ def plot_NEXRAD_rhi_figure(date_str, radar, variable, azimuth = 0, \
 
     # Plot the NEXRAD data
     # --------------------
-    plot_NEXRAD_rhi(NEXRAD_dict, variable, azimuth, save_dir = save_dir,\
-        vmin = vmin, vmax = vmax, zoom = zoom, save = save)
+    if(plot_type == 'default'):
+        plot_NEXRAD_rhi(NEXRAD_dict, variable, azimuth, save_dir = save_dir,\
+            vmin = vmin, vmax = vmax, range_min = range_min, \
+            range_max = range_max, zoom = zoom, save = save)
+    else:
+        plot_my_rhi(NEXRAD_dict, azimuth, variable, az_tol = az_tol, \
+            range_min = range_min, range_max = range_max, save = save)
  
 # variable must be 'reflectivity', 'velocity', 'differential_reflectivity',
 # or 'cross_correlation_ratio'
@@ -1512,7 +1736,8 @@ def plot_NEXRAD_rhi_figure(date_str, radar, variable, azimuth = 0, \
 # -------------------------------------------------------------------------
 def plot_NEXRAD_rhi(NEXRAD_dict, variable, azimuth, ax = None, angle = None, \
         ptitle = None, plabel = None, vmin = None, vmax = None, \
-        labelsize = 10, range_lim = 100, height_lim = 8,\
+        az_tol = 1.00, \
+        labelsize = 10, range_min = 0, range_max = 100, height_lim = 8,\
         colorbar = True, counties = True, save_dir = './',\
         alpha = 1.0, zoom=True, save=False):
 
@@ -1536,7 +1761,8 @@ def plot_NEXRAD_rhi(NEXRAD_dict, variable, azimuth, ax = None, angle = None, \
         num_row = len(azimuth)
         #axs = fig.subplots(nrows = num_row, ncols = 1)
 
-    xsect = pyart.util.cross_section_ppi(NEXRAD_dict['radar'], azimuth)
+    xsect = pyart.util.cross_section_ppi(NEXRAD_dict['radar'], azimuth, \
+        az_tol = az_tol)
 
     if(colorbar):
         colorbar_flag = 1
@@ -1546,14 +1772,24 @@ def plot_NEXRAD_rhi(NEXRAD_dict, variable, azimuth, ax = None, angle = None, \
     #gatefilter = pyart.filters.GateFilter(NEXRAD_dict['radar'])
     #gatefilter.exclude_below(variable, vmin)
 
+    #display = pyart.graph.RadarDisplay(xsect)
+    #display.plot(variable, 0, vmin = vmin, vmax = vmax)
+    #ax.set_xlim(range_min, range_max)
+    #ax.set_ylim(0, height_lim)
+
     display = pyart.graph.RadarDisplay(xsect)
-    for ii, azm in enumerate(azimuth):
-        ax = fig.add_subplot(num_row, 1, ii + 1) 
-        display.plot(variable, ii, vmin = vmin, vmax = vmax)
-        ax.set_xlim(0, range_lim)
+    if(not in_ax):
+        for ii, azm in enumerate(azimuth):
+            ax = fig.add_subplot(num_row, 1, ii + 1) 
+            display.plot(variable, ii, vmin = vmin, vmax = vmax, cmap = cmap_dict[variable])
+            ax.set_xlim(range_min, range_max)
+            ax.set_ylim(0, height_lim)
+    else:
+        display.plot(variable, 0, vmin = vmin, vmax = vmax, ax = ax, cmap = cmap_dict[variable])
+        ax.set_xlim(range_min, range_max)
         ax.set_ylim(0, height_lim)
     
-    fig.tight_layout()
+    #fig.tight_layout()
 
     if(not in_ax): 
         if(save):

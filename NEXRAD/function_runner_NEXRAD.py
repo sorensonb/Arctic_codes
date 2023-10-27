@@ -8,6 +8,151 @@ import importlib, NEXRADLib
 from NEXRADLib import *
 import sys
 
+## Every 5 minutes from 202107202100 to 202107210330
+#begin_date = '202107210215'
+#end_date = '202107210230'
+#auto_NEXRAD_download(begin_date, end_date, 15, 'KBBX')
+#sys.exit()
+
+radar = 'KRGX'
+azimuth = 310.0      # 281.
+angle_idx = 0
+range_min = 100
+range_max = 160
+#radar = 'KBBX'
+#azimuth = 29.       # 25, 37
+#angle_idx = 4
+#range_min = 65
+#range_max = 120
+
+date_str = '202107202100'
+variable = 'cross_correlation_ratio'
+
+"""
+202107210000
+- KBBX
+  - azimuth = 37.
+  - angle_idx = 4
+  - range_min = 70
+  - range_max = 120
+- KRGX
+  - azimuth = 281
+  - angle_idx = 0
+  - range_min = 120
+  - range_max = 190
+202107210230
+- KBBX
+  - azimuth = 29.
+  - angle_idx = 4
+  - range_min = 65
+  - range_max = 120
+- KRGX
+  - azimuth = 287.
+  - angle_idx = 0
+  - range_min = 120
+  - range_max = 190
+202107210400
+- KBBX
+  - azimuth = 29.
+  - angle_idx = 4
+  - range_min = 65
+  - range_max = 120
+- KRGX
+  - azimuth = 300.
+  - angle_idx = 0
+  - range_min = 100
+  - range_max = 160
+
+
+"""
+
+#plot_NEXRAD_rhi_figure(date_str, radar, variable, azimuth = azimuth, \
+#    save_dir = './', vmin = None, vmax = None,\
+#    range_min = 60, \
+#    mask_outside = True, zoom = True, save = False)
+
+#np.where(  abs(NEXRAD_dict['radar'].get_azimuth(3) - azimuth) < 0.5)
+#NEXRAD_dict['radar'].fields['cross_correlation_ratio']['data'].shape
+
+# NEXRAD_dict['radar'].range['data']
+# - the distance from the bin to the radar, along an azimuth
+# - dimensioned to 1832
+# NEXRAD_dict['radar'].azimuth['data']
+# - 
+# - dimensioned to 7920a
+# NEXRAD_dict['radar'].sweep_number['data']
+# - the index of each sweep (each spin of the radar)
+# - dimensioned to 14
+# NEXRAD_dict['radar'].get_azimuth(0)
+# - returns the azimuths from a given sweep
+# - dimensioned to 720
+# - returns 720 values for the first 8 sweeps (0 - 7)
+#   but returns 360 values for the last 6 (8 - 13)
+# NEXRAD_dict['radar'].fields['cross_correlation_ratio']['data']
+# - the actual correlation coeffieient data
+# - dimensioned to 7920, 1832
+#
+# 1832 - each gate on the azimuth out from the radar
+# 7920 - each individual azimuth for each sweep through the volume
+#
+#
+# need an array dimensioned to
+# (# sweeps, # gates)
+# loop over the sweeps, find the azimuths that fall within the azimuth
+# tolerance, extract 
+#
+# avg_rhi = np.full((NEXRAD_dict['radar'].nsweeps, NEXRAD_dict['radar'].ngates), np.nan)
+# rng_rhi = np.full((NEXRAD_dict['radar'].nsweeps, NEXRAD_dict['radar'].ngates), np.nan)
+# elv_rhi = np.full((NEXRAD_dict['radar'].nsweeps, NEXRAD_dict['radar'].ngates), np.nan)
+#
+# x_ranges = NEXRAD_dict['radar'].range['data']
+# y_elevs  = 
+#
+# radar_height = NEXRAD_dict['radar'].altitude['data'][0] / 1e3
+#
+# az_idxs_swp = np.where( np.abs(NEXRAD_dict['radar'].get_azimuth(0) - check_az) < az_tol)
+# - find the indices on the current sweep where the azimuths are within range
+#   of the desired 
+#
+# for ii, sweep_slice in enumerate(NEXRAD_dict['radar'].iter_slice()):
+#     start_idx = sweep_slice.start
+#     end_idx   = start_idx+NEXRAD_dict['radar'].get_azimuth(ii).shape[0]
+#     az_idxs_swp = np.where( np.abs(NEXRAD_dict['radar'].get_azimuth(ii) - check_az) < az_tol)[0]
+#     avg_rhi[ii,:] = np.nanmean(NEXRAD_dict['radar'].fields['cross_correlation_ratio']['data'][\
+#        start_idx:end_idx][az_idxs_swp,:], axis = 0)
+#     elv_rhi[ii,:] = (np.nanmean(NEXRAD_dict['radar'].gate_altitude['data'][start_idx:end_idx,:][\
+#        az_idxs_swp,:], axis = 0) / 1e3) - radar_height
+#     rng_rhi[ii,:] = NEXRAD_dict['radar'].range['data'] / 1e3
+
+radar = 'KRGX'
+#azimuth = 310.0      # 281.
+angle_idx = 0
+range_min = 100
+range_max = 190
+#radar = 'KBBX'
+#azimuth = 29.       # 25, 37
+#angle_idx = 4
+#range_min = 65
+#range_max = 120
+
+date_str = '202107210000'
+variable = 'cross_correlation_ratio'
+
+radar = 'KBBX'
+range_min = 45
+range_max = 150
+angle_idx = 4
+#plot_NEXRAD_rhi_multipanel_auto_varyazm(date_str, radar, 15, \
+#    45, delta_azm = 1, angle_idx = angle_idx, range_min = range_min, range_max = range_max, \
+#    save = True)
+plot_NEXRAD_rhi_multipanel_auto_varytime(radar, 32, \
+    '202107210215', '202107210400', delta_time = 15, \
+    angle_idx = angle_idx, range_min = range_min, range_max = range_max, \
+    save_dir = './', save = True)
+
+sys.exit()
+
+
 #date_str = '202107210000'
 date_str = '202107210330'
 radar = 'KRGX'
@@ -170,15 +315,6 @@ plot_NEXRAD_GOES_4panel(date_str, radar, variable, channel, ax = None, \
 #local_date = local_date + timedelta(minutes = 30)
 sys.exit()
 
-radar = 'KBBX'
-azimuth = 37.
-plot_NEXRAD_rhi_figure(date_str, radar, variable, azimuth = azimuth, \
-    save_dir = './', vmin = None, vmax = None,\
-    mask_outside = True, zoom = True, save = True)
-
-
-sys.exit()
-
 begin_date = '202107221430'
 end_date   = '202107230330'
 
@@ -186,10 +322,6 @@ end_date   = '202107230330'
 #    save_dir = './', angle_idx = 4, zoom = True, save = True)
 plot_NEXRAD_ppi_auto(begin_date, end_date, 'KRGX', 'reflectivity', \
     save_dir = './', angle_idx = 2, zoom = True, save = True)
-sys.exit()
-
-# Every 5 minutes from 202107202100 to 202107210330
-auto_NEXRAD_download(begin_date, end_date, 15, 'KRGX')
 sys.exit()
 
 

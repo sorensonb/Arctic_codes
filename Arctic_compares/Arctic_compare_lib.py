@@ -914,6 +914,49 @@ def read_comp_grid_climo(filename):
 
     return comp_grid_data
 
+
+def read_daily_month_force_HDF5(infile):
+
+    data = h5py.File(infile)
+
+    out_dict = {}
+    out_dict['LAT'] = data['latitude'][:]
+    out_dict['LON'] = data['longitude'][:]
+    out_dict['DATES'] = data['dates'][:]
+    out_dict['FORCE_EST'] = data['force_estimate'][:,:,:]
+
+    data.close()
+    
+    return out_dict
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
+# Writing functions
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+# Writes a single Shawn file to HDF5. 
+def write_daily_month_force_to_HDF5(all_month_values, OMI_monthly_data, \
+        save_path = './', name_add = '', minlat = 65.):
+
+    # Create a new HDF5 dataset to write to the file
+    # ------------------------------------------------
+    outfile = save_path + 'arctic_month_est_forcing' + name_add + '.hdf5'
+    dset = h5py.File(outfile,'w')
+
+    local_dates = np.array([int(tdate) for tdate in OMI_monthly_data['DATES']])
+ 
+    dset.create_dataset('latitude',  data = OMI_monthly_data['LAT'][:,0].squeeze())
+    dset.create_dataset('longitude', data = OMI_monthly_data['LON'][0,:].squeeze())
+    dset.create_dataset('dates', data = local_dates)
+    dset.create_dataset('force_estimate', data = all_month_values)
+
+    # Save, write, and close the HDF5 file
+    # --------------------------------------
+    dset.close()
+
+    print("Saved file ",outfile)  
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
 # Processing functions
@@ -2567,10 +2610,15 @@ def calculate_type_forcing_v2(OMI_data, NSIDC_data, MYD08_data, coloc_dict, \
 
 # This verison is set up to use daily data, but still needs the monthly
 # OMI data to determine the clear-sky climatology.
+# 
+# reference_ice: if set to a string (e.g. '2005'), the ice cocentration
+# from that day in 2005 will be used to determine which forcing
+# efficiency value is used. 
 # ---------------------------------------------------------------------
 def calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, coloc_dict, \
         date_str, minlat = 70., maxlat = 87., ai_thresh = -0.15, \
         cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw',\
+        reference_ice = None, 
         filter_bad_vals = True, return_modis_nsidc = True, debug = False):
     
     # Necessary pieces:
@@ -2586,6 +2634,12 @@ def calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, coloc_dict, \
     # Load in the daily MODIS and NSIDC data
     # --------------------------------------
     file_strs = np.array([str(tval) for tval in OMI_daily_data['day_values']])
+    if(not (date_str in file_strs)):
+        # Return a nan array
+        # ------------------
+        print("WARNING: Date", date_str, "not in daily data. Returning nans")
+        return np.full(OMI_daily_data['grid_AI'][10,:,:].shape, np.nan)
+         
     match_idx = np.where(date_str == file_strs)[0][0]
     local_OMI_daily = np.ma.masked_where(\
         OMI_daily_data['count_AI'][match_idx,:,:] == 0, \
@@ -2598,10 +2652,17 @@ def calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, coloc_dict, \
     MYD08_data = read_MODIS_MYD08_single(date_str, minlat = minlat, \
         maxlat = maxlat)
    
-    print("HERE:", np.max(MYD08_data['cld_frac_mean']))
- 
     # Load in the single-day NSIDC ice concentration
-    NSIDC_data =  readNSIDC_daily(date_str, maxlat = maxlat)
+    #
+    # If the user wants to use a different year's ice values as a reference,
+    # modify the date string here accordingly
+    # ------------------------------------------------------------------------
+    if(reference_ice is None):
+        ice_str = date_str
+    else:
+        ice_str = reference_ice + date_str[4:]
+
+    NSIDC_data =  readNSIDC_daily(ice_str, maxlat = maxlat)
     NSIDC_data = grid_data_conc(NSIDC_data, minlat = minlat, maxlat = maxlat)
     NSIDC_data['grid_ice_conc'] = np.ma.masked_where((NSIDC_data['grid_ice_conc'] < 0) | \
         (NSIDC_data['grid_ice_conc'] > 100), NSIDC_data['grid_ice_conc']).squeeze()
@@ -2775,7 +2836,9 @@ def calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, coloc_dict, \
 def calculate_type_forcing_v3_monthly(OMI_daily_data, OMI_monthly_data, \
         coloc_dict, month_idx, minlat = 70., maxlat = 87., ai_thresh = -0.15, \
         cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw',\
+        reference_ice = None, 
         filter_bad_vals = True, return_modis_nsidc = True, debug = False):
+
 
     # Set up arrays to hold the monthly-averaged forcing calculations
     # ---------------------------------------------------------------
@@ -2783,15 +2846,28 @@ def calculate_type_forcing_v3_monthly(OMI_daily_data, OMI_monthly_data, \
     ydim = OMI_daily_data['grid_AI'].shape[2]
     daily_force_vals = np.full( (31, xdim, ydim), np.nan)
 
-    month_force_vals = np.full(\
-        (OMI_monthly_data['DATES'][::6].shape[0], xdim, ydim), \
-        np.nan)
+    if(str(month_idx) == 'all'):
+        l_all_months = True
+        month_force_vals = np.full(\
+            (OMI_monthly_data['DATES'].shape[0], xdim, ydim), \
+            np.nan)
 
-    begin_date_str = datetime.strptime(\
-        OMI_monthly_data['DATES'][month_idx], '%Y%m')
-    end_date_str = datetime.strptime(\
-        OMI_monthly_data['DATES'][month_idx::6][-1], '%Y%m') + \
-        relativedelta(months = 1) - timedelta(days = 1)
+        begin_date_str = datetime.strptime(\
+            OMI_monthly_data['DATES'][0], '%Y%m')
+        end_date_str = datetime.strptime(\
+            OMI_monthly_data['DATES'][-1], '%Y%m') + \
+            relativedelta(months = 1) - timedelta(days = 1)
+    else:
+        l_all_months = False
+        month_force_vals = np.full(\
+            (OMI_monthly_data['DATES'][::6].shape[0], xdim, ydim), \
+            np.nan)
+
+        begin_date_str = datetime.strptime(\
+            OMI_monthly_data['DATES'][month_idx], '%Y%m')
+        end_date_str = datetime.strptime(\
+            OMI_monthly_data['DATES'][month_idx::6][-1], '%Y%m') + \
+            relativedelta(months = 1) - timedelta(days = 1)
 
     local_date_str = begin_date_str
 
@@ -2805,17 +2881,18 @@ def calculate_type_forcing_v3_monthly(OMI_daily_data, OMI_monthly_data, \
 
         # Calculate the forcing value for this current day
         # ------------------------------------------------
-        ##!#estimate_forcing = \
-        ##!#    calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, \
-        ##!#        coloc_dict, date_str, minlat = minlat, maxlat = maxlat, \
-        ##!#        ai_thresh = ai_thresh, cld_idx = cld_idx, maxerr = maxerr,\
-        ##!#        min_cloud = min_cloud, data_type = data_type,\
-        ##!#        filter_bad_vals = filter_bad_vals, \
-        ##!#        return_modis_nsidc = False)
+        estimate_forcing = \
+            calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, \
+                coloc_dict, date_str, minlat = minlat, maxlat = maxlat, \
+                ai_thresh = ai_thresh, cld_idx = cld_idx, maxerr = maxerr,\
+                min_cloud = min_cloud, data_type = data_type,\
+                filter_bad_vals = filter_bad_vals, \
+                reference_ice = reference_ice, \
+                return_modis_nsidc = False)
 
-        ##!## Insert the values into the daily holding array
-        ##!## ----------------------------------------------
-        ##!#daily_force_vals[day_count,:,:] = estimate_forcing[:,:] 
+        # Insert the values into the daily holding array
+        # ----------------------------------------------
+        daily_force_vals[day_count,:,:] = estimate_forcing[:,:] 
 
         # Increment working date
         # ----------------------
@@ -2826,12 +2903,16 @@ def calculate_type_forcing_v3_monthly(OMI_daily_data, OMI_monthly_data, \
         # and move the working date to the next desired month
         # --------------------------------------------------------
         if(new_work_date.month != local_date_str.month):
-            ##!#month_force_vals[month_count,:,:] = np.nanmean(\
-            ##!#    daily_force_vals[:,:,:], axis = 0)
+            month_force_vals[month_count,:,:] = np.nanmean(\
+                daily_force_vals[:,:,:], axis = 0)
             day_count = 0
             month_count += 1            
 
-            new_work_date = new_work_date + relativedelta(months = 11)
+            if(l_all_months):
+                if(new_work_date.month == 10):
+                    new_work_date = new_work_date + relativedelta(months = 6)
+            else:
+                new_work_date = new_work_date + relativedelta(months = 11)
             #new_work_date = datetime.strptime(
             #    OMI_monthly_data['DATES'][month_idx::6][month_count], \
             #    '%Y%m')
@@ -3073,6 +3154,53 @@ def plot_test_forcing_v3(OMI_daily_data, OMI_month_data, date_str, \
         print("Saved image", outname)
     else:
         plt.show()
+
+
+# all_month_values: returned from calculate_type_forcing_v3_monthly with
+# 'all' used in place of the month_idx argument
+# ----------------------------------------------------------------------
+def plot_test_forcing_v3_monthly(all_month_values, OMI_monthly_data, date_str, \
+        minlat = 70., maxlat = 87., ai_thresh = -0.15, \
+        cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw', \
+        save = False, filter_bad_vals = False):
+
+    file_strs = np.array([str(tval) for tval in OMI_monthly_data['DATES']])
+    match_idx = np.where(date_str == file_strs)[0][0]
+    
+    plt.close('all')
+    fig = plt.figure(figsize = (9, 4))
+    ax1 = fig.add_subplot(1,2,1, projection = mapcrs)  # Map of monthy force est
+    ax2 = fig.add_subplot(1,2,2)  # histogram
+
+    max_data = np.max(all_month_values[match_idx,:,:])
+    mesh = ax1.pcolormesh(OMI_monthly_data['LON'], \
+        OMI_monthly_data['LAT'], \
+        all_month_values[match_idx,:,:], shading = 'auto', \
+        transform = datacrs, cmap = 'bwr', vmin = -max_data, vmax = max_data)
+    cbar = fig.colorbar(mesh, ax = ax1, label =  'Monthly Forcing [W/m2]')
+    ax1.set_extent([-180,180,minlat,90], datacrs)
+    ax1.set_boundary(circle, transform=ax1.transAxes)
+    ax1.coastlines()
+
+    ax2.hist(np.ma.masked_where(all_month_values[match_idx,:,:] == 0, \
+        all_month_values[match_idx,:,:]).compressed(), bins = 'auto')
+    #ax6.set_yscale('log')
+    ax2.set_xlabel('Estimated Forcing [W/m2]')
+    ax2.set_ylabel('Counts')
+
+    plt.suptitle(date_str)
+
+    fig.tight_layout()
+    if(save):
+        outname = 'test_calc_forcing_v3_monthly_' + date_str + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+
+
+
 def calculate_type_forcing_old(month_idx, trend_type = 'linear', minlat = 65.):
 
     # Calculate gridded OMI trends
@@ -6106,6 +6234,283 @@ def plot_type_forcing_v2_all_months(OMI_data, NSIDC_data, MYD08_data, \
 
     if(save):
         outname = 'calc_arctic_forcing_v2.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else: 
+        plt.show()
+
+def plot_type_forcing_v3_all_months(all_month_values, OMI_monthly_data, \
+        minlat = 70., maxlat = 87., use_szas = False, \
+        ai_thresh = 0.7, cld_idx = 0, maxerr = 2, \
+        min_cloud = 0.95, data_type = 'raw', trend_type = 'standard', \
+        save = False,debug = False):
+
+    forcing_trends = np.full((6, OMI_monthly_data['LAT'].shape[0], \
+            OMI_monthly_data['LAT'].shape[1]), np.nan)
+    forcing_pval   = np.full((6, OMI_monthly_data['LAT'].shape[0], \
+            OMI_monthly_data['LAT'].shape[1]), np.nan)
+    forcing_uncert = np.full((6, OMI_monthly_data['LAT'].shape[0], \
+            OMI_monthly_data['LAT'].shape[1]), np.nan)
+  
+    for ii in range(6): 
+        # Calculate the trend in the forcings
+        # -----------------------------------
+        forcing_trends[ii,:,:], forcing_pval[ii,:,:], \
+            forcing_uncert[ii,:,:] = calc_forcing_grid_trend(\
+            all_month_values[ii::6,:,:], trend_type)
+
+    plt.close('all')
+    fig = plt.figure(figsize = (9, 10))
+    
+    ax1 = fig.add_subplot(4,3,1, projection = mapcrs)
+    ax2 = fig.add_subplot(4,3,2, projection = mapcrs)
+    ax3 = fig.add_subplot(4,3,3, projection = mapcrs)
+    ax4 = fig.add_subplot(4,3,4, projection = mapcrs)
+    ax5 = fig.add_subplot(4,3,5, projection = mapcrs)
+    ax6 = fig.add_subplot(4,3,6, projection = mapcrs)
+
+    ax7  = fig.add_subplot(4,3,7)
+    ax8  = fig.add_subplot(4,3,8)
+    ax9  = fig.add_subplot(4,3,9)
+    ax10 = fig.add_subplot(4,3,10)
+    ax11 = fig.add_subplot(4,3,11)
+    ax12 = fig.add_subplot(4,3,12)
+   
+    slope_max = 0.8 
+    mesh = ax1.pcolormesh(OMI_monthly_data['LON'], OMI_monthly_data['LAT'], \
+            forcing_trends[0,:,:], transform = datacrs, shading = 'auto', \
+            vmin = -slope_max, vmax = slope_max, cmap = 'bwr')
+    cbar = plt.colorbar(mesh, ax = ax1, label = 'Forcing Trend\n[W/m2/period]')
+    ax1.coastlines()
+    ax1.set_extent([-180,180,minlat,90], datacrs)
+    ax1.set_title('April')   
+    ax1.set_boundary(circle, transform=ax1.transAxes)
+ 
+    mesh = ax2.pcolormesh(OMI_monthly_data['LON'], OMI_monthly_data['LAT'], \
+            forcing_trends[1,:,:], transform = datacrs, shading = 'auto', \
+            vmin = -slope_max, vmax = slope_max, cmap = 'bwr')
+    cbar = plt.colorbar(mesh, ax = ax2, label = 'Forcing Trend\n[W/m2/period]')
+    ax2.coastlines()
+    ax2.set_extent([-180,180,minlat,90], datacrs)
+    ax2.set_title('May')   
+    ax2.set_boundary(circle, transform=ax2.transAxes)
+    
+    mesh = ax3.pcolormesh(OMI_monthly_data['LON'], OMI_monthly_data['LAT'], \
+            forcing_trends[2,:,:], transform = datacrs, shading = 'auto', \
+            vmin = -slope_max, vmax = slope_max, cmap = 'bwr')
+    cbar = plt.colorbar(mesh, ax = ax3, label = 'Forcing Trend\n[W/m2/period]')
+    ax3.coastlines()
+    ax3.set_extent([-180,180,minlat,90], datacrs)
+    ax3.set_title('June')   
+    ax3.set_boundary(circle, transform=ax3.transAxes)
+    
+    mesh = ax4.pcolormesh(OMI_monthly_data['LON'], OMI_monthly_data['LAT'], \
+            forcing_trends[3,:,:], transform = datacrs, shading = 'auto', \
+            vmin = -slope_max, vmax = slope_max, cmap = 'bwr')
+    cbar = plt.colorbar(mesh, ax = ax4, label = 'Forcing Trend\n[W/m2/period]')
+    ax4.coastlines()
+    ax4.set_extent([-180,180,minlat,90], datacrs)
+    ax4.set_title('July')   
+    ax4.set_boundary(circle, transform=ax4.transAxes)
+    
+    mesh = ax5.pcolormesh(OMI_monthly_data['LON'], OMI_monthly_data['LAT'], \
+            forcing_trends[4,:,:], transform = datacrs, shading = 'auto', \
+            vmin = -slope_max, vmax = slope_max, cmap = 'bwr')
+    cbar = plt.colorbar(mesh, ax = ax5, label = 'Forcing Trend\n[W/m2/period]')
+    ax5.coastlines()
+    ax5.set_extent([-180,180,minlat,90], datacrs)
+    ax5.set_title('August')  
+    ax5.set_boundary(circle, transform=ax5.transAxes)
+    
+    mesh = ax6.pcolormesh(OMI_monthly_data['LON'], OMI_monthly_data['LAT'], \
+            forcing_trends[5,:,:], transform = datacrs, shading = 'auto', \
+            vmin = -slope_max, vmax = slope_max, cmap = 'bwr')
+    cbar = plt.colorbar(mesh, ax = ax6, label = 'Forcing Trend\n[W/m2/period]')
+    ax6.coastlines()
+    ax6.set_extent([-180,180,minlat,90], datacrs)
+    ax6.set_title('September')
+    ax6.set_boundary(circle, transform=ax6.transAxes)
+  
+    # Plot line-graph zonal averages
+    # ------------------------------
+ 
+    # Calculate the average of each of the daily standard deviations,
+    # following the methodology I found on :
+    # https://www.statology.org/averaging-standard-deviations/
+    # -----------------------------------------------------------------
+    #out_dict['cld_frac_std'] = \
+    #    np.sqrt((np.sum((all_counts_data - 1) * (all_std_data**2.), \
+    #    axis = 0)) / \
+    #    (np.sum(all_counts_data, axis = 0) - all_counts_data.shape[0]))
+    zonal_avgs = np.nanmean(forcing_trends, axis = 2)
+    zonal_stds = np.nanstd(forcing_trends, axis = 2)
+
+    ax7.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[0])
+    ax7.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[0] + zonal_stds[0], linestyle = '--', color = 'tab:blue')
+    ax7.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[0] - zonal_stds[0], linestyle = '--', color = 'tab:blue')
+    ax7.axhline(0, linestyle = ':', color = 'k')
+    ax7.set_title('April')
+    ax7.set_xlabel('Latitude')    
+    ax7.set_ylabel('Zonal Avg. Forcing Trend')    
+ 
+    ax8.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[1])
+    ax8.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[1] + zonal_stds[1], linestyle = '--', color = 'tab:blue')
+    ax8.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[1] - zonal_stds[1], linestyle = '--', color = 'tab:blue')
+    ax8.axhline(0, linestyle = ':', color = 'k')
+    ax8.set_title('May')
+    ax8.set_xlabel('Latitude')    
+    ax8.set_ylabel('Zonal Avg. Forcing Trend')    
+ 
+    ax9.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[2])
+    ax9.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[2] + zonal_stds[2], linestyle = '--', color = 'tab:blue')
+    ax9.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[2] - zonal_stds[2], linestyle = '--', color = 'tab:blue')
+    ax9.axhline(0, linestyle = ':', color = 'k')
+    ax9.set_title('June')
+    ax9.set_xlabel('Latitude')    
+    ax9.set_ylabel('Zonal Avg. Forcing Trend')    
+ 
+    ax10.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[3])
+    ax10.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[3] + zonal_stds[3], linestyle = '--', color = 'tab:blue')
+    ax10.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[3] - zonal_stds[3], linestyle = '--', color = 'tab:blue')
+    ax10.axhline(0, linestyle = ':', color = 'k')
+    ax10.set_title('July')
+    ax10.set_xlabel('Latitude')    
+    ax10.set_ylabel('Zonal Avg. Forcing Trend')    
+ 
+    ax11.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[4])
+    ax11.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[4] + zonal_stds[4], linestyle = '--', color = 'tab:blue')
+    ax11.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[4] - zonal_stds[4], linestyle = '--', color = 'tab:blue')
+    ax11.axhline(0, linestyle = ':', color = 'k')
+    ax11.set_title('August')
+    ax11.set_xlabel('Latitude')    
+    ax11.set_ylabel('Zonal Avg. Forcing Trend')    
+ 
+    ax12.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[5])
+    ax12.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[5] + zonal_stds[5], linestyle = '--', color = 'tab:blue')
+    ax12.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[5] - zonal_stds[5], linestyle = '--', color = 'tab:blue')
+    ax12.axhline(0, linestyle = ':', color = 'k')
+    ax12.set_title('September')
+    ax12.set_xlabel('Latitude')    
+    ax12.set_ylabel('Zonal Avg. Forcing Trend')    
+
+    min_val = np.min([np.min(ax7.get_ylim()),  np.min(ax8.get_ylim()), \
+              np.min(ax9.get_ylim()),  np.min(ax10.get_ylim()),
+              np.min(ax11.get_ylim()), np.min(ax12.get_ylim())])
+    max_val = np.max([np.max(ax7.get_ylim()),  np.max(ax8.get_ylim()), \
+            np.max(ax9.get_ylim()),  np.max(ax10.get_ylim()),
+            np.max(ax11.get_ylim()), np.max(ax12.get_ylim())])
+
+    rangers = [min_val, max_val]
+    ax7.set_ylim(rangers)
+    ax8.set_ylim(rangers)
+    ax9.set_ylim(rangers)
+    ax10.set_ylim(rangers)
+    ax11.set_ylim(rangers)
+    ax12.set_ylim(rangers)
+
+    plt.suptitle('Forcing Estimate 3:\nDaily-averaged Single Month Based', weight = 'bold', fontsize = 12) 
+    fig.tight_layout()
+
+    if(save):
+        outname = 'calc_arctic_forcing_v3_monthly_' + trend_type + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else: 
+        plt.show()
+
+
+def plot_type_forcing_v3_all_months_arctic_avg(all_month_values, \
+        OMI_monthly_data, \
+        minlat = 70., maxlat = 87., use_szas = False, \
+        ai_thresh = 0.7, cld_idx = 0, maxerr = 2, \
+        min_cloud = 0.95, data_type = 'raw', trend_type = 'standard', \
+        save = False,debug = False):
+
+    # Calculate the monthly averages of the estimated forcings
+    # over the entire Arctic region
+    # --------------------------------------------------------
+    arctic_avgs = np.array([np.nanmean(all_month_values[idx::6,:,:], \
+        axis = (1,2)) for idx in range(6)])
+
+    plt.close('all')
+    fig = plt.figure(figsize = (9, 5))
+    
+    ax1 = fig.add_subplot(2,3,1)
+    ax2 = fig.add_subplot(2,3,2)
+    ax3 = fig.add_subplot(2,3,3)
+    ax4 = fig.add_subplot(2,3,4)
+    ax5 = fig.add_subplot(2,3,5)
+    ax6 = fig.add_subplot(2,3,6)
+  
+    plot_max = np.max(arctic_avgs) + 0.01 
+    plot_min = np.min(arctic_avgs) - 0.01 
+
+    xvals = np.arange(2005, 2021)
+    lwidth = 0.5
+    fsize = 10
+
+    ax1.plot(xvals, arctic_avgs[0])
+    ax1.set_title('April')   
+    ax1.set_ylabel("Avg. Forcing [W/m2]")
+    rvals = plot_trend_line(ax1, xvals, arctic_avgs[0], color='black', \
+        linestyle = '-', linewidth = lwidth, slope = trend_type)
+    ax1.set_ylim(plot_min, plot_max)
+    ptext = 'ΔF$_{aer}$ = '+str(np.round(rvals.slope * len(xvals), 3))
+    plot_figure_text(ax1, ptext, location = 'upper_left', fontsize = fsize)
+ 
+    ax2.plot(xvals, arctic_avgs[1])
+    ax2.set_title('May')   
+    ax2.set_ylabel("Avg. Forcing [W/m2]")
+    rvals = plot_trend_line(ax2, xvals, arctic_avgs[1], color='black', \
+        linestyle = '-', linewidth = lwidth, slope = trend_type)
+    ax2.set_ylim(plot_min, plot_max)
+    ptext = 'ΔF$_{aer}$ = '+str(np.round(rvals.slope * len(xvals), 3))
+    plot_figure_text(ax2, ptext, location = 'upper_left', fontsize = fsize)
+
+    ax3.plot(xvals, arctic_avgs[2])
+    ax3.set_title('June')   
+    ax3.set_ylabel("Avg. Forcing [W/m2]")
+    rvals = plot_trend_line(ax3, xvals, arctic_avgs[2], color='black', \
+        linestyle = '-', linewidth = lwidth, slope = trend_type)
+    ax3.set_ylim(plot_min, plot_max)
+    ptext = 'ΔF$_{aer}$ = '+str(np.round(rvals.slope * len(xvals), 3))
+    plot_figure_text(ax3, ptext, location = 'upper_left', fontsize = fsize)
+
+    ax4.plot(xvals, arctic_avgs[3])
+    ax4.set_title('July')   
+    ax4.set_ylabel("Avg. Forcing [W/m2]")
+    rvals = plot_trend_line(ax4, xvals, arctic_avgs[3], color='black', \
+        linestyle = '-', linewidth = lwidth, slope = trend_type)
+    ax4.set_ylim(plot_min, plot_max)
+    ptext = 'ΔF$_{aer}$ = '+str(np.round(rvals.slope * len(xvals), 3))
+    plot_figure_text(ax4, ptext, location = 'upper_left', fontsize = fsize)
+
+    ax5.plot(xvals, arctic_avgs[4])
+    ax5.set_title('August')   
+    ax5.set_ylabel("Avg. Forcing [W/m2]")
+    rvals = plot_trend_line(ax5, xvals, arctic_avgs[4], color='black', \
+        linestyle = '-', linewidth = lwidth, slope = trend_type)
+    ax5.set_ylim(plot_min, plot_max)
+    ptext = 'ΔF$_{aer}$ = '+str(np.round(rvals.slope * len(xvals), 3))
+    plot_figure_text(ax5, ptext, location = 'upper_left', fontsize = fsize)
+
+    ax6.plot(xvals, arctic_avgs[5])
+    ax6.set_title('September')   
+    ax6.set_ylabel("Avg. Forcing [W/m2]")
+    rvals = plot_trend_line(ax6, xvals, arctic_avgs[5], color='black', \
+        linestyle = '-', linewidth = lwidth, slope = trend_type)
+    ax6.set_ylim(plot_min, plot_max)
+    ptext = 'ΔF$_{aer}$ = '+str(np.round(rvals.slope * len(xvals), 3))
+    plot_figure_text(ax6, ptext, location = 'upper_left', fontsize = fsize)
+
+    plt.suptitle('Forcing Estimate 3:\nDaily-averaged Single Month Based', \
+        weight = 'bold', fontsize = 12) 
+
+    fig.tight_layout()
+
+    if(save):
+        outname = 'calc_arctic_forcing_v3_monthly_arcticavg_' + trend_type + \
+            '.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else: 

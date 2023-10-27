@@ -794,10 +794,90 @@ ai_thresh = 0.05
 #    cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw', \
 #    save = False)
 
-plot_test_forcing_v3(daily_VSJ4, OMI_daily_VSJ4, '20080422', \
-    coloc_dict, minlat = 65., maxlat = 87., ai_thresh = 0.7, \
-    cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw', \
-    save = False, filter_bad_vals = False)
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#
+#                      BEGIN FORCING VERSION 3 STUFF
+#
+# VERSION 3: Individual forcing values are calculated for each Apr-Sep day
+#            from 2005 - 2020, using the daily-gridded shawn OMI data, the
+#            subsetted daily MODIS MYD08 cloud product, and the daily
+#            NSIDC ice concentration data. 
+#
+# plot_test_forcing_v3: calculates the single-day forcing estimate and
+#            plots the estimate for that day.
+#
+# calculate_type_forcing_v3_monthly: calculates the single-day forcing 
+#            estimates and averages them into monthly averages.
+#
+# plot_test_forcing_v3_monthly: Takes the "all_month_vals" daily-gridded
+#           monthy averaged forcing estimates as input and plots a single
+#           month of the data.
+#
+# plot_test_forcing_v3_all_months: Using the "all_month_vals" daily-gridded
+#           monthy averaged forcing estimates, calculates the trends over
+#           the monthly averaged forcing estimates for each month range
+#           and plots the results. 
+# 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+
+# Plot the calculated forcing values for a single day
+# ---------------------------------------------------
+#plot_test_forcing_v3(daily_VSJ4, OMI_daily_VSJ4, '20080422', \
+#    coloc_dict, minlat = 65., maxlat = 87., ai_thresh = 0.7, \
+#    cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw', \
+#    save = False, filter_bad_vals = False)
+
+# Calculate daily forcing values and average the daily values into
+# monthly forcing estimates
+# ----------------------------------------------------------------
+#all_month_vals = calculate_type_forcing_v3_monthly(daily_VSJ4, \
+#    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = 0.7, minlat = 65.)
+
+# Calculate daily forcing values and average the daily values into
+# monthly forcing estimates, but here using the daily ice concentration
+# values from 2005 as a reference. Am using this to try to see how
+# the change in sea ice affects the aerosol forcing. May need to use
+# the average of the first three years of sea ice rather than one
+# year...
+# ----------------------------------------------------------------
+all_month_vals = calculate_type_forcing_v3_monthly(daily_VSJ4, \
+    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = 0.7, minlat = 65., \
+    reference_ice = '2005')
+
+# Write the all_month_vals to an HDF5 file
+# ----------------------------------------
+#write_daily_month_force_to_HDF5(all_month_vals, OMI_daily_VSJ4, \
+#    name_add = '_dayaithresh07')
+
+# Read the all_month_vals to an HDF5 file
+# NOTE: If running any of the following after reading in the all_month_vals
+#       from the HDF5 file, must change the 'all_month_vals' to 
+#       all_month_dict['FORCE_EST']
+# -------------------------------------------------------------------------
+#infile = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07.hdf5'
+##infile = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_refice2005.hdf5'
+#all_month_dict = read_daily_month_force_HDF5(infile)
+
+# Plot the daily-gridded monthly forcing values for a single month
+# ----------------------------------------------------------------
+#plot_type_forcing_v3_monthly(all_month_vals, OMI_daily_VSJ4, '201807', \
+#    minlat = 65, save = False)
+
+# Plot the trend of daily-gridded monthly forcing values
+# ------------------------------------------------------
+#plot_type_forcing_v3_all_months(all_month_vals, OMI_daily_VSJ4, minlat = 65)
+
+# Calculate the Arctic-wide average of the daily-gridded monthly forcing
+# values for each month and plot them
+# ----------------------------------------------------------------------
+#plot_type_forcing_v3_all_months_arctic_avg(all_month_vals, OMI_daily_VSJ4, \
+#    minlat = 65, trend_type = 'standard')
+ 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#
+#                      END FORCING VERSION 3 STUFF
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
 sys.exit()
 #plot_type_forcing_all_months(OMI_data, NSIDC_data, 'average', \
