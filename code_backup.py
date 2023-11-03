@@ -12,24 +12,24 @@ home_dir = os.environ['HOME']
 
 base_dir = home_dir + "/Research/"
 dest_dir = home_dir + "/Arctic_codes/"
-##!## Add new stuff
-##!#os.chdir(dest_dir)
-##!#os.system('git add .')
-##!#
-##!## Determine today's date for the command
-##!#today_str = datetime.today().strftime('%Y/%m/%d')
-##!#cmnd = 'git commit -m \"Backup '+today_str + '\"'
-##!#os.system(cmnd)
-##!#
-##!## Push
-##!#os.system('git push origin master')
-##!#sys.exit()
+##### Add new stuff
+####os.chdir(dest_dir)
+####os.system('git add .')
+####
+##### Determine today's date for the command
+####today_str = datetime.today().strftime('%Y/%m/%d')
+####cmnd = 'git commit -m \"Backup '+today_str + '\"'
+####os.system(cmnd)
+####
+##### Push
+####os.system('git push origin master')
+####sys.exit()
 # ---------------------------------------------------------------------------- 
 # Backup the backup script
 # ---------------------------------------------------------------------------- 
 print("Home directory python codes")
 final_dir = dest_dir 
-cmnd = "ls "+ home_dir + "/*.py | xargs cp -t "+final_dir
+cmnd = "find "+ home_dir + "/*.py | xargs cp -t "+final_dir
 print(cmnd)
 os.system(cmnd)
 
@@ -41,6 +41,20 @@ os.system(cmnd)
 #cmnd = "cp home_dir + /bracketology.py "+dest_dir
 #print(cmnd)
 #os.system(cmnd)
+
+# ---------------------------------------------------------------------------- 
+# Backup the job search stuff
+# ---------------------------------------------------------------------------- 
+print("Job search")
+final_dir = dest_dir + 'job_search/'
+cmnd = "find "+ home_dir + "/miscellaneous/job_search/*.py | xargs cp -t "+final_dir
+print(cmnd)
+os.system(cmnd)
+
+cmnd = "find "+ home_dir + "/miscellaneous/job_search/*.csv | xargs cp -t "+final_dir
+print(cmnd)
+os.system(cmnd)
+
 
 # ---------------------------------------------------------------------------- 
 # Backup CSCI final project stuff

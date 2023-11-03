@@ -1897,13 +1897,13 @@ def process_SBDART_multi_sat_vza_CrIS(date_str, row_str = 'ml', \
         # -------------
         axs[tax[0]].plot(data1_clear1['output']['1']['1']['vza'], \
             data1_clear1['output']['1']['1']['bght_tmp'], \
-            label = 'Clear', color = 'tab:orange')
+            label = 'Clear', color = 'tab:orange', linewidth = 3)
         axs[tax[0]].plot(data1_clear1_wv['output']['1']['1']['vza'], \
             data1_clear1_wv['output']['1']['1']['bght_tmp'], \
-            label = 'Clear w/smoky mixing ratio', color = 'tab:green')
+            label = 'Clear w/smoky mixing ratio', color = 'tab:green', linewidth = 1.5)
         axs[tax[0]].plot(data1_clear1_wv2['output']['1']['1']['vza'], \
             data1_clear1_wv2['output']['1']['1']['bght_tmp'], \
-            label = 'Clear w/2x smoky mixing ratio', color = 'tab:red')
+            label = 'Clear w/2x smoky mixing ratio', color = 'tab:red', linewidth = 1.5)
         axs[tax[0]].plot(data1_smoke['output']['1']['1']['vza'], \
             data1_smoke['output']['1']['1']['bght_tmp'], \
             label = 'Smoky', linestyle = '--', color = 'tab:blue')
@@ -1911,10 +1911,10 @@ def process_SBDART_multi_sat_vza_CrIS(date_str, row_str = 'ml', \
             data1_clear1_sktp['output']['1']['1']['bght_tmp'], \
             label = 'Clear w/smoky sfc temp', \
             linestyle = '--', color = 'tab:purple')
-        axs[tax[0]].plot(data1_clear1_sktp['output']['1']['1']['vza'], \
-            data1_clear1_sktp['output']['1']['1']['bght_tmp'], \
-            label = 'Clear w/smoky skin/air temp', \
-            linestyle = '--', color = 'tab:cyan')
+        ####axs[tax[0]].plot(data1_clear1_sktp['output']['1']['1']['vza'], \
+        ####    data1_clear1_sktp['output']['1']['1']['bght_tmp'], \
+        ####    label = 'Clear w/smoky skin/air temp', \
+        ####    linestyle = '--', color = 'tab:cyan')
         #tax.plot(data1_clear1_wv['output']['2']['1']['vza'], \
         #    data1_clear1_wv['output']['2']['1']['bght_tmp'], \
         #    label = 'Clear w/Smoky wv + 2 g/kg', \

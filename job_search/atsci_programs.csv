@@ -1,0 +1,123 @@
+University,Program ,Meets NWS,Not meet NWS,City,State
+Univ South Alabama,Undergrad Only,x,,Mobile,AL
+"Embry-Riddle (Prescott, AZ)",Undergrad Only,x,,Prescott,AZ
+San Francisco State Univ,Undergrad Only,x,,San Francisco,CA
+Metropolitan State Univ of Denver,Undergrad Only,x,,Denver,CO
+United States Air Force Academy,Undergrad Only,x,,Colorado Springs,CO
+University of Northern Colorado,Undergrad Only,x,,Greeley,CO
+Florida International,Undergrad Only,x,,Miami,FL
+Western Illinois University,Undergrad Only,x,,Macomb,IL
+Ball State University,Undergrad Only,x,,Muncie,IN
+Valparaiso University,Undergrad Only,x,,Valparaiso,IN
+Western Kentucky University,Undergrad Only,x,,Bowling Green,KY
+University of Louisville,Undergrad Only,x,,Louisville,KY
+University of Louisiana-Monroe,Undergrad Only,x,,Monroe,LA
+Central Michigan University,Undergrad Only,x,,Mount Pleasant,MI
+St. Cloud State University,Undergrad Only,x,,St. Cloud,MN
+East Carolina University,Undergrad Only,x,,Greenville,NC
+University of North Carolina - Asheville,Undergrad Only,x,,Asheville,NC
+Kean University (NJ),Undergrad Only,x,,Union,NJ
+SUNY - Brockport,Undergrad Only,x,,Brockport,NY
+SUNY - Oneonta,Undergrad Only,x,,Oneonta,NY
+SUNY - Oswego,Undergrad Only,x,,Oswego,NY
+"Embry-Riddle (Daytona, FL)",Undergrad Only,x,,Daytona,FL
+Ohio University,Undergrad Only,x,,Athens,OH
+California University of Pennsylvania,Undergrad Only,x,,California,PA
+Millersville University,Undergrad Only,x,,Millersville,PA
+College of Charlestown (SC),Undergrad Only,x,,Charleston,SC
+University of Incarnate Word ,Undergrad Only,x,,San Antonio,TX
+Vermont State University - Lyndon,Undergrad Only,x,,Lyndonville,VT
+Virginia Polytechnic Institute and State University,Undergrad Only,x,,Blacksburg,VI
+Northland College (WI),Undergrad Only,x,,Ashland,WI
+Humboldt State University,Undergrad Only,,x,Arcata,CA
+University of Denver (CO),Undergrad Only,,x,Denver,CO
+University of Connecticut,Undergrad Only,,x,Mansfield,CT
+Hawaii-Pacific University,Undergrad Only,,x,Honolulu,HA
+Michigan State University,Undergrad Only,,x,East Lansing,MI
+University of New Hampshire,Undergrad Only,,x,Durham,NH
+SUNY - Buffalo State,Undergrad Only,,x,Buffalo,NY
+SUNY - Maritime College,Undergrad Only,,x,Bronx,NY
+University of Tennessee - Martin,Undergrad Only,,x,Martin,TN
+Arizona State University,Both,x,,Tempe,AZ
+University of Arizona,Both,x,,Tuscon,AZ
+San Jose State University,Both,x,,San Jose,CA
+University of California - Davis,Both,x,,Davis,CA
+University of California - Los Angeles,Both,x,,Los Angeles,CA
+University of Colorado,Both,x,,Boulder,CO
+Western Connecticut State University,Both,x,,Danbury,CT
+Florida Institute of Technology,Both,x,,Melbourne,FL
+Florida State University,Both,x,,Tallahassee,FL
+University of Miami,Both,x,,Miami,FL
+Georgia Instute of Technology,Both,x,,Atlanta,GA
+University of Georgia,Both,x,,Athens,GA
+University of Hawaii - Manoa,Both,x,,Manoa,HA
+Northern Illinois University,Both,x,,DeKalb,IL
+University of Chicago,Both,x,,Chicago,IL
+University of Illinois - Urbana/Champaign,Both,x,,Urbana,IL
+Purdue University,Both,x,,West Lafayette,IN
+Iowa State University,Both,x,,Ames,IA
+University of Kansas,Both,x,,Lawrence,KS
+Johns Hopkins University,Both,x,,Baltimore,MD
+University of Maryland,Both,x,,College Park,MD
+Massachusetts Institute of Technology,Both,x,,Cambridge,MA
+University of Michigan,Both,x,,Ann Arbor,MI
+Jackson State University,Both,x,,Jackson,MS
+Mississippi State University,Both,x,,Starkville,MS
+St. Louis University,Both,x,,St. Louis,MO
+University of Missouri - Columbia,Both,x,,Columbia,MO
+University of Nebraska - Lincoln,Both,x,,Lincoln,NE
+University of Nevada - Reno,Both,x,,Reno,NV
+Plymouth State University,Both,x,,Plymouth,NH
+Rutgers University,Both,x,,New Brunswick,NJ
+North Carolina State University,Both,x,,Raleigh,NC
+University of North Carolina - Charlotte,Both,x,,Charlotte,NC
+Cornell University,Both,x,,Ithaca,NY
+State University of New York - Stony Brook,Both,x,,Stony Brook,NY
+University of Albany,Both,x,,Albany,NY
+University of North Dakota,Both,x,,Grand Forks,ND
+Ohio State University,Both,x,,Columbus,OH
+University of Oklahoma,Both,x,,Norman,OK
+Pennsylvania State University,Both,x,,State College,PA
+South Dakota School of Mines and Technology,Both,x,,Rapid City,SD
+Texas A&M University,Both,x,,College Station,TX
+University of Utah,Both,x,,Salt Lake City,UT
+University of Washington,Both,x,,Seattle,WA
+Howard University,Both,x,,Washington,DC
+University of Wisconsin - Madison,Both,x,,Madison,WI
+University of Wisconsin - Milwaukee,Both,x,,Milwaukee,WI
+University of Alabama - Huntsville,Both,,x,Huntsville,AL
+Stanford University,Both,,x,Stanford,CA
+University of California - Berkeley,Both,,x,Berkeley,CA
+University of Delaware,Both,,x,Newark,DE
+Salisbury University (MD),Both,,x,Salisbury,MD
+University of Massachusetts - Lowell,Both,,x,Lowell,MA
+University of Virginia,Both,,x,Charlottesville,VA
+University of Alaska - Fairbanks,Grad Only,x,,Fairbanks,AK
+Naval Postgraduate School,Grad Only,x,,Monterey,CA
+Scripps Institute of Oceanography,Grad Only,x,,San Diego,CA
+Colorado State University,Grad Only,x,,Fort Collins,CO
+Woods Hole Oceanographic Institute,Grad Only,x,,Falmouth,MA
+Michigan Technical University,Grad Only,x,,Houghton,MI
+University of Minnesota,Grad Only,x,,Minneapolis,MN
+Princeton University,Grad Only,x,,Princeton,NJ
+Columbia University,Grad Only,x,,New York City,NY
+New York University,Grad Only,x,,New York City,NY
+North Carolina AT&T State University,Grad Only,x,,Greensboro,NC
+Oregon State University,Grad Only,x,,Corvallis,OR
+Texas Tech University,Grad Only,x,,Lubbock,TX
+University of Houston,Grad Only,x,,Houston,TX
+Hampton University,Grad Only,x,,Hampton,VA
+University of Wyoming,Grad Only,x,,Laramie,WY
+University of California - Irvine,Grad Only,,x,Irvine,CA
+Yale University,Grad Only,,x,New Haven,CT
+Boise State University,Grad Only,,x,Boise,ID
+University of Iowa ,Grad Only,,x,Iowa City,IA
+Harvard University,Grad Only,,x,Cambridge,MA
+Missouri University of Science and Technology,Grad Only,,x,Rolla,MO
+Drexel University,Grad Only,,x,Philadelphia,PA
+University of Rhode Island,Grad Only,,x,South Kingstown,RI
+Rice University,Grad Only,,x,Houston,TX
+University of Texas - Austin,Grad Only,,x,Austin,TX
+Vanderbilt University,Grad Only,,x,Nashville,TN
+George Mason University,Grad Only,,x,Fairfax,VA
+Old Dominion University,Grad Only,,x,Norfolk,VA

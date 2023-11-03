@@ -9,13 +9,141 @@ import gridCERESLib
 from gridCERESLib import *
 import sys
 
+def local_test_func(infile, data_dt, minlat, maxlat, minlon, maxlon, sizer = 120, \
+        vmin1 = 150, vmax1 = 250, vmin2 = 300, vmax2 = 370):
+
+    str_fmt = "%Y%m%d%H%M"
+    hour_adder = 1
+    hour_subtracter = 0
+
+    dt_data_begin = datetime.strptime(data_dt,str_fmt) \
+        - relativedelta(hours = hour_subtracter)
+    dt_data_end   = datetime.strptime(data_dt,str_fmt) \
+        + relativedelta(hours = hour_adder)
+
+    base_date = datetime(year=1970,month=1,day=1)
+
+    data = Dataset(infile,'r')
+    time  = data.variables['time'][:]
+    if('NOAA20' in infile):
+        lat = data['Time_and_Position/instrument_fov_latitude'][:]
+        lon = data['Time_and_Position/instrument_fov_longitude'][:]
+        sza = data['Viewing_Angles/solar_zenith_angle'][:]
+        vza = data['Viewing_Angles/view_zenith_angle'][:]
+        azm = data['Viewing_Angles/relative_azimuth_angle'][:]
+        lon[lon>179.99] = -360.+lon[lon>179.99]
+        lwf = data['TOA_and_Surface_Fluxes/toa_longwave_flux'][:] 
+        swf = data['TOA_and_Surface_Fluxes/toa_shortwave_flux'][:] 
+    else:
+        lat   = 90. - data.variables['Colatitude_of_CERES_FOV_at_surface'][:]
+        lon   = data.variables['Longitude_of_CERES_FOV_at_surface'][:]
+        sza   = data.variables['CERES_solar_zenith_at_surface'][:]
+        vza   = data.variables['CERES_viewing_zenith_at_surface'][:]
+        azm   = data.variables['CERES_relative_azimuth_at_surface'][:]
+        lon[lon>179.99] = -360.+lon[lon>179.99]
+        lwf  = data.variables['CERES_LW_TOA_flux___upwards'][:]
+        swf  = data.variables['CERES_SW_TOA_flux___upwards'][:]
+
+    data.close()
+    total_times = np.array([base_date + relativedelta(days = ttime) \
+        for ttime in time])
+
+    test_time = total_times[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
+    test_ftim = time[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
+    test_swf  = swf[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
+    test_lwf  = lwf[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
+    test_lat  = lat[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
+    test_lon  = lon[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
+    test_sza  = sza[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
+    test_vza  = vza[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
+    test_azm  = azm[np.where((total_times >= dt_data_begin) & (total_times <= dt_data_end))]
+
+    keep_idxs = np.where( (test_lat >= minlat) & (test_lat <= maxlat) & \
+            (test_lon >= minlon) & (test_lon <= maxlon))
+
+    final_lats = test_lat[keep_idxs]
+    final_lons = test_lon[keep_idxs]
+    final_swfs = test_swf[keep_idxs]
+    final_lwfs = test_lwf[keep_idxs]
+
+    plt.close('all')
+    fig = plt.figure(figsize = (9, 5))
+    ax1 = fig.add_subplot(1,2,1, projection = ccrs.LambertConformal(\
+        central_longitude = (minlon + maxlon) / 2))
+    ax2 = fig.add_subplot(1,2,2, projection = ccrs.LambertConformal(\
+        central_longitude = (minlon + maxlon) / 2))
+
+    scat = ax1.scatter(final_lons, final_lats, c = final_swfs, transform = datacrs, \
+        cmap = 'plasma', s = sizer, vmin = vmin1, vmax = vmax1)
+    cbar = fig.colorbar(scat, ax = ax1)
+    ax1.add_feature(cfeature.STATES)
+    ax1.coastlines()
+    ax1.set_extent([minlon, maxlon, minlat, maxlat], datacrs)
+
+    scat = ax2.scatter(final_lons, final_lats, c = final_lwfs, transform = datacrs, \
+        cmap = 'plasma', s = sizer, vmin = vmin2, vmax = vmax2)
+    cbar = fig.colorbar(scat, ax = ax2)
+    ax2.add_feature(cfeature.STATES)
+    ax2.coastlines()
+    ax2.set_extent([minlon, maxlon, minlat, maxlat], datacrs)
+
+    plt.show()
+    
 #date_str = '2017081421'
-date_str = '2019081023'
-plotCERES_hrly_figure(date_str, 'cld',  \
-    only_sea_ice = False, minlat = 60., \
-    lat_circles = None, grid_data = True, zoom = False, \
-    vmax = None, vmin = None, save = False)
-    #vmax = 450, vmin = None, save = False)
+#date_str = '2019081023'
+####date_str = '2021072309'
+####minlat = 30.0
+###param = 'SWF'
+###date_str = '2021072321'
+###CERES_data_hrly = readgridCERES_hrly_grid(date_str[:10], param, \
+###    satellite = 'NOAA20', minlat = 30.)
+###sys.exit()
+#infile = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/modis_comp/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072208-2021072222.nc'
+#infile = '/home/bsorenson/data/CERES/SSF_Level2/Terra/CERES_SSF_Terra-XTRK_Edition4A_Subset_2021072303-2021072321.nc'
+infile = '/home/bsorenson/data/CERES/SSF_Level2/NOAA20/CERES_SSF_NOAA20-XTRK_Edition1B_Subset_2021072307-2021072323.nc'
+#infile = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/modis_comp/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072309-2021072321.nc'
+
+#date_str = '2021072321'
+#vmin1 = 170
+#vmax1 = 240
+#vmin2 = 300
+#vmax2 = 370
+#sizer = 900
+
+#date_str = '2021072318'
+#date_str = '2021072309'   # Aqua
+#date_str = '2021072306'    # Terra
+date_str = '202107231000'   # NOAA20
+vmin1 = 150
+vmax1 = 250
+vmin2 = 250
+vmax2 = 290
+sizer = 40
+
+
+local_test_func(infile, date_str, 39.5 - 5, 42. + 5, -122. - 10, -119.5 + 20, sizer = sizer, \
+    vmin1 = vmin1, vmax1 = vmax1, vmin2 = vmin2, vmax2 = vmax2)
+
+"""
+tester = readgridCERES_hrly_grid(date_str[:10], 'SWF', satellite = 'Terra', minlat = 30)
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1, projection = ccrs.LambertConformal(central_longitude = -121))
+mesh = ax.pcolormesh(tester['lon'], tester['lat'], tester['lwf'], shading = 'auto', transform = datacrs, cmap = 'plasma', vmin = 270)
+cbar = fig.colorbar(mesh, ax = ax, label = 'TOA LWF [W/m2]')
+ax.set_title('Terra CERES TOA Flux\n23 July 2021 06:00 UTC')
+ax.coastlines()
+ax.add_feature(cfeature.STATES)
+ax.set_extent([-122,-119.5,39.5,42], datacrs)
+fig.tight_layout()
+fig.savefig('ceres_terra_lwf_2021072306.png', dpi = 200)
+plt.show()
+"""
+#plotCERES_hrly_figure(date_str, 'SWF',  \
+#    satellite = 'Terra',
+#    only_sea_ice = False, minlat = 30., \
+#    lat_circles = None, grid_data = True, zoom = False, \
+#    vmax = None, vmin = None, save = False)
+#    #vmax = 450, vmin = None, save = False)
 sys.exit()
 
 

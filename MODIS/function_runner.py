@@ -7,6 +7,10 @@
 
 from MODISLib import *
 
+plot_figure2(save=True, composite = False)
+#plot_combined_figure1_v6(save = True)
+
+sys.exit()
 
 base_date = datetime(2020,9,22)
 end_date  = datetime(2020,9,30)

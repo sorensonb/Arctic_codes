@@ -137,6 +137,25 @@ range_max = 190
 
 date_str = '202107210000'
 variable = 'cross_correlation_ratio'
+radar = 'KBBX'
+azimuth = 38
+plot_NEXRAD_GOES_12panel(date_str, 2, 6, 13, \
+    36, 287, 315,
+    variable = 'composite_reflectivity', \
+    ax = None, ptitle = None, plabel = None, \
+    vmin = -5, vmax = 90, \
+    labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+        alpha = 1.0, mask_outside = True, zoom=True, save=True)
+####plot_NEXRAD_GOES_5panel(date_str, 2, 6, 13, \
+####    variable = 'composite_reflectivity', \
+####    ax = None, ptitle = None, plabel = None, \
+####    vmin = -5, vmax = 90, \
+####    labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+####    alpha = 1.0, mask_outside = True, zoom=True, save=False)
+#plot_NEXRAD_rhi_multipanel(date_str, radar, azimuth, \
+#    angle_idx = 4, range_min = 45, range_max = 120, \
+#    save = False, save_dir = './')
+sys.exit()
 
 radar = 'KBBX'
 range_min = 45

@@ -242,11 +242,11 @@ def init_proj(date_str):
 
     return mapcrs
 
-def plot_point_on_map(pax, plat, plon, markersize = 10, color = None):
+def plot_point_on_map(pax, plat, plon, markersize = 10, color = None, alpha = 1.0):
     pax.plot(plon, plat, linewidth=2, markersize = markersize + 2, marker='.',
-            color = 'black', transform=datacrs)
+            color = 'black', transform=datacrs, alpha = alpha)
     pax.plot(plon, plat, linewidth=2, markersize = markersize, marker='.',
-            transform=datacrs, color = color)
+            transform=datacrs, color = color, alpha = alpha)
 
 def plot_theil_sen_trend(pax, xdata, ydata, color, linestyle, linewidth):
 

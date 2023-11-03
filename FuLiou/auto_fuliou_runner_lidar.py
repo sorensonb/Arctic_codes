@@ -62,7 +62,7 @@ def test_aod_calc(ext_val, aer_id, aot_val, lidar_dz, abf_ids, dust_ids, \
     calc_total_aod = np.sum(spec_aods)
     #calc_total_aod = total_abf_aot + total_dust_aot + total_smoke_aot + total_salt_aot
 
-    calc_caliop_aod = np.sum((ext_val[ii,:][ext_val[ii,:] != -9.]) * 15)
+    calc_caliop_aod = np.sum((ext_val[ii,:][ext_val[ii,:] != -9.]) * lidar_dz)
 
     print('CALIOP AOD:              ',aot_val[ii])
     print('calc AOD from all bins   ',calc_caliop_aod)
@@ -70,10 +70,10 @@ def test_aod_calc(ext_val, aer_id, aot_val, lidar_dz, abf_ids, dust_ids, \
 
     return calc_caliop_aod, calc_total_aod 
 
-def print_profile_info(ii, ext_532, aer_ind):
-    str_fmt = '{0:7.4e} {1:7.4f}'
+def print_profile_info(ii, lidar_z, ext_532, aer_ind):
+    str_fmt = '{0:5d} {1:8.1f} {2:12.4e} {3:5.1f}'
     for jj in range(aer_ind.shape[1]):
-        print(jj, str_fmt.format(ext_532[ii,jj], aer_ind[ii,jj]))
+        print(str_fmt.format(jj, lidar_z[jj], ext_532[ii,jj], aer_ind[ii,jj]))
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
@@ -424,11 +424,12 @@ naaps_smoke_mass = \
 # ---------------------------------------------------------------------------
 ext_532       = hdf_data['532_ext'][:,:] / 1e3
 aot_532       = hdf_data['532_AOT_lo'][:]
+#aot_532_hi    = hdf_data['532_AOT_hi'][:]
 aer_id        = hdf_data['Aerosol_ID'][:,:]
 
 ext_532 = np.ma.where(np.ma.masked_invalid(ext_532).mask == True, \
     0., ext_532)
-
+ext_532 = np.ma.masked_where(ext_532 < 0, ext_532)
 
 # Close the file
 # --------------

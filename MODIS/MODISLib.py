@@ -7746,7 +7746,7 @@ def plot_figure2(modis_ch1 = 'true_color', save=False, composite = True):
     #plot_subplot_label(ax1, '(a)', xval = xval, yval = yval, \
     #    transform = datacrs, backgroundcolor = 'white')
     plot_subplot_label(ax1, '(a)', backgroundcolor = 'white', location = 'upper_left')
-    plot_subplot_label(ax2, '(b)', backgroundcolor = 'white', location = 'upper_upper_left')
+    plot_subplot_label(ax2, '(b)', backgroundcolor = 'white', location = 'upper_right')
 
     fig.tight_layout()
  
@@ -8806,7 +8806,7 @@ def calc_meteogram_climo(training_asos_file, work_stn, save=False):
 # with the "climatological" average from the training period
 # ------------------------------------------------------------
 def plot_asos_diurnal(pax, date_str, work_stn, base_stn, plot_map = False, \
-        save = False):
+        second_xaxis = True, save = False):
     
     dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
     case_str = date_str[:8]
@@ -8965,9 +8965,20 @@ def plot_asos_diurnal(pax, date_str, work_stn, base_stn, plot_map = False, \
     pax.plot(mask_time_times, mask_time_data, color = 'tab:orange', linestyle = '--', label = 'T$_{ ' + work_stn + '}$')
     pax.set_xticks(diff_local_times[::6])
     pax.set_xticklabels(test_strtimes[::6], fontsize = 12)
+    if(second_xaxis):
+        #local = pytz.timezone('America/Los_Angeles')
+        
+        second_dates = np.array([ ttime + timedelta(hours = 7) for ttime in test_times])
+        second_date_strs = np.array([ttime.strftime('%H:%M') for ttime in second_dates])
+        pax2 = pax.twiny()
+        pax2.plot(mask_time_times, mask_time_data, color = 'tab:orange', \
+            linestyle = '--')
+        pax2.set_xticks(diff_local_times[::6])
+        pax2.set_xticklabels(second_date_strs[::6], fontsize = 12)
+        pax2.set_xlabel('Time [UTC]', fontsize = 10, weight = 'bold')
     pax.set_ylabel('2-m Temperature [$^{o}$C]', fontsize = 12, weight = 'bold')
     pax.tick_params(axis='y', labelsize = 12)
-    pax.set_xlabel('Local time [PDT]', fontsize = 12, weight = 'bold')
+    pax.set_xlabel('Time [PDT]', fontsize = 10, weight = 'bold')
     pax.set_title(dt_date_str.strftime('ASOS 2-m Temperatures\n%d %B %Y'), fontsize = 12)
     pax.grid()
     pax.legend()

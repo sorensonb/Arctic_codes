@@ -1129,7 +1129,12 @@ def plot_NEXRAD_GOES_5panel(date_str, ch1, ch2, ch3, \
         halign = 'right')
 
     plt.suptitle(date_str)
-    
+   
+    plot_subplot_label(ax1, '(a)', backgroundcolor = 'white', \
+        fontsize = font_size, location = 'upper_right')
+    plot_subplot_label(ax2, '(b)', backgroundcolor = 'white', \
+        fontsize = font_size)
+
     fig.tight_layout()
 
     del(NEXRAD_dict1)
@@ -1145,6 +1150,207 @@ def plot_NEXRAD_GOES_5panel(date_str, ch1, ch2, ch3, \
     else:
         plt.show()
 
+#def plot_NEXRAD_GOES(NEXRAD_dict, variable, channel, ax = None, \
+def plot_NEXRAD_GOES_12panel(date_str, ch1, ch2, ch3, \
+        azm1, azm2, azm3, 
+        variable = 'composite_reflectivity', \
+        az_tol = 0.8, 
+        ax = None, ptitle = None, plabel = None, \
+        vmin = -5, vmax = 90, \
+        labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+        alpha = 1.0, mask_outside = True, zoom=True, save=False):
+
+    if('/home/bsorenson/Research/GOES' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/GOES')
+    from GOESLib import read_GOES_satpy, plot_GOES_satpy, goes_channel_dict
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+    #dt_date_str = datetime.strptime(NEXRAD_dict['radar_date'],"%Y%m%d%H%M")
+
+    # Read the NEXRAD data
+    # --------------------
+    NEXRAD_dict1 = read_NEXRAD(date_str, 'KBBX', angle = 0)
+    NEXRAD_dict2 = read_NEXRAD(date_str, 'KRGX', angle = 0) 
+
+    # Read the GOES data
+    # ------------------
+    var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel_goes1 = \
+        read_GOES_satpy(date_str, ch1)
+    var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel_goes2 = \
+        read_GOES_satpy(date_str, ch2)
+    var2, crs2, lons2, lats2, lat_lims, lon_lims, plabel_goes3 = \
+        read_GOES_satpy(date_str, ch3)
+
+    labelsize = 10
+    # Set up the figure
+    # -----------------
+    plt.close('all')
+    fig  = plt.figure(figsize = (11, 13))
+    ax1  = fig.add_subplot(4,3,1, projection = crs0) # GOES VIS
+    ax2  = fig.add_subplot(4,3,2, projection = crs0) # GOES SWIR
+    ax3  = fig.add_subplot(4,3,3, projection = crs0) # GOES TIR
+    ax4  = fig.add_subplot(4,3,4, projection = crs0) # KBBX REFL PPI AZM1
+    ax5  = fig.add_subplot(4,3,5)                    # KBBX REFL RHI AZM1
+    ax6  = fig.add_subplot(4,3,6)                    # KBBX  CC  RHI AZM1
+    ax7  = fig.add_subplot(4,3,7, projection = crs0) # KRGX REFL PPI AZM1
+    ax8  = fig.add_subplot(4,3,8)                    # KRGX REFL RHI AZM1
+    ax9  = fig.add_subplot(4,3,9)                    # KRGX  CC  RHI AZM1
+    ax10 = fig.add_subplot(4,3,10, projection = crs0) # KRGX REFL PPI AZM2
+    ax11 = fig.add_subplot(4,3,11)                    # KRGX REFL RHI AZM2
+    ax12 = fig.add_subplot(4,3,12)                    # KRGX  CC  RHI AZM
+
+    plot_GOES_satpy(NEXRAD_dict1['radar_date'], ch1, ax = ax1, var = var0, \
+        crs = crs0, lons = lons0, lats = lats0, lat_lims = lat_lims, \
+        lon_lims = lon_lims, vmin = 0, vmax = 60, ptitle = '', \
+        plabel = plabel_goes1, colorbar = True, labelsize = labelsize + 1, \
+        counties = counties, zoom=True,save=False) 
+    plot_GOES_satpy(NEXRAD_dict1['radar_date'], ch2, ax = ax2, var = var1, \
+        crs = crs1, lons = lons1, lats = lats1, lat_lims = lat_lims, \
+        lon_lims = lon_lims, vmin = 2.5, vmax = 40, ptitle = '', \
+        plabel = plabel_goes2, colorbar = True, labelsize = labelsize + 1, \
+        counties = counties, zoom=True,save=False) 
+    plot_GOES_satpy(NEXRAD_dict1['radar_date'], ch3, ax = ax3, var = var2, \
+        crs = crs2, lons = lons2, lats = lats2, lat_lims = lat_lims, \
+        lon_lims = lon_lims, vmin = 270, vmax = 320, ptitle = '', \
+        plabel = plabel_goes3, colorbar = True, labelsize = labelsize + 1, \
+        counties = counties, zoom=True,save=False) 
+
+    rmin2 = 110
+    rmax2 = 180
+    rmin3 = 110
+    rmax3 = 180
+    plot_azimuth_line(NEXRAD_dict1, azm1, 45, 120, ax1)
+    plot_azimuth_line(NEXRAD_dict2, azm2, rmin2, rmax2, ax1)
+    plot_azimuth_line(NEXRAD_dict2, azm3, rmin3, rmax3, ax1)
+    plot_azimuth_line(NEXRAD_dict1, azm1, 45, 120, ax2)
+    plot_azimuth_line(NEXRAD_dict2, azm2, rmin2, rmax2, ax2)
+    plot_azimuth_line(NEXRAD_dict2, azm3, rmin3, rmax3, ax2)
+    plot_azimuth_line(NEXRAD_dict1, azm1, 45, 120, ax3)
+    plot_azimuth_line(NEXRAD_dict2, azm2, rmin2, rmax2, ax3)
+    plot_azimuth_line(NEXRAD_dict2, azm3, rmin3, rmax3, ax3)
+
+    plot_NEXRAD_ppi(NEXRAD_dict1, variable, ax = ax4, angle = 0, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = None)
+    plot_azimuth_line(NEXRAD_dict1, azm1, 45, 120, ax4)
+    plot_my_rhi(NEXRAD_dict1, 'reflectivity', azm1, \
+            az_tol = az_tol, vmin = None, vmax = None, \
+            range_min = 45, range_max = 120,\
+            ax = ax5)
+    plot_my_rhi(NEXRAD_dict1, 'cross_correlation_ratio', azm1, \
+            az_tol = az_tol, vmin = None, vmax = None, \
+            range_min = 45, range_max = 120,\
+            ax = ax6)
+
+
+    plot_NEXRAD_ppi(NEXRAD_dict2, variable, ax = ax7, angle = 0, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = None)
+        #mask_outside = mask_outside, crs = crs0)
+    plot_azimuth_line(NEXRAD_dict2, azm2, rmin2, rmax2, ax7)
+    plot_my_rhi(NEXRAD_dict2, 'reflectivity', azm2, \
+            az_tol = az_tol, vmin = None, vmax = None, \
+            range_min = rmin2, range_max = rmax2,\
+            ax = ax8)
+    plot_my_rhi(NEXRAD_dict2, 'cross_correlation_ratio', azm2, \
+            az_tol = az_tol, vmin = None, vmax = None, \
+            range_min = rmin2, range_max = rmax2,\
+            ax = ax9)
+
+
+    plot_NEXRAD_ppi(NEXRAD_dict2, variable, ax = ax10, angle = 0, \
+        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+        mask_outside = mask_outside, crs = None)
+    plot_azimuth_line(NEXRAD_dict2, azm3, rmin3, rmax3, ax10)
+    plot_my_rhi(NEXRAD_dict2, 'reflectivity', azm3, \
+            az_tol = az_tol, vmin = None, vmax = None, \
+            range_min = rmin3, range_max = rmax3,\
+            ax = ax11)
+    plot_my_rhi(NEXRAD_dict2, 'cross_correlation_ratio', azm3, \
+            az_tol = az_tol, vmin = None, vmax = None, \
+            range_min = rmin3, range_max = rmax3,\
+            ax = ax12)
+
+    font_size = 10
+    plot_figure_text(ax1, \
+        str(goes_channel_dict[str(ch1)]['wavelength']) + ' μm', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+    plot_figure_text(ax2, \
+        str(goes_channel_dict[str(ch2)]['wavelength']) + ' μm', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+    plot_figure_text(ax3, \
+        str(goes_channel_dict[str(ch3)]['wavelength']) + ' μm', \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        halign = 'right')
+
+    plot_subplot_label(ax1, '(a)', backgroundcolor = 'white', \
+        fontsize = font_size, location = 'upper_left')
+    plot_subplot_label(ax2, '(b)', backgroundcolor = 'white', \
+        fontsize = font_size, location = 'upper_left')
+    plot_subplot_label(ax3, '(c)', backgroundcolor = 'white', \
+        fontsize = font_size, location = 'upper_left')
+    plot_subplot_label(ax4, '(d)', backgroundcolor = 'white', \
+        fontsize = font_size, location = 'upper_left')
+    plot_subplot_label(ax5, '(e)', backgroundcolor = 'white', \
+        fontsize = font_size, location = 'upper_left')
+    plot_subplot_label(ax6, '(f)', backgroundcolor = 'white', \
+        fontsize = font_size, location = 'upper_left')
+    plot_subplot_label(ax7, '(g)', backgroundcolor = 'white', \
+        fontsize = font_size, location = 'upper_left')
+    plot_subplot_label(ax8, '(h)', backgroundcolor = 'white', \
+        fontsize = font_size, location = 'upper_left')
+    plot_subplot_label(ax9, '(i)', backgroundcolor = 'white', \
+        fontsize = font_size, location = 'upper_left')
+    plot_subplot_label(ax10, '(j)', backgroundcolor = 'white', \
+        fontsize = font_size, location = 'upper_left')
+    plot_subplot_label(ax11, '(k)', backgroundcolor = 'white', \
+        fontsize = font_size, location = 'upper_left')
+    plot_subplot_label(ax12, '(l)', backgroundcolor = 'white', \
+        fontsize = font_size, location = 'upper_left')
+
+    plt.suptitle(date_str)
+    
+    fig.tight_layout()
+
+    del(NEXRAD_dict1)
+    del(NEXRAD_dict2)
+    del(var0)
+    del(var1)
+    del(var2)
+
+    if(save):
+        outname = 'nexrad_goes_12panel_KBBX_KRGX_' + date_str + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+def plot_azimuth_line(NEXRAD_dict, azimuth, range_min, range_max, ax, \
+        base_linewidth = 2.5, markersize = 2.0, marker = 'o', color = 'red'):
+
+    xsect = pyart.util.cross_section_ppi(NEXRAD_dict['radar'], [azimuth])
+    test_lats = xsect.gate_latitude['data'][0][::30]
+    test_lons = xsect.gate_longitude['data'][0][::30]
+    radar_lat = xsect.latitude['data'][0]
+    radar_lon = xsect.longitude['data'][0]
+    
+    dists = np.array([find_distance_between_points(radar_lat, radar_lon, xx, yy) for xx, yy in zip(test_lats, test_lons)])
+    keep_idxs = np.where( (dists >= range_min) & (dists <= range_max) )[0]
+    lat1 = test_lats[keep_idxs[0]]
+    lon1 = test_lons[keep_idxs[0]]
+    lat2 = test_lats[keep_idxs[-1]]
+    lon2 = test_lons[keep_idxs[-1]]
+    
+    ax.plot([lon1, lon2], [lat1, lat2], transform = datacrs, \
+        linewidth = base_linewidth, markersize = markersize, \
+        marker = marker, color = 'k')
+    ax.plot([lon1, lon2], [lat1, lat2], transform = datacrs, \
+        linewidth = base_linewidth - 1.5, markersize = markersize - 0.5, \
+        marker = marker, color = color)
 
 def plot_NEXRAD_rhi_multipanel(date_str, radar, azimuth, \
         angle_idx = 0, range_min = 0, range_max = 150, \
@@ -1195,25 +1401,22 @@ def plot_NEXRAD_rhi_multipanel(date_str, radar, azimuth, \
         vmin = None, vmax = None, range_min = range_min, \
         range_max = range_max, ax = ax9)
     
-    xsect = pyart.util.cross_section_ppi(NEXRAD_dict['radar'], [azimuth])
-    test_lats = xsect.gate_latitude['data'][0][::30]
-    test_lons = xsect.gate_longitude['data'][0][::30]
-    radar_lat = xsect.latitude['data'][0]
-    radar_lon = xsect.longitude['data'][0]
+    ##!#xsect = pyart.util.cross_section_ppi(NEXRAD_dict['radar'], [azimuth])
+    ##!#test_lats = xsect.gate_latitude['data'][0][::30]
+    ##!#test_lons = xsect.gate_longitude['data'][0][::30]
+    ##!#radar_lat = xsect.latitude['data'][0]
+    ##!#radar_lon = xsect.longitude['data'][0]
+    ##!#
+    ##!#dists = np.array([find_distance_between_points(radar_lat, radar_lon, xx, yy) for xx, yy in zip(test_lats, test_lons)])
+    ##!#keep_idxs = np.where( (dists >= range_min) & (dists <= range_max) )[0]
+    ##!#lat1 = test_lats[keep_idxs[0]]
+    ##!#lon1 = test_lons[keep_idxs[0]]
+    ##!#lat2 = test_lats[keep_idxs[-1]]
+    ##!#lon2 = test_lons[keep_idxs[-1]]
     
-    dists = np.array([find_distance_between_points(radar_lat, radar_lon, xx, yy) for xx, yy in zip(test_lats, test_lons)])
-    keep_idxs = np.where( (dists >= range_min) & (dists <= range_max) )[0]
-    lat1 = test_lats[keep_idxs[0]]
-    lon1 = test_lons[keep_idxs[0]]
-    lat2 = test_lats[keep_idxs[-1]]
-    lon2 = test_lons[keep_idxs[-1]]
-    
-    ax1.plot([lon1, lon2], [lat1, lat2], transform = datacrs, linewidth = 2.5, markersize = 2.0, marker = 'o', color = 'k')
-    ax1.plot([lon1, lon2], [lat1, lat2], transform = datacrs, linewidth = 1, markersize = 1.5, marker = 'o', color = 'tab:red')
-    ax2.plot([lon1, lon2], [lat1, lat2], transform = datacrs, linewidth = 2.5, markersize = 2.0, marker = 'o', color = 'k')
-    ax2.plot([lon1, lon2], [lat1, lat2], transform = datacrs, linewidth = 1, markersize = 1.5, marker = 'o', color = 'tab:red')
-    ax3.plot([lon1, lon2], [lat1, lat2], transform = datacrs, linewidth = 2.5, markersize = 2.0, marker = 'o', color = 'k')
-    ax3.plot([lon1, lon2], [lat1, lat2], transform = datacrs, linewidth = 1, markersize = 1.5, marker = 'o', color = 'tab:red')
+    plot_azimuth_line(NEXRAD_dict, azimuth, range_min, range_max, ax1)
+    plot_azimuth_line(NEXRAD_dict, azimuth, range_min, range_max, ax2)
+    plot_azimuth_line(NEXRAD_dict, azimuth, range_min, range_max, ax3)
     
     fig.tight_layout()
 
