@@ -334,7 +334,7 @@ def plot_VIIRS_granule(VIIRS_data, ax = None, labelsize = 12, \
     cbar = plt.colorbar(mesh, ax = ax, orientation='vertical',\
         pad=0.03, shrink = 0.85, extend = 'both')
 
-    cbar.set_label(VIIRS_data['label'], size = labelsize, weight = 'bold')
+    cbar.set_label(VIIRS_data['label'], size = labelsize)
     cbar.ax.tick_params(labelsize = labelticksize)
     ax.set_title(VIIRS_data['dtype'])
 

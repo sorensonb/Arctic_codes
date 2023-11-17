@@ -1143,7 +1143,7 @@ cmap_dict = {
 # - 7.34  (band 10, Lower-Level Water Vapor)
 # - 10.35 (band 13, Clean IR Longwave Window)
 def read_GOES_satpy(date_str, channel, scene_date = None, \
-        calibration = None, sat = 'goes17', zoom = True):
+        calibration = None, sat = 'goes17', zoom = True, return_xy = False):
 
     data_dir = home_dir + '/data/GOES/' + sat + '_abi/'
 
@@ -1243,24 +1243,40 @@ def read_GOES_satpy(date_str, channel, scene_date = None, \
         units = ''
         plabel = ''
 
-    del scn 
+    if(return_xy):
 
-    return var, crs, lons, lats, lat_lims, lon_lims, plabel
+        y = scn[channel].y 
+        x = scn[channel].x 
+        del scn 
+        return var, crs, lons, lats, lat_lims, lon_lims, plabel, x, y
+    else:
+        del scn 
+        return var, crs, lons, lats, lat_lims, lon_lims, plabel
     #return var, crs, lat_lims, lon_lims
 
 # channel must be an integer between 1 and 16
 def plot_GOES_satpy(date_str, channel, ax = None, var = None, crs = None, \
         lons = None, lats = None, lat_lims = None, lon_lims = None, \
-        vmin = None, vmax = None, ptitle = None, plabel = None, \
+        xx = None, yy = None,
+        vmin = None, vmax = None, sat = 'goes17', \
+        ptitle = None, plabel = None, \
         calibration = None, labelsize = 10, \
         colorbar = True, counties = False, zoom=True,\
+        use_xy = False, 
         save=False):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
 
     if(var is None): 
-        var, crs, lons, lats, lat_lims, lon_lims, plabel = \
-            read_GOES_satpy(date_str, channel, calibration = calibration)
+        if(use_xy):
+            var, crs, lons, lats, lat_lims, lon_lims, plabel, xx, yy = \
+                read_GOES_satpy(date_str, channel, calibration = calibration, \
+                sat = sat, zoom = False, return_xy = True)
+        else:
+            var, crs, lons, lats, lat_lims, lon_lims, plabel = \
+                read_GOES_satpy(date_str, channel, calibration = calibration,\
+                    sat = sat)
+
 
     # Plot the GOES data
     # ------------------
@@ -1268,17 +1284,28 @@ def plot_GOES_satpy(date_str, channel, ax = None, var = None, crs = None, \
     if(ax is None):
         in_ax = False
         plt.close('all')
-        ax = plt.axes(projection=crs)
+        fig = plt.figure()
+        if(use_xy):
+            mapcrs = init_proj('202107222110')
+            ax = fig.add_subplot(1,1,1, projection=mapcrs)
+        else:
+            ax = fig.add_subplot(1,1,1, projection=crs)
 
     if(channel == 'true_color'):
         ax.imshow(var.data, transform = crs, extent=(var.x[0], var.x[-1], \
             var.y[-1], var.y[0]), vmin = vmin, vmax = vmax, origin='upper')
     else:
-        #im1 = ax.imshow(var, transform = crs, vmin = vmin, vmax = vmax, \
-        im1 = ax.pcolormesh(lons, lats, var, transform = datacrs, \
-            vmin = vmin, vmax = vmax, \
-            cmap = cmap_dict[goes_channel_dict[str(channel)]['wavelength']], \
-            shading = 'auto')
+        if(use_xy):
+            im1 = ax.pcolormesh(xx, yy, var, transform = crs, \
+                vmin = vmin, vmax = vmax, \
+                cmap = cmap_dict[goes_channel_dict[str(channel)]['wavelength']], \
+                shading = 'auto')
+        else:
+            #im1 = ax.imshow(var, transform = crs, vmin = vmin, vmax = vmax, \
+            im1 = ax.pcolormesh(lons, lats, var, transform = datacrs, \
+                vmin = vmin, vmax = vmax, \
+                cmap = cmap_dict[goes_channel_dict[str(channel)]['wavelength']], \
+                shading = 'auto')
         if(colorbar):
             cbar = plt.colorbar(im1, ax = ax, pad = 0.03, fraction = 0.052, \
                 extend = 'both')
@@ -1291,8 +1318,10 @@ def plot_GOES_satpy(date_str, channel, ax = None, var = None, crs = None, \
     # Zoom in the figure if desired
     # -----------------------------
     if(zoom):
-    ##!#    ax.set_extent([lon_lims[0]+0.55,lon_lims[1]-0.6,lat_lims[0],lat_lims[1]],\
-    ##!#                   crs = ccrs.PlateCarree())
+        ax.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+                       crs = ccrs.PlateCarree())
+        #ax.set_extent([lon_lims[0]+0.55,lon_lims[1]-0.6,lat_lims[0],lat_lims[1]],\
+        #               crs = ccrs.PlateCarree())
         zoom_add = '_zoom'
     else:
         zoom_add = ''
@@ -1303,17 +1332,19 @@ def plot_GOES_satpy(date_str, channel, ax = None, var = None, crs = None, \
     ##!#ax.add_feature(cfeature.STATES)
     ##!#ax.add_feature(cfeature.BORDERS)
     if(ptitle is None):
+        title_adder = 'GOES-' + sat[4:]
         if(channel == 'true_color'):
-            ax.set_title('GOES-17 True Color\n' + \
+            ax.set_title(title_adder + ' True Color\n' + \
                 dt_date_str.strftime('%Y-%m-%d %H:%M UTC'))
         else:
-            ax.set_title('GOES-17 ' + \
+            ax.set_title(title_adder + ' ' + \
                 str(np.round(goes_channel_dict[str(channel)]['wavelength'],2)) \
                 + ' μm\n' + dt_date_str.strftime('%Y-%m-%d %H:%M UTC'))
     else:
         ax.set_title(ptitle)
 
     if(not in_ax): 
+        fig.tight_layout()
         if(save):
             outname = 'goes_ch' + str(channel) +'_'+ date_str + zoom_add + '.png'
             plt.savefig(outname,dpi=300)
@@ -1341,10 +1372,10 @@ def plot_GOES_satpy(date_str, channel, ax = None, var = None, crs = None, \
 # This function gets the GOES data from a higher-resolution channel
 # and co-locates it with data from a lower-resolution channel.
 def get_GOES_data_lat_lon(date_str, dlat, dlon, channel, version = 0,\
-        verbose = False):
+        verbose = False, sat = 'goes17'):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
-    var0, _, lons0, lats0, _, _, _ = read_GOES_satpy(date_str, channel)
+    var0, _, lons0, lats0, _, _, _ = read_GOES_satpy(date_str, channel, sat = sat)
 
     #cd_idx = nearest_gridpoint(dlat, dlon,lats0, lons0)
     #goes_val = np.array(var0)[cd_idx]
@@ -1434,22 +1465,23 @@ def plot_GOES_satpy_5panel(date_str, ch1, ch2, ch3, ch4, ch5, \
 
     plt.close('all')
     fig1 = plt.figure(figsize = (10,6))
-    var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel0 = read_GOES_satpy(date_str, ch1, sat = sat)
-    var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel1 = read_GOES_satpy(date_str, ch2, sat = sat)
-    var2, crs2, lons2, lats2, lat_lims, lon_lims, plabel2 = read_GOES_satpy(date_str, ch3, sat = sat)
-    var3, crs3, lons3, lats3, lat_lims, lon_lims, plabel3 = read_GOES_satpy(date_str, ch4, sat = sat)
-    var4, crs4, lons4, lats4, lat_lims, lon_lims, plabel4 = read_GOES_satpy(date_str, ch5, sat = sat)
+    var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel0, xx0, yy0 = read_GOES_satpy(date_str, ch1, sat = sat, return_xy = True, zoom = False)
+    var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel1, xx1, yy1 = read_GOES_satpy(date_str, ch2, sat = sat, return_xy = True, zoom = False)
+    var2, crs2, lons2, lats2, lat_lims, lon_lims, plabel2, xx2, yy2 = read_GOES_satpy(date_str, ch3, sat = sat, return_xy = True, zoom = False)
+    var3, crs3, lons3, lats3, lat_lims, lon_lims, plabel3, xx3, yy3 = read_GOES_satpy(date_str, ch4, sat = sat, return_xy = True, zoom = False)
+    var4, crs4, lons4, lats4, lat_lims, lon_lims, plabel4, xx4, yy4 = read_GOES_satpy(date_str, ch5, sat = sat, return_xy = True, zoom = False)
 
     # Set up the gridspec
     gs    = fig1.add_gridspec(nrows = 8, ncols = 12)
-    ax0   = fig1.add_subplot(gs[0:4,2:6],  projection = crs0)   # GOES True color
-    ax1   = fig1.add_subplot(gs[0:4,6:10], projection = crs1)   # GOES TIR
-    ax2   = fig1.add_subplot(gs[4:8,0:4],  projection = crs2)   # GOES UP WV
-    ax3   = fig1.add_subplot(gs[4:8,4:8],  projection = crs3)   # GOES MD WV
-    ax4   = fig1.add_subplot(gs[4:8,8:12], projection = crs4)   # GOES LL WV
+    mapcrs = init_proj('202107222110')
+    ax0   = fig1.add_subplot(gs[0:4,2:6],  projection = mapcrs)   # GOES True color
+    ax1   = fig1.add_subplot(gs[0:4,6:10], projection = mapcrs)   # GOES TIR
+    ax2   = fig1.add_subplot(gs[4:8,0:4],  projection = mapcrs)   # GOES UP WV
+    ax3   = fig1.add_subplot(gs[4:8,4:8],  projection = mapcrs)   # GOES MD WV
+    ax4   = fig1.add_subplot(gs[4:8,8:12], projection = mapcrs)   # GOES LL WV
 
     min_dict = {
-        2: 5,
+        2: 0,
         6: 0,
         8: 240, 
         9: 248, 
@@ -1457,7 +1489,7 @@ def plot_GOES_satpy_5panel(date_str, ch1, ch2, ch3, ch4, ch5, \
         13: 270,
     }
     max_dict = {
-        2: 80,
+        2: 60,
         6: 40, 
         8: 245, 
         9: 255, 
@@ -1472,29 +1504,35 @@ def plot_GOES_satpy_5panel(date_str, ch1, ch2, ch3, ch4, ch5, \
     if(ch1 == 'true_color'):
         plot_GOES_satpy(date_str, ch1, ax = ax0, var = var0, crs = crs0, \
             lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
+            xx = xx0, yy = yy0, 
             ptitle = '', plabel = plabel0, \
-            colorbar = True, labelsize = labelsize, zoom=True,save=False)
+            colorbar = True, labelsize = labelsize, zoom=True,save=False, use_xy = True)
     else:
         plot_GOES_satpy(date_str, ch1, ax = ax0, var = var0, crs = crs0, \
             lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
+            xx = xx0, yy = yy0, 
             vmin = min_dict[ch1], vmax = max_dict[ch1], ptitle = '', plabel = plabel0, \
-            colorbar = True, labelsize = labelsize, zoom=True,save=False)
+            colorbar = True, labelsize = labelsize, zoom=True,save=False, use_xy = True)
     plot_GOES_satpy(date_str, ch2, ax = ax1, var = var1, crs = crs0, \
         lons = lons1, lats = lats1, lat_lims = lat_lims, lon_lims = lon_lims, \
+            xx = xx1, yy = yy1, 
         vmin = min_dict[ch2], vmax = max_dict[ch2], ptitle = '', plabel = plabel1, \
-        colorbar = True, labelsize = labelsize , zoom=True,save=False)
+        colorbar = True, labelsize = labelsize , zoom=True,save=False, use_xy = True)
     plot_GOES_satpy(date_str, ch3, ax = ax2, var = var2, crs = crs0, \
         lons = lons2, lats = lats2, lat_lims = lat_lims, lon_lims = lon_lims, \
+            xx = xx2, yy = yy2, 
         vmin = min_dict[ch3], vmax = max_dict[ch3], ptitle = '', plabel = plabel2, \
-        colorbar = True, labelsize = labelsize, zoom=True,save=False)
+        colorbar = True, labelsize = labelsize, zoom=True,save=False, use_xy = True)
     plot_GOES_satpy(date_str, ch4, ax = ax3, var = var3, crs = crs0, \
         lons = lons3, lats = lats3, lat_lims = lat_lims, lon_lims = lon_lims, \
+            xx = xx3, yy = yy3, 
         vmin = min_dict[ch4], vmax = max_dict[ch4], ptitle = '', plabel = plabel3, \
-        colorbar = True, labelsize = labelsize, zoom=True,save=False)
+        colorbar = True, labelsize = labelsize, zoom=True,save=False, use_xy = True)
     plot_GOES_satpy(date_str, ch5, ax = ax4, var = var4, crs = crs0, \
         lons = lons4, lats = lats4, lat_lims = lat_lims, lon_lims = lon_lims, \
+            xx = xx4, yy = yy4, 
         vmin = min_dict[ch5], vmax = max_dict[ch5], ptitle = '', plabel = plabel4, \
-        colorbar = True, labelsize = labelsize, zoom=True,save=False)
+        colorbar = True, labelsize = labelsize, zoom=True,save=False, use_xy = True)
 
     #smoke_lat = cris_loc_dict[row_str]['smoke_lat']
     #smoke_lon = cris_loc_dict[row_str]['smoke_lon']
@@ -1507,6 +1545,9 @@ def plot_GOES_satpy_5panel(date_str, ch1, ch2, ch3, ch4, ch5, \
     clear_lon1 = -120.5644
 
     point_size = 7
+    plot_point_on_map(ax0, smoke_lat, smoke_lon, markersize = point_size)
+    plot_point_on_map(ax0, clear_lat1, clear_lon1, markersize = point_size)
+
     plot_point_on_map(ax1, smoke_lat, smoke_lon, markersize = point_size)
     plot_point_on_map(ax1, clear_lat1, clear_lon1, markersize = point_size)
     sw_idx_s = nearest_gridpoint(smoke_lat, smoke_lon, lats1, lons1)
@@ -1549,12 +1590,12 @@ def plot_GOES_satpy_5panel(date_str, ch1, ch2, ch3, ch4, ch5, \
             str(goes_channel_dict[str(ch1)]['wavelength']) + ' μm', \
             xval = None, yval = None, transform = None, \
             color = 'red', fontsize = font_size, backgroundcolor = 'white', \
-            halign = 'right')
+            halign = 'right', weight = 'bold')
         plot_figure_text(ax0, \
             str(goes_channel_dict[str(ch1)]['short_name']), \
             xval = None, yval = None, transform = None, \
             color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
-            location = 'upper_right', halign = 'right')
+            location = 'upper_right', halign = 'right', weight = 'bold')
 
     # 2nd channel
     # -----------
@@ -1562,48 +1603,48 @@ def plot_GOES_satpy_5panel(date_str, ch1, ch2, ch3, ch4, ch5, \
         str(goes_channel_dict[str(ch2)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
-        halign = 'right')
+        halign = 'right', weight = 'bold')
     plot_figure_text(ax1, \
         str(goes_channel_dict[str(ch2)]['short_name']), \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
-        location = 'upper_right', halign = 'right')
+        location = 'upper_right', halign = 'right', weight = 'bold')
     # 3rd channel
     # -----------
     plot_figure_text(ax2, \
         str(goes_channel_dict[str(ch3)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
-        halign = 'right')
+        halign = 'right', weight = 'bold')
     plot_figure_text(ax2, \
         str(goes_channel_dict[str(ch3)]['short_name']), \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
-        location = 'upper_right', halign = 'right')
+        location = 'upper_right', halign = 'right', weight = 'bold')
     # 4th channel
     # -----------
     plot_figure_text(ax3, \
         str(goes_channel_dict[str(ch4)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
-        halign = 'right')
+        halign = 'right', weight = 'bold')
     plot_figure_text(ax3, \
         str(goes_channel_dict[str(ch4)]['short_name']), \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
-        location = 'upper_right', halign = 'right')
+        location = 'upper_right', halign = 'right', weight = 'bold')
     # 5th channel
     # -----------
     plot_figure_text(ax4, \
         str(goes_channel_dict[str(ch5)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
-        halign = 'right')
+        halign = 'right', weight = 'bold')
     plot_figure_text(ax4, \
         str(goes_channel_dict[str(ch5)]['short_name']), \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
-        location = 'upper_right', halign = 'right')
+        location = 'upper_right', halign = 'right', weight = 'bold')
 
     plot_subplot_label(ax0,  '(a)', backgroundcolor = 'white', fontsize = font_size)
     plot_subplot_label(ax1,  '(b)', backgroundcolor = 'white', fontsize = font_size)
@@ -1622,7 +1663,7 @@ def plot_GOES_satpy_5panel(date_str, ch1, ch2, ch3, ch4, ch5, \
     fig1.tight_layout()
 
     if(save):
-        outname = save_dir + sat + '_'+date_str+'_5panel.png'
+        outname = save_dir + sat + '_'+date_str+'_5panel_v2.png'
         fig1.savefig(outname, dpi = 300)
         print('Saved image', outname)
     else:
@@ -2173,9 +2214,13 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
     # Read the GOES time series data
     # ------------------------------
     file_name1 = home_dir + '/Research/GOES/goes_cross_data_' + \
-        ttype1 + '_202107201201_202107210331.nc'
+        ttype1 + '_202107201201_202107210331_v3.nc'
     file_name2 = home_dir + '/Research/GOES/goes_cross_data_' + \
-        ttype2 + '_202107201201_202107210331.nc'
+        ttype2 + '_202107201201_202107210331_v3.nc'
+    #file_name1 = home_dir + '/Research/GOES/goes_cross_data_' + \
+    #    ttype1 + '_202107201201_202107210331.nc'
+    #file_name2 = home_dir + '/Research/GOES/goes_cross_data_' + \
+    #    ttype2 + '_202107201201_202107210331.nc'
     GOES_dict  = read_GOES_time_series_NCDF(file_name1)
     GOES_dict2 = read_GOES_time_series_NCDF(file_name2)
 
@@ -2374,9 +2419,9 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
     ax10.set_ylabel('Reflectance [%]', weight = 'bold')
     ax102.set_ylabel('Brightness Temperature [K]', weight = 'bold')
     ax10.grid()
-    ax10.xaxis.set_major_formatter(DateFormatter('%m/%d\n%H:%MZ'))
-    ax10.axvline(dt_date_str2, color = 'black', linestyle = ':')
-    ax10.tick_params(axis="x", labelsize = font_size + 1)
+    ax10.xaxis.set_major_formatter(DateFormatter('%m/%d\n%H:%M UTC'))
+    #ax10.axvline(dt_date_str2, color = 'black', linestyle = ':')
+    ax10.tick_params(axis="x", labelsize = font_size)
 
     ##!#labs = [l.get_label() for l in lns]
 
@@ -2403,29 +2448,29 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
     # Add plot text
     # -------------
     plot_figure_text(ax4, 'True Color' , color = 'red', \
-        fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+        fontsize = font_size, backgroundcolor = 'white', halign = 'right', weight = 'bold')
     plot_figure_text(ax5, \
         str(goes_channel_dict[str(goes_ch2)]['wavelength']) \
         + ' μm', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right', weight = 'bold')
     #plot_figure_text(ax5, 'GOES-17 2.25 μm', xval = None, yval = None, transform = None, \
     #    color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
     plot_figure_text(ax6, \
         str(goes_channel_dict[str(goes_ch3)]['wavelength']) \
         + ' μm', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right', weight = 'bold')
     plot_figure_text(ax7, \
         str(goes_channel_dict[str(goes_ch4)]['wavelength']) \
         + ' μm', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right', weight = 'bold')
     plot_figure_text(ax8, \
         str(goes_channel_dict[str(goes_ch5)]['wavelength']) \
         + ' μm', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right', weight = 'bold')
     plot_figure_text(ax9, \
         str(goes_channel_dict[str(goes_ch6)]['wavelength']) \
         + ' μm', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right', weight = 'bold')
 
     # Add text labels to the GOES-17 imagery
     # --------------------------------------
@@ -2433,27 +2478,27 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
         str(goes_channel_dict[str(goes_ch2)]['short_name']), \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
-        location = 'upper_right', halign = 'right')
+        location = 'upper_right', halign = 'right', weight = 'bold')
     plot_figure_text(ax6, \
         str(goes_channel_dict[str(goes_ch3)]['short_name']), \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
-        location = 'upper_right', halign = 'right')
+        location = 'upper_right', halign = 'right', weight = 'bold')
     plot_figure_text(ax7, \
         str(goes_channel_dict[str(goes_ch4)]['short_name']), \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
-        location = 'upper_right', halign = 'right')
+        location = 'upper_right', halign = 'right', weight = 'bold')
     plot_figure_text(ax8, \
         str(goes_channel_dict[str(goes_ch5)]['short_name']), \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
-        location = 'upper_right', halign = 'right')
+        location = 'upper_right', halign = 'right', weight = 'bold')
     plot_figure_text(ax9, \
         str(goes_channel_dict[str(goes_ch6)]['short_name']), \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
-        location = 'upper_right', halign = 'right')
+        location = 'upper_right', halign = 'right', weight = 'bold')
 
     fig.suptitle(dt_date_str2.strftime(\
         'GOES-17 Imagery of the Dixie Fire\n%d %B %Y %H:%M UTC'))
@@ -2462,20 +2507,20 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
 
     if(save):
         outname = 'goes_combined_fig2_' + date_str + '_' + ttype1 + '_' + \
-            ttype2 + '_v2.png'
+            ttype2 + '_v2_idx1' + str(idx1) + '_idx2' + str(idx2) + '_idx3' + str(idx3) + '.png'
         fig.savefig(outname, dpi=200)
         print("Saved",outname)
     else:
         plt.show()
 
 def plot_GOES_ASOS_comp(date_str = '202107210000', \
-        goes_ch1 = 'true_color', goes_ch2 = 6, goes_ch3 = 13, \
-        goes_ch4 = 8, goes_ch5 = 9, goes_ch6 = 10, \
+        goes_ch1 = 2, goes_ch2 = 6, goes_ch3 = 13, \
+        ##!#goes_ch4 = 8, goes_ch5 = 9, goes_ch6 = 10, \
         ch_idx1 = 0, ch_idx2 = 1, ch_idx3 = 2,\
-        ttype1 = 'asos', ttype2 = 'ml', \
-        idx1 = 3, idx2 = 8, idx3 = 5, idx4 = 15, idx5 = 20,\
+        ttype1 = 'asos',  \
+        idx1 = 0, idx2 = 1, \
         date_idx = 25, 
-        satellite = 'goes17', 
+        satellite = 'goes16', 
         show_smoke = False, composite = True, double_fig = False, \
         zoom = True, save=False):
 
@@ -2485,24 +2530,24 @@ def plot_GOES_ASOS_comp(date_str = '202107210000', \
 
     # Read the GOES data
     # ------------------------
-    var2, crs0, lons, lats, lat_lims2, lon_lims2, plabel2   = \
-        read_GOES_satpy(date_str2, goes_ch1, sat = satellite)
-    var3, crs0, lons3, lats3, lat_lims3, lon_lims3, plabel3 = \
-        read_GOES_satpy(date_str2, goes_ch2, sat = satellite)
+    var2, crs0, lons, lats, lat_lims2, lon_lims2, plabel2, x2, y2   = \
+        read_GOES_satpy(date_str2, goes_ch1, sat = satellite, return_xy = True, zoom = False)
+    var3, crs0, lons3, lats3, lat_lims3, lon_lims3, plabel3, x3, y3 = \
+        read_GOES_satpy(date_str2, goes_ch2, sat = satellite, return_xy = True, zoom = False)
     #var3, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel3 = read_GOES_satpy(date_str2, 6)
-    var4, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel4 = \
-        read_GOES_satpy(date_str2, goes_ch3, sat = satellite)
-    var5, crs0, lons2, lats2, lat_lims0, lon_lims2, plabel5 = \
-        read_GOES_satpy(date_str2, goes_ch4, sat = satellite)
-    var6, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel6 = \
-        read_GOES_satpy(date_str2, goes_ch5, sat = satellite)
-    var7, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel7 = \
-        read_GOES_satpy(date_str2, goes_ch6, sat = satellite)
+    var4, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel4, x4, y4 = \
+        read_GOES_satpy(date_str2, goes_ch3, sat = satellite, return_xy = True, zoom = False)
+    ##!#var5, crs0, lons2, lats2, lat_lims0, lon_lims2, plabel5 = \
+    ##!#    read_GOES_satpy(date_str2, goes_ch4, sat = satellite)
+    ##!#var6, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel6 = \
+    ##!#    read_GOES_satpy(date_str2, goes_ch5, sat = satellite)
+    ##!#var7, crs0, lons2, lats2, lat_lims0, lon_lims0, plabel7 = \
+    ##!#    read_GOES_satpy(date_str2, goes_ch6, sat = satellite)
 
     # Read the GOES time series data
     # ------------------------------
-    file_name1 = home_dir + '/Research/GOES/goes_cross_data_' + \
-        ttype1 + '_202107201201_202107210331.nc'
+    file_name1 = home_dir + '/Research/GOES/goes16_cross_data_' + \
+        ttype1 + '_202107221201_202107230331.nc'
     GOES_dict  = read_GOES_time_series_NCDF(file_name1)
 
     # ----------------------------------------------------------------------
@@ -2512,21 +2557,24 @@ def plot_GOES_ASOS_comp(date_str = '202107210000', \
     # ----------------------------------------------------------------------
 
     plt.close('all')
-    fig   = plt.figure(figsize=(9.5,9))
-    gs    = fig.add_gridspec(nrows = 3, ncols = 3)
-    ax4   = fig.add_subplot(gs[0,0],  projection = crs0)   # GOES True color
-    ax5   = fig.add_subplot(gs[0,1],  projection = crs0)   # GOES SWIR
-    ax6   = fig.add_subplot(gs[0,2],  projection = crs0)   # GOES TIR 
-    ax7   = fig.add_subplot(gs[1,0],  projection = crs0)   # GOES upper WV
-    ax8   = fig.add_subplot(gs[1,1],  projection = crs0)   # GOES midle WV
-    ax9   = fig.add_subplot(gs[1,2],  projection = crs0)   # GOES lower WV
-    ax10  = fig.add_subplot(gs[2,:])                       # GOES time series
+    fig   = plt.figure(figsize=(9.5,7))
+    gs    = fig.add_gridspec(nrows = 2, ncols = 3)
+    mapcrs = init_proj('202107222110')
+    ax4   = fig.add_subplot(gs[0,0],  projection = mapcrs)   # GOES True color
+    ax5   = fig.add_subplot(gs[0,1],  projection = mapcrs)   # GOES SWIR
+    ax6   = fig.add_subplot(gs[0,2],  projection = mapcrs)   # GOES TIR 
+    ##!#ax7   = fig.add_subplot(gs[1,0],  projection = crs0)   # GOES upper WV
+    ##!#ax8   = fig.add_subplot(gs[1,1],  projection = crs0)   # GOES midle WV
+    ##!#ax9   = fig.add_subplot(gs[1,2],  projection = crs0)   # GOES lower WV
+    ax10  = fig.add_subplot(gs[1,:])                       # GOES time series
     
     labelsize = 10
     plot_GOES_satpy(date_str, goes_ch1, ax = ax4, var = var2, crs = crs0, \
         lons = lons, lats = lats, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+        xx = x2, yy = y2, 
         ptitle = '', plabel = plabel2, \
-        colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+        colorbar = True, labelsize = labelsize + 1, zoom=True,save=False, use_xy = True,\
+        vmax = 60)
 
     ##!## Plot channel 1, 5, 31, and WV data spatial data
     ##!## -----------------------------------------------
@@ -2537,29 +2585,31 @@ def plot_GOES_ASOS_comp(date_str = '202107210000', \
     ##!#    zoom=True,save=False)
     plot_GOES_satpy(date_str, 6, ax = ax5, var = var3, crs = crs0, \
         lons = lons3, lats = lats3, lat_lims = lat_lims3, lon_lims = lon_lims3, \
+        xx = x3, yy = y3, 
         vmin = None, vmax = 40, \
         ptitle = '', plabel = plabel3, colorbar = True, labelsize = labelsize, \
-        zoom=True,save=False)
+        zoom=True,save=False, use_xy = True)
     plot_GOES_satpy(date_str, 13, ax = ax6, var = var4, crs = crs0, \
         lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
-        vmin = None, vmax = None, \
+        xx = x4, yy = y4, 
+        vmin = 275, vmax = 320, \
         ptitle = '', plabel = plabel4, colorbar = True, labelsize = labelsize, \
-        zoom=True,save=False)
-    plot_GOES_satpy(date_str, 8, ax = ax7, var = var5, crs = crs0, \
-        lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
-        vmin = None, vmax = None, \
-        ptitle = '', plabel = plabel5, colorbar = True, labelsize = labelsize, \
-        zoom=True,save=False)
-    plot_GOES_satpy(date_str, 9, ax = ax8, var = var6, crs = crs0, \
-        lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
-        vmin = None, vmax = None, \
-        ptitle = '', plabel = plabel6, colorbar = True, labelsize = labelsize, \
-        zoom=True,save=False)
-    plot_GOES_satpy(date_str, 10, ax = ax9, var = var7, crs = crs0, \
-        lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
-        vmin = None, vmax = None, \
-        ptitle = '', plabel = plabel7, colorbar = True, labelsize = labelsize, \
-        zoom=True,save=False)
+        zoom=True,save=False, use_xy = True)
+    ##!#plot_GOES_satpy(date_str, 8, ax = ax7, var = var5, crs = crs0, \
+    ##!#    lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+    ##!#    vmin = None, vmax = None, \
+    ##!#    ptitle = '', plabel = plabel5, colorbar = True, labelsize = labelsize, \
+    ##!#    zoom=True,save=False)
+    ##!#plot_GOES_satpy(date_str, 9, ax = ax8, var = var6, crs = crs0, \
+    ##!#    lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+    ##!#    vmin = None, vmax = None, \
+    ##!#    ptitle = '', plabel = plabel6, colorbar = True, labelsize = labelsize, \
+    ##!#    zoom=True,save=False)
+    ##!#plot_GOES_satpy(date_str, 10, ax = ax9, var = var7, crs = crs0, \
+    ##!#    lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+    ##!#    vmin = None, vmax = None, \
+    ##!#    ptitle = '', plabel = plabel7, colorbar = True, labelsize = labelsize, \
+    ##!#    zoom=True,save=False)
 
     point_size = 5
     ax4.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
@@ -2612,51 +2662,51 @@ def plot_GOES_ASOS_comp(date_str = '202107210000', \
     ax6.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
             linewidth=2, markersize = point_size, marker='.',
             transform=datacrs)
-    print("Upper WV")
-    print("     Blue   - ", np.array(var5)[lw_idx_b])
-    print("     Orange - ", np.array(var5)[lw_idx_o])
-    ax7.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
-            linewidth=2, markersize = point_size + 2, marker='.',
-            color = 'black', transform=datacrs)
-    ax7.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
-            linewidth=2, markersize = point_size, marker='.',
-            transform=datacrs)
-    ax7.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
-            linewidth=2, markersize = point_size + 2, marker='.',
-            color = 'black', transform=datacrs)
-    ax7.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
-            linewidth=2, markersize = point_size, marker='.',
-            transform=datacrs)
-    print("Mid WV")
-    print("     Blue   - ", np.array(var6)[lw_idx_b])
-    print("     Orange - ", np.array(var6)[lw_idx_o])
-    ax8.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
-            linewidth=2, markersize = point_size + 2, marker='.',
-            color = 'black', transform=datacrs)
-    ax8.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
-            linewidth=2, markersize = point_size, marker='.',
-            transform=datacrs)
-    ax8.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
-            linewidth=2, markersize = point_size + 2, marker='.',
-            color = 'black', transform=datacrs)
-    ax8.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
-            linewidth=2, markersize = point_size, marker='.',
-            transform=datacrs)
-    print("Lower WV")
-    print("     Blue   - ", np.array(var7)[lw_idx_b])
-    print("     Orange - ", np.array(var7)[lw_idx_o])
-    ax9.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
-            linewidth=2, markersize = point_size + 2, marker='.',
-            color = 'black', transform=datacrs)
-    ax9.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
-            linewidth=2, markersize = point_size, marker='.',
-            transform=datacrs)
-    ax9.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
-            linewidth=2, markersize = point_size + 2, marker='.',
-            color = 'black', transform=datacrs)
-    ax9.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
-            linewidth=2, markersize = point_size, marker='.',
-            transform=datacrs)
+    ##!#print("Upper WV")
+    ##!#print("     Blue   - ", np.array(var5)[lw_idx_b])
+    ##!#print("     Orange - ", np.array(var5)[lw_idx_o])
+    ##!#ax7.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+    ##!#        linewidth=2, markersize = point_size + 2, marker='.',
+    ##!#        color = 'black', transform=datacrs)
+    ##!#ax7.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+    ##!#        linewidth=2, markersize = point_size, marker='.',
+    ##!#        transform=datacrs)
+    ##!#ax7.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+    ##!#        linewidth=2, markersize = point_size + 2, marker='.',
+    ##!#        color = 'black', transform=datacrs)
+    ##!#ax7.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+    ##!#        linewidth=2, markersize = point_size, marker='.',
+    ##!#        transform=datacrs)
+    ##!#print("Mid WV")
+    ##!#print("     Blue   - ", np.array(var6)[lw_idx_b])
+    ##!#print("     Orange - ", np.array(var6)[lw_idx_o])
+    ##!#ax8.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+    ##!#        linewidth=2, markersize = point_size + 2, marker='.',
+    ##!#        color = 'black', transform=datacrs)
+    ##!#ax8.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+    ##!#        linewidth=2, markersize = point_size, marker='.',
+    ##!#        transform=datacrs)
+    ##!#ax8.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+    ##!#        linewidth=2, markersize = point_size + 2, marker='.',
+    ##!#        color = 'black', transform=datacrs)
+    ##!#ax8.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+    ##!#        linewidth=2, markersize = point_size, marker='.',
+    ##!#        transform=datacrs)
+    ##!#print("Lower WV")
+    ##!#print("     Blue   - ", np.array(var7)[lw_idx_b])
+    ##!#print("     Orange - ", np.array(var7)[lw_idx_o])
+    ##!#ax9.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+    ##!#        linewidth=2, markersize = point_size + 2, marker='.',
+    ##!#        color = 'black', transform=datacrs)
+    ##!#ax9.plot(GOES_dict['plon'][idx1], GOES_dict['plat'][idx1], \
+    ##!#        linewidth=2, markersize = point_size, marker='.',
+    ##!#        transform=datacrs)
+    ##!#ax9.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+    ##!#        linewidth=2, markersize = point_size + 2, marker='.',
+    ##!#        color = 'black', transform=datacrs)
+    ##!#ax9.plot(GOES_dict['plon'][idx2], GOES_dict['plat'][idx2], \
+    ##!#        linewidth=2, markersize = point_size, marker='.',
+    ##!#        transform=datacrs)
 
     # Plot the two channel data for the first point
     # ---------------------------------------------
@@ -2679,6 +2729,8 @@ def plot_GOES_ASOS_comp(date_str = '202107210000', \
         label = str(goes_channel_dict[\
         str(GOES_dict['channels'][ch_idx2])]['wavelength']) + \
         ' μm', linestyle = '--', color = 'tab:orange')
+    ax10.axvline(dt_date_str2, color = 'black',\
+        linestyle = ':')
     #ax10.axvline(GOES_dict['dt_dates'][date_idx], color = 'black',\
     #    linestyle = ':')
 
@@ -2723,9 +2775,9 @@ def plot_GOES_ASOS_comp(date_str = '202107210000', \
     plot_subplot_label(ax4, plabels[0], backgroundcolor = 'white', fontsize = font_size)
     plot_subplot_label(ax5, plabels[1], backgroundcolor = 'white', fontsize = font_size)
     plot_subplot_label(ax6, plabels[2], backgroundcolor = 'white', fontsize = font_size)
-    plot_subplot_label(ax7, plabels[3], backgroundcolor = 'white', fontsize = font_size)
-    plot_subplot_label(ax8, plabels[4], backgroundcolor = 'white', fontsize = font_size)
-    plot_subplot_label(ax9, plabels[5], backgroundcolor = 'white', fontsize = font_size)
+    ##!#plot_subplot_label(ax7, plabels[3], backgroundcolor = 'white', fontsize = font_size)
+    ##!#plot_subplot_label(ax8, plabels[4], backgroundcolor = 'white', fontsize = font_size)
+    ##!#plot_subplot_label(ax9, plabels[5], backgroundcolor = 'white', fontsize = font_size)
     plot_subplot_label(ax10, plabels[6], backgroundcolor = 'white', fontsize = font_size, location = 'upper_right')
 
     # Add plot text
@@ -2742,24 +2794,34 @@ def plot_GOES_ASOS_comp(date_str = '202107210000', \
         str(goes_channel_dict[str(goes_ch3)]['wavelength']) \
         + ' μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax7, \
-        str(goes_channel_dict[str(goes_ch4)]['wavelength']) \
-        + ' μm', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax8, \
-        str(goes_channel_dict[str(goes_ch5)]['wavelength']) \
-        + ' μm', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
-    plot_figure_text(ax9, \
-        str(goes_channel_dict[str(goes_ch6)]['wavelength']) \
-        + ' μm', xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    ##!#plot_figure_text(ax7, \
+    ##!#    str(goes_channel_dict[str(goes_ch4)]['wavelength']) \
+    ##!#    + ' μm', xval = None, yval = None, transform = None, \
+    ##!#    color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    ##!#plot_figure_text(ax8, \
+    ##!#    str(goes_channel_dict[str(goes_ch5)]['wavelength']) \
+    ##!#    + ' μm', xval = None, yval = None, transform = None, \
+    ##!#    color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    ##!#plot_figure_text(ax9, \
+    ##!#    str(goes_channel_dict[str(goes_ch6)]['wavelength']) \
+    ##!#    + ' μm', xval = None, yval = None, transform = None, \
+    ##!#    color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
 
-    fig.suptitle('GOES-17\n00:00 UTC 21 July 2021')
+    del var2
+    del var3
+    del var4
+    del lats
+    del lons
+    del lats3
+    del lons3
+    del lats2
+    del lons2
+
+    fig.suptitle(dt_date_str2.strftime('GOES-16\n%H:%M UTC %d %B %Y'))
     fig.tight_layout()
 
     if(save):
-        outname = 'goes_combined_asos_comp_' + date_str + '_v2.png'
+        outname = 'goes16_combined_asos_comp_' + date_str + '_v2.png'
         fig.savefig(outname, dpi=300)
         print("Saved",outname)
     else:
@@ -3342,6 +3404,7 @@ def plot_GOES_figure2(date_str1 = '202107201330', date_str2 = '202107201830',\
             print("Saved",outname)
     else:
         plt.show()
+
 def plot_GOES_time_series_points(GOES_dict, time_idx = 20, \
         ch_idx = 0, save_dir = './', save = False):
 
@@ -4557,6 +4620,7 @@ def plot_GOES_cross_channels(GOES_dict, time_idx = 20, \
 
 def read_GOES_time_series_auto(begin_date, end_date, \
         channels = [2, 6, 13, 8, 9, 10], save_dir = './', \
+        sat = 'goes17', 
         dlat = [40.750520, \
                  40.672445,\
                  40.624068, \
@@ -4582,7 +4646,7 @@ def read_GOES_time_series_auto(begin_date, end_date, \
     # Find all downloaded GOES filenames that are between these
     # two dates
     # ---------------------------------------------------------
-    all_files = np.array(glob(home_dir + '/data/GOES/goes17_abi/*.nc'))
+    all_files = np.array(glob(home_dir + '/data/GOES/' + sat + '_abi/*.nc'))
     all_dates = np.array([datetime.strptime(ffile.strip().split('/')[-1][27:40],\
         '%Y%j%H%M%S') for ffile in all_files])
     all_date_strs = np.array([tdate.strftime('%Y%m%d%H%M') for tdate in \
@@ -4695,7 +4759,7 @@ def read_GOES_time_series_auto(begin_date, end_date, \
             # Extract the GOES values for the current time
             # --------------------------------------------
             goes_vals, goes_lats_local, goes_lons_local  = \
-                get_GOES_data_lat_lon(date_str, dlat, dlon, tch)
+                get_GOES_data_lat_lon(date_str, dlat, dlon, tch, sat = sat)
             goes_data[ii,jj,:] = goes_vals / 1.
             goes_lats[ii,jj,:] = goes_lats_local / 1.
             goes_lons[ii,jj,:] = goes_lons_local / 1.
@@ -4746,7 +4810,7 @@ def read_GOES_time_series_NCDF(file_name):
  
 def write_GOES_time_series_NCDF(GOES_dict, save_dir = './'):
 
-    file_name_start = save_dir + 'goes_cross_data_' + GOES_dict['ptype'] + \
+    file_name_start = save_dir + 'goes16_cross_data_' + GOES_dict['ptype'] + \
         '_' + \
         GOES_dict['dt_dates'][0].strftime('%Y%m%d%H%M') + '_' + \
         GOES_dict['dt_dates'][-1].strftime('%Y%m%d%H%M')

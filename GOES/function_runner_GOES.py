@@ -8,18 +8,56 @@
 from GOESLib import *
 import sys
 
+
+plot_GOES_figure2_v2(date_str = '202107210000', \
+    goes_ch1 = 'true_color', goes_ch2 = 6, goes_ch3 = 13, \
+    goes_ch4 = 8, goes_ch5 = 9, goes_ch6 = 10, \
+    ch_idx1 = 0, ch_idx2 = 1, ch_idx3 = 2,\
+    #ttype1 = 'mid', ttype2 = 'mid', \
+    #idx1 = 0, idx2 = 3, idx3 = 6,
+    ttype1 = 'low', ttype2 = 'ml', \
+    idx1 = 3, idx2 = 8, idx3 = 5,
+    date_idx = 25, 
+    show_smoke = False, composite = True, double_fig = False, \
+    zoom = True, save = True)
+sys.exit()
+
+date_str = '202107222120'
+plot_GOES_satpy_5panel(date_str, 2, 13, 8, 9, 10, \
+    zoom = True, save_dir = './', sat = 'goes16', save = True)
+
+sys.exit()
+
+
+plot_GOES_ASOS_comp(date_str = '202107230900', \
+    goes_ch1 = 2, goes_ch2 = 6, goes_ch3 = 13, \
+    ch_idx1 = 0, ch_idx2 = 1, ch_idx3 = 2,\
+    ttype1 = 'asos', \
+    idx1 = 0, idx2 = 1, \
+    date_idx = 25, 
+    show_smoke = False, composite = True, double_fig = False, \
+    zoom = True, save=True)
+
+sys.exit()
+
+##!#mapcrs = init_proj('202107222110')
+##!#fig = plt.figure(figsize = (9, 5))
+##!#ax1 = fig.add_subplot(1,2,1, projection = mapcrs)
+##!#ax2 = fig.add_subplot(1,2,2, projection = mapcrs)
+##!#
+##!#plot_GOES_satpy('202107202100', 13, sat = 'goes16', zoom=True,\
+##!#    use_xy = True, vmin = 275, vmax = 320, save = False, ax = ax1)
+##!#plot_GOES_satpy('202107202100', 13, sat = 'goes17', zoom=True,\
+##!#    use_xy = True, vmin = 275, vmax = 320, save = False, ax = ax2)
+##!#ax1.set_title('GOES16')
+##!#ax2.set_title('GOES17')
+##!#fig.tight_layout()
+##!#fig.savefig('test_goes_comp_ch13.png', dpi = 200)
+##!#sys.exit()
+
 #begin_date = '202306122100'
 #end_date   = '202306122200'
 
-###begin_date = '202107221800'
-###end_date   = '202107230400'
-####begin_date = '202107202100'
-####end_date   = '202107210330'
-###auto_GOES_download(begin_date, end_date, 30, sat = 'goes16', \
-###    channels = [2, 6, 13])
-###    #channels = [1, 2, 3, 6, 13, 8, 9, 10])
-###
-###sys.exit()
 ###
 ###goes_file = 'goes_cross_data_up_202107201201_202107210331.nc'
 ###GOES_dict = read_GOES_time_series_NCDF(goes_file)
@@ -27,30 +65,31 @@ import sys
 ###    ch_idx2 = 0)
 ###
 ###sys.exit()
-begin_date = datetime(2021,7,20,21)
-end_date   = datetime(2021,7,21,2)
-local_date = begin_date
-while(local_date <= end_date):
-    date_str = local_date.strftime('%Y%m%d%H%M')
-    plot_GOES_figure2_v2(date_str = date_str, \
-        goes_ch1 = 'true_color', goes_ch2 = 6, goes_ch3 = 13, \
-        goes_ch4 = 8, goes_ch5 = 9, goes_ch6 = 10, \
-        ch_idx1 = 0, ch_idx2 = 1, ch_idx3 = 2,\
-        ttype1 = 'mid', ttype2 = 'mid', \
-        #ttype1 = 'low', ttype2 = 'ml', \
-        idx1 = 0, idx2 = 3, idx3 = 6,
-        date_idx = 25, 
-        show_smoke = False, composite = True, double_fig = False, \
-        zoom = True, save = True)
 
-    local_date = local_date + timedelta(minutes = 30)
-
-sys.exit()
+##!#begin_date = datetime(2021,7,20,21)
+##!#end_date   = datetime(2021,7,21,2)
+##!#local_date = begin_date
+##!#while(local_date <= end_date):
+##!#    date_str = local_date.strftime('%Y%m%d%H%M')
+##!#    plot_GOES_figure2_v2(date_str = date_str, \
+##!#        goes_ch1 = 'true_color', goes_ch2 = 6, goes_ch3 = 13, \
+##!#        goes_ch4 = 8, goes_ch5 = 9, goes_ch6 = 10, \
+##!#        ch_idx1 = 0, ch_idx2 = 1, ch_idx3 = 2,\
+##!#        ttype1 = 'mid', ttype2 = 'mid', \
+##!#        #ttype1 = 'low', ttype2 = 'ml', \
+##!#        idx1 = 0, idx2 = 3, idx3 = 6,
+##!#        date_idx = 25, 
+##!#        show_smoke = False, composite = True, double_fig = False, \
+##!#        zoom = True, save = True)
+##!#
+##!#    local_date = local_date + timedelta(minutes = 30)
+##!#
+##!#sys.exit()
 
 date_str = '202107202130'
 
-begin_date = '202107201200'
-end_date   = '202107210400'
+begin_date = '202107221200'
+end_date   = '202107230400'
 #begin_date  = '202107201200'
 #end_date    = '202107210300'
 begin_date2 = '202107211200'
@@ -139,11 +178,12 @@ interp_lons_up = np.linspace(lower_lon_up, upper_lon_up, num_points_up)
 lats_asos = np.array([40.2824, 41.4914])
 lons_asos = np.array([-121.2412, -120.5644])
 
-##!#GOES_dict1_low = read_GOES_time_series_auto(begin_date, end_date, \
-##!#    #channels = [2, 6, 13, 8, 9, 10], dlat = list(lats_asos), \
-##!#    #dlon = list(lons_asos))
-##!#    channels = [2, 6, 13, 8, 9, 10], dlat = list(interp_lats_low), \
-##!#    dlon = list(interp_lons_low))
+GOES_dict1_low = read_GOES_time_series_auto(begin_date, end_date, \
+    channels = [2, 6, 13], dlat = list(lats_asos), \
+    dlon = list(lons_asos), \
+    sat = 'goes16')
+    ####channels = [2, 6, 13, 8, 9, 10], dlat = list(interp_lats_low), \
+    ####dlon = list(interp_lons_low))
 
 ##!#GOES_dict2_low = read_GOES_time_series_auto(begin_date2, end_date2, \
 ##!#    channels = [2, 6, 13], dlat = list(interp_lats_low), \
@@ -154,26 +194,26 @@ lons_asos = np.array([-121.2412, -120.5644])
 ##!#GOES_dict2_ml = read_GOES_time_series_auto(begin_date2, end_date2, \
 ##!#    channels = [2, 6, 13], dlat = list(interp_lats_ml), \
 ##!#    dlon = list(interp_lons_ml))
-GOES_dict1_mid = read_GOES_time_series_auto(begin_date, end_date, \
-    channels = [2, 6, 13], dlat = list(interp_lats), \
-    dlon = list(interp_lons))
+##!#GOES_dict1_mid = read_GOES_time_series_auto(begin_date, end_date, \
+##!#    channels = [2, 6, 13], dlat = list(interp_lats), \
+##!#    dlon = list(interp_lons))
 ##!#GOES_dict2_mid = read_GOES_time_series_auto(begin_date2, end_date2, \
 ##!#    channels = [2, 6, 13], dlat = list(interp_lats), \
 ##!#    dlon = list(interp_lons))
-GOES_dict1_up = read_GOES_time_series_auto(begin_date, end_date, \
-    channels = [2, 6, 13], dlat = list(interp_lats_up), \
-    dlon = list(interp_lons_up))
+##!#GOES_dict1_up = read_GOES_time_series_auto(begin_date, end_date, \
+##!#    channels = [2, 6, 13], dlat = list(interp_lats_up), \
+##!#    dlon = list(interp_lons_up))
 ##!#GOES_dict2_up = read_GOES_time_series_auto(begin_date2, end_date2, \
 ##!#    channels = [2, 6, 13], dlat = list(interp_lats_up), \
 ##!#    dlon = list(interp_lons_up))
 
-##!#GOES_dict1_low['ptype'] = 'low'
+GOES_dict1_low['ptype'] = 'asos'
 ##!#GOES_dict2_low['ptype'] = 'low'
 ##!#GOES_dict1_ml['ptype'] = 'ml'
 ##!#GOES_dict2_ml['ptype'] = 'ml'
-GOES_dict1_mid['ptype'] = 'mid'
+##!#GOES_dict1_mid['ptype'] = 'mid'
 ##!#GOES_dict2_mid['ptype'] = 'mid'
-GOES_dict1_up['ptype'] = 'up'
+##!#GOES_dict1_up['ptype'] = 'up'
 ##!#GOES_dict2_up['ptype'] = 'up'
 
 base_dir = '/home/bsorenson/Research/GOES/'
@@ -200,13 +240,13 @@ base_dir = '/home/bsorenson/Research/GOES/'
 ##!#GOES_dict2_up   = read_GOES_time_series_NCDF(base_dir + \
 ##!#    'goes_cross_data_up_202107211201_202107220231.nc')
 
-##!#write_GOES_time_series_NCDF(GOES_dict1_low, save_dir = './')
+write_GOES_time_series_NCDF(GOES_dict1_low, save_dir = './')
 ##!#write_GOES_time_series_NCDF(GOES_dict2_low, save_dir = './')
 ##!#write_GOES_time_series_NCDF(GOES_dict1_ml,  save_dir = './')
 ##!#write_GOES_time_series_NCDF(GOES_dict2_ml,  save_dir = './')
-write_GOES_time_series_NCDF(GOES_dict1_mid, save_dir = './')
+##!#write_GOES_time_series_NCDF(GOES_dict1_mid, save_dir = './')
 ##!#write_GOES_time_series_NCDF(GOES_dict2_mid, save_dir = './')
-write_GOES_time_series_NCDF(GOES_dict1_up,  save_dir = './')
+##!#write_GOES_time_series_NCDF(GOES_dict1_up,  save_dir = './')
 ##!#write_GOES_time_series_NCDF(GOES_dict2_up,  save_dir = './')
 
 ##!#plot_GOES_time_series_points_auto(GOES_dict, 0, \
@@ -225,17 +265,6 @@ sys.exit()
 
 
 
-plot_GOES_ASOS_comp(date_str = '202107202100', \
-    goes_ch1 = 'true_color', goes_ch2 = 6, goes_ch3 = 13, \
-    goes_ch4 = 8, goes_ch5 = 9, goes_ch6 = 10, \
-    ch_idx1 = 0, ch_idx2 = 1, ch_idx3 = 2,\
-    ttype1 = 'asos', ttype2 = 'asos', \
-    idx1 = 0, idx2 = 1, \
-    date_idx = 25, 
-    show_smoke = False, composite = True, double_fig = False, \
-    zoom = True, save=False)
-
-sys.exit()
 
 begin_date = '202306122100'
 end_date   = '202306122200'
@@ -244,12 +273,6 @@ var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel0 = \
 #plot_GOES_satpy_2panel(begin_date, 2, 13, \
 #    zoom = False, save_dir = './', sat = 'goes18', save = False)
 sys.exit()
-date_str = '202107222120'
-plot_GOES_satpy_5panel(date_str, 'true_color', 13, 8, 9, 10, \
-    zoom = True, save_dir = './', sat = 'goes16', save = False)
-
-sys.exit()
-
 plot_GOES_satpy_6panel(date_str, 'true_color', 6, 13, 8, 9, 10, \
     zoom = True, save_dir = './', sat = 'goes17', save = True)
 

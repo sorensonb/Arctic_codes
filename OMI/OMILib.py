@@ -972,6 +972,7 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
     VZA    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/ViewingZenithAngle'][:,:]
     AZM    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/RelativeAzimuthAngle'][:,:]
     SSA    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/FinalAerosolSingleScattAlb'][:,:,:]
+    NRAD   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/NormRadiance'][:,:,:]
     LATcrnr = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/FoV75CornerLatitude'][:,:,:]
     LONcrnr = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/FoV75CornerLongitude'][:,:,:]
     TIME_O = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Time'][:]
@@ -1031,6 +1032,7 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
 
     OMI_swath['LAT']    = LAT
     OMI_swath['LON']    = LON
+    OMI_swath['NRAD']    = NRAD
     OMI_swath['SZA']    = SZA
     OMI_swath['VZA']    = VZA
     OMI_swath['RAZ']    = AZM

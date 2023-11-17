@@ -7,6 +7,11 @@
 
 from MODISLib import *
 
+
+hash_data, nohash_data = find_plume(date_str) 
+
+
+sys.exit()
 plot_figure2(save=True, composite = False)
 #plot_combined_figure1_v6(save = True)
 

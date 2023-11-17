@@ -1157,12 +1157,16 @@ def plot_NEXRAD_GOES_12panel(date_str, ch1, ch2, ch3, \
         az_tol = 0.8, 
         ax = None, ptitle = None, plabel = None, \
         vmin = -5, vmax = 90, \
+        sat = 'goes17',
         labelsize = 10, colorbar = True, counties = True, save_dir = './',\
         alpha = 1.0, mask_outside = True, zoom=True, save=False):
 
     if('/home/bsorenson/Research/GOES' not in sys.path):
         sys.path.append('/home/bsorenson/Research/GOES')
     from GOESLib import read_GOES_satpy, plot_GOES_satpy, goes_channel_dict
+    if('/home/bsorenson/Research/MODIS' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/MODIS/obs_smoke_forcing/')
+    from MODISLib import read_MODIS_satpy
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
     #dt_date_str = datetime.strptime(NEXRAD_dict['radar_date'],"%Y%m%d%H%M")
 
@@ -1173,46 +1177,89 @@ def plot_NEXRAD_GOES_12panel(date_str, ch1, ch2, ch3, \
 
     # Read the GOES data
     # ------------------
-    var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel_goes1 = \
-        read_GOES_satpy(date_str, ch1)
-    var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel_goes2 = \
-        read_GOES_satpy(date_str, ch2)
-    var2, crs2, lons2, lats2, lat_lims, lon_lims, plabel_goes3 = \
-        read_GOES_satpy(date_str, ch3)
+    if(sat == 'goes16'):
+        var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel_goes1, xx0, yy0 = \
+            read_GOES_satpy(date_str, ch1, sat = sat, return_xy = True, zoom = False)
+        var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel_goes2, xx1, yy1 = \
+            read_GOES_satpy(date_str, ch2, sat = sat, return_xy = True, zoom = False)
+        var2, crs2, lons2, lats2, lat_lims, lon_lims, plabel_goes3, xx2, yy2 = \
+            read_GOES_satpy(date_str, ch3, sat = sat, return_xy = True, zoom = False)
+    else:
+        var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel_goes1 = \
+            read_GOES_satpy(date_str, ch1, sat = sat)
+        var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel_goes2 = \
+            read_GOES_satpy(date_str, ch2, sat = sat)
+        var2, crs2, lons2, lats2, lat_lims, lon_lims, plabel_goes3 = \
+            read_GOES_satpy(date_str, ch3, sat = sat)
 
     labelsize = 10
     # Set up the figure
     # -----------------
     plt.close('all')
     fig  = plt.figure(figsize = (11, 13))
-    ax1  = fig.add_subplot(4,3,1, projection = crs0) # GOES VIS
-    ax2  = fig.add_subplot(4,3,2, projection = crs0) # GOES SWIR
-    ax3  = fig.add_subplot(4,3,3, projection = crs0) # GOES TIR
-    ax4  = fig.add_subplot(4,3,4, projection = crs0) # KBBX REFL PPI AZM1
-    ax5  = fig.add_subplot(4,3,5)                    # KBBX REFL RHI AZM1
-    ax6  = fig.add_subplot(4,3,6)                    # KBBX  CC  RHI AZM1
-    ax7  = fig.add_subplot(4,3,7, projection = crs0) # KRGX REFL PPI AZM1
-    ax8  = fig.add_subplot(4,3,8)                    # KRGX REFL RHI AZM1
-    ax9  = fig.add_subplot(4,3,9)                    # KRGX  CC  RHI AZM1
-    ax10 = fig.add_subplot(4,3,10, projection = crs0) # KRGX REFL PPI AZM2
-    ax11 = fig.add_subplot(4,3,11)                    # KRGX REFL RHI AZM2
-    ax12 = fig.add_subplot(4,3,12)                    # KRGX  CC  RHI AZM
+    if(sat == 'goes16'):
+        mapcrs = init_proj(NEXRAD_dict1)
+        ax1  = fig.add_subplot(4,3,1, projection = mapcrs) # GOES VIS
+        ax2  = fig.add_subplot(4,3,2, projection = mapcrs) # GOES SWIR
+        ax3  = fig.add_subplot(4,3,3, projection = mapcrs) # GOES TIR
+        ax4  = fig.add_subplot(4,3,4, projection = mapcrs) # KBBX REFL PPI AZM1
+        ax5  = fig.add_subplot(4,3,5)                    # KBBX REFL RHI AZM1
+        ax6  = fig.add_subplot(4,3,6)                    # KBBX  CC  RHI AZM1
+        ax7  = fig.add_subplot(4,3,7, projection = mapcrs) # KRGX REFL PPI AZM1
+        ax8  = fig.add_subplot(4,3,8)                    # KRGX REFL RHI AZM1
+        ax9  = fig.add_subplot(4,3,9)                    # KRGX  CC  RHI AZM1
+        ax10 = fig.add_subplot(4,3,10, projection = mapcrs) # KRGX REFL PPI AZM2
+        ax11 = fig.add_subplot(4,3,11)                    # KRGX REFL RHI AZM2
+        ax12 = fig.add_subplot(4,3,12)                    # KRGX  CC  RHI AZM
+    else:
+        ax1  = fig.add_subplot(4,3,1, projection = crs0) # GOES VIS
+        ax2  = fig.add_subplot(4,3,2, projection = crs0) # GOES SWIR
+        ax3  = fig.add_subplot(4,3,3, projection = crs0) # GOES TIR
+        ax4  = fig.add_subplot(4,3,4, projection = crs0) # KBBX REFL PPI AZM1
+        ax5  = fig.add_subplot(4,3,5)                    # KBBX REFL RHI AZM1
+        ax6  = fig.add_subplot(4,3,6)                    # KBBX  CC  RHI AZM1
+        ax7  = fig.add_subplot(4,3,7, projection = crs0) # KRGX REFL PPI AZM1
+        ax8  = fig.add_subplot(4,3,8)                    # KRGX REFL RHI AZM1
+        ax9  = fig.add_subplot(4,3,9)                    # KRGX  CC  RHI AZM1
+        ax10 = fig.add_subplot(4,3,10, projection = crs0) # KRGX REFL PPI AZM2
+        ax11 = fig.add_subplot(4,3,11)                    # KRGX REFL RHI AZM2
+        ax12 = fig.add_subplot(4,3,12)                    # KRGX  CC  RHI AZM
 
-    plot_GOES_satpy(NEXRAD_dict1['radar_date'], ch1, ax = ax1, var = var0, \
-        crs = crs0, lons = lons0, lats = lats0, lat_lims = lat_lims, \
-        lon_lims = lon_lims, vmin = 0, vmax = 60, ptitle = '', \
-        plabel = plabel_goes1, colorbar = True, labelsize = labelsize + 1, \
-        counties = counties, zoom=True,save=False) 
-    plot_GOES_satpy(NEXRAD_dict1['radar_date'], ch2, ax = ax2, var = var1, \
-        crs = crs1, lons = lons1, lats = lats1, lat_lims = lat_lims, \
-        lon_lims = lon_lims, vmin = 2.5, vmax = 40, ptitle = '', \
-        plabel = plabel_goes2, colorbar = True, labelsize = labelsize + 1, \
-        counties = counties, zoom=True,save=False) 
-    plot_GOES_satpy(NEXRAD_dict1['radar_date'], ch3, ax = ax3, var = var2, \
-        crs = crs2, lons = lons2, lats = lats2, lat_lims = lat_lims, \
-        lon_lims = lon_lims, vmin = 270, vmax = 320, ptitle = '', \
-        plabel = plabel_goes3, colorbar = True, labelsize = labelsize + 1, \
-        counties = counties, zoom=True,save=False) 
+    if(sat == 'goes16'):
+        plot_GOES_satpy(NEXRAD_dict1['radar_date'], ch1, ax = ax1, var = var0, \
+            crs = crs0, lons = lons0, lats = lats0, lat_lims = lat_lims, \
+            xx = xx0, yy = yy0, 
+            lon_lims = lon_lims, vmin = 0, vmax = 60, ptitle = '', \
+            plabel = plabel_goes1, colorbar = True, labelsize = labelsize + 1, \
+            counties = counties, zoom=True,save=False, use_xy = True) 
+        plot_GOES_satpy(NEXRAD_dict1['radar_date'], ch2, ax = ax2, var = var1, \
+            crs = crs1, lons = lons1, lats = lats1, lat_lims = lat_lims, \
+            xx = xx1, yy = yy1, 
+            lon_lims = lon_lims, vmin = 2.5, vmax = 40, ptitle = '', \
+            plabel = plabel_goes2, colorbar = True, labelsize = labelsize + 1, \
+            counties = counties, zoom=True,save=False, use_xy = True) 
+        plot_GOES_satpy(NEXRAD_dict1['radar_date'], ch3, ax = ax3, var = var2, \
+            crs = crs2, lons = lons2, lats = lats2, lat_lims = lat_lims, \
+            xx = xx2, yy = yy2, 
+            lon_lims = lon_lims, vmin = 270, vmax = 320, ptitle = '', \
+            plabel = plabel_goes3, colorbar = True, labelsize = labelsize + 1, \
+            counties = counties, zoom=True,save=False, use_xy = True) 
+    else:
+        plot_GOES_satpy(NEXRAD_dict1['radar_date'], ch1, ax = ax1, var = var0, \
+            crs = crs0, lons = lons0, lats = lats0, lat_lims = lat_lims, \
+            lon_lims = lon_lims, vmin = 0, vmax = 60, ptitle = '', \
+            plabel = plabel_goes1, colorbar = True, labelsize = labelsize + 1, \
+            counties = counties, zoom=True,save=False) 
+        plot_GOES_satpy(NEXRAD_dict1['radar_date'], ch2, ax = ax2, var = var1, \
+            crs = crs1, lons = lons1, lats = lats1, lat_lims = lat_lims, \
+            lon_lims = lon_lims, vmin = 2.5, vmax = 40, ptitle = '', \
+            plabel = plabel_goes2, colorbar = True, labelsize = labelsize + 1, \
+            counties = counties, zoom=True,save=False) 
+        plot_GOES_satpy(NEXRAD_dict1['radar_date'], ch3, ax = ax3, var = var2, \
+            crs = crs2, lons = lons2, lats = lats2, lat_lims = lat_lims, \
+            lon_lims = lon_lims, vmin = 270, vmax = 320, ptitle = '', \
+            plabel = plabel_goes3, colorbar = True, labelsize = labelsize + 1, \
+            counties = counties, zoom=True,save=False) 
 
     rmin2 = 110
     rmax2 = 180
@@ -1270,22 +1317,55 @@ def plot_NEXRAD_GOES_12panel(date_str, ch1, ch2, ch3, \
             range_min = rmin3, range_max = rmax3,\
             ax = ax12)
 
+
+    # Find the distances between the smoky point and KBBX
+    # ---------------------------------------------------   
+    if(sat == 'goes16'):
+        radar_lat = NEXRAD_dict1['radar'].latitude['data'][0]
+        radar_lon = NEXRAD_dict1['radar'].longitude['data'][0]
+        dist1 = find_distance_between_points(40.2824, -121.2412, radar_lat, radar_lon)
+        radar_lat = NEXRAD_dict2['radar'].latitude['data'][0]
+        radar_lon = NEXRAD_dict2['radar'].longitude['data'][0]
+        dist2 = find_distance_between_points(40.2824, -121.2412, radar_lat, radar_lon)
+        msize = 8
+        plot_point_on_map(ax1, 40.2824, -121.2412, markersize = msize, color = 'tab:blue')
+        plot_point_on_map(ax1, 41.4914, -120.5644, markersize = msize, color = 'tab:orange')
+        plot_point_on_map(ax2, 40.2824, -121.2412, markersize = msize, color = 'tab:blue')
+        plot_point_on_map(ax2, 41.4914, -120.5644, markersize = msize, color = 'tab:orange')
+        plot_point_on_map(ax3, 40.2824, -121.2412, markersize = msize, color = 'tab:blue')
+        plot_point_on_map(ax3, 41.4914, -120.5644, markersize = msize, color = 'tab:orange')
+        plot_point_on_map(ax4, 40.2824, -121.2412, markersize = msize, color = 'tab:blue')
+        plot_point_on_map(ax4, 41.4914, -120.5644, markersize = msize, color = 'tab:orange')
+        plot_point_on_map(ax7, 40.2824, -121.2412, markersize = msize, color = 'tab:blue')
+        plot_point_on_map(ax7, 41.4914, -120.5644, markersize = msize, color = 'tab:orange')
+        plot_point_on_map(ax10, 40.2824, -121.2412, markersize = msize, color = 'tab:blue')
+        plot_point_on_map(ax10, 41.4914, -120.5644, markersize = msize, color = 'tab:orange')
+        asos_height = 1379.67 / 1000.
+        radar_height = NEXRAD_dict1['radar'].altitude['data'][0] / 1000.
+        delta_height = asos_height
+        ax5.plot([dist1],[delta_height], marker = 'o', color = 'tab:red')
+        ax6.plot([dist1],[delta_height], marker = 'o', color = 'tab:red')
+        radar_height = NEXRAD_dict2['radar'].altitude['data'][0] / 1000.
+        delta_height = asos_height
+        ax8.plot([dist2],[delta_height], marker = 'o', color = 'tab:red')
+        ax9.plot([dist2],[delta_height], marker = 'o', color = 'tab:red')
+
     font_size = 10
     plot_figure_text(ax1, \
         str(goes_channel_dict[str(ch1)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
-        halign = 'right')
+        halign = 'right', weight = 'bold')
     plot_figure_text(ax2, \
         str(goes_channel_dict[str(ch2)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
-        halign = 'right')
+        halign = 'right', weight = 'bold')
     plot_figure_text(ax3, \
         str(goes_channel_dict[str(ch3)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
-        halign = 'right')
+        halign = 'right', weight = 'bold')
 
     plot_subplot_label(ax1, '(a)', backgroundcolor = 'white', \
         fontsize = font_size, location = 'upper_left')
@@ -1312,7 +1392,7 @@ def plot_NEXRAD_GOES_12panel(date_str, ch1, ch2, ch3, \
     plot_subplot_label(ax12, '(l)', backgroundcolor = 'white', \
         fontsize = font_size, location = 'upper_left')
 
-    plt.suptitle(date_str)
+    plt.suptitle(dt_date_str.strftime('%d %B %Y %H:%M UTC'))
     
     fig.tight_layout()
 
@@ -1856,7 +1936,7 @@ def calc_my_rhi(NEXRAD_dict, azimuth, variable, az_tol = 0.5):
         avg_rhi[ii,:] = np.nanmean(NEXRAD_dict['radar'].fields[variable]['data'][\
            start_idx:end_idx][az_idxs_swp,:], axis = 0)
         elv_rhi[ii,:] = (np.nanmean(NEXRAD_dict['radar'].gate_altitude['data'][start_idx:end_idx,:][\
-           az_idxs_swp,:], axis = 0) / 1e3) - radar_height
+           az_idxs_swp,:], axis = 0) / 1e3)
         rng_rhi[ii,:] = NEXRAD_dict['radar'].range['data'] / 1e3
 
     return avg_rhi, rng_rhi, elv_rhi
@@ -1896,7 +1976,7 @@ def plot_my_rhi(NEXRAD_dict, variable, azimuth,  az_tol = 0.2, \
     ax.set_xlim(range_min, range_max)
     ax.set_ylim(0, height_lim)
     ax.set_xlabel('Distance from radar (km)')
-    ax.set_ylabel('Distance above radar (km)')
+    ax.set_ylabel('Height above sea level (km)')
     ax.set_title(NEXRAD_dict['radar_name'] + ' ' + str(azimuth) + '$^{o}$ RHI')
 
     if(not in_ax): 

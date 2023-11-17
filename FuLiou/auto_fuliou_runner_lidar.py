@@ -24,7 +24,17 @@ import h5py
 import numpy as np
 import os
 
-def calc_species_aod(ext_val, aer_id, lidar_dz, abf_ids, dust_ids, \
+# NOTES FROM JEFF
+#
+#       EXT up to 0.05 km-1 < 500 = sea salt, for now
+#           anything above that (presume this means EXT > 0.05 km-1 and z < 500) = dust
+#
+#   Z < 500
+#       EXT <= 0.05 km-1 = sea salt
+#       EXT >  0.05 km-1 = dust
+#   Z > 500
+#       dust
+def calc_species_aod(ext_val, aer_id, lidar_z, lidar_dz, abf_ids, dust_ids, \
         smoke_ids, salt_ids, ii):
 
     total_abf_aot = total_dust_aot = total_smoke_aot = total_salt_aot = \
@@ -42,13 +52,21 @@ def calc_species_aod(ext_val, aer_id, lidar_dz, abf_ids, dust_ids, \
             elif(aer_id[ii,jj] == 1.):
                 total_ice_aot += ext_val[ii,jj] * lidar_dz[jj]
             else:
-                total_other_aot += ext_val[ii,jj] * lidar_dz[jj]
+                if(lidar_z[jj] < 500):
+                    if(ext_val[ii,jj] <= 5e-5):
+                        total_salt_aot += ext_val[ii,jj] * lidar_dz[jj]
+                    else:
+                        total_dust_aot += ext_val[ii,jj] * lidar_dz[jj]
+                else: 
+                    total_dust_aot += ext_val[ii,jj] * lidar_dz[jj]
+                #total_other_aot += ext_val[ii,jj] * lidar_dz[jj]
 
     spec_aods = np.array([total_abf_aot, total_dust_aot, total_smoke_aot, \
         total_salt_aot])
     other_aods = np.array([total_ice_aot, total_other_aot])
         
     return spec_aods, other_aods
+
 
 def test_aod_calc(ext_val, aer_id, aot_val, lidar_dz, abf_ids, dust_ids, \
         smoke_ids, salt_ids, ii):
@@ -62,18 +80,13 @@ def test_aod_calc(ext_val, aer_id, aot_val, lidar_dz, abf_ids, dust_ids, \
     calc_total_aod = np.sum(spec_aods)
     #calc_total_aod = total_abf_aot + total_dust_aot + total_smoke_aot + total_salt_aot
 
-    calc_caliop_aod = np.sum((ext_val[ii,:][ext_val[ii,:] != -9.]) * lidar_dz)
+    calc_caliop_aod = np.sum((ext_val[ii,:][ext_val[ii,:] != 0.]) * 15)
 
-    print('CALIOP AOD:              ',aot_val[ii])
+    print('lidar AOD:              ',aot_val[ii])
     print('calc AOD from all bins   ',calc_caliop_aod)
     print('sum of 4-spec aods       ',calc_total_aod)
 
     return calc_caliop_aod, calc_total_aod 
-
-def print_profile_info(ii, lidar_z, ext_532, aer_ind):
-    str_fmt = '{0:5d} {1:8.1f} {2:12.4e} {3:5.1f}'
-    for jj in range(aer_ind.shape[1]):
-        print(str_fmt.format(jj, lidar_z[jj], ext_532[ii,jj], aer_ind[ii,jj]))
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
@@ -251,11 +264,20 @@ def interp_NAAPS(ii, naaps_press, naaps_temp, naaps_relhum, naaps_spechum, \
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
 # This switch determines if the total AOD given in the first line of the
-# FuLiou input file is either the straight CALIOP AOT file or is the
+# FuLiou input file is either the straight lidar AOT file or is the
 # hand-calculated value given by totalling the four hand-calculated
 # species-specific AODs
 # ----------------------------------------------------------------------
-l_USE_CALIOP_AOD = False
+l_USE_lidar_AOD = False
+
+# This switch determines if the lidar vertical bins (and interpolated
+# NAAPS layers) are averaged to some pre-determined number of bins,
+# currently set to 100. This is to address the fact that the FuLiou
+# code doesn't run properly when the number of vertical layers
+# is more than 100, so the calculation doesn't work when all 827 
+# lidar layers are used. 
+# ----------------------------------------------------------------------
+l_BIN_LIDAR_VERTICAL = True
 
 # Check command line arguments
 # ----------------------------
@@ -269,7 +291,8 @@ if(len(sys.argv) != 2):
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
-base_dir = "/Research/for_blake_from_zhang/fuliou_package/"
+#base_dir = "/Research/fuliou_lidarflux/fuliou_package/"
+base_dir = "/Research/fuliou_lidarflux/test_package/"
 data_dir = "/Research/NAAPS_NOGAPS_2023/"
 mhome = base_dir + "test_run"
 output_dir = mhome + '/data'
@@ -406,7 +429,7 @@ naaps_smoke_mass = \
 
 # Extract lidar aerosol variables
 # 
-# NOTE: For the CALIOP total AOT, am using the '532_AOT_lo' parameter from 
+# NOTE: For the lidar total AOT, am using the '532_AOT_lo' parameter from 
 #       the files because it closely agrees with the AOT value that is 
 #       calculated from the '532_ext' extinction profile data, using
 #       
@@ -420,16 +443,15 @@ naaps_smoke_mass = \
 #       from testing, it was found that these values do not agree as well
 #       with the hand-calculated AOT values listed above.
 #
-# NOTE: Convert the CALIOP exts from in units of km-1 to units of m-1
+# NOTE: Convert the lidar exts from in units of km-1 to units of m-1
 # ---------------------------------------------------------------------------
 ext_532       = hdf_data['532_ext'][:,:] / 1e3
 aot_532       = hdf_data['532_AOT_lo'][:]
-#aot_532_hi    = hdf_data['532_AOT_hi'][:]
 aer_id        = hdf_data['Aerosol_ID'][:,:]
 
 ext_532 = np.ma.where(np.ma.masked_invalid(ext_532).mask == True, \
     0., ext_532)
-ext_532 = np.ma.masked_where(ext_532 < 0, ext_532)
+
 
 # Close the file
 # --------------
@@ -472,9 +494,10 @@ fmt_str = "{0:7.1f} {1:8.1f} {2:8.1f} {3:7.2f} " + \
 
 #foutname = base_dir + \
 #            'test_data/test_naaps_new/test_naaps_file_lidar.txt' 
-foutname = 'test_naaps_file_lidar.txt'
+foutname = 'test_naaps_file.txt'
 
-out_data_name = output_dir + '/test_output_file_lidar.txt'
+#out_data_name = output_dir + '/test_output_file_lidar.txt'
+out_data_name = 'test_output_file_lidar.txt'
 
 # If the outputfile exists in its current name, delete the old one
 # ----------------------------------------------------------------
@@ -500,9 +523,21 @@ salt_ids  = [3., 7.]
 #    test_aod_calc(ext_532, aer_id, aot_532, lidar_dz, abf_ids, dust_ids, \
 #        smoke_ids, salt_ids, good_idxs[100])
 
+##!#work_file = 'test_comp_work.txt'
+##!#if(os.path.exists(work_file)):
+##!#    print("Removing work file")
+##!#    cmnd = 'rm ' + work_file
+##!#    os.system(cmnd)
+
 check_press = -999.
-for ii in range(time.shape[0]):
-#for ii in range(156,157):
+if(l_BIN_LIDAR_VERTICAL):
+    num_layers = 100
+    split_dz = np.array(np.split(lidar_dz[:len(lidar_dz) - (len(lidar_dz) % num_layers)], num_layers))
+    avg_dz   = np.mean(np.split(lidar_dz[:len(lidar_dz) - (len(lidar_dz) % num_layers)], num_layers), axis = 1)
+    avg_z    = np.mean(np.array(np.split(lidar_z[:len(lidar_dz) - (len(lidar_dz) % num_layers)], num_layers)), axis = 1)
+#for ii in range(time.shape[0]):
+#for ii in range(0,time.shape[0],100):
+for ii in range(1223,1224):
 
     #print(ii, naaps_press[ii,0])
     if(naaps_press[ii,0] != check_press):
@@ -521,7 +556,35 @@ for ii in range(time.shape[0]):
                 naaps_salt_mass, naaps_smoke_mass)
             #interp_dust_ext, interp_abf_ext, interp_salt_ext, interp_smoke_ext,\
 
+        if(l_BIN_LIDAR_VERTICAL):
+            # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+            #
+            # Play around with thinning the data to 100 vertical layers
+            #
+            # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+            split_press       = np.mean(np.array(np.split(interp_press[:len(interp_press) - (len(interp_press) % num_layers)], num_layers)), axis = 1)
+            split_temp        = np.mean(np.array(np.split(interp_temp[:len(interp_press) - (len(interp_press) % num_layers)], num_layers)), axis = 1)
+            split_relhum      = np.mean(np.array(np.split(interp_relhum[:len(interp_press) - (len(interp_press) % num_layers)], num_layers)), axis = 1)
+            split_spechum     = np.mean(np.array(np.split(interp_spechum[:len(interp_press) - (len(interp_press) % num_layers)], num_layers)), axis = 1)
+            split_dust_mass   = np.mean(np.array(np.split(interp_dust_mass[:len(interp_press) - (len(interp_press) % num_layers)], num_layers)), axis = 1)
+            split_abf_mass    = np.mean(np.array(np.split(interp_abf_mass[:len(interp_press) - (len(interp_press) % num_layers)], num_layers)), axis = 1)
+            split_salt_mass   = np.mean(np.array(np.split(interp_salt_mass[:len(interp_press) - (len(interp_press) % num_layers)], num_layers)), axis = 1)
+            split_smoke_mass  = np.mean(np.array(np.split(interp_smoke_mass[:len(interp_press) - (len(interp_press) % num_layers)], num_layers)), axis = 1)
+    
+
         check_press = naaps_press[ii,0]
+
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    #
+    # Test the correction to the aerosol ID problem
+    #
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+
+    if(l_BIN_LIDAR_VERTICAL): 
+        split_ext     = np.array(np.split(ext_532[ii,:len(interp_press) - (len(interp_press) % num_layers)], num_layers))
+        split_aerid   = np.array(np.split(aer_id[ii,:len(interp_press) - (len(interp_press) % num_layers)], num_layers))
+   
+        avg_exts = np.average(split_ext, axis = 1)
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     #
@@ -531,8 +594,8 @@ for ii in range(time.shape[0]):
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
     spec_aods, other_aods = \
-        calc_species_aod(ext_532, aer_id, lidar_dz, abf_ids, dust_ids, \
-            smoke_ids, salt_ids, ii)
+        calc_species_aod(ext_532, aer_id, lidar_z, lidar_dz, abf_ids, \
+            dust_ids, smoke_ids, salt_ids, ii)
 
     ##!#total_abf_aot = total_dust_aot = total_smoke_aot = total_salt_aot = \
     ##!#    total_other_aot = 0.
@@ -581,95 +644,162 @@ for ii in range(time.shape[0]):
             local_fmt.format(aot_532[ii], \
                 calc_total_aot, other_aods[1] + calc_total_aot, other_aods[0], other_aods[1] ))
 
-        ##!#if(l_USE_CALIOP_AOD):
-        ##!#    fout.write("{0} {1:8.5f} {2:8.5f} {3:8.5f}\n".format(\
-        ##!#        local_date, lat[ii], lon[ii], aot_532[ii]))
-        ##!#        #local_date, lat[ii], lon[ii], naaps_tot_aot[ii]))
-        ##!#else:
-        ##!#    fout.write("{0} {1:8.5f} {2:8.5f} {3:8.5f}\n".format(\
-        ##!#        local_date, lat[ii], lon[ii], calc_total_aot))
-        ##!#        #local_date, lat[ii], lon[ii], naaps_tot_aot[ii]))
-        ##!#
-        ##!#fout.write("{0:10.3e} {1:10.3e} {2:10.3e} {3:10.3e}\n".format(\
-        ##!#    spec_aods[0], spec_aods[1], \
-        ##!#    spec_aods[2], spec_aods[3]))
-        ##!#    #naaps_abf_aot[ii], naaps_dust_aot[ii], \
-        ##!#    #naaps_smoke_aot[ii], naaps_salt_aot[ii]))
-        ##!#
-        ##!## Print the profile information in reverse order, with the lowest
-        ##!## data in the profile being at the last index.
-        ##!## ----------------------------------------------------------------------
-        ##!#for jj in range(ext_532.shape[1]-1, -1, -1):
+        if(l_USE_lidar_AOD):
+            fout.write("{0} {1:8.5f} {2:8.5f} {3:8.5f}\n".format(\
+                local_date, lat[ii], lon[ii], aot_532[ii]))
+                #local_date, lat[ii], lon[ii], naaps_tot_aot[ii]))
+        else:
+            fout.write("{0} {1:8.5f} {2:8.5f} {3:8.5f}\n".format(\
+                local_date, lat[ii], lon[ii], calc_total_aot))
+                #local_date, lat[ii], lon[ii], naaps_tot_aot[ii]))
+        
+        fout.write("{0:10.3e} {1:10.3e} {2:10.3e} {3:10.3e}\n".format(\
+            spec_aods[0], spec_aods[1], \
+            spec_aods[2], spec_aods[3]))
+            #naaps_abf_aot[ii], naaps_dust_aot[ii], \
+            #naaps_smoke_aot[ii], naaps_salt_aot[ii]))
+        
+        # Print the profile information in reverse order, with the lowest
+        # data in the profile being at the last index.
+        # ----------------------------------------------------------------------
+        if(l_BIN_LIDAR_VERTICAL):
+            vert_dim = avg_exts.shape[0] - 1
+        else:
+            vert_dim = ext_532.shape[1] - 1
+        for jj in range(vert_dim, -1, -1):
 
-        ##!#    # Use the CALIOP aerosol classification to put the CALIOP
-        ##!#    # extinction values into the correct type slot:
-        ##!#    # abf, dust, smoke, or salt
-        ##!#    #
-        ##!#    # CALIOP class values:
-        ##!#    #  1 = Ice
-        ##!#    #  2 = Dusty Mix
-        ##!#    #  3 = Marine
-        ##!#    #  4 = Urban/Pollution
-        ##!#    #  5 = Smoke
-        ##!#    #  6 = Fresh Smoke
-        ##!#    #  7 = Pol. Marine
-        ##!#    #  8 = Dust
-        ##!#    #
-        ##!#    # The CALIOP values are binned to the NAAPS species
-        ##!#    # following:
-        ##!#    #
-        ##!#    #   abf:   4
-        ##!#    #   dust:  2, 8
-        ##!#    #   smoke: 5, 6
-        ##!#    #   salt:  3, 7
-        ##!#    # -------------------------------------------------------
-        ##!#    local_abf = local_dust = local_smoke = local_salt = 0.
+            # Use the lidar aerosol classification to put the lidar
+            # extinction values into the correct type slot:
+            # abf, dust, smoke, or salt
+            #
+            # lidar class values:
+            #  1 = Ice
+            #  2 = Dusty Mix
+            #  3 = Marine
+            #  4 = Urban/Pollution
+            #  5 = Smoke
+            #  6 = Fresh Smoke
+            #  7 = Pol. Marine
+            #  8 = Dust
+            #
+            # The lidar values are binned to the NAAPS species
+            # following:
+            #
+            #   abf:   4
+            #   dust:  2, 8
+            #   smoke: 5, 6
+            #   salt:  3, 7
+            # -------------------------------------------------------
+            local_abf = local_dust = local_smoke = local_salt = 0.
 
-        ##!#    # ABF
-        ##!#    #if(aer_id[ii,jj] == 4.):
-        ##!#    if(aer_id[ii,jj] in abf_ids):
-        ##!#        local_abf = ext_532[ii,jj]
-        ##!#    # Dust
-        ##!#    #elif( (aer_id[ii,jj] == 2.) | (aer_id[ii,jj] == 8.) ):
-        ##!#    elif(aer_id[ii,jj] in dust_ids):
-        ##!#        local_dust = ext_532[ii,jj]
-        ##!#    # Smoke
-        ##!#    elif(aer_id[ii,jj] in smoke_ids):
-        ##!#        local_smoke = ext_532[ii,jj]
-        ##!#    # Salt 
-        ##!#    elif(aer_id[ii,jj] in salt_ids):
-        ##!#        local_salt = ext_532[ii,jj]
+            if(l_BIN_LIDAR_VERTICAL):
+                local_ids = np.ma.masked_invalid(split_aerid[jj])
+                local_ids = np.where(local_ids.mask, -9, local_ids)
+                if(avg_z[jj] > 500):
+                    local_ids = np.where(local_ids == -9, 2, local_ids)
+                else:
+                    local_ids = np.where((local_ids == -9) & (split_ext[jj] <= 5e-5), 3, local_ids)
+                    local_ids = np.where((local_ids == -9) & (split_ext[jj] > 5e-5), 2, local_ids)
+                ###if(lidar_z[jj] < 500):
+                ###    if(ext_val[ii,jj] <= 5e-5):
+                ###        total_salt_aot += ext_val[ii,jj] * lidar_dz[jj]
+                ###    else:
+                ###        total_dust_aot += ext_val[ii,jj] * lidar_dz[jj]
+                ###else: 
+                ###    total_dust_aot += ext_val[ii,jj] * lidar_dz[jj]
 
-        ##!#    fout.write(fmt_str.format(\
-        ##!#        interp_press[jj], float(lidar_z[jj]), lidar_dz[jj], \
-        ##!#        interp_temp[jj], interp_relhum[jj], \
-        ##!#        interp_spechum[jj], \
-        ##!#        local_abf, local_dust, local_smoke, local_salt, \
-        ##!#        #interp_abf_ext[jj], interp_dust_ext[jj], \
-        ##!#        #interp_smoke_ext[jj], interp_salt_ext[jj], \
-        ##!#        interp_abf_mass[jj], interp_dust_mass[jj], \
-        ##!#        interp_smoke_mass[jj], interp_salt_mass[jj], \
-        ##!#    ))
+                unique_ids = np.unique(local_ids)
+                work_id = unique_ids[np.argmax([\
+                    len(np.where(local_ids == uq)[0]) for uq in unique_ids])]
+                work_ext = avg_exts[jj]
+            else:
+                work_id = aer_id[ii,jj]
+                work_ext = ext_532[ii,jj]
+
+            # ABF
+            #if(aer_id[ii,jj] == 4.):
+            #if(aer_id[ii,jj] in abf_ids):
+            #    local_abf = ext_532[ii,jj]
+            if(work_id in abf_ids):
+                local_abf = work_ext
+                if(work_ext != 0.0):
+                    print(ii, jj, local_abf, local_dust, local_smoke, local_salt, 'ABF')
+            # Dust
+            #elif( (aer_id[ii,jj] == 2.) | (aer_id[ii,jj] == 8.) ):
+            #elif(aer_id[ii,jj] in dust_ids):
+            #    local_dust = ext_532[ii,jj]
+            elif(work_id in dust_ids):
+                local_dust = work_ext
+            # Smoke
+            #elif(aer_id[ii,jj] in smoke_ids):
+            #    local_smoke = ext_532[ii,jj]
+            elif(work_id in smoke_ids):
+                local_smoke = work_ext
+                if(work_ext != 0.0):
+                    print(ii, jj, local_abf, local_dust, local_smoke, local_salt, 'SMOKE')
+            # Salt 
+            #elif(aer_id[ii,jj] in salt_ids):
+            #    local_salt = ext_532[ii,jj]
+            elif(work_id in salt_ids):
+                local_salt = work_ext
+                if(work_ext != 0.0):
+                    print(ii, jj, local_abf, local_dust, local_smoke, local_salt, 'SALT')
+
+
+            if(l_BIN_LIDAR_VERTICAL):
+                fout.write(fmt_str.format(\
+                    split_press[jj], float(avg_z[jj]), avg_dz[jj], \
+                    split_temp[jj], split_relhum[jj], \
+                    split_spechum[jj], \
+                    local_abf, local_dust, local_smoke, local_salt, \
+                    #interp_abf_ext[jj], interp_dust_ext[jj], \
+                    #interp_smoke_ext[jj], interp_salt_ext[jj], \
+                    split_abf_mass[jj], split_dust_mass[jj], \
+                    split_smoke_mass[jj], split_salt_mass[jj], \
+                ))
+            else:
+                fout.write(fmt_str.format(\
+                    interp_press[jj], float(lidar_z[jj]), lidar_dz[jj], \
+                    interp_temp[jj], interp_relhum[jj], \
+                    interp_spechum[jj], \
+                    local_abf, local_dust, local_smoke, local_salt, \
+                    #interp_abf_ext[jj], interp_dust_ext[jj], \
+                    #interp_smoke_ext[jj], interp_salt_ext[jj], \
+                    interp_abf_mass[jj], interp_dust_mass[jj], \
+                    interp_smoke_mass[jj], interp_salt_mass[jj], \
+                ))
    
-    ##!#os.system('cp ' + foutname + ' ' + base_dir + \
-    ##!#        'test_data/test_naaps_new/test_naaps_file_lidar_' + str(int(ii)) + '.txt')
+    ###cmnd = 'cp ' + foutname + ' ' + base_dir + \
+    ###        'test_naaps_file_lidar_' + str(int(ii)) + '.txt'
+    ###print(cmnd)
+    ###os.system(cmnd)
+    #os.system('cp ' + foutname + ' ' + base_dir + \
+    #        'test_data/test_naaps_new/test_naaps_file_lidar_' + str(int(ii)) + '.txt')
 
-    ##!#""" 
-    ##!## = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-    ##!##
-    ##!##  Call the FuLiou code
-    ##!##
-    ##!## = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-    ##!##print("Calling FuLiou code") 
-    ##!#print(' Execute naaps_fuliou.exe')
-    ##!#cmnd = 'time ' + srcdir + '/bin/naaps_fuliou.exe'
-    ##!#print(cmnd)
-    ##!#os.system(cmnd)
+    # Copy the first couple of lines to the work file 
+    # -----------------------------------------------
+    cmnd = 'head -n 2 ' + foutname + ' >> ' + work_file
+    print(cmnd)
+    os.system(cmnd)
 
-    ##!## Concatenate the temp output file to the end of the actual
-    ##!## output file
-    ##!## ---------------------------------------------------------
-    ##!#cmnd = 'cat fort.22 >> ' + out_data_name
-    ##!#print(cmnd)
-    ##!#os.system(cmnd)
-    ##!#""" 
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    #
+    #  Call the FuLiou code
+    #
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    #print("Calling FuLiou code") 
+    print(' Execute naaps_fuliou.exe')
+    cmnd = 'time ' + srcdir + '/bin/naaps_fuliou.exe'
+    print(cmnd)
+    os.system(cmnd)
+
+    # Concatenate the temp output file to the end of the actual
+    # output file
+    # ---------------------------------------------------------
+    cmnd = 'cat fort.22 >> ' + out_data_name
+    print(cmnd)
+    os.system(cmnd)
+
+    cmnd = 'head -n 1 fort.22 >> ' + work_file
+    print(cmnd)
+    os.system(cmnd)

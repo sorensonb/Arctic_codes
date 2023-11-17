@@ -607,6 +607,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
     ##!#plt.plot(test_time, test_lat, label = 'lat')
     ##!#plt.plot(test_time, test_vza, label = 'vza')   
     ##!#plt.plot(test_time[lat_neg_peaks], test_azm[lat_neg_peaks], 'x')
+    ##!#plt.plot(test_time[lat_neg_peaks], test_vza[lat_neg_peaks], 'x', color = 'k')
     ##!#plt.legend()
     ##!#plt.show()
 
@@ -706,7 +707,7 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
                     if(len(test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]) > 0):
                         grid_swf[ii,m_idx[0][0]:len(test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
                         grid_lwf[ii,m_idx[0][0]:len(test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
-                        print(grid_lwf[ii,m_idx[0][0]:len(test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])])
+                        #print(grid_lwf[ii,m_idx[0][0]:len(test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])])
                         grid_lat[ii,m_idx[0][0]:len(test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
                         grid_lon[ii,m_idx[0][0]:len(test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
                         grid_sza[ii,m_idx[0][0]:len(test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
@@ -715,6 +716,20 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
                         grid_alb[ii,m_idx[0][0]:len(test_alb[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_alb[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
                         grid_cld[ii,m_idx[0][0]:len(test_cld[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_cld[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
                         grid_time[ii,m_idx[0][0]:len(test_ftim[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_ftim[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+
+        elif(idx_diff > testmax):
+            #print(idx_diff, test_time[keep_lat_peaks[ii]], np.nanmean(test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]), 'over estimate')
+            grid_swf[ii,:len(test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii] + testmax])] = test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii] + testmax]
+            grid_lwf[ii,:len(test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii] + testmax])] = test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii] + testmax]
+            grid_lat[ii,:len(test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii] + testmax])] = test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii] + testmax]
+            grid_lon[ii,:len(test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii] + testmax])] = test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii] + testmax]
+            grid_sza[ii,:len(test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii] + testmax])] = test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii] + testmax]
+            grid_vza[ii,:len(test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii] + testmax])] = test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii] + testmax]
+            grid_azm[ii,:len(test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii] + testmax])] = test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii] + testmax]
+            grid_alb[ii,:len(test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii] + testmax])] = test_alb[keep_lat_peaks[ii]:keep_lat_peaks[ii] + testmax]
+            grid_cld[ii,:len(test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii] + testmax])] = test_cld[keep_lat_peaks[ii]:keep_lat_peaks[ii] + testmax]
+            grid_time[ii,:len(test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii] + testmax])] = test_ftim[keep_lat_peaks[ii]:keep_lat_peaks[ii] + testmax]
+        
 
     # Remove any rows in the grid arrays with any nans
     # ------------------------------------------------

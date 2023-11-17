@@ -32,6 +32,7 @@ from matplotlib.lines import Line2D
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.patches as mpatches
+from metpy.plots import USCOUNTIES
 #from matplotlib.tri import Triangulation
 import cartopy
 import cartopy.crs as ccrs
@@ -1432,7 +1433,7 @@ def plot_compare_MODIS_cloud(date_str, swath = True, save = False):
 
 
 def read_MODIS_satpy(date_str, channel,  composite = False, swath = False, \
-        zoom = True):
+        zoom = True, return_xy = False):
 #def read_true_color(date_str,composite = False):
 
     if(swath):
@@ -1533,8 +1534,6 @@ def read_MODIS_satpy(date_str, channel,  composite = False, swath = False, \
     else:
         crs = ccrs.NorthPolarStereo()
 
-    del scn 
-    del new_scn
 
     ##!#if(channel != 'true_color'):
     ##!#    var = var.data
@@ -1547,12 +1546,24 @@ def read_MODIS_satpy(date_str, channel,  composite = False, swath = False, \
         plabel = channel_dict[str(channel)]['Unit_name'].title() + ' [' + \
             channel_dict[str(channel)]['Unit'] + ']'
 
-    return var, crs, lons, lats, lat_lims, lon_lims, plabel
+    if(return_xy):
+
+        y = new_scn[channel].y 
+        x = new_scn[channel].x 
+        del scn 
+        del new_scn
+        return var, crs, lons, lats, lat_lims, lon_lims, plabel, x, y
+    else:
+        del scn 
+        del new_scn
+        return var, crs, lons, lats, lat_lims, lon_lims, plabel
+    #return var, crs, lat_lims, lon_lims
 
 # channel must be an integer between 1 and 16
 def plot_MODIS_satpy(date_str, channel, ax = None, var = None, crs = None, \
         lons = None, lats = None, lat_lims = None, lon_lims = None, \
         vmin = None, vmax = None, ptitle = None, plabel = None, \
+        use_xy = False, 
         labelsize = 10, colorbar = True, swath = False, zoom=True,save=False):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
@@ -1560,6 +1571,15 @@ def plot_MODIS_satpy(date_str, channel, ax = None, var = None, crs = None, \
     if(var is None): 
         var, crs, lons, lats, lat_lims, lon_lims, plabel = read_MODIS_satpy(\
             date_str, str(channel), swath = swath)
+
+    if(var is None): 
+        if(use_xy):
+            var, crs, lons, lats, lat_lims, lon_lims, plabel, xx, yy = \
+                read_MODIS_satpy(date_str, str(channel), \
+                swath = swath, return_xy = True)
+        else:
+            var, crs, lons, lats, lat_lims, lon_lims, plabel = read_MODIS_satpy(\
+                date_str, str(channel), swath = swath)
     
     # Plot the GOES data
     # ------------------
@@ -1567,7 +1587,13 @@ def plot_MODIS_satpy(date_str, channel, ax = None, var = None, crs = None, \
     if(ax is None):
         in_ax = False
         plt.close('all')
-        ax = plt.axes(projection=crs)
+        fig = plt.figure()
+        if(use_xy):
+            mapcrs = init_proj('202107222110')
+            ax = fig.add_subplot(1,1,1, projection=mapcrs)
+        else:
+            ax = fig.add_subplot(1,1,1, projection=crs)
+
 
     ##!#ax.imshow(var.data, transform = crs, extent=(var.x[0], var.x[-1], \
     ##!#    var.y[-1], var.y[0]), vmin = vmin, vmax = vmax, origin='upper', \
@@ -1576,10 +1602,17 @@ def plot_MODIS_satpy(date_str, channel, ax = None, var = None, crs = None, \
         ax.imshow(var.data, transform = crs, extent=(var.x[0], var.x[-1], \
             var.y[-1], var.y[0]), origin='upper')
     else:
-        im1 = ax.pcolormesh(lons, lats, var.squeeze(), transform = datacrs, \
-            vmin = vmin, vmax = vmax, \
-            cmap = channel_dict[str(channel)]['cmap'], \
-            shading = 'auto')
+        if(use_xy):
+            im1 = ax.pcolormesh(xx, yy, var, transform = crs, \
+                vmin = vmin, vmax = vmax, \
+                cmap = channel_dict[str(channel)]['cmap'], \
+                shading = 'auto')
+        else:
+            #im1 = ax.imshow(var, transform = crs, vmin = vmin, vmax = vmax, \
+            im1 = ax.pcolormesh(lons, lats, var, transform = datacrs, \
+                vmin = vmin, vmax = vmax, \
+                cmap = channel_dict[str(channel)]['cmap'], \
+                shading = 'auto')
         if(colorbar):
             cbar = plt.colorbar(im1, ax = ax, pad = 0.03, fraction = 0.052, \
                 extend = 'both')
@@ -1594,6 +1627,9 @@ def plot_MODIS_satpy(date_str, channel, ax = None, var = None, crs = None, \
         zoom_add = '_zoom'
     else:
         zoom_add = ''
+
+    if(counties):
+        ax.add_feature(USCOUNTIES.with_scale('5m'), alpha = 0.5)    
 
     # NOTE: commented out after removing the 'enhanced_image' code because
     #       it doesn't work now .

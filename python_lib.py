@@ -178,6 +178,59 @@ def lat_lon_area(lat1,lat0,lon1,lon0):
 
     return area_out
 
+# date_str: YYYYMMDDHHMMSS (if not this length, the last stuff is assumed)
+# NOTE: AS OF 2023/11/15 - DOESN'T WORK
+def calc_solar_zenith_angle(date_str, lat, lon):
+
+    # no seconds
+    if(len(date_str) != 14):
+        if(len(date_str) == 12):
+            date_str = date_str + '00'
+        # no seconds or minutes
+        elif(len(date_str) == 10):
+            date_str = date_str + '0000'
+        # no seconds or minutes or hours
+        elif(len(date_str) == 8):
+            date_str = date_str + '000000'
+        # no seconds or minutes or hours or days (assume middle of month)
+        elif(len(date_str) == 6):
+            date_str = date_str + '15000000'
+        else:
+            print("INVALID DATE STRING")
+            return
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M%S')
+    rad_lat = np.radians(lat)
+    rad_lon = np.radians(lon)
+
+    # Calculate GMT hour angle 
+    # NOTE: AS WRITTEN HERE, DOES NOT ACCOUNT FOR TIME ZONES
+    # ------------------------------------------------------
+    frac_gmt = dt_date_str.hour + dt_date_str.minute/60. + \
+        dt_date_str.second/3600
+    hour_angle = - (frac_gmt - 12) / 12
+    #hour_angle = frac_gmt + rad_lon + np.pi
+
+    # Calculate solar declination angle
+    # ---------------------------------
+    dec_angle = -23.45 * np.cos( ((2*np.pi * dt_date_str.timetuple().tm_yday)/365) + \
+        ((20 * np.pi) / 365) )
+    #del_angles = -23.45 * np.cos( np.radians((360 / 365) * (days + 10)))
+
+    # Combine everything to calculate solar zenith angle
+    # --------------------------------------------------
+    csza    = np.sin(rad_lat) * np.sin(dec_angle) + np.cos(rad_lat) * \
+        np.cos(dec_angle) * np.cos(hour_angle)
+
+    print("\n")
+    print("     hour angle = ",hour_angle)
+    print("     decl angle = ",dec_angle)
+    print("rad(decl angle) = ",np.radians(dec_angle))
+    print("cos(sza)        = ",csza)
+    print("solar zen angle = ",np.degrees(np.arccos(csza)))
+
+    return np.degrees(np.arccos(csza))
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
 # Plotting functions
@@ -391,7 +444,7 @@ def plot_figure_text(ax, text, xval = None, yval = None, transform = None, \
         if(xval is None):
             xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * 0.95
         if(yval is None):
-            yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.80
+            yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.90
             #yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.90
     elif((location == 'mid_left') | (location == 'middle_left')):
         if(xval is None):

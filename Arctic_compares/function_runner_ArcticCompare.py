@@ -813,6 +813,12 @@ ai_thresh = 0.05
 #           monthy averaged forcing estimates as input and plots a single
 #           month of the data.
 #
+# plot_test_forcing_v3_daily_monthly: Combination of 
+#           "plot_test_forcing_v3" and "plot_test_forcing_v3_monthly", 
+#           plots the daily-averaged AI, daily estimated forcing values,
+#           and daily-averaged single-month forcing value for a YYYYMMDD
+#           date string.
+#
 # plot_test_forcing_v3_all_months: Using the "all_month_vals" daily-gridded
 #           monthy averaged forcing estimates, calculates the trends over
 #           the monthly averaged forcing estimates for each month range
@@ -840,9 +846,9 @@ ai_thresh = 0.05
 # the average of the first three years of sea ice rather than one
 # year...
 # ----------------------------------------------------------------
-all_month_vals = calculate_type_forcing_v3_monthly(daily_VSJ4, \
-    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = 0.7, minlat = 65., \
-    reference_ice = '2005')
+#all_month_vals = calculate_type_forcing_v3_monthly(daily_VSJ4, \
+#    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = 0.7, minlat = 65., \
+#    reference_ice = '2005')
 
 # Write the all_month_vals to an HDF5 file
 # ----------------------------------------
@@ -854,18 +860,28 @@ all_month_vals = calculate_type_forcing_v3_monthly(daily_VSJ4, \
 #       from the HDF5 file, must change the 'all_month_vals' to 
 #       all_month_dict['FORCE_EST']
 # -------------------------------------------------------------------------
-#infile = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07.hdf5'
-##infile = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_refice2005.hdf5'
-#all_month_dict = read_daily_month_force_HDF5(infile)
+infile = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07.hdf5'
+#infile = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_refice2005.hdf5'
+all_month_dict = read_daily_month_force_HDF5(infile)
 
 # Plot the daily-gridded monthly forcing values for a single month
 # ----------------------------------------------------------------
-#plot_type_forcing_v3_monthly(all_month_vals, OMI_daily_VSJ4, '201807', \
+#plot_test_forcing_v3_monthly(all_month_vals, OMI_daily_VSJ4, '201807', \
 #    minlat = 65, save = False)
+
+# Plot the daily gridded OMI AI, daily estimated forcing, and daily-averaged
+# monthly forcing value for a single month
+# --------------------------------------------------------------------------
+#date_str = '20180705'
+#plot_test_forcing_v3_daily_monthly(date_str, all_month_dict['FORCE_EST'], \
+#    daily_VSJ4, OMI_daily_VSJ4, lin_smth2_dict_v6, \
+#    minlat = 65., maxlat = 87., ai_thresh = 0.7, \
+#    cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw', \
+#    save = False, filter_bad_vals = False)
 
 # Plot the trend of daily-gridded monthly forcing values
 # ------------------------------------------------------
-#plot_type_forcing_v3_all_months(all_month_vals, OMI_daily_VSJ4, minlat = 65)
+plot_type_forcing_v3_all_months(all_month_vals, OMI_daily_VSJ4, minlat = 65)
 
 # Calculate the Arctic-wide average of the daily-gridded monthly forcing
 # values for each month and plot them
@@ -878,6 +894,17 @@ all_month_vals = calculate_type_forcing_v3_monthly(daily_VSJ4, \
 #                      END FORCING VERSION 3 STUFF
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+
+plot_dual_combined_multi_type(comp_grid_data_v6, combined_data, \
+    xval = 'ai', \
+    #cld_min = None, cld_max = None,\
+    ch7_min = 0.05, ch7_max = 0.1,\
+    ice_min1 = 0, ice_max1 = 20,\
+    ice_min2 = 105, ice_max2 = None,\
+    sza_min = 50, sza_max = 55,\
+    ai_min = 2,  ai_max = None,\
+    save = False, show_trend = False, shade_density = False, \
+    trend_type = 'theil-sen')
 
 sys.exit()
 #plot_type_forcing_all_months(OMI_data, NSIDC_data, 'average', \

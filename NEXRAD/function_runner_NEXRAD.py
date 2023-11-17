@@ -8,11 +8,40 @@ import importlib, NEXRADLib
 from NEXRADLib import *
 import sys
 
-## Every 5 minutes from 202107202100 to 202107210330
-#begin_date = '202107210215'
-#end_date = '202107210230'
-#auto_NEXRAD_download(begin_date, end_date, 15, 'KBBX')
+
+#NEXRAD_dict = read_NEXRAD('202107222100', 'KRGX', angle = 4)
 #sys.exit()
+date_str = '202107210000'
+variable = 'cross_correlation_ratio'
+radar = 'KBBX'
+azimuth = 38
+plot_NEXRAD_GOES_12panel(date_str, 2, 6, 13, \
+    36, 287, 315,
+    sat = 'goes17', 
+    #23, 292, 315,
+    #sat = 'goes16', 
+    variable = 'composite_reflectivity', \
+    ax = None, ptitle = None, plabel = None, \
+    vmin = -5, vmax = 90, \
+    labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+        alpha = 1.0, mask_outside = True, zoom=True, save=True)
+####plot_NEXRAD_GOES_5panel(date_str, 2, 6, 13, \
+####    variable = 'composite_reflectivity', \
+####    ax = None, ptitle = None, plabel = None, \
+####    vmin = -5, vmax = 90, \
+####    labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+####    alpha = 1.0, mask_outside = True, zoom=True, save=False)
+#plot_NEXRAD_rhi_multipanel(date_str, radar, azimuth, \
+#    angle_idx = 4, range_min = 45, range_max = 120, \
+#    save = False, save_dir = './')
+sys.exit()
+
+
+## Every 5 minutes from 202107202100 to 202107210330
+begin_date = '202107222000'
+end_date = '202107222200'
+auto_NEXRAD_download(begin_date, end_date, 30, 'KRGX')
+sys.exit()
 
 radar = 'KRGX'
 azimuth = 310.0      # 281.
@@ -134,28 +163,6 @@ range_max = 190
 #angle_idx = 4
 #range_min = 65
 #range_max = 120
-
-date_str = '202107210000'
-variable = 'cross_correlation_ratio'
-radar = 'KBBX'
-azimuth = 38
-plot_NEXRAD_GOES_12panel(date_str, 2, 6, 13, \
-    36, 287, 315,
-    variable = 'composite_reflectivity', \
-    ax = None, ptitle = None, plabel = None, \
-    vmin = -5, vmax = 90, \
-    labelsize = 10, colorbar = True, counties = True, save_dir = './',\
-        alpha = 1.0, mask_outside = True, zoom=True, save=True)
-####plot_NEXRAD_GOES_5panel(date_str, 2, 6, 13, \
-####    variable = 'composite_reflectivity', \
-####    ax = None, ptitle = None, plabel = None, \
-####    vmin = -5, vmax = 90, \
-####    labelsize = 10, colorbar = True, counties = True, save_dir = './',\
-####    alpha = 1.0, mask_outside = True, zoom=True, save=False)
-#plot_NEXRAD_rhi_multipanel(date_str, radar, azimuth, \
-#    angle_idx = 4, range_min = 45, range_max = 120, \
-#    save = False, save_dir = './')
-sys.exit()
 
 radar = 'KBBX'
 range_min = 45

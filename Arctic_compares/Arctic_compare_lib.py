@@ -3065,10 +3065,11 @@ def plot_test_forcing_v2(OMI_data, NSIDC_data, MYD08_data, coloc_dict, \
         plt.show()
  
 def plot_test_forcing_v3(OMI_daily_data, OMI_month_data, date_str, \
-        coloc_dict, minlat = 70., maxlat = 87., ai_thresh = -0.15, \
+        coloc_dict, minlat = 65., maxlat = 87., ai_thresh = -0.15, \
         cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw', \
         save = False, filter_bad_vals = False):
 
+    print("HERE1", date_str, minlat, maxlat, ai_thresh, cld_idx, maxerr, min_cloud, data_type)
     estimate_forcing, MYD08_data, NSIDC_data = \
         calculate_type_forcing_v3(OMI_daily_data, OMI_month_data, \
             coloc_dict, date_str, minlat = minlat, maxlat = maxlat, \
@@ -3193,6 +3194,92 @@ def plot_test_forcing_v3_monthly(all_month_values, OMI_monthly_data, date_str, \
     fig.tight_layout()
     if(save):
         outname = 'test_calc_forcing_v3_monthly_' + date_str + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+
+# all_month_values: returned from calculate_type_forcing_v3_monthly with
+# 'all' used in place of the month_idx argument
+# 
+# This function plots the estimated forcing values for a single, 
+# provided date and for its associated month
+# ----------------------------------------------------------------------
+def plot_test_forcing_v3_daily_monthly(date_str, all_month_values, \
+        OMI_daily_data, OMI_monthly_data, coloc_dict,\
+        minlat = 65., maxlat = 87., ai_thresh = 0.7, \
+        cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw', \
+        save = False, filter_bad_vals = False):
+
+    #estimate_forcing, MYD08_data, NSIDC_data = \
+    # Grab the daily forcing values here
+    # ----------------------------------
+    print("HERE2", date_str, minlat, maxlat, ai_thresh, cld_idx, maxerr, min_cloud, data_type)
+    estimate_forcing = \
+        calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, \
+            coloc_dict, date_str, minlat = minlat, maxlat = maxlat, \
+            ai_thresh = ai_thresh, cld_idx = cld_idx, maxerr = maxerr,\
+            min_cloud = min_cloud, data_type = data_type,\
+            filter_bad_vals = filter_bad_vals, return_modis_nsidc = False)
+
+    file_strs = np.array([str(tval) for tval in OMI_daily_data['day_values']])
+    match_idx = np.where(date_str == file_strs)[0][0]
+    
+    plt.close('all')
+    fig = plt.figure(figsize = (10, 3))
+    ax1 = fig.add_subplot(1,3,1, projection = mapcrs)  # Map of daily OMI AI
+    ax2 = fig.add_subplot(1,3,2, projection = mapcrs)  # Map of daily forcing
+    ax3 = fig.add_subplot(1,3,3, projection = mapcrs)  # map of monthly forcing estimate
+   
+    # Plot daily OMI AI
+    # ----------------- 
+    mesh = ax1.pcolormesh(OMI_daily_data['lon_values'], \
+        OMI_daily_data['lat_values'], \
+        OMI_daily_data['grid_AI'][match_idx,:,:], shading = 'auto', \
+        transform = datacrs, cmap = 'jet', vmin = 0, vmax = 4.0)
+    cbar = fig.colorbar(mesh, ax = ax1, label =  'Daily AI')
+    ax1.set_extent([-180,180,minlat,90], datacrs)
+    ax1.set_boundary(circle, transform=ax1.transAxes)
+    ax1.set_title('Gridded Perturbed OMI AI\n' + date_str)
+    ax1.coastlines()
+
+    # Plot daily forcing estimate
+    # ---------------------------
+    min_force = np.nanmin(estimate_forcing[:,:])
+    max_force = np.nanmax(estimate_forcing[:,:])
+    if(abs(max_force) > abs(min_force)):
+        lims = [-abs(max_force), abs(max_force)]
+    else:
+        lims = [-abs(min_force), abs(min_force)]
+    mesh = ax2.pcolormesh(OMI_daily_data['lon_values'], \
+        OMI_daily_data['lat_values'], estimate_forcing[:,:], shading = 'auto',\
+        transform = datacrs, \
+        cmap = 'bwr', vmin = lims[0], vmax = lims[1])
+    cbar = fig.colorbar(mesh, ax = ax2, label = 'Est. Aerosol Forcing [W/m2]')
+    ax2.set_extent([-180,180,minlat,90], datacrs)
+    ax2.set_boundary(circle, transform=ax2.transAxes)
+    ax2.set_title('Estimated Daily Forcing\n' + date_str)
+    ax2.coastlines()
+    
+    # Plot monthly forcing estimate
+    # -----------------------------
+    file_strs = np.array([str(tval) for tval in OMI_monthly_data['DATES']])
+    match_idx = np.where(date_str[:6] == file_strs)[0][0]
+    max_data = np.max(all_month_values[match_idx,:,:])
+    mesh = ax3.pcolormesh(OMI_monthly_data['LON'], \
+        OMI_monthly_data['LAT'], \
+        all_month_values[match_idx,:,:], shading = 'auto', \
+        transform = datacrs, cmap = 'bwr', vmin = -max_data, vmax = max_data)
+    cbar = fig.colorbar(mesh, ax = ax3, label =  'Est. Aerosol Forcing [W/m2]')
+    ax3.set_extent([-180,180,minlat,90], datacrs)
+    ax3.set_boundary(circle, transform=ax3.transAxes)
+    ax3.set_title('Estimated Monthly Forcing\n' + date_str[:6])
+    ax3.coastlines()
+
+    fig.tight_layout()
+    if(save):
+        outname = 'test_calc_forcing_v3_daily_monthly_' + date_str + '.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
@@ -3459,7 +3546,7 @@ def plot_combined_scatter(combined_data, xval = 'omi_uvai_raw', \
                 linestyle = '-',  slope = trend_type)
 
     ax.set_xlabel('OMI UVAI')
-    ax.set_ylabel('CERES SWF')
+    ax.set_ylabel('CERES SWF [W/m2]')
 
     if(not in_ax):
         plt.show()
@@ -3848,18 +3935,139 @@ def plot_dual_combined_grid_climo(comp_grid_data, combined_data, \
         print("Saved image",outname)
     else:
         plt.show()
+  
+# Allows a user to compare raw colocated data for two sfc types 
+def plot_dual_combined_multi_type(comp_grid_data, combined_data, \
+        xval = 'ai', \
+        #cld_min = None, cld_max = None,\
+        ch7_min1 = None, ch7_max1 = None,\
+        ch7_min2 = None, ch7_max2 = None,\
+        ice_min1 = None, ice_max1 = None,\
+        ice_min2 = None, ice_max2 = None,\
+        sza_min1 = None, sza_max1 = None,\
+        sza_min2 = None, sza_max2 = None,\
+        ai_min = 2,  ai_max = None,\
+        save = False, show_trend = False, shade_density = False, \
+        trend_type = 'theil-sen'):
+
+    if(ch7_min2 == None): ch7_min2 = ch7_min1
+    if(ch7_max2 == None): ch7_max2 = ch7_max1
+    if(sza_min2 == None): sza_min2 = sza_min1
+    if(sza_max2 == None): sza_max2 = sza_max1
+
+    plt.close('all')
+    fig = plt.figure(figsize = (9, 4))
+    ax1 = fig.add_subplot(1,2,1)
+    ax2 = fig.add_subplot(1,2,2)
+
+    ai_diff = comp_grid_data['ai_bins'][2] - \
+        comp_grid_data['ai_edges'][2]
+    sza_diff = comp_grid_data['sza_bins'][2] - \
+        comp_grid_data['sza_edges'][2]
+    ice_diff = comp_grid_data['ice_bins'][2] - \
+        comp_grid_data['ice_edges'][2]
+    if('cod_bins' in comp_grid_data.keys()):
+        ch7_diff = comp_grid_data['cod_bins'][2] - \
+            comp_grid_data['cod_edges'][2]
+    else:
+        ch7_diff = comp_grid_data['ch7_bins'][2] - \
+            comp_grid_data['ch7_edges'][2]
+    #cld_diff = comp_grid_data['cld_bins'][2] - \
+    #    comp_grid_data['cld_edges'][2]
+
+    try:
+        plot_combined_scatter(combined_data, ax = ax1, \
+            omi_min = ai_min,  omi_max  = ai_max, \
+            sza_min = sza_min1, sza_max = sza_max1, \
+            ice_min = ice_min1, ice_max = ice_max1, \
+            ch7_min = ch7_min1, ch7_max = ch7_max1, \
+            #cld_min = cld_min, cld_max = cld_max, \
+            ai_diff = ai_diff, sza_diff = sza_diff, \
+            ice_diff = ice_diff, ch7_diff = ch7_diff,\
+            #cld_diff = cld_diff, \
+            trend_type = trend_type, show_trend = show_trend, \
+            shade_density = shade_density)
+    
+    except:
+        print("ERROR in plot_combined_scatter")
+        return
+   
+    try: 
+        plot_combined_scatter(combined_data, ax = ax2, \
+            omi_min = ai_min,  omi_max  = ai_max, \
+            sza_min = sza_min2, sza_max = sza_max2, \
+            ice_min = ice_min2, ice_max = ice_max2, \
+            ch7_min = ch7_min2, ch7_max = ch7_max2, \
+            #cld_min = cld_min, cld_max = cld_max, \
+            ai_diff = ai_diff, sza_diff = sza_diff, \
+            ice_diff = ice_diff, ch7_diff = ch7_diff,\
+            #cld_diff = cld_diff, \
+            trend_type = trend_type, show_trend = show_trend, \
+            shade_density = shade_density)
+
+    except:
+        print("ERROR in plot_combined_scatter for sfc type 2")
+        return
+
+    if(ice_min1 == 0):
+        title1 = 'Ocean\nIce Conc. < 20%'
+    elif(ice_min1 == 21):
+        title1 = 'Mix\n21% < Ice Conc. < 79%'
+    elif(ice_min1 == 80):
+        title1 = 'Ice\nIce Conc. > 80%'
+    elif(ice_min1 == 105):
+        title1 = 'Land'
+
+    if(ice_min2 == 0):
+        title2 = 'Ocean\nIce Conc. < 20%'
+    elif(ice_min2 == 21):
+        title2 = 'Mix\n21% < Ice Conc. < 79%'
+    elif(ice_min2 == 80):
+        title2 = 'Ice\nIce Conc. > 80%'
+    elif(ice_min2 == 105):
+        title2 = 'Land'
+    ax1.set_title(title1)
+    ax2.set_title(title2)
+    
+
+    title = set_comp_title(\
+                           #cld_min, cld_max, \
+                           ch7_min1, ch7_max1, \
+                           ice_min1, ice_max1, \
+                           sza_min1, sza_max1,\
+                           ai_min,  ai_max, version2 = True)
+    filer = set_file_title(\
+                           #cld_min, cld_max, \
+                           ch7_min1, ch7_max1, \
+                           ice_min1, ice_max1, \
+                           sza_min1, sza_max1,\
+                           ai_min,  ai_max)
+    plt.suptitle(title)
+
+    fig.tight_layout()
+
+    if(save):
+        outname = 'comp_dual_rawL2_' + filer + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image",outname)
+    else:
+        plt.show()
    
 def set_comp_title(\
         #cld_min = None, cld_max = None,\
         ch7_min = None, ch7_max = None,\
         ice_min = None, ice_max = None,\
         sza_min = None, sza_max = None,\
-        ai_min = None,  ai_max = None):
+        ai_min = None,  ai_max = None, \
+        version2 = False):
 
     ch7_min = np.round(ch7_min, 2)
     ch7_max = np.round(ch7_max, 2)
 
-    title = '' 
+    if(version2):
+        title = 'Raw Colocated L2\n'
+    else:
+        title = '' 
     #if(cld_min is not None):
     #    if(cld_max is not None):
     #        title = title + str(cld_min) + ' < cld < ' + str(cld_max) + '\n'
@@ -3871,39 +4079,41 @@ def set_comp_title(\
 
     if(ch7_min is not None):
         if(ch7_max is not None):
-            title = title + str(ch7_min) + ' < ch7 < ' + str(ch7_max) + '\n'
+            title = title + str(ch7_min) + ' < CH7 Refl. < ' + str(ch7_max) + '\n'
         else:
-            title = title + 'ch7 > ' + str(ch7_min) + '\n'
+            title = title + 'CH7 Refl. > ' + str(ch7_min) + '\n'
     else:
         if(ch7_max is not None):
-            title = title + 'ch7 < ' + str(ch7_max) + '\n'
+            title = title + 'CH7 Refl. < ' + str(ch7_max) + '\n'
 
-    if(ice_min is not None):
-        if(ice_max is not None):
-            title = title + str(ice_min) + ' < ice < ' + str(ice_max) + '\n'
+    if(not version2):
+        if(ice_min is not None):
+            if(ice_max is not None):
+                title = title + str(ice_min) + ' < ice < ' + str(ice_max) + '\n'
+            else:
+                title = title + 'ICE % > ' + str(ice_min) + '\n'
         else:
-            title = title + 'ice > ' + str(ice_min) + '\n'
-    else:
-        if(ice_max is not None):
-            title = title + 'ice < ' + str(ice_max) + '\n'
+            if(ice_max is not None):
+                title = title + 'ICE % < ' + str(ice_max) + '\n'
 
     if(sza_min is not None):
         if(sza_max is not None):
-            title = title + str(sza_min) + ' < sza < ' + str(sza_max) + '\n'
+            title = title + str(sza_min) + ' < SZA < ' + str(sza_max)
         else:
-            title = title + 'sza > ' + str(sza_min) + '\n'
+            title = title + 'SZA > ' + str(sza_min)
     else:
         if(sza_max is not None):
-            title = title + 'sza < ' + str(sza_max) + '\n'
+            title = title + 'SZA < ' + str(sza_max)
 
-    if(ai_min is not None):
-        if(ai_max is not None):
-            title = title + str(ai_min) + ' < ai < ' + str(ai_max)
+    if(not version2):
+        if(ai_min is not None):
+            if(ai_max is not None):
+                title = '\n' + title + str(ai_min) + ' < AI < ' + str(ai_max)
+            else:
+                title = '\n' + title + 'AI > ' + str(ai_min)
         else:
-            title = title + 'ai > ' + str(ai_min)
-    else:
-        if(ai_max is not None):
-            title = title + 'ai < ' + str(ai_max)
+            if(ai_max is not None):
+                title = '\n' + title + 'AI < ' + str(ai_max)
 
     return title 
 
@@ -4627,12 +4837,13 @@ def plot_slopes_cloud_types_szamean(out_dict,cld_idx = 0, maxerr = 2, \
     else:
         axs = fig.subplots(nrows = 1, ncols = 3, sharey = True)
         ax1 = axs[0]
-        ax2 = axs[1]
+        ax3 = axs[1]
+        ax4 = axs[2]
 
     ax1.axhline(0, color = 'k', linestyle = '--')
-    ax2.axhline(0, color = 'k', linestyle = '--')
     ax3.axhline(0, color = 'k', linestyle = '--')
-    if(include_mix): ax4.axhline(0, color = 'k', linestyle = '--')
+    ax4.axhline(0, color = 'k', linestyle = '--')
+    if(include_mix): ax2.axhline(0, color = 'k', linestyle = '--')
  
     # Ocean stuff 
     ax1.plot(out_dict[xvar + '_mins'], ocean_slopes[xvar + '_cloud_means'], \
@@ -4654,107 +4865,105 @@ def plot_slopes_cloud_types_szamean(out_dict,cld_idx = 0, maxerr = 2, \
         color = 'tab:orange')
 
     # Ice stuff 
-    ax2.plot(out_dict[xvar + '_mins'], ice_slopes[xvar + '_cloud_means'], \
+    ax3.plot(out_dict[xvar + '_mins'], ice_slopes[xvar + '_cloud_means'], \
         color = 'tab:blue', label = 'Cloud')
-    ax2.plot(out_dict[xvar + '_mins'], ice_slopes[xvar + '_cloud_means'] - \
+    ax3.plot(out_dict[xvar + '_mins'], ice_slopes[xvar + '_cloud_means'] - \
         ice_slopes[xvar + '_cloud_std'], ':', \
         color = 'tab:blue')
-    ax2.plot(out_dict[xvar + '_mins'], ice_slopes[xvar + '_cloud_means'] + \
+    ax3.plot(out_dict[xvar + '_mins'], ice_slopes[xvar + '_cloud_means'] + \
         ice_slopes[xvar + '_cloud_std'], ':', \
         color = 'tab:blue')
 
-    ax2.plot(out_dict[xvar + '_mins'], ice_slopes[xvar + '_clear_means'], \
+    ax3.plot(out_dict[xvar + '_mins'], ice_slopes[xvar + '_clear_means'], \
         color = 'tab:orange', label = 'Clear')
-    ax2.plot(out_dict[xvar + '_mins'], ice_slopes[xvar + '_clear_means'] - \
+    ax3.plot(out_dict[xvar + '_mins'], ice_slopes[xvar + '_clear_means'] - \
         ice_slopes[xvar + '_clear_std'], ':', \
         color = 'tab:orange')
-    ax2.plot(out_dict[xvar + '_mins'], ice_slopes[xvar + '_clear_means'] + \
+    ax3.plot(out_dict[xvar + '_mins'], ice_slopes[xvar + '_clear_means'] + \
         ice_slopes[xvar + '_clear_std'], ':', \
         color = 'tab:orange')
 
     # Land stuff 
-    ax3.plot(out_dict[xvar + '_mins'], land_slopes[xvar + '_cloud_means'], \
+    ax4.plot(out_dict[xvar + '_mins'], land_slopes[xvar + '_cloud_means'], \
         color = 'tab:blue', label = 'Cloud')
-    ax3.plot(out_dict[xvar + '_mins'], land_slopes[xvar + '_cloud_means'] - \
+    ax4.plot(out_dict[xvar + '_mins'], land_slopes[xvar + '_cloud_means'] - \
         land_slopes[xvar + '_cloud_std'], ':', \
         color = 'tab:blue')
-    ax3.plot(out_dict[xvar + '_mins'], land_slopes[xvar + '_cloud_means'] + \
+    ax4.plot(out_dict[xvar + '_mins'], land_slopes[xvar + '_cloud_means'] + \
         land_slopes[xvar + '_cloud_std'], ':', \
         color = 'tab:blue')
 
-    ax3.plot(out_dict[xvar + '_mins'], land_slopes[xvar + '_clear_means'], \
+    ax4.plot(out_dict[xvar + '_mins'], land_slopes[xvar + '_clear_means'], \
         color = 'tab:orange', label = 'Clear')
-    ax3.plot(out_dict[xvar + '_mins'], land_slopes[xvar + '_clear_means'] - \
+    ax4.plot(out_dict[xvar + '_mins'], land_slopes[xvar + '_clear_means'] - \
         land_slopes[xvar + '_clear_std'], ':', \
         color = 'tab:orange')
-    ax3.plot(out_dict[xvar + '_mins'], land_slopes[xvar + '_clear_means'] + \
+    ax4.plot(out_dict[xvar + '_mins'], land_slopes[xvar + '_clear_means'] + \
         land_slopes[xvar + '_clear_std'], ':', \
         color = 'tab:orange')
 
     ax1_mins = ax1.get_ylim()[0]
-    ax2_mins = ax2.get_ylim()[0]
     ax3_mins = ax3.get_ylim()[0]
+    ax4_mins = ax4.get_ylim()[0]
     ax1_maxs = ax1.get_ylim()[1]
-    ax2_maxs = ax2.get_ylim()[1]
     ax3_maxs = ax3.get_ylim()[1]
+    ax4_maxs = ax4.get_ylim()[1]
 
     if(include_mix):
-        ax4.plot(out_dict[xvar + '_mins'], mix_slopes[xvar + '_cloud_means'], \
+        ax2.plot(out_dict[xvar + '_mins'], mix_slopes[xvar + '_cloud_means'], \
             color = 'tab:blue', label = 'Cloud')
-        ax4.plot(out_dict[xvar + '_mins'], mix_slopes[xvar + '_cloud_means'] - \
+        ax2.plot(out_dict[xvar + '_mins'], mix_slopes[xvar + '_cloud_means'] - \
             mix_slopes[xvar + '_cloud_std'], ':', \
             color = 'tab:blue')
-        ax4.plot(out_dict[xvar + '_mins'], mix_slopes[xvar + '_cloud_means'] + \
+        ax2.plot(out_dict[xvar + '_mins'], mix_slopes[xvar + '_cloud_means'] + \
             mix_slopes[xvar + '_cloud_std'], ':', \
             color = 'tab:blue')
 
-        ax4.plot(out_dict[xvar + '_mins'], mix_slopes[xvar + '_clear_means'], \
+        ax2.plot(out_dict[xvar + '_mins'], mix_slopes[xvar + '_clear_means'], \
             color = 'tab:orange', label = 'Clear')
-        ax4.plot(out_dict[xvar + '_mins'], mix_slopes[xvar + '_clear_means'] - \
+        ax2.plot(out_dict[xvar + '_mins'], mix_slopes[xvar + '_clear_means'] - \
             mix_slopes[xvar + '_clear_std'], ':', \
             color = 'tab:orange')
-        ax4.plot(out_dict[xvar + '_mins'], mix_slopes[xvar + '_clear_means'] + \
+        ax2.plot(out_dict[xvar + '_mins'], mix_slopes[xvar + '_clear_means'] + \
             mix_slopes[xvar + '_clear_std'], ':', \
             color = 'tab:orange')
-        ax4.legend()
 
-        ax4_mins = ax4.get_ylim()[0]
-        ax4_maxs = ax4.get_ylim()[1]
-    else:
-        ax3.legend()
+        ax2_mins = ax2.get_ylim()[0]
+        ax2_maxs = ax2.get_ylim()[1]
+    ax4.legend()
 
-    all_mins = [ax1_mins, ax2_mins, ax3_mins]
-    all_maxs = [ax1_maxs, ax2_maxs, ax3_maxs]
+    all_mins = [ax1_mins, ax3_mins, ax4_mins]
+    all_maxs = [ax1_maxs, ax3_maxs, ax4_maxs]
     if(include_mix):
-        all_mins += [ax4_mins]
-        all_maxs += [ax4_maxs]
+        all_mins += [ax2_mins]
+        all_maxs += [ax2_maxs]
 
     ax1.set_ylim(np.min(all_mins), np.max(all_maxs))
-    ax2.set_ylim(np.min(all_mins), np.max(all_maxs))
     ax3.set_ylim(np.min(all_mins), np.max(all_maxs))
+    ax4.set_ylim(np.min(all_mins), np.max(all_maxs))
     if(include_mix): 
-        ax4.set_ylim(np.min(all_mins), np.max(all_maxs))
+        ax2.set_ylim(np.min(all_mins), np.max(all_maxs))
 
     ax1.grid(alpha = 0.5)
-    ax2.grid(alpha = 0.5)
     ax3.grid(alpha = 0.5)
+    ax4.grid(alpha = 0.5)
     if(include_mix): 
-        ax4.grid(alpha = 0.5)
+        ax2.grid(alpha = 0.5)
 
-    ax1.set_title('Ocean')
-    ax2.set_title('Ice')
-    ax3.set_title('Land')
+    ax1.set_title('Ocean\n(Ice Conc. < ' + str(out_dict['ice_maxs'][0]) + '%)')
+    ax3.set_title('Ice\n(Ice Conc. > ' + str(out_dict['ice_mins'][1]) + '%)')
+    ax4.set_title('Land')
     if(include_mix):  
-        ax4.set_title('Mix')
+        ax2.set_title('Mix\n(' + str(out_dict['ice_mins'][3]) + '% < Ice Conc. < ' + str(out_dict['ice_maxs'][3]) + '%)')
  
     if(xvar == 'sza'): labeltxt = 'OMI SZA'
     elif(xvar == 'ch7'): labeltxt = 'MODIS CH7'
     elif(xvar == 'cod'): labeltxt = 'MODIS COD'
     ax1.set_xlabel(labeltxt)
-    ax2.set_xlabel(labeltxt)
     ax3.set_xlabel(labeltxt)
+    ax4.set_xlabel(labeltxt)
     if(include_mix):
-        ax4.set_xlabel(labeltxt)
+        ax2.set_xlabel(labeltxt)
  
     ax1.set_ylabel('AI-SWF Slope [Wm$^{-2}$AI$^{-1}$]')
     if(include_mix):
@@ -6385,9 +6594,11 @@ def plot_type_forcing_v3_all_months(all_month_values, OMI_monthly_data, \
     ax11.set_xlabel('Latitude')    
     ax11.set_ylabel('Zonal Avg. Forcing Trend')    
  
-    ax12.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[5])
+    ax12.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[5], label = 'Avg. Trend')
     ax12.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[5] + zonal_stds[5], linestyle = '--', color = 'tab:blue')
-    ax12.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[5] - zonal_stds[5], linestyle = '--', color = 'tab:blue')
+    ax12.plot(OMI_monthly_data['LAT'][:,0], zonal_avgs[5] - zonal_stds[5], linestyle = '--', color = 'tab:blue', \
+        label = '+/- St. Dev. Trend')
+    ax12.legend(fontsize = 10)
     ax12.axhline(0, linestyle = ':', color = 'k')
     ax12.set_title('September')
     ax12.set_xlabel('Latitude')    
@@ -6408,7 +6619,9 @@ def plot_type_forcing_v3_all_months(all_month_values, OMI_monthly_data, \
     ax11.set_ylim(rangers)
     ax12.set_ylim(rangers)
 
-    plt.suptitle('Forcing Estimate 3:\nDaily-averaged Single Month Based', weight = 'bold', fontsize = 12) 
+    #plt.suptitle('Forcing Estimate 3:\nDaily-averaged Single Month Based', weight = 'bold', fontsize = 12) 
+    plt.suptitle('Estimated Aerosol Forcing Trend\n2005 - 2020', \
+        weight = 'bold', fontsize = 12) 
     fig.tight_layout()
 
     if(save):

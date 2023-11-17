@@ -10,7 +10,100 @@ import OMILib
 from OMILib import *
 import sys
 
+infiles = [\
+    '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2007m0728t0927-o16137_v003-2017m0721t040315.he5',
+    '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2007m0728t1106-o16138_v003-2017m0721t040329.he5',
+    '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2007m0728t1245-o16139_v003-2017m0721t040251.he5'
+    ]
 
+fig = plt.figure()
+ax1 = fig.add_subplot(2,2,1, projection = ccrs.PlateCarree())
+ax2 = fig.add_subplot(2,2,2, projection = ccrs.PlateCarree())
+ax3 = fig.add_subplot(2,2,3, projection = ccrs.PlateCarree())
+ax4 = fig.add_subplot(2,2,4, projection = ccrs.PlateCarree())
+
+def plot_swath_on_map(infile, ax1, ax2, ax3):
+
+    data = h5py.File(infile)
+   
+    allrad =  data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/NormRadiance'][:,:,:]
+    allrad = np.ma.masked_where(allrad < 0, allrad)
+    rad354 = allrad[:,:,0]
+    rad388 = allrad[:,:,1]
+    rad500 = allrad[:,:,2]
+    LAT    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude'][:,:]
+    LON    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude'][:,:]
+    data.close()
+    
+    print(np.min(rad354), np.max(rad354))
+    print(np.min(rad388), np.max(rad388))
+    print(np.min(rad500), np.max(rad500))
+
+    red   = rad354*(255./np.max(allrad)) 
+    green = rad388*(255./np.max(allrad)) 
+    blue  = rad500*(255./np.max(allrad)) 
+    
+    # Create color scales for each RGB channel
+    # ----------------------------------------
+    old_val = np.array([0,30,60,120,190,255])
+    #ehn_val = np.array([0,30,60,120,190,255])
+    ehn_val = np.array([0,40,100,160,220,255])
+    #ehn_val = np.array([0,110,160,210,240,255])
+    red     = np.interp(red,old_val,ehn_val) / 255.
+    old_val = np.array([0,30,60,120,190,255])
+    #ehn_val = np.array([0,30,60,120,190,255])
+    ehn_val = np.array([0,20,80,140,200,255])
+    #ehn_val = np.array([0,110,160,200,230,240])
+    green   = np.interp(green,old_val,ehn_val) / 255.
+    old_val = np.array([0,30,60,120,190,255])
+    ehn_val = np.array([0,60,120,180,210,255])
+    #ehn_val = np.array([0,100,150,210,240,255])
+    blue    = np.interp(blue,old_val,ehn_val) / 255.
+    
+    # Combine the three RGB channels into 1 3-d array
+    # -----------------------------------------------
+    image = np.zeros((red.shape[0],red.shape[1],3))
+    image[:,:,0] = red
+    image[:,:,1] = green
+    image[:,:,2] = blue
+    
+    # Convert the color values into a format usable for plotting
+    # ----------------------------------------------------------
+    colortuple = tuple(np.array([image[:,:,0].flatten(), \
+        image[:,:,1].flatten(), image[:,:,2].flatten()]).transpose().tolist())
+        
+
+    print("RGB")
+    print(np.min(red), np.max(red))
+    print(np.min(green), np.max(green))
+    print(np.min(blue), np.max(blue))
+ 
+    datacrs = ccrs.PlateCarree()
+    ax1.pcolormesh(LON, LAT, rad354, transform = datacrs, shading = 'auto')
+    ax1.coastlines()
+    ax1.set_extent([-60, 50, -20, 40], datacrs)
+
+    ax2.pcolormesh(LON, LAT, rad388, transform = datacrs, shading = 'auto')
+    ax2.coastlines()
+    ax2.set_extent([-60, 50, -20, 40], datacrs)
+    
+    ax3.pcolormesh(LON, LAT, rad388, transform = datacrs, shading = 'auto')
+    ax3.coastlines()
+    ax3.set_extent([-60, 50, -20, 40], datacrs)
+
+    ax4.pcolormesh(LON,LAT,\
+        image[:,:,0], color= colortuple, \
+        shading='auto', transform = datacrs) 
+    ax4.coastlines()
+    ax4.set_extent([-60, 50, -20, 40], datacrs)
+
+for tfile in infiles:
+    plot_swath_on_map(tfile, ax1, ax2, ax3)
+
+fig.tight_layout()
+plt.show()
+
+sys.exit()
 daily_VSJ4   = h5py.File('omi_shawn_daily_2005_2020.hdf5')
 daily_VJZ211 = h5py.File('omi_VJZ211_daily_2005_2020.hdf5')
 

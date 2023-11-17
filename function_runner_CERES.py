@@ -13,13 +13,13 @@ def local_test_func(infile, data_dt, minlat, maxlat, minlon, maxlon, sizer = 120
         vmin1 = 150, vmax1 = 250, vmin2 = 300, vmax2 = 370):
 
     str_fmt = "%Y%m%d%H%M"
-    hour_adder = 1
-    hour_subtracter = 0
+    minute_adder = 30
+    minute_subtracter = 30
 
     dt_data_begin = datetime.strptime(data_dt,str_fmt) \
-        - relativedelta(hours = hour_subtracter)
+        - relativedelta(minutes = minute_subtracter)
     dt_data_end   = datetime.strptime(data_dt,str_fmt) \
-        + relativedelta(hours = hour_adder)
+        + relativedelta(minutes = minute_adder)
 
     base_date = datetime(year=1970,month=1,day=1)
 
@@ -95,8 +95,8 @@ def local_test_func(infile, data_dt, minlat, maxlat, minlon, maxlon, sizer = 120
 ####minlat = 30.0
 ###param = 'SWF'
 ###date_str = '2021072321'
-###CERES_data_hrly = readgridCERES_hrly_grid(date_str[:10], param, \
-###    satellite = 'NOAA20', minlat = 30.)
+#CERES_data_hrly = readgridCERES_hrly_grid(date_str[:10], param, \
+#    satellite = 'NOAA20', minlat = 30.)
 ###sys.exit()
 #infile = '/home/bsorenson/data/CERES/SSF_Level2/Aqua/modis_comp/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072208-2021072222.nc'
 #infile = '/home/bsorenson/data/CERES/SSF_Level2/Terra/CERES_SSF_Terra-XTRK_Edition4A_Subset_2021072303-2021072321.nc'
@@ -113,29 +113,28 @@ infile = '/home/bsorenson/data/CERES/SSF_Level2/NOAA20/CERES_SSF_NOAA20-XTRK_Edi
 #date_str = '2021072318'
 #date_str = '2021072309'   # Aqua
 #date_str = '2021072306'    # Terra
-date_str = '202107231000'   # NOAA20
+date_str = '202107231040'   # NOAA20
 vmin1 = 150
 vmax1 = 250
-vmin2 = 250
-vmax2 = 290
-sizer = 40
+vmin2 = 270
+vmax2 = 310
+sizer = 50
+dlat = 5.
 
-
-local_test_func(infile, date_str, 39.5 - 5, 42. + 5, -122. - 10, -119.5 + 20, sizer = sizer, \
-    vmin1 = vmin1, vmax1 = vmax1, vmin2 = vmin2, vmax2 = vmax2)
-
+#local_test_func(infile, date_str, 39.5 - dlat, 42. + dlat, -122. - dlat, -119.5 + dlat, sizer = sizer, \
+#    vmin1 = vmin1, vmax1 = vmax1, vmin2 = vmin2, vmax2 = vmax2)
 """
-tester = readgridCERES_hrly_grid(date_str[:10], 'SWF', satellite = 'Terra', minlat = 30)
+tester = readgridCERES_hrly_grid(date_str[:10], 'SWF', satellite = 'NOAA20', minlat = 30)
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1, projection = ccrs.LambertConformal(central_longitude = -121))
 mesh = ax.pcolormesh(tester['lon'], tester['lat'], tester['lwf'], shading = 'auto', transform = datacrs, cmap = 'plasma', vmin = 270)
 cbar = fig.colorbar(mesh, ax = ax, label = 'TOA LWF [W/m2]')
-ax.set_title('Terra CERES TOA Flux\n23 July 2021 06:00 UTC')
+ax.set_title('NOAA-20 CERES TOA Flux\n23 July 2021 10:00 UTC')
 ax.coastlines()
 ax.add_feature(cfeature.STATES)
 ax.set_extent([-122,-119.5,39.5,42], datacrs)
 fig.tight_layout()
-fig.savefig('ceres_terra_lwf_2021072306.png', dpi = 200)
+fig.savefig('ceres_noaa20_lwf_2021072310.png', dpi = 200)
 plt.show()
 """
 #plotCERES_hrly_figure(date_str, 'SWF',  \
