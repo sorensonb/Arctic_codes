@@ -6001,6 +6001,7 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
         only_sea_ice = False, minlat = 65., skiprows = None, \
         lat_circles = None, save = False, zoom = False, \
         vmin = None, vmax = None, circle_bound = True, ax = None, \
+        colorbar = True, 
         shawn_path = home_dir + '/data/OMI/shawn_files/'):
 
 
@@ -6044,7 +6045,8 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
     #plotOMI_single_swath(ax0, OMI_base, title = 'No row 53', \
         #circle_bound = False, gridlines = False)
         vmin = vmin, vmax = vmax, 
-        circle_bound = circle_bound, gridlines = False)
+        circle_bound = circle_bound, gridlines = False, \
+        colorbar = colorbar)
     #plotOMI_single_swath(ax2, OMI_base, pvar = 'SZA', \
     #    title = "SZA", \
     #    vmin = 50, vmax = 75, 

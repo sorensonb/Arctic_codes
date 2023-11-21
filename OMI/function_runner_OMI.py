@@ -10,54 +10,152 @@ import OMILib
 from OMILib import *
 import sys
 
+# Perform nonlinear histogram equalizing stuff
+def hist_equal(data):
+    # Determine the number of pixel values
+    local_data = np.ma.masked_where(data < 0, data)
+    local_data[(local_data.mask == True) | (local_data.data < 0)] = -9.
+    local_data = local_data.data.astype(int)
+    local_data = np.ma.masked_where(local_data < 0, local_data)
+    work_data = local_data.compressed()
+ 
+    pixel_vals = int(np.nanmax(work_data)) + 1 
+     
+    bins = np.arange(pixel_vals+1) 
+    values = np.full((pixel_vals), -9.)
+
+    # Calculate histogram
+    for ii in range(len(values)):
+        values[ii] = len(np.where(work_data == ii)[0])
+    
+    # Calculate the cumulative histogram
+    cum_hist = np.cumsum(values)
+  
+    new_hist = ((pixel_vals - 1.)/cum_hist[-1]) * cum_hist
+    new_bright = np.round(new_hist,0)
+
+    new_data = np.copy(local_data)
+    new_data = np.ma.masked_where(new_data < 0, new_data)
+
+    # Loop over the new data and adjust using the new 
+    # brightness values
+    # -----------------------------------------------
+    for ii in range(len(new_bright)):
+        new_data[local_data == bins[ii]] = new_bright[ii]
+
+    return new_data
+
 infiles = [\
     '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2007m0728t0927-o16137_v003-2017m0721t040315.he5',
     '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2007m0728t1106-o16138_v003-2017m0721t040329.he5',
     '/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2007m0728t1245-o16139_v003-2017m0721t040251.he5'
     ]
 
-fig = plt.figure()
+fig = plt.figure(figsize = (8, 6))
 ax1 = fig.add_subplot(2,2,1, projection = ccrs.PlateCarree())
 ax2 = fig.add_subplot(2,2,2, projection = ccrs.PlateCarree())
 ax3 = fig.add_subplot(2,2,3, projection = ccrs.PlateCarree())
 ax4 = fig.add_subplot(2,2,4, projection = ccrs.PlateCarree())
 
-def plot_swath_on_map(infile, ax1, ax2, ax3):
+def plot_subplot_label(ax, label, xval = None, yval = None, transform = None, \
+        color = 'black', backgroundcolor = None, fontsize = 14, \
+        location = 'upper_left'):
+
+    if(location == 'upper_left'):
+        y_lim = 0.90
+        #y_lim = 1.03
+        x_lim = 0.05
+    if(location == 'upper_upper_left'):
+        y_lim = 1.05
+        x_lim = 0.05
+    elif(location == 'lower_left'):
+        y_lim = 0.05
+        x_lim = 0.05
+    elif(location == 'upper_right'):
+        y_lim = 0.90
+        x_lim = 0.80
+    elif(location == 'upper_upper_right'):
+        y_lim = 1.03
+        x_lim = 0.90
+    elif(location == 'lower_right'):
+        y_lim = 0.05
+        x_lim = 0.90
+
+    if(xval is None):
+        xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * x_lim
+    if(yval is None):
+        yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * y_lim
+    print('Xval = ',xval, 'Yval = ',yval)
+
+    if(transform is None):
+        if(backgroundcolor is None):
+            ax.text(xval,yval,label, \
+                color=color, weight='bold', \
+                fontsize=fontsize)
+        else:
+            ax.text(xval,yval,label, \
+                color=color, weight='bold', \
+                fontsize=fontsize, backgroundcolor = backgroundcolor)
+    else:
+        if(backgroundcolor is None):
+            ax.text(xval,yval,label, \
+                color=color, weight='bold', \
+                transform = transform, fontsize=fontsize)
+        else:
+            ax.text(xval,yval,label, \
+                color=color, weight='bold', \
+                transform = transform, fontsize=fontsize, \
+                backgroundcolor = backgroundcolor)
+
+def plot_swath_on_map(infile, ax1, ax2, ax3, ax4, minlon = -60, maxlon = 50, \
+        minlat = -20, maxlat = 40, equalize = True):
 
     data = h5py.File(infile)
    
     allrad =  data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/NormRadiance'][:,:,:]
-    allrad = np.ma.masked_where(allrad < 0, allrad)
-    rad354 = allrad[:,:,0]
-    rad388 = allrad[:,:,1]
-    rad500 = allrad[:,:,2]
+    allrad = np.ma.masked_where(allrad <= 0, allrad)
     LAT    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude'][:,:]
     LON    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude'][:,:]
+    AI     = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex'][:,:]
     data.close()
-    
+
+    rad354 = np.ma.masked_where( (LON < minlon) | (LON > maxlon)  | \
+        (LAT < minlat) | (LAT > maxlat), allrad[:,:,0])
+    rad388 = np.ma.masked_where( (LON < minlon) | (LON > maxlon)  | \
+        (LAT < minlat) | (LAT > maxlat), allrad[:,:,1])
+    rad500 = np.ma.masked_where( (LON < minlon) | (LON > maxlon)  | \
+        (LAT < minlat) | (LAT > maxlat), allrad[:,:,2])
+    AI     = np.ma.masked_where( (LON < minlon) | (LON > maxlon)  | \
+        (LAT < minlat) | (LAT > maxlat), AI)
+    AI = np.ma.masked_where(AI < -20, AI) 
     print(np.min(rad354), np.max(rad354))
     print(np.min(rad388), np.max(rad388))
     print(np.min(rad500), np.max(rad500))
 
-    red   = rad354*(255./np.max(allrad)) 
-    green = rad388*(255./np.max(allrad)) 
-    blue  = rad500*(255./np.max(allrad)) 
+    allmaxs = np.array([np.max(rad354), np.max(rad388), np.max(rad500)])
+
+    red   = rad500*(255./np.max(allmaxs)) 
+    green = rad388*(255./np.max(allmaxs)) 
+    blue  = rad354*(255./np.max(allmaxs)) 
+    #red   = rad354*(255./0.8) 
+    #green = rad388*(255./0.8) 
+    #blue  = rad500*(255./0.8) 
+
+    if(equalize):
+        red   = hist_equal(red)
+        green = hist_equal(green)
+        blue  = hist_equal(blue)
     
     # Create color scales for each RGB channel
     # ----------------------------------------
     old_val = np.array([0,30,60,120,190,255])
-    #ehn_val = np.array([0,30,60,120,190,255])
-    ehn_val = np.array([0,40,100,160,220,255])
-    #ehn_val = np.array([0,110,160,210,240,255])
+    ehn_val = np.array([0,110,160,210,240,255])
     red     = np.interp(red,old_val,ehn_val) / 255.
     old_val = np.array([0,30,60,120,190,255])
-    #ehn_val = np.array([0,30,60,120,190,255])
-    ehn_val = np.array([0,20,80,140,200,255])
-    #ehn_val = np.array([0,110,160,200,230,240])
+    ehn_val = np.array([0,110,160,200,230,240])
     green   = np.interp(green,old_val,ehn_val) / 255.
     old_val = np.array([0,30,60,120,190,255])
-    ehn_val = np.array([0,60,120,180,210,255])
-    #ehn_val = np.array([0,100,150,210,240,255])
+    ehn_val = np.array([0,100,150,210,240,255])
     blue    = np.interp(blue,old_val,ehn_val) / 255.
     
     # Combine the three RGB channels into 1 3-d array
@@ -72,38 +170,48 @@ def plot_swath_on_map(infile, ax1, ax2, ax3):
     colortuple = tuple(np.array([image[:,:,0].flatten(), \
         image[:,:,1].flatten(), image[:,:,2].flatten()]).transpose().tolist())
         
-
-    print("RGB")
-    print(np.min(red), np.max(red))
-    print(np.min(green), np.max(green))
-    print(np.min(blue), np.max(blue))
- 
     datacrs = ccrs.PlateCarree()
-    ax1.pcolormesh(LON, LAT, rad354, transform = datacrs, shading = 'auto')
+    ax1.pcolormesh(LON, LAT, rad500, transform = datacrs, shading = 'auto')
     ax1.coastlines()
-    ax1.set_extent([-60, 50, -20, 40], datacrs)
+    ax1.set_extent([minlon, maxlon, minlat, maxlat], datacrs)
 
     ax2.pcolormesh(LON, LAT, rad388, transform = datacrs, shading = 'auto')
     ax2.coastlines()
-    ax2.set_extent([-60, 50, -20, 40], datacrs)
+    ax2.set_extent([minlon, maxlon, minlat, maxlat], datacrs)
     
-    ax3.pcolormesh(LON, LAT, rad388, transform = datacrs, shading = 'auto')
+    ax3.pcolormesh(LON, LAT, rad354, transform = datacrs, shading = 'auto')
     ax3.coastlines()
-    ax3.set_extent([-60, 50, -20, 40], datacrs)
+    ax3.set_extent([minlon, maxlon, minlat, maxlat], datacrs)
 
     ax4.pcolormesh(LON,LAT,\
         image[:,:,0], color= colortuple, \
         shading='auto', transform = datacrs) 
     ax4.coastlines()
-    ax4.set_extent([-60, 50, -20, 40], datacrs)
+    ax4.set_extent([minlon, maxlon, minlat, maxlat], datacrs)
 
+equalize = True
 for tfile in infiles:
-    plot_swath_on_map(tfile, ax1, ax2, ax3)
+    plot_swath_on_map(tfile, ax1, ax2, ax3, ax4, equalize = equalize)
+
+ax1.set_title('500 nm Norm. Radiance')
+ax2.set_title('388 nm Norm. Radiance')
+ax3.set_title('354 nm Norm. Radiance')
+if(equalize):
+    ax4.set_title('False Color Image\n(R = 500 nm; G = 388 nm; B = 354 nm)\nHistogram Equalized')
+else:
+    ax4.set_title('False Color Image\n(R = 500 nm; G = 388 nm; B = 354 nm)')
+
+plot_subplot_label(ax1, '(a)', location = 'upper_left')
+plot_subplot_label(ax2, '(b)', location = 'upper_left')
+plot_subplot_label(ax3, '(c)', location = 'upper_left')
+plot_subplot_label(ax4, '(d)', location = 'upper_left')
 
 fig.tight_layout()
 plt.show()
 
 sys.exit()
+
+
 daily_VSJ4   = h5py.File('omi_shawn_daily_2005_2020.hdf5')
 daily_VJZ211 = h5py.File('omi_VJZ211_daily_2005_2020.hdf5')
 
