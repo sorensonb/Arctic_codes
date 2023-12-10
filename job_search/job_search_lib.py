@@ -89,20 +89,18 @@ def read_job_file(infile):
 
     return data
 
-def calc_distances(data1, data2, data3, data4, threshold = 60, lat_lon_dict = None):
+
+def calc_distances(data1, data2, data3, data4, threshold = 60, \
+        lat_lon_dict = None, verbose = False):
 
     # Loop over each of the UNIV/WFOs in data1
     if('University' in data1.keys()):
         base_var = 'University'
         base_data = data1
-        loop_var = 'WFO'
-        loop_data = data2
         
     else:
         base_var = 'WFO'
         base_data = data1
-        loop_var = 'University'
-        loop_data = data2
 
 
     base_list = list(base_data[base_var])
@@ -115,7 +113,13 @@ def calc_distances(data1, data2, data3, data4, threshold = 60, lat_lon_dict = No
     base_lons = np.full(len(base_list), np.nan)
 
     for ii in range(len(base_list)):
-        count_dict[base_list[ii]] = 0
+        count_dict[base_list[ii]] = {}
+        count_dict[base_list[ii]]['Count'] = 0
+        count_dict[base_list[ii]]['site_lats'] = []
+        count_dict[base_list[ii]]['site_lons'] = []
+        count_dict[base_list[ii]]['site_names'] = []
+        count_dict[base_list[ii]]['site_dists'] = []
+
         xx = base_data['City'][ii] 
         yy = base_data['State'][ii]
         if(len(yy) > 2):
@@ -132,7 +136,10 @@ def calc_distances(data1, data2, data3, data4, threshold = 60, lat_lon_dict = No
                 base_lats[ii], base_lons[ii] = extract_lat_lon(city_name)
         else:
             base_lats[ii], base_lons[ii] = extract_lat_lon(city_name)
-       
+      
+        count_dict[base_list[ii]]['nws_lat'] = base_lats[ii]
+        count_dict[base_list[ii]]['nws_lon'] = base_lons[ii]
+ 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
     #
     # ATSCI
@@ -158,8 +165,8 @@ def calc_distances(data1, data2, data3, data4, threshold = 60, lat_lon_dict = No
 
         for ii in range(len(loop_list)):
 
-            xx = loop_data['City'][ii] 
-            yy = loop_data['State'][ii]
+            xx = data['City'][ii] 
+            yy = data['State'][ii]
             if(len(yy) > 2):
                 ll_yy = us_state_to_abbrev[yy]
             else:
@@ -180,26 +187,39 @@ def calc_distances(data1, data2, data3, data4, threshold = 60, lat_lon_dict = No
                 loop_lats[ii], loop_lons[ii] = extract_lat_lon(city_name)
 
         for ii in range(len(base_list)):
+
             # Allocate an array to hold the distances for each of the other
             # -------------------------------------------------------------
         
             # Check the ATSCI distances
             # -------------------------
             dist_array = np.full(len(loop_list), np.nan)
-            dists = np.array([find_distance_between_points(base_lats[ii], base_lons[ii], 
-                llat, llon) for llat, llon in zip(loop_lats, loop_lons)])
-            num_within = len(np.where(dists < threshold)[0])
-            count_dict[base_list[ii]] += num_within
+            dists = np.array([np.round(find_distance_between_points(base_lats[ii], base_lons[ii], 
+                llat, llon), 1) for llat, llon in zip(loop_lats, loop_lons)])
+            sites_within = np.where(dists < threshold)
+            num_within = len(sites_within[0])
+
+            if(num_within > 0):
+                for kk in range(num_within):
+                    count_dict[base_list[ii]]['site_lats'].append(loop_lats[sites_within][kk])
+                    count_dict[base_list[ii]]['site_lons'].append(loop_lons[sites_within][kk])
+                    count_dict[base_list[ii]]['site_names'].append(np.array(loop_list)[sites_within][kk])
+                    count_dict[base_list[ii]]['site_dists'].append(dists[sites_within][kk])
+
+            count_dict[base_list[ii]]['Count'] += num_within
             if(base_data['City'][ii] == 'Indianapolis'):
                 if(num_within > 0):
                     print('Indianapolis is close to',np.array(loop_list)[np.where(dists < threshold)[0]])
 
         return count_dict
 
+    print('\n\nCHECKING UNIVERSITIES')
     count_dict = check_nws_distance(data2, threshold, count_dict, \
         lat_lon_dict = lat_lon_dict)
+    print('\n\nCHECKING LABS')
     count_dict = check_nws_distance(data3, threshold, count_dict, \
         lat_lon_dict = lat_lon_dict)
+    print('\n\nCHECKING COMPANIES')
     count_dict = check_nws_distance(data4, threshold, count_dict, \
         lat_lon_dict = lat_lon_dict)
 
@@ -296,10 +316,22 @@ def calc_distances(data1, data2, data3, data4, threshold = 60, lat_lon_dict = No
     ##!#    #        print('Goodland is close to',np.array(loop_list)[np.where(dists < threshold)[0]])
 
 
+    counter = 0
     for ii in range(len(base_list)):
-        print(count_dict[base_list[ii]], base_list[ii])
+        if(verbose):
+            if(count_dict[base_list[ii]]['Count'] > 0):
+                print(counter, 'NWS office: ',base_list[ii])
+                for kk in range(count_dict[base_list[ii]]['Count']):
+                    print('    ', \
+                        count_dict[base_list[ii]]['site_names'][kk], \
+                        np.round(count_dict[base_list[ii]]['site_dists'][kk] * 0.611, 1))
+                counter+=1
+        else:
+            print(count_dict[base_list[ii]]['Count'], base_list[ii])
  
     #find_distance_between_points(lat1, lon1, lat2, lon2)
+
+    return count_dict
 
 def extract_lat_lon(city_name):
 
@@ -311,7 +343,8 @@ def extract_lat_lon(city_name):
     return llat, llon
 
 def convert_lat_lon_to_dict(atsci, nws, labs, priv, \
-        outname = lat_lon_dict_file):
+        outname = lat_lon_dict_file, reprocess = False, \
+        debug = False):
 
     print("Converting lats and lons")
    
@@ -323,16 +356,18 @@ def convert_lat_lon_to_dict(atsci, nws, labs, priv, \
                 ll_yy = us_state_to_abbrev[yy]
             else:
                 ll_yy = yy
-            city_name = xx + ' ' + ll_yy
-            llat, llon = extract_lat_lon(city_name)
 
-            if(city_name not in lat_lon_dict.keys()):
+            city_name = xx + ' ' + ll_yy
+
+            if((reprocess) | (city_name not in lat_lon_dict.keys())):
+                llat, llon = extract_lat_lon(city_name)
                 print(city_name,'ADDED')
                 lat_lon_dict[city_name] = {}
                 lat_lon_dict[city_name]['Lat'] = llat
                 lat_lon_dict[city_name]['Lon'] = llon
             else:
-                print(city_name,'ALREADY IN DICT')
+                if(debug):
+                    print(city_name,'ALREADY IN DICT')
     
         return ldict
  
@@ -500,3 +535,98 @@ def plot_all_sites(atsci, nws, labs, priv, ax = None, lat_lon_dict = None, \
     if(not in_ax):
         fig.tight_layout()
         plt.show()
+
+# radius is passed in in miles
+def plot_coloc_nws_sites(ax, nws, atsci, labs, priv, \
+        size = None, color = None, \
+        lat_lon_dict = None, draw_circles = False, threshold = 60):
+
+    count_dict = calc_distances(nws, atsci, labs, priv, \
+        threshold = threshold, lat_lon_dict = lat_lon_dict, \
+        verbose = True)
+
+    #dtype = 'WFO'
+    #list_cities = list(nws['City'])
+    #list_states = list(nws['State'])
+    #dtype =  data.keys()[0]
+    #print("======= Plotting",dtype,"========")
+
+    #if(size is None):
+    #    point_size = size_dict['WFO']
+    #else:
+    #    point_size = size
+    base_size = 4
+
+    if(color is None):
+        color_val  = color_dict['WFO']
+    else:
+        color_val  = color
+
+    if(draw_circles): radius = radius * 1e3
+
+    #for xx, yy in zip(list_cities, list_states):
+    for nws_key in sorted(count_dict.keys()):
+        # Check if the current city has colocated stuff
+        # ---------------------------------------------
+        if(count_dict[nws_key]['Count'] > 0):
+
+            print("PLOTTING SITE",nws_key, count_dict[nws_key]['Count'])
+                
+            point_size = base_size + count_dict[nws_key]['Count'] * 1.5
+    
+    
+            #if(lat_lon_dict is not None):
+            #    if(city_name in lat_lon_dict.keys()):
+            #        llat = lat_lon_dict[city_name]['Lat']
+            #        llon = lat_lon_dict[city_name]['Lon']
+            #    else:
+            #        llat, llon = extract_lat_lon(city_name)
+            #else:
+            #    llat, llon = extract_lat_lon(city_name)
+
+            plot_point_on_map(ax, count_dict[nws_key]['nws_lat'], \
+                count_dict[nws_key]['nws_lon'], markersize = point_size, \
+                color = color_val, alpha = 1.0)
+
+        #if(draw_circles):
+        #    circle_points = cgeodesic.Geodesic().circle(lon = llon, lat = llat, \
+        #        radius = radius, endpoint = False)
+        #    geom = shapely.geometry.Polygon(circle_points)
+        #    ax.add_geometries((geom,), crs = datacrs, facecolor = 'red', \
+        #        edgecolor = 'red', linewidth = 1, alpha = 0.25)
+            
+    ax.set_extent([-125, -70, 23, 50], datacrs)
+    ax.coastlines()
+    ax.add_feature(cfeature.STATES)
+
+
+def plot_change_in_cwa_with_dist(ax, nws, atsci, labs, priv, \
+        lat_lon_dict = None, min_threshold = 2, max_threshold = 100, \
+        passed_thresh = None):
+
+    threshs = np.arange(min_threshold, max_threshold)
+    count_cwas = np.zeros(threshs.shape[0])
+    count_jobs = np.zeros(threshs.shape[0])
+
+    # Loop over each of the thresholds, calculating the number
+    # of valid CWAs with each threshold
+    # --------------------------------------------------------
+    for ii, thresh in enumerate(threshs):
+        count_dict = calc_distances(nws, atsci, labs, priv, \
+            threshold = thresh, lat_lon_dict = lat_lon_dict, \
+            verbose = False)
+        for key in count_dict.keys():
+            if(count_dict[key]['Count'] > 0):
+                count_cwas[ii] += 1
+                count_jobs[ii] += count_dict[key]['Count']
+
+    ax.plot(threshs * 0.611, count_cwas, label = 'Offices')
+    ax2 = ax.twinx()
+    ax2.plot(threshs * 0.611, count_jobs, label = 'Other Jobs', color = 'tab:orange')
+    if(passed_thresh is not None):
+        ax.axvline(passed_thresh, linestyle = '--', color = 'k')
+    ax.set_xlabel('Distances Around CWA [miles]')
+    ax.set_ylabel('# of Working CWAs')
+    ax2.set_ylabel('# of Other Jobs')
+    ax.legend(loc = 'upper left')
+    ax2.legend(loc = 'upper center')

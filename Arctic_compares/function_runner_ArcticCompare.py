@@ -8,11 +8,13 @@
 import Arctic_compare_lib
 from Arctic_compare_lib import *
 
+"""
 date_str = '201408112211'
 #date_str = '201807052213'
 plot_compare_OMI_MODIS_NSIDC_v2(date_str, 'true_color', \
     omi_dtype = 'ltc3', minlat = 65., zoom = True, save = True)
 sys.exit()
+"""
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
@@ -804,10 +806,56 @@ ai_thresh = 0.05
 #
 #                      BEGIN FORCING VERSION 3 STUFF
 #
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#
+#                             ERROR ANALYSIS
+#
+# First method:
+#     Daily-gridded monthly averages of forcing are calculated using 
+#     the following two scenarios:
+#    
+#         - '_adderror': Using the standard deviation of the different
+#               AI-SWF slopes that are grouped into the "clear" and 
+#               "cloudy" types in determining the forcing efficiency,
+#               the standard error of the mean SZA-mean forcing efficiency
+#               estimate is derived. In the "add error" scenario,
+#               the standard error of each mean SZA-mean forcing efficiency
+#               is added to the calculated mean SZA-mean forcing efficiency,
+#               following:
+#       
+#                   δSWF/δAI = δSWF/δAI_mean + δSWF/δAI_std_error
+#
+#               and these new values are then used to calculate the daily
+#               forcing estimates, which are then averaged into monthly
+#               values.
+#         - '_suberror': Same as in '_adderror', but the standard error
+#               of the mean SZA-mean forcing efficiency is subtracted
+#               from the calculated mean SZA-mean forcing efficiency,
+#               following:
+#
+#                   δSWF/δAI = δSWF/δAI_mean + δSWF/δAI_std_error
+#
+#               Similarly, these new forcing efficiency values are 
+#               used to find monthly forcing estimates. 
+#
+#     Note that in this simplified error analysis method, the 
+#     standard errors of the AI/SWF slopes from each individual
+#     bin are NOT accounted for. Also, the error in the MODIS daily
+#     cloud fraction is not accounted for either. Both of these
+#     must be accounted for for a more robust analysis.
+#         
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#
+#                        PLOTTING/ANALYSIS FUNCTIONS
+#    
 # VERSION 3: Individual forcing values are calculated for each Apr-Sep day
 #            from 2005 - 2020, using the daily-gridded shawn OMI data, the
 #            subsetted daily MODIS MYD08 cloud product, and the daily
 #            NSIDC ice concentration data. 
+#
+# plot_slopes_cloud_types_szamean: Plots the four-panel forcing
+#            efficiency estimates as a function of SZA and averaged
+#            along the CH7 bins.
 #
 # plot_test_forcing_v3: calculates the single-day forcing estimate and
 #            plots the estimate for that day.
@@ -829,8 +877,21 @@ ai_thresh = 0.05
 #           monthy averaged forcing estimates, calculates the trends over
 #           the monthly averaged forcing estimates for each month range
 #           and plots the results. 
-# 
+#
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+
+# Plot the raw or grid slopes and the associated slope errors
+# -----------------------------------------------------------
+#plot_compare_grid_climo_stderr(lin_smth2_dict_v6, 'raw', 2, save = False)
+
+
+# Plot the four-panel sza-meaned forcing efficiency estimates
+# -----------------------------------------------------------
+#plot_slopes_cloud_types_szamean(lin_smth2_dict_v6,cld_idx = 0, maxerr = 2, \
+#    data_type = 'raw', remove_high_error = True, hatch_cloud = False, \
+#    min_cloud = 0.95, save = False)
 
 # Plot the calculated forcing values for a single day
 # ---------------------------------------------------
@@ -846,6 +907,17 @@ ai_thresh = 0.05
 #    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = 0.7, minlat = 65.)
 
 # Calculate daily forcing values and average the daily values into
+# monthly forcing estimates, but by adding or subtracting the 
+# slope error from the SZA-mean AI/SWF slopes. 
+# ----------------------------------------------------------------
+#all_month_vals_adderror = calculate_type_forcing_v3_monthly(daily_VSJ4, \
+#    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = 0.7, minlat = 65., \
+#    mod_slopes = 'add')
+#all_month_vals_suberror = calculate_type_forcing_v3_monthly(daily_VSJ4, \
+#    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = 0.7, minlat = 65., \
+#    mod_slopes = 'subtract')
+
+# Calculate daily forcing values and average the daily values into
 # monthly forcing estimates, but here using the daily ice concentration
 # values from 2005 as a reference. Am using this to try to see how
 # the change in sea ice affects the aerosol forcing. May need to use
@@ -855,6 +927,15 @@ ai_thresh = 0.05
 #all_month_vals = calculate_type_forcing_v3_monthly(daily_VSJ4, \
 #    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = 0.7, minlat = 65., \
 #    reference_ice = '2005')
+
+ref_ice_vals = np.arange(2006,2020)
+for ref_ice in ref_ice_vals:
+    all_month_vals_ice = calculate_type_forcing_v3_monthly(daily_VSJ4, \
+        OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = 0.7, minlat = 65., \
+        reference_ice = str(ref_ice))
+    write_daily_month_force_to_HDF5(all_month_vals_ice, OMI_daily_VSJ4, \
+        name_add = '_dayaithresh07_refice' + str(ref_ice))
+    
 
 # Write the all_month_vals to an HDF5 file
 # ----------------------------------------
@@ -867,8 +948,15 @@ ai_thresh = 0.05
 #       all_month_dict['FORCE_EST']
 # -------------------------------------------------------------------------
 infile = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07.hdf5'
-#infile = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_refice2005.hdf5'
+#infile_2005 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_refice2005.hdf5'
+#infile_2020 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_refice2020.hdf5'
+#infile_add = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_adderror.hdf5'
+#infile_sub = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_suberror.hdf5'
 all_month_dict = read_daily_month_force_HDF5(infile)
+#all_month_dict_ref05  = read_daily_month_force_HDF5(infile_2005)
+#all_month_dict_ref20  = read_daily_month_force_HDF5(infile_2020)
+#all_month_dict_adderr = read_daily_month_force_HDF5(infile_add)
+#all_month_dict_suberr = read_daily_month_force_HDF5(infile_sub)
 
 # Plot the daily-gridded monthly forcing values for a single month
 # ----------------------------------------------------------------
@@ -887,13 +975,22 @@ all_month_dict = read_daily_month_force_HDF5(infile)
 
 # Plot the trend of daily-gridded monthly forcing values
 # ------------------------------------------------------
-plot_type_forcing_v3_all_months(all_month_vals, OMI_daily_VSJ4, minlat = 65)
+#plot_type_forcing_v3_all_months(all_month_vals, OMI_daily_VSJ4, minlat = 65)
 
 # Calculate the Arctic-wide average of the daily-gridded monthly forcing
 # values for each month and plot them
 # ----------------------------------------------------------------------
 #plot_type_forcing_v3_all_months_arctic_avg(all_month_vals, OMI_daily_VSJ4, \
 #    minlat = 65, trend_type = 'standard')
+ 
+# Calculate the Arctic-wide average of the daily-gridded monthly forcing
+# values for each month and plot them, but also plotting the '_adderror'
+# and '_suberror' results for the first look at an error analysis.
+# ----------------------------------------------------------------------
+#plot_type_forcing_v3_all_months_arctic_avg(all_month_dict['FORCE_EST'], 
+#    OMI_daily_VSJ4, minlat = 65, trend_type = 'standard', 
+#    month_values2 = all_month_dict_adderr['FORCE_EST'], 
+#    month_values3 = all_month_dict_suberr['FORCE_EST'])
  
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #

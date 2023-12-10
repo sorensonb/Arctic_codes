@@ -9,6 +9,47 @@ import importlib, FuLiouLib
 from FuLiouLib import *
 import sys
 
+data = h5py.File('fuliou_output_lidar_20220922.h5')
+
+time      = data['time'][:]
+mask_heat = data['net_heating_rate'][:,:]
+mask_ext  = data['dust_ext'][:,:]
+mask_ext = np.ma.masked_where(mask_ext <= 0, mask_ext)
+mask_ext = np.log10(mask_ext)
+#mask_heat = np.ma.masked_invalid(mask_heat)
+
+xvals = np.arange(mask_heat.shape[0])
+yvals = data['press_lvl'][0,:-1]
+yvals2 = data['press_lvl'][0,:]
+
+data.close()
+
+fig = plt.figure(figsize = (9, 6))
+ax1 = fig.add_subplot(2,1,1)
+ax2 = fig.add_subplot(2,1,2)
+mesh = ax1.pcolormesh(xvals, yvals, mask_heat.T, shading = 'auto', vmin = -10, vmax = 10, cmap = 'bwr')
+cbar = fig.colorbar(mesh, ax = ax1, label = 'Net Heating Rate')
+ax1.invert_yaxis()
+ax1.set_title('Heating Rate')
+
+mesh = ax2.pcolormesh(xvals, yvals2, mask_ext.T, shading = 'auto', vmin = -6, vmax = -3.0)
+cbar = fig.colorbar(mesh, ax = ax2, label = 'Log10 of Dust Extinction')
+ax2.invert_yaxis()
+ax2.set_title('Dust extinction')
+fig.tight_layout()
+plt.show()
+
+
+sys.exit()
+
+
+date_str = '20220712081447'
+lat = 12.55566
+lon = -17.51049
+calc_solar_zenith_angle(date_str, lat, lon, use_pysolar = True)
+
+sys.exit()
+
 file_list = 'fuliouout_file_list.txt'
 fu_data = read_fuliou_cloudaer_output(file_list)
 

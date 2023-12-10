@@ -10,7 +10,7 @@
 import numpy as np
 import matplotlib.path as mpath
 from scipy import stats
-from datetime import datetime
+from datetime import datetime, timezone
 import cartopy.crs as ccrs
 from glob import glob
 from PIL import Image
@@ -23,6 +23,7 @@ from bs4 import BeautifulSoup
 import requests
 import json
 import os
+from pysolar.solar import get_altitude
 
 # LAADS DAAC key
 # --------------
@@ -180,7 +181,7 @@ def lat_lon_area(lat1,lat0,lon1,lon0):
 
 # date_str: YYYYMMDDHHMMSS (if not this length, the last stuff is assumed)
 # NOTE: AS OF 2023/11/15 - DOESN'T WORK
-def calc_solar_zenith_angle(date_str, lat, lon):
+def calc_solar_zenith_angle(date_str, lat, lon, use_pysolar = True):
 
     # no seconds
     if(len(date_str) != 14):
@@ -199,35 +200,46 @@ def calc_solar_zenith_angle(date_str, lat, lon):
             print("INVALID DATE STRING")
             return
 
-    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M%S')
-    rad_lat = np.radians(lat)
-    rad_lon = np.radians(lon)
+    dt_date_str = datetime(int(date_str[0:4]), int(date_str[4:6]), \
+        int(date_str[6:8]), int(date_str[8:10]), int(date_str[10:12]), \
+        int(date_str[12:14]), tzinfo = timezone.utc)
+    #dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M%S', tzinfo = timezone.utc)
 
-    # Calculate GMT hour angle 
-    # NOTE: AS WRITTEN HERE, DOES NOT ACCOUNT FOR TIME ZONES
-    # ------------------------------------------------------
-    frac_gmt = dt_date_str.hour + dt_date_str.minute/60. + \
-        dt_date_str.second/3600
-    hour_angle = - (frac_gmt - 12) / 12
-    #hour_angle = frac_gmt + rad_lon + np.pi
+    if(use_pysolar):
+        sza = 90. - get_altitude(lat, lon, dt_date_str)
+        csza = np.cos(np.radians(sza))
+        print("\n")
+        print("sza      = ", sza)
+        print("cos(sza) = ", csza)
+    else:
+        rad_lat = np.radians(lat)
+        rad_lon = np.radians(lon)
 
-    # Calculate solar declination angle
-    # ---------------------------------
-    dec_angle = -23.45 * np.cos( ((2*np.pi * dt_date_str.timetuple().tm_yday)/365) + \
-        ((20 * np.pi) / 365) )
-    #del_angles = -23.45 * np.cos( np.radians((360 / 365) * (days + 10)))
+        # Calculate GMT hour angle 
+        # NOTE: AS WRITTEN HERE, DOES NOT ACCOUNT FOR TIME ZONES
+        # ------------------------------------------------------
+        frac_gmt = dt_date_str.hour + dt_date_str.minute/60. + \
+            dt_date_str.second/3600
+        hour_angle = - (frac_gmt - 12) / 12
+        #hour_angle = frac_gmt + rad_lon + np.pi
 
-    # Combine everything to calculate solar zenith angle
-    # --------------------------------------------------
-    csza    = np.sin(rad_lat) * np.sin(dec_angle) + np.cos(rad_lat) * \
-        np.cos(dec_angle) * np.cos(hour_angle)
+        # Calculate solar declination angle
+        # ---------------------------------
+        dec_angle = -23.45 * np.cos( ((2*np.pi * dt_date_str.timetuple().tm_yday)/365) + \
+            ((20 * np.pi) / 365) )
+        #del_angles = -23.45 * np.cos( np.radians((360 / 365) * (days + 10)))
 
-    print("\n")
-    print("     hour angle = ",hour_angle)
-    print("     decl angle = ",dec_angle)
-    print("rad(decl angle) = ",np.radians(dec_angle))
-    print("cos(sza)        = ",csza)
-    print("solar zen angle = ",np.degrees(np.arccos(csza)))
+        # Combine everything to calculate solar zenith angle
+        # --------------------------------------------------
+        csza    = np.sin(rad_lat) * np.sin(np.radians(dec_angle)) + np.cos(rad_lat) * \
+            np.cos(np.radians(dec_angle)) * np.cos(hour_angle)
+
+        print("\n")
+        print("     hour angle = ",hour_angle)
+        print("     decl angle = ",dec_angle)
+        print("rad(decl angle) = ",np.radians(dec_angle))
+        print("cos(sza)        = ",csza)
+        print("solar zen angle = ",np.degrees(np.arccos(csza)))
 
     return np.degrees(np.arccos(csza))
 

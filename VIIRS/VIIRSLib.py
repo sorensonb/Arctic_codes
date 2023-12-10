@@ -332,7 +332,7 @@ def plot_VIIRS_granule(VIIRS_data, ax = None, labelsize = 12, \
         cmap = VIIRS_data['cmap'], vmin = vmin, vmax = vmax, \
         transform = ccrs.PlateCarree(), shading = 'auto')
     cbar = plt.colorbar(mesh, ax = ax, orientation='vertical',\
-        pad=0.03, shrink = 0.85, extend = 'both')
+        pad=0.03, shrink = 1.00, extend = 'both')
 
     cbar.set_label(VIIRS_data['label'], size = labelsize)
     cbar.ax.tick_params(labelsize = labelticksize)

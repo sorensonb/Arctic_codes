@@ -23,6 +23,7 @@ from datetime import datetime, timedelta
 import h5py
 import numpy as np
 import os
+from scipy.stats import mode
 
 # NOTES FROM JEFF
 #
@@ -143,7 +144,7 @@ def interp_NAAPS(ii, naaps_press, naaps_temp, naaps_relhum, naaps_spechum, \
 
     # Identify the unique layer values
     # --------------------------------
-    h_idxs = identify_unique_idxs(naaps_press)
+    h_idxs = identify_unique_idxs(naaps_press, xx = ii)
 
     # Add a check for broken unique
     # -----------------------------
@@ -278,6 +279,12 @@ l_USE_lidar_AOD = False
 # lidar layers are used. 
 # ----------------------------------------------------------------------
 l_BIN_LIDAR_VERTICAL = True
+
+# This switch determines if an HDF5 file is generated from the
+# FuLiou output files, in addition to the text file. The 
+# HDF5 file is titled 'fuliou_out_YYYYMMDD.hdf5'
+# ----------------------------------------------------------------------
+l_GEN_HDF5_OUTPUT = False
 
 # Check command line arguments
 # ----------------------------
@@ -420,7 +427,7 @@ naaps_abf_mass  = \
 #naaps_salt_ext  = hdf_data['NAAPS_SS_ext'][:,:]
 naaps_salt_aot  = hdf_data['NAAPS_SS_aot'][:]
 naaps_salt_mass = \
-    hdf_data['NAAPS_SS_mass_concentration'][:,:] - 1e-9
+    hdf_data['NAAPS_SS_mass_concentration'][:,:] * 1e-9
 
 #naaps_smoke_ext  = hdf_data['NAAPS_smoke_ext'][:,:]
 naaps_smoke_aot  = hdf_data['NAAPS_smoke_aot'][:]
@@ -517,11 +524,7 @@ dust_ids = [2., 8.]
 smoke_ids = [5., 6.]
 salt_ids  = [3., 7.]
 
-#good_idxs = np.where(np.ma.masked_invalid(aot_532).mask == False)[0]
 
-#calc_caliop_aod, calc_total_aod = \
-#    test_aod_calc(ext_532, aer_id, aot_532, lidar_dz, abf_ids, dust_ids, \
-#        smoke_ids, salt_ids, good_idxs[100])
 
 ##!#work_file = 'test_comp_work.txt'
 ##!#if(os.path.exists(work_file)):
@@ -531,13 +534,80 @@ salt_ids  = [3., 7.]
 
 check_press = -999.
 if(l_BIN_LIDAR_VERTICAL):
-    num_layers = 100
+    num_layers = 50
     split_dz = np.array(np.split(lidar_dz[:len(lidar_dz) - (len(lidar_dz) % num_layers)], num_layers))
     avg_dz   = np.mean(np.split(lidar_dz[:len(lidar_dz) - (len(lidar_dz) % num_layers)], num_layers), axis = 1)
     avg_z    = np.mean(np.array(np.split(lidar_z[:len(lidar_dz) - (len(lidar_dz) % num_layers)], num_layers)), axis = 1)
-#for ii in range(time.shape[0]):
-#for ii in range(0,time.shape[0],100):
-for ii in range(1223,1224):
+
+# Prep the output HDF5 file, if desired
+# -------------------------------------
+if(l_GEN_HDF5_OUTPUT):
+    # NOTE: In the FuLiou code, the output printed to the screen begins at 
+    # index 7 of the arrays in the code. This is mirrored here
+    # --------------------------------------------------------------------
+    #num_pres_layers = num_layers - 6
+    #num_heat_layers = num_layers - 7
+    num_pres_layers = num_layers - 1
+    num_heat_layers = num_layers - 2
+
+    output_time           = np.zeros((time.shape[0]))
+    output_lat            = np.zeros((time.shape[0]))
+    output_lon            = np.zeros((time.shape[0]))
+    output_aod            = np.zeros((time.shape[0]))
+    output_sfc_dwn_sw_flx = np.zeros((time.shape[0]))
+    output_toa_up_sw_flx  = np.zeros((time.shape[0]))
+    output_sfc_dwn_lw_flx = np.zeros((time.shape[0]))
+    output_toa_up_lw_flx  = np.zeros((time.shape[0]))
+
+    output_alt        = np.zeros((num_pres_layers))
+    output_press      = np.zeros((time.shape[0], num_pres_layers))
+    output_tmp        = np.zeros((time.shape[0], num_pres_layers))
+    output_relhum     = np.zeros((time.shape[0], num_pres_layers))
+    output_spchum     = np.zeros((time.shape[0], num_pres_layers))
+    output_abf_ext    = np.zeros((time.shape[0], num_pres_layers))
+    output_dust_ext   = np.zeros((time.shape[0], num_pres_layers))
+    output_smoke_ext  = np.zeros((time.shape[0], num_pres_layers))
+    output_salt_ext   = np.zeros((time.shape[0], num_pres_layers))
+
+    output_heat       = np.zeros((time.shape[0], num_heat_layers))
+
+
+    output_time[:]           = np.nan
+    output_lat[:]            = np.nan
+    output_lon[:]            = np.nan
+    output_aod[:]            = np.nan
+    output_sfc_dwn_sw_flx[:] = np.nan
+    output_toa_up_sw_flx[:]  = np.nan
+    output_sfc_dwn_lw_flx[:] = np.nan
+    output_toa_up_lw_flx[:]  = np.nan
+    output_press[:,:]        = np.nan
+    output_heat[:,:]         = np.nan
+
+    output_alt[:]          = np.nan
+    output_tmp[:,:]        = np.nan
+    output_relhum[:,:]     = np.nan
+    output_spchum[:,:]     = np.nan
+    output_abf_ext[:,:]    = np.nan
+    output_dust_ext[:,:]   = np.nan
+    output_smoke_ext[:,:]  = np.nan
+    output_salt_ext[:,:]   = np.nan
+
+
+
+#for ii in range(1223,1224):
+#for ii in range(1223,1224):
+#test_idxs = [500]
+#test_idxs = [560,568]
+#for ii in test_idxs:
+for ii in range(0, time.shape[0]):
+
+    # If the old single-run output file (fort.22) exists, remove it
+    # -------------------------------------------------------------
+    if(os.path.exists('fort.22')):
+        print("Removing fort.22 file")
+        cmnd = 'rm fort.22'
+        os.system(cmnd)
+    
 
     #print(ii, naaps_press[ii,0])
     if(naaps_press[ii,0] != check_press):
@@ -573,6 +643,10 @@ for ii in range(1223,1224):
     
 
         check_press = naaps_press[ii,0]
+
+    mode_vals = mode(split_press)
+    if(mode_vals.count[0] != 1):
+        print(ii, "BAD PRESS", mode_vals.mode[0], mode_vals.count[0])
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     #
@@ -638,7 +712,7 @@ for ii in range(1223,1224):
         # Print the metadata information
         # ------------------------------
         local_dt_date = base_date + timedelta(seconds = time[ii]) 
-        local_date = local_dt_date.strftime('%Y%m%d%H%M')
+        local_date = local_dt_date.strftime('%Y%m%d%H%M%S')
         local_fmt = "{0:7.4f} {1:7.4f} {2:7.4f} {3:7.4f} {4:7.4f}"
         print(ii, local_dt_date.strftime('%Y%m%d %H:%M:%S'),\
             local_fmt.format(aot_532[ii], \
@@ -722,8 +796,8 @@ for ii in range(1223,1224):
             #    local_abf = ext_532[ii,jj]
             if(work_id in abf_ids):
                 local_abf = work_ext
-                if(work_ext != 0.0):
-                    print(ii, jj, local_abf, local_dust, local_smoke, local_salt, 'ABF')
+                #if(work_ext != 0.0):
+                #    print(ii, jj, local_abf, local_dust, local_smoke, local_salt, 'ABF')
             # Dust
             #elif( (aer_id[ii,jj] == 2.) | (aer_id[ii,jj] == 8.) ):
             #elif(aer_id[ii,jj] in dust_ids):
@@ -735,15 +809,15 @@ for ii in range(1223,1224):
             #    local_smoke = ext_532[ii,jj]
             elif(work_id in smoke_ids):
                 local_smoke = work_ext
-                if(work_ext != 0.0):
-                    print(ii, jj, local_abf, local_dust, local_smoke, local_salt, 'SMOKE')
+                #if(work_ext != 0.0):
+                #    print(ii, jj, local_abf, local_dust, local_smoke, local_salt, 'SMOKE')
             # Salt 
             #elif(aer_id[ii,jj] in salt_ids):
             #    local_salt = ext_532[ii,jj]
             elif(work_id in salt_ids):
                 local_salt = work_ext
-                if(work_ext != 0.0):
-                    print(ii, jj, local_abf, local_dust, local_smoke, local_salt, 'SALT')
+                #if(work_ext != 0.0):
+                #    print(ii, jj, local_abf, local_dust, local_smoke, local_salt, 'SALT')
 
 
             if(l_BIN_LIDAR_VERTICAL):
@@ -776,30 +850,147 @@ for ii in range(1223,1224):
     #os.system('cp ' + foutname + ' ' + base_dir + \
     #        'test_data/test_naaps_new/test_naaps_file_lidar_' + str(int(ii)) + '.txt')
 
-    # Copy the first couple of lines to the work file 
-    # -----------------------------------------------
-    cmnd = 'head -n 2 ' + foutname + ' >> ' + work_file
-    print(cmnd)
-    os.system(cmnd)
+    ##!## Copy the first couple of lines to the work file 
+    ##!## -----------------------------------------------
+    ##!#cmnd = 'head -n 2 ' + foutname + ' >> ' + work_file
+    ##!#print(cmnd)
+    ##!#os.system(cmnd)
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     #
     #  Call the FuLiou code
     #
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    """
     #print("Calling FuLiou code") 
     print(' Execute naaps_fuliou.exe')
     cmnd = 'time ' + srcdir + '/bin/naaps_fuliou.exe'
     print(cmnd)
     os.system(cmnd)
+    """
 
     # Concatenate the temp output file to the end of the actual
-    # output file
+    # output file. Only do this if the code generated an output file, 
+    # which only happens if the code successfully runs.
     # ---------------------------------------------------------
-    cmnd = 'cat fort.22 >> ' + out_data_name
-    print(cmnd)
-    os.system(cmnd)
+    if(os.path.exists('fort.22')):
+        print("COPYING FILE OUTPUTS")
+        cmnd = 'cat fort.22 >> ' + out_data_name
+        print(cmnd)
+        os.system(cmnd)
 
-    cmnd = 'head -n 1 fort.22 >> ' + work_file
-    print(cmnd)
-    os.system(cmnd)
+        if(l_GEN_HDF5_OUTPUT):
+        
+            output_time[ii]            = time[ii]
+
+            # Read in the last output file
+            # ----------------------------
+            with open('fort.22','r') as fin:
+                flines = fin.readlines()
+
+            line1 = flines[0].strip().split()
+            output_lat[ii]            = float(line1[0])
+            output_lon[ii]            = float(line1[1])
+            output_aod[ii]            = float(line1[2])
+            output_sfc_dwn_sw_flx[ii] = float(line1[3])
+            output_toa_up_sw_flx[ii]  = float(line1[4])
+            output_sfc_dwn_lw_flx[ii] = float(line1[5])
+            output_toa_up_lw_flx[ii]  = float(line1[6])
+
+            # Figure out how to properly divide the file
+            # ------------------------------------------
+            num_data_lines = (len(flines) - 1) / 2
+            
+            output_press[ii,:] = np.array([float(tvar) for tvar in \
+                ''.join(flines[1:num_data_lines+1]).strip().split()])
+            output_heat[ii,:] = np.array([float(tvar) for tvar in \
+                ''.join(flines[num_data_lines+1:]).strip().split()])
+
+            # Read in the input file data, containing met profiles and aerosol
+            # ----------------------------------------------------------------
+            indata = np.loadtxt('test_naaps_file.txt', skiprows = 2)
+
+            work_idx = num_layers - num_pres_layers
+            output_alt[:]           = indata[work_idx:,1]
+            output_tmp[ii,:]        = indata[work_idx:,3]
+            output_relhum[ii,:]     = indata[work_idx:,4]
+            output_spchum[ii,:]     = indata[work_idx:,5]
+            output_abf_ext[ii,:]    = indata[work_idx:,6]
+            output_dust_ext[ii,:]   = indata[work_idx:,7]
+            output_smoke_ext[ii,:]  = indata[work_idx:,8]
+            output_salt_ext[ii,:]   = indata[work_idx:,9]
+
+    ####cmnd = 'head -n 1 fort.22 >> ' + work_file
+    ####print(cmnd)
+    ####os.system(cmnd)
+
+
+# At the end, if desired, make the output HDF5 file
+if(l_GEN_HDF5_OUTPUT):
+
+    out_name = 'fuliou_output_lidar_' + \
+        infile.strip().split('/')[-1].split('_')[2] + '.h5'
+
+    # Here, remove the indices that contain missing values?
+    # -----------------------------------------------------
+    keep_idxs = np.where(~np.isnan(output_lat[:]))
+
+    dset = h5py.File(out_name, 'w')
+
+    cdt = dset.create_dataset('time',   data = output_time[keep_idxs])
+    cdt.attrs['long_name'] = 'UTC time of measurement instant'
+    cdt.attrs['units'] = 'seconds after midnight on date provided in file name'
+    cdt = dset.create_dataset('latitude',   data = output_lat[keep_idxs])
+    cdt.attrs['long_name'] = 'latitude'
+    cdt.attrs['units'] = 'degrees north (negative for degrees south)'
+    cdt = dset.create_dataset('longitude',  data = output_lon[keep_idxs])
+    cdt.attrs['long_name'] = 'longitude'
+    cdt.attrs['units'] = 'degrees east (negative for degrees west)'
+    cdt = dset.create_dataset('AOD_550',    data = output_aod[keep_idxs])
+    cdt.attrs['long_name'] = 'lidar total AOD at 532 nm'
+    cdt.attrs['units'] = 'none'
+    cdt = dset.create_dataset('sfc_dwn_sw_flux',  data = output_sfc_dwn_sw_flx[keep_idxs])
+    cdt.attrs['long_name'] = 'Surface downward SW flux'
+    cdt.attrs['units'] = 'Wm^-2'
+    cdt = dset.create_dataset('toa_up_sw_flux',   data = output_toa_up_sw_flx[keep_idxs])
+    cdt.attrs['long_name'] = 'TOA upward SW flux'
+    cdt.attrs['units'] = 'Wm^-2'
+    cdt = dset.create_dataset('sfc_dwn_lw_flux',  data = output_sfc_dwn_lw_flx[keep_idxs])
+    cdt.attrs['long_name'] = 'Surface downward LW flux'
+    cdt.attrs['units'] = 'Wm^-2'
+    cdt = dset.create_dataset('toa_up_lw_flux',   data = output_toa_up_lw_flx[keep_idxs])
+    cdt.attrs['long_name'] = 'TOA upward LW flux'
+    cdt.attrs['units'] = 'Wm^-2'
+    cdt = dset.create_dataset('press_lvl',        data = output_press[keep_idxs])
+    cdt.attrs['long_name'] = 'NAAPS Pressure'
+    cdt.attrs['units'] = 'mb'
+    cdt = dset.create_dataset('altitude',         data = output_alt[:])
+    cdt.attrs['long_name'] = 'lidar bin altitude (above sea level)'
+    cdt.attrs['units'] = 'm'
+    cdt = dset.create_dataset('temperature',      data = output_tmp[keep_idxs])
+    cdt.attrs['long_name'] = 'NAAPS air temperature'
+    cdt.attrs['units'] = 'K'
+    cdt = dset.create_dataset('rel_hum',          data = output_relhum[keep_idxs])
+    cdt.attrs['long_name'] = 'NAAPS relative humidity'
+    cdt.attrs['units'] = '%'
+    cdt = dset.create_dataset('spec_hum',         data = output_spchum[keep_idxs])
+    cdt.attrs['long_name'] = 'NAAPS specific humidity'
+    cdt.attrs['units'] = 'kg/kg'
+    cdt = dset.create_dataset('abf_ext',          data = output_abf_ext[keep_idxs])
+    cdt.attrs['long_name'] = 'lidar abf extinction'
+    cdt.attrs['units'] = 'm^-1'
+    cdt = dset.create_dataset('dust_ext',         data = output_dust_ext[keep_idxs])
+    cdt.attrs['long_name'] = 'lidar dust extinction'
+    cdt.attrs['units'] = 'm^-1'
+    cdt = dset.create_dataset('smoke_ext',        data = output_smoke_ext[keep_idxs])
+    cdt.attrs['long_name'] = 'lidar smoke extinction'
+    cdt.attrs['units'] = 'm^-1'
+    cdt = dset.create_dataset('salt_ext',         data = output_salt_ext[keep_idxs])
+    cdt.attrs['long_name'] = 'lidar salt extinction'
+    cdt.attrs['units'] = 'm^-1'
+    cdt = dset.create_dataset('net_heating_rate', data = output_heat[keep_idxs])
+    cdt.attrs['long_name'] = 'net daily heating rate'
+    cdt.attrs['units'] = 'K/day'
+
+    dset.close()
+    print("Saved HDF5 output file",out_name)

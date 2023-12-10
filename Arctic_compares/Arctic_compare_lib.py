@@ -920,6 +920,7 @@ def read_daily_month_force_HDF5(infile):
     data = h5py.File(infile)
 
     out_dict = {}
+    out_dict['TYPE_ADDER'] = infile.strip().split('/')[-1].split('.')[0].split('_')[4:]
     out_dict['LAT'] = data['latitude'][:]
     out_dict['LON'] = data['longitude'][:]
     out_dict['DATES'] = data['dates'][:]
@@ -2443,19 +2444,26 @@ def plot_compare_all_slopes(date_strs = None, save = False, \
         return return_dict
 
 # dtype: 'clear', or 'cloud'
+# mod_slopes: either "add" or "subtract", either adds or subtracts
+ #              the calculated standard error of the SZA-mean slopes
 def calculate_interp_forcings(coloc_dict, month_idx, minlat, maxlat, \
-        dtype, cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw'):
+        dtype, cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw', \
+        mod_slopes = None):
 
     ocean_slopes = calc_slope_clear_clean_sfctype(coloc_dict, 0, cld_idx, \
-        maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
+        maxerr = maxerr, min_cloud = min_cloud, data_type = data_type, \
+        mod_slopes = mod_slopes)
     ice_slopes   = calc_slope_clear_clean_sfctype(coloc_dict, 1, cld_idx, \
-        maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
+        maxerr = maxerr, min_cloud = min_cloud, data_type = data_type, \
+        mod_slopes = mod_slopes)
     land_slopes  = calc_slope_clear_clean_sfctype(coloc_dict, 2, cld_idx, \
-        maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
+        maxerr = maxerr, min_cloud = min_cloud, data_type = data_type, \
+        mod_slopes = mod_slopes)
     if(coloc_dict['raw_slopes'].shape[0] == 4):
         include_mix = True
         mix_slopes  = calc_slope_clear_clean_sfctype(coloc_dict, 3, cld_idx, \
-            maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
+            maxerr = maxerr, min_cloud = min_cloud, data_type = data_type, \
+            mod_slopes = mod_slopes)
     else:
         include_mix = False
 
@@ -2811,7 +2819,7 @@ def calculate_type_forcing_v2(OMI_data, NSIDC_data, MYD08_data, coloc_dict, \
 def calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, coloc_dict, \
         date_str, minlat = 70., maxlat = 87., ai_thresh = -0.15, \
         cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw',\
-        reference_ice = None, 
+        reference_ice = None, mod_slopes = None, \
         filter_bad_vals = True, return_modis_nsidc = True, debug = False):
     
     # Necessary pieces:
@@ -2870,10 +2878,10 @@ def calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, coloc_dict, \
     
     clear_dict = calculate_interp_forcings(coloc_dict, tidx, \
         minlat, maxlat, 'clear', cld_idx = cld_idx, maxerr = maxerr, \
-        min_cloud = min_cloud, data_type = data_type)
+        min_cloud = min_cloud, data_type = data_type, mod_slopes = mod_slopes)
     cloud_dict = calculate_interp_forcings(coloc_dict, tidx, \
         minlat, maxlat, 'cloud', cld_idx = cld_idx, maxerr = maxerr, \
-        min_cloud = min_cloud, data_type = data_type)
+        min_cloud = min_cloud, data_type = data_type, mod_slopes = mod_slopes)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # NOTE: the 'ii' latitude subscript on the cloud and clear forcing
@@ -3029,7 +3037,7 @@ def calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, coloc_dict, \
 def calculate_type_forcing_v3_monthly(OMI_daily_data, OMI_monthly_data, \
         coloc_dict, month_idx, minlat = 70., maxlat = 87., ai_thresh = -0.15, \
         cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw',\
-        reference_ice = None, 
+        reference_ice = None, mod_slopes = None, \
         filter_bad_vals = True, return_modis_nsidc = True, debug = False):
 
 
@@ -3081,6 +3089,7 @@ def calculate_type_forcing_v3_monthly(OMI_daily_data, OMI_monthly_data, \
                 min_cloud = min_cloud, data_type = data_type,\
                 filter_bad_vals = filter_bad_vals, \
                 reference_ice = reference_ice, \
+                mod_slopes = mod_slopes, \
                 return_modis_nsidc = False)
 
         # Insert the values into the daily holding array
@@ -4944,17 +4953,23 @@ def plot_slopes_cloud_types(out_dict, vmin = -10, vmax = 10, \
         plt.show()
 
 
-def calc_slope_clear_clean_sfctype(out_dict, sfc_type_idx, \
-    cld_idx, min_cloud = 0.95, maxerr = 2, data_type = 'raw'):
+def identify_slope_clear_clean_sfctype(out_dict, sfc_type_idx, \
+        cld_idx, min_cloud = 0.95, maxerr = 2, data_type = 'raw', \
+        use_error = False):
 
     mask_cloud = np.ma.masked_where(\
         out_dict['raw_cldvals'][sfc_type_idx,:,:,cld_idx] < -9, \
         out_dict['raw_cldvals'][sfc_type_idx,:,:,cld_idx])
-    
+   
+    if(use_error): 
+        slope_val = data_type + '_stderr'
+    else:
+        slope_val = data_type + '_slopes'
+
     cloud_slopes = np.ma.masked_where(mask_cloud < min_cloud, \
-        out_dict[data_type + '_slopes'][sfc_type_idx,:,:])
+        out_dict[slope_val][sfc_type_idx,:,:])
     clear_slopes = np.ma.masked_where(mask_cloud >= min_cloud, \
-        out_dict[data_type + '_slopes'][sfc_type_idx,:,:])
+        out_dict[slope_val][sfc_type_idx,:,:])
     
     cloud_slopes = np.ma.masked_where(\
         out_dict[data_type + '_stderr'][sfc_type_idx,:,:] > maxerr, \
@@ -4962,7 +4977,38 @@ def calc_slope_clear_clean_sfctype(out_dict, sfc_type_idx, \
     clear_slopes = np.ma.masked_where(\
         out_dict[data_type + '_stderr'][sfc_type_idx,:,:] > maxerr, \
         clear_slopes)
-    
+   
+    return clear_slopes, cloud_slopes
+
+def calc_slope_error(clear_slopes, cloud_slopes):
+
+    clear_mean = np.nanmean(clear_slopes, axis = 0)    
+    cloud_mean = np.nanmean(cloud_slopes, axis = 0)    
+    clear_std  = np.nanstd(clear_slopes, axis = 0)    
+    cloud_std  = np.nanstd(cloud_slopes, axis = 0)    
+
+    test_slopes = np.copy(clear_slopes)
+    test_slopes[clear_slopes.mask] = np.nan
+    clear_count = np.count_nonzero(~np.isnan(test_slopes), axis = 0)
+    test_slopes = np.copy(cloud_slopes)
+    test_slopes[cloud_slopes.mask] = np.nan
+    cloud_count = np.count_nonzero(~np.isnan(test_slopes), axis = 0)
+
+    clear_error = clear_std / np.sqrt(clear_count)
+    cloud_error = cloud_std / np.sqrt(cloud_count)
+
+    return clear_error, cloud_error
+
+def calc_slope_clear_clean_sfctype(out_dict, sfc_type_idx, \
+    cld_idx, min_cloud = 0.95, maxerr = 2, data_type = 'raw',\
+    use_error = False, mod_slopes = None):
+
+    clear_slopes, cloud_slopes = identify_slope_clear_clean_sfctype(\
+        out_dict, sfc_type_idx, cld_idx, min_cloud = min_cloud, \
+        maxerr = maxerr, data_type = data_type, use_error = use_error)
+
+    clear_error, cloud_error = calc_slope_error(clear_slopes, cloud_slopes)
+
     sza_cloud_means = np.nanmean(cloud_slopes, axis = 0)
     sza_clear_means = np.nanmean(clear_slopes, axis = 0)
     sza_cloud_std   = np.std(cloud_slopes, axis = 0)
@@ -4972,6 +5018,18 @@ def calc_slope_clear_clean_sfctype(out_dict, sfc_type_idx, \
     ch7_cloud_std   = np.std(cloud_slopes, axis = 1)
     ch7_clear_std   = np.std(clear_slopes, axis = 1)
 
+    if(mod_slopes is not None):
+        if(mod_slopes == 'add'):
+            sza_clear_means = sza_clear_means + clear_error
+            sza_cloud_means = sza_cloud_means + cloud_error
+        elif(mod_slopes == 'subtract'):
+            sza_clear_means = sza_clear_means - clear_error
+            sza_cloud_means = sza_cloud_means - cloud_error
+        else:
+            print("INVALID MOD SLOPE VALUE. MUST BE \"add\" OR " + \
+                "\subtract\"")  
+            print("CONTINUING WITH UNALTERED SLOPES")
+
     return_dict = {}
     if('cod_mins' in out_dict.keys()):
         out_var = 'cod'
@@ -4980,8 +5038,10 @@ def calc_slope_clear_clean_sfctype(out_dict, sfc_type_idx, \
 
     return_dict['sza_cloud_means'] = sza_cloud_means
     return_dict['sza_cloud_std']   = sza_cloud_std
+    return_dict['sza_cloud_err']   = cloud_error
     return_dict['sza_clear_means'] = sza_clear_means
     return_dict['sza_clear_std']   = sza_clear_std
+    return_dict['sza_clear_err']   = clear_error
     return_dict[out_var + '_cloud_means'] = ch7_cloud_means
     return_dict[out_var + '_cloud_std']   = ch7_cloud_std
     return_dict[out_var + '_clear_means'] = ch7_clear_means
@@ -5000,18 +5060,22 @@ def calc_slope_clear_clean_sfctype(out_dict, sfc_type_idx, \
 def plot_slopes_cloud_types_szamean(out_dict,cld_idx = 0, maxerr = 2, \
         data_type = 'raw', xvar = 'sza', remove_high_error = True, \
         hatch_cloud = False, \
-        min_cloud = 0.95, save = False):
+        min_cloud = 0.95, use_error = False, save = False):
 
     ocean_slopes = calc_slope_clear_clean_sfctype(out_dict, 0, cld_idx, \
-        maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
+        maxerr = maxerr, min_cloud = min_cloud, data_type = data_type, \
+        use_error = use_error)
     ice_slopes   = calc_slope_clear_clean_sfctype(out_dict, 1, cld_idx, \
-        maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
+        maxerr = maxerr, min_cloud = min_cloud, data_type = data_type, \
+        use_error = use_error)
     land_slopes  = calc_slope_clear_clean_sfctype(out_dict, 2, cld_idx, \
-        maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
+        maxerr = maxerr, min_cloud = min_cloud, data_type = data_type, \
+        use_error = use_error)
     if(out_dict['raw_slopes'].shape[0] == 4):
         include_mix = True
         mix_slopes  = calc_slope_clear_clean_sfctype(out_dict, 3, cld_idx, \
-            maxerr = maxerr, min_cloud = min_cloud, data_type = data_type)
+            maxerr = maxerr, min_cloud = min_cloud, data_type = data_type, \
+            use_error = use_error)
         figsize = (6, 6)
     else:
         include_mix = False
@@ -5157,10 +5221,14 @@ def plot_slopes_cloud_types_szamean(out_dict,cld_idx = 0, maxerr = 2, \
     ax4.set_xlabel(labeltxt)
     if(include_mix):
         ax2.set_xlabel(labeltxt)
- 
-    ax1.set_ylabel('AI-SWF Slope [Wm$^{-2}$AI$^{-1}$]')
+
+    if(use_error):
+        labeltext =  'AI-SWF Error [Wm$^{-2}$AI$^{-1}$]'
+    else:
+        labeltext =  'AI-SWF Slope [Wm$^{-2}$AI$^{-1}$]'
+    ax1.set_ylabel(labeltext)
     if(include_mix):
-        ax3.set_ylabel('AI-SWF Slope [Wm$^{-2}$AI$^{-1}$]')
+        ax3.set_ylabel(labeltext)
     #ax2.set_ylabel('AI-SWF Slope [Wm$^{-2}$]')
     #ax3.set_ylabel('AI-SWF Slope [Wm$^{-2}$]')
 
@@ -5184,8 +5252,12 @@ def plot_slopes_cloud_types_szamean(out_dict,cld_idx = 0, maxerr = 2, \
             mix_add = '_mix'
         else:
             mix_add = ''
-        outname = 'comp_grid_ai_swf_slopecloud_' + xvar + 'means' + type_adder + \
-            smth_adder + mix_add + '.png'
+        if(use_error):
+            outname = 'comp_grid_ai_swf_errorcloud_' + xvar + 'means' + type_adder + \
+                smth_adder + mix_add + '.png'
+        else:
+            outname = 'comp_grid_ai_swf_slopecloud_' + xvar + 'means' + type_adder + \
+                smth_adder + mix_add + '.png'
         fig.savefig(outname, dpi = 200)
         print("Saved",outname)
     else: 
@@ -6830,13 +6902,8 @@ def plot_type_forcing_v3_all_months_arctic_avg(all_month_values, \
         minlat = 70., maxlat = 87., use_szas = False, \
         ai_thresh = 0.7, cld_idx = 0, maxerr = 2, \
         min_cloud = 0.95, data_type = 'raw', trend_type = 'standard', \
-        save = False,debug = False):
-
-    # Calculate the monthly averages of the estimated forcings
-    # over the entire Arctic region
-    # --------------------------------------------------------
-    arctic_avgs = np.array([np.nanmean(all_month_values[idx::6,:,:], \
-        axis = (1,2)) for idx in range(6)])
+        save = False,debug = False, month_values2 = None, \
+        month_values3 = None, labels = None, max_pval = 0.05):
 
     plt.close('all')
     fig = plt.figure(figsize = (9, 5))
@@ -6848,76 +6915,137 @@ def plot_type_forcing_v3_all_months_arctic_avg(all_month_values, \
     ax5 = fig.add_subplot(2,3,5)
     ax6 = fig.add_subplot(2,3,6)
   
-    plot_max = np.max(arctic_avgs) + 0.01 
-    plot_min = np.min(arctic_avgs) - 0.01 
-
     xvals = np.arange(2005, 2021)
     lwidth = 0.5
     fsize = 10
 
-    ax1.plot(xvals, arctic_avgs[0])
-    ax1.set_title('April')   
-    ax1.set_ylabel("Avg. Forcing [W/m2]")
-    rvals = plot_trend_line(ax1, xvals, arctic_avgs[0], color='black', \
-        linestyle = '-', linewidth = lwidth, slope = trend_type)
-    ax1.set_ylim(plot_min, plot_max)
-    ptext = 'ΔF$_{aer}$ = '+str(np.round(rvals.slope * len(xvals), 3))
-    plot_figure_text(ax1, ptext, location = 'upper_left', fontsize = fsize)
- 
-    ax2.plot(xvals, arctic_avgs[1])
-    ax2.set_title('May')   
-    ax2.set_ylabel("Avg. Forcing [W/m2]")
-    rvals = plot_trend_line(ax2, xvals, arctic_avgs[1], color='black', \
-        linestyle = '-', linewidth = lwidth, slope = trend_type)
-    ax2.set_ylim(plot_min, plot_max)
-    ptext = 'ΔF$_{aer}$ = '+str(np.round(rvals.slope * len(xvals), 3))
-    plot_figure_text(ax2, ptext, location = 'upper_left', fontsize = fsize)
+    months = ['April','May','June','July','August','September']
+    axs = [ax1, ax2, ax3, ax4, ax5, ax6]
 
-    ax3.plot(xvals, arctic_avgs[2])
-    ax3.set_title('June')   
-    ax3.set_ylabel("Avg. Forcing [W/m2]")
-    rvals = plot_trend_line(ax3, xvals, arctic_avgs[2], color='black', \
-        linestyle = '-', linewidth = lwidth, slope = trend_type)
-    ax3.set_ylim(plot_min, plot_max)
-    ptext = 'ΔF$_{aer}$ = '+str(np.round(rvals.slope * len(xvals), 3))
-    plot_figure_text(ax3, ptext, location = 'upper_left', fontsize = fsize)
+    def process_monthly_data(month_values, axs, data_type = None, \
+            linestyle = '-', color = 'tab:blue', alpha = 1.0):
 
-    ax4.plot(xvals, arctic_avgs[3])
-    ax4.set_title('July')   
-    ax4.set_ylabel("Avg. Forcing [W/m2]")
-    rvals = plot_trend_line(ax4, xvals, arctic_avgs[3], color='black', \
-        linestyle = '-', linewidth = lwidth, slope = trend_type)
-    ax4.set_ylim(plot_min, plot_max)
-    ptext = 'ΔF$_{aer}$ = '+str(np.round(rvals.slope * len(xvals), 3))
-    plot_figure_text(ax4, ptext, location = 'upper_left', fontsize = fsize)
+        # Calculate the monthly averages of the estimated forcings
+        # over the entire Arctic region
+        # --------------------------------------------------------
+        arctic_avgs = np.array([np.nanmean(month_values[idx::6,:,:], \
+            axis = (1,2)) for idx in range(6)])
 
-    ax5.plot(xvals, arctic_avgs[4])
-    ax5.set_title('August')   
-    ax5.set_ylabel("Avg. Forcing [W/m2]")
-    rvals = plot_trend_line(ax5, xvals, arctic_avgs[4], color='black', \
-        linestyle = '-', linewidth = lwidth, slope = trend_type)
-    ax5.set_ylim(plot_min, plot_max)
-    ptext = 'ΔF$_{aer}$ = '+str(np.round(rvals.slope * len(xvals), 3))
-    plot_figure_text(ax5, ptext, location = 'upper_left', fontsize = fsize)
+        plot_max = np.max(arctic_avgs) + 0.01 
+        plot_min = np.min(arctic_avgs) - 0.01 
 
-    ax6.plot(xvals, arctic_avgs[5])
-    ax6.set_title('September')   
-    ax6.set_ylabel("Avg. Forcing [W/m2]")
-    rvals = plot_trend_line(ax6, xvals, arctic_avgs[5], color='black', \
-        linestyle = '-', linewidth = lwidth, slope = trend_type)
-    ax6.set_ylim(plot_min, plot_max)
-    ptext = 'ΔF$_{aer}$ = '+str(np.round(rvals.slope * len(xvals), 3))
-    plot_figure_text(ax6, ptext, location = 'upper_left', fontsize = fsize)
+        for ii, ax in enumerate(axs):
+            print(months[ii])
+            ax.plot(xvals, arctic_avgs[ii], linestyle = linestyle, \
+                color = color, alpha = alpha)
+            ax.set_title(months[ii])   
+            ax.set_ylabel("Avg. Forcing [W/m2]")
+            ax.set_ylim(plot_min, plot_max)
+            #if(data_type is None):
+            rvals = plot_trend_line(ax, xvals, arctic_avgs[ii], color='black', \
+                linestyle = '-', linewidth = lwidth, slope = trend_type)
+            ptext = 'ΔF$_{aer}$ = '+str(np.round(rvals.slope * len(xvals), 3))
+            if(rvals.pvalue <= max_pval):
+                plot_figure_text(ax, ptext, location = 'upper_left', \
+                    fontsize = fsize, color = color, weight = 'bold')
+            else:
+                plot_figure_text(ax, ptext, location = 'upper_left', \
+                    fontsize = fsize, color = color)
+    
+    file_add = ''
+    title_add = ''
+    process_monthly_data(all_month_values, axs)
+    if(month_values2 is not None):
+        process_monthly_data(month_values2, axs, color = 'tab:orange', data_type = labels[0])
+        file_add += '_' + labels[0]
+        title_add += '\nOrange - ' + labels[0]
+    if(month_values3 is not None):
+        process_monthly_data(month_values3, axs, color = 'tab:green', data_type = labels[1])
+        file_add += labels[1]
+        title_add += ', Green - ' + labels[1]
 
-    plt.suptitle('Forcing Estimate 3:\nDaily-averaged Single Month Based', \
-        weight = 'bold', fontsize = 12) 
+    plt.suptitle('Forcing Estimate 3: Daily-averaged Single Month Based' + \
+        '\nBold - Significant at p = ' + str(max_pval) + title_add, \
+        weight = 'bold') 
 
     fig.tight_layout()
 
     if(save):
         outname = 'calc_arctic_forcing_v3_monthly_arcticavg_' + trend_type + \
-            '.png'
+            file_add + '.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else: 
         plt.show()
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
+# ERROR FUNCTIONS
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def test_error_calc(OMI_daily_data, OMI_monthly_data, coloc_dict, \
+        date_str, minlat = 70., maxlat = 87., ai_thresh = -0.15, \
+        cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw',\
+        sfc_type_idx = 0, \
+        filter_bad_vals = True, return_modis_nsidc = True, debug = False):
+
+    print("error stuff")
+
+    # Need to know:
+    # - Error of the slope for each individual bin (?????)
+    # - Error of each SZA-meaned slope
+    #     - can this be derived from the "n" slopes from the "n" cloud/clear
+    #       bins?
+    # - Error of the MODIS MYD08 daily cloud fraction
+    #     - again, can this be derived from the standard deviation and the
+    #       ob counts provided in the data?
+    # - Error of each single-day forcing estimate
+    # - Error of each daily-gridded monthly estimate
+    # - Error of the trend 
+
+    # FOR NOW, IGNORING THE STANDARD ERROR OF THE SLOPE FROM EACH
+    # BIN. WILL COME BACK TO THIS AND INCORPORATE THIS INTO THE 
+    # FOLLOWING ERROR ANALYSIS WORKFLOW. - 2023/12/04
+
+    # Retrieve the clear and cloudy slopes
+    # ------------------------------------
+    clear_slopes, cloud_slopes = identify_slope_clear_clean_sfctype(\
+        coloc_dict, sfc_type_idx, cld_idx, min_cloud = min_cloud, \
+        maxerr = maxerr, data_type = data_type, use_error = False)
+
+    # Calculate the standard error of the SZA-meaned slopes using
+    #
+    # ς = std_dev / sqrt(N)
+    #
+    # ------------------------------------------------------------
+    clear_error, cloud_error = calc_slope_error(clear_slopes, cloud_slopes)
+
+    fig = plt.figure(figsize = (9, 4))
+    ax1 = fig.add_subplot(1,2,1)
+    ax2 = fig.add_subplot(1,2,2)
+    ax1.plot(clear_mean, color = 'tab:blue')
+    ax1.plot(clear_mean + clear_error, linestyle = '--',  color = 'tab:blue')
+    ax1.plot(clear_mean - clear_error, linestyle = '--',  color = 'tab:blue')
+    ax1.plot(clear_mean + clear_std, linestyle = ':',  color = 'tab:blue')
+    ax1.plot(clear_mean - clear_std, linestyle = ':',  color = 'tab:blue')
+    ax1.plot(cloud_mean, color = 'tab:orange')
+    ax1.plot(cloud_mean + cloud_error, linestyle = '--',  color = 'tab:orange')
+    ax1.plot(cloud_mean - cloud_error, linestyle = '--',  color = 'tab:orange')
+    ax1.plot(cloud_mean + cloud_std, linestyle = ':',  color = 'tab:orange')
+    ax1.plot(cloud_mean - cloud_std, linestyle = ':',  color = 'tab:orange')
+    ax1.axhline(0, color = 'k')
+    ax1.grid(alpha = 0.5, color = 'grey')
+
+    # Plot fractional uncertainties
+    # -----------------------------
+    clear_frac_uncert = clear_error / np.abs(clear_mean)
+    cloud_frac_uncert = cloud_error / np.abs(cloud_mean)
+
+    ax2.plot(clear_frac_uncert)
+    ax2.plot(cloud_frac_uncert)
+    ax2.axhline(0, color = 'k')
+    ax2.grid(alpha = 0.5, color = 'grey')
+
+    fig.tight_layout()
+    plt.show()

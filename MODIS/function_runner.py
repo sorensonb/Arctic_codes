@@ -7,6 +7,12 @@
 
 from MODISLib import *
 
+date_str = '202107222110'
+plot_ceres_scatter(date_str, zoom=True,save=True,composite=True,\
+    avg_pixel=True,plume_only=False)
+
+sys.exit()
+
 
 hash_data, nohash_data = find_plume(date_str) 
 
@@ -461,12 +467,6 @@ sys.exit()
 
 plot_figure2(save=False, composite = True)
 #plot_combined_figure1_v6(save = True)
-
-sys.exit()
-
-date_str = '202107222110'
-plot_ceres_scatter(date_str, zoom=True,save=True,composite=True,\
-    avg_pixel=True,plume_only=False)
 
 sys.exit()
 

@@ -19,10 +19,10 @@ priv  = pd.read_csv(priv_file)
 
 lat_lon_dict = read_lat_lon_from_csv()
 
-radius_miles = 40
+radius_miles = 50
 radius_km = radius_miles / 0.611
 
-calc_distances(nws, atsci, labs, priv, threshold = radius_km, lat_lon_dict = lat_lon_dict)
+#count_dict = calc_distances(nws, atsci, labs, priv, threshold = radius_km, lat_lon_dict = lat_lon_dict)
 
 fig1 = plt.figure(figsize = (9, 9))
 ax2 = fig1.add_subplot(2,2,1, projection = mapcrs)
@@ -46,6 +46,23 @@ ax1 = fig2.add_subplot(1,1,1, projection = mapcrs)
 plot_all_sites(atsci, nws, labs, priv, ax = ax1, lat_lon_dict = lat_lon_dict, radius = radius_km)
 ax1.set_title('Combined')
 fig2.tight_layout()
+
+fig4 = plt.figure()
+ax1 = fig4.add_subplot(1,1,1)
+#plot_all_sites(atsci, nws, labs, priv, ax = ax1, lat_lon_dict = lat_lon_dict, radius = radius_km)
+plot_change_in_cwa_with_dist(ax1, nws, atsci, labs, priv, \
+    lat_lon_dict = lat_lon_dict, min_threshold = 2, max_threshold = 100, passed_thresh = radius_miles)
+ax1.grid(color = 'grey', alpha = 0.25, linestyle = '--')
+#ax1.set_title('Colocated')
+fig4.tight_layout()
+
+fig3 = plt.figure(figsize = (10,6))
+ax1 = fig3.add_subplot(1,1,1, projection = mapcrs)
+#plot_all_sites(atsci, nws, labs, priv, ax = ax1, lat_lon_dict = lat_lon_dict, radius = radius_km)
+plot_coloc_nws_sites(ax1, nws, atsci, labs, priv, lat_lon_dict = lat_lon_dict, draw_circles = False, threshold = radius_km)
+ax1.set_title('Colocated')
+fig3.tight_layout()
+
 plt.show()
 
 
