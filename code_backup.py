@@ -12,6 +12,9 @@ home_dir = os.environ['HOME']
 
 base_dir = home_dir + "/Research/"
 dest_dir = home_dir + "/Arctic_codes/"
+
+copy_raindrop = False
+
 ## Add new stuff
 #os.chdir(dest_dir)
 #os.system('git add .')
@@ -164,130 +167,132 @@ os.system(cmnd)
 
 # Get codes from Raindrop
 # -----------------------
-rain_dir = "bsorenson@134.129.222.68:/home/bsorenson/OMI/"
-#rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/OMI/"
 
-final_dir = dest_dir + 'OMI/processing/shawn_analysis/count_analysis/'
-cmnd = "scp "+rain_dir+"shawn_analysis/count_analysis/*.f90 "+final_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "scp "+rain_dir+"shawn_analysis/count_analysis/Make* "+final_dir
-print(cmnd)
-os.system(cmnd)
+if(copy_raindrop):
+    rain_dir = "bsorenson@134.129.222.68:/home/bsorenson/OMI/"
+    #rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/OMI/"
 
-final_dir = dest_dir + 'OMI/processing/shawn_analysis/climo_analysis/'
-cmnd = "scp "+rain_dir+"shawn_analysis/climo_analysis/*.f90 "+final_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "scp "+rain_dir+"shawn_analysis/climo_analysis/Make* "+final_dir
-print(cmnd)
-os.system(cmnd)
-
-final_dir = dest_dir + 'OMI/processing/shawn_analysis/daily_gridder/'
-cmnd = "scp "+rain_dir+"shawn_analysis/daily_gridder/*.f90 "+final_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "scp "+rain_dir+"shawn_analysis/daily_gridder/Make* "+final_dir
-print(cmnd)
-os.system(cmnd)
-
-final_dir = dest_dir + 'OMI/processing/JZ_analysis/climo_analysis/'
-cmnd = "scp "+rain_dir+"JZ_analysis/climo_analysis/*.f90 "+final_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "scp "+rain_dir+"JZ_analysis/climo_analysis/Make* "+final_dir
-print(cmnd)
-os.system(cmnd)
-
-final_dir = dest_dir + 'OMI/processing/JZ_analysis/count_analysis/'
-cmnd = "scp "+rain_dir+"JZ_analysis/count_analysis/*.f90 "+final_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "scp "+rain_dir+"JZ_analysis/count_analysis/Make* "+final_dir
-print(cmnd)
-os.system(cmnd)
-
-final_dir = dest_dir + 'OMI/processing/JZ_analysis/daily_gridder/'
-cmnd = "scp "+rain_dir+"JZ_analysis/daily_gridder/*.f90 "+final_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "scp "+rain_dir+"JZ_analysis/daily_gridder/Make* "+final_dir
-print(cmnd)
-os.system(cmnd)
-
-final_dir = dest_dir + 'OMI/processing/JZ_analysis/drift_analysis/'
-cmnd = "scp "+rain_dir+"JZ_analysis/drift_analysis/*.f90 "+final_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "scp "+rain_dir+"JZ_analysis/drift_analysis/Make* "+final_dir
-print(cmnd)
-os.system(cmnd)
-
-final_dir = dest_dir + 'OMI/processing/JZ_analysis/row_analysis/'
-cmnd = "scp "+rain_dir+"JZ_analysis/row_analysis/*.f90 "+final_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "scp "+rain_dir+"JZ_analysis/row_analysis/Make* "+final_dir
-print(cmnd)
-os.system(cmnd)
-
-final_dir = dest_dir + 'OMI/processing/JZ_analysis/JZ_lib/'
-cmnd = "scp "+rain_dir+"JZ_analysis/JZ_lib/*.f90 "+final_dir
-print(cmnd)
-os.system(cmnd)
-
-final_dir = dest_dir + 'OMI/processing/fort_lib/'
-cmnd = "scp "+rain_dir+"/fort_lib/*.f90 "+final_dir
-print(cmnd)
-os.system(cmnd)
-
-final_dir = dest_dir + 'Arctic_compares/processing/'
-cmnd = "scp "+rain_dir+"arctic_comp/*.f90 "+final_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "scp "+rain_dir+"arctic_comp/Make* "+final_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "scp "+rain_dir+"arctic_comp/auto_process.sh "+final_dir
-print(cmnd)
-os.system(cmnd)
-# Get colocate_vars stuff
-final_dir = dest_dir + 'Arctic_compares/processing/colocate_vars/'
-cmnd = "scp "+rain_dir+"colocate_lib/*.f90 "+final_dir
-print(cmnd)
-os.system(cmnd)
-
-# comp grid climo stuff
-final_dir = dest_dir + 'Arctic_compares/processing/comp_grid_climo/'
-cmnd = "scp "+rain_dir+"comp_grid_climo/*.f90 "+final_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "scp "+rain_dir+"comp_grid_climo/Make* "+final_dir
-print(cmnd)
-os.system(cmnd)
-
-# type_analysis stuff
-final_dir = dest_dir + 'Arctic_compares/processing/type_analysis/'
-cmnd = "scp "+rain_dir+"type_analysis/*.f90 "+final_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "scp "+rain_dir+"type_analysis/Make* "+final_dir
-print(cmnd)
-os.system(cmnd)
-#cmnd = "scp "+rain_dir+"arctic_comp/auto_process.sh "+final_dir
-#print(cmnd)
-#os.system(cmnd)
-
-rain_dir = "bsorenson@134.129.222.68:/home/bsorenson/CERES/"
-#rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/CERES/"
-
-final_dir = dest_dir + 'CERES/processing/'
-cmnd = "scp "+rain_dir+"*.f90 "+final_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "scp "+rain_dir+"Make* "+final_dir
-print(cmnd)
-os.system(cmnd)
+    final_dir = dest_dir + 'OMI/processing/shawn_analysis/count_analysis/'
+    cmnd = "scp "+rain_dir+"shawn_analysis/count_analysis/*.f90 "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    cmnd = "scp "+rain_dir+"shawn_analysis/count_analysis/Make* "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    
+    final_dir = dest_dir + 'OMI/processing/shawn_analysis/climo_analysis/'
+    cmnd = "scp "+rain_dir+"shawn_analysis/climo_analysis/*.f90 "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    cmnd = "scp "+rain_dir+"shawn_analysis/climo_analysis/Make* "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    
+    final_dir = dest_dir + 'OMI/processing/shawn_analysis/daily_gridder/'
+    cmnd = "scp "+rain_dir+"shawn_analysis/daily_gridder/*.f90 "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    cmnd = "scp "+rain_dir+"shawn_analysis/daily_gridder/Make* "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    
+    final_dir = dest_dir + 'OMI/processing/JZ_analysis/climo_analysis/'
+    cmnd = "scp "+rain_dir+"JZ_analysis/climo_analysis/*.f90 "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    cmnd = "scp "+rain_dir+"JZ_analysis/climo_analysis/Make* "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    
+    final_dir = dest_dir + 'OMI/processing/JZ_analysis/count_analysis/'
+    cmnd = "scp "+rain_dir+"JZ_analysis/count_analysis/*.f90 "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    cmnd = "scp "+rain_dir+"JZ_analysis/count_analysis/Make* "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    
+    final_dir = dest_dir + 'OMI/processing/JZ_analysis/daily_gridder/'
+    cmnd = "scp "+rain_dir+"JZ_analysis/daily_gridder/*.f90 "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    cmnd = "scp "+rain_dir+"JZ_analysis/daily_gridder/Make* "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    
+    final_dir = dest_dir + 'OMI/processing/JZ_analysis/drift_analysis/'
+    cmnd = "scp "+rain_dir+"JZ_analysis/drift_analysis/*.f90 "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    cmnd = "scp "+rain_dir+"JZ_analysis/drift_analysis/Make* "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    
+    final_dir = dest_dir + 'OMI/processing/JZ_analysis/row_analysis/'
+    cmnd = "scp "+rain_dir+"JZ_analysis/row_analysis/*.f90 "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    cmnd = "scp "+rain_dir+"JZ_analysis/row_analysis/Make* "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    
+    final_dir = dest_dir + 'OMI/processing/JZ_analysis/JZ_lib/'
+    cmnd = "scp "+rain_dir+"JZ_analysis/JZ_lib/*.f90 "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    
+    final_dir = dest_dir + 'OMI/processing/fort_lib/'
+    cmnd = "scp "+rain_dir+"/fort_lib/*.f90 "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    
+    final_dir = dest_dir + 'Arctic_compares/processing/'
+    cmnd = "scp "+rain_dir+"arctic_comp/*.f90 "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    cmnd = "scp "+rain_dir+"arctic_comp/Make* "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    cmnd = "scp "+rain_dir+"arctic_comp/auto_process.sh "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    # Get colocate_vars stuff
+    final_dir = dest_dir + 'Arctic_compares/processing/colocate_vars/'
+    cmnd = "scp "+rain_dir+"colocate_lib/*.f90 "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    
+    # comp grid climo stuff
+    final_dir = dest_dir + 'Arctic_compares/processing/comp_grid_climo/'
+    cmnd = "scp "+rain_dir+"comp_grid_climo/*.f90 "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    cmnd = "scp "+rain_dir+"comp_grid_climo/Make* "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    
+    # type_analysis stuff
+    final_dir = dest_dir + 'Arctic_compares/processing/type_analysis/'
+    cmnd = "scp "+rain_dir+"type_analysis/*.f90 "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    cmnd = "scp "+rain_dir+"type_analysis/Make* "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    #cmnd = "scp "+rain_dir+"arctic_comp/auto_process.sh "+final_dir
+    #print(cmnd)
+    #os.system(cmnd)
+    
+    rain_dir = "bsorenson@134.129.222.68:/home/bsorenson/CERES/"
+    #rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/CERES/"
+    
+    final_dir = dest_dir + 'CERES/processing/'
+    cmnd = "scp "+rain_dir+"*.f90 "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    cmnd = "scp "+rain_dir+"Make* "+final_dir
+    print(cmnd)
+    os.system(cmnd)
 
 #cmnd = "cp "+base_dir+"OMI/OMI_simulation/*.py "+dest_dir
 #print(cmnd)
@@ -457,20 +462,21 @@ os.system(cmnd)
 
 # Get codes from Raindrop
 # -----------------------
-rain_dir = "bsorenson@134.129.222.68:/home/bsorenson/OMI/tropomi_colocate/"
-#rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/OMI/tropomi_colocate/"
-
-final_dir = dest_dir + 'TROPOMI/processing/'
-cmnd = "scp "+rain_dir+"*.f90 "+final_dir
-print(cmnd)
-os.system(cmnd)
-cmnd = "scp "+rain_dir+"Make* "+final_dir
-print(cmnd)
-os.system(cmnd)
-
-cmnd = "scp "+rain_dir+"/auto_trop_process.sh "+final_dir
-print(cmnd)
-os.system(cmnd)
+if(copy_raindrop):
+    rain_dir = "bsorenson@134.129.222.68:/home/bsorenson/OMI/tropomi_colocate/"
+    #rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/OMI/tropomi_colocate/"
+    
+    final_dir = dest_dir + 'TROPOMI/processing/'
+    cmnd = "scp "+rain_dir+"*.f90 "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    cmnd = "scp "+rain_dir+"Make* "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    
+    cmnd = "scp "+rain_dir+"/auto_trop_process.sh "+final_dir
+    print(cmnd)
+    os.system(cmnd)
 
 # ---------------------------------------------------------------------------- 
 # Siphon/Metpy Codes

@@ -13,6 +13,7 @@ from scipy.interpolate import interp1d
 sys.path.append(home_dir)
 import python_lib
 import importlib
+from matplotlib.cm import turbo
 from python_lib import circle, plot_trend_line, nearest_gridpoint, \
     aerosol_event_dict, init_proj, plot_lat_circles, plot_figure_text, \
     plot_subplot_label
@@ -2815,11 +2816,13 @@ def calculate_type_forcing_v2(OMI_data, NSIDC_data, MYD08_data, coloc_dict, \
 # reference_ice: if set to a string (e.g. '2005'), the ice cocentration
 # from that day in 2005 will be used to determine which forcing
 # efficiency value is used. 
+# reference:cld: same as reference_ice but for the MODIS daily cloud
+# fraction.
 # ---------------------------------------------------------------------
 def calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, coloc_dict, \
         date_str, minlat = 70., maxlat = 87., ai_thresh = -0.15, \
         cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw',\
-        reference_ice = None, mod_slopes = None, \
+        reference_ice = None, reference_cld = None, mod_slopes = None, \
         filter_bad_vals = True, return_modis_nsidc = True, debug = False):
     
     # Necessary pieces:
@@ -2850,7 +2853,12 @@ def calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, coloc_dict, \
     # -----------------------    
     tidx = int(date_str[4:6]) - 4
 
-    MYD08_data = read_MODIS_MYD08_single(date_str, minlat = minlat, \
+    if(reference_cld is None):
+        cld_str = date_str
+    else:
+        cld_str = reference_cld + date_str[4:]
+
+    MYD08_data = read_MODIS_MYD08_single(cld_str, minlat = minlat, \
         maxlat = maxlat)
    
     # Load in the single-day NSIDC ice concentration
@@ -3037,7 +3045,7 @@ def calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, coloc_dict, \
 def calculate_type_forcing_v3_monthly(OMI_daily_data, OMI_monthly_data, \
         coloc_dict, month_idx, minlat = 70., maxlat = 87., ai_thresh = -0.15, \
         cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw',\
-        reference_ice = None, mod_slopes = None, \
+        reference_ice = None, reference_cld = None, mod_slopes = None, \
         filter_bad_vals = True, return_modis_nsidc = True, debug = False):
 
 
@@ -3089,6 +3097,7 @@ def calculate_type_forcing_v3_monthly(OMI_daily_data, OMI_monthly_data, \
                 min_cloud = min_cloud, data_type = data_type,\
                 filter_bad_vals = filter_bad_vals, \
                 reference_ice = reference_ice, \
+                reference_cld = reference_cld, \
                 mod_slopes = mod_slopes, \
                 return_modis_nsidc = False)
 
@@ -6977,6 +6986,130 @@ def plot_type_forcing_v3_all_months_arctic_avg(all_month_values, \
         print("Saved image", outname)
     else: 
         plt.show()
+
+# Used for plotting all the different ref-ice simulations
+# ptype: 'forcing', 'error', 'pcnt_error'
+def plot_type_forcing_v3_all_months_arctic_avg_manyrefice(all_month_vals, \
+        OMI_monthly_data, \
+        min_year = 2005, max_year = 2020, \
+        minlat = 70., maxlat = 87., use_szas = False, \
+        ai_thresh = 0.7, cld_idx = 0, maxerr = 2, \
+        min_cloud = 0.95, data_type = 'raw', trend_type = 'standard', \
+        save = False,debug = False, max_pval = 0.05, \
+        ptype = 'forcing'):
+
+    plt.close('all')
+    fig = plt.figure(figsize = (9, 5))
+    
+    ax1 = fig.add_subplot(2,3,1)
+    ax2 = fig.add_subplot(2,3,2)
+    ax3 = fig.add_subplot(2,3,3)
+    ax4 = fig.add_subplot(2,3,4)
+    ax5 = fig.add_subplot(2,3,5)
+    ax6 = fig.add_subplot(2,3,6)
+  
+    years = np.arange(min_year, max_year + 1)
+    lwidth = 0.5
+    fsize = 10
+
+    months = ['April','May','June','July','August','September']
+    axs = [ax1, ax2, ax3, ax4, ax5, ax6]
+
+    plot_c = turbo((years-np.min(years))/\
+                     (np.max(years)-np.min(years)))
+
+    if((ptype == 'error') | (ptype == 'pcnt_error')):
+        ax1.axhline(0, linestyle = '--', color = 'black')
+        ax2.axhline(0, linestyle = '--', color = 'black')
+        ax3.axhline(0, linestyle = '--', color = 'black')
+        ax4.axhline(0, linestyle = '--', color = 'black')
+        ax5.axhline(0, linestyle = '--', color = 'black')
+        ax6.axhline(0, linestyle = '--', color = 'black')
+    
+    # Convert the base values to Arctic and monthly averages
+    # ------------------------------------------------------
+    all_month_vals =  np.array([np.nanmean(all_month_vals[idx::6,:,:], \
+        axis = (1,2)) for idx in range(6)])
+
+    # Combined all the single-year stuff into one array
+    # ------------------------------------------------- 
+    combined_vals = np.full( (years.shape[0], \
+        6, all_month_vals.shape[1]), np.nan)
+
+    # Loop over each reference ice year, reading in the 
+    # individual forcing values.
+    for ii, year in enumerate(years):
+        # Read in the force vals with this ref ice
+        # ----------------------------------------
+        filename = home_dir + '/Research/Arctic_compares/' + \
+            'arctic_month_est_forcing_dayaithresh07_refice' + \
+            str(year) + '.hdf5'
+        print(filename)
+        all_month_dict = read_daily_month_force_HDF5(filename)
+
+        combined_vals[ii,:,:] = np.array([np.nanmean(\
+            all_month_dict['FORCE_EST'][idx::6,:,:], \
+            axis = (1,2)) for idx in range(6)])
+
+        if(ptype == 'error'):
+            combined_vals[ii,:,:] = (combined_vals[ii,:,:] - \
+                all_month_vals[:,:])
+        elif(ptype == 'pcnt_error'):
+            combined_vals[ii,:,:] = ((combined_vals[ii,:,:] - all_month_vals[:,:]) / \
+                all_month_vals[:,:]) * 100.
+    
+        # Now, loop over each month and plot accordingly
+        # ----------------------------------------------
+        for jj, ax in enumerate(axs):
+            ax.plot(years, combined_vals[ii,jj,:], linestyle = '-', \
+                c = plot_c[ii], alpha = 1.0)
+
+
+
+    local_min = np.min(combined_vals)
+    local_max = np.max(combined_vals)
+    ranges = np.abs(np.array([local_min, local_max]))
+    local_min = local_min - 0.1 * np.max(ranges)
+    local_max = local_max + 0.1 * np.max(ranges)
+
+    if(ptype == 'error'):
+        plabel = 'Avg. Forcing\nError [W/m2]'
+        file_add = '_error'
+    elif(ptype == 'pcnt_error'):
+        plabel = 'Avg. Forcing\nPcnt. Error [%]'
+        file_add = '_pcnterror'
+    else:
+        plabel = 'Avg. Forcing [W/m2]'
+        file_add = '_forcing'
+
+    for jj in range(6):
+  
+        axs[jj].axhline(0, color = 'black', linestyle = '--', alpha = 0.75)
+        axs[jj].set_ylabel(plabel) 
+        axs[jj].set_title(months[jj])   
+        axs[jj].set_ylim(local_min, local_max)
+        if(ptype == 'forcing'):
+            axs[jj].plot(years, all_month_vals[jj,:], linestyle = '-', \
+                c = 'black', alpha = 1.0)
+
+
+
+    plt.suptitle('Daily-averaged Single Month Estimated Forcing' + \
+        '\nSensitivity to Sea Ice Retreat' + \
+        '\nBold - Significant at p = ' + str(max_pval), \
+        weight = 'bold') 
+
+    fig.tight_layout()
+
+    if(save):
+        outname = 'calc_arctic_forcing_v3_monthly_arcticavg_refice_' + trend_type + \
+            file_add + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else: 
+        plt.show()
+
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
