@@ -15,18 +15,18 @@ dest_dir = home_dir + "/Arctic_codes/"
 
 copy_raindrop = False
 
-## Add new stuff
-#os.chdir(dest_dir)
-#os.system('git add .')
-#
-## Determine today's date for the command
-#today_str = datetime.today().strftime('%Y/%m/%d')
-#cmnd = 'git commit -m \"Backup '+today_str + '\"'
-#os.system(cmnd)
-#
-## Push
-#os.system('git push origin master')
-#sys.exit()
+#### Add new stuff
+###os.chdir(dest_dir)
+###os.system('git add .')
+###
+#### Determine today's date for the command
+###today_str = datetime.today().strftime('%Y/%m/%d')
+###cmnd = 'git commit -m \"Backup '+today_str + '\"'
+###os.system(cmnd)
+###
+#### Push
+###os.system('git push origin master')
+###sys.exit()
 # ---------------------------------------------------------------------------- 
 # Backup the backup script
 # ---------------------------------------------------------------------------- 

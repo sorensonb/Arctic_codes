@@ -881,8 +881,22 @@ ai_thresh = 0.05
 # plot_type_forcing_v3_all_months_arctic_avg_manyrefice: using each of 
 #           the daily-gridded monthly averaged forcing estimates calculated
 #           with reference ices from 2005 - 2020, plot each of the 
-#           ref-ice "simulations" on one graph.
+#           ref-ice "simulations" on one graph. 
+#           
+# calc_forcing_slopes_v3_all_months_arctic_avg_manyrefice:
+#           This function returns the ΔFlux (slope times # years) value
+#           if "return_slope = True" is included as an argument to the 
+#           function call. There is one slope for each month and for 
+#           each year (and by year, this means the "reference ice/cloud"
+#           year. Uses the same slope calculations as the above 
+#           function.
 #
+# calc_print_forcing_slope_error_v3(all_month_vals:
+#           This function gathers the refice and refcld simulation results,
+#           calculates the trends from each refice and refcld simulation,
+#           and calculates the mean and standard error of those
+#           ref ice/cld simulations. The results are printed in a table
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
@@ -941,13 +955,13 @@ ai_thresh = 0.05
 #    write_daily_month_force_to_HDF5(all_month_vals_ice, OMI_daily_VSJ4, \
 #        name_add = '_dayaithresh07_refice' + str(ref_ice))
 
-ref_cld_vals = np.arange(2005,2020)
-for ref_cld in ref_cld_vals:
-    all_month_vals_cld = calculate_type_forcing_v3_monthly(daily_VSJ4, \
-        OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = 0.7, minlat = 65., \
-        reference_cld = str(ref_cld))
-    write_daily_month_force_to_HDF5(all_month_vals_cld, OMI_daily_VSJ4, \
-        name_add = '_dayaithresh07_refcld' + str(ref_cld))
+#ref_cld_vals = np.arange(2005,2020)
+#for ref_cld in ref_cld_vals:
+#    all_month_vals_cld = calculate_type_forcing_v3_monthly(daily_VSJ4, \
+#        OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = 0.7, minlat = 65., \
+#        reference_cld = str(ref_cld))
+#    write_daily_month_force_to_HDF5(all_month_vals_cld, OMI_daily_VSJ4, \
+#        name_add = '_dayaithresh07_refcld' + str(ref_cld))
     
 
 # Write the all_month_vals to an HDF5 file
@@ -993,8 +1007,8 @@ all_month_dict = read_daily_month_force_HDF5(infile)
 # Calculate the Arctic-wide average of the daily-gridded monthly forcing
 # values for each month and plot them
 # ----------------------------------------------------------------------
-plot_type_forcing_v3_all_months_arctic_avg(all_month_vals, OMI_daily_VSJ4, \
-    minlat = 65, trend_type = 'standard')
+#plot_type_forcing_v3_all_months_arctic_avg(all_month_vals, OMI_daily_VSJ4, \
+#    minlat = 65, trend_type = 'standard')
  
 # Calculate the Arctic-wide average of the daily-gridded monthly forcing
 # values for each month and plot them, but also plotting the '_adderror'
@@ -1007,10 +1021,27 @@ plot_type_forcing_v3_all_months_arctic_avg(all_month_vals, OMI_daily_VSJ4, \
 
 # Same as plot_type_forcing_v3_all_months_arctic_avg, but it plots the 
 # Arctic-averaged results for each of the 2005 - 2020 reference ice
-# simulations
+# simulations. Also works for the 'refcld' simulations.a
+# ptype: 'forcing', 'error', 'pcnt_error'
+# return_slope: True to return the calculated Δflux
 # --------------------------------------------------------------------
-#plot_type_forcing_v3_all_months_arctic_avg_manyrefice(\
-#       OMI_daily_VSJ4, minlat = 65, trend_type = 'standard')
+plot_type_forcing_v3_all_months_arctic_avg_manyrefice(all_month_dict['FORCE_EST'], \
+       OMI_daily_VSJ4, minlat = 65, trend_type = 'standard', stype = 'cld', \
+       ptype = 'forcing')
+
+# Calculates the slopes of the refice or refcld simulations plotted
+# in the "plot_type_forcing_v3_all_months_arctic_avg_manyrefice" function.
+# ------------------------------------------------------------------------
+#ice_slopes = calc_forcing_slopes_v3_all_months_arctic_avg_manyrefice(all_month_dict['FORCE_EST'], \
+#       OMI_daily_VSJ4, minlat = 65, trend_type = 'standard', stype = 'ice', \
+#       ptype = 'forcing')
+
+# Print the results of the refice/cld simulation trend comparisons as 
+# a table
+# -------------------------------------------------------------------
+#calc_print_forcing_slope_error_v3(all_month_dict['FORCE_EST'], \
+#       OMI_daily_VSJ4, minlat = 65, trend_type = 'standard', \
+#       ptype = 'forcing')
 
 sys.exit()
  
