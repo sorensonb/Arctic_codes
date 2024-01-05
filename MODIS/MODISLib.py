@@ -3141,7 +3141,7 @@ def write_MODIS_MYD08(date_str, minlat = 65.5, \
  
 def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False, \
         ax = None, swath = False, vmin = None, vmax = None, \
-        ptitle = None, \
+        ptitle = '', \
         circle_bound = True, plot_borders = True, labelsize = 12):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
@@ -3961,7 +3961,8 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
         plt.show()
 
 def plot_MODIS_spatial(MODIS_data, pax, zoom, vmin = None, vmax = None, \
-        pvar = 'data', ptitle = None, labelsize = 13, labelticksize = 11, \
+        #pvar = 'data', ptitle = None, labelsize = 13, labelticksize = 11, \
+        pvar = 'data', ptitle = '', labelsize = 13, labelticksize = 11, \
         circle_bound = False, plot_borders = True):
 
     print(MODIS_data['date'])
@@ -4023,7 +4024,9 @@ def plot_MODIS_spatial(MODIS_data, pax, zoom, vmin = None, vmax = None, \
     else:
         if(circle_bound):
             pax.set_boundary(circle, transform=pax.transAxes)
-    if(ptitle == None):
+
+    #if(ptitle == None):
+    if(ptitle == ''):
         if(str(MODIS_data['channel']) == 'true_color'):
             pax.set_title('True color') 
         elif(MODIS_data['channel'] == 'cloud_mask'):

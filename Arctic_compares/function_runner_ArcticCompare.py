@@ -8,13 +8,11 @@
 import Arctic_compare_lib
 from Arctic_compare_lib import *
 
-"""
 date_str = '201408112211'
 #date_str = '201807052213'
 plot_compare_OMI_MODIS_NSIDC_v2(date_str, 'true_color', \
-    omi_dtype = 'ltc3', minlat = 65., zoom = True, save = True)
+    omi_dtype = 'ltc3', minlat = 65., zoom = True, save = False)
 sys.exit()
-"""
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
@@ -905,6 +903,9 @@ ai_thresh = 0.05
 # -----------------------------------------------------------
 #plot_compare_grid_climo_stderr(lin_smth2_dict_v6, 'raw', 2, save = False)
 
+# Plot the 2-d forcing efficiencies
+# ----------------------------------
+plot_slopes_cloud_types(lin_raw_dict, save = False, vmin = -15, vmax = 15)
 
 # Plot the four-panel sza-meaned forcing efficiency estimates
 # -----------------------------------------------------------
@@ -977,8 +978,8 @@ ai_thresh = 0.05
 infile = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07.hdf5'
 #infile_2005 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_refice2005.hdf5'
 #infile_2020 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_refice2020.hdf5'
-#infile_add = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_adderror.hdf5'
-#infile_sub = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_suberror.hdf5'
+infile_add = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_adderror.hdf5'
+infile_sub = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_suberror.hdf5'
 all_month_dict = read_daily_month_force_HDF5(infile)
 #all_month_dict_ref05  = read_daily_month_force_HDF5(infile_2005)
 #all_month_dict_ref20  = read_daily_month_force_HDF5(infile_2020)
@@ -1017,7 +1018,8 @@ all_month_dict = read_daily_month_force_HDF5(infile)
 #plot_type_forcing_v3_all_months_arctic_avg(all_month_dict['FORCE_EST'], 
 #    OMI_daily_VSJ4, minlat = 65, trend_type = 'standard', 
 #    month_values2 = all_month_dict_adderr['FORCE_EST'], 
-#    month_values3 = all_month_dict_suberr['FORCE_EST'])
+#    month_values3 = all_month_dict_suberr['FORCE_EST'], \
+#    labels = ['adderror', 'suberror'])
 
 # Same as plot_type_forcing_v3_all_months_arctic_avg, but it plots the 
 # Arctic-averaged results for each of the 2005 - 2020 reference ice

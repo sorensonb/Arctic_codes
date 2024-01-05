@@ -440,8 +440,9 @@ def readgridCERES_daily_file(date_str, end_str = None, satellite = 'Aqua', \
     return CERES_data
 
 # Data period is of format YYYYMMDDHH
+# NOTE: SET modis_comp TO TRUE FOR THERMAL IR DIXIE STUDY
 def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
-        season='all', modis_comp = True):
+        season='all', modis_comp = False):
     print(data_dt)
     lat_ranges = np.arange(minlat,90.0,0.25)
     lon_ranges = np.arange(-180.0,180.0,0.25)
@@ -1581,7 +1582,7 @@ def make_scatter(CERES_dict_alb_clr,CERES_dict_sw_clr,\
     print("Saved image ",outname)
 
 def plotCERES_hrly(pax, CERES_data_hrly, param, minlat=65, \
-        vmin = None, vmax = None, title = None, label = None, \
+        vmin = None, vmax = None, title = '', label = None, \
         labelsize = 13, labelticksize = 11, circle_bound = False, \
         gridlines = True, grid_data = True, zoom = True):
 
@@ -1615,7 +1616,7 @@ def plotCERES_hrly(pax, CERES_data_hrly, param, minlat=65, \
  
     if(gridlines): 
         pax.gridlines()
-    if(title == None):
+    if(title == ''):
         title =  'CERES ' + param + ' ' + CERES_data_hrly['date']
     if(label == None):
         label = param.upper() + ' [W/m$^{2}$]'

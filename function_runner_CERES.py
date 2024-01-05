@@ -8,7 +8,7 @@
 import gridCERESLib
 from gridCERESLib import *
 import sys
-
+sys.exit()
 def local_test_func(infile, data_dt, minlat, maxlat, minlon, maxlon, sizer = 120, \
         vmin1 = 150, vmax1 = 250, vmin2 = 300, vmax2 = 370):
 

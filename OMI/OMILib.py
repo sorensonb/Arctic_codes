@@ -6001,7 +6001,7 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
         only_sea_ice = False, minlat = 65., skiprows = None, \
         lat_circles = None, save = False, zoom = False, \
         vmin = None, vmax = None, circle_bound = True, ax = None, \
-        colorbar = True, 
+        colorbar = True, title = '', \
         shawn_path = home_dir + '/data/OMI/shawn_files/'):
 
 
@@ -6041,7 +6041,9 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
     # ----------------------------------------------------
     if(zoom):
         circle_bound = False
-    plotOMI_single_swath(ax, OMI_base, title = dtype.title(), \
+    if(title == ''):
+        title = dtype.title()
+    plotOMI_single_swath(ax, OMI_base, title = title, \
     #plotOMI_single_swath(ax0, OMI_base, title = 'No row 53', \
         #circle_bound = False, gridlines = False)
         vmin = vmin, vmax = vmax, 
@@ -6066,7 +6068,8 @@ def plotOMI_single_swath_figure(date_str, dtype = 'control',  \
         ax.set_extent([-180,180,minlat,90], datacrs)
     #    ax2.set_extent([-180,180,minlat,90], datacrs)
 
-    plt.suptitle(date_str)
+    if(not in_ax):
+        plt.suptitle(date_str)
 
     # ----------------------------------------------------
     # If the user wants circles along latitude lines,    
@@ -7591,6 +7594,7 @@ def plot_OMI_CERES_trend_compare_summer(minlat=72,\
     fig1.tight_layout()
     plt.show()
 
+"""
 # Compare the OMI, CERES, and MODIS data over the Arctic
 # ------------------------------------------------------
 def plot_compare_OMI_CERES_MODIS_NSIDC(modis_date_str, ch1, \
@@ -7672,7 +7676,7 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(modis_date_str, ch1, \
         print("Saved image", outname)
     else:
         plt.show()
-
+"""
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
 # OMI fort out plotting stuff 
@@ -7878,10 +7882,15 @@ def calcOMI_MonthAvg_FromDaily(infile, min_AI = -20., max_AI = 20.,
         (grid_lat < minlat) | (grid_lat > maxlat), \
         local_data)   
 
+    # Set any values of daily AI less than the minimum value to be 
+    # the minimum value. Do likewise for the maximum value.
+    # -------------------------------------------------------------
     mask_data = np.ma.where( (mask_data < min_AI), min_AI, mask_data)
     mask_data = np.ma.where( (mask_data > max_AI), max_AI, mask_data)
  
-    # Calculate the monthly averages
+    # Calculate the monthly averages.
+    # weight_count uses the counts of individual OMI pixels
+    # within each daily gridbox 
     # ------------------------------
     if(weight_count): 
         monthly_data = np.array([ np.ma.average(mask_data[\

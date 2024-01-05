@@ -398,18 +398,19 @@ def plot_subplot_label(ax, label, xval = None, yval = None, transform = None, \
         location = 'upper_left'):
 
     if(location == 'upper_left'):
-        y_lim = 0.90
+        y_lim = 0.88
         #y_lim = 1.03
-        x_lim = 0.05
-    if(location == 'upper_upper_left'):
+        x_lim = 0.04
+    elif(location == 'upper_upper_left'):
         y_lim = 1.05
         x_lim = 0.05
     elif(location == 'lower_left'):
         y_lim = 0.05
         x_lim = 0.05
     elif(location == 'upper_right'):
-        y_lim = 0.90
-        x_lim = 0.80
+        print("HEERE:", y_lim, x_lim)
+        y_lim = 0.80
+        x_lim = 0.30
     elif(location == 'upper_upper_right'):
         y_lim = 1.03
         x_lim = 0.90
@@ -444,7 +445,7 @@ def plot_subplot_label(ax, label, xval = None, yval = None, transform = None, \
                 backgroundcolor = backgroundcolor)
 
 def plot_figure_text(ax, text, xval = None, yval = None, transform = None, \
-        color = 'black', fontsize = 12, backgroundcolor = 'white',\
+        color = 'black', fontsize = 12, backgroundcolor = None,\
         halign = 'left', location = 'lower_right', weight = None):
 
     if(location == 'lower_right'):
@@ -480,16 +481,28 @@ def plot_figure_text(ax, text, xval = None, yval = None, transform = None, \
     print('Xval = ',xval, 'Yval = ',yval)
 
     if(transform is None):
-        ax.text(xval,yval,text, \
-            color=color, weight=weight, \
-            fontsize=fontsize, backgroundcolor = backgroundcolor, \
-            horizontalalignment = halign)
+        if(backgroundcolor is None):
+            ax.text(xval,yval,text, \
+                color=color, weight=weight, \
+                fontsize=fontsize, \
+                horizontalalignment = halign)
+        else:
+            ax.text(xval,yval,text, \
+                color=color, weight=weight, \
+                fontsize=fontsize, backgroundcolor = backgroundcolor, \
+                horizontalalignment = halign)
     else:
-        ax.text(xval,yval,text, \
-            color=color, weight=weight, \
-            transform = transform, fontsize=fontsize, \
-            backgroundcolor = backgroundcolor, \
-            horizontalalignment = halign)
+        if(backgroundcolor is None):
+            ax.text(xval,yval,text, \
+                color=color, weight=weight, \
+                transform = transform, fontsize=fontsize, \
+                horizontalalignment = halign)
+        else:
+            ax.text(xval,yval,text, \
+                color=color, weight=weight, \
+                transform = transform, fontsize=fontsize, \
+                backgroundcolor = backgroundcolor, \
+                horizontalalignment = halign)
 
 # Plots latitude circles on a given axis
 # --------------------------------------
