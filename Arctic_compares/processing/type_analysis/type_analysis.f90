@@ -4,6 +4,9 @@ program type_analysis
 !   type_analysis.f90
 !
 ! PURPOSE:
+!
+!   As of 2024/01/02: reads in the coloc files and generates daily
+!   averages of AI, CH7, and NSIDC surface type.
 ! 
 ! CALLS:
 !

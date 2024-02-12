@@ -13,7 +13,7 @@ home_dir = os.environ['HOME']
 base_dir = home_dir + "/Research/"
 dest_dir = home_dir + "/Arctic_codes/"
 
-copy_raindrop = False
+copy_raindrop = True
 
 #### Add new stuff
 ###os.chdir(dest_dir)
@@ -27,6 +27,7 @@ copy_raindrop = False
 #### Push
 ###os.system('git push origin master')
 ###sys.exit()
+
 # ---------------------------------------------------------------------------- 
 # Backup the backup script
 # ---------------------------------------------------------------------------- 

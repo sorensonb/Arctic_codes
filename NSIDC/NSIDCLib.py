@@ -1135,7 +1135,7 @@ def plotNSIDC_ClimoTrend_all(NSIDC_data,\
 
 
 def plotNSIDC_daily(pax, NSIDC_data, minlat=65, \
-        vmin = None, vmax = None, title = None, label = None, \
+        vmin = None, vmax = None, title = '', label = None, \
         labelsize = 11, labelticksize = 9, circle_bound = False, \
         gridlines = True, zoom = False):
 
@@ -1160,7 +1160,7 @@ def plotNSIDC_daily(pax, NSIDC_data, minlat=65, \
         (NSIDC_data['data'] == 0), \
         NSIDC_data['data'])
  
-    if(title == None):
+    if(title == ''):
         title =  'SSMI/S Sea Ice Concentration\n' + NSIDC_data['date']
     if(label == None):
         label = 'Concentration [%]'
@@ -1190,7 +1190,7 @@ def plotNSIDC_daily(pax, NSIDC_data, minlat=65, \
 def plotNSIDC_daily_figure(date_str, minlat = 65., \
         lat_circles = None, grid_data = False, zoom = False, \
         vmin = None, vmax = None, circle_bound = True, 
-        title = None, label = None, \
+        title = '', label = None, \
         ax = None, gridlines = False, save = False):
 
     dt_date_str = datetime.strptime(date_str, "%Y%m%d")

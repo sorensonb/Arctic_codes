@@ -52,9 +52,9 @@ Charleston,Charleston,South Carolina
 Cleveland,Cleveland,Ohio
 State College,State College,Pennsylvania
 Greenville-Spartanburg,Greer,South Carolina
-Portland,Gray,Maine
-Wilmington,Wilmington,North Carolina
-Wilmington,Wilmington,Ohio
+PortlandME,Gray,Maine
+WilmingtonNC,Wilmington,North Carolina
+WilmingtonOH,Wilmington,Ohio
 Baltimore MD/Washington,Sterling,Virginia
 Newport/Morehead City,Newport,North Carolina
 Upton,Upton,New York
@@ -112,7 +112,7 @@ San Francisco,Monterey,California
 Spokane,Spokane,Washington
 Pendleton,Pendleton,Oregon
 Pocatello,Pocatello,Idaho
-Portland,Portland,Oregon
+PortlandOR,Portland,Oregon
 Phoenix,Phoenix,Arizona
 Reno,Reno,Nevada
 Seattle,Seattle,Washington

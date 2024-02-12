@@ -8,11 +8,23 @@
 import Arctic_compare_lib
 from Arctic_compare_lib import *
 
+
+##date_str = '201908110033'
+#date_str = '201807041951'
+##date_str = '201807042130'
+##date_str = '201807042309'
+#date_str = '201807052213'
+#plot_compare_OMI_CERES_MODIS_NSIDC(date_str, 7, \
+#    omi_dtype = 'ltc3', minlat = 65., zoom = True, save = True)
+#sys.exit()
+
+"""
 date_str = '201408112211'
 #date_str = '201807052213'
 plot_compare_OMI_MODIS_NSIDC_v2(date_str, 'true_color', \
     omi_dtype = 'ltc3', minlat = 65., zoom = True, save = False)
 sys.exit()
+"""
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
@@ -498,6 +510,8 @@ dates = [
 #         '202108012242',
 #        ]
 
+#calc_pcnt_aerosol_over_type(dates, 1.5, minlat = 70., dtype = 'PERT', ax = None)
+#sys.exit()
 #plot_aerosol_over_types(dates[102], min_AI = 2.0, ai_val = 'TROP_AI', save = False)
 #plot_aerosol_over_types(dates[125], min_AI = 2.0, ai_val = 'TROP_AI', save = False)
 
@@ -526,7 +540,8 @@ files = [data_path + date + '.hdf5' for date in dates]
 
 # Figure out the total size to insert the data
 # ---------------------------------------------
-minlat = 70.
+#minlat = 70.
+minlat = 65.    # 2024/01/10: changed to 65.
 total_size = 0
 for ff in files:
     data = h5py.File(ff,'r')
@@ -561,6 +576,7 @@ print("Loading data")
 
 # Loop back over the files and insert the data into the structure
 # ---------------------------------------------------------------
+total_size = 0
 beg_idx = 0
 end_idx = 0
 for ff in files:
@@ -632,7 +648,11 @@ lin_smth2_dict_v6 = calc_raw_grid_slopes(\
         combined_data, comp_grid_data_v6, \
         ai_min = ai_min, ai_max = ai_max, \
         trend_type = trend_type, \
+        # 2024-01-10: decided to use the perturbed OMI data, since that is 
+        #             what's used in the daily averages.
+        xval = 'omi_uvai_pert', \
         smoother = 'smoother', sizer = 1)
+lin_smth2_dict_v6['minlat'] = minlat
 ##!#lin_raw_dict_v11 = calc_raw_grid_slopes(\
 ##!#        combined_data, comp_grid_data_v11, \
 ##!#        ai_min = ai_min, ai_max = ai_max, \
@@ -736,7 +756,7 @@ combined_slope_dict = {
 begin_date = '200504'
 end_date   = '202009'
 season     = 'sunlight'
-minlat = 65.
+#minlat = 65.
 maxlat = 87.
 NSIDC_data = readNSIDC_monthly_grid_all(begin_date, end_date, \
     season, calc_month = True, minlat = minlat, maxlat = maxlat)
@@ -905,14 +925,14 @@ ai_thresh = 0.05
 
 # Plot the 2-d forcing efficiencies
 # ----------------------------------
-plot_slopes_cloud_types(lin_raw_dict, save = False, vmin = -15, vmax = 15)
+#plot_slopes_cloud_types(lin_raw_dict, save = False, vmin = -15, vmax = 15)
 
 # Plot the four-panel sza-meaned forcing efficiency estimates
 # -----------------------------------------------------------
-#plot_slopes_cloud_types_szamean(lin_smth2_dict_v6,cld_idx = 0, maxerr = 2, \
-#    data_type = 'raw', remove_high_error = True, hatch_cloud = False, \
-#    min_cloud = 0.95, save = False)
-
+plot_slopes_cloud_types_szamean(lin_smth2_dict_v6,cld_idx = 0, maxerr = 2, \
+    data_type = 'raw', remove_high_error = True, hatch_cloud = False, \
+    min_cloud = 0.95, save = False)
+sys.exit()
 # Plot the calculated forcing values for a single day
 # ---------------------------------------------------
 #plot_test_forcing_v3(daily_VSJ4, OMI_daily_VSJ4, '20080422', \
@@ -923,19 +943,36 @@ plot_slopes_cloud_types(lin_raw_dict, save = False, vmin = -15, vmax = 15)
 # Calculate daily forcing values and average the daily values into
 # monthly forcing estimates
 # ----------------------------------------------------------------
-#all_month_vals = calculate_type_forcing_v3_monthly(daily_VSJ4, \
-#    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = 0.7, minlat = 65.)
+maxerr = 1.5
+ai_thresh = 0.7
+all_month_vals = calculate_type_forcing_v3_monthly(daily_VSJ4, \
+    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = ai_thresh, \
+    maxerr = maxerr, minlat = minlat)
+#write_daily_month_force_to_HDF5(all_month_vals, OMI_daily_VSJ4, \
+#    name_add = '_dayaithresh07_aipert_dataminlat70')
+write_daily_month_force_to_HDF5(all_month_vals, OMI_daily_VSJ4, \
+    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+    dtype = 'pert', 
+    name_add = '_dayaithresh07_v3')
 
 # Calculate daily forcing values and average the daily values into
 # monthly forcing estimates, but by adding or subtracting the 
 # slope error from the SZA-mean AI/SWF slopes. 
 # ----------------------------------------------------------------
-#all_month_vals_adderror = calculate_type_forcing_v3_monthly(daily_VSJ4, \
-#    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = 0.7, minlat = 65., \
-#    mod_slopes = 'add')
-#all_month_vals_suberror = calculate_type_forcing_v3_monthly(daily_VSJ4, \
-#    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = 0.7, minlat = 65., \
-#    mod_slopes = 'subtract')
+all_month_vals_adderror = calculate_type_forcing_v3_monthly(daily_VSJ4, \
+    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = ai_thresh, minlat = minlat, \
+    maxerr = maxerr, mod_slopes = 'add')
+write_daily_month_force_to_HDF5(all_month_vals_adderror, OMI_daily_VSJ4, \
+    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+    dtype = 'pert', 
+    name_add = '_dayaithresh07_v3_adderror')
+all_month_vals_suberror = calculate_type_forcing_v3_monthly(daily_VSJ4, \
+    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = ai_thresh, minlat = minlat, \
+    maxerr = maxerr, mod_slopes = 'subtract')
+write_daily_month_force_to_HDF5(all_month_vals_suberror, OMI_daily_VSJ4, \
+    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+    dtype = 'pert', 
+    name_add = '_dayaithresh07_v3_suberror')
 
 # Calculate daily forcing values and average the daily values into
 # monthly forcing estimates, but here using the daily ice concentration
@@ -948,21 +985,21 @@ plot_slopes_cloud_types(lin_raw_dict, save = False, vmin = -15, vmax = 15)
 #    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = 0.7, minlat = 65., \
 #    reference_ice = '2005')
 
-#ref_ice_vals = np.arange(2006,2020)
-#for ref_ice in ref_ice_vals:
-#    all_month_vals_ice = calculate_type_forcing_v3_monthly(daily_VSJ4, \
-#        OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = 0.7, minlat = 65., \
-#        reference_ice = str(ref_ice))
-#    write_daily_month_force_to_HDF5(all_month_vals_ice, OMI_daily_VSJ4, \
-#        name_add = '_dayaithresh07_refice' + str(ref_ice))
+ref_ice_vals = np.arange(2005,2021)
+for ref_ice in ref_ice_vals:
+    all_month_vals_ice = calculate_type_forcing_v3_monthly(daily_VSJ4, \
+        OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = ai_thresh, minlat = minlat, \
+        maxerr = maxerr, reference_ice = str(ref_ice))
+    write_daily_month_force_to_HDF5(all_month_vals_ice, OMI_daily_VSJ4, \
+        name_add = '_dayaithresh07_v3_refice' + str(ref_ice))
 
-#ref_cld_vals = np.arange(2005,2020)
-#for ref_cld in ref_cld_vals:
-#    all_month_vals_cld = calculate_type_forcing_v3_monthly(daily_VSJ4, \
-#        OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = 0.7, minlat = 65., \
-#        reference_cld = str(ref_cld))
-#    write_daily_month_force_to_HDF5(all_month_vals_cld, OMI_daily_VSJ4, \
-#        name_add = '_dayaithresh07_refcld' + str(ref_cld))
+ref_cld_vals = np.arange(2005,2021)
+for ref_cld in ref_cld_vals:
+    all_month_vals_cld = calculate_type_forcing_v3_monthly(daily_VSJ4, \
+        OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = ai_thresh, minlat = minlat, \
+        maxerr = maxerr, reference_cld = str(ref_cld))
+    write_daily_month_force_to_HDF5(all_month_vals_cld, OMI_daily_VSJ4, \
+        name_add = '_dayaithresh07_v3_refcld' + str(ref_cld))
     
 
 # Write the all_month_vals to an HDF5 file
@@ -970,18 +1007,29 @@ plot_slopes_cloud_types(lin_raw_dict, save = False, vmin = -15, vmax = 15)
 #write_daily_month_force_to_HDF5(all_month_vals, OMI_daily_VSJ4, \
 #    name_add = '_dayaithresh07')
 
+sys.exit()
+
 # Read the all_month_vals to an HDF5 file
 # NOTE: If running any of the following after reading in the all_month_vals
 #       from the HDF5 file, must change the 'all_month_vals' to 
 #       all_month_dict['FORCE_EST']
+#
+# NOTE: Unless specified, minlat is 70 for all files
 # -------------------------------------------------------------------------
 infile = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07.hdf5'
+#infile_pert65 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_aipert_dataminlat65.hdf5'
+infile_pert65 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v3.hdf5'
+#infile_min70_pert = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_aipert_dataminlat70.hdf5'
 #infile_2005 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_refice2005.hdf5'
 #infile_2020 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_refice2020.hdf5'
-infile_add = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_adderror.hdf5'
-infile_sub = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_suberror.hdf5'
+infile_add = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v3_adderror.hdf5'
+infile_sub = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v3_suberror.hdf5'
+#infile_add = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_adderror.hdf5'
+#infile_sub = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_suberror.hdf5'
 all_month_dict = read_daily_month_force_HDF5(infile)
 #all_month_dict_ref05  = read_daily_month_force_HDF5(infile_2005)
+#all_month_dict_pert65  = read_daily_month_force_HDF5(infile_pert65)
+#all_month_dict_pert70  = read_daily_month_force_HDF5(infile_min70_pert)
 #all_month_dict_ref20  = read_daily_month_force_HDF5(infile_2020)
 #all_month_dict_adderr = read_daily_month_force_HDF5(infile_add)
 #all_month_dict_suberr = read_daily_month_force_HDF5(infile_sub)
@@ -1003,13 +1051,14 @@ all_month_dict = read_daily_month_force_HDF5(infile)
 
 # Plot the trend of daily-gridded monthly forcing values
 # ------------------------------------------------------
-#plot_type_forcing_v3_all_months(all_month_vals, OMI_daily_VSJ4, minlat = 65)
+#plot_type_forcing_v3_all_months(all_month_vals, OMI_daily_VSJ4, \
+#           minlat = 65, omi_data_type = 'pert')
 
 # Calculate the Arctic-wide average of the daily-gridded monthly forcing
 # values for each month and plot them
 # ----------------------------------------------------------------------
 #plot_type_forcing_v3_all_months_arctic_avg(all_month_vals, OMI_daily_VSJ4, \
-#    minlat = 65, trend_type = 'standard')
+#    minlat = 65, trend_type = 'standard', omi_data_type = 'pert')
  
 # Calculate the Arctic-wide average of the daily-gridded monthly forcing
 # values for each month and plot them, but also plotting the '_adderror'
@@ -1019,7 +1068,7 @@ all_month_dict = read_daily_month_force_HDF5(infile)
 #    OMI_daily_VSJ4, minlat = 65, trend_type = 'standard', 
 #    month_values2 = all_month_dict_adderr['FORCE_EST'], 
 #    month_values3 = all_month_dict_suberr['FORCE_EST'], \
-#    labels = ['adderror', 'suberror'])
+#    omi_data_type = 'pert', labels = ['adderror', 'suberror'])
 
 # Same as plot_type_forcing_v3_all_months_arctic_avg, but it plots the 
 # Arctic-averaged results for each of the 2005 - 2020 reference ice
@@ -1029,7 +1078,7 @@ all_month_dict = read_daily_month_force_HDF5(infile)
 # --------------------------------------------------------------------
 plot_type_forcing_v3_all_months_arctic_avg_manyrefice(all_month_dict['FORCE_EST'], \
        OMI_daily_VSJ4, minlat = 65, trend_type = 'standard', stype = 'cld', \
-       ptype = 'forcing')
+       ptype = 'forcing', vtype = 'v3')
 
 # Calculates the slopes of the refice or refcld simulations plotted
 # in the "plot_type_forcing_v3_all_months_arctic_avg_manyrefice" function.
@@ -1043,7 +1092,7 @@ plot_type_forcing_v3_all_months_arctic_avg_manyrefice(all_month_dict['FORCE_EST'
 # -------------------------------------------------------------------
 #calc_print_forcing_slope_error_v3(all_month_dict['FORCE_EST'], \
 #       OMI_daily_VSJ4, minlat = 65, trend_type = 'standard', \
-#       ptype = 'forcing')
+#       vtype = 'v3', ptype = 'forcing')
 
 sys.exit()
  
@@ -1060,6 +1109,18 @@ plot_dual_combined_multi_type(comp_grid_data_v6, combined_data, \
     ice_min1 = 0, ice_max1 = 20,\
     ice_min2 = 105, ice_max2 = None,\
     sza_min = 50, sza_max = 55,\
+    ai_min = 2,  ai_max = None,\
+    save = False, show_trend = False, shade_density = False, \
+    trend_type = 'theil-sen')
+
+plot_dual_combined_multi_type(comp_grid_data_v6, combined_data, \
+    xval = 'ai', \
+    #cld_min = None, cld_max = None,\
+    ch7_min1 = 0.15, ch7_max1 = 0.2,\
+    ch7_min2 = 0.15, ch7_max2 = 0.2,\
+    ice_min1 = 0, ice_max1 = 20,\
+    ice_min2 = 105, ice_max2 = None,\
+    sza_min = 45, sza_max = 50,\
     ai_min = 2,  ai_max = None,\
     save = False, show_trend = False, shade_density = False, \
     trend_type = 'theil-sen')

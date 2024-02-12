@@ -27,6 +27,7 @@ from shapely.geometry.polygon import Polygon
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colors as cm
+from matplotlib.cm import ScalarMappable
 from matplotlib.dates import DateFormatter
 from matplotlib.lines import Line2D
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -3993,9 +3994,45 @@ def plot_MODIS_spatial(MODIS_data, pax, zoom, vmin = None, vmax = None, \
             MODIS_data['data'][:,:,0],color= MODIS_data['colortuple'], \
             shading='auto', transform = ccrs.PlateCarree()) 
     elif(MODIS_data['channel'] == 'cloud_mask'):
-        pax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\
-            MODIS_data['cloud_mask'][:,:],cmap = 'jet', \
-            shading='auto', transform = ccrs.PlateCarree()) 
+
+        """
+        cmap2 = plt.get_cmap('tab10')
+        colorvals = np.arange(0, 11, 1)
+        norm = cm.BoundaryNorm(colorvals, cmap2.N)
+        """
+
+        col_dict = {
+            0: 'tab:blue', \
+            1: 'tab:orange', \
+            2: 'tab:green', \
+            3: 'tab:red', \
+        }
+        labels = np.array([
+            'Cloudy',
+            'Prob.\nCloudy',
+            'Prob.\nClear',
+            'Clear',
+        ])
+
+        ccmm = cm.ListedColormap([col_dict[x] for x in col_dict.keys()]) 
+        #bounds = np.array([k for k in col_dict.keys()])
+        bounds = np.array([-0.5,0.5,1.5,2.5,3.5])
+        #bounds = bounds[:-1] + np.diff(bounds) / 2
+        #bounds = np.concatenate((np.array([0]), bounds, np.array([24])))
+        norm = cm.BoundaryNorm(bounds, ccmm.N)
+    
+        print("UNIQUE:", np.unique(MODIS_data['cloud_mask'][:,:]))
+
+        mesh = pax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\
+                       #MODIS_data['cloud_mask'][:,:], cmap = 'tab10', \
+                       MODIS_data['cloud_mask'][:,:], cmap = ccmm, \
+                       norm = norm, shading='auto', \
+                       transform = ccrs.PlateCarree()) 
+
+        cbar = plt.colorbar(ScalarMappable(norm = norm, cmap = ccmm),\
+            ticks = [0,1,2,3], 
+            ax = pax, orientation='vertical', pad = 0.03, fraction = 0.052)
+        cbar.ax.set_yticklabels(labels)
     else:
         # Plot channel 1
         mesh1 = pax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\

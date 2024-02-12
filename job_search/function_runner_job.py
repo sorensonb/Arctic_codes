@@ -22,6 +22,62 @@ lat_lon_dict = read_lat_lon_from_csv()
 radius_miles = 50
 radius_km = radius_miles / 0.611
 
+
+def check_point_distance(data, threshold, plat, plon, lat_lon_dict):
+
+    if('University' in data.keys()):
+        loop_var = 'University'
+    elif('WFO' in data.keys()):
+        loop_var = 'WFO'
+    elif('Lab/Center' in data.keys()):
+        loop_var = 'Lab/Center'
+    elif('Company' in data.keys()):
+        loop_var = 'Company'
+
+    loop_list = list(data[loop_var])
+    # Grab all the lats and lons for the loop data
+    # --------------------------------------------
+    loop_lats = np.full(len(loop_list), np.nan)
+    loop_lons = np.full(len(loop_list), np.nan)
+
+    for ii in range(len(loop_list)):
+
+        xx = data['City'][ii] 
+        yy = data['State'][ii]
+        if(len(yy) > 2):
+            ll_yy = us_state_to_abbrev[yy]
+        else:
+            ll_yy = yy
+        city_name = xx + ' ' + ll_yy
+
+        if(city_name in lat_lon_dict.keys()):
+            llat = lat_lon_dict[city_name]['Lat']
+            llon = lat_lon_dict[city_name]['Lon']
+
+            dist = np.round(find_distance_between_points(\
+                plat, plon, llat, llon), 1)
+
+            if(dist < threshold):
+                print(loop_var,':', loop_list[ii])
+
+def mouse_event(event):
+    ix, iy = event.xdata, event.ydata
+    event_list = [ix, iy]
+    # convert from display coordinates to data coordinates
+    p_a_cart = datacrs.transform_point(event_list[0], event_list[1], src_crs=mapcrs)
+    #p_a_cart[1] = lat, p_a_cart[0] = lon
+    plat = p_a_cart[1]
+    plon = p_a_cart[0]
+
+    
+    print("\n")
+    check_point_distance(atsci, 20, plat, plon, lat_lon_dict)
+    check_point_distance(nws,   20, plat, plon, lat_lon_dict)
+    check_point_distance(labs,  20, plat, plon, lat_lon_dict)
+    check_point_distance(priv,  20, plat, plon, lat_lon_dict)
+
+
+
 #count_dict = calc_distances(nws, atsci, labs, priv, threshold = radius_km, lat_lon_dict = lat_lon_dict)
 
 fig1 = plt.figure(figsize = (9, 9))
@@ -60,6 +116,11 @@ fig3 = plt.figure(figsize = (10,6))
 ax1 = fig3.add_subplot(1,1,1, projection = mapcrs)
 #plot_all_sites(atsci, nws, labs, priv, ax = ax1, lat_lon_dict = lat_lon_dict, radius = radius_km)
 plot_coloc_nws_sites(ax1, nws, atsci, labs, priv, lat_lon_dict = lat_lon_dict, draw_circles = False, threshold = radius_km)
+
+cid1 = fig1.canvas.mpl_connect('button_press_event', mouse_event)
+cid2 = fig2.canvas.mpl_connect('button_press_event', mouse_event)
+cid3 = fig3.canvas.mpl_connect('button_press_event', mouse_event)
+
 ax1.set_title('Colocated')
 fig3.tight_layout()
 

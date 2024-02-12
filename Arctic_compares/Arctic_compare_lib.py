@@ -714,11 +714,17 @@ def read_colocated(date_str, minlat = 70., zoom = True, \
     coloc_data['LAT'] = data['omi_lat'][:,:]
     coloc_data['LON'] = data['omi_lon'][:,:]
     coloc_data['OMI_PERT'] = np.ma.masked_invalid(data['omi_uvai_pert'][:,:])
+    coloc_data['OMI_PERT'] = np.ma.masked_where(coloc_data['OMI_PERT'] < -15, \
+        coloc_data['OMI_PERT'])
     coloc_data['OMI_PERT'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
+        coloc_data['OMI_PERT'])
+    coloc_data['OMI_PERT'] = np.ma.masked_where(data['nsidc_ice'][:,:] == -999. , \
         coloc_data['OMI_PERT'])
     coloc_data['OMI_RAW']  = np.ma.masked_invalid(data['omi_uvai_raw'][:,:])
     #coloc_data['OMI_RAW'][:,23:53] = -9e9
     coloc_data['OMI_RAW'] = np.ma.masked_where(coloc_data['OMI_RAW'] < -15, \
+        coloc_data['OMI_RAW'])
+    coloc_data['OMI_RAW'] = np.ma.masked_where(data['nsidc_ice'][:,:] == -999. , \
         coloc_data['OMI_RAW'])
     coloc_data['OMI_RAW'] = np.ma.masked_where(coloc_data['LAT'] < minlat, \
         coloc_data['OMI_RAW'])
@@ -939,7 +945,9 @@ def read_daily_month_force_HDF5(infile):
 
 # Writes a single Shawn file to HDF5. 
 def write_daily_month_force_to_HDF5(all_month_values, OMI_monthly_data, \
-        save_path = './', name_add = '', minlat = 65.):
+        maxerr = None, ai_thresh = None, minlat = None, 
+        dtype = None, 
+        save_path = './', name_add = ''):
 
     # Create a new HDF5 dataset to write to the file
     # ------------------------------------------------
@@ -948,10 +956,18 @@ def write_daily_month_force_to_HDF5(all_month_values, OMI_monthly_data, \
 
     local_dates = np.array([int(tdate) for tdate in OMI_monthly_data['DATES']])
  
-    dset.create_dataset('latitude',  data = OMI_monthly_data['LAT'][:,0].squeeze())
-    dset.create_dataset('longitude', data = OMI_monthly_data['LON'][0,:].squeeze())
-    dset.create_dataset('dates', data = local_dates)
-    dset.create_dataset('force_estimate', data = all_month_values)
+    cdt = dset.create_dataset('latitude',  data = OMI_monthly_data['LAT'][:,0].squeeze())
+    cdt = dset.create_dataset('longitude', data = OMI_monthly_data['LON'][0,:].squeeze())
+    cdt = dset.create_dataset('dates', data = local_dates)
+    cdt = dset.create_dataset('force_estimate', data = all_month_values)
+    if(maxerr is not None):
+        cdt.attrs['maxerr'] = str(maxerr)
+    if(ai_thresh is not None):
+        cdt.attrs['ai_thresh'] = str(ai_thresh)
+    if(minlat is not None):
+        cdt.attrs['minlat'] = str(minlat)
+    if(dtype is not None):
+        cdt.attrs['omi_data_type'] = dtype
 
     # Save, write, and close the HDF5 file
     # --------------------------------------
@@ -1036,7 +1052,8 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(date_str, ch1, \
     if((date_str[:8] == '20080422') | \
        (date_str[:8] == '20180705')\
         ):
-        size = (14, 5)
+        #size = (14, 5)
+        size = (7.5, 8.5)
     elif(date_str[:8] == '20190811'\
         ):
         size = (12, 6.5)
@@ -1109,12 +1126,18 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(date_str, ch1, \
     plt.close('all')
     #fig1 = plt.figure(figsize = file_date_dict[modis_date_str]['size'])
     fig1 = plt.figure(figsize = size)
-    ax1 = fig1.add_subplot(2,3,1, projection = mapcrs)
-    ax2 = fig1.add_subplot(2,3,2, projection = mapcrs)
-    ax3 = fig1.add_subplot(2,3,3, projection = mapcrs)
-    ax4 = fig1.add_subplot(2,3,4, projection = mapcrs)
-    ax5 = fig1.add_subplot(2,3,5, projection = mapcrs)
-    ax6 = fig1.add_subplot(2,3,6, projection = mapcrs)
+    ax1 = fig1.add_subplot(3,2,1, projection = mapcrs)
+    ax2 = fig1.add_subplot(3,2,2, projection = mapcrs)
+    ax3 = fig1.add_subplot(3,2,3, projection = mapcrs)
+    ax4 = fig1.add_subplot(3,2,4, projection = mapcrs)
+    ax5 = fig1.add_subplot(3,2,5, projection = mapcrs)
+    ax6 = fig1.add_subplot(3,2,6, projection = mapcrs)
+    #ax1 = fig1.add_subplot(2,3,1, projection = mapcrs)
+    #ax2 = fig1.add_subplot(2,3,2, projection = mapcrs)
+    #ax3 = fig1.add_subplot(2,3,3, projection = mapcrs)
+    #ax4 = fig1.add_subplot(2,3,4, projection = mapcrs)
+    #ax5 = fig1.add_subplot(2,3,5, projection = mapcrs)
+    #ax6 = fig1.add_subplot(2,3,6, projection = mapcrs)
 
     def mouse_event(event):
         ix, iy = event.xdata, event.ydata
@@ -1139,36 +1162,61 @@ def plot_compare_OMI_CERES_MODIS_NSIDC(date_str, ch1, \
    
     plot_MODIS_channel(modis_date, 'true_color', swath = True, \
         zoom = zoom, ax = ax1)
+    ax1.set_title('Aqua MODIS True Color')
+    plot_MODIS_channel(modis_date, 'cloud_mask', swath = True, \
+        zoom = zoom, ax = ax2, vmax = None)
+    ax2.set_title('Aqua MODIS Cloud Mask')
     plot_MODIS_channel(modis_date, ch1, swath = True, \
-        zoom = zoom, ax = ax2, vmax = 0.4)
+        zoom = zoom, ax = ax3, vmax = 0.4)
+    ax3.set_title('Aqua MODIS Ch7\n2.105 μm - 2.155 μm')
     #plot_MODIS_channel(modis_date_str, ch1, swath = True, \
     #    zoom = zoom, ax = ax3)
 
     # Plot the NSIDC data
     # -------------------
     plotNSIDC_daily_figure(nsidc_date, minlat = minlat, \
-        zoom = zoom, ax = ax3, gridlines = False, save = False)
+        zoom = zoom, ax = ax4, gridlines = False, \
+        title = 'SSMI/S Sea Ice Concentration', save = False)
 
     # Plot the OMI data
     # -----------------
     plotOMI_single_swath_figure(omi_date, \
             dtype = omi_dtype, only_sea_ice = False, minlat = minlat, \
-            ax = ax4, skiprows = [52], lat_circles = None, save = False, \
+            ax = ax5, skiprows = [52], lat_circles = None, save = False, \
             zoom = zoom, shawn_path = shawn_path)
-    
+    ax5.set_title('OMI UVAI')   
+ 
     # Plot the CERES data
     # -------------------
     plotCERES_hrly_figure(ceres_date, 'SWF',  \
-        minlat = minlat, lat_circles = None, ax = ax5, title = 'SWF',\
+        minlat = minlat, lat_circles = None, ax = ax6, title = 'SWF',\
         grid_data = True, zoom = zoom, vmax = 450, vmin = None, save = False)
-    plotCERES_hrly_figure(ceres_date, 'ALB',  \
-        minlat = minlat, lat_circles = None, ax = ax6, title = 'ALB',\
-        grid_data = True, zoom = zoom, vmax = None, vmin = None, save = False)
+    ax6.set_title('Aqua CERES TOA SWF')   
+    #plotCERES_hrly_figure(ceres_date, 'ALB',  \
+    #    minlat = minlat, lat_circles = None, ax = ax6, title = 'ALB',\
+    #    grid_data = True, zoom = zoom, vmax = None, vmin = None, save = False)
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+    plt.suptitle(dt_date_str.strftime('%Y-%m-%d %H:%M UTC'))
+
+    ax1.set_extent([ 155,200, 64, 80], datacrs)
+    ax2.set_extent([ 155,200, 64, 80], datacrs)
+    ax3.set_extent([ 155,200, 64, 80], datacrs)
+    ax4.set_extent([ 155,200, 64, 80], datacrs)
+    ax5.set_extent([ 155,200, 64, 80], datacrs)
+    ax6.set_extent([ 155,200, 64, 80], datacrs)
+
+    plot_subplot_label(ax1, 'a)', fontsize = 11, backgroundcolor = 'white')
+    plot_subplot_label(ax2, 'b)', fontsize = 11, backgroundcolor = 'white')
+    plot_subplot_label(ax3, 'c)', fontsize = 11, backgroundcolor = 'white')
+    plot_subplot_label(ax4, 'd)', fontsize = 11, backgroundcolor = 'white')
+    plot_subplot_label(ax5, 'e)', fontsize = 11, backgroundcolor = 'white')
+    plot_subplot_label(ax6, 'f)', fontsize = 11, backgroundcolor = 'white')
 
     fig1.tight_layout()
 
     if(save):
-        outname = 'omi_ceres_modis_nsidc_compare_' + omi_date + '.png'
+        outname = 'omi_ceres_modis_nsidc_compare_' + omi_date + '_v2.png'
         fig1.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
@@ -3137,7 +3185,7 @@ def calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, coloc_dict, \
             (mean_val + 8.0 * std_val), estimate_forcings)
 
     if(return_modis_nsidc):
-        return estimate_forcings, MYD08_data, NSIDC_data
+        return estimate_forcings, MYD08_data, NSIDC_data, clear_sky_AI
     else:
         return estimate_forcings
 
@@ -3383,51 +3431,86 @@ def plot_test_forcing_v3(OMI_daily_data, OMI_month_data, date_str, \
         save = False, filter_bad_vals = False):
 
     print("HERE1", date_str, minlat, maxlat, ai_thresh, cld_idx, maxerr, min_cloud, data_type)
-    estimate_forcing, MYD08_data, NSIDC_data = \
+    estimate_forcing, MYD08_data, NSIDC_data, clear_sky_AI = \
         calculate_type_forcing_v3(OMI_daily_data, OMI_month_data, \
             coloc_dict, date_str, minlat = minlat, maxlat = maxlat, \
             ai_thresh = ai_thresh, cld_idx = cld_idx, maxerr = maxerr,\
             min_cloud = min_cloud, data_type = data_type,\
             filter_bad_vals = filter_bad_vals, return_modis_nsidc = True)
 
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d')
+    
     file_strs = np.array([str(tval) for tval in OMI_daily_data['day_values']])
     match_idx = np.where(date_str == file_strs)[0][0]
     
     plt.close('all')
     fig = plt.figure(figsize = (9, 5))
     ax1 = fig.add_subplot(2,3,1, projection = mapcrs)  # Map of original AI
-    ax4 = fig.add_subplot(2,3,2, projection = mapcrs)  # Map of cloud fraction
-    ax5 = fig.add_subplot(2,3,3, projection = mapcrs)  # Map of ice concentration
-    ax2 = fig.add_subplot(2,3,4, projection = mapcrs)  # Map of forcing values
-    ax6 = fig.add_subplot(2,3,5, projection = mapcrs)  # Map of GPQF values
-    ax3 = fig.add_subplot(2,3,6)  # histogram
+    ax2 = fig.add_subplot(2,3,2, projection = mapcrs)  # Map of background clear AI
+    ax3 = fig.add_subplot(2,3,3, projection = mapcrs)  # Map of AI above thresh
+    ax4 = fig.add_subplot(2,3,4, projection = mapcrs)  # Map of forcing values
+    ax5 = fig.add_subplot(2,3,5, projection = mapcrs)  # Map of cloud fraction
+    ax6 = fig.add_subplot(2,3,6, projection = mapcrs)  # Map of ice concentration
+    #ax6 = fig.add_subplot(2,3,2, projection = mapcrs)  # Map of GPQF values
+    #ax3 = fig.add_subplot(2,3,6)  # histogram
+
+    above_threshold = np.ma.masked_where(\
+        OMI_daily_data['grid_AI'][match_idx,:,:] < ai_thresh, \
+        OMI_daily_data['grid_AI'][match_idx,:,:])
 
     mesh = ax1.pcolormesh(OMI_daily_data['lon_values'], \
         OMI_daily_data['lat_values'], \
         OMI_daily_data['grid_AI'][match_idx,:,:], shading = 'auto', \
         transform = datacrs, cmap = 'jet', vmin = 0, vmax = 4.0)
-    cbar = fig.colorbar(mesh, ax = ax1, label =  'Daily AI')
+    cbar = fig.colorbar(mesh, ax = ax1, label =  'UVAI')
     ax1.set_extent([-180,180,minlat,90], datacrs)
     ax1.set_boundary(circle, transform=ax1.transAxes)
     ax1.coastlines()
+    ax1.set_title('Daily OMI UVAI')
+
+    mesh = ax2.pcolormesh(OMI_daily_data['lon_values'], \
+        OMI_daily_data['lat_values'], \
+        #OMI_daily_data['grid_GPQF'][match_idx,:,:], shading = 'auto', \
+        clear_sky_AI, shading = 'auto', \
+        transform = datacrs, cmap = 'jet', vmin = None, vmax = None)
+    cbar = fig.colorbar(mesh, ax = ax2, label =  'UVAI')
+    ax2.set_extent([-180,180,minlat,90], datacrs)
+    ax2.set_boundary(circle, transform=ax2.transAxes)
+    ax2.coastlines()
+    ax2.set_title('Daily OMI UVAI\nClear-sky Background')
+
+    mesh = ax3.pcolormesh(OMI_daily_data['lon_values'], \
+        OMI_daily_data['lat_values'], \
+        #OMI_daily_data['grid_GPQF'][match_idx,:,:], shading = 'auto', \
+        above_threshold, shading = 'auto', \
+        transform = datacrs, cmap = 'jet', vmin = 0, vmax = 4.0)
+    cbar = fig.colorbar(mesh, ax = ax3, label =  'UVAI')
+    ax3.set_extent([-180,180,minlat,90], datacrs)
+    ax3.set_boundary(circle, transform=ax3.transAxes)
+    ax3.coastlines()
+    ax3.set_title('Daily OMI UVAI\nUVAI > ' + str(ai_thresh))
 
     mesh = ax4.pcolormesh(MYD08_data['lon'], \
         MYD08_data['lat'], MYD08_data['cld_frac_mean'][:,:], shading = 'auto',\
         transform = datacrs, \
         cmap = 'viridis')
-    cbar = fig.colorbar(mesh, ax = ax4, label = 'Daily Cloud Fraction')
+    cbar = fig.colorbar(mesh, ax = ax4, label = 'Cloud Fraction')
     ax4.set_extent([-180,180,minlat,90], datacrs)
     ax4.set_boundary(circle, transform=ax4.transAxes)
     ax4.coastlines()
+    ax4.set_title('Aqua MODIS\nCloud Fraction')
 
+    mask_ice = np.ma.masked_where(NSIDC_data['grid_ice_conc'][:,:] == 0, \
+        NSIDC_data['grid_ice_conc'][:,:])
     mesh = ax5.pcolormesh(NSIDC_data['grid_lon'], \
-        NSIDC_data['grid_lat'], NSIDC_data['grid_ice_conc'][:,:], shading = 'auto',\
+        NSIDC_data['grid_lat'], mask_ice, shading = 'auto',\
         transform = datacrs, \
-        cmap = 'ocean', vmin = 0, vmax = 100)
-    cbar = fig.colorbar(mesh, ax = ax5, label = 'Sea Ice Conc')
+        cmap = 'ocean', vmin = 1, vmax = 100)
+    cbar = fig.colorbar(mesh, ax = ax5, label = 'Ice Concentration [%]')
     ax5.set_extent([-180,180,minlat,90], datacrs)
     ax5.set_boundary(circle, transform=ax5.transAxes)
     ax5.coastlines()
+    ax5.set_title('SSMI/S Sea\nIce Concentration')
 
     min_force = np.nanmin(estimate_forcing[:,:])
     max_force = np.nanmax(estimate_forcing[:,:])
@@ -3435,35 +3518,44 @@ def plot_test_forcing_v3(OMI_daily_data, OMI_month_data, date_str, \
         lims = [-abs(max_force), abs(max_force)]
     else:
         lims = [-abs(min_force), abs(min_force)]
-    mesh = ax2.pcolormesh(OMI_daily_data['lon_values'], \
+    mesh = ax6.pcolormesh(OMI_daily_data['lon_values'], \
         OMI_daily_data['lat_values'], estimate_forcing[:,:], shading = 'auto',\
         transform = datacrs, \
         cmap = 'bwr', vmin = lims[0], vmax = lims[1])
-    cbar = fig.colorbar(mesh, ax = ax2, label = 'Estimated Forcing [W/m2]')
-    ax2.set_extent([-180,180,minlat,90], datacrs)
-    ax2.set_boundary(circle, transform=ax2.transAxes)
-    ax2.coastlines()
-
-    mesh = ax6.pcolormesh(OMI_daily_data['lon_values'], \
-        OMI_daily_data['lat_values'], \
-        OMI_daily_data['grid_GPQF'][match_idx,:,:], shading = 'auto', \
-        transform = datacrs, cmap = 'jet', vmin = None, vmax = None)
-    cbar = fig.colorbar(mesh, ax = ax6, label =  'Daily GPQF')
+    cbar = fig.colorbar(mesh, ax = ax6, label = 'Aerosol Forcing [W/m2]')
     ax6.set_extent([-180,180,minlat,90], datacrs)
     ax6.set_boundary(circle, transform=ax6.transAxes)
     ax6.coastlines()
+    ax6.set_title('Estimated\nAerosol Forcing')
 
-    ax3.hist(np.ma.masked_where(estimate_forcing[:,:] == 0, \
-        estimate_forcing[:,:]).compressed(), bins = 'auto')
-    #ax6.set_yscale('log')
-    ax3.set_xlabel('Estimated Forcing [W/m2]')
-    ax3.set_ylabel('Counts')
+    ###ax3.hist(np.ma.masked_where(estimate_forcing[:,:] == 0, \
+    ###    estimate_forcing[:,:]).compressed(), bins = 'auto')
+    ####ax6.set_yscale('log')
+    ###ax3.set_xlabel('Estimated Forcing [W/m2]')
+    ###ax3.set_ylabel('Counts')
 
-    plt.suptitle(date_str)
+    plt.suptitle(dt_date_str.strftime('%Y-%m-%d'))
+
+    plot_subplot_label(ax1, 'a)', fontsize = 10, backgroundcolor = None)
+    plot_subplot_label(ax2, 'b)', fontsize = 10, backgroundcolor = None)
+    plot_subplot_label(ax3, 'c)', fontsize = 10, backgroundcolor = None)
+    plot_subplot_label(ax4, 'd)', fontsize = 10, backgroundcolor = None)
+    plot_subplot_label(ax5, 'e)', fontsize = 10, backgroundcolor = None)
+    plot_subplot_label(ax6, 'f)', fontsize = 10, backgroundcolor = None)
 
     fig.tight_layout()
     if(save):
-        outname = 'test_calc_forcing_v3_' + date_str + '.png'
+        #outname = 'test_calc_forcing_v3_' + date_str + '.png'
+        dtype_add = ''
+        if('data_type' in coloc_dict.keys()):
+            if(coloc_dict['data_type'] == 'omi_uvai_pert'):
+                dtype_add = '_pert'
+        minlat_add = ''
+        if('minlat' in coloc_dict.keys()):
+            minlat_add = '_minlat' + str(int(coloc_dict['minlat']))
+                
+        outname = 'test_calc_forcing_v3_' + date_str + dtype_add + \
+            minlat_add + '_v2.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
@@ -4255,7 +4347,7 @@ def plot_dual_combined_grid_climo(comp_grid_data, combined_data, \
   
 # Allows a user to compare raw colocated data for two sfc types 
 def plot_dual_combined_multi_type(comp_grid_data, combined_data, \
-        xval = 'ai', \
+        xval = 'omi_uvai_raw', \
         #cld_min = None, cld_max = None,\
         ch7_min1 = None, ch7_max1 = None,\
         ch7_min2 = None, ch7_max2 = None,\
@@ -4265,6 +4357,7 @@ def plot_dual_combined_multi_type(comp_grid_data, combined_data, \
         sza_min2 = None, sza_max2 = None,\
         ai_min = 2,  ai_max = None,\
         save = False, show_trend = False, shade_density = False, \
+        minlat = None, \
         trend_type = 'theil-sen'):
 
     if(ch7_min2 == None): ch7_min2 = ch7_min1
@@ -4294,6 +4387,7 @@ def plot_dual_combined_multi_type(comp_grid_data, combined_data, \
 
     try:
         plot_combined_scatter(combined_data, ax = ax1, \
+            xval = xval, \
             omi_min = ai_min,  omi_max  = ai_max, \
             sza_min = sza_min1, sza_max = sza_max1, \
             ice_min = ice_min1, ice_max = ice_max1, \
@@ -4311,6 +4405,7 @@ def plot_dual_combined_multi_type(comp_grid_data, combined_data, \
    
     try: 
         plot_combined_scatter(combined_data, ax = ax2, \
+            xval = xval, \
             omi_min = ai_min,  omi_max  = ai_max, \
             sza_min = sza_min2, sza_max = sza_max2, \
             ice_min = ice_min2, ice_max = ice_max2, \
@@ -4336,11 +4431,11 @@ def plot_dual_combined_multi_type(comp_grid_data, combined_data, \
         title1 = 'Land'
 
     if(ice_min2 == 0):
-        title2 = 'Ocean\nIce Conc. < 20%'
+        title2 = 'Ocean\nIce Conc. <= 20%'
     elif(ice_min2 == 21):
-        title2 = 'Mix\n21% < Ice Conc. < 79%'
+        title2 = 'Mix\n20% < Ice Conc. < 80%'
     elif(ice_min2 == 80):
-        title2 = 'Ice\nIce Conc. > 80%'
+        title2 = 'Ice\nIce Conc. >= 80%'
     elif(ice_min2 == 105):
         title2 = 'Land'
     ax1.set_title(title1)
@@ -4358,7 +4453,8 @@ def plot_dual_combined_multi_type(comp_grid_data, combined_data, \
                            ch7_min1, ch7_max1, \
                            ice_min1, ice_max1, \
                            sza_min1, sza_max1,\
-                           ai_min,  ai_max)
+                           ai_min,  ai_max, \
+                           minlat, xval)
     plt.suptitle(title)
 
     fig.tight_layout()
@@ -4376,6 +4472,7 @@ def set_comp_title(\
         ice_min = None, ice_max = None,\
         sza_min = None, sza_max = None,\
         ai_min = None,  ai_max = None, \
+        minlat = None, 
         version2 = False):
 
     ch7_min = np.round(ch7_min, 2)
@@ -4396,12 +4493,12 @@ def set_comp_title(\
 
     if(ch7_min is not None):
         if(ch7_max is not None):
-            title = title + str(ch7_min) + ' < CH7 Refl. < ' + str(ch7_max) + '\n'
+            title = title + str(ch7_min) + ' < 2.1 μm Refl. < ' + str(ch7_max) + '\n'
         else:
-            title = title + 'CH7 Refl. > ' + str(ch7_min) + '\n'
+            title = title + '2.1 μm Refl. > ' + str(ch7_min) + '\n'
     else:
         if(ch7_max is not None):
-            title = title + 'CH7 Refl. < ' + str(ch7_max) + '\n'
+            title = title + '2.1 μm Refl. < ' + str(ch7_max) + '\n'
 
     if(not version2):
         if(ice_min is not None):
@@ -4439,7 +4536,8 @@ def set_file_title(\
         ch7_min = None, ch7_max = None,\
         ice_min = None, ice_max = None,\
         sza_min = None, sza_max = None,\
-        ai_min = None,  ai_max = None):
+        ai_min = None,  ai_max = None, \
+        minlat = None, xval = None):
 
     ch7_min = np.round(ch7_min, 2)
     ch7_max = np.round(ch7_max, 2)
@@ -4503,6 +4601,11 @@ def set_file_title(\
             ai_max  = int(ai_max)
             title = title + 'ai' + str(ai_max)
 
+    if(minlat is not None):
+        title = title + '_minlat' + str(int(minlat))
+
+    title = title + '_' + xval
+
     print("HERE",title)
 
     #if(ch7_min is not None):
@@ -4524,7 +4627,8 @@ def set_file_title(\
 def calc_raw_grid_slopes(combined_data, comp_grid_data, \
         ai_min = None, ai_max = None, \
         trend_type = 'theil-sen', \
-        smoother = 'None', sizer = 1):
+        smoother = 'None', sizer = 1, \
+        xval = 'omi_uvai_raw'):
 
     ice_mins = np.array([0,  80, 105, 20])
     ice_maxs = np.array([20,100,None, 80])
@@ -4611,7 +4715,7 @@ def calc_raw_grid_slopes(combined_data, comp_grid_data, \
                 #raw_xdata, raw_ydata, raw_cloud = \
                 return_dict = \
                     select_combined_scatter_data(combined_data, \
-                        xval = 'omi_uvai_raw', yval = 'ceres_swf', 
+                        xval = xval, yval = 'ceres_swf', 
                         #cld_min = None, cld_max = None, \
                         ch7_min = ch7_mins[jj], ch7_max = ch7_maxs[jj], \
                         sza_min = sza_mins[kk], sza_max = sza_maxs[kk], \
@@ -4716,7 +4820,8 @@ def calc_raw_grid_slopes(combined_data, comp_grid_data, \
     out_dict['smoother'] = smoother
     out_dict['sizer'] = sizer
     out_dict['trend_type'] = trend_type
-    
+    out_dict['data_type']  = xval   
+ 
     return out_dict
 
 def plot_raw_grid_slopes(out_dict, vmin = -10, vmax = 10, \
@@ -5062,8 +5167,19 @@ def plot_slopes_cloud_types(out_dict, vmin = -10, vmax = 10, \
         elif(out_dict['trend_type'] == 'theil-sen'):
             type_adder = '_thl'
 
+        if(out_dict['data_type'] == 'omi_uvai_pert'):
+            dtype_adder = '_pert'
+        else:
+            dtype_adder = ''
+
+        if('minlat' in out_dict.keys()):
+            minlat_adder = '_minlat' + str(int(out_dict['minlat']))
+        else:
+            minlat_adder = ''
+
         outname = 'comp_grid_ai_swf_slopecloud_highres' + type_adder + \
-            out_adder + hatch_adder + error_adder + '_v2.png'
+            out_adder + hatch_adder + error_adder + dtype_adder + \
+            minlat_adder + '_v2.png'
         fig.savefig(outname, dpi = 200)
         print("Saved",outname)
     else: 
@@ -5135,9 +5251,6 @@ def calc_slope_clear_clean_sfctype(out_dict, sfc_type_idx, \
     ch7_cloud_std   = np.std(cloud_slopes, axis = 1)
     ch7_clear_std   = np.std(clear_slopes, axis = 1)
 
-    print('BEFORE MOD: mean(CLEAR) = ', np.nanmean(sza_clear_means))
-    print('                mean(CLOUD) = ', np.nanmean(sza_cloud_means))
-
     if(mod_slopes is not None):
         if(mod_slopes == 'add'):
             #print('ADDED    ERROR: mean(CLEAR) = ', np.nanmean(clear_error))
@@ -5153,9 +5266,6 @@ def calc_slope_clear_clean_sfctype(out_dict, sfc_type_idx, \
             print("INVALID MOD SLOPE VALUE. MUST BE \"add\" OR " + \
                 "\subtract\"")  
             print("CONTINUING WITH UNALTERED SLOPES")
-
-    print('AFTER  MOD: mean(CLEAR) = ', np.nanmean(sza_clear_means))
-    print('                mean(CLOUD) = ', np.nanmean(sza_cloud_means))
 
     return_dict = {}
     if('cod_mins' in out_dict.keys()):
@@ -5185,10 +5295,15 @@ def calc_slope_clear_clean_sfctype(out_dict, sfc_type_idx, \
 #   - 3: "clear"
 # xvar: 'sza', or 'ch7'
 # mod_var: 'std' or 'err'
+# reverse_sign: Switches the sign of the forcing efficiency to reflect
+#               the forcing definition used in the paper (positive = 
+#               more energy into surface: darkening) (negative = 
+#               less energy into the surface: brightening)                
 def plot_slopes_cloud_types_szamean(out_dict,cld_idx = 0, maxerr = 2, \
         data_type = 'raw', xvar = 'sza', remove_high_error = True, \
         hatch_cloud = False, mod_var = 'err', \
-        min_cloud = 0.95, use_error = False, save = False):
+        min_cloud = 0.95, use_error = False, reverse_sign = False, \
+        save = False):
 
     ocean_slopes = calc_slope_clear_clean_sfctype(out_dict, 0, cld_idx, \
         maxerr = maxerr, min_cloud = min_cloud, data_type = data_type, \
@@ -5200,11 +5315,22 @@ def plot_slopes_cloud_types_szamean(out_dict,cld_idx = 0, maxerr = 2, \
         maxerr = maxerr, min_cloud = min_cloud, data_type = data_type, \
         use_error = use_error)
 
+    if(reverse_sign):
+        ocean_slopes[xvar + '_cloud_means'] *= -1
+        ice_slopes[xvar + '_cloud_means']   *= -1
+        land_slopes[xvar + '_cloud_means']  *= -1
+        ocean_slopes[xvar + '_clear_means'] *= -1
+        ice_slopes[xvar + '_clear_means']   *= -1
+        land_slopes[xvar + '_clear_means']  *= -1
+
     if(out_dict['raw_slopes'].shape[0] == 4):
         include_mix = True
         mix_slopes  = calc_slope_clear_clean_sfctype(out_dict, 3, cld_idx, \
             maxerr = maxerr, min_cloud = min_cloud, data_type = data_type, \
             use_error = use_error)
+        if(reverse_sign):
+            mix_slopes[xvar + '_cloud_means'] *= -1
+            mix_slopes[xvar + '_clear_means'] *= -1
         figsize = (10, 3)
     else:
         include_mix = False
@@ -5321,7 +5447,11 @@ def plot_slopes_cloud_types_szamean(out_dict,cld_idx = 0, maxerr = 2, \
 
         ax2_mins = ax2.get_ylim()[0]
         ax2_maxs = ax2.get_ylim()[1]
-    ax4.legend()
+
+    if(reverse_sign):
+        ax1.legend(loc = 2)
+    else:
+        ax4.legend()
 
     all_mins = [ax1_mins, ax3_mins, ax4_mins]
     all_maxs = [ax1_maxs, ax3_maxs, ax4_maxs]
@@ -5366,10 +5496,18 @@ def plot_slopes_cloud_types_szamean(out_dict,cld_idx = 0, maxerr = 2, \
     #ax2.set_ylabel('AI-SWF Slope [Wm$^{-2}$]')
     #ax3.set_ylabel('AI-SWF Slope [Wm$^{-2}$]')
 
-    plot_subplot_label(ax1, 'a)', fontsize = 12, xval = 76., yval = 7.8, location = 'upper_right',  backgroundcolor = 'white')
-    plot_subplot_label(ax2, 'b)', fontsize = 12, xval = 76., yval = 7.8, location = 'upper_right',  backgroundcolor = 'white')
-    plot_subplot_label(ax3, 'c)', fontsize = 12, xval = 76., yval = 7.8, location = 'upper_right',  backgroundcolor = 'white')
-    plot_subplot_label(ax4, 'd)', fontsize = 12, xval = 76., yval = 7.8, location = 'upper_right',  backgroundcolor = 'white')
+    if(reverse_sign):
+        ymax = 0.80 * np.max(all_maxs)
+    else:
+        ymax = 0.60 * np.max(all_maxs)
+    plot_subplot_label(ax1, 'a)', fontsize = 12, xval = 76., yval = ymax)
+    plot_subplot_label(ax2, 'b)', fontsize = 12, xval = 76., yval = ymax)
+    plot_subplot_label(ax3, 'c)', fontsize = 12, xval = 76., yval = ymax)
+    plot_subplot_label(ax4, 'd)', fontsize = 12, xval = 76., yval = ymax)
+    #plot_subplot_label(ax1, 'a)', fontsize = 12, xval = 76., yval = 7.8, backgroundcolor = 'white')
+    #plot_subplot_label(ax2, 'b)', fontsize = 12, xval = 76., yval = 7.8, backgroundcolor = 'white')
+    #plot_subplot_label(ax3, 'c)', fontsize = 12, xval = 76., yval = 7.8, backgroundcolor = 'white')
+    #plot_subplot_label(ax4, 'd)', fontsize = 12, xval = 76., yval = 7.8, backgroundcolor = 'white')
 
     fig.tight_layout()
    
@@ -5387,17 +5525,35 @@ def plot_slopes_cloud_types_szamean(out_dict,cld_idx = 0, maxerr = 2, \
         elif(out_dict['trend_type'] == 'theil-sen'):
             type_adder = '_thl'
 
+        if(out_dict['data_type'] == 'omi_uvai_pert'):
+            dtype_adder = '_pert'
+        else:
+            dtype_adder = ''
+
+        if('minlat' in out_dict.keys()):
+            minlat_adder = '_minlat' + str(int(out_dict['minlat']))
+        else:
+            minlat_adder = ''
+
+
         if(include_mix):
             mix_add = '_mix_v2'
             #mix_add = '_mix'
         else:
             mix_add = ''
+
+        if(reverse_sign):
+            rvs_adder = '_revsign'
+        else:
+            rvs_adder = ''
+
         if(use_error):
             outname = 'comp_grid_ai_swf_errorcloud_' + xvar + 'means' + type_adder + \
-                smth_adder + mix_add + '.png'
+                smth_adder + mix_add + dtype_adder + minlat_adder + '.png'
         else:
             outname = 'comp_grid_ai_swf_slopecloud_' + xvar + 'means' + type_adder + \
-                smth_adder + mix_add + '.png'
+                smth_adder + mix_add + dtype_adder + minlat_adder + rvs_adder + '.png'
+                #smth_adder + mix_add + '.png'
         fig.savefig(outname, dpi = 200)
         print("Saved",outname)
     else: 
@@ -5785,7 +5941,9 @@ def plot_compare_slopes_scatter(out_dict, combined_data, comp_grid_data, \
 
     return return_dict
 
-def calc_pcnt_aerosol_over_type(date_list, min_AI, ax = None, save = False): 
+# dtype: 'RAW' or 'PERT'
+def calc_pcnt_aerosol_over_type(date_list, min_AI, ax = None, \
+        minlat = 70., dtype = 'RAW', save = False): 
 
     count_data  = np.full(len(date_list), np.nan)
     total_count = np.full(len(date_list), np.nan)
@@ -5807,12 +5965,13 @@ def calc_pcnt_aerosol_over_type(date_list, min_AI, ax = None, save = False):
     pcnt_oth_clr    = np.full(len(date_list), np.nan)
     
     for ii, date in enumerate(date_list):
-        coloc_data = read_colocated(date)
+        coloc_data = read_colocated(date, minlat = minlat)
     
         # Test finding the indices with high aerosol
         # ------------------------------------------
         
-        mask_data = np.ma.masked_where(coloc_data['OMI_RAW'] < min_AI, coloc_data['OMI_RAW'])
+        mask_data = np.ma.masked_where(coloc_data['OMI_' + dtype] < min_AI, \
+            coloc_data['OMI_' + dtype])
         
         mask_ice = np.ma.masked_where((coloc_data['NSIDC_ICE'].mask == True), \
             mask_data)
@@ -5867,12 +6026,15 @@ def calc_pcnt_aerosol_over_type(date_list, min_AI, ax = None, save = False):
                          count_cld_lnd + count_clr_lnd + \
                          count_cld_oth + count_clr_oth
     
-        pcnt_ice_val = np.round((count_ice / count_data_val) * 100., 3)
-        pcnt_mix_val = np.round((count_mix / count_data_val) * 100., 3)
-        pcnt_ocn_val = np.round((count_ocean / count_data_val) * 100., 3)
-        pcnt_lnd_val = np.round((count_land / count_data_val) * 100., 3)
-        pcnt_oth_val = np.round((count_othr / count_data_val) * 100., 3)
-    
+        pcnt_ice_val = (count_ice / count_data_val) * 100.
+        pcnt_mix_val = (count_mix / count_data_val) * 100.
+        pcnt_ocn_val = (count_ocean / count_data_val) * 100.
+        pcnt_lnd_val = (count_land / count_data_val) * 100.
+        pcnt_oth_val = (count_othr / count_data_val) * 100.
+   
+        if((pcnt_ice_val + pcnt_mix_val + pcnt_ocn_val + pcnt_lnd_val + pcnt_oth_val) != 100):
+            print("BAD SUM: ", date)
+ 
         count_data[ii]  = count_data_val
         pcnt_ice[ii]    = pcnt_ice_val 
         pcnt_mix[ii]    = pcnt_mix_val 
@@ -5884,9 +6046,13 @@ def calc_pcnt_aerosol_over_type(date_list, min_AI, ax = None, save = False):
 
     print('    date      cnt    ice   mix    ocn    lnd    oth     tot')
     for ii, date in enumerate(date_list):
-        print("%s %5d %6.3f %6.3f %6.3f %6.3f %6.3f %5d %5d" % \
+        print("%s %5d %6.1f %6.1f %6.1f %6.1f %6.1f %6.1f %5d" % \
             (date, count_data[ii], pcnt_ice[ii], pcnt_mix[ii], pcnt_ocn[ii], \
-            pcnt_lnd[ii], pcnt_oth[ii], total_count[ii], total2_count[ii]))
+            pcnt_lnd[ii], pcnt_oth[ii], (pcnt_ice[ii]+ pcnt_mix[ii]+ pcnt_ocn[ii]+ \
+            pcnt_lnd[ii]+ pcnt_oth[ii]), total_count[ii]))
+            #pcnt_lnd[ii], pcnt_oth[ii], total_count[ii], total2_count[ii]))
+
+    print("TOTAL ACROSS SWATHS:", np.sum(total_count))
 
     in_ax = True 
     if(ax is None): 
@@ -5921,7 +6087,7 @@ def calc_pcnt_aerosol_over_type(date_list, min_AI, ax = None, save = False):
         ax.set_ylim([0, 100])
         fig.tight_layout()
         if(save):
-            outname = 'aerosol_over_type_swath_minAI_'+ str(int(min_AI*10)) + '.png'
+            outname = 'aerosol_over_type_swath_minAI' + dtype + '_'+ str(int(min_AI*10)) + '_minlat' + str(int(minlat)) + '.png'
             fig.savefig(outname, dpi = 200)
             print("Saved image", outname)
         else:
@@ -6872,12 +7038,14 @@ def plot_type_forcing_v2_all_months(OMI_data, NSIDC_data, MYD08_data, \
     else: 
         plt.show()
 
+# omi_data_type = 'raw' or 'pert'
 def plot_type_forcing_v3_all_months(all_month_values, OMI_monthly_data, \
         minlat = 70., maxlat = 87., use_szas = False, \
         ai_thresh = 0.7, cld_idx = 0, maxerr = 2, \
         min_cloud = 0.95, data_type = 'raw', trend_type = 'standard', \
         hstyle = '.....', \
         plot_zonal_avgs = False, plot_pvals = True, \
+        omi_data_type = 'raw', \
         save = False,debug = False):
 
     forcing_trends = np.full((6, OMI_monthly_data['LAT'].shape[0], \
@@ -7107,18 +7275,21 @@ def plot_type_forcing_v3_all_months(all_month_values, OMI_monthly_data, \
         else:
             pval_add = ''
 
-        outname = 'calc_arctic_forcing_v3_monthly_' + trend_type + zonal_add + pval_add + '.png'
-        fig.savefig(outname, dpi = 200)
+        outname = 'calc_arctic_forcing_v3_monthly_' + trend_type + \
+            zonal_add + pval_add + '_' + omi_data_type + '_minlat' + str(int(minlat)) + '.png'
+        #fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else: 
         plt.show()
 
 
+# omi_data_type: 'raw' or 'pert'
 def plot_type_forcing_v3_all_months_arctic_avg(all_month_values, \
         OMI_monthly_data, \
         minlat = 70., maxlat = 87., use_szas = False, \
         ai_thresh = 0.7, cld_idx = 0, maxerr = 2, \
         min_cloud = 0.95, data_type = 'raw', trend_type = 'standard', \
+        omi_data_type = 'raw', 
         save = False,debug = False, month_values2 = None, \
         month_values3 = None, labels = None, max_pval = 0.05):
 
@@ -7224,7 +7395,7 @@ def plot_type_forcing_v3_all_months_arctic_avg(all_month_values, \
 
     if(save):
         outname = 'calc_arctic_forcing_v3_monthly_arcticavg_' + trend_type + \
-            file_add + '.png'
+            file_add + '_' + omi_data_type + str(int(minlat)) + '.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else: 
@@ -7232,6 +7403,7 @@ def plot_type_forcing_v3_all_months_arctic_avg(all_month_values, \
 
 # Used for plotting all the different ref-ice simulations
 # ptype: 'forcing', 'error', 'pcnt_error'
+# vtype: '' or 'v3'
 # stype: 'ice' or 'cld'. Allows users to either plot 'refice' simulations
 #        or 'refcld' simulations.
 # return_slopes: returns the calculated slopes from each of the yearly
@@ -7243,7 +7415,7 @@ def plot_type_forcing_v3_all_months_arctic_avg_manyrefice(all_month_vals, \
         ai_thresh = 0.7, cld_idx = 0, maxerr = 2, \
         min_cloud = 0.95, data_type = 'raw', trend_type = 'standard', \
         save = False,debug = False, max_pval = 0.05, \
-        ptype = 'forcing', \
+        ptype = 'forcing', vtype = '', \
         stype = 'ice', show_trends = False):
 
     if(stype == 'ice'):
@@ -7294,14 +7466,17 @@ def plot_type_forcing_v3_all_months_arctic_avg_manyrefice(all_month_vals, \
 
     calc_slopes = np.full( (years.shape[0], 6), np.nan)
 
+    if(vtype != ''):
+        vtype = vtype + '_'
+
     # Loop over each reference ice year, reading in the 
     # individual forcing values.
     for ii, year in enumerate(years):
         # Read in the force vals with this ref ice
         # ----------------------------------------
         filename = home_dir + '/Research/Arctic_compares/' + \
-            'arctic_month_est_forcing_dayaithresh07_ref' + stype + \
-            str(year) + '.hdf5'
+            'arctic_month_est_forcing_dayaithresh07_' + vtype + 'ref' + \
+            stype + str(year) + '.hdf5'
         print(filename)
         all_month_dict = read_daily_month_force_HDF5(filename)
 
@@ -7374,7 +7549,7 @@ def plot_type_forcing_v3_all_months_arctic_avg_manyrefice(all_month_vals, \
 
     if(save):
         outname = 'calc_arctic_forcing_v3_monthly_arcticavg_ref' + stype + \
-            '_' + trend_type + file_add + trend_add + '.png'
+            '_' + vtype + trend_type + file_add + trend_add + '.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else: 
@@ -7387,6 +7562,7 @@ def calc_forcing_slopes_v3_all_months_arctic_avg_manyrefice(all_month_vals, \
         min_year = 2005, max_year = 2020, \
         minlat = 70., maxlat = 87., \
         trend_type = 'standard', ptype = 'forcing', stype = 'ice', \
+        vtype = '', \
         save = False):
 
     years = np.arange(min_year, max_year + 1)
@@ -7430,6 +7606,9 @@ def calc_forcing_slopes_v3_all_months_arctic_avg_manyrefice(all_month_vals, \
    
         orig_slopes[ii] = delta_flux
 
+    if(vtype != ''):
+        vtype = vtype + '_'
+
     # ----------------------------------
     #
     # Calculate the modified slopes
@@ -7441,8 +7620,8 @@ def calc_forcing_slopes_v3_all_months_arctic_avg_manyrefice(all_month_vals, \
         # Read in the force vals with this ref ice
         # ----------------------------------------
         filename = home_dir + '/Research/Arctic_compares/' + \
-            'arctic_month_est_forcing_dayaithresh07_ref' + stype + \
-            str(year) + '.hdf5'
+            'arctic_month_est_forcing_dayaithresh07_' + vtype + 'ref' + \
+            stype + str(year) + '.hdf5'
         print(filename)
         all_month_dict = read_daily_month_force_HDF5(filename)
 
@@ -7484,17 +7663,18 @@ def calc_print_forcing_slope_error_v3(all_month_vals, \
         min_year = 2005, max_year = 2020, \
         minlat = 65., maxlat = 87., \
         trend_type = 'standard', ptype = 'forcing', \
+        vtype = '', 
         save = False):
      
     orig_slopes, ice_slopes = \
         calc_forcing_slopes_v3_all_months_arctic_avg_manyrefice(all_month_vals, \
                     OMI_monthly_data, minlat = minlat, trend_type = trend_type, stype = 'ice', \
-                    ptype = 'forcing')
+                    vtype = vtype, ptype = 'forcing')
 
     orig_slopes, cld_slopes = \
         calc_forcing_slopes_v3_all_months_arctic_avg_manyrefice(all_month_vals, \
                     OMI_monthly_data, minlat = minlat, trend_type = trend_type, stype = 'cld', \
-                    ptype = 'forcing')
+                    vtype = vtype, ptype = 'forcing')
 
     years = np.arange(min_year, max_year + 1)
 
@@ -7502,6 +7682,9 @@ def calc_print_forcing_slope_error_v3(all_month_vals, \
     mean_cld_slopes = np.mean(cld_slopes, axis = 0)
     err_ice_slopes = np.std(ice_slopes, axis = 0) / np.sqrt(len(years))
     err_cld_slopes = np.std(cld_slopes, axis = 0) / np.sqrt(len(years))
+
+    if(vtype != ''):
+        print("V3 FORCING: PERT, MINLAT 65")
 
     # Format:
     # 0: orignal trend

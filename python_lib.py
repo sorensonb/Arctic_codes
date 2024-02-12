@@ -408,7 +408,7 @@ def plot_subplot_label(ax, label, xval = None, yval = None, transform = None, \
         y_lim = 0.05
         x_lim = 0.05
     elif(location == 'upper_right'):
-        print("HEERE:", y_lim, x_lim)
+        #print("HEERE:", y_lim, x_lim)
         y_lim = 0.80
         x_lim = 0.30
     elif(location == 'upper_upper_right'):
