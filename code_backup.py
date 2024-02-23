@@ -15,18 +15,18 @@ dest_dir = home_dir + "/Arctic_codes/"
 
 copy_raindrop = True
 
-#### Add new stuff
-###os.chdir(dest_dir)
-###os.system('git add .')
-###
-#### Determine today's date for the command
-###today_str = datetime.today().strftime('%Y/%m/%d')
-###cmnd = 'git commit -m \"Backup '+today_str + '\"'
-###os.system(cmnd)
-###
-#### Push
-###os.system('git push origin master')
-###sys.exit()
+## Add new stuff
+#os.chdir(dest_dir)
+#os.system('git add .')
+#
+## Determine today's date for the command
+#today_str = datetime.today().strftime('%Y/%m/%d')
+#cmnd = 'git commit -m \"Backup '+today_str + '\"'
+#os.system(cmnd)
+#
+## Push
+#os.system('git push origin master')
+#sys.exit()
 
 # ---------------------------------------------------------------------------- 
 # Backup the backup script
@@ -435,6 +435,16 @@ os.system(cmnd)
 print("VIIRS")
 final_dir = dest_dir + 'VIIRS/'
 cmnd = "find "+base_dir+"VIIRS/ -type f -name \"*.py\" | xargs cp -t "+final_dir
+#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
+
+# ---------------------------------------------------------------------------- 
+# WRF analysis
+# ---------------------------------------------------------------------------- 
+print("WRF")
+final_dir = dest_dir + 'WRF/'
+cmnd = "find "+base_dir+"WRF/ -type f -name \"*.py\" | xargs cp -t "+final_dir
 #cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
 print(cmnd)
 os.system(cmnd)

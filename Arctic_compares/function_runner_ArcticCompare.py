@@ -18,6 +18,11 @@ from Arctic_compare_lib import *
 #    omi_dtype = 'ltc3', minlat = 65., zoom = True, save = True)
 #sys.exit()
 
+date_str = '201807052213'
+plot_compare_OMI_MODIS_v2(date_str, 7, \
+    omi_dtype = 'ltc3', minlat = 65., zoom = True, save = False)
+sys.exit()
+
 """
 date_str = '201408112211'
 #date_str = '201807052213'

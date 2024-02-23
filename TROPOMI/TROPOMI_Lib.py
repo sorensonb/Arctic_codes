@@ -206,7 +206,8 @@ def automate_TROPOMI_preprocess(date_str, download = True, images = True, \
 
 def generate_TROPOMI_prep_data(date_str, copy_to_raindrop = False, \
         minlat = 20., remove_empty_scans = False, \
-        trop_time = None, remove_large_files = False):
+        trop_time = None, remove_large_files = False, \
+        generate_gzip_output = True, return_trop_name = False):
 
     if(trop_time is None):
         trop_name = download_TROPOMI_file(date_str)
@@ -247,34 +248,39 @@ def generate_TROPOMI_prep_data(date_str, copy_to_raindrop = False, \
     trop_file_name = convert_TROPOMI_to_HDF5(local_trop_time, \
         omi_name = omi_file_name, save_path = save_dir, \
         minlat = minlat)
-    
-    # Now, write the name of the OMI file to a text file, which
-    # will be zipped up with the TROPOMI file.
-    # ---------------------------------------------------------
-    omi_text_out = save_dir + 'omi_filename.txt'
-    with open(omi_text_out, 'w') as fout:
-        fout.write(omi_file_name)
-    
-    # Finally, gzip the data
-    # ---------------------
-    os.chdir(data_dir)
-    cmnd = omi_dt_date.strftime('tar -cvzf ' + data_dir + \
-        'prepped_trop_data_%Y%m%d%H%M.tar.gz ' + short_save_dir)
-    print(cmnd)
-    os.system(cmnd)
 
-    if(copy_to_raindrop):
-        # Secure copy the gzipped file to Raindrop
-        # ----------------------------------------
-        cmnd = omi_dt_date.strftime('scp ' + data_dir + \
-            'prepped_trop_data_%Y%m%d%H%M.tar.gz ' + \
-            'bsorenson@134.129.222.68:' + \
-            '/home/bsorenson/OMI/tropomi_colocate/prep_data')
+
+    if(generate_gzip_output): 
+        # Now, write the name of the OMI file to a text file, which
+        # will be zipped up with the TROPOMI file.
+        # ---------------------------------------------------------
+        omi_text_out = save_dir + 'omi_filename.txt'
+        with open(omi_text_out, 'w') as fout:
+            fout.write(omi_file_name)
+    
+        # Finally, gzip the data
+        # ---------------------
+        os.chdir(data_dir)
+        cmnd = omi_dt_date.strftime('tar -cvzf ' + data_dir + \
+            'prepped_trop_data_%Y%m%d%H%M.tar.gz ' + short_save_dir)
         print(cmnd)
         os.system(cmnd)
 
+        if(copy_to_raindrop):
+            # Secure copy the gzipped file to Raindrop
+            # ----------------------------------------
+            cmnd = omi_dt_date.strftime('scp ' + data_dir + \
+                'prepped_trop_data_%Y%m%d%H%M.tar.gz ' + \
+                'bsorenson@134.129.222.68:' + \
+                '/home/bsorenson/OMI/tropomi_colocate/prep_data')
+            print(cmnd)
+            os.system(cmnd)
+
     if(remove_large_files):
        print("REMOVE TROPOMI FILE HERE") 
+
+    if(return_trop_name):
+        return trop_file_name
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #

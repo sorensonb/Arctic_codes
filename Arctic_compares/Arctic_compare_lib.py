@@ -1329,6 +1329,123 @@ def plot_compare_OMI_MODIS_NSIDC_v2(date_str, ch1, \
     else:
         plt.show()
 
+def plot_compare_OMI_MODIS_v2(date_str, ch1, \
+        omi_dtype = 'shawn', minlat = 65., zoom = False, save = False):
+
+    if(home_dir + '/Research/OMI/' not in sys.path):
+        sys.path.append(home_dir + '/Research/OMI/')
+    if(home_dir + '/Research/MODIS/obs_smoke_forcing/' not in sys.path):
+        sys.path.append(home_dir + '/Research/MODIS/obs_smoke_forcing/')
+
+    from OMILib import plotOMI_single_swath_figure
+    from MODISLib import plot_MODIS_channel
+
+    if(omi_dtype == 'shawn'):
+        shawn_path = home_dir + '/data/OMI/shawn_files/'
+    elif(omi_dtype == 'ltc3'):
+        omi_dtype = 'shawn'
+        shawn_path = home_dir + '/data/OMI/shawn_files/ltc3/'
+        print('In plotter, looking for ltc3')
+    else:
+        shawn_path = home_dir + '/data/OMI/shawn_files/ltc3/'
+
+    # Load in the JSON file string relations
+    # --------------------------------------
+    with open(json_time_database, 'r') as fin:
+        file_date_dict = json.load(fin)
+
+    if((date_str[:8] == '20080422') | \
+       (date_str[:8] == '20180705')\
+        ):
+        #size = (14, 5)
+        size = (9, 4)
+        mapcrs = ccrs.NorthPolarStereo(central_longitude = 0)
+    elif(date_str[:8] == '20190811'\
+        ):
+        size = (12, 6.5)
+    elif(date_str[:7] == '2006072'\
+        ):
+        size = (12, 8)
+    elif(date_str[:8] == '20140811'\
+        ):
+        size = (9, 4)
+        mapcrs = ccrs.NorthPolarStereo(central_longitude = 135)
+        #mapcrs = ccrs.NorthPolarStereo()
+        #mapcrs = ccrs.LambertConformal(central_longitude = 135, central_latitude = 75)
+    else:
+        size = (10, 9)
+        mapcrs = mapcrs
+
+    # Plot the MODIS true-color and channel data
+    # ------------------------------------------
+    modis_date = file_date_dict[date_str]['MODIS'][0]
+    omi_date   = date_str
+
+    # Read in data for value printing
+    # -------------------------------
+    MODIS_ch7 = read_MODIS_channel(modis_date, 7, swath = True)
+
+    # Make the overall figure
+    # -----------------------
+    plt.close('all')
+    #fig1 = plt.figure(figsize = file_date_dict[modis_date_str]['size'])
+    fig1 = plt.figure(figsize = (7, 5))
+    ax1 = fig1.add_subplot(2,2,1, projection = mapcrs)
+    ax2 = fig1.add_subplot(2,2,2, projection = mapcrs)
+    ax3 = fig1.add_subplot(2,2,3, projection = mapcrs)
+    ax4 = fig1.add_subplot(2,2,4, projection = mapcrs)
+   
+    plot_MODIS_channel(modis_date, 'true_color', swath = True, \
+        zoom = zoom, ax = ax1)
+    ax1.set_title('Aqua MODIS True Color')
+    plot_MODIS_channel(modis_date, 'cloud_mask', swath = True, \
+        zoom = zoom, ax = ax2, vmax = None)
+    ax2.set_title('Aqua MODIS Cloud Mask')
+    plot_MODIS_channel(modis_date, ch1, swath = True, \
+        zoom = zoom, ax = ax3, vmax = 0.4)
+    ax3.set_title('Aqua MODIS Ch7\n2.105 μm - 2.155 μm')
+
+    # Plot the OMI data
+    # -----------------
+    plotOMI_single_swath_figure(omi_date, \
+            dtype = omi_dtype, only_sea_ice = False, minlat = minlat, \
+            ax = ax4, skiprows = [52], lat_circles = None, save = False, \
+            zoom = zoom, shawn_path = shawn_path, colorbar = True)
+    
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+    if(date_str[:8] == '20140811'):
+        ax1.set_title('Aqua MODIS True Color')
+        ax2.set_title('Aqua MODIS Cloud Mask')
+        ax3.set_title('Aqua MODIS 2.1 μm Refl.')
+        ax4.set_title('OMI UVAI Aerosol Index')
+        ax1.set_extent([ 125,165, 70, 85], datacrs)
+        ax2.set_extent([ 125,165, 70, 85], datacrs)
+        ax3.set_extent([ 125,165, 70, 85], datacrs)
+        ax4.set_extent([ 125,165, 70, 85], datacrs)
+        plt.suptitle(dt_date_str.strftime('%H:%M UTC %d %B %Y'))
+    elif(date_str[:8] == '20180705'):
+        ax1.set_title('Aqua MODIS True Color')
+        ax2.set_title('Aqua MODIS Cloud Mask')
+        ax3.set_title('Aqua MODIS 2.1 μm Refl.')
+        ax4.set_title('OMI UVAI Aerosol Index')
+        ax1.set_extent([ 145,200, 64, 80], datacrs)
+        ax2.set_extent([ 145,200, 64, 80], datacrs)
+        ax3.set_extent([ 145,200, 64, 80], datacrs)
+        ax4.set_extent([ 145,200, 64, 80], datacrs)
+        plt.suptitle(dt_date_str.strftime('%H:%M UTC %d %B %Y'))
+    else:
+        plt.suptitle(dt_date_str.strftime('%H:%M UTC %d %B %Y'))
+
+    
+    fig1.tight_layout()
+
+    if(save):
+        outname = 'omi_modis_compare_v2_' + omi_date + '.png'
+        fig1.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
 
 def plot_compare_OMI_MODIS_NSIDC_v2_combined(date_str1, date_str2, ch1, \
         omi_dtype = 'shawn', minlat = 65., zoom = False, save = False):
