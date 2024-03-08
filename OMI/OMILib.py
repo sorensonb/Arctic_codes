@@ -1706,6 +1706,7 @@ def write_da_to_NCDF(avgAI,counts,latmin,da_time):
 # Writes a single Shawn file to HDF5. 
 def write_swath_to_HDF5(OMI_base, dtype, save_path = './', minlat = 65., \
         shawn_path = home_dir + '/data/OMI/shawn_files/', \
+        scan_min = None, scan_max = None, \
         remove_empty_scans = True):
 
     if(isinstance(OMI_base, str)):
@@ -1747,6 +1748,11 @@ def write_swath_to_HDF5(OMI_base, dtype, save_path = './', minlat = 65., \
        
     else:
         keep_idxs = None 
+
+    # Check if the user wants to only include a certain number of x indices
+    # ---------------------------------------------------------------------
+    if( (scan_min is not None) and (scan_max is not None)):
+        keep_idxs = np.arange(scan_min, scan_max)
 
     # Convert the filename object to datetime
     # ---------------------------------------

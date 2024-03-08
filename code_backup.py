@@ -14,19 +14,20 @@ base_dir = home_dir + "/Research/"
 dest_dir = home_dir + "/Arctic_codes/"
 
 copy_raindrop = True
+copy_talon    = True
 
-## Add new stuff
-#os.chdir(dest_dir)
-#os.system('git add .')
-#
-## Determine today's date for the command
-#today_str = datetime.today().strftime('%Y/%m/%d')
-#cmnd = 'git commit -m \"Backup '+today_str + '\"'
-#os.system(cmnd)
-#
-## Push
-#os.system('git push origin master')
-#sys.exit()
+##### Add new stuff
+####os.chdir(dest_dir)
+####os.system('git add .')
+####
+##### Determine today's date for the command
+####today_str = datetime.today().strftime('%Y/%m/%d')
+####cmnd = 'git commit -m \"Backup '+today_str + '\"'
+####os.system(cmnd)
+####
+##### Push
+####os.system('git push origin master')
+####sys.exit()
 
 # ---------------------------------------------------------------------------- 
 # Backup the backup script
@@ -64,10 +65,30 @@ os.system(cmnd)
 # Backup CSCI final project stuff
 # ---------------------------------------------------------------------------- 
 print("CSCI")
-final_dir = dest_dir + 'CSCI/'
-cmnd = "find "+ home_dir + "/CSCI/ -type f -name \"*.py\" | xargs cp -t "+final_dir
+final_dir = dest_dir + 'CSCI/CSCI_543/jpss_work/'
+cmnd = "find "+ home_dir + "/CSCI/final_project/jpss_work/ -type f -name \"*.py\" | xargs cp -t "+final_dir
 print(cmnd)
 os.system(cmnd)
+
+final_dir = dest_dir + 'CSCI/CSCI_544/'
+cmnd = "cp "+ home_dir + "/CSCI/CSCI_544/final_project/*.py "+final_dir
+print(cmnd)
+os.system(cmnd)
+
+if(copy_talon):
+    talon_dir = "blake.sorenson@134.129.128.241:/home/blake.sorenson/CSCI_544/final_project/"
+    #rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/OMI/"
+
+    final_dir = dest_dir + 'CSCI/CSCI_544/jpss_work/'
+
+    cmnd = "scp " + talon_dir + "*.py "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+
+    cmnd = "scp " + talon_dir + "CSCI/CSCI_544/slurm.sh "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+
 # ---------------------------------------------------------------------------- 
 # Backup USIP stuff
 # ---------------------------------------------------------------------------- 

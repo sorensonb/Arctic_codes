@@ -4941,6 +4941,209 @@ def calc_raw_grid_slopes(combined_data, comp_grid_data, \
  
     return out_dict
 
+# smoother: either 'none','smooth','smoother'
+# sizer   : either 1, 2, or 3
+# Made on 2024/02/29 to remove the CH7 bin stuff and 
+def calc_raw_grid_slopes_v2(combined_data, comp_grid_data, \
+        ai_min = None, ai_max = None, \
+        trend_type = 'theil-sen', \
+        smoother = 'None', sizer = 1, \
+        xval = 'omi_uvai_raw'):
+
+    ice_mins = np.array([0,  80, 105, 20])
+    ice_maxs = np.array([20,100,None, 80])
+    #ice_mins = np.array([0,80,105])
+    #ice_maxs = np.array([20,100,None])
+
+    if(smoother == 'None'):    
+        if('cod_bins' in comp_grid_data.keys()):
+            cloud_var = 'cod'
+            ch7_mins = comp_grid_data['cod_bins'][0::sizer]
+            ch7_maxs = comp_grid_data['cod_bins'][0::sizer]
+        else:
+            cloud_var = 'ch7'
+            ch7_mins = comp_grid_data['ch7_bins'][0::sizer]
+            ch7_maxs = comp_grid_data['ch7_bins'][0::sizer]
+        
+        sza_mins = comp_grid_data['sza_bins'][4::sizer]
+        sza_maxs = comp_grid_data['sza_bins'][4::sizer]
+    elif(smoother == 'smooth'): 
+        if('cod_bins' in comp_grid_data.keys()):
+            cloud_var = 'cod'
+            ch7_mins = comp_grid_data['cod_bins'][0:-1:sizer]
+            ch7_maxs = comp_grid_data['cod_bins'][1::sizer]
+        else:
+            cloud_var = 'ch7'
+            ch7_mins = comp_grid_data['ch7_bins'][0:-1:sizer]
+            ch7_maxs = comp_grid_data['ch7_bins'][1::sizer]
+        
+        sza_mins = comp_grid_data['sza_bins'][4:-1:sizer]
+        sza_maxs = comp_grid_data['sza_bins'][5::sizer]
+    elif(smoother == 'smoother'):
+        if('cod_bins' in comp_grid_data.keys()):
+            cloud_var = 'cod'
+            ch7_mins = comp_grid_data['cod_bins'][0:-2:sizer]
+            ch7_maxs = comp_grid_data['cod_bins'][2::sizer]
+        else:
+            cloud_var = 'ch7'
+            ch7_mins = comp_grid_data['ch7_bins'][0:-2:sizer]
+            ch7_maxs = comp_grid_data['ch7_bins'][2::sizer]
+        
+        sza_mins = comp_grid_data['sza_bins'][4:-2:sizer]
+        sza_maxs = comp_grid_data['sza_bins'][6::sizer]
+    
+    raw_slopes   = np.full((ice_mins.size, ch7_mins.size, sza_mins.size), \
+        np.nan)
+    grid_slopes  = np.full((ice_mins.size, ch7_mins.size, sza_mins.size), \
+        np.nan)
+    raw_stderr   = np.full((ice_mins.size, ch7_mins.size, sza_mins.size), \
+        np.nan)
+    grid_stderr  = np.full((ice_mins.size, ch7_mins.size, sza_mins.size), \
+        np.nan)
+    raw_pvals    = np.full((ice_mins.size, ch7_mins.size, sza_mins.size), \
+        np.nan)
+    grid_pvals   = np.full((ice_mins.size, ch7_mins.size, sza_mins.size), \
+        np.nan)
+    raw_counts   = np.full((ice_mins.size, ch7_mins.size, sza_mins.size), \
+        np.nan)
+    grid_counts  = np.full((ice_mins.size, ch7_mins.size, sza_mins.size), \
+        np.nan)
+
+    # 0: "cloudy"
+    # 1: "probably cloudy"
+    # 2: "probably clear"
+    # 3: "clear"
+    # 4: "cloudy" + "probably cloudy"
+    # 5: "clear"  + "probably clear"
+    raw_cldvals  = np.full((ice_mins.size, ch7_mins.size, sza_mins.size, 6), \
+        np.nan)
+    cldval_names = ['cloudy','probably cloudy','probably clear','clear',\
+        'cloudy + probably cloudy','clear + probably clear']
+    
+    ai_diff  = comp_grid_data['ai_bins'][2] - comp_grid_data['ai_edges'][2]
+    sza_diff = comp_grid_data['sza_bins'][2] - comp_grid_data['sza_edges'][2]
+    ice_diff = comp_grid_data['ice_bins'][2] - comp_grid_data['ice_edges'][2]
+    ch7_diff = comp_grid_data[cloud_var + '_bins'][2] - \
+        comp_grid_data[cloud_var + '_edges'][2]
+    
+    for ii in range(ice_mins.size):
+        for jj in range(ch7_mins.size):
+            for kk in range(sza_mins.size):
+                print(ii,jj,kk)
+   
+                 
+                #raw_xdata, raw_ydata, raw_cloud = \
+                return_dict = \
+                    select_combined_scatter_data(combined_data, \
+                        xval = xval, yval = 'ceres_swf', 
+                        #cld_min = None, cld_max = None, \
+                        ch7_min = ch7_mins[jj], ch7_max = ch7_maxs[jj], \
+                        sza_min = sza_mins[kk], sza_max = sza_maxs[kk], \
+                        ice_min = ice_mins[ii], ice_max = ice_maxs[ii], \
+                        omi_min = ai_min, omi_max = ai_max, \
+                        ai_diff = ai_diff, sza_diff = sza_diff, \
+                        ice_diff = ice_diff, ch7_diff = ch7_diff, \
+                        include_cloud = True,
+                        #cld_diff = cld_diff, \
+                        cloud_var = cloud_var 
+                        )
+   
+                raw_xdata = return_dict['local_xdata']
+                raw_ydata = return_dict['local_ydata']
+                raw_cloud = return_dict['local_cloud']
+ 
+                grid_xdata, grid_ydata, xlabel = \
+                        select_comp_grid_scatter_data(comp_grid_data, xval = 'ai', \
+                            ch7_min = ch7_mins[jj], ch7_max = ch7_maxs[jj],\
+                            ice_min = ice_mins[ii], ice_max = ice_maxs[ii],\
+                            sza_min = sza_mins[kk], sza_max = sza_maxs[kk],\
+                            ai_min = ai_min,  ai_max = ai_max)
+   
+                # Handle the cloud fraction stuff
+                # -------------------------------
+                totalsize = raw_cloud.size
+                if(totalsize > 0):
+                    for nn in range(4):
+                        raw_cldvals[ii,jj,kk,nn] = \
+                            np.where(raw_cloud == nn)[0].size / totalsize
+                    raw_cldvals[ii,jj,kk,4] = \
+                        np.where((raw_cloud == 0) | (raw_cloud == 1))[0].size / totalsize
+                    raw_cldvals[ii,jj,kk,5] = \
+                        np.where((raw_cloud == 2) | (raw_cloud == 3))[0].size / totalsize
+ 
+                # Calculate slopes 
+                # ----------------
+                #if((len(grid_xdata) > 20) & (len(raw_xdata) > 20)):
+                if(trend_type == 'theil-sen'):
+                    if((len(raw_xdata) >= 20)):
+                        res = stats.theilslopes(raw_ydata, raw_xdata, 0.90)
+                        raw_slopes[ii,jj,kk]   = res[0]
+
+                    if((len(grid_xdata) > 20)):
+                        res = stats.theilslopes(grid_ydata, grid_xdata, 0.90)
+                        grid_slopes[ii,jj,kk]   = res[0]
+                elif(trend_type == 'linregress'):
+                    if((len(raw_xdata) >= 20)):
+                        result1 = stats.linregress(raw_xdata,raw_ydata)
+                        raw_slopes[ii,jj,kk] = result1.slope 
+                        raw_stderr[ii,jj,kk] = result1.stderr
+                        raw_pvals[ii,jj,kk]  = result1.pvalue
+
+                    if((len(grid_xdata) >= 20)):
+                        result2 = stats.linregress(grid_xdata,grid_ydata)
+                        grid_slopes[ii,jj,kk] = result2.slope 
+                        grid_stderr[ii,jj,kk] = result2.stderr
+                        grid_pvals[ii,jj,kk]  = result2.pvalue
+                else:
+                    print("WARNING: invalid trend_type specified. Using theil-sen")
+                    if((len(raw_xdata) >= 20)):
+                        res = stats.theilslopes(raw_ydata, raw_xdata, 0.90)
+                        raw_slopes[ii,jj,kk]   = res[0]
+
+                    if((len(grid_xdata) >= 20)):
+                        res = stats.theilslopes(grid_ydata, grid_xdata, 0.90)
+                        grid_slopes[ii,jj,kk]   = res[0]
+   
+                raw_counts[ii,jj,kk]  = raw_xdata.shape[0]
+                grid_counts[ii,jj,kk] = grid_xdata.shape[0]
+                print(raw_xdata.shape, grid_xdata.shape, raw_slopes[ii,jj,kk], grid_slopes[ii,jj,kk])
+    
+                #raw_slopes[ii,jj,kk]   = 
+    
+    raw_slopes  = np.ma.masked_invalid(raw_slopes)
+    raw_cldvals = np.ma.masked_invalid(raw_cldvals)
+    grid_slopes = np.ma.masked_invalid(grid_slopes)
+    raw_stderr  = np.ma.masked_invalid(raw_stderr)
+    grid_stderr = np.ma.masked_invalid(grid_stderr)
+    raw_pvals   = np.ma.masked_invalid(raw_pvals)
+    grid_pvals  = np.ma.masked_invalid(grid_pvals)
+    raw_counts  = np.ma.masked_invalid(raw_counts)
+    grid_counts = np.ma.masked_invalid(grid_counts)
+
+    out_dict = {}
+    out_dict['raw_slopes'] = raw_slopes
+    out_dict['grid_slopes'] = grid_slopes
+    out_dict['raw_cldvals'] = raw_cldvals
+    out_dict['cldval_names'] = cldval_names
+    out_dict['raw_stderr'] = raw_stderr
+    out_dict['grid_stderr'] = grid_stderr
+    out_dict['raw_pvals'] = raw_pvals
+    out_dict['grid_pvals'] = grid_pvals
+    out_dict['raw_counts'] = raw_counts
+    out_dict['grid_counts'] = grid_counts
+    out_dict['sza_mins'] = sza_mins
+    out_dict['sza_maxs'] = sza_maxs
+    out_dict[cloud_var + '_mins'] = ch7_mins
+    out_dict[cloud_var + '_maxs'] = ch7_maxs
+    out_dict['ice_mins'] = ice_mins
+    out_dict['ice_maxs'] = ice_maxs
+    out_dict['smoother'] = smoother
+    out_dict['sizer'] = sizer
+    out_dict['trend_type'] = trend_type
+    out_dict['data_type']  = xval   
+ 
+    return out_dict
+
 def plot_raw_grid_slopes(out_dict, vmin = -10, vmax = 10, \
         save = False, hatch_stderr = False, hatch_style = '.', \
         maxerr = 2):

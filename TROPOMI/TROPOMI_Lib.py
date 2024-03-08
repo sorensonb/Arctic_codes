@@ -207,6 +207,7 @@ def automate_TROPOMI_preprocess(date_str, download = True, images = True, \
 def generate_TROPOMI_prep_data(date_str, copy_to_raindrop = False, \
         minlat = 20., remove_empty_scans = False, \
         trop_time = None, remove_large_files = False, \
+        data_dir = None, \
         generate_gzip_output = True, return_trop_name = False):
 
     if(trop_time is None):
@@ -215,6 +216,13 @@ def generate_TROPOMI_prep_data(date_str, copy_to_raindrop = False, \
         dt_trop_time = datetime.strptime(trop_time, '%Y%m%d%H%M')
         trop_name = glob(dt_trop_time.strftime(home_dir + '/data/TROPOMI/*AER_%Ym%m%dt%H%M*.nc'\
             ))[0].strip().split('/')[-1]
+
+    # Make sure the downloading function didn't return an error
+    # code
+    # ---------------------------------------------------------
+    if(isinstance(trop_name, str) is False):
+        print("Error identified from download_TROPOMI_file")
+        return trop_name
 
     # Retrieve the OMI filename for this date
     # ---------------------------------------
@@ -230,7 +238,8 @@ def generate_TROPOMI_prep_data(date_str, copy_to_raindrop = False, \
     print(omi_file_name.strip().split('/')[-1], trop_name)
     #print(omi_file_name, trop_dtime.strftime('%Y%m%d%H%M'))
 
-    data_dir = home_dir + '/Research/TROPOMI/prep_data/'
+    if(data_dir is None):
+        data_dir = home_dir + '/Research/TROPOMI/prep_data/'
 
     # Make a data storage directory, if one does not already exist
     # ------------------------------------------------------------
@@ -277,7 +286,9 @@ def generate_TROPOMI_prep_data(date_str, copy_to_raindrop = False, \
             os.system(cmnd)
 
     if(remove_large_files):
-       print("REMOVE TROPOMI FILE HERE") 
+        print("Deleting", home_dir + '/data/TROPOMI/' + trop_name)
+        cmnd = 'rm ' + home_dir + '/data/TROPOMI/' + trop_name
+        os.system(cmnd)
 
     if(return_trop_name):
         return trop_file_name
@@ -529,7 +540,6 @@ def read_TROPOMI(date_str, minlat = 60.):
     ssa2   = data['SCIDATA/FinalAerosolSingleScattAlb'][:,:,2]
     lat    = data['GEODATA/latitude'][:,:]
     lon    = data['GEODATA/longitude'][:,:]
-    time   = data['GEODATA/delta_time'][:]
 
     # Pull out the base file time
     # ---------------------------

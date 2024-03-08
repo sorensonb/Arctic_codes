@@ -3,7 +3,7 @@
 EXEC = comp_grid_exec 
 COMP = h5fc
 #COMP = gfortran
-LIB_PATH = /home/bsorenson/OMI/comp_grid_climo/
+LIB_PATH = /home/bsorenson/OMI/colocate_lib/
 #TROP_LIB_PATH = /home/bsorenson/OMI/tropgen_comp_grid_climo/
 #LIB_PATH = ../JZ_lib/
 #FORT_LIB_PATH = ../../fort_lib/
@@ -25,8 +25,8 @@ LDFLAGS = -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
 $(EXEC): $(OBJECTS)
 	$(COMP) $(LDFLAGS) $(OBJECTS) -o $(EXEC)
 
-comp_grid_vars.o: $(LIB_PATH)comp_grid_vars.f90
-	$(COMP) $(FFLAGS) -c $(LIB_PATH)comp_grid_vars.f90
+comp_grid_vars.o: comp_grid_vars.f90
+	$(COMP) $(FFLAGS) -c comp_grid_vars.f90
 
 #check_bad_rows.o: $(LIB_PATH)check_bad_rows.f90
 #	$(COMP) $(FFLAGS) -c $(LIB_PATH)check_bad_rows.f90
@@ -131,7 +131,7 @@ read_coloc_OMI_SZA.o: $(LIB_PATH)read_coloc_OMI_SZA.f90
 #print_climo.o: $(FORT_LIB_PATH)print_climo.f90
 #	$(COMP) $(FFLAGS) -c $(FORT_LIB_PATH)print_climo.f90
 
-gen_comp_grid_climo.o: gen_comp_grid_climo.f90 $(LIB_PATH)comp_grid_vars.f90
+gen_comp_grid_climo.o: gen_comp_grid_climo.f90 comp_grid_vars.f90
 	$(COMP) $(FFLAGS) -c gen_comp_grid_climo.f90
 
 clean:
