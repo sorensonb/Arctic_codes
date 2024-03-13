@@ -13,21 +13,21 @@ home_dir = os.environ['HOME']
 base_dir = home_dir + "/Research/"
 dest_dir = home_dir + "/Arctic_codes/"
 
-copy_raindrop = True
+copy_raindrop = False
 copy_talon    = True
 
-##### Add new stuff
-####os.chdir(dest_dir)
-####os.system('git add .')
-####
-##### Determine today's date for the command
-####today_str = datetime.today().strftime('%Y/%m/%d')
-####cmnd = 'git commit -m \"Backup '+today_str + '\"'
-####os.system(cmnd)
-####
-##### Push
-####os.system('git push origin master')
-####sys.exit()
+##!## Add new stuff
+##!#os.chdir(dest_dir)
+##!#os.system('git add .')
+##!#
+##!## Determine today's date for the command
+##!#today_str = datetime.today().strftime('%Y/%m/%d')
+##!#cmnd = 'git commit -m \"Backup '+today_str + '\"'
+##!#os.system(cmnd)
+##!#
+##!## Push
+##!#os.system('git push origin master')
+##!#sys.exit()
 
 # ---------------------------------------------------------------------------- 
 # Backup the backup script
@@ -108,6 +108,26 @@ os.system(cmnd)
 cmnd = "find "+base_dir+"Arctic_compares/ -type f -name \"*.txt\" | xargs cp -t "+final_dir
 print(cmnd)
 os.system(cmnd)
+
+if(copy_talon):
+    talon_dir = "blake.sorenson@134.129.128.241:/home/blake.sorenson/OMI/force_efficiency_calc/"
+    #rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/OMI/"
+
+    final_dir = dest_dir + 'Arctic_compares/talon_processing/'
+
+    cmnd = "scp " + talon_dir + "*.f90 "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+
+    cmnd = "scp " + talon_dir + "slurm.sh "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+
+    cmnd = "scp " + talon_dir + "Make* "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+
+
 ## ---------------------------------------------------------------------------- 
 ## Ice analysis
 ## ---------------------------------------------------------------------------- 

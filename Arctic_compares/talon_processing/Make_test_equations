@@ -1,0 +1,24 @@
+# Comment line
+
+EXEC = equat_test_exec
+#COMP = h5fc
+COMP = gfortran
+LIB_PATH = /home/blake.sorenson/OMI/colocate_lib/
+#H5_LIB_PATH = /home/bsorenson/OMI/JZ_analysis/JZ_lib/
+#FORT_LIB_PATH = ../../fort_lib/
+OBJECTS = test_equations.o
+			#h5_vars.o \
+
+#FFLAGS = -g -O2 -Wall -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
+#LDFLAGS = -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
+FFLAGS = -g -O2 -Wall -fopenmp -fintrinsic-modules-path /usr/lib64/gfortran/modules -lhdf5_fortran
+LDFLAGS = -fopenmp -fintrinsic-modules-path /usr/lib64/gfortran/modules -lhdf5_fortran
+
+$(EXEC): $(OBJECTS)
+	$(COMP) $(LDFLAGS) $(OBJECTS) -o $(EXEC)
+
+test_equations.o: test_equations.f90
+	$(COMP) $(FFLAGS) -c test_equations.f90
+
+clean:
+	rm $(EXEC) $(OBJECTS) *.mod

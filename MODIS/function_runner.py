@@ -7,6 +7,14 @@
 
 from MODISLib import *
 
+base_date = datetime(2020,9,22)
+end_date  = datetime(2020,9,30)
+local_date = base_date
+#tester = identify_MODIS_MYD08(date_str, dest_dir = myd08_dir, dtype = 'daily')
+write_MODIS_MYD08('20180705', minlat = 65.5)
+
+sys.exit()
+
 date_str = '202107222110'
 plot_ceres_scatter(date_str, zoom=True,save=True,composite=True,\
     avg_pixel=True,plume_only=False)

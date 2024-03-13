@@ -8,6 +8,46 @@
 import Arctic_compare_lib
 from Arctic_compare_lib import *
 
+data = pd.read_csv('test_out_file.txt') 
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.scatter(data['OMI'], data['CERES'])
+plot_trend_line(ax, data['OMI'], data['CERES'], color='tab:red', linestyle = '-', \
+    slope = 'linregress')
+plt.show()
+
+sys.exit()
+
+data = h5py.File('force_effic_values.h5')
+
+fig = plt.figure(figsize = (10, 4))
+ax1 = fig.add_subplot(1,4,1)
+ax2 = fig.add_subplot(1,4,2)
+ax3 = fig.add_subplot(1,4,3)
+ax4 = fig.add_subplot(1,4,4)
+
+ax1.plot(-data['regress_slopes'][0,:,1], label = 'cloud')
+ax1.plot(-data['regress_slopes'][0,:,0], label = 'clear')
+ax1.axhline(0, color = 'grey', linestyle = '--')
+
+ax2.plot(-data['regress_slopes'][3,:,1], label = 'cloud')
+ax2.plot(-data['regress_slopes'][3,:,0], label = 'clear')
+ax2.axhline(0, color = 'grey', linestyle = '--')
+
+ax3.plot(-data['regress_slopes'][1,:,1], label = 'cloud')
+ax3.plot(-data['regress_slopes'][1,:,0], label = 'clear')
+ax3.axhline(0, color = 'grey', linestyle = '--')
+
+ax4.plot(-data['regress_slopes'][2,:,1], label = 'cloud')
+ax4.plot(-data['regress_slopes'][2,:,0], label = 'clear')
+ax4.axhline(0, color = 'grey', linestyle = '--')
+
+fig.tight_layout()
+plt.show()
+
+sys.exit()
+
 
 ##date_str = '201908110033'
 #date_str = '201807041951'

@@ -8017,7 +8017,428 @@ def calc_print_forcing_slope_error_v3(all_month_vals, \
             mean_ice_slopes[ii], err_ice_slopes[ii], mean_cld_slopes[ii], err_cld_slopes[ii] ))
 
 
+# comp_type: 'aerosol' or 'cloud'
+def plot_compare_CH7_dist(combined_data, sza_min, sza_max, save = False, \
+        ai_thresh = 1.0, normalize = False, comp_type = 'aerosol'):
 
+    plt.close('all')
+    fig = plt.figure(figsize = (9, 9))
+    ax1 = fig.add_subplot(4,2,1)
+    ax2 = fig.add_subplot(4,2,3)
+    ax3 = fig.add_subplot(4,2,5)
+    ax4 = fig.add_subplot(4,2,7)
+    ax5 = fig.add_subplot(4,2,2)
+    ax6 = fig.add_subplot(4,2,4)
+    ax7 = fig.add_subplot(4,2,6)
+    ax8 = fig.add_subplot(4,2,8)
+
+    # = = = = = = = = = = = = = = = = = = = = =
+    #
+    # "Clear-sky" (AI < 1.0)
+    #
+    # = = = = = = = = = = = = = = = = = = = = =
+
+    def plot_single_comp_cloud(ax, combined_data, ice_min, ice_max, \
+        sza_min, sza_max, ai_thresh, normalize = False, ptype = 'nosmoke'):
+
+        # Plot the distributions for ocean
+        # --------------------------------
+        if(ptype == 'nosmoke'):
+            clear_idx = np.where( ((combined_data['nsidc_ice'] >= ice_min) & \
+                                   (combined_data['nsidc_ice'] <= ice_max) & \
+                                   (combined_data['nsidc_ice'] != -999.)) & \
+                                  (combined_data['modis_cld'] == 3) & \
+                                  ((combined_data['omi_sza'] > sza_min) & \
+                                   (combined_data['omi_sza'] < sza_max)) & \
+                                  (combined_data['omi_uvai_pert'] < ai_thresh)\
+                                )
+            cloud_idx = np.where( ((combined_data['nsidc_ice'] >= ice_min) & \
+                                   (combined_data['nsidc_ice'] <= ice_max) & \
+                                   (combined_data['nsidc_ice'] != -999.)) & \
+                                  (combined_data['modis_cld'] < 3) & \
+                                  (combined_data['modis_cld'] >= 0) & \
+                                  ((combined_data['omi_sza'] > sza_min) & \
+                                   (combined_data['omi_sza'] < sza_max)) & \
+                                  (combined_data['omi_uvai_pert'] < ai_thresh) \
+                            )
+        else:
+            clear_idx = np.where( ((combined_data['nsidc_ice'] >= ice_min) & \
+                                   (combined_data['nsidc_ice'] <= ice_max) & \
+                                   (combined_data['nsidc_ice'] != -999.)) & \
+                                  (combined_data['modis_cld'] == 3) & \
+                                  ((combined_data['omi_sza'] > sza_min) & \
+                                   (combined_data['omi_sza'] < sza_max)) & \
+                                  (combined_data['omi_uvai_pert'] >= ai_thresh)\
+                                )
+            cloud_idx = np.where( ((combined_data['nsidc_ice'] >= ice_min) & \
+                                   (combined_data['nsidc_ice'] <= ice_max) & \
+                                   (combined_data['nsidc_ice'] != -999.)) & \
+                                  (combined_data['modis_cld'] < 3) & \
+                                  (combined_data['modis_cld'] >= 0) & \
+                                  ((combined_data['omi_sza'] > sza_min) & \
+                                   (combined_data['omi_sza'] < sza_max)) & \
+                                  (combined_data['omi_uvai_pert'] >= ai_thresh) \
+                            )
+        
+        print('Clear size:', clear_idx[0].shape, 'Cloud size:', cloud_idx[0].shape)
+
+        ax.hist(combined_data['modis_ch7'][clear_idx], bins = 100, \
+            alpha = 0.5, label = 'Clear')
+        if(normalize):
+            ax11 = ax.twinx()
+            ax11.hist(combined_data['modis_ch7'][cloud_idx], \
+                bins = 100, alpha = 0.5, label = 'Cloud', color = 'tab:orange')
+            ax.set_ylabel('Clear counts')
+            ax11.set_ylabel('Cloud counts')
+        else:
+            ax.hist(combined_data['modis_ch7'][cloud_idx], bins = 100, \
+                alpha = 0.5, label = 'Cloud')
+
+
+    def plot_single_comp_aerosol(ax, combined_data, ice_min, ice_max, \
+        cld_val, sza_min, sza_max, ai_thresh, normalize = False):
+
+        if(cld_val == 3):
+            # Plot the distributions for ocean
+            # --------------------------------
+            clear_idx = np.where( ((combined_data['nsidc_ice'] >= ice_min) & \
+                                   (combined_data['nsidc_ice'] <= ice_max) & \
+                                   (combined_data['nsidc_ice'] != -999.)) & \
+                                  (combined_data['modis_cld'] == cld_val) & \
+                                  ((combined_data['omi_sza'] > sza_min) & \
+                                   (combined_data['omi_sza'] < sza_max)) & \
+                                  (combined_data['omi_uvai_pert'] < ai_thresh)\
+                                )
+            smoke_idx = np.where( ((combined_data['nsidc_ice'] >= ice_min) & \
+                                   (combined_data['nsidc_ice'] <= ice_max) & \
+                                   (combined_data['nsidc_ice'] != -999.)) & \
+                                  (combined_data['modis_cld'] == cld_val) & \
+                                  ((combined_data['omi_sza'] > sza_min) & \
+                                   (combined_data['omi_sza'] < sza_max)) & \
+                                  (combined_data['omi_uvai_pert'] >= ai_thresh) \
+                            )
+        else:
+            clear_idx = np.where( ((combined_data['nsidc_ice'] >= ice_min) & \
+                                   (combined_data['nsidc_ice'] <= ice_max) & \
+                                   (combined_data['nsidc_ice'] != -999.)) & \
+                                  (combined_data['modis_cld'] < 3) & \
+                                  (combined_data['modis_cld'] >= 0) & \
+                                  ((combined_data['omi_sza'] > sza_min) & \
+                                   (combined_data['omi_sza'] < sza_max)) & \
+                                  (combined_data['omi_uvai_pert'] < ai_thresh)\
+                                )
+            smoke_idx = np.where( ((combined_data['nsidc_ice'] >= ice_min) & \
+                                   (combined_data['nsidc_ice'] <= ice_max) & \
+                                   (combined_data['nsidc_ice'] != -999.)) & \
+                                  (combined_data['modis_cld'] < 3) & \
+                                  (combined_data['modis_cld'] >= 0) & \
+                                  ((combined_data['omi_sza'] > sza_min) & \
+                                   (combined_data['omi_sza'] < sza_max)) & \
+                                  (combined_data['omi_uvai_pert'] >= ai_thresh) \
+                            )
+        
+        print('Clear size:', clear_idx[0].shape, 'Smoke size:', smoke_idx[0].shape)
+
+        ax.hist(combined_data['modis_ch7'][clear_idx], bins = 100, \
+            alpha = 0.5, label = 'Clear')
+        if(normalize):
+            ax11 = ax.twinx()
+            ax11.hist(combined_data['modis_ch7'][smoke_idx], \
+                bins = 100, alpha = 0.5, label = 'Cloud', color = 'tab:orange')
+            ax.set_ylabel('Clear counts')
+            ax11.set_ylabel('Smoky counts')
+        else:
+            ax.hist(combined_data['modis_ch7'][smoke_idx], bins = 100, \
+                alpha = 0.5, label = 'Smoke')
+
+
+    if(comp_type == 'aerosol'):
+        # Ocean, clear-sky (no smoke)
+        plot_single_comp_cloud(ax1, combined_data, 0, 20, sza_min, sza_max, \
+            ai_thresh, normalize = normalize, ptype = 'nosmoke')
+
+        # Ice, clear-sky (no smoke)
+        plot_single_comp_cloud(ax2, combined_data, 80, 100, sza_min, sza_max, \
+            ai_thresh, normalize = normalize, ptype = 'nosmoke')
+
+        # Land, clear-sky (no smoke)
+        plot_single_comp_cloud(ax3, combined_data, 253, 253, sza_min, sza_max, \
+            ai_thresh, normalize = normalize, ptype = 'nosmoke')
+
+        # Mix, clear-sky (no smoke)
+        plot_single_comp_cloud(ax4, combined_data, 20.001, 79.999, sza_min, sza_max, \
+            ai_thresh, normalize = normalize, ptype = 'nosmoke')
+
+        # Ocean, smoky
+        plot_single_comp_cloud(ax5, combined_data, 0, 20, sza_min, sza_max, \
+            ai_thresh, normalize = normalize, ptype = 'smoke')
+        
+        # Ice, smoky
+        plot_single_comp_cloud(ax6, combined_data, 80, 100, sza_min, sza_max, \
+            ai_thresh, normalize = normalize, ptype = 'smoke')
+        
+        # Land, smoky
+        plot_single_comp_cloud(ax7, combined_data, 253, 253, sza_min, sza_max, \
+            ai_thresh, normalize = normalize, ptype = 'smoke')
+        
+        # Mix, smoky
+        plot_single_comp_cloud(ax8, combined_data, 20.001, 79.999, sza_min, sza_max, \
+            ai_thresh, normalize = normalize, ptype = 'smoke')
+
+        ax1.set_title('Ocean Clear-sky')
+        ax2.set_title('Ice Clear-sky')
+        ax3.set_title('Land Clear-sky')
+        ax4.set_title('Mix Clear-sky')
+        ax5.set_title('Ocean Aerosol-sky')
+        ax6.set_title('Ice Aerosol-sky')
+        ax7.set_title('Land Aerosol-sky')
+        ax8.set_title('Mix Aerosol-sky')
+
+
+    elif(comp_type == 'cloud'):
+        # Ocean, clear (show the distributions between clear and cloudy)
+        plot_single_comp_aerosol(ax1, combined_data, 0, 20, 3, sza_min, sza_max, \
+            ai_thresh, normalize = normalize)
+
+        # Ice, clear (show the distributions between clear and cloudy)
+        plot_single_comp_aerosol(ax2, combined_data, 80, 100, 3, sza_min, sza_max, \
+            ai_thresh, normalize = normalize)
+
+        # Land, clear (show the distributions between clear and cloudy)
+        plot_single_comp_aerosol(ax3, combined_data, 253, 253, 3, sza_min, sza_max, \
+            ai_thresh, normalize = normalize)
+
+        # Mix, clear (show the distributions between clear and cloudy)
+        plot_single_comp_aerosol(ax4, combined_data, 20.001, 79.999, 3, sza_min, sza_max, \
+            ai_thresh, normalize = normalize)
+
+        # Ocean, cloud (show the distributions between clear and cloudy)
+        plot_single_comp_aerosol(ax5, combined_data, 0, 20, 0, sza_min, sza_max, \
+            ai_thresh, normalize = normalize)
+
+        # Ice, cloud (show the distributions between clear and cloudy)
+        plot_single_comp_aerosol(ax6, combined_data, 80, 100, 0, sza_min, sza_max, \
+            ai_thresh, normalize = normalize)
+
+        # Land, cloud (show the distributions between clear and cloudy)
+        plot_single_comp_aerosol(ax7, combined_data, 253, 253, 0, sza_min, sza_max, \
+            ai_thresh, normalize = normalize)
+
+        # Mix, cloud (show the distributions between clear and cloudy)
+        plot_single_comp_aerosol(ax8, combined_data, 20.001, 79.999, 0, sza_min, sza_max, \
+            ai_thresh, normalize = normalize)
+
+        ax1.set_title('Ocean No Cloud')
+        ax2.set_title('Ice No Cloud')
+        ax3.set_title('Land No Cloud')
+        ax4.set_title('Mix No Cloud')
+        ax5.set_title('Ocean Cloud')
+        ax6.set_title('Ice Cloud')
+        ax7.set_title('Land Cloud')
+        ax8.set_title('Mix Cloud')
+
+    else:
+        print("BAD COMP TYPE")
+        return
+
+    """
+    # Plot the distributions for ocean
+    # --------------------------------
+    clear_idx = np.where( (combined_data['nsidc_ice'] < 20) & \
+                          (combined_data['nsidc_ice'] != -999.) & \
+                          (combined_data['modis_cld'] == 3) & \
+                          ((combined_data['omi_sza'] > sza_min) & \
+                           (combined_data['omi_sza'] < sza_max)) & \
+                          (combined_data['omi_uvai_pert'] < ai_thresh)\
+                        )
+    cloud_idx = np.where( (combined_data['nsidc_ice'] < 20) & \
+                          (combined_data['nsidc_ice'] != -999.) & \
+                          (combined_data['modis_cld'] == 0) & \
+                          ((combined_data['omi_sza'] > sza_min) & \
+                           (combined_data['omi_sza'] < sza_max)) & \
+                          (combined_data['omi_uvai_pert'] < ai_thresh) \
+                    )
+    
+    print("ICE CHECK:", np.min(combined_data['nsidc_ice'][clear_idx]))
+    print("AI CHECK:", np.min(combined_data['omi_uvai_pert'][clear_idx]))
+    print("CH7 CHECK:", np.min(combined_data['modis_ch7'][clear_idx]))
+    print("SZA CHECK:", np.min(combined_data['omi_sza'][clear_idx]))
+
+    print('Clear size:', clear_idx[0].shape, 'Cloud size:', cloud_idx[0].shape)
+    ax1.hist(combined_data['modis_ch7'][clear_idx], bins = 100, alpha = 0.5, label = 'Clear')
+    if(normalize):
+        ax12 = ax1.twinx()
+        ax12.hist(combined_data['modis_ch7'][cloud_idx], bins = 100, alpha = 0.5, label = 'Cloud', color = 'tab:orange')
+    else:
+        ax1.hist(combined_data['modis_ch7'][cloud_idx], bins = 100, alpha = 0.5, label = 'Cloud')
+
+    # Plot the distributions for ice
+    # ------------------------------
+    clear_idx = np.where( (combined_data['nsidc_ice'] >= 80) & \
+                          (combined_data['nsidc_ice'] <= 100) & \
+                          (combined_data['nsidc_ice'] != -999.) & \
+                          (combined_data['modis_cld'] == 3) & \
+                          ((combined_data['omi_sza'] > sza_min) & \
+                           (combined_data['omi_sza'] < sza_max)) & \
+                          (combined_data['omi_uvai_pert'] < ai_thresh) \
+                        )
+    cloud_idx = np.where( (combined_data['nsidc_ice'] >= 80) & \
+                          (combined_data['nsidc_ice'] <= 100) & \
+                          (combined_data['nsidc_ice'] != -999.) & \
+                          (combined_data['modis_cld'] == 0) & \
+                          ((combined_data['omi_sza'] > sza_min) & \
+                           (combined_data['omi_sza'] < sza_max)) & \
+                          (combined_data['omi_uvai_pert'] < ai_thresh) \
+                        )
+    print('Clear size:', clear_idx[0].shape, 'Cloud size:', cloud_idx[0].shape)
+    ax2.hist(combined_data['modis_ch7'][clear_idx], bins = 100, alpha = 0.5, label = 'Clear')
+    ax2.hist(combined_data['modis_ch7'][cloud_idx], bins = 100, alpha = 0.5, label = 'Cloud')
+
+    # Plot the distributions for land
+    # -------------------------------
+    clear_idx = np.where( (combined_data['nsidc_ice'] == 253.) & \
+                          (combined_data['nsidc_ice'] != -999.) & \
+                          (combined_data['modis_cld'] == 3) & \
+                          ((combined_data['omi_sza'] > sza_min) & \
+                           (combined_data['omi_sza'] < sza_max)) &
+                          (combined_data['omi_uvai_pert'] < ai_thresh) \
+                        )
+    cloud_idx = np.where( (combined_data['nsidc_ice'] == 253.) & \
+                          (combined_data['nsidc_ice'] != -999.) & \
+                          (combined_data['modis_cld'] == 0) & \
+                          ((combined_data['omi_sza'] > sza_min) & \
+                           (combined_data['omi_sza'] < sza_max)) &
+                          (combined_data['omi_uvai_pert'] < ai_thresh) \
+                        )
+    print('Clear size:', clear_idx[0].shape, 'Cloud size:', cloud_idx[0].shape)
+    ax3.hist(combined_data['modis_ch7'][clear_idx], bins = 100, alpha = 0.5, label = 'Clear')
+    ax3.hist(combined_data['modis_ch7'][cloud_idx], bins = 100, alpha = 0.5, label = 'Cloud')
+
+    # Plot the distributions for mix
+    # ------------------------------
+    clear_idx = np.where( ((combined_data['nsidc_ice'] >= 20.) & \
+                           (combined_data['nsidc_ice'] != -999.) & \
+                           (combined_data['nsidc_ice'] <= 80.)) & \
+                          (combined_data['modis_cld'] == 3) & \
+                          ((combined_data['omi_sza'] > sza_min) & \
+                           (combined_data['omi_sza'] < sza_max)) &\
+                          (combined_data['omi_uvai_pert'] < ai_thresh) \
+                        )
+    cloud_idx = np.where( ((combined_data['nsidc_ice'] >= 20.) & \
+                           (combined_data['nsidc_ice'] != -999.) & \
+                           (combined_data['nsidc_ice'] <= 80.)) & \
+                          (combined_data['modis_cld'] == 0) & \
+                          ((combined_data['omi_sza'] > sza_min) & \
+                           (combined_data['omi_sza'] < sza_max)) & \
+                          (combined_data['omi_uvai_pert'] < ai_thresh) \
+                        )
+
+    print('Clear size:', clear_idx[0].shape, 'Cloud size:', cloud_idx[0].shape)
+    ax4.hist(combined_data['modis_ch7'][clear_idx], bins = 100, alpha = 0.5, label = 'Clear')
+    ax4.hist(combined_data['modis_ch7'][cloud_idx], bins = 100, alpha = 0.5, label = 'Cloud')
+
+    # = = = = = = = = = = = = = = = = = = = = =
+    #
+    # "Aerosol-sky" (AI < 1.0)
+    #
+    # = = = = = = = = = = = = = = = = = = = = =
+
+    # Plot the distributions for ocean
+    # --------------------------------
+    clear_idx = np.where( ((combined_data['nsidc_ice'] >= 0) & \
+                           (combined_data['nsidc_ice'] <= 20) & \
+                           (combined_data['nsidc_ice'] != -999.)) & \
+                          (combined_data['modis_cld'] == 3) & \
+                          ((combined_data['omi_sza'] > sza_min) & \
+                           (combined_data['omi_sza'] < sza_max)) & \
+                          (combined_data['omi_uvai_pert'] >= ai_thresh)\
+                        )
+    cloud_idx = np.where( ((combined_data['nsidc_ice'] >= 0) & \
+                           (combined_data['nsidc_ice'] <= 20) & \
+                           (combined_data['nsidc_ice'] != -999.)) & \
+                          (combined_data['modis_cld'] == 0) & \
+                          ((combined_data['omi_sza'] > sza_min) & \
+                           (combined_data['omi_sza'] < sza_max)) & \
+                          (combined_data['omi_uvai_pert'] >= ai_thresh) \
+                        )
+    ax5.hist(combined_data['modis_ch7'][clear_idx], bins = 100, alpha = 0.5, label = 'Clear')
+    ax5.hist(combined_data['modis_ch7'][cloud_idx], bins = 100, alpha = 0.5, label = 'Cloud')
+
+    # Plot the distributions for ice
+    # ------------------------------
+    clear_idx = np.where( ((combined_data['nsidc_ice'] >= 80) & \
+                           (combined_data['nsidc_ice'] <= 100) & \
+                           (combined_data['nsidc_ice'] != -999.)) & \
+                          (combined_data['modis_cld'] == 3) & \
+                          ((combined_data['omi_sza'] > sza_min) & \
+                           (combined_data['omi_sza'] < sza_max)) & \
+                          (combined_data['omi_uvai_pert'] >= ai_thresh) \
+                        )
+    cloud_idx = np.where( ((combined_data['nsidc_ice'] >= 80) & \
+                           (combined_data['nsidc_ice'] <= 100) & \
+                           (combined_data['nsidc_ice'] != -999.)) & \
+                          (combined_data['modis_cld'] == 0) & \
+                          ((combined_data['omi_sza'] > sza_min) & \
+                           (combined_data['omi_sza'] < sza_max)) & \
+                          (combined_data['omi_uvai_pert'] >= ai_thresh) \
+                        )
+    ax6.hist(combined_data['modis_ch7'][clear_idx], bins = 100, alpha = 0.5, label = 'Clear')
+    ax6.hist(combined_data['modis_ch7'][cloud_idx], bins = 100, alpha = 0.5, label = 'Cloud')
+
+    # Plot the distributions for land
+    # -------------------------------
+    clear_idx = np.where( (combined_data['nsidc_ice'] == 253.) & \
+                          (combined_data['nsidc_ice'] != -999.) & \
+                          (combined_data['modis_cld'] == 3) & \
+                          ((combined_data['omi_sza'] > sza_min) & \
+                           (combined_data['omi_sza'] < sza_max)) &
+                          (combined_data['omi_uvai_pert'] >= ai_thresh) \
+                        )
+    cloud_idx = np.where( (combined_data['nsidc_ice'] == 253.) & \
+                          (combined_data['nsidc_ice'] != -999.) & \
+                          (combined_data['modis_cld'] == 0) & \
+                          ((combined_data['omi_sza'] > sza_min) & \
+                           (combined_data['omi_sza'] < sza_max)) &
+                          (combined_data['omi_uvai_pert'] >= ai_thresh) \
+                        )
+    ax7.hist(combined_data['modis_ch7'][clear_idx], bins = 100, alpha = 0.5, label = 'Clear')
+    ax7.hist(combined_data['modis_ch7'][cloud_idx], bins = 100, alpha = 0.5, label = 'Cloud')
+
+    # Plot the distributions for mix
+    # ------------------------------
+    clear_idx = np.where( ((combined_data['nsidc_ice'] >= 20.) & \
+                           (combined_data['nsidc_ice'] <= 80.) & \
+                           (combined_data['nsidc_ice'] != -999.)) & \
+                          (combined_data['modis_cld'] == 3) & \
+                          ((combined_data['omi_sza'] > sza_min) & \
+                           (combined_data['omi_sza'] < sza_max)) &\
+                          (combined_data['omi_uvai_pert'] >= ai_thresh) \
+                        )
+    cloud_idx = np.where( ((combined_data['nsidc_ice'] >= 20.) & \
+                           (combined_data['nsidc_ice'] <= 80.) & \
+                           (combined_data['nsidc_ice'] != -999.)) & \
+                          (combined_data['modis_cld'] == 0) & \
+                          ((combined_data['omi_sza'] > sza_min) & \
+                           (combined_data['omi_sza'] < sza_max)) & \
+                          (combined_data['omi_uvai_pert'] >= ai_thresh) \
+                        )
+
+    ax8.hist(combined_data['modis_ch7'][clear_idx], bins = 100, alpha = 0.5, label = 'Clear')
+    ax8.hist(combined_data['modis_ch7'][cloud_idx], bins = 100, alpha = 0.5, label = 'Cloud')
+    """
+
+    ax1.legend()
+    ax2.legend()
+    ax3.legend()
+    ax4.legend()
+    ax5.legend()
+    ax6.legend()
+    ax7.legend()
+    ax8.legend()
+
+
+    fig.tight_layout()
+    plt.show()
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #

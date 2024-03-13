@@ -9,6 +9,32 @@ import importlib, FuLiouLib
 from FuLiouLib import *
 import sys
 
+dates = ['20220909','20220915','20220922']
+for date in dates:
+    old = h5py.File('fuliou_output_naaps_' + date + '.h5')
+    new = h5py.File('fuliou_output_naaps_' + date + '_2stream.h5')
+
+    print(date)
+    print("NAAPS:")
+    print(old['net_heating_rate'][10,:])
+    print(new['net_heating_rate'][10,:])
+
+    old.close()
+    new.close()
+
+    old = h5py.File('fuliou_output_lidar_' + date + '_highres3.h5')
+    new = h5py.File('fuliou_output_lidar_' + date + '_2stream.h5')
+
+    print("NAAPS:")
+    print(old['net_heating_rate'][10,:])
+    print(new['net_heating_rate'][10,:])
+
+    old.close()
+    new.close()
+
+
+sys.exit()
+
 data = h5py.File('fuliou_output_lidar_20220922.h5')
 
 time      = data['time'][:]

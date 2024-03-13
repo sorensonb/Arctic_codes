@@ -27,7 +27,6 @@ import tensorflow as tf
 from tensorflow.keras import layers
 import time
 import sys
-import random
 import importlib, final_project_lib
 
 from final_project_lib import *
@@ -86,8 +85,9 @@ objects.image_size = objects.train_images.shape[1]
 print(objects.buffer_size, objects.batch_size, objects.image_size)
 
 # Train the model
-# ---------------
-train_model(EPOCHS = 1000)
+# ----------------
+l_load_checkpoints = False
+train_model(EPOCHS = 600, l_load_checkpoints = l_load_checkpoints)
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
@@ -108,5 +108,6 @@ objects.np_mask = np_mask
 
 # Generate a figure showing the error statistics
 # ----------------------------------------------
-valid_idxs = np.arange(num_test)
+#valid_idxs = np.arange(num_test)
+valid_idxs = np.array([20])
 plot_validate_multiple(valid_idxs, complete = True, test = True, save = True)

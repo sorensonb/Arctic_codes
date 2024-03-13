@@ -43,6 +43,7 @@ from netCDF4 import Dataset
 import time
 import tensorflow as tf
 from tensorflow.keras import layers
+import random
 
 # Custom modules
 home_dir = os.environ['HOME']
@@ -561,20 +562,18 @@ def read_train_dataset(dat_name = 'default', month = None, low_res = False):
         # 2024/03/08: Modification for CSCI 544: Scaling each invidual
         # image from -1 to 1, not the whole distribution
         # ------------------------------------------------------------
-        objects.max_AI = np.max(total_data, axis = (1,2))
-        objects.min_AI = np.min(total_data, axis = (1,2))
-        total_data = np.array([contrast_stretch(total_data[ii,:,:]) \
-            for ii in range(total_data.shape[0])])
+        ##!#objects.max_AI = np.max(total_data, axis = (1,2))
+        ##!#objects.min_AI = np.min(total_data, axis = (1,2))
+        ##!#total_data = np.array([contrast_stretch(total_data[ii,:,:]) \
+        ##!#    for ii in range(total_data.shape[0])])
 
-        print("HERE:", total_data.shape)
+        ##!#print("HERE:", total_data.shape)
     
-        """
         objects.max_AI = np.max(total_data)
         objects.min_AI = np.min(total_data)
         total_data = contrast_stretch(total_data[:,:,:])
         total_data = total_data.reshape(total_data.shape[0], \
             total_data.shape[1], total_data.shape[2], 1).astype('float32')
-        """
         objects.train_images = (total_data - 127.5) / 127.5
 
         objects.train_lat  = total_LAT
@@ -758,10 +757,12 @@ def save_gen_image(model, epoch, test_input):
 def save_training_image(dataset, idx, test = False, mask = None):
 
   if(mask is not None):
-    plot_data = (dataset[idx,:,:,0] * 127.5 + 127.5)
+    plot_data = (dataset[idx,:,:] * 127.5 + 127.5)
+    #plot_data = (dataset[idx,:,:,0] * 127.5 + 127.5)
     plot_data = np.ma.masked_where(mask == 0, plot_data)
   else:
-    plot_data = (dataset[idx,:,:,0] * 127.5 + 127.5)
+    plot_data = (dataset[idx,:,:] * 127.5 + 127.5)
+    #plot_data = (dataset[idx,:,:,0] * 127.5 + 127.5)
 
   fig = plt.figure(figsize=(4, 4))
   ax1 = fig.add_subplot(1,1,1)
@@ -959,7 +960,7 @@ def train(dataset, epochs):
           train_step(image_batch)
       
         # Produce images for the GIF as you go
-        if((epoch + 1 ) % 10):
+        if(((epoch + 1 ) % 10) == 0):
             plt.close('all')
             generate_and_save_images(objects.generator,
                                      epoch + 1,
@@ -980,7 +981,7 @@ def train(dataset, epochs):
     print('done training')
 
 # Trains the model for a certain number of epochs
-def train_model(EPOCHS = 10):
+def train_model(EPOCHS = 10, l_load_checkpoints = False):
 
     objects.epochs = EPOCHS
 
@@ -1002,18 +1003,26 @@ def train_model(EPOCHS = 10):
             discriminator_optimizer=objects.discriminator_optimizer,
             generator=objects.generator,
             discriminator=objects.discriminator)
-    
-    # Batch and shuffle the data
-    train_dataset = tf.data.Dataset.from_tensor_slices(\
-        objects.train_images).shuffle(objects.buffer_size).batch(\
-        objects.batch_size)
+   
+    if(l_load_checkpoints):
+        latest = tf.train.latest_checkpoint(checkpoint_dir)
+        objects.generator.load_weights(latest)
+        objects.discriminator.load_weights(latest)
+        objects.generator_optimizer.load_weights(latest)
+        objects.discriminator_optimizer.load_weights(latest)
 
-    # You will reuse this seed overtime (so it's easier)
-    # to visualize progress in the animated GIF)
-    objects.seed = tf.random.normal([objects.num_examples_to_generate, \
-        objects.noise_dim])
-    
-    train(train_dataset, EPOCHS)
+    else: 
+        # Batch and shuffle the data
+        train_dataset = tf.data.Dataset.from_tensor_slices(\
+            objects.train_images).shuffle(objects.buffer_size).batch(\
+            objects.batch_size)
+
+        # You will reuse this seed overtime (so it's easier)
+        # to visualize progress in the animated GIF)
+        objects.seed = tf.random.normal([objects.num_examples_to_generate, \
+            objects.noise_dim])
+        
+        train(train_dataset, EPOCHS)
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
@@ -1025,6 +1034,7 @@ def run_complete(plot_losses = False, smooth = False):
     lam = tf.constant(0.1)
 
     mask = tf.constant(objects.np_mask, dtype = tf.float32)
+    #mask = tf.constant(objects.np_mask, dtype = tf.float32)
 
     # Set up starting seeds 
     # ---------------------
@@ -1035,28 +1045,38 @@ def run_complete(plot_losses = False, smooth = False):
         zhats = tf.Variable(np.random.uniform(-1, 1, \
             size=(1, objects.noise_dim)))
   
-    print('zhats = ', zhats.shape)
+    print('zhats = ', zhats.shape, type(zhats))
  
     iter_nums = 2000
     v_num = 0.0
     losses = np.full((objects.process_img.shape[0], iter_nums), np.nan)
     num_loss = 1e5
     ii = 0
+    holding_process = tf.Variable(objects.process_img, dtype = tf.float32)
     for ii in range(iter_nums):
         
         with tf.GradientTape() as gen_tape:
             gen_tape.watch(zhats)
-        
+ 
+            # GOOD 
+            #tester = tf.multiply(mask[np.newaxis,...,np.newaxis], \
+            #    objects.generator(zhats, training = False))
+
+            tester = tf.multiply(\
+                mask[np.newaxis,...,np.newaxis], \
+                holding_process)
+      
             # Set up loss calculations
-            # ------------------------
+            # -----------------------
             complete_loss = tf.reduce_sum(tf.compat.v1.layers.flatten(\
                 tf.abs(tf.multiply(mask[np.newaxis,...,np.newaxis], \
                 objects.generator(zhats, training = False)) - tf.multiply(\
                 mask[np.newaxis,...,np.newaxis], \
-                tf.Variable(objects.process_img))))) + \
+                holding_process)))) + \
                 lam * generator_loss(\
                 objects.discriminator(objects.generator(\
                     zhats, training = False), training = False))
+                #tf.Variable(objects.process_img))))) + \
    
         # Calculate the loss gradients with respect to the seed
         # ----------------------------------------------------- 
@@ -1390,7 +1410,7 @@ def validate_image(idx, test = True, plot_map = False, save = False):
         print("Saved image", outname)
 
 def plot_validate_multiple(idx, complete = True, test = True, smooth = False, \
-        save = True):
+        save = True, plot_losses = False):
 
     if(len(idx) > 5):
         test_idxs = random.sample(range(0,len(idx)) , 5)
@@ -1398,7 +1418,7 @@ def plot_validate_multiple(idx, complete = True, test = True, smooth = False, \
     if(complete):
         # Make the generated image here
         # -----------------------------
-        complete_image(idx, test = test, smooth = smooth, plot_losses = True)
+        complete_image(idx, test = test, smooth = smooth, plot_losses = plot_losses)
   
     # Set up figure
     # -------------
