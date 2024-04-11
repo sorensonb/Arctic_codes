@@ -1,7 +1,7 @@
-subroutine write_force_efficiency(out_file_id)
+subroutine write_force_intercepts(out_file_id)
 !
 ! NAME:
-!   write_force_efficiency.f90
+!   write_force_intercepts.f90
 !
 ! PURPOSE:
 ! 
@@ -14,7 +14,7 @@ subroutine write_force_efficiency(out_file_id)
 !  ############################################################################
 
   use hdf5
-  use force_eff_vars, only: regress_slopes, regress_dims
+  use force_eff_vars, only: regress_intercepts, regress_dims
 
   implicit none
 
@@ -30,7 +30,7 @@ subroutine write_force_efficiency(out_file_id)
 
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  
   !
-  ! Write regression slopes
+  ! Write regression intercepts
   !
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  
   rank = size(regress_dims)
@@ -45,7 +45,7 @@ subroutine write_force_efficiency(out_file_id)
 
   ! Create the dataset
   ! ------------------
-  call h5dcreate_f(out_file_id, 'regress_slopes', H5T_NATIVE_REAL, &
+  call h5dcreate_f(out_file_id, 'regress_intercepts', H5T_NATIVE_REAL, &
                     dspace_id, dset_id, error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not open dataset'
@@ -54,7 +54,7 @@ subroutine write_force_efficiency(out_file_id)
 
   ! Write to the dataset
   ! --------------------
-  call h5dwrite_f(dset_id, H5T_NATIVE_REAL, regress_slopes, &
+  call h5dwrite_f(dset_id, H5T_NATIVE_REAL, regress_intercepts, &
                    regress_dims, error)
   if(error /= 0) then
     write(*,*) 'FATAL ERROR: could not write to dataset'
@@ -74,6 +74,6 @@ subroutine write_force_efficiency(out_file_id)
     return
   endif
 
-  write(*,*) 'Wrote regress_slopes'
+  write(*,*) 'Wrote regress_intercepts'
 
-end subroutine write_force_efficiency
+end subroutine write_force_intercepts

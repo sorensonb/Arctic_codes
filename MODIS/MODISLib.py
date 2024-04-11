@@ -955,6 +955,8 @@ def write_MODIS_to_HDF5(MODIS_data, channel = 1, swath = True, \
     if(include_myd06):
         dset.create_dataset('cod', data = \
             MODIS_data['cloud_optical_depth'][keep_idxs,:].squeeze())
+        dset.create_dataset('cld_top_pres', data = \
+            MODIS_data['cloud_top_pressure'][keep_idxs,:].squeeze())
 
     # Save, write, and close the HDF5 file
     # --------------------------------------
@@ -1389,6 +1391,82 @@ def grid_data_trends(modis_dict):
 # Plotting functions
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def plot_compare_MODIS_COD(date_str, swath = True, save = False):
+
+    MODIS_ch1  = read_MODIS_channel(date_str, 1,  \
+        zoom = False, swath = swath, include_cloud_mask = True, \
+        include_myd06 = True)
+    MODIS_ch7  = read_MODIS_channel(date_str, 7,  \
+        zoom = False, swath = swath, include_cloud_mask = True, \
+        include_myd06 = True)
+    
+    fig = plt.figure(figsize = (10,6))
+    ax1 = fig.add_subplot(2,3,1, projection = ccrs.NorthPolarStereo())
+    ax2 = fig.add_subplot(2,3,2, projection = ccrs.NorthPolarStereo())
+    ax3 = fig.add_subplot(2,3,3, projection = ccrs.NorthPolarStereo())
+    ax4 = fig.add_subplot(2,3,4, projection = ccrs.NorthPolarStereo())
+    ax5 = fig.add_subplot(2,3,5, projection = ccrs.NorthPolarStereo())
+    
+    mesh = ax1.pcolormesh(MODIS_ch1['lon'], MODIS_ch1['lat'], MODIS_ch1['data'], \
+        transform = datacrs, shading = 'auto', cmap = MODIS_ch1['colors'], vmax = 0.7)
+    cbar = plt.colorbar(mesh, ax = ax1, label = 'Reflectance')
+    mesh = ax2.pcolormesh(MODIS_ch1['lon'], MODIS_ch1['lat'], MODIS_ch1['cloud_mask'], \
+        transform = datacrs, \
+        shading = 'auto', cmap = 'jet')
+    cbar = plt.colorbar(mesh, ax = ax2, label = 'Cloud Mask')
+    #ax2.pcolormesh(cldmsk_lon, cldmsk_lat, cldmsk_mask, transform = datacrs, \
+    #    shading = 'auto', cmap = 'jet')
+    mesh = ax3.pcolormesh(MODIS_ch1['lon'], MODIS_ch1['lat'], \
+        MODIS_ch1['cloud_optical_depth'], transform = datacrs, \
+        shading = 'auto', vmax = 40)
+    cbar = plt.colorbar(mesh, ax = ax3, label = 'Cloud Optical Depth')
+    mesh = ax4.pcolormesh(MODIS_ch7['lon'], MODIS_ch7['lat'], MODIS_ch7['data'], \
+        transform = datacrs, vmax = 0.4, shading = 'auto', cmap = MODIS_ch1['colors'])
+    cbar = plt.colorbar(mesh, ax = ax4, label = 'Reflectance')
+    mesh = ax5.pcolormesh(MODIS_ch7['lon'], MODIS_ch7['lat'], \
+        MODIS_ch1['cloud_top_pressure'], \
+        transform = datacrs, shading = 'auto')
+    cbar = plt.colorbar(mesh, ax = ax5, label = 'Cloud Top Pressure')
+    #ax4.pcolormesh(myd06_lon, myd06_lat, myd06_dat, transform = datacrs, \
+    #    shading = 'auto')
+    
+    ax1.coastlines()
+    ax2.coastlines()
+    ax3.coastlines()
+    ax4.coastlines()
+    ax5.coastlines()
+    
+    ax1.set_title('0.64 μm')
+    ax2.set_title('Cloud Mask\nBlue = Cloud, Red = Clear')
+    ax3.set_title('MODIS COD')
+    ax4.set_title('MODIS 2.1 μm Refl.')
+    ax5.set_title('MODIS CLD TOP PRES')
+    
+    ax1.set_boundary(circle, transform=ax1.transAxes)
+    ax2.set_boundary(circle, transform=ax2.transAxes)
+    ax3.set_boundary(circle, transform=ax3.transAxes)
+    ax4.set_boundary(circle, transform=ax4.transAxes)
+    ax5.set_boundary(circle, transform=ax5.transAxes)
+    
+    ax1.set_extent([-180,180,65,90], datacrs)
+    ax2.set_extent([-180,180,65,90], datacrs)
+    ax3.set_extent([-180,180,65,90], datacrs)
+    ax4.set_extent([-180,180,65,90], datacrs)
+    ax5.set_extent([-180,180,65,90], datacrs)
+    
+    plt.suptitle(date_str)
+    
+    fig.tight_layout()
+   
+    if(save): 
+        outname = 'modis_cod_compare_' + dt_date_str + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+        
+
 
 def plot_compare_MODIS_cloud(date_str, swath = True, save = False):
 
@@ -2293,6 +2371,9 @@ def read_MODIS_channel(date_str, channel, zoom = False, swath = False, \
             cloud_data.close()
         if(include_myd06):
             myd06_data = Dataset(myd06_name[ii])
+        
+            # Load cloud optical depth data
+            # -----------------------------
             local_data = myd06_data['Cloud_Optical_Thickness'][::5,::5]
             local_data[local_data < 0] = 0.0
             local_data[local_data > 10000] = np.nan
@@ -2303,6 +2384,21 @@ def read_MODIS_channel(date_str, channel, zoom = False, swath = False, \
                 MODIS_data['cloud_optical_depth'] = MODIS_data['cloud_optical_depth'][:,:-1]
             MODIS_data['cloud_optical_depth'] = np.ma.masked_invalid(\
                 MODIS_data['cloud_optical_depth'])
+
+            # Load cloud top pressure data
+            # ----------------------------
+            local_data = myd06_data['Cloud_Top_Pressure'][:,:]
+            local_data[local_data < 0] = 0.0
+            local_data[local_data > 10000] = np.nan
+            MODIS_data['cloud_top_pressure'] = local_data
+            #MODIS_data['cloud_optical_depth'] = local_data[::5,::5] * \
+            #    myd06_data['Cloud_Optical_Thickness'].scale_factor
+            #if(MODIS_data['cloud_optical_depth'].shape[1] == 271):
+            #    MODIS_data['cloud_optical_depth'] = MODIS_data['cloud_optical_depth'][:,:-1]
+            MODIS_data['cloud_top_pressure'] = np.ma.masked_invalid(\
+                MODIS_data['cloud_top_pressure'])
+
+
             myd06_data.close()
  
         MODIS_holder[str(counter)] = MODIS_data 
@@ -2322,6 +2418,9 @@ def read_MODIS_channel(date_str, channel, zoom = False, swath = False, \
     if(include_myd06):
         MODIS_final['cloud_optical_depth'] = \
             np.concatenate([MODIS_holder[key]['cloud_optical_depth']  \
+            for key in MODIS_holder.keys()], axis = 0)
+        MODIS_final['cloud_top_pressure'] = \
+            np.concatenate([MODIS_holder[key]['cloud_top_pressure']  \
             for key in MODIS_holder.keys()], axis = 0)
     MODIS_final['variable'] = MODIS_holder['0']['variable']
     MODIS_final['cross_date'] = MODIS_holder['0']['cross_date']
@@ -3065,6 +3164,7 @@ def write_MODIS_MYD08(date_str, minlat = 65.5, \
     # ----------------------------------------------------------------- 
     n_y  = nc.createDimension('ny',num_y)
     n_x  = nc.createDimension('nx',num_x)
+    n_c  = nc.createDimension('nc',3)
 
     # Create variables for the three dimensions. Note that since these
     # are variables, they are still given 'dimensions' using 'dlat', 
@@ -3098,6 +3198,24 @@ def write_MODIS_MYD08(date_str, minlat = 65.5, \
     CLD_FRAC_STD = nc.createVariable('Cloud_Fraction_StDev','f4',('ny','nx'))
     CLD_FRAC_STD.description=var_desc
 
+    COD_MEAN = nc.createVariable('Cloud_Optical_Depth_Mean','f4',('ny','nx'))
+    temp_desc = 'MODIS MYD08 daily mean '+\
+        'cloud optical depth'
+    if(dtype == 'monthly'):
+        temp_desc = 'Monthly averaged ' + temp_desc
+    COD_MEAN.description=temp_desc
+
+    if(dtype == 'monthly'):
+        var_desc = 'Mean standard deviation of MODIS MYD08 '+\
+        'cloud optical depth daily means'
+    else:
+        var_desc = 'Standard deviation of MODIS MYD08 '+\
+        'cloud optical depth'       
+ 
+    COD_STD = nc.createVariable('Cloud_Optical_Depth_StDev','f4',('ny','nx'))
+    COD_STD.description=var_desc
+
+
     OB_COUNT = nc.createVariable('Ob_Counts','f4',('ny','nx'))
     OB_COUNT.description='Total Observation Counts'
     
@@ -3111,7 +3229,28 @@ def write_MODIS_MYD08(date_str, minlat = 65.5, \
 
     DAY_OB_COUNT = nc.createVariable('Day_Ob_Counts','f4',('ny','nx'))
     DAY_OB_COUNT.description='Total observation counts for day only'
-    
+   
+    COP_CLOUDMASKCLEAR_COUNT = nc.createVariable('CloudMaskClear_Counts','i4', ('ny','nx'))
+    COP_CLOUDMASKCLEAR_COUNT.description = \
+        'Cloud Optical Properties Cloud Phase (Clear, CloudMaskClear(CSR=0))'
+
+    COP_RESTORED_CLEAR_COUNT = nc.createVariable('RestoredToClear_Counts','i4', ('ny','nx'))
+    COP_RESTORED_CLEAR_COUNT.description = \
+        'Cloud Optical Properties Cloud Phase (Clear, RestoredToClear(CSR=2))'
+
+    COP_PARTLY_CLOUDY_COUNT = nc.createVariable('Partly_Cloudy_Counts','i4', ('nc','ny','nx'))
+    COP_PARTLY_CLOUDY_COUNT.description = \
+        'Cloud Optical Properties Cloud Phase ' + \
+        '(Partly Cloudy, CSR=1 or CSR=3): Pixel Counts ' + \
+        'in 3 cats: Liquid(1st) Ice(2nd) Undet(3rd)'
+
+    COP_CLOUDMASKCLOUDY_COUNT = nc.createVariable('CloudMaskCloudy_Counts','i4', ('nc','ny','nx'))
+    COP_CLOUDMASKCLOUDY_COUNT.description = \
+        'Cloud Optical Properties Cloud Phase ' + \
+        '(Cloudy, Not Restored to Clear, CSR=0): Pixel Counts in 3 cats: ' + \
+        'Liquid(1st) Ice(2nd) Undet(3rd)'
+
+
     # Fill in dimension variables one-by-one.
     # ---------------------------------------------------------------
     LAT[:]                 = data['YDim'][good_idx]
@@ -3119,17 +3258,27 @@ def write_MODIS_MYD08(date_str, minlat = 65.5, \
     if(dtype == 'monthly'):
         CLD_FRAC_MEAN[:,:]     = data['Cloud_Fraction_Mean_Mean'][good_idx,:]
         CLD_FRAC_STD[:,:]      = data['Cloud_Fraction_Mean_Std'][good_idx,:]
+        COD_FRAC[:,:]          = data['Cloud_Optical_Thickness_Combined_Mean_Mean'][good_idx,:]
+        COD_STD[:,:]           = data['Cloud_Optical_Thickness_Combined_Mean_Std'][good_idx,:]
         OB_COUNT[:,:]          = data['Cloud_Fraction_Pixel_Counts'][good_idx,:]
         DAY_CLD_FRAC_MEAN[:,:] = data['Cloud_Fraction_Day_Mean_Mean'][good_idx,:]
         DAY_CLD_FRAC_STD[:,:]  = data['Cloud_Fraction_Day_Mean_Std'][good_idx,:]
         DAY_OB_COUNT[:,:]      = data['Cloud_Fraction_Day_Pixel_Counts'][good_idx,:]
+        #NOTE: NEED TO FIGURE OUT THE NAMES OF THE HISTOGRAM COUNT VARIABLES IN 
+        #      MONTHLY FILES
     else:
         CLD_FRAC_MEAN[:,:]     = data['Cloud_Fraction_Mean'][good_idx,:]
         CLD_FRAC_STD[:,:]      = data['Cloud_Fraction_Standard_Deviation'][good_idx,:]
+        COD_MEAN[:,:]          = data['Cloud_Optical_Thickness_Combined_Mean'][good_idx,:]
+        COD_STD[:,:]           = data['Cloud_Optical_Thickness_Combined_Standard_Deviation'][good_idx,:]
         OB_COUNT[:,:]          = data['Cloud_Fraction_Pixel_Counts'][good_idx,:]
         DAY_CLD_FRAC_MEAN[:,:] = data['Cloud_Fraction_Day_Mean'][good_idx,:]
         DAY_CLD_FRAC_STD[:,:]  = data['Cloud_Fraction_Day_Standard_Deviation'][good_idx,:]
         DAY_OB_COUNT[:,:]      = data['Cloud_Fraction_Day_Pixel_Counts'][good_idx,:]
+        COP_CLOUDMASKCLEAR_COUNT[:,:]  = data['COP_Phase_CloudMaskClear_Histogram_Counts'][0, good_idx,:]
+        COP_RESTORED_CLEAR_COUNT[:,:]  = data['COP_Phase_RestoredToClear_Histogram_Counts'][0, good_idx,:]
+        COP_PARTLY_CLOUDY_COUNT[:,:]   = data['COP_Phase_Partly_Cloudy_Histogram_Counts'][:,good_idx,:]
+        COP_CLOUDMASKCLOUDY_COUNT[:,:] = data['COP_Phase_Cloudy_Histogram_Counts'][:,good_idx,:]
 
     data.close()
 

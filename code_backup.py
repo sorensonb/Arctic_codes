@@ -127,6 +127,22 @@ if(copy_talon):
     print(cmnd)
     os.system(cmnd)
 
+    talon_dir = "blake.sorenson@134.129.128.241:/home/blake.sorenson/OMI/ai_force_eff_test/"
+    #rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/OMI/"
+
+    final_dir = dest_dir + 'Arctic_compares/talon_processing/ai_force_efficiency/'
+
+    cmnd = "scp " + talon_dir + "*.py "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+
+    cmnd = "scp " + talon_dir + "*.keras "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+
+    cmnd = "scp " + talon_dir + "slurm.sh "+final_dir
+    print(cmnd)
+    os.system(cmnd)
 
 ## ---------------------------------------------------------------------------- 
 ## Ice analysis

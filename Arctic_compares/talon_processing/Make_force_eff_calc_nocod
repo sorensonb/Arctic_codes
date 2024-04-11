@@ -1,13 +1,12 @@
 # Comment line
 
-EXEC = force_eff_calc_exec
+EXEC = force_eff_calc_nocod_exec
 #COMP = h5fc
 COMP = gfortran
 LIB_PATH = /home/blake.sorenson/OMI/colocate_lib/
 #H5_LIB_PATH = /home/bsorenson/OMI/JZ_analysis/JZ_lib/
 #FORT_LIB_PATH = ../../fort_lib/
 OBJECTS = comp_grid_vars.o \
-			force_eff_vars.o \
 			read_coloc_CERES_SWF.o \
 			read_coloc_MODIS_CH7.o \
 			read_coloc_MODIS_CLD.o \
@@ -18,12 +17,7 @@ OBJECTS = comp_grid_vars.o \
 			read_coloc_OMI_LAT.o \
 			read_coloc_OMI_LON.o \
 			read_coloc_OMI_SZA.o \
-            write_force_output_file.o \
-            write_force_efficiency.o \
-            write_force_errors.o \
-            write_force_intercepts.o \
-            write_force_r2.o \
-			test_force_eff_calc.o
+			test_force_eff_calc_nocod.o
 			#h5_vars.o \
 
 #FFLAGS = -g -O2 -Wall -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
@@ -36,9 +30,6 @@ $(EXEC): $(OBJECTS)
 
 comp_grid_vars.o: $(LIB_PATH)comp_grid_vars.f90
 	$(COMP) $(FFLAGS) -c $(LIB_PATH)comp_grid_vars.f90
-
-force_eff_vars.o: force_eff_vars.f90
-	$(COMP) $(FFLAGS) -c force_eff_vars.f90
 
 read_coloc_CERES_SWF.o: $(LIB_PATH)read_coloc_CERES_SWF.f90
 	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_coloc_CERES_SWF.f90
@@ -70,24 +61,12 @@ read_coloc_OMI_LON.o: $(LIB_PATH)read_coloc_OMI_LON.f90
 read_coloc_OMI_SZA.o: $(LIB_PATH)read_coloc_OMI_SZA.f90
 	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_coloc_OMI_SZA.f90
 
-write_force_output_file.o: write_force_output_file.f90
-	$(COMP) $(FFLAGS) -c write_force_output_file.f90
-
-write_force_efficiency.o: write_force_efficiency.f90
-	$(COMP) $(FFLAGS) -c write_force_efficiency.f90
-
-write_force_errors.o: write_force_errors.f90
-	$(COMP) $(FFLAGS) -c write_force_errors.f90
-
-write_force_intercepts.o: write_force_intercepts.f90
-	$(COMP) $(FFLAGS) -c write_force_intercepts.f90
-
-write_force_r2.o: write_force_r2.f90
-	$(COMP) $(FFLAGS) -c write_force_r2.f90
+write_force_est.o: write_force_est.f90
+	$(COMP) $(FFLAGS) -c write_force_est.f90
 
 
-test_force_eff_calc.o: test_force_eff_calc.f90 force_eff_vars.f90 $(LIB_PATH)comp_grid_vars.f90
-	$(COMP) $(FFLAGS) -c test_force_eff_calc.f90
+test_force_eff_calc_nocod.o: test_force_eff_calc_nocod.f90 $(LIB_PATH)comp_grid_vars.f90
+	$(COMP) $(FFLAGS) -c test_force_eff_calc_nocod.f90
 
 clean:
-	rm $(EXEC) *.o *.mod
+	rm $(EXEC) $(OBJECTS) *.mod

@@ -854,6 +854,7 @@ def save_complete_losses(idx, losses):
 cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
 def make_generator_model():
+    conv_kernel = (7, 7)
     model = tf.keras.Sequential()
     model.add(layers.Dense(int(objects.image_size / 4) * \
         int(objects.image_size / 4) * int(objects.batch_size), \
@@ -871,7 +872,7 @@ def make_generator_model():
 
     #model.add(layers.Conv2DTranspose(128, (5, 5), strides=(1, 1), padding='same', use_bias=False))
     #assert model.output_shape == (None, 7, 7, 128)
-    model.add(layers.Conv2DTranspose(int(objects.batch_size / 2), (5, 5), \
+    model.add(layers.Conv2DTranspose(int(objects.batch_size / 2), conv_kernel, \
         strides=(1, 1), padding='same', use_bias=False))
     assert model.output_shape == (None, int(objects.image_size / 4), \
         int(objects.image_size / 4), int(objects.batch_size / 2))
@@ -880,14 +881,14 @@ def make_generator_model():
 
     #model.add(layers.Conv2DTranspose(64, (5, 5), strides=(2, 2), padding='same', use_bias=False))
     #assert model.output_shape == (None, 14, 14, 64)
-    model.add(layers.Conv2DTranspose(int(objects.batch_size / 4), (5, 5), \
+    model.add(layers.Conv2DTranspose(int(objects.batch_size / 4), conv_kernel, \
         strides=(2, 2), padding='same', use_bias=False))
     assert model.output_shape == (None, int(objects.image_size / 2), \
         int(objects.image_size / 2), int(objects.batch_size / 4))
     model.add(layers.BatchNormalization())
     model.add(layers.LeakyReLU())
 
-    model.add(layers.Conv2DTranspose(1, (5, 5), strides=(2, 2), \
+    model.add(layers.Conv2DTranspose(1, conv_kernel, strides=(2, 2), \
         padding='same', use_bias=False, activation='tanh'))
     #assert model.output_shape == (None, 28, 28, 1)
     assert model.output_shape == (None, int(objects.image_size), \
@@ -896,10 +897,11 @@ def make_generator_model():
     return model
 
 def make_discriminator_model():
+    conv_kernel = (7, 7)
     model = tf.keras.Sequential()
     #model.add(layers.Conv2D(64, (5, 5), strides=(2, 2), padding='same',
     #                                 input_shape=[28, 28, 1]))
-    model.add(layers.Conv2D(int(objects.batch_size / 4), (5, 5), \
+    model.add(layers.Conv2D(int(objects.batch_size / 4), conv_kernel, \
         strides=(2, 2), padding='same',
         input_shape=[int(objects.image_size), \
         int(objects.image_size), 1]))
@@ -908,7 +910,7 @@ def make_discriminator_model():
 
     #model.add(layers.Conv2D(128, (5, 5), strides=(2, 2), padding='same'))
     model.add(layers.Conv2D(int(objects.batch_size / 2), \
-        (5, 5), strides=(2, 2), padding='same'))
+        conv_kernel, strides=(2, 2), padding='same'))
     model.add(layers.LeakyReLU())
     model.add(layers.Dropout(0.3))
 

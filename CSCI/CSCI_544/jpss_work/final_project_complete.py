@@ -28,6 +28,7 @@ from tensorflow.keras import layers
 import time
 import sys
 import importlib, final_project_lib
+from sklearn.model_selection import train_test_split
 
 from final_project_lib import *
 import objects
@@ -47,8 +48,8 @@ import objects
 dat_name = 'OMI'
 low_res = False
 objects.dat_name = dat_name
-read_train_dataset(dat_name = dat_name, low_res = low_res)
-#read_train_dataset(dat_name = dat_name, month = 7, low_res = low_res)
+#read_train_dataset(dat_name = dat_name, low_res = low_res)
+read_train_dataset(dat_name = dat_name, month = 7, low_res = low_res)
 
 
 # Extract testing images
@@ -56,9 +57,14 @@ read_train_dataset(dat_name = dat_name, low_res = low_res)
 num_test = 100
 objects.num_test_image = num_test
 ranges = np.arange(0, objects.train_images.shape[0])
-test_idxs = random.sample(range(0,objects.train_images.shape[0]) , num_test)
-tf_no_idxs = [num not in test_idxs for num in ranges]
-train_idxs = ranges[tf_no_idxs]
+#test_idxs = random.sample(range(0,objects.train_images.shape[0]) , num_test)
+#tf_no_idxs = [num not in test_idxs for num in ranges]
+#train_idxs = ranges[tf_no_idxs]
+
+train_idxs, test_idxs = train_test_split(ranges, test_size = num_test)
+
+print(train_idxs.shape, test_idxs.shape)
+
 
 objects.test_images  = objects.train_images[test_idxs,:,:]
 objects.train_images = objects.train_images[train_idxs,:,:]
@@ -76,9 +82,10 @@ if(dat_name == 'OMI'):
 # Set constants from the training dataset size
 # --------------------------------------------
 objects.buffer_size = objects.train_images.shape[0]
-objects.batch_size = 128
-#objects.batch_size = 64
 #objects.batch_size = 256
+#objects.batch_size = 128
+#objects.batch_size = 64
+objects.batch_size = 32
 objects.image_size = objects.train_images.shape[1]
 #objects.image_size = 28
 
@@ -87,7 +94,7 @@ print(objects.buffer_size, objects.batch_size, objects.image_size)
 # Train the model
 # ----------------
 l_load_checkpoints = False
-train_model(EPOCHS = 600, l_load_checkpoints = l_load_checkpoints)
+train_model(EPOCHS = 300, l_load_checkpoints = l_load_checkpoints)
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #

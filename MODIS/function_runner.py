@@ -7,35 +7,22 @@
 
 from MODISLib import *
 
-base_date = datetime(2020,9,22)
+date_str = '201807052305'
+#date_str = '201908102345'
+MODIS_ch1  = read_MODIS_channel(date_str, 1,  \
+    zoom = False, swath = True, include_cloud_mask = True, \
+    include_myd06 = True)
+#plot_compare_MODIS_COD(date_str, swath = True, save = False)
+
+sys.exit()
+
+base_date = datetime(2019,4,1)
 end_date  = datetime(2020,9,30)
 local_date = base_date
 #tester = identify_MODIS_MYD08(date_str, dest_dir = myd08_dir, dtype = 'daily')
-write_MODIS_MYD08('20180705', minlat = 65.5)
+#write_MODIS_MYD08('20180705', minlat = 65.5)
 
-sys.exit()
-
-date_str = '202107222110'
-plot_ceres_scatter(date_str, zoom=True,save=True,composite=True,\
-    avg_pixel=True,plume_only=False)
-
-sys.exit()
-
-
-hash_data, nohash_data = find_plume(date_str) 
-
-
-sys.exit()
-plot_figure2(save=True, composite = False)
-#plot_combined_figure1_v6(save = True)
-
-sys.exit()
-
-base_date = datetime(2020,9,22)
-end_date  = datetime(2020,9,30)
-local_date = base_date
-#tester = identify_MODIS_MYD08(date_str, dest_dir = myd08_dir, dtype = 'daily')
-#write_MODIS_MYD08(date_str, minlat = 65.5)
+#sys.exit()
 
 while(local_date <= end_date):
     
@@ -59,6 +46,164 @@ while(local_date <= end_date):
 
 
 sys.exit()
+
+"""
+base_date = datetime(2020,9,22)
+end_date  = datetime(2020,9,30)
+local_date = base_date
+#tester = identify_MODIS_MYD08(date_str, dest_dir = myd08_dir, dtype = 'daily')
+write_MODIS_MYD08('20170817', minlat = 65.5)
+
+sys.exit()
+"""
+
+infile = sys.argv[1]
+
+data = Dataset(infile, 'r')
+
+fig = plt.figure(figsize = (13, 11))
+ax1 = fig.add_subplot(3,3,1, projection = ccrs.NorthPolarStereo())
+ax2 = fig.add_subplot(3,3,2, projection = ccrs.NorthPolarStereo())
+ax3 = fig.add_subplot(3,3,3, projection = ccrs.NorthPolarStereo())
+
+ax4 = fig.add_subplot(3,3,4, projection = ccrs.NorthPolarStereo())
+ax5 = fig.add_subplot(3,3,5, projection = ccrs.NorthPolarStereo())
+ax6 = fig.add_subplot(3,3,6, projection = ccrs.NorthPolarStereo())
+
+ax7 = fig.add_subplot(3,3,7, projection = ccrs.NorthPolarStereo())
+ax8 = fig.add_subplot(3,3,8, projection = ccrs.NorthPolarStereo())
+ax9 = fig.add_subplot(3,3,9, projection = ccrs.NorthPolarStereo())
+
+mesh = ax1.pcolormesh(data['Longitude'][:], data['Latitude'][:], \
+    data['CloudMaskClear_Counts'][:,:], \
+    shading = 'auto', transform = ccrs.PlateCarree())
+cbar = fig.colorbar(mesh, ax = ax1, label = 'Counts')
+ax1.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax1.coastlines()
+ax1.set_title('CloudMaskClear')
+
+mesh = ax2.pcolormesh(data['Longitude'][:], data['Latitude'][:], \
+    np.sum(data['CloudMaskCloudy_Counts'][:,:,:], axis = 0), \
+    shading = 'auto', transform = ccrs.PlateCarree())
+cbar = fig.colorbar(mesh, ax = ax2, label = 'Counts')
+ax2.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax2.coastlines()
+ax2.set_title('Cloudy')
+
+mesh = ax3.pcolormesh(data['Longitude'][:], data['Latitude'][:], \
+    np.sum(data['Partly_Cloudy_Counts'][:,:,:], axis = 0), \
+    shading = 'auto', transform = ccrs.PlateCarree())
+cbar = fig.colorbar(mesh, ax = ax3, label = 'Counts')
+ax3.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax3.coastlines()
+ax3.set_title('Partly_Cloudy')
+
+#combined_clear = data['COP_Phase_CloudMaskClear_Histogram_Counts'][0,:,:] + \
+#                 data['COP_Phase_RestoredToClear_Histogram_Counts'][0,:,:]
+
+combined_clear = np.where(data['RestoredToClear_Counts'][:,:].mask, \
+                    data['CloudMaskClear_Counts'][:,:], \
+                    data['CloudMaskClear_Counts'][:,:] + \
+                    data['RestoredToClear_Counts'][:,:])
+combined_clear = np.ma.masked_where(combined_clear < 0, combined_clear)
+
+mask_clear = np.ma.masked_where((combined_clear < \
+                          data['CloudMaskCloudy_Counts'][0,:,:]) | \
+                         (combined_clear < \
+                          data['Partly_Cloudy_Counts'][0,:,:]), \
+                        data['CloudMaskClear_Counts'][:,:])
+
+
+    #data['Cloud_Optical_Thickness_1621_Ice_Mean'][:,:] + \
+    #data['Cloud_Optical_Thickness_1621_Liquid_Mean'][:,:] , \
+mesh = ax4.pcolormesh(data['Longitude'][:], data['Latitude'][:], \
+    data['Cloud_Optical_Depth_Mean'][:,:], \
+    shading = 'auto', transform = ccrs.PlateCarree(), vmax = 40)
+cbar = fig.colorbar(mesh, ax = ax4, label = 'COD')
+ax4.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax4.coastlines()
+ax4.set_title('COD')
+
+mesh = ax5.pcolormesh(data['Longitude'][:], data['Latitude'][:], \
+    combined_clear, \
+    #mask_clear, \
+    shading = 'auto', transform = ccrs.PlateCarree())
+cbar = fig.colorbar(mesh, ax = ax5, label = 'Counts')
+ax5.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax5.coastlines()
+ax5.set_title('CloudMaskClear + Restored')
+#ax5.set_title('CloudMaskClear\n(Masked where not mainly clear)')
+
+mesh = ax6.pcolormesh(data['Longitude'][:], data['Latitude'][:], \
+    data['Cloud_Fraction_Day_Mean'][:,:], \
+    shading = 'auto', transform = ccrs.PlateCarree())
+cbar = fig.colorbar(mesh, ax = ax6, label = 'Cloud Fraction')
+ax6.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax6.coastlines()
+ax6.set_title('CloudFraction')
+
+local_cod = data['Cloud_Optical_Depth_Mean'][:,:] 
+#local_cod = data['Cloud_Optical_Thickness_1621_Ice_Mean'][:,:] + \
+#            data['Cloud_Optical_Thickness_1621_Liquid_Mean'][:,:]
+                
+local_cod[(combined_clear > \
+           np.sum(data['CloudMaskCloudy_Counts'][:,:,:], axis = 0)) & \
+          (combined_clear > \
+           np.sum(data['Partly_Cloudy_Counts'][:,:,:], axis = 0)) & \
+          (data['Cloud_Fraction_Day_Mean'][:,:] < 0.4) & \
+          (data['Cloud_Optical_Depth_Mean'][:,:].mask == True)] = 0.0
+          #(data['Cloud_Optical_Thickness_1621_Liquid_Mean'][:,:].mask == True)] = 0.0
+
+mesh = ax7.pcolormesh(data['Longitude'][:], data['Latitude'][:], \
+    local_cod, \
+    shading = 'auto', transform = ccrs.PlateCarree(), vmax = 40)
+cbar = fig.colorbar(mesh, ax = ax7, label = 'COD')
+ax7.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax7.coastlines()
+ax7.set_title('COD Corrected')
+
+mesh = ax8.pcolormesh(data['Longitude'][:], data['Latitude'][:], \
+    data['Cloud_Optical_Depth_StDev'][:,:], \
+    shading = 'auto', transform = ccrs.PlateCarree())
+cbar = fig.colorbar(mesh, ax = ax8, label = 'COD StDev')
+ax8.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax8.coastlines()
+ax8.set_title('COD Stdev')
+
+
+mesh = ax9.pcolormesh(data['Longitude'][:], data['Latitude'][:], \
+    data['RestoredToClear_Counts'][:,:], \
+    shading = 'auto', transform = ccrs.PlateCarree())
+cbar = fig.colorbar(mesh, ax = ax9, label = 'Counts')
+ax9.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax9.coastlines()
+ax9.set_title('RestoredToClear')
+
+
+data.close()
+
+
+fig.tight_layout()
+plt.show()
+
+
+sys.exit()
+date_str = '202107222110'
+plot_ceres_scatter(date_str, zoom=True,save=True,composite=True,\
+    avg_pixel=True,plume_only=False)
+
+sys.exit()
+
+
+hash_data, nohash_data = find_plume(date_str) 
+
+
+sys.exit()
+plot_figure2(save=True, composite = False)
+#plot_combined_figure1_v6(save = True)
+
+sys.exit()
+
 
 
 
