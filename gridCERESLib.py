@@ -690,33 +690,34 @@ def readgridCERES_hrly_grid(data_dt,param,satellite = 'Aqua',minlat=60.0,\
     ##!#        print(idx_diff, test_time[keep_lat_peaks[ii]], np.nanmean(test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]), 'nothing')
             if(ii > 0):
                 if(np.count_nonzero(~np.isnan(grid_lon[ii-1,:])) > 0):
-                    avg_vza = np.nanmean(grid_vza[:,:], axis=0)
-                    fun_c = abs((test_vza[keep_lat_peaks[ii]]) - avg_vza[:30])
-                    #fun_c = abs((test_vza[keep_lat_peaks[ii]]) - grid_vza[ii-1,:30])
-                    m_idx = np.where(fun_c == np.min(fun_c))
-                    ##!#print('last line vza = ',grid_vza[ii-1,:9])
-                    ##!#print('avg line vza  = ',avg_vza[:9])
-                    ##!##print('avg line vza  = ',np.nanmean(grid_vza[:,:], axis=0)[:9])
-                    ##!#print('this line vza = ',test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 9])
-                    ##!#print('beginning lat this line = ', test_vza[keep_lat_peaks[ii]])
-                    ##!#print('closest   lat last line = ', avg_vza[:30][m_idx])
-                    ##!##print('closest   lat last line = ', grid_vza[ii-1,:9][m_idx])
-                    ##!#print('index of closst last lat =', m_idx)
-                    
-                    #fun_c = np.maximum(np.abs(grid_lat - slat), \
-                    #    np.abs(grid_lon - slon))
-                    if(len(test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]) > 0):
-                        grid_swf[ii,m_idx[0][0]:len(test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
-                        grid_lwf[ii,m_idx[0][0]:len(test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
-                        #print(grid_lwf[ii,m_idx[0][0]:len(test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])])
-                        grid_lat[ii,m_idx[0][0]:len(test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
-                        grid_lon[ii,m_idx[0][0]:len(test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
-                        grid_sza[ii,m_idx[0][0]:len(test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
-                        grid_vza[ii,m_idx[0][0]:len(test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
-                        grid_azm[ii,m_idx[0][0]:len(test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
-                        grid_alb[ii,m_idx[0][0]:len(test_alb[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_alb[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
-                        grid_cld[ii,m_idx[0][0]:len(test_cld[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_cld[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
-                        grid_time[ii,m_idx[0][0]:len(test_ftim[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_ftim[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                    if(keep_lat_peaks[ii] < len(test_vza)):
+                        avg_vza = np.nanmean(grid_vza[:,:], axis=0)
+                        fun_c = abs((test_vza[keep_lat_peaks[ii]]) - avg_vza[:30])
+                        #fun_c = abs((test_vza[keep_lat_peaks[ii]]) - grid_vza[ii-1,:30])
+                        m_idx = np.where(fun_c == np.min(fun_c))
+                        ##!#print('last line vza = ',grid_vza[ii-1,:9])
+                        ##!#print('avg line vza  = ',avg_vza[:9])
+                        ##!##print('avg line vza  = ',np.nanmean(grid_vza[:,:], axis=0)[:9])
+                        ##!#print('this line vza = ',test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii] + 9])
+                        ##!#print('beginning lat this line = ', test_vza[keep_lat_peaks[ii]])
+                        ##!#print('closest   lat last line = ', avg_vza[:30][m_idx])
+                        ##!##print('closest   lat last line = ', grid_vza[ii-1,:9][m_idx])
+                        ##!#print('index of closst last lat =', m_idx)
+                        
+                        #fun_c = np.maximum(np.abs(grid_lat - slat), \
+                        #    np.abs(grid_lon - slon))
+                        if(len(test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]) > 0):
+                            grid_swf[ii,m_idx[0][0]:len(test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_swf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                            grid_lwf[ii,m_idx[0][0]:len(test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                            #print(grid_lwf[ii,m_idx[0][0]:len(test_lwf[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])])
+                            grid_lat[ii,m_idx[0][0]:len(test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                            grid_lon[ii,m_idx[0][0]:len(test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_lon[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                            grid_sza[ii,m_idx[0][0]:len(test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_sza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                            grid_vza[ii,m_idx[0][0]:len(test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_vza[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                            grid_azm[ii,m_idx[0][0]:len(test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_azm[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                            grid_alb[ii,m_idx[0][0]:len(test_alb[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_alb[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                            grid_cld[ii,m_idx[0][0]:len(test_cld[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_cld[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
+                            grid_time[ii,m_idx[0][0]:len(test_ftim[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]])] = test_ftim[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]][:-(int(m_idx[0][0]))]
 
         elif(idx_diff > testmax):
             #print(idx_diff, test_time[keep_lat_peaks[ii]], np.nanmean(test_lat[keep_lat_peaks[ii]:keep_lat_peaks[ii+1]]), 'over estimate')

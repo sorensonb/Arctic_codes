@@ -8,7 +8,16 @@
 import gridCERESLib
 from gridCERESLib import *
 import sys
+
+data_dt = '2018070409'
+fig = plt.figure()
+minlat = 65.
+plotCERES_hrly_figure(data_dt, 'SWF',  \
+    minlat = minlat, lat_circles = None, ax = None, title = 'SWF',\
+    grid_data = True, zoom = False, vmax = 450, vmin = None, save = False)
 sys.exit()
+
+
 def local_test_func(infile, data_dt, minlat, maxlat, minlon, maxlon, sizer = 120, \
         vmin1 = 150, vmax1 = 250, vmin2 = 300, vmax2 = 370):
 

@@ -39,6 +39,11 @@ import objects
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+
+##!#build_trop_training_dataset('2018')
+##!#
+##!#sys.exit()
+
 ####automate_TROP_input_process('201804', minlat = 55, remove_trop_files = True, \
 ####                            begin_date = '20180401', end_date = '20180430', \
 ####                            remove_data_date_dir = True)
@@ -46,11 +51,23 @@ import objects
 # --------------------
 #dat_name = 'default'
 dat_name = 'OMI'
+month = 7
+l_only_highAI = False
+l_only_lowAI = True
+l_stretch_all = False
+l_include_tropomi = True
+num_epochs = 30000
+batch_size = 32
 low_res = False
+
+l_load_model = True
+
 objects.dat_name = dat_name
 #read_train_dataset(dat_name = dat_name, low_res = low_res)
-read_train_dataset(dat_name = dat_name, month = 7, low_res = low_res)
-
+read_train_dataset(dat_name = dat_name, month = month, low_res = low_res, \
+    include_tropomi = l_include_tropomi, l_remove_lower_passes = True, \
+    only_highAI = l_only_highAI, only_lowAI = l_only_lowAI, \
+    stretch_all = l_stretch_all)
 
 # Extract testing images
 # ----------------------
@@ -64,7 +81,6 @@ ranges = np.arange(0, objects.train_images.shape[0])
 train_idxs, test_idxs = train_test_split(ranges, test_size = num_test)
 
 print(train_idxs.shape, test_idxs.shape)
-
 
 objects.test_images  = objects.train_images[test_idxs,:,:]
 objects.train_images = objects.train_images[train_idxs,:,:]
@@ -85,7 +101,7 @@ objects.buffer_size = objects.train_images.shape[0]
 #objects.batch_size = 256
 #objects.batch_size = 128
 #objects.batch_size = 64
-objects.batch_size = 32
+objects.batch_size = batch_size
 objects.image_size = objects.train_images.shape[1]
 #objects.image_size = 28
 
@@ -93,8 +109,17 @@ print(objects.buffer_size, objects.batch_size, objects.image_size)
 
 # Train the model
 # ----------------
-l_load_checkpoints = False
-train_model(EPOCHS = 300, l_load_checkpoints = l_load_checkpoints)
+if(l_load_model):
+    objects.generator     = tf.keras.models.load_model('test_generator_20240423_10000_lowAI.keras')
+    objects.discriminator = tf.keras.models.load_model('test_discriminator_20240423_10000_lowAI.keras')
+else:
+    l_load_checkpoints = False
+    train_model(EPOCHS = num_epochs, l_load_checkpoints = l_load_checkpoints)
+
+print("PRINTING GENERATOR STUFF")
+objects.generator.summary()
+print("PRINTING DISCRIMINATOR STUFF")
+objects.discriminator.summary()
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
@@ -116,5 +141,8 @@ objects.np_mask = np_mask
 # Generate a figure showing the error statistics
 # ----------------------------------------------
 #valid_idxs = np.arange(num_test)
-valid_idxs = np.array([20])
+valid_idxs = np.array([20,30,40,50])
 plot_validate_multiple(valid_idxs, complete = True, test = True, save = True)
+
+#plot_validate_stats_multiple(50, complete = True, noise = False, \
+#    test = True, save = False)

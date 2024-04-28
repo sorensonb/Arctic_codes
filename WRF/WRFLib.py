@@ -338,12 +338,20 @@ def plot_WRF_combined_output(in_data, time_index, save = False, out_add = 'smoke
     else:
         plt.show()
 
-def plot_WRF_sounding(in_data,time_index,city_name):
-    # Use geopy to get the city lat and lon
-    geolocator = Nominatim(user_agent = 'myapplication')
-    location = geolocator.geocode(city_name)
-    lat = location.latitude
-    lon = location.longitude
+def plot_WRF_sounding(in_data,time_index, skew = None, city_name = None, \
+        lat = None, lon = None, linestyle = None):
+    if(city_name is None):
+        lat = lat
+        lon = lon
+    elif( (lat is None) & (lon is None)):
+        # Use geopy to get the city lat and lon
+        geolocator = Nominatim(user_agent = 'myapplication')
+        location = geolocator.geocode(city_name)
+        lat = location.latitude
+        lon = location.longitude
+    else:
+        print("ERROR: Invalid function call")
+        return
 
     # Grab the profile time
     plot_date = ''
@@ -396,16 +404,45 @@ def plot_WRF_sounding(in_data,time_index,city_name):
     v_prof    = to_np(v00_d[:,a_x,a_y])*units('m/s').to('knots')
 
     # Plot the sounding
+    in_ax = True
+    if(skew is None):
+        in_ax = False
+        skew = SkewT(rotation=45)
+    skew.plot(pres_prof,t_prof,'r', linestyle = linestyle)
+    skew.plot(pres_prof,td_prof,'g', linestyle = linestyle)
+    if(not in_ax):
+        skew.plot_barbs(pres_prof,u_prof,v_prof)
+        skew.plot_dry_adiabats(alpha = 0.3)
+        skew.plot_moist_adiabats(alpha = 0.3)
+        skew.plot_mixing_lines(alpha = 0.3)
+        skew.ax.set_ylim(1000,100)
+        skew.ax.set_xlim(-30,50)
+
+    if(not in_ax):
+        if(city_name is not None):
+            plt.title(city_name+'\n'+plot_date)
+        else:
+            plt.title(plot_date)
+        plt.show()    
+
+def plot_WRF_sounding_compare_data(file1, file2, lat, lon, save = False):
+
     skew = SkewT(rotation=45)
-    skew.plot(pres_prof,t_prof,'r')
-    skew.plot(pres_prof,td_prof,'g')
-    skew.plot_barbs(pres_prof,u_prof,v_prof)
-    skew.plot_dry_adiabats()
-    skew.plot_moist_adiabats()
-    skew.plot_mixing_lines()
-    skew.ax.set_ylim(1000,100)
-    skew.ax.set_xlim(-50,50)
-    plt.title(city_name+'\n'+plot_date)
-    plt.show()    
 
+    data = Dataset(file1)
+    plot_WRF_sounding(data, 43, skew = skew, lat = lat, lon = lon, linestyle = ':')
+    
+    data.close()
+    
+    data = Dataset(file2)
+    plot_WRF_sounding(data, 43, skew = skew, lat = lat, lon = lon, linestyle = '--')
+    data.close()
 
+    skew.plot_dry_adiabats(alpha = 0.3)
+    skew.plot_moist_adiabats(alpha = 0.3)
+    skew.plot_mixing_lines(alpha = 0.3)
+    skew.ax.set_ylim(1000,400)
+    skew.ax.set_xlim(-5,35)
+    
+    plt.show()
+    

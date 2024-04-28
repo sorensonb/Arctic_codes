@@ -10,6 +10,41 @@ import OMILib
 from OMILib import *
 import sys
 
+date_str = '201807052213'
+
+data = h5py.File('/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2018m0701t0113-o74251_v003-2019m0802t150717.he5')
+
+lat = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude'][:,:]
+lon = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude'][:,:]
+alb = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/SurfaceAlbedo'][:,:,:]
+
+mask_alb = np.ma.masked_where(abs(alb) > 100, alb)
+
+fig = plt.figure()
+ax1 = fig.add_subplot(1,3,1, projection = ccrs.NorthPolarStereo())
+ax2 = fig.add_subplot(1,3,2, projection = ccrs.NorthPolarStereo())
+ax3 = fig.add_subplot(1,3,3, projection = ccrs.NorthPolarStereo())
+
+ax1.pcolormesh(lon, lat, mask_alb[:,:,0], shading = 'auto', transform = ccrs.PlateCarree())
+ax1.coastlines()
+ax1.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
+
+ax2.pcolormesh(lon, lat, mask_alb[:,:,1], shading = 'auto', transform = ccrs.PlateCarree())
+ax2.coastlines()
+ax2.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
+
+ax3.pcolormesh(lon, lat, mask_alb[:,:,2], shading = 'auto', transform = ccrs.PlateCarree())
+ax3.coastlines()
+ax3.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
+
+data.close()
+
+fig.tight_layout()
+
+plt.show()
+
+sys.exit()
+
 # Perform nonlinear histogram equalizing stuff
 def hist_equal(data):
     # Determine the number of pixel values

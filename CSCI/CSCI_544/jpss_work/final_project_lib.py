@@ -81,11 +81,23 @@ def contrast_stretch(data):
     stretch_data = y1 + ((data - x1)/(x2 - x1)) * (y2 - y1)
     return stretch_data
 
+def contrast_stretch_all(data):
+    y1 = 0.
+    y2 = 255.
+    #x1 = np.min(data)
+    #x2 = np.max(data)
+    x1 = objects.min_AI
+    x2 = objects.max_AI
+    stretch_data = y1 + ((data - x1)/(x2 - x1)) * (y2 - y1)
+    return stretch_data
+
 # contrast_unstretch undoes the contrast stretching to get from 
 # DCGAN-space to AI space 
-def contrast_unstretch(data):
-    y1 = objects.min_AI
-    y2 = objects.max_AI
+# y1: min AI of image
+# y2: max AI of image
+def contrast_unstretch(data, y1, y2):
+    #y1 = objects.min_AI
+    #y2 = objects.max_AI
     x1 = 0.
     x2 = 255.
     unstretch_data = y1 + ((data - x1)/(x2 - x1)) * (y2 - y1)
@@ -408,10 +420,133 @@ def build_training_dataset(date_str):
 
     print('netCDF file saved')
 
+# Reads associated OMI files for a given year and generates the OMI
+# dataset.
+def build_trop_training_dataset(date_str):
+
+    # Figure out if date string is a year, month, or day
+    # --------------------------------------------------
+    if(len(date_str) == 4):
+        str_fmt = '%Y'
+        out_fmt = '%Y'
+    elif(len(date_str) == 6):
+        str_fmt = '%Y%m'
+        out_fmt = '%Y%m'
+    elif(len(date_str) == 8):
+        str_fmt = '%Y%m%d'
+        out_fmt = '%Y%m%d'
+    else:
+        print("INVALID DATE STRING. RETURNING")
+        return
+
+    dt_date_str = datetime.strptime(date_str, str_fmt)
+         
+    # For whatever date period is desired, use glob
+    # to find the number of associated files
+    # ---------------------------------------------
+    files = glob(dt_date_str.strftime(\
+        '/home/blake.sorenson/CSCI_544/final_project/coloc_data/' + \
+        'colocated_tropomi_' + out_fmt + '*.hdf5'))
+
+
+    # The length of the returned list (times two) will
+    # be the size of array needed for the netCDF file
+    # ------------------------------------------------
+    n_files = len(files)
+    n_images = n_files * 2
+    n_x = n_y = 60
+    print(n_files)
+
+    # ----------------------
+    # Set up the netCDF file
+    # ----------------------
+    file_name = 'train_dataset_trop_' + date_str + '.nc'
+    nc = Dataset(file_name,'w',format='NETCDF4')
+    
+    # Use the dimension size variables to actually create dimensions in 
+    # the file.
+    # ----------------------------------------------------------------- 
+    n_image_dim = nc.createDimension('n_img',n_images)
+    n_lat_dim   = nc.createDimension('n_x',n_x)
+    n_lon_dim   = nc.createDimension('n_y',n_y)
+
+    # Create variables for the three dimensions
+    # -----------------------------------------
+    images = nc.createVariable('images','i2',('n_img'))
+    images.description = 'Number of TROPOMI image subsets in the dataset'
+
+    # Create a variable for the AI images, dimensioned using all three
+    # dimensions.
+    # ----------------------------------------------------------------  
+    AI = nc.createVariable('AI','f4',('n_img','n_x','n_y'))
+    AI.description = 'UV Aerosol Index'
+    AI.units = 'None'
+    LAT = nc.createVariable('LAT','f4',('n_img','n_x','n_y'))
+    LAT.description = 'Latitude'
+    LAT.units = 'degrees N'
+    LON = nc.createVariable('LON','f4',('n_img','n_x','n_y'))
+    LON.description = 'Longitude'
+    LON.units = 'degrees E'
+    SZA = nc.createVariable('SZA','f4',('n_img','n_x','n_y'))
+    SZA.description = 'Solar Zenith Angle'
+    SZA.units = 'degrees'
+    TIME = nc.createVariable('TIME','f8',('n_img'))
+    TIME.description = 'Seconds since 00:00 UTC 01 January 2005'
+    TIME.units = 'seconds'
+
+    # Loop over the glob list
+    # -----------------------
+    for ii, fname in enumerate(files):
+        dt_name = datetime.strptime(fname.strip().split('/')[-1][18:30],\
+            '%Y%m%d%H%M')
+
+        time_diff = (dt_name - base_date).total_seconds()
+
+        # Read data from each subsetted and colocated TROP file
+        # -----------------------------------------------------
+        data = h5py.File(fname)
+
+        # Fix the missing regridded TROP pixels
+        # -------------------------------------
+        mask_trop = np.ma.masked_where(data['trop_ai'][:,:] == -999., data['trop_ai'][:,:])
+        new_trop = mask_trop.reshape(-1, 5, mask_trop.shape[1]).mean(axis = 1)
+        
+        for jj in range(new_trop.shape[0]):
+            num_mask = len(np.where(new_trop[jj,:].mask == True)[0])
+            print(num_mask, np.where(new_trop[jj,:].mask == True)[0])
+            if(num_mask > 0):   
+                num_good = len(np.where((new_trop[jj,:].mask == False)))
+                if(num_good > 50):
+                    new_trop[jj,:][np.where(new_trop[jj,:].mask == True)] = \
+                        new_trop[jj,:][np.where((new_trop[jj,:].mask == False))[0][-1]]
+
+        # Insert the data for the scene(s) from the current file into the
+        # netCDF file
+        # ---------------------------------------------------------------
+        TIME[ii*2] = time_diff
+        TIME[ii*2+1] = time_diff
+        AI[(ii*2),:,:]    = new_trop
+        LAT[(ii*2),:,:]   = data['omi_lat'][:,:]
+        LON[(ii*2),:,:]   = data['omi_lon'][:,:]
+        SZA[(ii*2),:,:]   = data['omi_sza'][:,:]
+        AI[(ii*2)+1,:,:]  = new_trop[::-1,:]
+        LAT[(ii*2)+1,:,:] = data['omi_lat'][::-1,:]
+        LON[(ii*2)+1,:,:] = data['omi_lon'][::-1,:]
+        SZA[(ii*2)+1,:,:] = data['omi_sza'][::-1,:]
+
+    # Close the netCDF file, which actually saves it.
+    # -----------------------------------------------
+    nc.close()
+
+    print('netCDF file saved')
+
+
 # Reads the three OMI datasets for 2005, 2006, and 2007, combines the
 # datasets, removes images with bad data, and selects only data from
 # a single month if desired. 
-def read_train_dataset(dat_name = 'default', month = None, low_res = False):
+def read_train_dataset(dat_name = 'default', month = None, low_res = False, \
+            include_tropomi = False, l_remove_lower_passes = False, \
+            only_highAI = False, only_lowAI = False, stretch_all = False):
     res_add = ''
     if(dat_name == 'OMI'):
         # Open all 3 training datasets
@@ -419,9 +554,14 @@ def read_train_dataset(dat_name = 'default', month = None, low_res = False):
         data1 = Dataset('./train_dataset_2005.nc','r')
         data2 = Dataset('./train_dataset_2006.nc','r')
         data3 = Dataset('./train_dataset_2007.nc','r')
+        if(include_tropomi):
+            data4 = Dataset('./train_dataset_trop_2018.nc','r')
+            data5 = Dataset('./train_dataset_trop_2019.nc','r')
 
         begin_size = data1['AI'].shape[0] + data2['AI'].shape[0] + \
             data3['AI'].shape[0] 
+        if(include_tropomi):
+            begin_size += data4['AI'].shape[0] + data5['AI'].shape[0]
         print("Before thinning: ", begin_size)
 
         # Remove any swaths with any missing pixels
@@ -432,28 +572,63 @@ def read_train_dataset(dat_name = 'default', month = None, low_res = False):
             for ii in range(np.array(data2['AI']).shape[0])])
         masks3 = np.array([(True in np.array(data3['AI'][ii,:,:].mask)) \
             for ii in range(np.array(data3['AI']).shape[0])])
-      
-        testdata1 = data1['AI'][np.where(masks1 == False)]
-        testdata2 = data2['AI'][np.where(masks2 == False)]
-        testdata3 = data3['AI'][np.where(masks3 == False)]
-        testLAT1  = data1['LAT'][np.where(masks1 == False)]
-        testLAT2  = data2['LAT'][np.where(masks2 == False)]
-        testLAT3  = data3['LAT'][np.where(masks3 == False)]
-        testLON1  = data1['LON'][np.where(masks1 == False)]
-        testLON2  = data2['LON'][np.where(masks2 == False)]
-        testLON3  = data3['LON'][np.where(masks3 == False)]
-        testTIME1 = data1['TIME'][np.where(masks1 == False)]
-        testTIME2 = data2['TIME'][np.where(masks2 == False)]
-        testTIME3 = data3['TIME'][np.where(masks3 == False)]
+        if(include_tropomi):
+            masks4 = np.array([(True in np.array(data4['AI'][ii,:,:].mask)) \
+                for ii in range(np.array(data4['AI']).shape[0])])
+            masks5 = np.array([(True in np.array(data5['AI'][ii,:,:].mask)) \
+                for ii in range(np.array(data5['AI']).shape[0])])
+     
+        # Remove the "second" swaths from each OMI file 
+        if(l_remove_lower_passes):
+            testdata1 = data1['AI'][np.where(masks1 == False)][::2]
+            testdata2 = data2['AI'][np.where(masks2 == False)][::2]
+            testdata3 = data3['AI'][np.where(masks3 == False)][::2]
+            testLAT1  = data1['LAT'][np.where(masks1 == False)][::2]
+            testLAT2  = data2['LAT'][np.where(masks2 == False)][::2]
+            testLAT3  = data3['LAT'][np.where(masks3 == False)][::2]
+            testLON1  = data1['LON'][np.where(masks1 == False)][::2]
+            testLON2  = data2['LON'][np.where(masks2 == False)][::2]
+            testLON3  = data3['LON'][np.where(masks3 == False)][::2]
+            testTIME1 = data1['TIME'][np.where(masks1 == False)][::2]
+            testTIME2 = data2['TIME'][np.where(masks2 == False)][::2]
+            testTIME3 = data3['TIME'][np.where(masks3 == False)][::2]
+        else:
+            testdata1 = data1['AI'][np.where(masks1 == False)]
+            testdata2 = data2['AI'][np.where(masks2 == False)]
+            testdata3 = data3['AI'][np.where(masks3 == False)]
+            testLAT1  = data1['LAT'][np.where(masks1 == False)]
+            testLAT2  = data2['LAT'][np.where(masks2 == False)]
+            testLAT3  = data3['LAT'][np.where(masks3 == False)]
+            testLON1  = data1['LON'][np.where(masks1 == False)]
+            testLON2  = data2['LON'][np.where(masks2 == False)]
+            testLON3  = data3['LON'][np.where(masks3 == False)]
+            testTIME1 = data1['TIME'][np.where(masks1 == False)]
+            testTIME2 = data2['TIME'][np.where(masks2 == False)]
+            testTIME3 = data3['TIME'][np.where(masks3 == False)]
+
+        if(include_tropomi):
+            testdata4 = data4['AI'][np.where(masks4 == False)]
+            testdata5 = data5['AI'][np.where(masks5 == False)]
+            testLAT4  = data4['LAT'][np.where(masks4 == False)]
+            testLAT5  = data5['LAT'][np.where(masks5 == False)]
+            testLON4  = data4['LON'][np.where(masks4 == False)]
+            testLON5  = data5['LON'][np.where(masks5 == False)]
+            testTIME4 = data4['TIME'][np.where(masks4 == False)]
+            testTIME5 = data5['TIME'][np.where(masks5 == False)]
 
         # Close the netCDF objects.
         # -------------------------
         data1.close()
         data2.close()
         data3.close()
+        if(include_tropomi):
+            data4.close()
+            data5.close()
    
         total_size = testdata1.shape[0] + testdata2.shape[0] + \
             testdata3.shape[0]
+        if(include_tropomi):
+            total_size += testdata4.shape[0] + testdata5.shape[0] 
 
         print("After removing unknown bad rows: ", total_size)
 
@@ -472,12 +647,36 @@ def read_train_dataset(dat_name = 'default', month = None, low_res = False):
             testdata1.shape[0] + testdata2.shape[0] + \
             testdata3.shape[0], :, :] = testdata3
 
+        ##!## First, remove all 2nd swath sections
+        ##!## ------------------------------------
+        ##!#total_data = total_data[::2]
+
+        if(include_tropomi):
+            total_data[testdata1.shape[0] + testdata2.shape[0] + \
+                testdata3.shape[0] : testdata1.shape[0] + testdata2.shape[0] + \
+                testdata3.shape[0] + testdata4.shape[0],:,:] = testdata4
+            total_data[testdata1.shape[0] + testdata2.shape[0] + \
+                testdata3.shape[0]  + testdata4.shape[0]: \
+                testdata1.shape[0] + testdata2.shape[0] + \
+                testdata3.shape[0] + testdata4.shape[0] + \
+                testdata5.shape[0],:,:] = testdata5
+
         total_LAT[:testdata1.shape[0], :, :] = testLAT1
         total_LAT[testdata1.shape[0]:testdata1.shape[0] + \
             testdata2.shape[0], :, :] = testLAT2
         total_LAT[testdata1.shape[0] + testdata2.shape[0] : \
             testdata1.shape[0] + testdata2.shape[0] + \
             testdata3.shape[0], :, :] = testLAT3
+
+        if(include_tropomi):
+            total_LAT[testdata1.shape[0] + testdata2.shape[0] + \
+                testdata3.shape[0] : testdata1.shape[0] + testdata2.shape[0] + \
+                testdata3.shape[0] + testdata4.shape[0],:,:] = testLAT4
+            total_LAT[testdata1.shape[0] + testdata2.shape[0] + \
+                testdata3.shape[0]  + testdata4.shape[0]: \
+                testdata1.shape[0] + testdata2.shape[0] + \
+                testdata3.shape[0] + testdata4.shape[0] + \
+                testdata5.shape[0],:,:] = testLAT5
 
         total_LON[:testdata1.shape[0], :, :] = testLON1
         total_LON[testdata1.shape[0]:testdata1.shape[0] + \
@@ -486,6 +685,17 @@ def read_train_dataset(dat_name = 'default', month = None, low_res = False):
             testdata1.shape[0] + testdata2.shape[0] + \
             testdata3.shape[0], :, :] = testLON3
 
+        if(include_tropomi):
+            total_LON[testdata1.shape[0] + testdata2.shape[0] + \
+                testdata3.shape[0] : testdata1.shape[0] + testdata2.shape[0] + \
+                testdata3.shape[0] + testdata4.shape[0],:,:] = testLON4
+            total_LON[testdata1.shape[0] + testdata2.shape[0] + \
+                testdata3.shape[0]  + testdata4.shape[0]: \
+                testdata1.shape[0] + testdata2.shape[0] + \
+                testdata3.shape[0] + testdata4.shape[0] + \
+                testdata5.shape[0],:,:] = testLON5
+
+
         total_TIME[:testdata1.shape[0]] = testTIME1
         total_TIME[testdata1.shape[0]:testdata1.shape[0] + \
             testdata2.shape[0]] = testTIME2
@@ -493,17 +703,28 @@ def read_train_dataset(dat_name = 'default', month = None, low_res = False):
             testdata1.shape[0] + testdata2.shape[0] + \
             testdata3.shape[0]] = testTIME3
 
+        if(include_tropomi):
+            total_TIME[testdata1.shape[0] + testdata2.shape[0] + \
+                testdata3.shape[0] : testdata1.shape[0] + testdata2.shape[0] + \
+                testdata3.shape[0] + testdata4.shape[0]] = testTIME4[:]
+            total_TIME[testdata1.shape[0] + testdata2.shape[0] + \
+                testdata3.shape[0]  + testdata4.shape[0]: \
+                testdata1.shape[0] + testdata2.shape[0] + \
+                testdata3.shape[0] + testdata4.shape[0] + \
+                testdata5.shape[0]] = testTIME5[:]
+
+        
+
         # Only use one month?
         # -------------------
         if(month is not None):
             print("months")
 
-            # First, remove all 2nd swath sections
-            # ------------------------------------
-            total_data = total_data[::2]
-            total_LAT  = total_LAT[::2]
-            total_LON  = total_LON[::2]
-            total_TIME = total_TIME[::2]
+            ##!## HEEEERE HERE
+            ##!## First, remove all 2nd swath sections
+            ##!## ------------------------------------
+            ##!#total_TIME = total_TIME[::2]
+
 
             # Then, use the times to remove any first swaths that
             # are not from the desired month
@@ -558,22 +779,57 @@ def read_train_dataset(dat_name = 'default', month = None, low_res = False):
             total_LAT = temp_lat
             total_LON = temp_lon
  
-        # Scale the AI data from -1 to 1
-        # 2024/03/08: Modification for CSCI 544: Scaling each invidual
-        # image from -1 to 1, not the whole distribution
-        # ------------------------------------------------------------
-        ##!#objects.max_AI = np.max(total_data, axis = (1,2))
-        ##!#objects.min_AI = np.min(total_data, axis = (1,2))
-        ##!#total_data = np.array([contrast_stretch(total_data[ii,:,:]) \
-        ##!#    for ii in range(total_data.shape[0])])
+        # Find out how many images have AI over 2
+        # ---------------------------------------
+        num_high = len(np.where(np.max(total_data, axis = (1,2)) > 2)[0])
+        print("num high AI", num_high)
+
+        # If desired, find the indices for images that contain either high
+        # or low AI. Later, remove (or keep) only these
+        # ----------------------------------------------------------------
+        if(only_highAI):
+            print("\nKeeping only data with AI > 2")
+            keep_idxs = np.where(np.max(total_data, axis = (1,2)) > 2)[0]
+            print("Total # images", len(keep_idxs))
+        elif(only_lowAI):
+            print("\nKeeping only data with AI < 2")
+            keep_idxs = np.where((np.max(total_data, axis = (1,2)) < 2) & \
+                                 (np.min(total_data, axis = (1,2)) > -3))[0]
+            print("Total # images", len(keep_idxs))
+ 
 
         ##!#print("HERE:", total_data.shape)
-    
-        objects.max_AI = np.max(total_data)
-        objects.min_AI = np.min(total_data)
-        total_data = contrast_stretch(total_data[:,:,:])
-        total_data = total_data.reshape(total_data.shape[0], \
-            total_data.shape[1], total_data.shape[2], 1).astype('float32')
+  
+        # Scale the AI data from -1 to 1
+        if(stretch_all):
+            # 2024/03/08: Modification for CSCI 544: Scaling each invidual
+            # image from -1 to 1, not the whole distribution
+            # ------------------------------------------------------------
+            objects.max_AI = np.max(total_data, axis = (1,2))
+            objects.min_AI = np.min(total_data, axis = (1,2))
+            total_data = np.array([contrast_stretch(total_data[ii,:,:]) \
+                for ii in range(total_data.shape[0])])
+
+            print('MAX MAX(AI):', np.max(objects.max_AI))
+            print('MIN MIN(AI):', np.min(objects.min_AI))
+
+        else:
+            # ORIGINAL METHOD 
+            objects.max_AI = np.max(total_data)
+            objects.min_AI = np.min(total_data)
+            total_data = contrast_stretch_all(total_data[:,:,:])
+            total_data = total_data.reshape(total_data.shape[0], \
+                total_data.shape[1], total_data.shape[2], 1).astype('float32')
+
+            print('MAX(AI):', objects.max_AI)
+            print('MIN(AI):', objects.min_AI)
+
+
+        if((only_highAI) or (only_lowAI)):
+            total_data = total_data[keep_idxs,:,:]
+            total_LON  = total_LON[keep_idxs,:,:]
+            total_LAT  = total_LAT[keep_idxs,:,:]
+
         objects.train_images = (total_data - 127.5) / 127.5
 
         objects.train_lat  = total_LAT
@@ -854,7 +1110,7 @@ def save_complete_losses(idx, losses):
 cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
 def make_generator_model():
-    conv_kernel = (7, 7)
+    conv_kernel = (5, 5)
     model = tf.keras.Sequential()
     model.add(layers.Dense(int(objects.image_size / 4) * \
         int(objects.image_size / 4) * int(objects.batch_size), \
@@ -897,7 +1153,7 @@ def make_generator_model():
     return model
 
 def make_discriminator_model():
-    conv_kernel = (7, 7)
+    conv_kernel = (5, 5)
     model = tf.keras.Sequential()
     #model.add(layers.Conv2D(64, (5, 5), strides=(2, 2), padding='same',
     #                                 input_shape=[28, 28, 1]))
@@ -962,15 +1218,15 @@ def train(dataset, epochs):
           train_step(image_batch)
       
         # Produce images for the GIF as you go
-        if(((epoch + 1 ) % 10) == 0):
+        if(((epoch + 1 ) % 1000) == 0):
             plt.close('all')
             generate_and_save_images(objects.generator,
                                      epoch + 1,
                                      objects.seed)
       
-        # Save the model every 15 epochs
-        if (epoch + 1) % 15 == 0:
-          objects.checkpoint.save(file_prefix = objects.checkpoint_prefix)
+        ## Save the model every 500 epochs
+        #if (epoch + 1) % 500 == 0:
+        #  objects.checkpoint.save(file_prefix = objects.checkpoint_prefix)
       
         print ('Time for epoch {} is {} sec'.format(epoch + 1, \
             time.time()-start))
@@ -979,6 +1235,12 @@ def train(dataset, epochs):
     generate_and_save_images(objects.generator,
                              epochs,
                              objects.seed)
+
+    # Test using the new Keras generic "save model" tool
+    # --------------------------------------------------
+    objects.generator.save('test_generator.keras')
+    objects.discriminator.save('test_discriminator.keras')
+    print("Saved the generator and discriminator")
 
     print('done training')
 
@@ -1047,7 +1309,7 @@ def run_complete(plot_losses = False, smooth = False):
         zhats = tf.Variable(np.random.uniform(-1, 1, \
             size=(1, objects.noise_dim)))
   
-    print('zhats = ', zhats.shape, type(zhats))
+    #print('zhats = ', zhats.shape, type(zhats))
  
     iter_nums = 2000
     v_num = 0.0
@@ -1187,7 +1449,96 @@ def calc_validate_stats(idx, noise = False):
     # --------------------------------------------------------
     objects.errors = np.nanmean(((mask_complete - mask_test) / mask_test), \
         axis = 1) * 100.
+    objects.indiv_errors = ((mask_complete - mask_test) / mask_test) * 100.
+   
+def plot_validate_stats_multiple(num_img, complete = True, noise = False, \
+        test = True, save = True): 
+
+    # Add mask ranges here?
+    # ---------------------
+    beg_masks = np.array([14, 12, 12, 10, 10, 9])
+    end_masks = np.array([17, 17, 19, 19, 21, 21])
+
+    idx = np.arange(num_img)
     
+    plt.close('all')
+    fig = plt.figure(figsize = (9,7))
+    for ii in range(len(beg_masks)):
+        print('Iteration',ii)
+
+        # Set up panel
+        # ------------
+        ax = fig.add_subplot(2,3,ii+1)
+
+        # Set up current mask
+        # -------------------
+        np_mask = np.ones((objects.image_size,objects.image_size))
+        np_mask[:, beg_masks[ii]:end_masks[ii]] = 0.0
+        objects.np_mask = np_mask
+
+        #complete_image(idx, test = test, plot_losses = False)
+
+        # Loop over each of the input images, completing them and calculating
+        # the error between the calculated value and the original value
+        # -------------------------------------------------------------------  
+        for jj in range(num_img):
+            complete_image(jj, test = test, \
+                smooth = False, plot_losses = False)
+
+
+    plt.close('all')
+
+        ##!#calc_validate_stats(idx, noise = False)
+        ##!#objects.combined_errors[:, ii] = objects.errors
+
+        ##!## Insert DCGAN error stats into arrays
+        ##!## ------------------------------------
+        ##!#means[0,ii]   = np.mean(objects.errors)
+        ##!#medians[0,ii] = np.median(objects.errors)
+        ##!#stds[0,ii]    = np.std(objects.errors)
+
+        ##!#print('  Generator')
+        ##!#print('    mean error', means[0,ii])
+        ##!#print('    med  error', medians[0,ii])
+        ##!#print('    std  error', stds[0,ii])
+        ##!#
+
+        ##!## Plot the current generated statistics in panel
+        ##!## ----------------------------------------------
+        ##!#ax.hist(objects.combined_errors[:,ii], bins = 50, \
+        ##!#    range = (-range_num, range_num), alpha = 0.5, \
+        ##!#    label = 'DCGAN') 
+
+        ##!## Calculate statistics for random noise, if desired
+        ##!## -------------------------------------------------
+        ##!#if(noise):       
+        ##!#    calc_validate_stats(idx, noise = noise)
+
+        ##!#    # Insert noise error stats into arrays
+        ##!#    # ------------------------------------
+        ##!#    means[1,ii]   = np.mean(objects.errors)
+        ##!#    medians[1,ii] = np.median(objects.errors)
+        ##!#    stds[1,ii]    = np.std(objects.errors)
+
+        ##!#    print('  Noise')
+        ##!#    print('    mean error', means[1,ii])
+        ##!#    print('    med  error', medians[1,ii]) 
+        ##!#    print('    std  error', stds[1,ii])
+
+        ##!#    # Plot the current generated statistics in panel
+        ##!#    # ----------------------------------------------
+        ##!#    ax.hist(objects.errors, bins = 50, \
+        ##!#        range = (-range_num, range_num), alpha = 0.5, \
+        ##!#        label = 'Noise') 
+
+        ##!#ax.set_xlim(-range_num, range_num)
+        ##!#ax.axvline(0, color = 'black', linestyle = ':')
+        ##!#ax.set_title('Mask size = '+str(int(end_masks[ii] - \
+        ##!#    beg_masks[ii])))
+        ##!#ax.set_xlabel('Average percent error within mask')
+        ##!#ax.set_ylabel('Counts')
+        ##!#ax.legend()
+
 
 # Complete - whether or not to process the completion code. Set to False if images
 # have already been generated.
@@ -1196,8 +1547,10 @@ def plot_validate_stats(idx, complete = True, noise = False, test = True, \
     
     # Add mask ranges here?
     # ---------------------
-    beg_masks = np.array([14, 13, 13, 12, 12, 11])
-    end_masks = np.array([15, 15, 16, 16, 17, 17])
+    beg_masks = np.array([14, 12, 12, 10, 10, 9])
+    end_masks = np.array([17, 17, 19, 19, 21, 21])
+    #beg_masks = np.array([14, 13, 13, 12, 12, 11])
+    #end_masks = np.array([15, 15, 16, 16, 17, 17])
     
     if(noise):
         noise_add = '_noise'
@@ -1417,20 +1770,24 @@ def plot_validate_multiple(idx, complete = True, test = True, smooth = False, \
     if(len(idx) > 5):
         test_idxs = random.sample(range(0,len(idx)) , 5)
 
-    if(complete):
-        # Make the generated image here
-        # -----------------------------
-        complete_image(idx, test = test, smooth = smooth, plot_losses = plot_losses)
-  
     # Set up figure
     # -------------
     plt.close('all')
     fig = plt.figure(figsize = (9,9)) 
     axs = fig.subplots(len(idx), 4)
-   
+  
+    print("HERE:", objects.test_images.shape)
+ 
     for ii in range(len(idx)):
         mask_img = np.ma.masked_where(objects.np_mask == 0.0, \
             objects.test_images[idx[ii],:,:,0])
+
+        if(complete):
+            # Make the generated image here
+            # -----------------------------
+            complete_image(idx[ii], test = test, \
+                smooth = smooth, plot_losses = plot_losses)
+  
         # panel 1 - original
         # panel 2 - masked
         # panel 3 - generated
@@ -1440,9 +1797,11 @@ def plot_validate_multiple(idx, complete = True, test = True, smooth = False, \
             smooth_add = '_smooth'
             gen_img = \
                 scipy.ndimage.filters.gaussian_filter(\
-                objects.complete_img[ii,:,:], sigma, mode='constant')
+                objects.complete_img[:,:], sigma, mode='constant')
+                #objects.complete_img[ii,:,:], sigma, mode='constant')
         else:
-            gen_img = objects.complete_img[ii,:,:]
+            gen_img = objects.complete_img[:,:]
+            #gen_img = objects.complete_img[ii,:,:]
 
         axs[ii,0].imshow(objects.test_images[idx[ii],:,:,0], cmap = 'gray')
         axs[ii,1].imshow(mask_img, cmap = 'gray')
@@ -1456,7 +1815,8 @@ def plot_validate_multiple(idx, complete = True, test = True, smooth = False, \
         axs[ii,1].axis('off')
         axs[ii,2].axis('off')
 
-        axs[ii,3].plot(objects.losses[ii])
+        axs[ii,3].plot(objects.losses)
+        #axs[ii,3].plot(objects.losses[ii])
         axs[ii,3].set_xlabel('Iterations')
         axs[ii,3].set_ylabel('Complete loss')
 

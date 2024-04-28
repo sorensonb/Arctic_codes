@@ -38,6 +38,68 @@ import objects
 # Main code
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+       
+#build_trop_training_dataset('2018')
+
+#sys.exit()
+
+data = Dataset('./train_dataset_trop_2019.nc','r')
+
+def plot_time(data, ii):
+    fig = plt.figure()
+    ax1 = fig.add_subplot(2,2,1)
+    ax2 = fig.add_subplot(2,2,2)
+    ax3 = fig.add_subplot(2,2,3)
+    ax4 = fig.add_subplot(2,2,4)
+    ax1.imshow(data['AI'][ii,:,:])
+    ax2.imshow(data['AI'][ii+1,:,:])
+    ax3.imshow(data['SZA'][ii,:,:])
+    ax4.imshow(data['SZA'][ii+1,:,:])
+    fig.tight_layout()
+    plt.show()
+
+
+
+sys.exit()
+
+#test_date = '201807052213'
+test_date = '201906021920'
+
+data = h5py.File('coloc_data/colocated_tropomi_' + test_date + '.hdf5')
+
+mask_trop = np.ma.masked_where(data['trop_ai'][:,:] == -999., data['trop_ai'][:,:])
+mask_omi  = np.ma.masked_where((data['omi_uvai_raw'][:,:] < -99.) | (data['omi_uvai_raw'][:,:] > 10), data['omi_uvai_raw'][:,:])
+
+new_trop = mask_trop.reshape(-1, 5, mask_trop.shape[1]).mean(axis = 1)
+new_omi  = mask_omi.reshape(-1, 5, mask_omi.shape[1]).mean(axis = 1)
+
+for ii in range(new_trop.shape[0]):
+    num_mask = len(np.where(new_trop[ii,:].mask == True))
+    if(num_mask > 0):
+        new_trop[ii,:][np.where(new_trop[ii,:].mask == True)] = \
+            new_trop[ii,:][np.where((new_trop[ii,:].mask == False))[0][-1]]
+
+fig = plt.figure()
+ax1 = fig.add_subplot(1,5,1)
+ax2 = fig.add_subplot(1,5,2)
+ax3 = fig.add_subplot(1,5,3)
+ax4 = fig.add_subplot(1,5,4)
+ax5 = fig.add_subplot(1,5,5)
+
+ax1.imshow(mask_trop)
+ax2.imshow(new_trop)
+ax3.imshow(new_trop[::-1,:])
+ax4.imshow(mask_omi)
+ax5.imshow(new_omi)
+
+fig.tight_layout()
+
+data.close()
+
+plt.show()
+
+sys.exit()
+
 automate_TROP_input_process('202005', minlat = 55, remove_trop_files = True, \
                             begin_date = '20200516', end_date = '20200531', \
                             remove_data_date_dir = True)

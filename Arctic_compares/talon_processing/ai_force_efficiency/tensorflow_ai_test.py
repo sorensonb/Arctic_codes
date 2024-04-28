@@ -19,7 +19,7 @@
         from Tensorflow)
 """
 
-import glob
+from glob import glob
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -41,6 +41,16 @@ print("GPU available:", tf.config.list_physical_devices('GPU'))
 #print("GPU available:", tftest.is_gpu_available())
 print("Built with CUDA:", tf.test.is_built_with_cuda())
 
+l_load_model = False
+if(len(sys.argv) < 2):
+    print("SYNTAX: ./tensorflow_ai_test.py simulation_name [load]")
+    print("        [load]: if added, will load the model specified by simulation_name")
+    sys.exit()
+elif(len(sys.argv) == 3):
+    if(sys.argv[2] == 'load'):
+        l_load_model = True
+
+sim_name = sys.argv[1]
 
 # input variables
 # - OMI AI
@@ -58,30 +68,36 @@ print("Built with CUDA:", tf.test.is_built_with_cuda())
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+#data_dir = '/home/blake.sorenson/OMI/arctic_comp/original_prep_data/'
+data_dir = '/home/blake.sorenson/OMI/arctic_comp/comp_data/'
+
 # Scale all input variables to 0 - 1
 
-data_path = '/home/blake.sorenson/OMI/arctic_comp/comp_data/'
+#data_path = '/home/blake.sorenson/OMI/arctic_comp/original_prep_data/'
+data_path = data_dir
+##!#fdates = [
+##!#        '201807040005',\
+##!#        '201807040144',\
+##!#        '201807040322',\
+##!#        '201807041633',\
+##!#        '201807041812',\
+##!#        '201807041951',\
+##!#        '201807042130',\
+##!#        '201807042309',\
+##!#        '201807050048',\
+##!#        '201807050227',\
+##!#        '201807051538',\
+##!#        '201807051717',\
+##!#        '201807051856',\
+##!#        '201807052034',\
+##!#        '201807052213',\
+##!#        '201807052352'
+##!#    ]
+##!#
+##!#files = [data_path + 'colocated_subset_' + fdd + '.hdf5' for fdd in fdates]
 
-fdates = [
-        '201807040005',\
-        '201807040144',\
-        '201807040322',\
-        '201807041633',\
-        '201807041812',\
-        '201807041951',\
-        '201807042130',\
-        '201807042309',\
-        '201807050048',\
-        '201807050227',\
-        '201807051538',\
-        '201807051717',\
-        '201807051856',\
-        '201807052034',\
-        '201807052213',\
-        '201807052352'
-    ]
-
-files = [data_path + 'colocated_subset_' + fdd + '.hdf5' for fdd in fdates]
+files = glob('/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated*.hdf5')
+#files = glob('/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_200607*.hdf5')
 
 #files = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807052213.hdf5']
 
@@ -95,11 +111,12 @@ def select_data(data, min_ai, max_ai, minlat, min_swf, max_swf, max_cod):
                                (data['omi_lat'][:,:] < minlat) | \
                                ( (data['ceres_swf'][:,:] < min_swf) | \
                                (data['ceres_swf'][:,:] > max_swf) ) | \
+                               (np.isnan(data['ceres_swf'][:,:]) == True) | \
                                (data['modis_cod'][:,:] == -999) | \
                                (data['modis_cod'][:,:] > max_cod) | \
                                (np.isnan(data['modis_cod'][:,:]) == True) | \
-                               (data['modis_cld_top_pres'][:,:] == -999) | \
-                               (data['modis_cld_top_pres'][:,:] > 1020) | \
+                               (data['modis_cld_top_pres'][:,:] < 0) | \
+                               (data['modis_cld_top_pres'][:,:] > 1025) | \
                                (np.isnan(data['modis_cld_top_pres'][:,:]) == True) | \
                                (data['nsidc_ice'][:,:] == -999) | \
                                (data['nsidc_ice'][:,:] == 251) | \
@@ -125,6 +142,7 @@ total_size = 0
 for ff in files:
     data = h5py.File(ff,'r')
 
+    print(ff)
     local_data = select_data(data, min_ai, max_ai, minlat, min_swf, \
         max_swf, max_cod)
 
@@ -154,9 +172,12 @@ combined_data['omi_uvai_pert'] = np.full(total_size, np.nan)
 #combined_data['modis_cld']     = np.full(total_size, np.nan)
 combined_data['modis_cld_top_pres']     = np.full(total_size, np.nan)
 combined_data['modis_cod']     = np.full(total_size, np.nan)
+combined_data['modis_ch1']     = np.full(total_size, np.nan)
+combined_data['modis_ch7']     = np.full(total_size, np.nan)
 combined_data['ceres_swf']     = np.full(total_size, np.nan)
-#combined_data['modis_ch7']     = np.full(total_size, np.nan)
 combined_data['omi_sza']       = np.full(total_size, np.nan)
+combined_data['omi_vza']       = np.full(total_size, np.nan)
+#combined_data['omi_azm']       = np.full(total_size, np.nan)
 combined_data['omi_lat']       = np.full(total_size, np.nan)
 combined_data['nsidc_ice']     = np.full(total_size, np.nan)
 
@@ -215,21 +236,31 @@ print(combined_data['omi_uvai_pert'].shape)
 combined_data['modis_cld_top_pres'] = \
     np.where(combined_data['modis_cld_top_pres'] == 0., 1025., \
     combined_data['modis_cld_top_pres'])
+# TESTING: Make all NAN values to be "clear-sky"
+combined_data['modis_cld_top_pres'] = \
+    np.where(np.isnan(combined_data['modis_cld_top_pres'][:]) == True, 1025., \
+    combined_data['modis_cld_top_pres'][:])
 
-
-print(np.min(combined_data['omi_uvai_pert']), np.max(combined_data['omi_uvai_pert']))
-print(np.min(combined_data['ceres_swf']), np.max(combined_data['ceres_swf']))
-print(np.min(combined_data['modis_cod']), np.max(combined_data['modis_cod']))
 print(np.min(combined_data['modis_cld_top_pres']), np.max(combined_data['modis_cld_top_pres']))
-print(np.min(combined_data['omi_sza']), np.max(combined_data['omi_sza']))
-print(np.min(combined_data['nsidc_ice']), np.max(combined_data['nsidc_ice']))
+
+
+print('AI ',np.min(combined_data['omi_uvai_pert']), np.max(combined_data['omi_uvai_pert']))
+print('SWF',np.min(combined_data['ceres_swf']), np.max(combined_data['ceres_swf']))
+print('COD',np.min(combined_data['modis_cod']), np.max(combined_data['modis_cod']))
+print('CH1',np.min(combined_data['modis_ch1']), np.max(combined_data['modis_ch1']))
+print('CH7',np.min(combined_data['modis_ch7']), np.max(combined_data['modis_ch7']))
+print('CTP',np.min(combined_data['modis_cld_top_pres']), np.max(combined_data['modis_cld_top_pres']))
+print('SZA',np.min(combined_data['omi_sza']), np.max(combined_data['omi_sza']))
+print('VZA',np.min(combined_data['omi_vza']), np.max(combined_data['omi_vza']))
+print('ICE',np.min(combined_data['nsidc_ice']), np.max(combined_data['nsidc_ice']))
 
 combined_data['nsidc_ice'][:] = \
     np.where(combined_data['nsidc_ice'][:] == 254., 101., combined_data['nsidc_ice'][:])
 
 min_max_dict = {}
 
-key_variables = ['omi_uvai_pert', 'omi_sza', 'modis_cod', 'modis_cld_top_pres', 'nsidc_ice', 'ceres_swf']
+key_variables = ['omi_uvai_pert', 'omi_sza', 'omi_vza', 'modis_cod', 'modis_cld_top_pres', 'nsidc_ice', \
+    'modis_ch1', 'modis_ch7','ceres_swf']
 
 for key in key_variables:
     min_max_dict[key] = {}
@@ -240,12 +271,16 @@ for key in key_variables:
     combined_data[key] = ((combined_data[key] - min_max_dict[key]['min']) / drange) * 100.
     #combined_data[key] = ((combined_data[key] - min_max_dict[key]['min']) / drange) * 100.
 
-print(np.min(combined_data['omi_uvai_pert']), np.max(combined_data['omi_uvai_pert']))
-print(np.min(combined_data['ceres_swf']), np.max(combined_data['ceres_swf']))
-print(np.min(combined_data['modis_cod']), np.max(combined_data['modis_cod']))
-print(np.min(combined_data['modis_cld_top_pres']), np.max(combined_data['modis_cld_top_pres']))
-print(np.min(combined_data['omi_sza']), np.max(combined_data['omi_sza']))
-print(np.min(combined_data['nsidc_ice']), np.max(combined_data['nsidc_ice']))
+print('AI ',np.min(combined_data['omi_uvai_pert']), np.max(combined_data['omi_uvai_pert']))
+print('SWF',np.min(combined_data['ceres_swf']), np.max(combined_data['ceres_swf']))
+print('COD',np.min(combined_data['modis_cod']), np.max(combined_data['modis_cod']))
+print('CH1',np.min(combined_data['modis_ch1']), np.max(combined_data['modis_ch1']))
+print('CH7',np.min(combined_data['modis_ch7']), np.max(combined_data['modis_ch7']))
+print('CTP',np.min(combined_data['modis_cld_top_pres']), np.max(combined_data['modis_cld_top_pres']))
+print('SZA',np.min(combined_data['omi_sza']), np.max(combined_data['omi_sza']))
+print('VZA',np.min(combined_data['omi_vza']), np.max(combined_data['omi_vza']))
+print('ICE',np.min(combined_data['nsidc_ice']), np.max(combined_data['nsidc_ice']))
+
 
 pcnt_test = 0.25
 num_test = int(combined_data['omi_uvai_pert'].shape[0] * pcnt_test)
@@ -258,15 +293,19 @@ print(train_idxs.shape, test_idxs.shape)
 
 # Input format: OMI SZA, NSIDC ICE, MODIS COD
 x_train = np.array([combined_data['omi_sza'][train_idxs], \
+                    combined_data['omi_vza'][train_idxs], \
                     combined_data['nsidc_ice'][train_idxs], \
                     combined_data['modis_cod'][train_idxs], \
+                    combined_data['modis_ch7'][train_idxs], \
                     combined_data['modis_cld_top_pres'][train_idxs]\
                   ]).T
 y_train = combined_data['ceres_swf'][train_idxs]
 
 x_val   = np.array([combined_data['omi_sza'][test_idxs], \
+                    combined_data['omi_vza'][test_idxs], \
                     combined_data['nsidc_ice'][test_idxs], \
                     combined_data['modis_cod'][test_idxs], \
+                    combined_data['modis_ch7'][test_idxs], \
                     combined_data['modis_cld_top_pres'][test_idxs]\
                   ]).T
 y_val   = combined_data['ceres_swf'][test_idxs]
@@ -278,19 +317,611 @@ print(np.max(y_train), np.max(y_val))
 #
 # Prep the neural network
 #
+#
+# noland3: 5 hidden layers
+#           8,8,8,8,4 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               100 epochs
+#               32 batch size
+#               ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 5.09  
+#           INCLUDES LAND DATA
+#
+# noland4: 5 hidden layers
+#           8,8,8,8,4 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               200 epochs
+#               64 batch size
+#               ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 5.12
+#           INCLUDES LAND DATA
+#           Job ID = 92323
+#
+# noland5: 5 hidden layers
+#           8,8,8,8,4 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               200 epochs
+#               32 batch size
+#               ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 4.97
+#           INCLUDES LAND DATA
+#           Job ID = 92333
+#
+# noland6: 5 hidden layers
+#           8,8,8,8,4 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               200 epochs
+#               32 batch size
+#               sigmoid activation hidden
+#               Linear activation out
+#           Ending MAE: 5.38
+#           INCLUDES LAND DATA
+#           Job ID = 92363
+#
+# noland7: 5 hidden layers
+#           8,8,8,8,4 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               200 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 4.84
+#           INCLUDES LAND DATA
+#           Job ID = 92400
+#
+# noland8: 5 hidden layers
+#           8,16,16,16,8 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               200 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 4.63
+#           INCLUDES LAND DATA
+#           Job ID = 92426
+#
+# noland9: 5 hidden layers
+#           16,16,16,16,16 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               200 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 4.59
+#           INCLUDES LAND DATA
+#           Job ID = 92458
+#
+# noland10: 7 hidden layers
+#           8,8,8,8,8,8,8 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               200 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 4.78
+#           INCLUDES LAND DATA
+#           Job ID = 92506
+#
+# noland11: 9 hidden layers
+#           5,5,5,5,5,5,5,5,5 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               200 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 4.998
+#           INCLUDES LAND DATA
+#           Job ID = 93278
+#
+# noland12: 5 hidden layers
+#           16,32,32,32,16 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               200 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 4.51
+#           INCLUDES LAND DATA
+#           Job ID = 93283
+#
+# noland13: 5 hidden layers
+#           16,16,32,16,16 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               200 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: ????
+#           INCLUDES LAND DATA
+#           Job ID = 93315
+#
+# noland14: 7 hidden layers
+#           8,16,16,32,16,16,8 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               200 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 4.49
+#           INCLUDES LAND DATA
+#           Job ID = 93409
+#
+# noland15: 8 hidden layers
+#           8,16,16,32,32,16,16,8 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               200 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 4.54
+#           INCLUDES LAND DATA
+#           Job ID = 93436
+#
+# noland16: 10 hidden layers
+#           4,8,8,8,8,8,8,8,8,4 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               200 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 4.77
+#           INCLUDES LAND DATA
+#           Job ID = 93449
+#
+# noland17: 12 hidden layers
+#           4,8,8,8,8,8,8,8,8,8,8,4 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               200 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 4.82
+#           INCLUDES LAND DATA
+#           Job ID = 93469
+#
+# noland18: 14 hidden layers
+#           4,8,8,8,8,8,8,8,8,8,8,8,8,4 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               200 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 4.79
+#           INCLUDES LAND DATA
+#           Job ID = 93593
+#
+# noland19: 9 hidden layers
+#           8,12,16,24,32,24,16,12,8 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               200 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 4.47
+#           INCLUDES LAND DATA
+#           Job ID = 93607
+#
+# noland20: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               200 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 4.51
+#           INCLUDES LAND DATA
+#           Job ID = 93622
+#
+# noland21: 6 hidden layers
+#           8,16,8,6,4,2 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               200 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 4.87
+#           INCLUDES LAND DATA
+#           Job ID = 94505
+#
+# noland22: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               250 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 4.44
+#           INCLUDES LAND DATA
+#           Job ID = 94516 ****** GOOD? ******
+#
+# noland23: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               250 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 4.05
+#           INCLUDES LAND DATA, CH7
+#           Job ID = 94522 ******* BETTER *******
+#
+# noland24: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               250 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 2.69
+#           INCLUDES LAND DATA, CH7, CH1
+#           Job ID = 94529 **** OUTPUT IS TRASH *******
+#           Problem with new processed data?
+#
+# noland25: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180701 through 20180708 for
+#               250 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: ?????
+#           INCLUDES LAND DATA, CH7
+#           Job ID = 94612  ****** OUTPUT IS TRASH *******
+#           Problem with new processed data?
+#
+# noland26: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180704 and 20180705 for
+#               250 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 2.69
+#           INCLUDES LAND DATA, CH7, CH1
+#           ORIGINAL DATA            
+#           Job ID = 94699 
+#
+# noland27: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180701 thru 20180708 for
+#               250 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 3.99
+#           INCLUDES LAND DATA, CH7
+#           FIXED DATA (CLDPRES data still don't work)           
+#           Job ID = 94832 
+#
+# noland28: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180701 thru 20180708 for
+#               350 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 3.65
+#           INCLUDES LAND DATA, CH7, VZA
+#           FIXED DATA (CLDPRES data still don't work)           
+#           Job ID = 94842 
+#
+# noland29: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180701 thru 20180708 for
+#               350 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 3.69
+#           INCLUDES LAND DATA, CH7, VZA
+#           FIXED DATA (CLDPRES NAN set to 1025)
+#           Job ID = 95056 
+#
+# noland30: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180701 thru 20180708 for
+#               350 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 3.64
+#           INCLUDES LAND DATA, CH7, VZA
+#           FIXED DATA (CLDPRES NAN set to 1025, slight tweaks to data selection)
+#           Job ID = 96551   ** Worse, for some reason **
+#           * CHANGED TO COMP_DATA FILES FOR THIS ITERATION
+#
+# nolandXX: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180701 thru 20180708 for
+#               350 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: ????
+#           INCLUDES LAND DATA, CH7, VZA
+#           FIXED DATA (Retrying noland30 to make sure that the system is trained on all data)
+#           Job ID = ?????   ** Worse, for some reason **
+#
+#   DISCOVERED THAT ALL THE WORKING SIMULATIONS ARE TRAINED ONLY ON
+#   DATA FROM 20180704 AND 20180705. 
+#
+# noland32: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180704 thru 20180705 for
+#               350 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 3.54
+#           INCLUDES LAND DATA, CH7, VZA (from original_prep_data)
+#           Retrying with a larger batch size to see if this does anything
+#           Job ID = 96721
+#   
+# noland33: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180704 thru 20180705 for
+#               500 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 3.51
+#           INCLUDES LAND DATA, CH7, VZA (from original_prep_data)
+#           Retrying with a larger batch size to see if this does anything
+#           Job ID = 96994
+#   
+# noland34: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180704 thru 20180705 for
+#               500 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 3.48
+#           INCLUDES LAND DATA, CH7, VZA (from original_prep_data)
+#           Retrying with a larger batch size to see if this does anything
+#           Job ID = 97003
+#   
+# noland35: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180704 thru 20180705 for
+#               500 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 3.51
+#           INCLUDES LAND DATA, CH7, VZA (from original_prep_data & for saving)
+#           Retrying with a larger batch size to see if this does anything
+#           Job ID = 97168
+#   
+# noland36: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180704 thru 20180705 for
+#               500 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 7.49
+#           INCLUDES LAND DATA, CH7, VZA (from fixed comp_data & for saving)
+#           After fixing the colocated data. Retrying without NAN CTP data
+#           Job ID = 97333
+#   
+# noland37: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180704 thru 20180705 for
+#               350 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: ????
+#           INCLUDES LAND DATA, CH7, VZA (from fixed original_comp_data & for saving)
+#           After fixing the colocated data. Retrying without NAN CTP data
+#           Job ID = 97343
+#   
+# noland38: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180701 thru 20180708 for
+#               350 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 3.57
+#           INCLUDES LAND DATA, CH7, VZA
+#           FIXED DATA (CLDPRES NAN set to 1025)
+#           Trying to replicate noland29. using 'original_prep_data'
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 99750  *** LOOKS GOOD LIKE noland38
+#
+# Reprocessed all the data using the old
+#     write code from the end of the arctic comp code (no out function)
+#
+# noland39: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180704 thru 20180705 for
+#               350 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 3.36
+#           INCLUDES LAND DATA, CH7, VZA
+#           FIXED DATA (CLDPRES NAN set to 1025)
+#           ONLY DIFFERENCE BETWEEN THIS AND noland38: switching
+#               data to 'comp_data' from 'original_prep_data'
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 99926  *** FROM INITIAL OUTPUT, LOOKS VERY GOOD *****
+#
+# noland40: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180701 thru 20180708 for
+#               350 epochs
+#               32 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 3.79
+#           INCLUDES LAND DATA, CH7, VZA
+#           FIXED DATA (CLDPRES NAN set to 1025)
+#           ONLY DIFFERENCE BETWEEN THIS AND noland39:
+#               Processing data from 20180701 to 20180708
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 106976  ***** FROM INITIAL OUTPUT, LOOKS VERY GOOD *****
+#
+# noland41: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180701 thru 20180708 for
+#               350 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 3.73
+#           INCLUDES LAND DATA, CH7, VZA
+#           FIXED DATA (CLDPRES NAN set to 1025)
+#           ONLY DIFFERENCE BETWEEN THIS AND noland40:
+#               larger batch size (128 instead of 32)
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 107907  ***** FROM INITIAL OUTPUT, BETTER THAN noland40 *****
+#           Most of the 10 calculated values are within 10-15 W/m2 of original
+#
+# noland42: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180701 thru 20180708 for
+#               500 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 3.65
+#           INCLUDES LAND DATA, CH7, VZA
+#           FIXED DATA (CLDPRES NAN set to 1025)
+#           ONLY DIFFERENCE BETWEEN THIS AND noland40:
+#               more epochs (500 instead of 350)
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 107992  ***** BETTER THAN NOLAND41 BY EPOCH 350 *****
+#
+# noland43: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20180701 thru 20180708 for
+#               700 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 3.70
+#           INCLUDES LAND DATA, CH7, VZA
+#           FIXED DATA (CLDPRES NAN set to 1025)
+#           ONLY DIFFERENCE BETWEEN THIS AND noland40:
+#               more epochs (700 instead of 500)
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 108257  
+#
+# #######
+# Colocated data for 200607
+# ######
+#
+# noland44: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20060721 thru 20060730 for
+#               500 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 3.45
+#           INCLUDES LAND DATA, CH7, VZA
+#           FIXED DATA (CLDPRES NAN set to 1025)
+#           ONLY DIFFERENCE BETWEEN THIS AND noland42:
+#               using 200607 data instead of 20180701-08 data
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 108962  ***** BETTER THAN NOLAND41 BY EPOCH 350 *****
+#
+# noland45: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20060721 thru 20060730 for
+#               500 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 3.64
+#           INCLUDES LAND DATA, CH7, VZA
+#           FIXED DATA (CLDPRES NAN set to 1025)
+#           ONLY DIFFERENCE BETWEEN THIS AND noland44:
+#               using 200607 data AND 20180701-08 data
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 109108  
+#
+# #######
+# Colocated 200804 and 201408 data
+# #######
+#
+# noland46: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20060721 thru 20060730 for
+#               500 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 3.85
+#           INCLUDES LAND DATA, CH7, VZA
+#           FIXED DATA (CLDPRES NAN set to 1025)
+#           ONLY DIFFERENCE BETWEEN THIS AND noland45:
+#               using 200607, 200804, 201408, and 2018070*
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 110446  
+#
+# #######
+# Colocated 2015 through 2019
+# #######
+#
+# noland47: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on 20060721 thru 20060730 for
+#               500 epochs
+#               256 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: ????
+#           INCLUDES LAND DATA, CH7, VZA
+#           FIXED DATA (CLDPRES NAN set to 1025)
+#           ONLY DIFFERENCE BETWEEN THIS AND noland45:
+#               using 2006 - 2015 coloc data AND batch size of 256
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 112580  
+#
+# #######
+# Modified arctic comp colocation code to include CERES albedo
+# #######
+#
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 # Inputs
 # - OMI SZA
-# - MODIS COD
+# - OMI VZA
 # - NSIDC ICE
-# Future inputs
+# - MODIS COD
+# - MODIS CH7
 # - MODIS CLD TOP TEMP/PRESS
-# - OMI ROW NUMBER
+#### - MODIS CH1
+# Future inputs
+# - OMI ALB
+# - OMI AZM  NO! BAD DATA
+# - OMI GPQF
 
-l_load_model = True
+batch_size = 256
+epochs = 500
+
+print("EPOCHS:", epochs)
+print("BATCH SIZE:", batch_size)
+
+input_data = [combined_data['omi_sza'][train_idxs], \
+                    combined_data['omi_vza'][train_idxs], \
+                    combined_data['nsidc_ice'][train_idxs], \
+                    combined_data['modis_cod'][train_idxs], \
+                    #combined_data['modis_ch1'][train_idxs], \
+                    combined_data['modis_ch7'][train_idxs], \
+                    combined_data['modis_cld_top_pres'][train_idxs]]
+
+print('INPUT DATA SHAPE', np.array(input_data).shape)
+
 if(l_load_model):
-    model = tf.keras.models.load_model('test_model_noland2.keras')
+    model = tf.keras.models.load_model('test_model_' + sim_name + '.keras')
     model.summary()
 else:
 
@@ -298,15 +929,28 @@ else:
     x2 = Input(shape = (1,))
     x3 = Input(shape = (1,))
     x4 = Input(shape = (1,))
+    x5 = Input(shape = (1,))
+    x6 = Input(shape = (1,))
 
-    input_layer = concatenate([x1, x2, x3, x4], name = 'input')
-    hidden_layer1 = Dense(units = 8, activation = 'relu', name = 'hidden1')(input_layer)
-    hidden_layer2 = Dense(units = 8, activation = 'relu', name = 'hidden2')(hidden_layer1)
-    hidden_layer4 = Dense(units = 8, activation = 'relu', name = 'hidden4')(hidden_layer2)
-    hidden_layer3 = Dense(units = 4, activation = 'relu', name = 'hidden3')(hidden_layer4)
-    prediction = Dense(1, activation = 'linear')(hidden_layer4)
+    # ADD DROPOUT?
 
-    model = Model(inputs = [x1, x2, x3, x4], outputs = prediction)
+    #input_layer = concatenate([x1, x2, x3, x4, x5], name = 'input')
+    input_layer = concatenate([x1, x2, x3, x4, x5, x6], name = 'input')
+    hidden_layer1  = Dense(units = 8, activation = 'leaky_relu', name = 'hidden1')(input_layer)
+    hidden_layer2  = Dense(units = 12, activation = 'leaky_relu', name = 'hidden2')(hidden_layer1)
+    hidden_layer3  = Dense(units = 16, activation = 'leaky_relu', name = 'hidden3')(hidden_layer2)
+    hidden_layer4  = Dense(units = 24, activation = 'leaky_relu', name = 'hidden4')(hidden_layer3)
+    hidden_layer5  = Dense(units = 32, activation = 'leaky_relu', name = 'hidden5')(hidden_layer4)
+    hidden_layer6  = Dense(units = 64, activation = 'leaky_relu', name = 'hidden6')(hidden_layer5)
+    hidden_layer7  = Dense(units = 32, activation = 'leaky_relu', name = 'hidden7')(hidden_layer6)
+    hidden_layer8  = Dense(units = 24, activation = 'leaky_relu', name = 'hidden8')(hidden_layer7)
+    hidden_layer9  = Dense(units = 16, activation = 'leaky_relu', name = 'hidden9')(hidden_layer8)
+    hidden_layer10 = Dense(units = 12, activation = 'leaky_relu', name = 'hidden10')(hidden_layer9)
+    hidden_layer11 = Dense(units = 8, activation = 'leaky_relu', name = 'hidden11')(hidden_layer10)
+    prediction = Dense(1, activation = 'linear')(hidden_layer11)
+
+    #model = Model(inputs = [x1, x2, x3, x4, x5], outputs = prediction)
+    model = Model(inputs = [x1, x2, x3, x4, x5, x6], outputs = prediction)
     #model = Model(inputs = [x1, x2, x3], outputs = prediction)
 
 
@@ -315,12 +959,14 @@ else:
 
     model.compile(loss = 'mean_squared_error', optimizer = 'adam', metrics = ['mae'])
     model.summary()
-    losses = model.fit([combined_data['omi_sza'][train_idxs], \
-                        combined_data['nsidc_ice'][train_idxs], \
-                        combined_data['modis_cod'][train_idxs], \
-                        combined_data['modis_cld_top_pres'][train_idxs]], \
-                        combined_data['ceres_swf'][train_idxs], epochs=100, batch_size = 32, verbose = 2)
+    losses = model.fit(input_data, \
+                        combined_data['ceres_swf'][train_idxs], \
+                        epochs=epochs, batch_size = batch_size, verbose = 2)
     #model.fit([inp1, inp2, inp3], sumd, epochs=300, batch_size = 32, verbose = 2)
+
+    #model.save('test_model_allsfc.keras')
+    model.save('test_model_' + sim_name + '.keras')
+
 
 
     """
@@ -359,91 +1005,234 @@ else:
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #calc = model.predict(x_train[0:10,:])
-test_out = np.array([model.predict([np.expand_dims(np.array(combined_data['omi_sza'][test_idxs][xx]), 0), \
-                          np.expand_dims(np.array(combined_data['nsidc_ice'][test_idxs][xx]), 0), \
-                          np.expand_dims(np.array(combined_data['modis_cod'][test_idxs][xx]), 0), \
-                          np.expand_dims(np.array(combined_data['modis_cld_top_pres'][test_idxs][xx]), 0)]) \
-                    for xx in range(10)]).squeeze()
+##!#test_out = np.array([model.predict([np.expand_dims(np.array(combined_data['omi_sza'][test_idxs][xx]), 0), \
+##!#                          np.expand_dims(np.array(combined_data['omi_vza'][test_idxs][xx]), 0), \
+##!#                          np.expand_dims(np.array(combined_data['nsidc_ice'][test_idxs][xx]), 0), \
+##!#                          np.expand_dims(np.array(combined_data['modis_cod'][test_idxs][xx]), 0), \
+##!#                          #np.expand_dims(np.array(combined_data['modis_ch1'][test_idxs][xx]), 0), \
+##!#                          np.expand_dims(np.array(combined_data['modis_ch7'][test_idxs][xx]), 0), \
+##!#                          np.expand_dims(np.array(combined_data['modis_cld_top_pres'][test_idxs][xx]), 0)]) \
+##!#                    for xx in range(10)]).squeeze()
+
+test_out = np.array([model.predict([combined_data['omi_sza'][test_idxs][:10], \
+                                    combined_data['omi_vza'][test_idxs][:10], \
+                                    combined_data['nsidc_ice'][test_idxs][:10], \
+                                    combined_data['modis_cod'][test_idxs][:10], \
+                                    #combined_data['modis_ch1'][test_idxs][xx]), 0), \
+                                    combined_data['modis_ch7'][test_idxs][:10], \
+                                    combined_data['modis_cld_top_pres'][test_idxs][:10]])]).squeeze()
+
 
 print(  ((combined_data['ceres_swf'][test_idxs][0:10] / 100) * drange) + min_max_dict['ceres_swf']['min'])
 print(  ((test_out / 100) * drange) + min_max_dict['ceres_swf']['min'])
 
-##!#print(x_train[0:10,:])
-##!#print(    ((y_val[0:10].T / 100) * drange) + min_max_dict['ceres_swf']['min'])
-##!#print(    ((calc / 100) * drange) + min_max_dict['ceres_swf']['min'])
 
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-#
-# Test saving the neural network
-#
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+l_save_data = True
+if(l_save_data):
 
-#model.save('test_model_allsfc.keras')
-model.save('test_model_noland2.keras')
+    ##!#print(x_train[0:10,:])
+    ##!#print(    ((y_val[0:10].T / 100) * drange) + min_max_dict['ceres_swf']['min'])
+    ##!#print(    ((calc / 100) * drange) + min_max_dict['ceres_swf']['min'])
+    
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    #
+    # Test saving the neural network
+    #
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    
+    # HERE: Read in a single one of the OMI colocation files, scale the input data
+    #       based on the scaling from above, and then use the model to calculate
+    #       the predicted SWF values at each gridpoint in the OMI file. Want
+    #       to then plot the results and see if there is any spatial information
+    #       that makes it through the model
+    #       
+    #       ALSO: Must remember that this is for ice/ocean values ONLY. Land data
+    #       are not included right now.
+    #test_time = '201807051856'
+    #test_time = '201807052034'
+    #test_time = '201807052213'
+    #test_time = '201807040819'
+    #test_time = '201807081926'
+    #test_time = '201807082244'
+    #test_time = '201807082105'
+    #test_time = '201807032226'
+    #test_time = '201807040144'
+    test_time = '200607240029'
+    #test_time = '200607270418'
+    #infile = '/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_' + \
+    #    test_time + '.hdf5'
+    #infile = '/home/blake.sorenson/OMI/arctic_comp/original_prep_data/colocated_subset_' + \
+    infile = data_dir + 'colocated_subset_' + test_time + '.hdf5'
+    
+    # Set up input data
+    data = h5py.File(infile, 'r')
+    
+    # Set up output data
+    outname = 'test_calc_out_' + sim_name + '_' + test_time + '.hdf5'
+    dset = h5py.File(outname, 'w')
+    
+    calc_swf = np.full(data['ceres_swf'].shape, np.nan)
 
-# HERE: Read in a single one of the OMI colocation files, scale the input data
-#       based on the scaling from above, and then use the model to calculate
-#       the predicted SWF values at each gridpoint in the OMI file. Want
-#       to then plot the results and see if there is any spatial information
-#       that makes it through the model
-#       
-#       ALSO: Must remember that this is for ice/ocean values ONLY. Land data
-#       are not included right now.
-test_time = '201807052213'
-infile = '/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_' + \
-    test_time + '.hdf5'
+    input_shape = calc_swf.shape
+   
+    # Prep the input data here so the entire array can be passed to the model
+    # -----------------------------------------------------------------------
+    data_mask = np.ma.masked_where( \
+                (data['omi_lat'][:,:] < minlat) | \
+                (data['modis_cod'][:,:] == -999) | \
+                (data['modis_cod'][:,:] > max_cod) | \
+                (np.isnan(data['modis_cod'][:,:]) == True) | \
+                #(local_cldpres != -999) & \
+                #(local_cldpres <= 1025.) & \
+                #(np.isnan(data['modis_cod'][ii,jj]) == False) & \
+                (data['modis_cld_top_pres'][:,:] == -999) | \
+                (data['modis_cld_top_pres'][:,:] > 1025) | \
+                (np.isnan(data['modis_cld_top_pres'][:,:]) == True) | \
+                (data['nsidc_ice'][:,:] == -999) | \
+                (data['nsidc_ice'][:,:] == 251) | \
+                (data['nsidc_ice'][:,:] == 253)  , data['omi_lat'])
 
-# Set up input data
-data = h5py.File(infile, 'r')
+    local_cldpres = np.where(data['modis_cld_top_pres'][:,:] == 0., 1025., \
+                                data['modis_cld_top_pres'][:,:])
+    local_cldpres = np.where(np.isnan(local_cldpres) == True, 1025., \
+                                local_cldpres)
+    local_ice     = np.where(data['nsidc_ice'][:,:] == 254.,101., \
+                                data['nsidc_ice'])
+ 
+    new_sza = ( ( data['omi_sza'][:,:] - min_max_dict['omi_sza']['min']) / \
+                ( min_max_dict['omi_sza']['max'] - min_max_dict['omi_sza']['min'] )) * 100.
+    new_vza = ( ( data['omi_vza'][:,:] - min_max_dict['omi_vza']['min']) / \
+                ( min_max_dict['omi_vza']['max'] - min_max_dict['omi_vza']['min'] )) * 100.
+    new_ice = ( ( local_ice - min_max_dict['nsidc_ice']['min']) / \
+                ( min_max_dict['nsidc_ice']['max'] - min_max_dict['nsidc_ice']['min'] )) * 100.
+    new_cod = ( ( data['modis_cod'][:,:] - min_max_dict['modis_cod']['min']) / \
+                ( min_max_dict['modis_cod']['max'] - min_max_dict['modis_cod']['min'] )) * 100.
+    #new_ch1 = ( ( data['modis_ch1'][:,:] - min_max_dict['modis_ch1']['min']) / \
+    #            ( min_max_dict['modis_ch1']['max'] - min_max_dict['modis_ch1']['min'] )) * 100.
+    new_ch7 = ( ( data['modis_ch7'][:,:] - min_max_dict['modis_ch7']['min']) / \
+                ( min_max_dict['modis_ch7']['max'] - min_max_dict['modis_ch7']['min'] )) * 100.
+    new_cpr = ( ( local_cldpres - min_max_dict['modis_cld_top_pres']['min']) / \
+                ( min_max_dict['modis_cld_top_pres']['max'] - min_max_dict['modis_cld_top_pres']['min'] )) * 100.
 
-# Set up output data
-outname = 'test_calc_out.hdf5'
-dset = h5py.File(outname, 'w')
+    # Set the bad pixels to valid numbers for now to use in the calculation,
+    # but mask these indices after the calculation
+    # ----------------------------------------------------------------------
+    new_sza[data_mask.mask] = 50.
+    new_vza[data_mask.mask] = 50.
+    new_ice[data_mask.mask] = 50.
+    new_cod[data_mask.mask] = 50.
+    new_ch7[data_mask.mask] = 50.
+    new_cpr[data_mask.mask] = 50.
 
-calc_swf = np.full(data['ceres_swf'].shape, np.nan)
+    new_sza = new_sza.flatten()
+    new_vza = new_vza.flatten()
+    new_ice = new_ice.flatten()
+    new_cod = new_cod.flatten()
+    new_ch7 = new_ch7.flatten()
+    new_cpr = new_cpr.flatten()
 
-for ii in range(calc_swf.shape[0]):
-    for jj in range(calc_swf.shape[1]):
-        # Check the value here
-        # --------------------  
-        if( (data['omi_lat'][ii,jj] >= minlat) & \
-            (data['modis_cod'][ii,jj] != -999) & \
-            (data['modis_cod'][ii,jj] < max_cod) & \
-            (np.isnan(data['modis_cod'][ii,jj]) == False) & \
-            (data['modis_cld_top_pres'][ii,jj] != -999) & \
-            (data['modis_cld_top_pres'][ii,jj] <= 1020) & \
-            (np.isnan(data['modis_cld_top_pres'][ii,jj]) == False) & \
-            (data['nsidc_ice'][ii,jj] != -999) & \
-            (data['nsidc_ice'][ii,jj] <= 100)):
+    print("INPUT SZA", new_sza)
+
+    calc_swf = np.array([model.predict([new_sza, \
+                                        new_vza, \
+                                        new_ice, \
+                                        new_cod, \
+                                        #combined_data['modis_ch1'][test_idxs][xx]), 0), \
+                                        new_ch7, \
+                                        new_cpr])]).squeeze()
 
 
-            # Scale the input values here
-            # ---------------------------
-            new_sza = ( ( data['omi_sza'][ii,jj] - min_max_dict['omi_sza']['min']) / \
-                        ( min_max_dict['omi_sza']['max'] - min_max_dict['omi_sza']['min'] )) * 100.
-            new_ice = ( ( data['nsidc_ice'][ii,jj] - min_max_dict['nsidc_ice']['min']) / \
-                        ( min_max_dict['nsidc_ice']['max'] - min_max_dict['nsidc_ice']['min'] )) * 100.
-            new_cod = ( ( data['modis_cod'][ii,jj] - min_max_dict['modis_cod']['min']) / \
-                        ( min_max_dict['modis_cod']['max'] - min_max_dict['modis_cod']['min'] )) * 100.
-            new_cpr = ( ( data['modis_cld_top_pres'][ii,jj] - min_max_dict['modis_cld_top_pres']['min']) / \
-                        ( min_max_dict['modis_cld_top_pres']['max'] - min_max_dict['modis_cld_top_pres']['min'] )) * 100.
+    calc_swf[:] = ((calc_swf[:] / 100) * \
+            (min_max_dict['ceres_swf']['max'] - min_max_dict['ceres_swf']['min'])) + \
+            min_max_dict['ceres_swf']['min']
 
-            # Use the model to estimate the SWF
-            # ---------------------------------
-            calc_swf[ii,jj] = np.array([model.predict([np.expand_dims(np.array(new_sza), 0), \
-                                      np.expand_dims(np.array(new_ice), 0), \
-                                      np.expand_dims(np.array(new_cod), 0), \
-                                      np.expand_dims(np.array(new_cpr), 0)]) \
-                                ]).squeeze()
-            calc_swf[ii,jj] = ((calc_swf[ii,jj] / 100) * \
-                    (min_max_dict['ceres_swf']['max'] - min_max_dict['ceres_swf']['min'])) + \
-                    min_max_dict['ceres_swf']['min']
+    calc_swf = np.reshape(calc_swf, input_shape)
+    calc_swf = np.where(data_mask.mask == True, np.nan, calc_swf)
 
-            print(ii, jj, data['ceres_swf'][ii,jj], calc_swf[ii,jj])
+    print('OUTPUT DATA', calc_swf)
 
-# Add the calculated values to the output file
-# --------------------------------------------
-dset.create_dataset('calc_swf', data = calc_swf[:,:])
-dset.close()
+    #calc_swf[data_mask.mask] == -999.
+    #calc_swf = np.ma.masked_where(data_mask.mask == True, calc_swf)
+
+    """
+    for ii in range(calc_swf.shape[0]):
+        for jj in range(calc_swf.shape[1]):
+            
+            ## Prep the MODIS data
+            ## -------------------
+            #if(np.isnan(data['modis_cld_top_pres'][ii,jj]) == True):
+            #    local_cldpres = 1025.
+            #elif(data['modis_cld_top_pres'][ii,jj] == 0.):
+            #    local_cldpres = 1025.
+            #else:
+            #    local_cldpres = data['modis_cld_top_pres'][ii,jj]
+
+
+            # Check the value here
+            # --------------------  
+            if( (data['omi_lat'][ii,jj] >= minlat) & \
+                (data['modis_cod'][ii,jj] != -999) & \
+                (data['modis_cod'][ii,jj] < max_cod) & \
+                (np.isnan(data['modis_cod'][ii,jj]) == False) & \
+                #(local_cldpres != -999) & \
+                #(local_cldpres <= 1025.) & \
+                #(np.isnan(data['modis_cod'][ii,jj]) == False) & \
+                (data['modis_cld_top_pres'][ii,jj] != -999) & \
+                (data['modis_cld_top_pres'][ii,jj] <= 1025) & \
+                (np.isnan(data['modis_cld_top_pres'][ii,jj]) == False) & \
+                (data['nsidc_ice'][ii,jj] != -999) & \
+                (data['nsidc_ice'][ii,jj] != 251) & \
+                (data['nsidc_ice'][ii,jj] != 253)):
+    
+                if(np.isnan(data['modis_cld_top_pres'][ii,jj]) == True):
+                    local_cldpres = 1025.
+                elif(data['modis_cld_top_pres'][ii,jj] == 0.):
+                    local_cldpres = 1025.
+                else:
+                    local_cldpres = data['modis_cld_top_pres'][ii,jj]
+
+                if(data['nsidc_ice'][ii,jj] == 254.):
+                    local_ice = 101.
+                else:
+                    local_ice = data['nsidc_ice'][ii,jj]
+
+                # Scale the input values here
+                # ---------------------------
+                new_sza = ( ( data['omi_sza'][ii,jj] - min_max_dict['omi_sza']['min']) / \
+                            ( min_max_dict['omi_sza']['max'] - min_max_dict['omi_sza']['min'] )) * 100.
+                new_vza = ( ( data['omi_vza'][ii,jj] - min_max_dict['omi_vza']['min']) / \
+                            ( min_max_dict['omi_vza']['max'] - min_max_dict['omi_vza']['min'] )) * 100.
+                new_ice = ( ( local_ice - min_max_dict['nsidc_ice']['min']) / \
+                            ( min_max_dict['nsidc_ice']['max'] - min_max_dict['nsidc_ice']['min'] )) * 100.
+                new_cod = ( ( data['modis_cod'][ii,jj] - min_max_dict['modis_cod']['min']) / \
+                            ( min_max_dict['modis_cod']['max'] - min_max_dict['modis_cod']['min'] )) * 100.
+                #new_ch1 = ( ( data['modis_ch1'][ii,jj] - min_max_dict['modis_ch1']['min']) / \
+                #            ( min_max_dict['modis_ch1']['max'] - min_max_dict['modis_ch1']['min'] )) * 100.
+                new_ch7 = ( ( data['modis_ch7'][ii,jj] - min_max_dict['modis_ch7']['min']) / \
+                            ( min_max_dict['modis_ch7']['max'] - min_max_dict['modis_ch7']['min'] )) * 100.
+                new_cpr = ( ( local_cldpres - min_max_dict['modis_cld_top_pres']['min']) / \
+                            ( min_max_dict['modis_cld_top_pres']['max'] - min_max_dict['modis_cld_top_pres']['min'] )) * 100.
+    
+                # Use the model to estimate the SWF
+                # ---------------------------------
+                calc_swf[ii,jj] = np.array([model.predict([np.expand_dims(np.array(new_sza), 0), \
+                                                           np.expand_dims(np.array(new_vza), 0), \
+                                                           np.expand_dims(np.array(new_ice), 0), \
+                                                           np.expand_dims(np.array(new_cod), 0), \
+                                                           #np.expand_dims(np.array(new_ch1), 0), \
+                                                           np.expand_dims(np.array(new_ch7), 0), \
+                                                           np.expand_dims(np.array(new_cpr), 0)]) \
+                                    ]).squeeze()
+                calc_swf[ii,jj] = ((calc_swf[ii,jj] / 100) * \
+                        (min_max_dict['ceres_swf']['max'] - min_max_dict['ceres_swf']['min'])) + \
+                        min_max_dict['ceres_swf']['min']
+    
+                #print(ii, jj, data['ceres_swf'][ii,jj], calc_swf[ii,jj])
+    """
+    
+    # Add the calculated values to the output file
+    # --------------------------------------------
+    dset.create_dataset('calc_swf', data = calc_swf[:,:])
+    dset.close()
 
 print("SUCCESS")

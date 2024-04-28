@@ -411,6 +411,241 @@ def build_training_dataset(date_str):
 
     print('netCDF file saved')
 
+# Reads associated OMI files for a given year and generates the OMI
+# dataset.
+def build_trop_training_dataset(date_str):
+
+    # Figure out if date string is a year, month, or day
+    # --------------------------------------------------
+    if(len(date_str) == 4):
+        str_fmt = '%Y'
+        out_fmt = '%Y'
+    elif(len(date_str) == 6):
+        str_fmt = '%Y%m'
+        out_fmt = '%Y%m'
+    elif(len(date_str) == 8):
+        str_fmt = '%Y%m%d'
+        out_fmt = '%Y%m%d'
+    else:
+        print("INVALID DATE STRING. RETURNING")
+        return
+
+    dt_date_str = datetime.strptime(date_str, str_fmt)
+
+    # For whatever date period is desired, use glob
+    # to find the number of associated files
+    # ---------------------------------------------
+    files = glob(dt_date_str.strftime(\
+        'coloc_data/colocated_tropomi_' + out_fmt + '*.hdf5'))
+
+    # First, loop over all the data and figure out how many
+    # swaths are acceptable
+    # -----------------------------------------------------
+    n_files = 0
+    num_acceptable = 0
+
+    print(files)
+
+    # Loop over the glob list
+    # -----------------------
+    for ii, fname in enumerate(files):
+        # Read data from each subsetted and colocated TROP file
+        # -----------------------------------------------------
+        data = h5py.File(fname)
+
+        # Fix the missing regridded TROP pixels
+        # -------------------------------------
+        mask_trop = np.ma.masked_where(data['trop_ai'][:,:] == -999., data['trop_ai'][:,:])
+        new_trop = mask_trop.reshape(-1, 5, mask_trop.shape[1]).mean(axis = 1)
+
+        # Figure out how many rows contain missing values
+        # ----------------------------------------------
+        if(not np.ma.is_masked(new_trop)):
+            num_acceptable += 1
+        else:
+            #rows_with_masked = np.array([True in new_trop.mask[jj,:] \
+            #    for jj in range(new_trop.shape[0])])
+    
+            # For these rows, figure out how many values per row are missing
+            # --------------------------------------------------------------
+            num_masked_per_row = np.array([\
+                len(np.where(new_trop.mask[jj,:] == True)[0]) \
+                for jj in range(new_trop.shape[0])])
+
+            print(fname, np.max(num_masked_per_row))
+
+            if(np.max(num_masked_per_row) < 4): 
+                num_acceptable += 1
+
+        data.close()
+
+    print('Total files:', len(files))
+    print('Total acceptable:', num_acceptable)
+    
+    # The length of the returned list (times two) will
+    # be the size of array needed for the netCDF file
+    # ------------------------------------------------
+    n_files = num_acceptable
+    n_images = n_files * 2
+    n_x = n_y = 60
+    print('FILE DIMENSION:', n_files)
+
+    # ----------------------
+    # Set up the netCDF file
+    # ----------------------
+    file_name = 'train_dataset_trop_' + date_str + '.nc'
+    nc = Dataset(file_name,'w',format='NETCDF4')
+
+    # Use the dimension size variables to actually create dimensions in
+    # the file.
+    # -----------------------------------------------------------------
+    n_image_dim = nc.createDimension('n_img',n_images)
+    n_lat_dim   = nc.createDimension('n_x',n_x)
+    n_lon_dim   = nc.createDimension('n_y',n_y)
+
+    # Create variables for the three dimensions
+    # -----------------------------------------
+    images = nc.createVariable('images','i2',('n_img'))
+    images.description = 'Number of TROPOMI image subsets in the dataset'
+
+    # Create a variable for the AI images, dimensioned using all three
+    # dimensions.
+    # ----------------------------------------------------------------
+    AI = nc.createVariable('AI','f4',('n_img','n_x','n_y'))
+    AI.description = 'UV Aerosol Index'
+    AI.units = 'None'
+    LAT = nc.createVariable('LAT','f4',('n_img','n_x','n_y'))
+    LAT.description = 'Latitude'
+    LAT.units = 'degrees N'
+    LON = nc.createVariable('LON','f4',('n_img','n_x','n_y'))
+    LON.description = 'Longitude'
+    LON.units = 'degrees E'
+    SZA = nc.createVariable('SZA','f4',('n_img','n_x','n_y'))
+    SZA.description = 'Solar Zenith Angle'
+    SZA.units = 'degrees'
+    TIME = nc.createVariable('TIME','f8',('n_img'))
+    TIME.description = 'Seconds since 00:00 UTC 01 January 2005'
+    TIME.units = 'seconds'
+
+    good_idx = 0
+
+    # Loop over the glob list
+    # -----------------------
+    for ii, fname in enumerate(files):
+        dt_name = datetime.strptime(fname.strip().split('/')[-1][18:30],\
+            '%Y%m%d%H%M')
+
+        time_diff = (dt_name - base_date).total_seconds()
+
+        # Read data from each subsetted and colocated TROP file
+        # -----------------------------------------------------
+        data = h5py.File(fname)
+
+        # Fix the missing regridded TROP pixels
+        # -------------------------------------
+        mask_trop = np.ma.masked_where(data['trop_ai'][:,:] == -999., data['trop_ai'][:,:])
+        new_trop = mask_trop.reshape(-1, 5, mask_trop.shape[1]).mean(axis = 1)
+
+        # Extract every 10th latitude and longitude
+        # -----------------------------------------
+        new_lat = data['omi_lat'][:,:]
+        new_lat = new_lat.reshape(-1, 5, new_lat.shape[1]).mean(axis = 1)
+        new_lon = data['omi_lon'][:,:]
+        new_lon = new_lon.reshape(-1, 5, new_lon.shape[1]).mean(axis = 1)
+        new_sza = data['omi_sza'][:,:]
+        new_sza = new_sza.reshape(-1, 5, new_sza.shape[1]).mean(axis = 1)
+       
+        l_save_data = False
+ 
+        # Figure out how many rows contain missing values
+        # ----------------------------------------------
+        if(not np.ma.is_masked(new_trop)):
+            l_save_data = True
+        else:
+    
+            # For these rows, figure out how many values per row are missing
+            # --------------------------------------------------------------
+            num_masked_per_row = np.array([\
+                len(np.where(new_trop.mask[jj,:] == True)[0]) \
+                for jj in range(new_trop.shape[0])])
+
+            if(np.max(num_masked_per_row) < 4): 
+                l_save_data = True
+
+                for jj in range(new_trop.shape[0]):
+                    where_mask = np.where(new_trop[jj,:].mask == True)[0]
+                   
+                    # See if this current line is masked
+                    # ----------------------------------
+                    if(len(where_mask) != 0):
+ 
+                        # Check if the mask is on only one or both sides of
+                        # the image
+                        # -------------------------------------------------
+                        min_mask = np.min(where_mask)
+                        max_mask = np.max(where_mask)
+    
+                        if((min_mask < 10) & (max_mask < 10)):
+                            # Mask is on only one side of the image. 
+                            new_trop[jj,:][np.where(new_trop[jj,:].mask == True)] = \
+                                new_trop[jj,:][np.where((new_trop[jj,:].mask == False))[0][0]]
+                            
+                        elif((min_mask > 50) & (max_mask > 50)):
+                            # Mask is on the other side of the image. 
+                            new_trop[jj,:][np.where(new_trop[jj,:].mask == True)] = \
+                                new_trop[jj,:][np.where((new_trop[jj,:].mask == False))[0][-1]]
+                        else:
+                            # Mask is split
+
+
+                            # Address the first side of the image first
+                            # -----------------------------------------
+                            new_trop[jj,:30][np.where(new_trop[jj,:30].mask == True)] = \
+                                new_trop[jj,:30][np.where((new_trop[jj,:30].mask == False))[0][0]]
+
+                            # Now, address the other side of the image
+                            # ----------------------------------------
+                            new_trop[jj,30:][np.where(new_trop[jj,30:].mask == True)] = \
+                                new_trop[jj,30:][np.where((new_trop[jj,30:].mask == False))[0][-1]]
+
+
+                    ##!#new_trop[jj,:][np.where(new_trop[jj,:].mask == True)] = \
+                    ##!#    new_trop[jj,:][np.where((new_trop[jj,:].mask == False))[0][-1]]
+
+
+        if(l_save_data):
+            print(fname, good_idx)
+    
+            # Insert the data for the scene(s) from the current file into the
+            # netCDF file
+            # ---------------------------------------------------------------
+            TIME[good_idx*2] = time_diff
+            TIME[good_idx*2+1] = time_diff
+            AI[(good_idx*2),:,:]    = new_trop
+            LAT[(good_idx*2),:,:]   = new_lat[:,:]
+            LON[(good_idx*2),:,:]   = new_lon[:,:]
+            SZA[(good_idx*2),:,:]   = new_sza[:,:]
+            AI[(good_idx*2)+1,:,:]  = new_trop[::-1,:]
+            LAT[(good_idx*2)+1,:,:] = new_lat[::-1,:]
+            LON[(good_idx*2)+1,:,:] = new_lon[::-1,:]
+            SZA[(good_idx*2)+1,:,:] = new_sza[::-1,:]
+
+            good_idx += 1
+
+        data.close()
+
+
+    # Close the netCDF file, which actually saves it.
+    # -----------------------------------------------
+    nc.close()
+
+    print('netCDF file saved')
+
+
+
+
+
+
 # Reads the three OMI datasets for 2005, 2006, and 2007, combines the
 # datasets, removes images with bad data, and selects only data from
 # a single month if desired. 

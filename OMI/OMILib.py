@@ -971,6 +971,7 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
     SZA    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/SolarZenithAngle'][:,:]
     VZA    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/ViewingZenithAngle'][:,:]
     AZM    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/RelativeAzimuthAngle'][:,:]
+    ALB    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/SurfaceAlbedo'][:,:]
     SSA    = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/FinalAerosolSingleScattAlb'][:,:,:]
     NRAD   = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/NormRadiance'][:,:,:]
     LATcrnr = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/FoV75CornerLatitude'][:,:,:]
@@ -1036,6 +1037,7 @@ def readOMI_swath_hdf(plot_time, dtype, only_sea_ice = False, \
     OMI_swath['SZA']    = SZA
     OMI_swath['VZA']    = VZA
     OMI_swath['RAZ']    = AZM
+    OMI_swath['ALB']    = ALB
     OMI_swath['GPQF']   = GPQF_decode
     OMI_swath['PXQF']   = PXQF_decode
     OMI_swath['XTRACK'] = XTRK_decode
@@ -1158,6 +1160,7 @@ def readOMI_swath_shawn(plot_time, latmin = 65., \
     OMI_swath['SZA'] = OMI_data['SZA']
     OMI_swath['VZA'] = OMI_data['VZA']
     OMI_swath['RAZ'] = OMI_data['RAZ']
+    OMI_swath['ALB'] = OMI_data['ALB']
     #OMI_swath['SZA'] = np.ma.masked_invalid(sfile_SZA)
     #OMI_swath['VZA'] = np.ma.masked_invalid(sfile_VZA)
     #OMI_swath['RAZ'] = np.ma.masked_invalid(sfile_RAZ)
@@ -1776,6 +1779,7 @@ def write_swath_to_HDF5(OMI_base, dtype, save_path = './', minlat = 65., \
     dset.create_dataset('sza',       data = OMI_base['SZA'][keep_idxs,:].squeeze())
     dset.create_dataset('vza',       data = OMI_base['VZA'][keep_idxs,:].squeeze())
     dset.create_dataset('azm',       data = OMI_base['RAZ'][keep_idxs,:].squeeze())
+    dset.create_dataset('alb',       data = OMI_base['ALB'][keep_idxs,:,0].squeeze())
 
     # Save, write, and close the HDF5 file
     # --------------------------------------

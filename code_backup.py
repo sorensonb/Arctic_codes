@@ -14,6 +14,7 @@ base_dir = home_dir + "/Research/"
 dest_dir = home_dir + "/Arctic_codes/"
 
 copy_raindrop = False
+copy_calipso  = True 
 copy_talon    = True
 
 ##!## Add new stuff
@@ -109,11 +110,23 @@ cmnd = "find "+base_dir+"Arctic_compares/ -type f -name \"*.txt\" | xargs cp -t 
 print(cmnd)
 os.system(cmnd)
 
+if(copy_calipso):
+    calip_dir = "blake.sorenson@134.129.222.8:/home/blake.sorenson/Research/Arctic_compares/"
+
+    final_dir = dest_dir + 'Arctic_compares/calipso_processing/'
+
+    cmnd = "scp " + calip_dir + "*.py "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+    cmnd = "scp " + calip_dir + "*.txt "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+
 if(copy_talon):
     talon_dir = "blake.sorenson@134.129.128.241:/home/blake.sorenson/OMI/force_efficiency_calc/"
     #rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/OMI/"
 
-    final_dir = dest_dir + 'Arctic_compares/talon_processing/'
+    final_dir = dest_dir + 'Arctic_compares/talon_processing/force_efficiency_calc/'
 
     cmnd = "scp " + talon_dir + "*.f90 "+final_dir
     print(cmnd)
@@ -126,6 +139,28 @@ if(copy_talon):
     cmnd = "scp " + talon_dir + "Make* "+final_dir
     print(cmnd)
     os.system(cmnd)
+
+    talon_dir = "blake.sorenson@134.129.128.241:/home/blake.sorenson/OMI/arctic_comp/"
+    final_dir = dest_dir + 'Arctic_compares/talon_processing/arctic_comp/'
+    cmnd = "scp " + talon_dir + "*.f90 "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+
+    cmnd = "scp " + talon_dir + "Make* "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+
+    talon_dir = "blake.sorenson@134.129.128.241:/home/blake.sorenson/OMI/colocate_lib/"
+
+    final_dir = dest_dir + 'Arctic_compares/talon_processing/colocate_lib/'
+    cmnd = "scp " + talon_dir + "*.f90 "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+
+    cmnd = "scp " + talon_dir + "Make* "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+
 
     talon_dir = "blake.sorenson@134.129.128.241:/home/blake.sorenson/OMI/ai_force_eff_test/"
     #rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/OMI/"

@@ -145,6 +145,7 @@ case_dates = ['200607240029', # GOOD
 def automate_all_preprocess(date_str, download = True, images = True, \
         process = True, omi_dtype = 'ltc3', include_tropomi = True, \
         copy_to_raindrop = False, remove_empty_scans = True, \
+        reprocess_only_omi = False, \
         minlat = 65., remove_ch2_file = False, remove_large_files = True):
     if(isinstance(date_str, str)):
         date_str = [date_str]
@@ -230,28 +231,30 @@ def automate_all_preprocess(date_str, download = True, images = True, \
                 minlat = minlat, shawn_path = shawn_path, \
                 remove_empty_scans = remove_empty_scans)
 
-            write_CERES_hrly_grid_to_HDF5(file_date_dict[dstr]['CERES'], \
-                save_path = save_dir2, minlat = minlat, \
-                remove_empty_scans = remove_empty_scans)
 
-            MODIS_date = file_date_dict[dstr]['MODIS'][0]
-            write_MODIS_to_HDF5(MODIS_date, channel = 1, swath = True, \
-                save_path = save_dir2, minlat = minlat, \
-                remove_empty_scans = remove_empty_scans)
-            write_MODIS_to_HDF5(MODIS_date, channel = 7, swath = True, \
-                save_path = save_dir2, minlat = minlat, \
-                remove_empty_scans = remove_empty_scans)
+            if(not reprocess_only_omi):
+                write_CERES_hrly_grid_to_HDF5(file_date_dict[dstr]['CERES'], \
+                    save_path = save_dir2, minlat = minlat, \
+                    remove_empty_scans = remove_empty_scans)
 
-            NSIDC_date = file_date_dict[dstr]['NSIDC'][:8]
-            print(NSIDC_date)
-            writeNSIDC_to_HDF5(NSIDC_date, save_path = save_dir2, \
-                minlat = minlat, remove_empty_scans = remove_empty_scans)
+                MODIS_date = file_date_dict[dstr]['MODIS'][0]
+                write_MODIS_to_HDF5(MODIS_date, channel = 1, swath = True, \
+                    save_path = save_dir2, minlat = minlat, \
+                    remove_empty_scans = remove_empty_scans)
+                write_MODIS_to_HDF5(MODIS_date, channel = 7, swath = True, \
+                    save_path = save_dir2, minlat = minlat, \
+                    remove_empty_scans = remove_empty_scans)
 
-            if(include_tropomi & (dt_date_str.year > 2017)):                    
-                generate_TROPOMI_prep_data(dstr, copy_to_raindrop = \
-                    copy_to_raindrop, minlat = minlat, \
-                    trop_time = file_date_dict[dstr]['TROPOMI'], \
-                    remove_large_files = remove_large_files)
+                NSIDC_date = file_date_dict[dstr]['NSIDC'][:8]
+                print(NSIDC_date)
+                writeNSIDC_to_HDF5(NSIDC_date, save_path = save_dir2, \
+                    minlat = minlat, remove_empty_scans = remove_empty_scans)
+
+                if(include_tropomi & (dt_date_str.year > 2017)):                    
+                    generate_TROPOMI_prep_data(dstr, copy_to_raindrop = \
+                        copy_to_raindrop, minlat = minlat, \
+                        trop_time = file_date_dict[dstr]['TROPOMI'], \
+                        remove_large_files = remove_large_files)
 
             # Finally, gzip the data
             # ---------------------
@@ -281,7 +284,7 @@ def automate_all_preprocess(date_str, download = True, images = True, \
 
 def single_wrap_function(date_str, minlat, min_AI, out_time_dict, download, \
         images, process, include_tropomi, new_only, copy_to_raindrop, \
-        remove_empty_scans, remove_ch2_file, skiprows = [52]):
+        remove_empty_scans, remove_ch2_file, reprocess_only_omi, skiprows = [52]):
 
     print(date_str)
 
@@ -301,6 +304,7 @@ def single_wrap_function(date_str, minlat, min_AI, out_time_dict, download, \
                 copy_to_raindrop = copy_to_raindrop, \
                 minlat = minlat, \
                 remove_empty_scans = remove_empty_scans, \
+                reprocess_only_omi = reprocess_only_omi, \
                 remove_ch2_file = remove_ch2_file)
 
         else:
@@ -311,12 +315,14 @@ def single_wrap_function(date_str, minlat, min_AI, out_time_dict, download, \
                 copy_to_raindrop = copy_to_raindrop, \
                 minlat = minlat, \
                 remove_empty_scans = remove_empty_scans, \
+                reprocess_only_omi = reprocess_only_omi, \
                 remove_ch2_file = remove_ch2_file)
 
 def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
         download = True, images = False, process = False, run_list = None, \
         include_tropomi = True, copy_to_raindrop = True, \
         remove_empty_scans = True, remove_ch2_file = False, \
+        reprocess_only_omi = False, \
         skiprows = [52]):
 
     if(home_dir + '/Research/OMI/' not in sys.path):
@@ -339,7 +345,7 @@ def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
             single_wrap_function(date_str, minlat, min_AI, out_time_dict, \
                 download, images, process, include_tropomi, new_only, \
                 copy_to_raindrop, remove_empty_scans, remove_ch2_file, \
-                skiprows = skiprows)
+                reprocess_only_omi, skiprows = skiprows)
 
     else:
     
@@ -366,7 +372,7 @@ def entire_wrapper(min_AI = 1.0, minlat = 70., new_only = True, \
                 single_wrap_function(date_str, minlat, min_AI, out_time_dict, \
                     download, images, process, include_tropomi, new_only,\
                     copy_to_raindrop, remove_empty_scans, remove_ch2_file, \
-                    skiprows = skiprows)
+                    reprocess_only_omi, skiprows = skiprows)
                 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
