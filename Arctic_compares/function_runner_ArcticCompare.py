@@ -15,8 +15,69 @@ import random
 ##!##date_str = '201507081837'
 ##!#plot_compare_colocate_spatial(date_str, minlat = 65., zoom = False, \
 ##!#    save = False)
-##!#
-##!#sys.exit()
+
+data = h5py.File('comp_data/testing/colocated_subset_201908110033.hdf5')
+
+fig = plt.figure()
+
+ax1 = fig.add_subplot(2,3,1, projection = ccrs.NorthPolarStereo())
+ax2 = fig.add_subplot(2,3,2, projection = ccrs.NorthPolarStereo())
+ax3 = fig.add_subplot(2,3,3, projection = ccrs.NorthPolarStereo())
+ax4 = fig.add_subplot(2,3,4, projection = ccrs.NorthPolarStereo())
+ax5 = fig.add_subplot(2,3,5, projection = ccrs.NorthPolarStereo())
+ax6 = fig.add_subplot(2,3,6, projection = ccrs.NorthPolarStereo())
+
+# Plot AI Perturbed
+mask_ai = np.ma.masked_invalid(data['omi_uvai_pert'])
+mask_ai = np.ma.masked_where(mask_ai == -999., mask_ai)
+ax1.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], mask_ai, \
+    transform = ccrs.PlateCarree(), shading = 'auto') 
+ax1.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax1.coastlines()
+ax1.set_title('AI PERT ' + str(np.max(mask_ai)))
+
+# Plot AI Raw
+mask_ai = np.ma.masked_invalid(data['omi_uvai_raw'])
+mask_ai = np.ma.masked_where(mask_ai == -999., mask_ai)
+ax2.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], mask_ai, \
+    transform = ccrs.PlateCarree(), shading = 'auto') 
+ax2.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax2.coastlines()
+ax2.set_title('AI RAW ' + str(np.max(mask_ai)))
+
+# Plot MODIS CH7
+mask_ai = np.ma.masked_invalid(data['modis_ch7'])
+mask_ai = np.ma.masked_where(mask_ai == -999., mask_ai)
+ax3.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], mask_ai, \
+    transform = ccrs.PlateCarree(), shading = 'auto') 
+ax3.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax3.coastlines()
+ax3.set_title('CH7 ' + str(np.max(mask_ai)))
+
+# Plot NSIDC ICE
+mask_ai = np.ma.masked_invalid(data['nsidc_ice'])
+mask_ai = np.ma.masked_where(mask_ai == -999., mask_ai)
+ax4.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], mask_ai, \
+    transform = ccrs.PlateCarree(), shading = 'auto') 
+ax4.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax4.coastlines()
+ax4.set_title('ICE ' + str(np.max(mask_ai)))
+
+# Plot CERES ALB
+mask_ai = np.ma.masked_invalid(data['ceres_alb'])
+mask_ai = np.ma.masked_where(mask_ai == -999., mask_ai)
+ax5.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], mask_ai, \
+    transform = ccrs.PlateCarree(), shading = 'auto') 
+ax5.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax5.coastlines()
+ax5.set_title('CH7 ' + str(np.max(mask_ai)))
+
+fig.tight_layout()
+plt.show()
+
+data.close()
+
+sys.exit()
 
 #date_str = '201807052213'
 #date_str = '201807052034'
