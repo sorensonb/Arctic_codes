@@ -468,8 +468,8 @@ def plot_figure_text(ax, text, xval = None, yval = None, transform = None, \
         if(xval is None):
             xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * 0.1
         if(yval is None):
-            yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.80
-            #yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.90
+            #yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.80
+            yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.90
     else:
         print("NO SPOT CHOSEN. USING UPPER_RIGHT")
         if(xval is None):
@@ -528,7 +528,7 @@ def make_gif(frame_folder, gif_name):
     frames = [Image.open(image) for image in glob(f"{frame_folder}/*.png")]
     frame_one = frames[0]
     frame_one.save(gif_name, format = 'GIF', append_images = frames,\
-        save_all = True, duration = 200, loop = 0)
+        save_all = True, duration = 400, loop = 0)
     print("Saved gif",gif_name)
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

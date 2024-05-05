@@ -9,12 +9,153 @@ import Arctic_compare_lib
 from Arctic_compare_lib import *
 import random
 #from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score
+
+make_gif('comp_images_20180705/', 'calc_swf_comp_20180705.gif')
+
+sys.exit()
 
 ##!#date_str = '201807040819'
 ##!#date_str = '201807040501'
 ##!##date_str = '201507081837'
 ##!#plot_compare_colocate_spatial(date_str, minlat = 65., zoom = False, \
 ##!#    save = False)
+
+calc_data = sys.argv[1]
+
+date_str = calc_data.strip().split('/')[-1].split('.')[0].split('_')[-1]
+
+#date_str = '201807052213'
+#date_str = '201807052034'
+#date_str = '201807052213'
+#date_str = '201807032226'
+#date_str = '201807040144'
+#date_str = '201807040819'
+#date_str = '201807082244'
+#date_str = '201807082105'
+#date_str = '201807081926'
+#date_str = '200607240029'
+#date_str = '200607270418'
+#base_file = '/home/bsorenson/Research/Arctic_compares/comp_data/testing/colocated_subset_' + date_str + '.hdf5'
+#base_file = '/home/bsorenson/Research/Arctic_compares/comp_data/with_cldpres/colocated_subset_201807052213.hdf5'
+#base_file = '/home/bsorenson/Research/Arctic_compares/comp_data/bad_data_comparison/colocated_subset_201807052213_orig_prep.hdf5'
+#base_file = '/home/bsorenson/Research/Arctic_compares/comp_data/original_prep_data/colocated_subset_201807052213.hdf5'
+#base_file = '/home/bsorenson/Research/Arctic_compares/comp_data/bad_data_comparison/colocated_subset_' + \
+#    date_str + '_new_file3.hdf5'
+
+#date_str = base_file.strip().split('/')[-1].split('_')[-1].split('.')[0]
+#date_str = base_file.strip().split('/')[-1].split('_')[-1].split('.')[0]
+sim_name = calc_data.split('_')[3]
+
+print(sim_name, date_str)
+
+#in_base = h5py.File(base_file)
+in_calc = h5py.File(calc_data)
+
+#mask_orig = np.ma.masked_where((in_base['ceres_swf'][:,:] == -999.) | \
+#                               (in_base['ceres_swf'][:,:] > 3000), in_base['ceres_swf'][:,:])
+mask_orig = np.ma.masked_where((in_calc['ceres_swf'][:,:] == -999.) | \
+                               (in_calc['ceres_swf'][:,:] > 3000), in_calc['ceres_swf'][:,:])
+mask_calc = np.ma.masked_invalid(in_calc['calc_swf'])
+mask_calc = np.ma.masked_where(mask_calc == -999., mask_calc)
+
+#mask_ctp = np.ma.masked_invalid(in_base['modis_cld_top_pres'][:,:])
+mask_ctp = np.ma.masked_invalid(in_calc['modis_cld_top_pres'][:,:])
+mask_ctp = np.ma.masked_where(mask_ctp == -999., mask_ctp)
+
+diff_calc = mask_orig - mask_calc
+
+both_orig = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_orig)
+both_calc = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_calc)
+
+fig = plt.figure(figsize = (11, 6))
+ax1 = fig.add_subplot(2,3,1, projection = ccrs.NorthPolarStereo())
+ax2 = fig.add_subplot(2,3,2, projection = ccrs.NorthPolarStereo())
+ax3 = fig.add_subplot(2,3,3, projection = ccrs.NorthPolarStereo())
+ax4 = fig.add_subplot(2,3,5)
+ax5 = fig.add_subplot(2,3,4, projection = ccrs.NorthPolarStereo())
+#ax6 = fig.add_subplot(2,3,6)
+
+#ax4 = fig.add_subplot(2,2,4, projection = ccrs.NorthPolarStereo())
+
+mesh = ax1.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_orig, \
+    transform = ccrs.PlateCarree(), shading = 'auto')
+cbar = fig.colorbar(mesh, ax = ax1, label = 'SWF [Wm$^{-2}$]')
+ax1.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+ax1.set_title('Observed SWF')
+ax1.set_boundary(circle, transform=ax1.transAxes)
+ax1.coastlines()
+
+
+mesh = ax2.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_calc, \
+    transform = ccrs.PlateCarree(), shading = 'auto')
+cbar = fig.colorbar(mesh, ax = ax2, label = 'SWF [Wm$^{-2}$]')
+ax2.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
+ax2.set_title('Calculated Clear-sky SWF')
+ax2.set_boundary(circle, transform=ax2.transAxes)
+ax2.coastlines()
+
+mesh = ax3.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], diff_calc, \
+    transform = ccrs.PlateCarree(), shading = 'auto', vmin = -40, vmax = 40, cmap = 'bwr')
+cbar = fig.colorbar(mesh, ax = ax3, label = 'SWF [Wm$^{-2}$]')
+ax3.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
+ax3.set_title('Original - Calculated')
+ax3.set_boundary(circle, transform=ax3.transAxes)
+ax3.coastlines()
+
+mask_AI = np.ma.masked_where(in_calc['omi_uvai_pert'][:,:]  == -999., in_calc['omi_uvai_pert'][:,:])
+mesh = ax5.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_AI, \
+    transform = ccrs.PlateCarree(), vmin = -2, vmax = 4, shading = 'auto', cmap = 'jet')
+cbar = fig.colorbar(mesh, ax = ax5, label = 'AI Pert.]')
+ax5.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
+ax5.set_title('OMI UVAI')
+ax5.set_boundary(circle, transform=ax5.transAxes)
+ax5.coastlines()
+
+
+xy = np.vstack([both_orig.compressed(), both_calc.compressed()])
+if(len(both_orig.compressed()) > 1):
+        r2 = r2_score(both_orig.compressed(), both_calc.compressed())
+        z = stats.gaussian_kde(xy)(xy)       
+        ax4.scatter(both_orig.compressed(), both_calc.compressed(), c = z, s = 1)
+        ax4.set_title('r$^{2}$ = ' + str(np.round(r2, 3)))
+lims = [\
+        np.min([ax4.get_xlim(), ax4.get_ylim()]),\
+        np.max([ax4.get_xlim(), ax4.get_ylim()]),
+]
+ax4.plot(lims, lims, 'r', linestyle = ':', alpha = 0.75)
+ax4.set_xlim(lims)
+ax4.set_ylim(lims)
+ax4.set_xlabel('Observed SWF [W/m2]')
+ax4.set_ylabel('Calculated SWF [W/m2]')
+
+good_idxs = np.where( (mask_AI.mask == False) & \
+                      (mask_calc.mask == False) & \
+                      (mask_AI > 2))
+
+#scat_ai   = mask_AI[good_idxs].flatten()
+#scat_diff = diff_calc[good_idxs].flatten()
+#ax6.scatter(scat_ai, scat_diff, c = 'k', s = 6)
+#ax6.set_xlabel('OMI UVAI PERT')
+#ax6.set_ylabel('Calc Aer Forcing [W/m2]')
+
+
+plt.suptitle(date_str)
+
+#in_base.close()
+in_calc.close()
+
+fig.tight_layout()
+
+outname = 'ceres_nn_compare_' + date_str + '_' + sim_name + '.png'
+fig.savefig(outname, dpi = 200)
+print("Saved image", outname)
+plt.show()
+
+sys.exit()
+
+
+
 
 data = h5py.File('comp_data/testing/colocated_subset_201908110033.hdf5')
 
@@ -78,144 +219,6 @@ plt.show()
 data.close()
 
 sys.exit()
-
-#date_str = '201807052213'
-#date_str = '201807052034'
-#date_str = '201807052213'
-#date_str = '201807032226'
-#date_str = '201807040144'
-#date_str = '201807040819'
-#date_str = '201807082244'
-#date_str = '201807082105'
-#date_str = '201807081926'
-date_str = '200607240029'
-#date_str = '200607270418'
-base_file = '/home/bsorenson/Research/Arctic_compares/comp_data/testing/colocated_subset_' + date_str + '.hdf5'
-#base_file = '/home/bsorenson/Research/Arctic_compares/comp_data/with_cldpres/colocated_subset_201807052213.hdf5'
-#base_file = '/home/bsorenson/Research/Arctic_compares/comp_data/bad_data_comparison/colocated_subset_201807052213_orig_prep.hdf5'
-#base_file = '/home/bsorenson/Research/Arctic_compares/comp_data/original_prep_data/colocated_subset_201807052213.hdf5'
-#base_file = '/home/bsorenson/Research/Arctic_compares/comp_data/bad_data_comparison/colocated_subset_' + \
-#    date_str + '_new_file3.hdf5'
-calc_data = sys.argv[1]
-
-date_str = base_file.strip().split('/')[-1].split('_')[-1].split('.')[0]
-sim_name = calc_data.split('_')[3]
-
-print(sim_name, date_str)
-
-in_base = h5py.File(base_file)
-in_calc = h5py.File(calc_data)
-
-mask_orig = np.ma.masked_where((in_base['ceres_swf'][:,:] == -999.) | \
-                               (in_base['ceres_swf'][:,:] > 3000), in_base['ceres_swf'][:,:])
-mask_calc = np.ma.masked_invalid(in_calc['calc_swf'])
-mask_calc = np.ma.masked_where(mask_calc == -999., mask_calc)
-
-mask_ctp = np.ma.masked_invalid(in_base['modis_cld_top_pres'][:,:])
-mask_ctp = np.ma.masked_where(mask_ctp == -999., mask_ctp)
-
-diff_calc = mask_orig - mask_calc
-
-both_orig = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_orig)
-both_calc = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_calc)
-
-fig = plt.figure(figsize = (11, 7))
-ax1 = fig.add_subplot(2,3,1, projection = ccrs.NorthPolarStereo())
-ax2 = fig.add_subplot(2,3,2, projection = ccrs.NorthPolarStereo())
-ax3 = fig.add_subplot(2,3,4, projection = ccrs.NorthPolarStereo())
-ax4 = fig.add_subplot(2,3,5)
-ax5 = fig.add_subplot(2,3,3, projection = ccrs.NorthPolarStereo())
-ax6 = fig.add_subplot(2,3,6)
-#ax4 = fig.add_subplot(2,2,4, projection = ccrs.NorthPolarStereo())
-
-mesh = ax1.pcolormesh(in_base['omi_lon'][:,:], in_base['omi_lat'][:,:], mask_orig, \
-    transform = ccrs.PlateCarree(), shading = 'auto')
-cbar = fig.colorbar(mesh, ax = ax1, label = 'SWF [Wm$^{-2}$]')
-ax1.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
-ax1.set_title('Observed SWF')
-ax1.set_boundary(circle, transform=ax1.transAxes)
-ax1.coastlines()
-
-
-mesh = ax2.pcolormesh(in_base['omi_lon'][:,:], in_base['omi_lat'][:,:], mask_calc, \
-    transform = ccrs.PlateCarree(), shading = 'auto')
-cbar = fig.colorbar(mesh, ax = ax2, label = 'SWF [Wm$^{-2}$]')
-ax2.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
-ax2.set_title('Calculated Clear-sky SWF')
-ax2.set_boundary(circle, transform=ax2.transAxes)
-ax2.coastlines()
-
-mesh = ax3.pcolormesh(in_base['omi_lon'][:,:], in_base['omi_lat'][:,:], diff_calc, \
-    transform = ccrs.PlateCarree(), shading = 'auto', vmin = -40, vmax = 40, cmap = 'bwr')
-cbar = fig.colorbar(mesh, ax = ax3, label = 'SWF [Wm$^{-2}$]')
-ax3.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
-ax3.set_title('Original - Calculated')
-ax3.set_boundary(circle, transform=ax3.transAxes)
-ax3.coastlines()
-
-mask_AI = np.ma.masked_where(in_base['omi_uvai_pert'][:,:]  == -999., in_base['omi_uvai_pert'][:,:])
-mesh = ax5.pcolormesh(in_base['omi_lon'][:,:], in_base['omi_lat'][:,:], mask_AI, \
-    transform = ccrs.PlateCarree(), vmin = -2, vmax = 4, shading = 'auto', cmap = 'jet')
-cbar = fig.colorbar(mesh, ax = ax5, label = 'AI Pert.]')
-ax5.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
-ax5.set_title('OMI UVAI')
-ax5.set_boundary(circle, transform=ax5.transAxes)
-ax5.coastlines()
-
-
-##!#mesh = ax4.pcolormesh(in_base['omi_lon'][:,:], in_base['omi_lat'][:,:], both_orig, \
-##!#    transform = ccrs.PlateCarree(), shading = 'auto')
-##!#cbar = fig.colorbar(mesh, ax = ax4, label = 'SWF [Wm$^{-2}$]')
-##!#ax4.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
-##!#ax4.set_title('Observed SWF')
-##!#ax4.set_boundary(circle, transform=ax4.transAxes)
-##!#ax4.coastlines()
-
-xy = np.vstack([both_orig.compressed(), both_calc.compressed()])
-z = stats.gaussian_kde(xy)(xy)       
-ax4.scatter(both_orig.compressed(), both_calc.compressed(), c = z, s = 1)
-lims = [\
-        np.min([ax4.get_xlim(), ax4.get_ylim()]),\
-        np.max([ax4.get_xlim(), ax4.get_ylim()]),
-]
-ax4.plot(lims, lims, 'r-', linestyle = ':', alpha = 0.75)
-ax4.set_xlim(lims)
-ax4.set_ylim(lims)
-ax4.set_xlabel('Observed SWF [W/m2]')
-ax4.set_ylabel('Calculated SWF [W/m2]')
-
-good_idxs = np.where( (mask_AI.mask == False) & \
-                      (mask_calc.mask == False) & \
-                      (mask_AI > 2))
-
-scat_ai   = mask_AI[good_idxs].flatten()
-scat_diff = diff_calc[good_idxs].flatten()
-ax6.scatter(scat_ai, scat_diff, c = 'k', s = 6)
-ax6.set_xlabel('OMI UVAI PERT')
-ax6.set_ylabel('Calc Aer Forcing [W/m2]')
-
-#mesh = ax4.pcolormesh(in_base['omi_lon'][:,:], in_base['omi_lat'][:,:], mask_ctp, \
-#    transform = ccrs.PlateCarree(), shading = 'auto')
-#cbar = fig.colorbar(mesh, ax = ax4, label = 'Cloud Top Pressure')
-#ax4.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
-#ax4.set_boundary(circle, transform=ax4.transAxes)
-#ax4.coastlines()
-
-plt.suptitle(date_str)
-
-in_base.close()
-in_calc.close()
-
-fig.tight_layout()
-
-outname = 'ceres_nn_compare_' + date_str + '_' + sim_name + '.png'
-fig.savefig(outname, dpi = 200)
-print("Saved image", outname)
-plt.show()
-
-sys.exit()
-
-
 
 
 

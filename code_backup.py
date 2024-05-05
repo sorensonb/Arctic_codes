@@ -14,8 +14,8 @@ base_dir = home_dir + "/Research/"
 dest_dir = home_dir + "/Arctic_codes/"
 
 copy_raindrop = False
-copy_calipso  = True 
-copy_talon    = True
+copy_calipso  = False
+copy_talon    = False
 
 ##!## Add new stuff
 ##!#os.chdir(dest_dir)
