@@ -18,7 +18,7 @@
 #SBATCH --partition=gpu-code-test
 
 # Sets the maximum time the job can run (hh:mm:ss).
-#SBATCH --time=00:04:00
+#SBATCH --time=00:30:00
 
 # Specifies nodes for the job.
 ###SBATCH --nodes=1

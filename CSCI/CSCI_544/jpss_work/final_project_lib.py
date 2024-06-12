@@ -1421,6 +1421,105 @@ def complete_image(idx, test = False, plot_losses = True, smooth = False):
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
+def calc_validate_stats_single(idx, noise = False):
+    # Extract the mask from the np_mask
+    # ---------------------------------
+    mask_mask = np.ma.masked_where(objects.np_mask == 0, objects.np_mask)
+
+    print("MASK_MASK shape", mask_mask.shape)
+
+    # Mask the original images. Keep the pixels in the masked region
+    # for comparison
+    # --------------------------------------------------------------
+    mask_test = np.ma.masked_where(mask_mask.mask == False, objects.test_images[idx,:,:,0])
+    print("MASK_TEST shape", mask_test.shape)
+    print("MASK_TEST COMPRESSED shape", mask_test.compressed().shape)
+    #mask_test = objects.test_images[idx,:,:,0][mask_mask.mask]
+    #mask_test = np.array([ob_tst[mask_mask.mask] for ob_tst in \
+    #    objects.test_images[idx,:,:,0]])
+    
+    if(noise):
+        # Make normally-distributed noise in the mask
+        # -------------------------------------------
+        rand_complete = np.random.normal(np.mean(mask_test.compressed()), \
+            np.std(mask_test.compressed()), mask_test.shape)
+        mask_complete = np.ma.masked_where(mask_mask.mask == False, rand_complete)
+        #mask_complete = np.random.normal(np.mean(mask_test), \
+        #    np.std(mask_test), mask_test.flatten().shape[0])
+        #mask_complete = np.array([np.random.normal(np.mean(mt), \
+        #    np.std(mt), mt.shape[0]) for mt in mask_test])
+
+        fig3 = plt.figure()
+        ax1 = fig3.add_subplot(1,4,1)
+        ax2 = fig3.add_subplot(1,4,2)
+        ax3 = fig3.add_subplot(1,4,3)
+        ax4 = fig3.add_subplot(1,4,4)
+
+        ax1.imshow(objects.test_images[idx,:,:,0], cmap = 'gray')
+        ax1.set_title('Input image' + str(idx))
+        ax2.imshow(mask_test, cmap = 'gray')
+        #ax2.pcolormesh(mask_test, cmap = 'gray', shading = 'auto',\
+        #    vmin = np.min(objects.test_images[idx,:,:,0]), \
+        #    vmax = np.max(objects.test_images[idx,:,:,0]))
+        ax2.set_title('Masked test')
+        ax3.imshow(mask_complete, cmap = 'gray')
+        #ax3.pcolormesh(mask_complete, cmap = 'gray', shading = 'auto',\
+        #    vmin = np.min(objects.test_images[idx,:,:,0]), \
+        #    vmax = np.max(objects.test_images[idx,:,:,0]))
+        ax3.set_title('Masked Completed')
+        ax4.imshow(rand_complete, cmap = 'gray')
+        ax4.set_title('Noise Completed')
+    
+        fig3.tight_layout() 
+        fig3.savefig('test_stats_image_noise.png', dpi = 300)
+        print("Saved image", 'test_stats_image_noise.png')
+
+    else:
+        # Extract the completed AI within the mask region 
+        # -----------------------------------------------
+        mask_complete = np.ma.masked_where(mask_mask.mask == False, objects.complete_img)
+        print("MASK_COMPLETE shape", mask_complete.shape)
+        #mask_complete = np.array([objects.complete_img[mask_mask.mask]])
+        #mask_complete = np.array([ob_im[mask_mask.mask] for ob_im in \
+        #    objects.complete_img])
+
+        fig3 = plt.figure()
+        ax1 = fig3.add_subplot(1,4,1)
+        ax2 = fig3.add_subplot(1,4,2)
+        ax3 = fig3.add_subplot(1,4,3)
+        ax4 = fig3.add_subplot(1,4,4)
+
+        ax1.imshow(objects.test_images[idx,:,:,0], cmap = 'gray')
+        ax1.set_title('Input image' + str(idx))
+        ax2.imshow(mask_test, cmap = 'gray')
+        #ax2.imshow(objects.complete_img, cmap = 'gray', \
+        #ax2.pcolormesh(objects.complete_img, cmap = 'gray', shading = 'auto',\
+        #    vmin = np.min(objects.test_images[idx,:,:,0]), \
+        #    vmax = np.max(objects.test_images[idx,:,:,0]))
+        ax2.set_title('Masked test')
+        ax3.imshow(mask_complete, cmap = 'gray')
+        #ax3.pcolormesh(mask_complete, cmap = 'gray', shading = 'auto',\
+        #    vmin = np.min(objects.test_images[idx,:,:,0]), \
+        #    vmax = np.max(objects.test_images[idx,:,:,0]))
+        ax3.set_title('Masked Completed')
+        ax4.imshow(objects.complete_img, cmap = 'gray')
+        ax4.set_title('DCGAN Completed')
+   
+        fig3.tight_layout() 
+        fig3.savefig('test_stats_image_test.png', dpi = 300)
+        print("Saved image", 'test_stats_image_test.png')
+
+
+    # Calculate errors between the true AI and the DCGAN/noise 
+    # --------------------------------------------------------
+    objects.errors = np.nanmean((mask_complete - mask_test) / mask_test) * 100.
+    objects.indiv_errors = ((mask_complete - mask_test) / mask_test) * 100.
+
+    print("INDIV_ERRORS shape", objects.indiv_errors.shape)
+    print("NEW INDIV_ERRORS shape", objects.indiv_errors.compressed().flatten().shape)
+
+    objects.indiv_errors = objects.indiv_errors.compressed().flatten()
+
 # Calculates errors between the true AI and DCGAN AI, as well as between
 # true AI and noise AI, if desired.
 def calc_validate_stats(idx, noise = False):
@@ -1456,11 +1555,16 @@ def plot_validate_stats_multiple(num_img, complete = True, noise = False, \
 
     # Add mask ranges here?
     # ---------------------
-    beg_masks = np.array([14, 12, 12, 10, 10, 9])
-    end_masks = np.array([17, 17, 19, 19, 21, 21])
+    #beg_masks = np.array([14])
+    #end_masks = np.array([17])
+    beg_masks = np.array([24, 22, 20, 18, 16, 14])
+    end_masks = np.array([26, 28, 30, 32, 34, 36])
+    #beg_masks = np.array([14, 12, 12, 10, 10, 9])
+    #end_masks = np.array([17, 17, 19, 19, 21, 21])
 
-    idx = np.arange(num_img)
-    
+    #range_num = 50
+    range_num = 100
+
     plt.close('all')
     fig = plt.figure(figsize = (9,7))
     for ii in range(len(beg_masks)):
@@ -1476,6 +1580,17 @@ def plot_validate_stats_multiple(num_img, complete = True, noise = False, \
         np_mask[:, beg_masks[ii]:end_masks[ii]] = 0.0
         objects.np_mask = np_mask
 
+        # Declare an array to hold the errors for this mask size
+        # Error dimensions = number of testing images, 60 
+        # number of rows being masked
+        # ------------------------------------------------------
+        total_dcgan_errors = np.full( \
+            (num_img, 60 * (end_masks[ii] - beg_masks[ii])), np.nan)
+        total_noise_errors = np.full( \
+            (num_img, 60 * (end_masks[ii] - beg_masks[ii])), np.nan)
+
+        print("DCGAN ERROR SHAPE:", total_dcgan_errors.shape)
+
         #complete_image(idx, test = test, plot_losses = False)
 
         # Loop over each of the input images, completing them and calculating
@@ -1484,60 +1599,52 @@ def plot_validate_stats_multiple(num_img, complete = True, noise = False, \
         for jj in range(num_img):
             complete_image(jj, test = test, \
                 smooth = False, plot_losses = False)
+            calc_validate_stats_single(jj, noise = False)
+            print('Image',jj,objects.complete_img.shape, objects.indiv_errors.shape)
+            total_dcgan_errors[jj,:] = objects.indiv_errors.squeeze()
+            if(noise):       
+                calc_validate_stats_single(jj, noise = True)
+                total_noise_errors[jj,:] = objects.indiv_errors.squeeze()
 
+            #objects.indiv_errors = ((mask_complete - mask_test) / mask_test) * 100.
 
-    plt.close('all')
+        # Plot the current generated statistics in panel
+        # ----------------------------------------------
+        ax.hist(total_dcgan_errors.flatten(), bins = 50, \
+            alpha = 0.5, \
+            #range = (-range_num, range_num), alpha = 0.5, \
+            label = 'DCGAN') 
 
-        ##!#calc_validate_stats(idx, noise = False)
-        ##!#objects.combined_errors[:, ii] = objects.errors
+        print('  DCGAN')
+        print('    mean error', np.mean(total_dcgan_errors))
+        print('    med  error', np.median(total_dcgan_errors)) 
+        print('    std  error', np.std(total_dcgan_errors))
 
-        ##!## Insert DCGAN error stats into arrays
-        ##!## ------------------------------------
-        ##!#means[0,ii]   = np.mean(objects.errors)
-        ##!#medians[0,ii] = np.median(objects.errors)
-        ##!#stds[0,ii]    = np.std(objects.errors)
+        # Calculate statistics for random noise, if desired
+        # -------------------------------------------------
+        if(noise):       
+            ax.hist(total_noise_errors.flatten(), bins = 50, \
+                alpha = 0.5, \
+                #range = (-range_num, range_num), alpha = 0.5, \
+                label = 'Noise') 
 
-        ##!#print('  Generator')
-        ##!#print('    mean error', means[0,ii])
-        ##!#print('    med  error', medians[0,ii])
-        ##!#print('    std  error', stds[0,ii])
-        ##!#
+            print('  NOISE')
+            print('    mean error', np.mean(total_noise_errors))
+            print('    med  error', np.median(total_noise_errors)) 
+            print('    std  error', np.std(total_noise_errors))
 
-        ##!## Plot the current generated statistics in panel
-        ##!## ----------------------------------------------
-        ##!#ax.hist(objects.combined_errors[:,ii], bins = 50, \
-        ##!#    range = (-range_num, range_num), alpha = 0.5, \
-        ##!#    label = 'DCGAN') 
+        ax.set_xlim(-range_num, range_num)
+        ax.axvline(0, color = 'black', linestyle = ':')
+        ax.set_title('Mask size = '+str(int(end_masks[ii] - \
+            beg_masks[ii])))
+        ax.set_xlabel('Average percent error within mask')
+        ax.set_ylabel('Counts')
+        ax.legend()
 
-        ##!## Calculate statistics for random noise, if desired
-        ##!## -------------------------------------------------
-        ##!#if(noise):       
-        ##!#    calc_validate_stats(idx, noise = noise)
-
-        ##!#    # Insert noise error stats into arrays
-        ##!#    # ------------------------------------
-        ##!#    means[1,ii]   = np.mean(objects.errors)
-        ##!#    medians[1,ii] = np.median(objects.errors)
-        ##!#    stds[1,ii]    = np.std(objects.errors)
-
-        ##!#    print('  Noise')
-        ##!#    print('    mean error', means[1,ii])
-        ##!#    print('    med  error', medians[1,ii]) 
-        ##!#    print('    std  error', stds[1,ii])
-
-        ##!#    # Plot the current generated statistics in panel
-        ##!#    # ----------------------------------------------
-        ##!#    ax.hist(objects.errors, bins = 50, \
-        ##!#        range = (-range_num, range_num), alpha = 0.5, \
-        ##!#        label = 'Noise') 
-
-        ##!#ax.set_xlim(-range_num, range_num)
-        ##!#ax.axvline(0, color = 'black', linestyle = ':')
-        ##!#ax.set_title('Mask size = '+str(int(end_masks[ii] - \
-        ##!#    beg_masks[ii])))
-        ##!#ax.set_xlabel('Average percent error within mask')
-        ##!#ax.set_ylabel('Counts')
-        ##!#ax.legend()
+    fig.tight_layout()
+    outname = 'error_statistics_noise.png'
+    fig.savefig(outname, dpi = 200)
+    print("Saved image", outname)
 
 
 # Complete - whether or not to process the completion code. Set to False if images

@@ -52,11 +52,11 @@ import objects
 #dat_name = 'default'
 dat_name = 'OMI'
 month = 7
-l_only_highAI = False
-l_only_lowAI = True
+l_only_highAI = True
+l_only_lowAI = False
 l_stretch_all = False
 l_include_tropomi = True
-num_epochs = 30000
+num_epochs = 20000
 batch_size = 32
 low_res = False
 
@@ -110,8 +110,13 @@ print(objects.buffer_size, objects.batch_size, objects.image_size)
 # Train the model
 # ----------------
 if(l_load_model):
-    objects.generator     = tf.keras.models.load_model('test_generator_20240423_10000_lowAI.keras')
-    objects.discriminator = tf.keras.models.load_model('test_discriminator_20240423_10000_lowAI.keras')
+    objects.generator     = tf.keras.models.load_model('test_generator_20240430_20000_highAI_july.keras')
+    objects.discriminator = tf.keras.models.load_model('test_discriminator_20240430_20000_highAI_july.keras')
+    #objects.generator     = tf.keras.models.load_model('test_generator_20240430_20000_lowAI_july.keras')
+    #objects.discriminator = tf.keras.models.load_model('test_discriminator_20240430_20000_lowAI_july.keras')
+
+    #objects.generator     = tf.keras.models.load_model('test_generator_20240423_10000_lowAI.keras')
+    #objects.discriminator = tf.keras.models.load_model('test_discriminator_20240423_10000_lowAI.keras')
 else:
     l_load_checkpoints = False
     train_model(EPOCHS = num_epochs, l_load_checkpoints = l_load_checkpoints)
@@ -144,5 +149,5 @@ objects.np_mask = np_mask
 valid_idxs = np.array([20,30,40,50])
 plot_validate_multiple(valid_idxs, complete = True, test = True, save = True)
 
-#plot_validate_stats_multiple(50, complete = True, noise = False, \
-#    test = True, save = False)
+#plot_validate_stats_multiple(50, complete = True, noise = True, \
+#    test = True, save = True)

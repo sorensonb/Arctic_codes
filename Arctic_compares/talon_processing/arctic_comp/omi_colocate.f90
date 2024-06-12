@@ -319,9 +319,9 @@ program omi_colocate
     write(*,*) "Opened TROPOMI file"
 
     call read_comp_TROP_AI(trop_file_id)
-    call read_comp_TROP_SSA0(trop_file_id)
-    call read_comp_TROP_SSA1(trop_file_id)
-    call read_comp_TROP_SSA2(trop_file_id)
+    !call read_comp_TROP_SSA0(trop_file_id)
+    !call read_comp_TROP_SSA1(trop_file_id)
+    !call read_comp_TROP_SSA2(trop_file_id)
 
   endif
 
