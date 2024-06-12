@@ -7,7 +7,7 @@
 
 from WRFLib import *
 
-#infile = 'wrfout_d01_2015-06-28_00:00:00_nikkiupdate'
+infile = 'wrfout_d01_2015-06-28_00:00:00_nikkiupdate'
 #infile = 'wrfout_d01_2015-06-28_00:00:00_mycontrol'
 #data = Dataset(infile)
 
@@ -26,9 +26,13 @@ from WRFLib import *
 # total column integrated smoke, cloud fraction) for two simulations:
 # a control (clear) and smoky simulation.
 #plot_WRF_combined_output(data, 43, out_add = 'clear', save = False)
-#
+
+plot_WRF_combined_output_2file('wrfout_d01_2015-06-28_00:00:00_mycontrol', \
+    'wrfout_d01_2015-06-28_00:00:00_nikkiupdate', 43, \
+    save = True)
+
 #data.close()
-#sys.exit()
+sys.exit()
 
 # Plot a sounding at a given town name, formatted City, State
 # -----------------------------------------------------------

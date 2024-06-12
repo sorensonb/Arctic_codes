@@ -27,9 +27,11 @@ from pysolar.solar import get_altitude
 
 # LAADS DAAC key
 # --------------
-laads_daac_key = 'Ymxha2Uuc29yZW5zb246WW14aGEyVXVjMjl5Wlc1emIyNUFkVzVr'+\
-    'TG1Wa2RRPT06MTY2MzYwNjAyMDo1NWU4MjMwNjI2ZTVkZDE2MmU3MmQ3M2Q3OGQxN'+\
-    'Dg3Y2NjZTU4ZTAx'
+#laads_daac_key = 'Ymxha2Uuc29yZW5zb246WW14aGEyVXVjMjl5Wlc1emIyNUFkVzVr'+\
+#    'TG1Wa2RRPT06MTY2MzYwNjAyMDo1NWU4MjMwNjI2ZTVkZDE2MmU3MmQ3M2Q3OGQxN'+\
+#    'Dg3Y2NjZTU4ZTAx'
+
+laads_daac_key = "eyJ0eXAiOiJKV1QiLCJvcmlnaW4iOiJFYXJ0aGRhdGEgTG9naW4iLCJzaWciOiJlZGxqd3RwdWJrZXlfb3BzIiwiYWxnIjoiUlMyNTYifQ.eyJ0eXBlIjoiVXNlciIsInVpZCI6ImJsYWtlLnNvcmVuc29uIiwiZXhwIjoxNzIzMjM5MDA5LCJpYXQiOjE3MTgwNTUwMDksImlzcyI6IkVhcnRoZGF0YSBMb2dpbiJ9.aJ3anUgSBJ2wwzDbe7GlprY19c2nlDBNPMC7yF3UeGHAaWZS7NPLwMpmQ_A9RLIJYkVHUDmZ5As3JtNjvrGw8AFe96-JNCNOz7eeWrsiCEwiMASn0L0H8EjnJ-cKErLz7zE_vQq2_DauyvadGf1yncL99415nauuD3UAgYoi31BtqBUGadWIRwJfIB4nJ3lQZdB2BsFb6Vk7QqKWeM8Sxb9FWEe9fdP0FkHosAaJlv8EkUnIc_FjXtb3bUFH3qCMLCV7nW0QmCVLlqHMBRZ1LYcGolPR9yjf_M6UttqZoHLgLAwbQTWYYo7VFl_PVC05IEGNJ28fFWoZ600Yr-qDXg"
 
 home_dir = os.environ['HOME']
 
@@ -307,9 +309,10 @@ def init_proj(date_str):
 
     return mapcrs
 
-def plot_point_on_map(pax, plat, plon, markersize = 10, color = None, alpha = 1.0):
-    pax.plot(plon, plat, linewidth=2, markersize = markersize + 2, marker='.',
-            color = 'black', transform=datacrs, alpha = alpha)
+def plot_point_on_map(pax, plat, plon, markersize = 10, color = None, alpha = 1.0, add_border = True):
+    if(add_border):
+        pax.plot(plon, plat, linewidth=2, markersize = markersize + 2, marker='.',
+                color = 'black', transform=datacrs, alpha = alpha)
     pax.plot(plon, plat, linewidth=2, markersize = markersize, marker='.',
             transform=datacrs, color = color, alpha = alpha)
 

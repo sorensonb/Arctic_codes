@@ -7362,6 +7362,54 @@
             180.0
         ]
     },
+    "2015-07-04": {
+        "1440": {
+            "Lat": [
+                14.0,
+                24.0
+            ],
+            "Lon": [
+                -20.0,
+                -12.0
+            ],
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD/MYD021KM.A2015185.1440.061.2018050124705.hdf",
+            "modis_Lat": [
+                14.0,
+                24.0
+            ],
+            "modis_Lon": [
+                -20.0,
+                -12.0
+            ],
+            "swath": [
+                "201507041440",
+                "201507041445"
+            ]
+        },
+        "1445": {
+            "Lat": [
+                14.0,
+                24.0
+            ],
+            "Lon": [
+                -20.0,
+                -12.0
+            ],
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD/MYD021KM.A2015185.1445.061.2018050124156.hdf",
+            "modis_Lat": [
+                14.0,
+                24.0
+            ],
+            "modis_Lon": [
+                -20.0,
+                -12.0
+            ],
+            "swath": [
+                "201507041440",
+                "201507041445"
+            ]
+        }
+    },
     "2015-07-06": {
         "1125": {
             "Lat": [
@@ -8009,30 +8057,56 @@
                 "201507062130"
             ]
         },
-        "2300": {
+        "2255": {
             "Lat": [
-                60.0,
-                90.0
+                62.0,
+                75.0
             ],
             "Lon": [
-                -180.0,
-                180.0
+                185.0,
+                210.0
+            ],
+            "modis": "/home/bsorenson/data/MODIS/Aqua/MYD/MYD021KM.A2015187.2255.061.2018050215604.hdf",
+            "modis_Lat": [
+                62.0,
+                75.0
+            ],
+            "modis_Lon": [
+                185.0,
+                210.0
+            ],
+            "swath": [
+                "201507062255",
+                "201507062300",
+                "201507062305",
+                "201507062310"
+            ]
+        },
+        "2300": {
+            "Lat": [
+                62.0,
+                75.0
+            ],
+            "Lon": [
+                185.0,
+                210.0
             ],
             "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2015070600-2015070623.nc",
             "ceres_time": "23",
             "modis": "/home/bsorenson/data/MODIS/Aqua/MYD/MYD021KM.A2015187.2300.061.2018050215505.hdf",
             "modis_Lat": [
-                60.0,
-                90.0
+                62.0,
+                75.0
             ],
             "modis_Lon": [
-                -180.0,
-                180.0
+                185.0,
+                210.0
             ],
             "modis_cloud": "/home/bsorenson/data/MODIS/Aqua/CLDMSK/CLDMSK_L2_MODIS_Aqua.A2015187.2300.001.2019076144033.nc",
             "modis_myd06": "/home/bsorenson/data/MODIS/Aqua/MYD06/MYD06_L2.A2015187.2300.061.2018051034722.hdf",
             "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2015m0706t2207-o58376_v003-2017m0722t025527.he5",
             "swath": [
+                "201507062255",
                 "201507062300",
                 "201507062305",
                 "201507062310"
@@ -8040,28 +8114,29 @@
         },
         "2305": {
             "Lat": [
-                60.0,
-                90.0
+                62.0,
+                75.0
             ],
             "Lon": [
-                -180.0,
-                180.0
+                185.0,
+                210.0
             ],
             "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2015070600-2015070623.nc",
             "ceres_time": "23",
             "modis": "/home/bsorenson/data/MODIS/Aqua/MYD/MYD021KM.A2015187.2305.061.2018050220533.hdf",
             "modis_Lat": [
-                60.0,
-                90.0
+                62.0,
+                75.0
             ],
             "modis_Lon": [
-                -180.0,
-                180.0
+                185.0,
+                210.0
             ],
             "modis_cloud": "/home/bsorenson/data/MODIS/Aqua/CLDMSK/CLDMSK_L2_MODIS_Aqua.A2015187.2305.001.2019076143943.nc",
             "modis_myd06": "/home/bsorenson/data/MODIS/Aqua/MYD06/MYD06_L2.A2015187.2305.061.2018051035417.hdf",
             "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2015m0706t2207-o58376_v003-2017m0722t025527.he5",
             "swath": [
+                "201507062255",
                 "201507062300",
                 "201507062305",
                 "201507062310"
@@ -8069,28 +8144,29 @@
         },
         "2310": {
             "Lat": [
-                60.0,
-                90.0
+                62.0,
+                75.0
             ],
             "Lon": [
-                -180.0,
-                180.0
+                185.0,
+                210.0
             ],
             "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2015070600-2015070623.nc",
             "ceres_time": "23",
             "modis": "/home/bsorenson/data/MODIS/Aqua/MYD/MYD021KM.A2015187.2310.061.2018050215417.hdf",
             "modis_Lat": [
-                60.0,
-                90.0
+                62.0,
+                75.0
             ],
             "modis_Lon": [
-                -180.0,
-                180.0
+                185.0,
+                210.0
             ],
             "modis_cloud": "/home/bsorenson/data/MODIS/Aqua/CLDMSK/CLDMSK_L2_MODIS_Aqua.A2015187.2310.001.2019076144006.nc",
             "modis_myd06": "/home/bsorenson/data/MODIS/Aqua/MYD06/MYD06_L2.A2015187.2310.061.2018051034414.hdf",
             "omi": "/home/bsorenson/data/OMI/H5_files/OMI-Aura_L2-OMAERUV_2015m0706t2207-o58376_v003-2017m0722t025527.he5",
             "swath": [
+                "201507062255",
                 "201507062300",
                 "201507062305",
                 "201507062310"

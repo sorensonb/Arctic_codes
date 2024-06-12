@@ -11,9 +11,250 @@ import random
 #from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
 
-make_gif('comp_images_20180705/', 'calc_swf_comp_20180705.gif')
+#make_gif('comp_images_20180705/', 'calc_swf_comp_20180705.gif')
+
+#sys.exit()
+
+test_dict = combine_neuralnet_data('noland48')
+
+cod_bin_edges = np.array([0,0.0001,2,4,8,12,20,30,50])
+cod_bin_means = (cod_bin_edges[1:] + cod_bin_edges[:-1]) / 2
+
+#fig = plt.figure(figsize = (12, 5))
+#axs = fig.subplots(nrows = 2, ncols = 4)
+#
+#flat_axs = axs.flatten()
+
+#### (test_dict['omi_uvai_pert'] > 1) & \
+#### (test_dict['nsidc_ice'] >= 0.) & \
+#### (test_dict['nsidc_ice'] < 20.) & \
+#### (test_dict['modis_cod'] > 20) & \
+#### (test_dict['modis_cod'] < 30) & \
+#### ((test_dict['omi_sza'] >= 50) & \
+####  (test_dict['omi_sza'] < 60))
+def select_idxs(test_dict, ai_min, ice_min, ice_max, \
+        cod_min, cod_max, sza_min, sza_max):
+
+    good_idxs = np.where(\
+        (test_dict['omi_uvai_pert'] >= ai_min) & \
+        (test_dict['nsidc_ice'] >= ice_min) & \
+        (test_dict['nsidc_ice'] < ice_max) & \
+        (test_dict['modis_cod'] >= cod_min) & \
+        (test_dict['modis_cod'] < cod_max) & \
+        ((test_dict['omi_sza'] >= sza_min) & \
+         (test_dict['omi_sza'] < sza_max))
+    )
+
+    return good_idxs
+
+sza_bin_edges = np.arange(40, 85, 5)
+sza_bin_means = (sza_bin_edges[1:] + sza_bin_edges[:-1]) / 2
+ice_bin_edges = np.array([0, 20, 80, 100.2, 255])
+ice_bin_means = (ice_bin_edges[1:] + ice_bin_edges[:-1]) / 2
+
+calc_slopes = np.full(((ice_bin_edges.shape[0] - 1), \
+                       (sza_bin_edges.shape[0] - 1), \
+                       (cod_bin_edges.shape[0] - 1)), np.nan)
+calc_counts = np.full(((ice_bin_edges.shape[0] - 1), \
+                       (sza_bin_edges.shape[0] - 1), \
+                       (cod_bin_edges.shape[0] - 1)), np.nan)
+
+trend_type = 'theil-sen'
+for ii in range(ice_bin_edges.shape[0] - 1):
+    print(ice_bin_edges[ii])
+    for jj in range(sza_bin_edges.shape[0] - 1):
+        for kk in range(cod_bin_edges.shape[0] - 1):
+            good_idxs = select_idxs(test_dict, 1, \
+                ice_bin_edges[ii], ice_bin_edges[ii + 1], \
+                cod_bin_edges[kk], cod_bin_edges[kk+1], \
+                sza_bin_edges[jj], sza_bin_edges[jj+1])
+
+            calc_counts[ii,jj,kk] = good_idxs[0].shape[0]
+            
+            if(calc_counts[ii,jj,kk] > 2):
+                raw_ydata = test_dict['calc_swf'][good_idxs] - test_dict['ceres_swf'][good_idxs]
+                raw_xdata = test_dict['omi_uvai_pert'][good_idxs] 
+
+                if(trend_type == 'theil-sen'):
+                    #if((len(raw_xdata) >= 20)):
+                    res = stats.theilslopes(raw_ydata, raw_xdata, 0.90)
+                    calc_slopes[ii,jj,kk]   = res[0]
+
+                    #if((len(grid_xdata) > 20)):
+                    #    res = stats.theilslopes(grid_ydata, grid_xdata, 0.90)
+                    #    grid_slopes[ii,jj,kk]   = res[0]
+                elif(trend_type == 'linregress'):
+                    #if((len(raw_xdata) >= 20)):
+                    result1 = stats.linregress(raw_xdata,raw_ydata)
+                    calc_slopes[ii,jj,kk] = result1.slope 
+                    #raw_stderr[ii,jj,kk] = result1.stderr
+                    #raw_pvals[ii,jj,kk]  = result1.pvalue
+
+
+fig = plt.figure(figsize = (9, 6))
+ax1 = fig.add_subplot(2,4,1)
+ax2 = fig.add_subplot(2,4,2)
+ax3 = fig.add_subplot(2,4,3)
+ax4 = fig.add_subplot(2,4,4)
+ax5 = fig.add_subplot(2,4,5)
+ax6 = fig.add_subplot(2,4,6)
+ax7 = fig.add_subplot(2,4,7)
+ax8 = fig.add_subplot(2,4,8)
+
+calc_slopes = np.ma.masked_where(abs(calc_slopes) > 50, calc_slopes)
+
+ax1.pcolormesh(calc_slopes[0,:,:].T, cmap = 'bwr', vmin = -15, vmax = 15)
+ax2.pcolormesh(calc_slopes[1,:,:].T, cmap = 'bwr', vmin = -15, vmax = 15)
+ax3.pcolormesh(calc_slopes[2,:,:].T, cmap = 'bwr', vmin = -15, vmax = 15)
+ax4.pcolormesh(calc_slopes[3,:,:].T, cmap = 'bwr', vmin = -15, vmax = 15)
+ax5.pcolormesh(calc_counts[0,:,:].T, cmap = 'viridis')
+ax6.pcolormesh(calc_counts[1,:,:].T, cmap = 'viridis')
+ax7.pcolormesh(calc_counts[2,:,:].T, cmap = 'viridis')
+ax8.pcolormesh(calc_counts[3,:,:].T, cmap = 'viridis')
+
+ax1.set_title('Ocean')
+ax2.set_title('Mix')
+ax3.set_title('Ice')
+ax4.set_title('Land')
+
+ax1.set_xlabel('SZA dim')
+ax2.set_xlabel('SZA dim')
+ax3.set_xlabel('SZA dim')
+ax4.set_xlabel('SZA dim')
+ax1.set_ylabel('COD dim')
+ax2.set_ylabel('COD dim')
+ax3.set_ylabel('COD dim')
+ax4.set_ylabel('COD dim')
+
+fig.tight_layout()
+
+plt.show()
 
 sys.exit()
+
+#fig = plt.figure()
+#ax = fig.add_subplot(1,1,1)
+ice_min = 20
+ice_max = 80
+sza_min = 60
+sza_max = 70
+for ii in range(flat_axs.shape[0]):
+    print("COD MIN", cod_bin_edges[ii], "COD MAX", cod_bin_edges[ii+1])
+    good_idxs = select_idxs(test_dict, 1, ice_min, ice_max, cod_bin_edges[ii], \
+        cod_bin_edges[ii+1], sza_min, sza_max) 
+
+    diff_calc = test_dict['calc_swf'][good_idxs] - test_dict['ceres_swf'][good_idxs]
+
+    local_xdata =test_dict['omi_uvai_pert'][good_idxs] 
+
+    flat_axs[ii].scatter(local_xdata, diff_calc, s = 6, color = 'k')
+   
+    flat_axs[ii].set_title(str(cod_bin_edges[ii]))
+ 
+    trend_type = 'theil-sen'
+    #trend_type = 'linregress'
+    if(len(local_xdata) > 10000):
+        print("ERROR: Plotting trend line with too many points")
+        print("       Preventing this for the sake of computer safety")
+    else:
+        plot_trend_line(flat_axs[ii], local_xdata, diff_calc, color='tab:red', \
+            linestyle = '-',  slope = trend_type)
+
+fig.tight_layout()
+
+plt.show()
+
+
+sys.exit()
+
+"""
+# = = = = = = = = = = = =
+#
+# This code compares how handling -999s and NaNs in the coloc data
+# gets rid of missing zones in the coloc data. 
+#
+# = = = = = = = = = = = =
+
+#test_file = 'test_comp_data/colocated_subset_201807052213.hdf5'
+test_file = 'comp_data/testing/colocated_subset_201807052213.hdf5'
+
+data = h5py.File(test_file)
+
+orig_data = data['modis_cld_top_pres'][:,:]
+no_999 = np.ma.masked_where(orig_data == -999., orig_data)
+no_nan = np.ma.masked_where(np.isnan(orig_data) == True, orig_data)
+nan_0  = np.where(np.isnan(orig_data), 1025., orig_data)
+all_fix  = np.where(np.isnan(orig_data), 1025., orig_data)
+all_fix  = np.ma.masked_where(  (all_fix <= 0.), all_fix)
+
+cod_orig_data = data['modis_cod'][:,:]
+cod_no_999 = np.ma.masked_where(cod_orig_data == -999., cod_orig_data)
+cod_no_nan = np.ma.masked_where(np.isnan(cod_orig_data) == True, cod_orig_data)
+#cod_nan_0  = np.where(np.isnan(orig_data), 1025., orig_data)
+
+fig = plt.figure()
+ax1 = fig.add_subplot(2,4,1, projection = ccrs.NorthPolarStereo())
+ax2 = fig.add_subplot(2,4,2, projection = ccrs.NorthPolarStereo())
+ax3 = fig.add_subplot(2,4,3, projection = ccrs.NorthPolarStereo())
+ax4 = fig.add_subplot(2,4,4, projection = ccrs.NorthPolarStereo())
+ax5 = fig.add_subplot(2,4,5, projection = ccrs.NorthPolarStereo())
+ax6 = fig.add_subplot(2,4,6, projection = ccrs.NorthPolarStereo())
+ax7 = fig.add_subplot(2,4,7, projection = ccrs.NorthPolarStereo())
+ax8 = fig.add_subplot(2,4,8, projection = ccrs.NorthPolarStereo())
+
+ax1.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], orig_data, \
+    shading = 'auto', transform = ccrs.PlateCarree())
+ax1.coastlines()
+ax1.set_extent([-180,180,65,90], ccrs.PlateCarree())
+
+ax2.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], no_999, \
+    shading = 'auto', transform = ccrs.PlateCarree())
+ax2.coastlines()
+ax2.set_extent([-180,180,65,90], ccrs.PlateCarree())
+
+ax3.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], no_nan, \
+    shading = 'auto', transform = ccrs.PlateCarree())
+ax3.coastlines()
+ax3.set_extent([-180,180,65,90], ccrs.PlateCarree())
+
+ax4.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], nan_0, \
+    shading = 'auto', transform = ccrs.PlateCarree())
+ax4.coastlines()
+ax4.set_extent([-180,180,65,90], ccrs.PlateCarree())
+
+ax5.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], cod_orig_data, \
+    shading = 'auto', transform = ccrs.PlateCarree())
+ax5.coastlines()
+ax5.set_extent([-180,180,65,90], ccrs.PlateCarree())
+
+ax6.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], cod_no_999, \
+    shading = 'auto', transform = ccrs.PlateCarree())
+ax6.coastlines()
+ax6.set_extent([-180,180,65,90], ccrs.PlateCarree())
+
+ax7.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], cod_no_nan, \
+    shading = 'auto', transform = ccrs.PlateCarree())
+ax7.coastlines()
+ax7.set_extent([-180,180,65,90], ccrs.PlateCarree())
+
+ax8.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], all_fix, \
+    shading = 'auto', transform = ccrs.PlateCarree())
+ax8.coastlines()
+ax8.set_extent([-180,180,65,90], ccrs.PlateCarree())
+
+fig.tight_layout()
+
+plt.show()
+
+sys.exit()
+
+# = = = = = = = = = = = = =
+#
+# END OF CTP FIX STUFF
+#
+# = = = = = = = = = = = = =
+
+"""
 
 ##!#date_str = '201807040819'
 ##!#date_str = '201807040501'
@@ -21,140 +262,8 @@ sys.exit()
 ##!#plot_compare_colocate_spatial(date_str, minlat = 65., zoom = False, \
 ##!#    save = False)
 
-calc_data = sys.argv[1]
-
-date_str = calc_data.strip().split('/')[-1].split('.')[0].split('_')[-1]
-
-#date_str = '201807052213'
-#date_str = '201807052034'
-#date_str = '201807052213'
-#date_str = '201807032226'
-#date_str = '201807040144'
-#date_str = '201807040819'
-#date_str = '201807082244'
-#date_str = '201807082105'
-#date_str = '201807081926'
-#date_str = '200607240029'
-#date_str = '200607270418'
-#base_file = '/home/bsorenson/Research/Arctic_compares/comp_data/testing/colocated_subset_' + date_str + '.hdf5'
-#base_file = '/home/bsorenson/Research/Arctic_compares/comp_data/with_cldpres/colocated_subset_201807052213.hdf5'
-#base_file = '/home/bsorenson/Research/Arctic_compares/comp_data/bad_data_comparison/colocated_subset_201807052213_orig_prep.hdf5'
-#base_file = '/home/bsorenson/Research/Arctic_compares/comp_data/original_prep_data/colocated_subset_201807052213.hdf5'
-#base_file = '/home/bsorenson/Research/Arctic_compares/comp_data/bad_data_comparison/colocated_subset_' + \
-#    date_str + '_new_file3.hdf5'
-
-#date_str = base_file.strip().split('/')[-1].split('_')[-1].split('.')[0]
-#date_str = base_file.strip().split('/')[-1].split('_')[-1].split('.')[0]
-sim_name = calc_data.split('_')[3]
-
-print(sim_name, date_str)
-
-#in_base = h5py.File(base_file)
-in_calc = h5py.File(calc_data)
-
-#mask_orig = np.ma.masked_where((in_base['ceres_swf'][:,:] == -999.) | \
-#                               (in_base['ceres_swf'][:,:] > 3000), in_base['ceres_swf'][:,:])
-mask_orig = np.ma.masked_where((in_calc['ceres_swf'][:,:] == -999.) | \
-                               (in_calc['ceres_swf'][:,:] > 3000), in_calc['ceres_swf'][:,:])
-mask_calc = np.ma.masked_invalid(in_calc['calc_swf'])
-mask_calc = np.ma.masked_where(mask_calc == -999., mask_calc)
-
-#mask_ctp = np.ma.masked_invalid(in_base['modis_cld_top_pres'][:,:])
-mask_ctp = np.ma.masked_invalid(in_calc['modis_cld_top_pres'][:,:])
-mask_ctp = np.ma.masked_where(mask_ctp == -999., mask_ctp)
-
-diff_calc = mask_orig - mask_calc
-
-both_orig = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_orig)
-both_calc = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_calc)
-
-fig = plt.figure(figsize = (11, 6))
-ax1 = fig.add_subplot(2,3,1, projection = ccrs.NorthPolarStereo())
-ax2 = fig.add_subplot(2,3,2, projection = ccrs.NorthPolarStereo())
-ax3 = fig.add_subplot(2,3,3, projection = ccrs.NorthPolarStereo())
-ax4 = fig.add_subplot(2,3,5)
-ax5 = fig.add_subplot(2,3,4, projection = ccrs.NorthPolarStereo())
-#ax6 = fig.add_subplot(2,3,6)
-
-#ax4 = fig.add_subplot(2,2,4, projection = ccrs.NorthPolarStereo())
-
-mesh = ax1.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_orig, \
-    transform = ccrs.PlateCarree(), shading = 'auto')
-cbar = fig.colorbar(mesh, ax = ax1, label = 'SWF [Wm$^{-2}$]')
-ax1.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
-ax1.set_title('Observed SWF')
-ax1.set_boundary(circle, transform=ax1.transAxes)
-ax1.coastlines()
-
-
-mesh = ax2.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_calc, \
-    transform = ccrs.PlateCarree(), shading = 'auto')
-cbar = fig.colorbar(mesh, ax = ax2, label = 'SWF [Wm$^{-2}$]')
-ax2.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
-ax2.set_title('Calculated Clear-sky SWF')
-ax2.set_boundary(circle, transform=ax2.transAxes)
-ax2.coastlines()
-
-mesh = ax3.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], diff_calc, \
-    transform = ccrs.PlateCarree(), shading = 'auto', vmin = -40, vmax = 40, cmap = 'bwr')
-cbar = fig.colorbar(mesh, ax = ax3, label = 'SWF [Wm$^{-2}$]')
-ax3.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
-ax3.set_title('Original - Calculated')
-ax3.set_boundary(circle, transform=ax3.transAxes)
-ax3.coastlines()
-
-mask_AI = np.ma.masked_where(in_calc['omi_uvai_pert'][:,:]  == -999., in_calc['omi_uvai_pert'][:,:])
-mesh = ax5.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_AI, \
-    transform = ccrs.PlateCarree(), vmin = -2, vmax = 4, shading = 'auto', cmap = 'jet')
-cbar = fig.colorbar(mesh, ax = ax5, label = 'AI Pert.]')
-ax5.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
-ax5.set_title('OMI UVAI')
-ax5.set_boundary(circle, transform=ax5.transAxes)
-ax5.coastlines()
-
-
-xy = np.vstack([both_orig.compressed(), both_calc.compressed()])
-if(len(both_orig.compressed()) > 1):
-        r2 = r2_score(both_orig.compressed(), both_calc.compressed())
-        z = stats.gaussian_kde(xy)(xy)       
-        ax4.scatter(both_orig.compressed(), both_calc.compressed(), c = z, s = 1)
-        ax4.set_title('r$^{2}$ = ' + str(np.round(r2, 3)))
-lims = [\
-        np.min([ax4.get_xlim(), ax4.get_ylim()]),\
-        np.max([ax4.get_xlim(), ax4.get_ylim()]),
-]
-ax4.plot(lims, lims, 'r', linestyle = ':', alpha = 0.75)
-ax4.set_xlim(lims)
-ax4.set_ylim(lims)
-ax4.set_xlabel('Observed SWF [W/m2]')
-ax4.set_ylabel('Calculated SWF [W/m2]')
-
-good_idxs = np.where( (mask_AI.mask == False) & \
-                      (mask_calc.mask == False) & \
-                      (mask_AI > 2))
-
-#scat_ai   = mask_AI[good_idxs].flatten()
-#scat_diff = diff_calc[good_idxs].flatten()
-#ax6.scatter(scat_ai, scat_diff, c = 'k', s = 6)
-#ax6.set_xlabel('OMI UVAI PERT')
-#ax6.set_ylabel('Calc Aer Forcing [W/m2]')
-
-
-plt.suptitle(date_str)
-
-#in_base.close()
-in_calc.close()
-
-fig.tight_layout()
-
-outname = 'ceres_nn_compare_' + date_str + '_' + sim_name + '.png'
-fig.savefig(outname, dpi = 200)
-print("Saved image", outname)
-plt.show()
-
+plot_compare_neuralnet_output(sys.argv[1], save = False)
 sys.exit()
-
-
 
 
 data = h5py.File('comp_data/testing/colocated_subset_201908110033.hdf5')
@@ -337,123 +446,6 @@ for ff in files:
 
 sys.exit()
     
-"""
-test_file = 'test_comp_data/colocated_subset_201807052213.hdf5'
-
-data = h5py.File(test_file)
-
-orig_data = data['modis_cld_top_pres'][:,:]
-no_999 = np.ma.masked_where(orig_data == -999., orig_data)
-no_nan = np.ma.masked_where(np.isnan(orig_data) == True, orig_data)
-nan_0  = np.where(np.isnan(orig_data), 1025., orig_data)
-all_fix  = np.where(np.isnan(orig_data), 1025., orig_data)
-all_fix  = np.ma.masked_where(  (all_fix <= 0.), all_fix)
-
-cod_orig_data = data['modis_cod'][:,:]
-cod_no_999 = np.ma.masked_where(cod_orig_data == -999., cod_orig_data)
-cod_no_nan = np.ma.masked_where(np.isnan(cod_orig_data) == True, cod_orig_data)
-#cod_nan_0  = np.where(np.isnan(orig_data), 1025., orig_data)
-
-fig = plt.figure()
-ax1 = fig.add_subplot(2,4,1, projection = ccrs.NorthPolarStereo())
-ax2 = fig.add_subplot(2,4,2, projection = ccrs.NorthPolarStereo())
-ax3 = fig.add_subplot(2,4,3, projection = ccrs.NorthPolarStereo())
-ax4 = fig.add_subplot(2,4,4, projection = ccrs.NorthPolarStereo())
-ax5 = fig.add_subplot(2,4,5, projection = ccrs.NorthPolarStereo())
-ax6 = fig.add_subplot(2,4,6, projection = ccrs.NorthPolarStereo())
-ax7 = fig.add_subplot(2,4,7, projection = ccrs.NorthPolarStereo())
-ax8 = fig.add_subplot(2,4,8, projection = ccrs.NorthPolarStereo())
-
-ax1.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], orig_data, \
-    shading = 'auto', transform = ccrs.PlateCarree())
-ax1.coastlines()
-ax1.set_extent([-180,180,65,90], ccrs.PlateCarree())
-
-ax2.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], no_999, \
-    shading = 'auto', transform = ccrs.PlateCarree())
-ax2.coastlines()
-ax2.set_extent([-180,180,65,90], ccrs.PlateCarree())
-
-ax3.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], no_nan, \
-    shading = 'auto', transform = ccrs.PlateCarree())
-ax3.coastlines()
-ax3.set_extent([-180,180,65,90], ccrs.PlateCarree())
-
-ax4.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], nan_0, \
-    shading = 'auto', transform = ccrs.PlateCarree())
-ax4.coastlines()
-ax4.set_extent([-180,180,65,90], ccrs.PlateCarree())
-
-ax5.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], cod_orig_data, \
-    shading = 'auto', transform = ccrs.PlateCarree())
-ax5.coastlines()
-ax5.set_extent([-180,180,65,90], ccrs.PlateCarree())
-
-ax6.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], cod_no_999, \
-    shading = 'auto', transform = ccrs.PlateCarree())
-ax6.coastlines()
-ax6.set_extent([-180,180,65,90], ccrs.PlateCarree())
-
-ax7.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], cod_no_nan, \
-    shading = 'auto', transform = ccrs.PlateCarree())
-ax7.coastlines()
-ax7.set_extent([-180,180,65,90], ccrs.PlateCarree())
-
-ax8.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], all_fix, \
-    shading = 'auto', transform = ccrs.PlateCarree())
-ax8.coastlines()
-ax8.set_extent([-180,180,65,90], ccrs.PlateCarree())
-
-fig.tight_layout()
-
-plt.show()
-
-sys.exit()
-"""
-
-"""
-orig_path = '/home/bsorenson/Research/Arctic_compares/comp_data/'
-new_path  = '/home/bsorenson/Research/Arctic_compares/'
-
-date_str = '201807052213'
-
-var = 'modis_ch1'
-
-data1 = h5py.File(orig_path + 'colocated_subset_' + date_str + '.hdf5')
-data2 = h5py.File(new_path + 'colocated_subset_' + date_str + '_new.hdf5')
-
-mask_ceres1 = np.ma.masked_where( (data1[var][:,:] == -999.) | (data1[var][:,:] > 3000), data1[var][:,:])
-mask_ceres2 = np.ma.masked_where( (data2[var][:,:] == -999.) | (data2[var][:,:] > 3000), data2[var][:,:])
-mask_ceres3 = np.ma.masked_where( (data2['modis_cld_top_pres'][:,:] == -999.) | \
-    (data2['modis_cld_top_pres'][:,:] > 3000), data2['modis_cld_top_pres'][:,:])
-
-print(np.max(mask_ceres3), np.min(mask_ceres3))
-
-fig = plt.figure()
-mapcrs = ccrs.NorthPolarStereo()
-datacrs = ccrs.PlateCarree()
-ax1 = fig.add_subplot(1,3,1, projection = mapcrs)
-ax2 = fig.add_subplot(1,3,2, projection = mapcrs)
-ax3 = fig.add_subplot(1,3,3, projection = mapcrs)
-
-ax1.pcolormesh(data1['omi_lon'][:,:], data1['omi_lat'][:,:], mask_ceres1, shading = 'auto', transform = datacrs)
-ax2.pcolormesh(data2['omi_lon'][:,:], data2['omi_lat'][:,:], mask_ceres2, shading = 'auto', transform = datacrs)
-ax3.pcolormesh(data2['omi_lon'][:,:], data2['omi_lat'][:,:], mask_ceres3, shading = 'auto', transform = datacrs)
-ax1.coastlines()
-ax2.coastlines()
-ax3.coastlines()
-ax1.set_extent([-180,180,65,90], datacrs)
-ax2.set_extent([-180,180,65,90], datacrs)
-ax3.set_extent([-180,180,65,90], datacrs)
-
-data1.close()
-data2.close()
-fig.tight_layout()
-plt.show()
-
-sys.exit()
-"""
-
 
 
 

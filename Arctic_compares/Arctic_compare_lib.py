@@ -14,6 +14,7 @@ sys.path.append(home_dir)
 import python_lib
 import importlib
 from matplotlib.cm import turbo
+from sklearn.metrics import r2_score
 from python_lib import circle, plot_trend_line, nearest_gridpoint, \
     aerosol_event_dict, init_proj, plot_lat_circles, plot_figure_text, \
     plot_subplot_label
@@ -8335,3 +8336,216 @@ def test_error_calc(OMI_daily_data, OMI_monthly_data, coloc_dict, \
 
     fig.tight_layout()
     plt.show()
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
+# Neural Network functions
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def combine_neuralnet_data(sim_name):
+
+    files = glob('neuralnet_output/test_calc_out_' + sim_name + '*.hdf5')
+
+    # Figure out the total size to insert the data
+    # ---------------------------------------------
+    #minlat = 70.
+    minlat = 65.    # 2024/01/10: changed to 65.
+    total_size = 0
+    for ff in files:
+        data = h5py.File(ff,'r')
+        print(ff)
+        #local_data = np.ma.masked_invalid(data['omi_uvai_raw'])
+        local_data = np.ma.masked_invalid(data['omi_uvai_pert'])
+        local_data = np.ma.masked_where(abs(local_data) > 12, local_data)
+        local_data = np.ma.masked_where(data['omi_lat'][:,:] < minlat, \
+            local_data) 
+        local_data = np.ma.masked_where((data['ceres_swf'][:,:] < -200.) | \
+            (data['ceres_swf'][:,:] > 3000), \
+            local_data) 
+        local_data = np.ma.masked_where(np.isnan(data['calc_swf'][:,:]), local_data)
+        local_size = local_data.compressed().shape[0]
+        #print(ff, local_size)
+        total_size += local_size
+    
+        data.close()
+    
+    
+    # Set up the data structure to hold all the data
+    # ----------------------------------------------
+    combined_data = {}
+    combined_data['omi_uvai_pert'] = np.full(total_size, np.nan)
+    #combined_data['omi_uvai_raw']  = np.full(total_size, np.nan)
+    combined_data['modis_cld_top_pres']     = np.full(total_size, np.nan)
+    combined_data['modis_cod']     = np.full(total_size, np.nan)
+    combined_data['calc_swf']      = np.full(total_size, np.nan)
+    combined_data['ceres_swf']     = np.full(total_size, np.nan)
+    #combined_data['modis_ch7']     = np.full(total_size, np.nan)
+    combined_data['omi_sza']       = np.full(total_size, np.nan)
+    combined_data['omi_lat']       = np.full(total_size, np.nan)
+    combined_data['nsidc_ice']     = np.full(total_size, np.nan)
+    
+    print("Loading data")
+    
+    # Loop back over the files and insert the data into the structure
+    # ---------------------------------------------------------------
+    total_size = 0
+    beg_idx = 0
+    end_idx = 0
+    for ff in files:
+    
+        data = h5py.File(ff,'r')
+        # NOTE: Changed the omi variable here from "pert" to "raw" on 20230623.
+        #       This move should allow for coloc data to be read after 2020
+        #local_data = np.ma.masked_invalid(data['omi_uvai_raw'])
+        local_data = np.ma.masked_invalid(data['omi_uvai_pert'])
+        local_data = np.ma.masked_where(abs(local_data) > 12, local_data)
+        local_data = np.ma.masked_where(data['omi_lat'][:,:] < minlat, \
+            local_data) 
+        local_data = np.ma.masked_where((data['ceres_swf'][:,:] < -200.) | \
+            (data['ceres_swf'][:,:] > 3000), \
+            local_data) 
+        local_data = np.ma.masked_where(np.isnan(data['calc_swf'][:,:]), local_data)
+        local_size = local_data.compressed().shape[0]
+    
+        beg_idx = end_idx
+        end_idx = beg_idx + local_size
+    
+        for tkey in combined_data.keys():
+            combined_data[tkey][beg_idx:end_idx] = \
+                data[tkey][~local_data.mask]
+    
+        print(local_size)
+        total_size += local_size
+    
+        data.close()
+
+    return combined_data
+
+
+def plot_compare_neuralnet_output(calc_data, save = False):
+    
+    date_str = calc_data.strip().split('/')[-1].split('.')[0].split('_')[-1]
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+    
+    sim_name = calc_data.split('_')[3]
+    print(sim_name, date_str)
+    
+    in_calc = h5py.File(calc_data)
+    
+    mask_orig = np.ma.masked_where((in_calc['ceres_swf'][:,:] == -999.) | \
+                                   (in_calc['ceres_swf'][:,:] > 3000), in_calc['ceres_swf'][:,:])
+    mask_calc = np.ma.masked_invalid(in_calc['calc_swf'])
+    mask_calc = np.ma.masked_where(mask_calc == -999., mask_calc)
+    
+    mask_ctp = np.ma.masked_invalid(in_calc['modis_cld_top_pres'][:,:])
+    mask_ctp = np.ma.masked_where(mask_ctp == -999., mask_ctp)
+    
+    mask_cod = np.ma.masked_invalid(in_calc['modis_cod'][:,:])
+    mask_cod = np.ma.masked_where(mask_cod == -999., mask_cod)
+    
+    mask_ice = np.ma.masked_invalid(in_calc['nsidc_ice'][:,:])
+    mask_ice = np.ma.masked_where(mask_ice == -999., mask_ice)
+    
+    diff_calc = mask_calc - mask_orig
+    
+    both_orig = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_orig)
+    both_calc = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_calc)
+    
+    fig = plt.figure(figsize = (10.5, 6))
+    ax5 = fig.add_subplot(2,3,1, projection = ccrs.NorthPolarStereo())
+    ax1 = fig.add_subplot(2,3,2, projection = ccrs.NorthPolarStereo())
+    ax2 = fig.add_subplot(2,3,3, projection = ccrs.NorthPolarStereo())
+    ax3 = fig.add_subplot(2,3,4, projection = ccrs.NorthPolarStereo())
+    ax4 = fig.add_subplot(2,3,5)
+    ax6 = fig.add_subplot(2,3,6)
+    
+    #ax4 = fig.add_subplot(2,2,4, projection = ccrs.NorthPolarStereo())
+    
+    mesh = ax1.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_orig, \
+        transform = ccrs.PlateCarree(), shading = 'auto')
+    cbar = fig.colorbar(mesh, ax = ax1, label = 'SWF [Wm$^{-2}$]')
+    ax1.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+    ax1.set_title('Observed SWF')
+    ax1.set_boundary(circle, transform=ax1.transAxes)
+    ax1.coastlines()
+    
+    
+    mesh = ax2.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_calc, \
+        transform = ccrs.PlateCarree(), shading = 'auto')
+    cbar = fig.colorbar(mesh, ax = ax2, label = 'SWF [Wm$^{-2}$]')
+    ax2.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
+    ax2.set_title('Calc. Aerosol-free SWF')
+    ax2.set_boundary(circle, transform=ax2.transAxes)
+    ax2.coastlines()
+    
+    mesh = ax3.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], diff_calc, \
+        transform = ccrs.PlateCarree(), shading = 'auto', vmin = -40, vmax = 40, cmap = 'bwr')
+    cbar = fig.colorbar(mesh, ax = ax3, label = 'SWF [Wm$^{-2}$]')
+    ax3.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
+    ax3.set_title('Calculated - Observed')
+    ax3.set_boundary(circle, transform=ax3.transAxes)
+    ax3.coastlines()
+    
+    mask_AI = np.ma.masked_where(in_calc['omi_uvai_pert'][:,:]  == -999., in_calc['omi_uvai_pert'][:,:])
+    mesh = ax5.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_AI, \
+        transform = ccrs.PlateCarree(), vmin = -2, vmax = 4, shading = 'auto', cmap = 'jet')
+    cbar = fig.colorbar(mesh, ax = ax5, label = 'UVAI Perturbation')
+    ax5.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
+    ax5.set_title('OMI UVAI')
+    ax5.set_boundary(circle, transform=ax5.transAxes)
+    ax5.coastlines()
+    
+    
+    xy = np.vstack([both_orig.compressed(), both_calc.compressed()])
+    if(len(both_orig.compressed()) > 1):
+            r2 = r2_score(both_orig.compressed(), both_calc.compressed())
+            z = stats.gaussian_kde(xy)(xy)       
+            ax4.scatter(both_orig.compressed(), both_calc.compressed(), c = z, s = 1)
+            ax4.set_title('r$^{2}$ = ' + str(np.round(r2, 3)))
+    lims = [\
+            np.min([ax4.get_xlim(), ax4.get_ylim()]),\
+            np.max([ax4.get_xlim(), ax4.get_ylim()]),
+    ]
+    ax4.plot(lims, lims, 'r', linestyle = ':', alpha = 0.75)
+    ax4.set_xlim(lims)
+    ax4.set_ylim(lims)
+    ax4.set_xlabel('Observed SWF [Wm$^{-2}$]')
+    ax4.set_ylabel('Calculated SWF [Wm$^{-2}$]')
+   
+    print(np.min(mask_cod), np.max(mask_cod))
+     
+    good_idxs = np.where( (mask_AI.mask == False) & \
+                          (mask_calc.mask == False) & \
+                          (mask_cod.mask == False) & \
+                          (mask_ice > 80.) & \
+                          (mask_ice < 101.) & \
+                          (mask_AI > 2))
+    
+    scat_ai   = mask_AI[good_idxs].flatten()
+    scat_diff = diff_calc[good_idxs].flatten()
+    ax6.scatter(scat_ai, scat_diff, c = 'k', s = 6)
+    ax6.set_xlabel('OMI UVAI PERT')
+    ax6.set_ylabel('Calc Aer Forcing [W/m2]')
+    
+    plot_subplot_label(ax3, 'd)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax1, 'b)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax2, 'c)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax5, 'a)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax4, 'e)', fontsize = 11, backgroundcolor = None)
+    
+    plt.suptitle(dt_date_str.strftime('%Y-%m-%d %H:%M UTC'))
+    
+    #in_base.close()
+    in_calc.close()
+    
+    fig.tight_layout()
+
+    if(save):    
+        outname = 'ceres_nn_compare_' + date_str + '_' + sim_name + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+

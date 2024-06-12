@@ -1525,8 +1525,8 @@ def read_MODIS_satpy(date_str, channel,  composite = False, swath = False, \
         dt_date_str_end = dt_date_str + timedelta(minutes = 10)
 
         cmpst_add = '_composite'
-        lat_lims = [60, 90]
-        lon_lims = [-180, 180]
+        #lat_lims = [60, 90]
+        #lon_lims = [-180, 180]
 
         try:
             # Use the Satpy find_files_and_readers to grab the files
@@ -1539,6 +1539,8 @@ def read_MODIS_satpy(date_str, channel,  composite = False, swath = False, \
             return
 
         day_filenames = files
+        lat_lims = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis_Lat']
+        lon_lims = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis_Lon']
 
     else:
         # Determine the correct MODIS file associated with the date
@@ -1611,7 +1613,8 @@ def read_MODIS_satpy(date_str, channel,  composite = False, swath = False, \
         crs = new_scn['true_color'].attrs['area'].to_cartopy_crs()
         #crs = new_scn[str(channel)].attrs['area'].to_cartopy_crs()
     else:
-        crs = ccrs.NorthPolarStereo()
+        #crs = ccrs.NorthPolarStereo()
+        crs = new_scn['true_color'].attrs['area'].to_cartopy_crs()
 
 
     ##!#if(channel != 'true_color'):
@@ -1707,8 +1710,8 @@ def plot_MODIS_satpy(date_str, channel, ax = None, var = None, crs = None, \
     else:
         zoom_add = ''
 
-    if(counties):
-        ax.add_feature(USCOUNTIES.with_scale('5m'), alpha = 0.5)    
+    #if(counties):
+    #    ax.add_feature(USCOUNTIES.with_scale('5m'), alpha = 0.5)    
 
     # NOTE: commented out after removing the 'enhanced_image' code because
     #       it doesn't work now .

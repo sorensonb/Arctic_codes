@@ -7,6 +7,207 @@
 
 from MODISLib import *
 
+##!#download_MODIS_file('201507062255', dest_dir = modis_dir, \
+##!#    download_cloud_mask = False, \
+##!#    download_myd06 = False)
+##!#sys.exit()
+##!##modis_ch1 = 'true_color'
+##!##modis_ch1 = 20
+##!##date_str = '201507041440'
+##!#date_str = '201507062300'
+##!#var1, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel1 = \
+##!#    read_MODIS_satpy(date_str, modis_ch1, swath = True)
+##!#
+##!#plt.close('all')
+##!#fig = plt.figure()
+##!#ax1 = fig.add_subplot(1,1,1, projection = crs1) # true color    
+##!#
+##!#plot_MODIS_satpy(date_str, modis_ch1, ax = ax1, var = var1, crs = crs1, \
+##!#    lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+##!#    ptitle = '', plabel = plabel1, \
+##!#    labelsize = 10, zoom=True, save=False)
+##!#
+##!#fig.tight_layout()
+##!#
+##!#plt.show()
+##!#sys.exit()
+##!##plot_combined_figure1_v6(save = False)
+##!##
+##!##sys.exit()
+##!##download_MODIS_file('201507041440', dest_dir = modis_dir, \
+##!##    download_cloud_mask = False, \
+##!##    download_myd06 = False)
+##!##download_MODIS_file('201507041445', dest_dir = modis_dir, \
+##!##    download_cloud_mask = False, \
+##!##    download_myd06 = False)
+##!##sys.exit()
+
+# Make the overall figure
+# -----------------------
+plt.close('all')
+mapcrs1 = ccrs.NorthPolarStereo(central_longitude = -180)
+mapcrs2 = ccrs.LambertConformal(central_longitude = -10)
+
+modis_date1 = '201507062255'
+modis_date2 = '201507041440'
+
+var1, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel1 = \
+    read_MODIS_satpy(modis_date1, 'true_color', swath = True)
+var2, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel2 = \
+    read_MODIS_satpy(modis_date1, 27, swath = True)
+var3, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel3 = \
+    read_MODIS_satpy(modis_date1, 31, swath = True)
+var7, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel7 = \
+    read_MODIS_satpy(modis_date1, 20, swath = True)
+
+var4, crs2, lons2, lats2, lat_lims2, lon_lims2, plabel4 = \
+    read_MODIS_satpy(modis_date2, 'true_color', swath = True)
+var5, crs2, lons2, lats2, lat_lims2, lon_lims2, plabel5 = \
+    read_MODIS_satpy(modis_date2, 27, swath = True)
+var6, crs2, lons2, lats2, lat_lims2, lon_lims2, plabel6 = \
+    read_MODIS_satpy(modis_date2, 31, swath = True)
+var8, crs2, lons2, lats2, lat_lims2, lon_lims2, plabel8 = \
+    read_MODIS_satpy(modis_date2, 20, swath = True)
+
+dt_date_str1 = datetime.strptime(modis_date1, '%Y%m%d%H%M')
+dt_date_str2 = datetime.strptime(modis_date2, '%Y%m%d%H%M')
+
+fig1 = plt.figure(figsize = (13, 6.5))
+ax1 = fig1.add_subplot(2,4,1, projection = crs1)
+ax7 = fig1.add_subplot(2,4,2, projection = crs1)
+ax2 = fig1.add_subplot(2,4,3, projection = crs1)
+ax3 = fig1.add_subplot(2,4,4, projection = crs1)
+ax4 = fig1.add_subplot(2,4,5, projection = crs2)
+ax8 = fig1.add_subplot(2,4,6, projection = crs2)
+ax5 = fig1.add_subplot(2,4,7, projection = crs2)
+ax6 = fig1.add_subplot(2,4,8, projection = crs2)
+
+plot_MODIS_satpy(modis_date1, 'true_color', ax = ax1, var = var1, crs = crs1, \
+    lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+    ptitle = '', plabel = plabel1, \
+    labelsize = 10, zoom=True, save=False)
+plot_MODIS_satpy(modis_date1, 20, ax = ax7, var = var7, crs = crs1, \
+    lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+    ptitle = '', plabel = plabel2, \
+    labelsize = 10, zoom=True, save=False)
+plot_MODIS_satpy(modis_date1, 27, ax = ax2, var = var2, crs = crs1, \
+    lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+    ptitle = '', plabel = plabel2, \
+    labelsize = 10, zoom=True, save=False)
+plot_MODIS_satpy(modis_date1, 31, ax = ax3, var = var3, crs = crs1, \
+    lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+    ptitle = '', plabel = plabel3, \
+    labelsize = 10, zoom=True, save=False)
+
+plot_MODIS_satpy(modis_date2, 'true_color', ax = ax4, var = var4, crs = crs2, \
+    lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+    ptitle = '', plabel = plabel4, \
+    labelsize = 10, zoom=True, save=False)
+plot_MODIS_satpy(modis_date2, 27, ax = ax5, var = var5, crs = crs2, \
+    lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+    ptitle = '', plabel = plabel5, \
+    labelsize = 10, zoom=True, save=False)
+plot_MODIS_satpy(modis_date2, 31, ax = ax6, var = var6, crs = crs2, \
+    lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+    ptitle = '', plabel = plabel6, \
+    labelsize = 10, zoom=True, save=False, vmin = 280)
+plot_MODIS_satpy(modis_date2, 20, ax = ax8, var = var8, crs = crs2, \
+    lons = lons2, lats = lats2, lat_lims = lat_lims2, lon_lims = lon_lims2, \
+    ptitle = '', plabel = plabel6, \
+    labelsize = 10, zoom=True, save=False, vmin = 280)
+
+font_size = 9
+plot_figure_text(ax1, 'MODIS True Color', \
+    xval = None, yval = None, transform = None, \
+    color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+plot_figure_text(ax7, 'MODIS ' + \
+    str(np.round(np.mean(channel_dict[str(20)]['Bandwidth']), 2)) \
+    + ' μm', xval = None, yval = None, transform = None, \
+    color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+plot_figure_text(ax2, 'MODIS ' + \
+    str(np.round(np.mean(channel_dict[str(27)]['Bandwidth']), 2)) \
+    + ' μm', xval = None, yval = None, transform = None, \
+    color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+plot_figure_text(ax3, 'MODIS ' + \
+    str(np.round(np.mean(channel_dict[str(31)]['Bandwidth']), 2)) \
+    + ' μm', xval = None, yval = None, transform = None, \
+    color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+plot_figure_text(ax4, 'MODIS True Color', \
+    xval = None, yval = None, transform = None, \
+    color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+plot_figure_text(ax8, 'MODIS ' + \
+    str(np.round(np.mean(channel_dict[str(20)]['Bandwidth']), 2)) \
+    + ' μm', xval = None, yval = None, transform = None, \
+    color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+plot_figure_text(ax5, 'MODIS ' + \
+    str(np.round(np.mean(channel_dict[str(27)]['Bandwidth']), 2)) \
+    + ' μm', xval = None, yval = None, transform = None, \
+    color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+plot_figure_text(ax6, 'MODIS ' + \
+    str(np.round(np.mean(channel_dict[str(31)]['Bandwidth']), 2)) \
+    + ' μm', xval = None, yval = None, transform = None, \
+    color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+
+#plot_MODIS_channel(modis_date1, 'true_color', swath = True, \
+#    zoom = True, ax = ax1)
+#plot_MODIS_channel(modis_date2, 'true_color', swath = True, \
+#    zoom = True, ax = ax2)
+
+# = = = = = = = = = = = = = =
+#
+# Add Aqua MODIS fire spots
+#
+# = = = = = = = = = = = = = =
+
+data = pd.read_csv('../fire_archive_M-C61_33745.csv')
+data = data[ (data['satellite'] == 'Aqua') & (data['acq_time'] >= 2255)]
+
+lats = data['latitude'].values[::1]
+lons = data['longitude'].values[::1]
+
+for llat, llon in zip(lats, lons):
+    plot_point_on_map(ax1, llat, llon, markersize = 2, color = 'red', alpha = 1.0, add_border = False)
+
+ax1.set_extent([ 185,210, 62, 75], datacrs)
+ax2.set_extent([ 185,210, 62, 75], datacrs)
+ax3.set_extent([ 185,210, 62, 75], datacrs)
+ax7.set_extent([ 185,210, 62, 75], datacrs)
+ax4.set_extent([ -20, -12, 14, 24], datacrs)
+ax5.set_extent([ -20, -12, 14, 24], datacrs)
+ax6.set_extent([ -20, -12, 14, 24], datacrs)
+ax8.set_extent([ -20, -12, 14, 24], datacrs)
+
+plt.suptitle(dt_date_str1.strftime('Top: Biomass Burning Smoke (%Y-%m-%d %H:%M UTC)\n') + \
+             dt_date_str2.strftime('Bottom: Desert Dust (%Y-%m-%d %H:%M UTC)'))
+
+ax1.coastlines()
+ax2.coastlines()
+ax3.coastlines()
+ax4.coastlines()
+ax5.coastlines()
+ax6.coastlines()
+ax7.coastlines()
+ax8.coastlines()
+
+plot_subplot_label(ax1, '(a)', backgroundcolor = 'white')
+plot_subplot_label(ax7, '(b)', backgroundcolor = 'white')
+plot_subplot_label(ax2, '(c)', backgroundcolor = 'white')
+plot_subplot_label(ax3, '(d)', backgroundcolor = 'white')
+plot_subplot_label(ax4, '(e)', backgroundcolor = 'white')
+plot_subplot_label(ax8, '(f)', backgroundcolor = 'white')
+plot_subplot_label(ax5, '(g)', backgroundcolor = 'white')
+plot_subplot_label(ax6, '(h)', backgroundcolor = 'white')
+
+fig1.tight_layout()
+
+outname = 'modis_ice_desert_comp.png'
+fig1.savefig(outname, dpi = 200)
+print("Saved image", outname)
+
+#plt.show()
+
+sys.exit()
+
 date_str = '201807052305'
 #date_str = '201908102345'
 MODIS_ch1  = read_MODIS_channel(date_str, 1,  \

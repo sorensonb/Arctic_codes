@@ -33,7 +33,11 @@
     Blake Sorenson <blake.sorenson@und.edu> : 2020/02/12
 
 """
-
+import sys
+import os
+home_dir = os.environ['HOME']
+sys.path.append(home_dir)
+from python_lib import plot_subplot_label
 from wrf import getvar,interplevel,to_np,smooth2d,get_cartopy,cartopy_xlim,\
                 cartopy_ylim,latlon_coords,destagger,ALL_TIMES,ll_to_xy,td
 import metpy.calc as mcalc
@@ -116,12 +120,17 @@ def plot_sfc_field(in_data, var, time_index, ax = None, title = ''):
     cmap = 'plasma'
     if(var == 'T2'):
         plt_data = plt_data - 273.15
+        cbar_label = 'Temperature [$^{o}$C]'
     elif((var == 'BC1') | (var == 'BC2') | (var == 'OC1') | (var == 'OC2')):
         plt_data = calc_profile_total(plt_data, action = 'sum')
         cmap = 'jet'
+        cbar_label = 'μg/kg-dryair'
     elif((var == 'CLDFRA')):
         plt_data = calc_profile_total(plt_data, action = 'max')
         cmap = 'jet'
+        cbar_label = 'Cloud Fraction'
+    elif(var == 'SWDOWN'):
+        cbar_label = 'Wm$^{-2}$'
 
     # Check the min and max values in the array
     # ------------------------------------------
@@ -161,7 +170,7 @@ def plot_sfc_field(in_data, var, time_index, ax = None, title = ''):
     mesh = ax.pcolormesh(to_np(lons), to_np(lats), to_np(plt_data), \
         transform = ccrs.PlateCarree(), shading = 'auto', cmap = cmap, \
         vmin = vmin, vmax = vmax)
-    cbar = plt.colorbar(mesh, ax = ax, fraction = 0.045)
+    cbar = plt.colorbar(mesh, ax = ax, fraction = 0.045, label = cbar_label)
     ax.set_title(title)
     if(not in_ax):
         plt.show()
@@ -333,6 +342,74 @@ def plot_WRF_combined_output(in_data, time_index, save = False, out_add = 'smoke
 
     if(save):
         outname = dt_date_str.strftime('wrf_combined_output_%Y%m%d%H%M_' + out_add + '.png')
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+def plot_WRF_combined_output_2file(infile1, infile2, time_index, \
+        save = False, out_add = 'smoke'):
+
+    # Open the first file and extact projection info
+    # ----------------------------------------------
+    in_data = Dataset(infile1)
+
+    ph00  = getvar(in_data,'PH',timeidx=time_index)
+    cart_proj = get_cartopy(ph00)
+    del(ph00)
+
+    title = b''.join(in_data['Times'][time_index,:]).decode('utf-8')
+    dt_date_str = datetime.strptime(title, '%Y-%m-%d_%H:%M:%S')
+
+    fig = plt.figure(figsize = (9, 5))
+    ax1 = fig.add_subplot(2,3,1, projection = cart_proj) # accumulated aerosol profile
+    ax2 = fig.add_subplot(2,3,2, projection = cart_proj) # SWDOWN
+    ax3 = fig.add_subplot(2,3,3, projection = cart_proj) # CLOUD FRACTIOn
+    ax4 = fig.add_subplot(2,3,4, projection = cart_proj) # accumulated aerosol profile
+    ax5 = fig.add_subplot(2,3,5, projection = cart_proj) # SWDOWN
+    ax6 = fig.add_subplot(2,3,6, projection = cart_proj) # CLOUD FRACTIOn
+
+    # Plot the data
+    # -------------
+    plot_sfc_field(in_data, 'BC1', time_index, ax = ax1, title = 'Total Column Hydrophilic\nBlack Carbon')
+    plot_sfc_field(in_data, 'CLDFRA', time_index, ax = ax2, title = 'Cloud Fraction')
+    plot_sfc_field(in_data, 'SWDOWN', time_index, ax = ax3, title = 'Sfc. Downward SWF')
+
+    # Close the first file
+    # --------------------
+    in_data.close()
+    
+    # Open the second file and plot the data
+    # --------------------------------------
+    in_data = Dataset(infile2)
+
+    plot_sfc_field(in_data, 'BC1', time_index, ax = ax4, title = '')
+    plot_sfc_field(in_data, 'CLDFRA', time_index, ax = ax5, title = '')
+    plot_sfc_field(in_data, 'SWDOWN', time_index, ax = ax6, title = '')
+
+    plot_subplot_label(ax1, 'a)', fontsize = 10, backgroundcolor = 'white')
+    plot_subplot_label(ax2, 'b)', fontsize = 10, backgroundcolor = 'white')
+    plot_subplot_label(ax3, 'c)', fontsize = 10, backgroundcolor = 'white')
+    plot_subplot_label(ax4, 'd)', fontsize = 10, backgroundcolor = 'white')
+    plot_subplot_label(ax5, 'e)', fontsize = 10, backgroundcolor = 'white')
+    plot_subplot_label(ax6, 'f)', fontsize = 10, backgroundcolor = 'white')
+
+    # Close the second fike
+    # ---------------------
+    in_data.close()
+
+    row_label_size = 12
+    fig.text(0.02, 0.65, 'Without Aerosol', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 0)
+    fig.text(0.02, 0.22, 'With Aerosol', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 0)
+
+    plt.suptitle('WRF-Chem Simulation Results\n' + dt_date_str.strftime('%Y-%m-%d %H:%M UTC'))
+
+    fig.tight_layout()
+
+    if(save):
+        outname = dt_date_str.strftime('wrf_combined_output_%Y%m%d%H%M_2file.png')
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
