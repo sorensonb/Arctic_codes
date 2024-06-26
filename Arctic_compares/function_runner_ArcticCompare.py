@@ -15,154 +15,298 @@ from sklearn.metrics import r2_score
 
 #sys.exit()
 
-test_dict = combine_neuralnet_data('noland48')
+"""
+date_str = '20180705'
+minlat = 65.
+maxlat = 87.
+MYD08_data = read_MODIS_MYD08_single(date_str, minlat = minlat, maxlat = maxlat)
 
-cod_bin_edges = np.array([0,0.0001,2,4,8,12,20,30,50])
-cod_bin_means = (cod_bin_edges[1:] + cod_bin_edges[:-1]) / 2
+plot_cod = MYD08_data['cod_mean']
+print('min COD', np.min(plot_cod))
 
-#fig = plt.figure(figsize = (12, 5))
-#axs = fig.subplots(nrows = 2, ncols = 4)
+plot_cod = np.where(MYD08_data['cod_mean'].mask == True, 0, MYD08_data['cod_mean'])
+print('min COD', np.min(plot_cod))
+
+fig = plt.figure(figsize = (9, 4))
+ax1 = fig.add_subplot(1,2,1, projection = ccrs.NorthPolarStereo())
+ax2 = fig.add_subplot(1,2,2, projection = ccrs.NorthPolarStereo())
+
+ax1.pcolormesh(MYD08_data['lon'], MYD08_data['lat'], plot_cod, shading = 'auto', vmax = 50, transform = ccrs.PlateCarree())
+ax1.coastlines()
+ax1.set_extent([-180,180,65,90], datacrs)
+
+ax2.pcolormesh(MYD08_data['lon'], MYD08_data['lat'], MYD08_data['day_cld_frac_mean'], shading = 'auto', transform = ccrs.PlateCarree())
+ax2.coastlines()
+ax2.set_extent([-180,180,65,90], datacrs)
+
+fig.tight_layout()
+plt.show()
+
+sys.exit()
+"""
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
-#flat_axs = axs.flatten()
+#                      BEGIN FORCING VERSION NN STUFF
+#
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#
+#                        PLOTTING/ANALYSIS FUNCTIONS
+#
+#  select_idxs(test_dict, ai_min, ice_min, ice_max:
+#           This function identifies the indices that give the NN data
+#           that meet the AI, ICE, COD, and SZA requirements
+#
+#  combine_NN_data(sim_name):
+#           This function selects all the neural network output files 
+#           for the given simulation , while also applying some QC criteria,
+#           and returns a dictionary containing the observed and NN-estimated
+#           SWF, in addition to the binning variables.
+#
+#  calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, ...):
+#           This function calculates the slope and intercepts for the 
+#           forcing vs AI values. NOTE: here, forcing is calculated as NN - OBS.
+#           
+#           NOTE: This is also where the error stuff can be done by 
+#                 switching the slope found by Theil-Sen (res[0])
+#                 to either the lower bound slope (res[2]) or 
+#                 upper bound slope (res[3])
+#
+#  test_calculate_type_forcing_v4:
+#           Calculate the daily observation-estimated forcing
+#           given the NN output-derived forcing slopes 
+#           (and intercepts, if desired)
+#
+#  calculate_type_forcing_v4_monthly: calculates the single-day forcing 
+#            estimates and averages them into monthly averages.
+#
+#
+#  plot_NN_scatter_multiCOD(test_dict, cod_bin_edges,...):
+#           This function plots the NN output for given COD bin edges
+#           and for the specified AI, ICE, and SZA min/max values. For
+#           each COD bin, the selected, scattered forcing 
+#           (calculated as NN - OBS) data are plotted as a function of AI.
+#           There is one plot for each COD bin.
+#
+#  plot_NN_bin_slopes(slope_dict):
+#           Plot the binned NN/AI slopes for the 4 surface types as well
+#           as the bin counts
+#
+#
+#  plot_NN_bin_slopes_codmean(slope_dict, bin_dict, min_ob = 50, save = False):
+#           Plots the NN/AI slopes for the 4 surface types averaged ALONG
+#           the COD bins. Thus, the meaned forcing slopes are functions
+#           of the COD.
+#    
+#  plot_NN_forcing_daily(...):
+#           This function calculates the version 4 (NN) estimated forcing
+#           for a single day based on the forcing slopes (and bins)
+#           as well as the daily OMI AI, MODIS COD, NSIDC ICE, and
+#           the calculated solar zenith angle for the day. 
+#
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#
+#                   STEPS FOR NEW DAILY FORCING ESTIMATION
+#
+#
+# 1. Grab all the NN data (combine_NN_data)
+# 2. Calculate forcing slopes and intercepts on the COD, SZA, and ICE bins
+# 3. For each day, loop over each grid box
+# 4. Use the COD, SZA, and ICE values to select the matching binned forcing 
+#    slope and intercept. NOTE: This is where the "refice" and "refcld"
+#    simulations can be easily redone.
+# 5. Use the regression slope/intercept values to compute the forcing
+#    given the daily AI at that grid box.
+#
+#
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
-#### (test_dict['omi_uvai_pert'] > 1) & \
-#### (test_dict['nsidc_ice'] >= 0.) & \
-#### (test_dict['nsidc_ice'] < 20.) & \
-#### (test_dict['modis_cod'] > 20) & \
-#### (test_dict['modis_cod'] < 30) & \
-#### ((test_dict['omi_sza'] >= 50) & \
-####  (test_dict['omi_sza'] < 60))
-def select_idxs(test_dict, ai_min, ice_min, ice_max, \
-        cod_min, cod_max, sza_min, sza_max):
+# Load in all the NN-estimated SWF values (and other values) for
+# simulation 'noland48'
+# ----------------------------------------------------------------
+test_dict = combine_NN_data('noland48')
 
-    good_idxs = np.where(\
-        (test_dict['omi_uvai_pert'] >= ai_min) & \
-        (test_dict['nsidc_ice'] >= ice_min) & \
-        (test_dict['nsidc_ice'] < ice_max) & \
-        (test_dict['modis_cod'] >= cod_min) & \
-        (test_dict['modis_cod'] < cod_max) & \
-        ((test_dict['omi_sza'] >= sza_min) & \
-         (test_dict['omi_sza'] < sza_max))
-    )
+# Identify the dictionary array indices that give the NN data
+# associated with:
+# - AI >= 1
+# - 0 <= NSIDC ICE < 20
+# - 2 <= MODIS COD < 4
+# - 50 <= OMI SZA < 55
+# -----------------------------------------------------------
+#good_idxs = select_idxs(test_dict, 1, \
+#    0, 20, 2, 4, 50, 55)
 
-    return good_idxs
-
+# Define COD, SZA, and NSIDC ICE bin ranges
+# -----------------------------------------
+cod_bin_edges = np.array([0,0.5,2,4,8,12,20,30,50])
+cod_bin_means = (cod_bin_edges[1:] + cod_bin_edges[:-1]) / 2
 sza_bin_edges = np.arange(40, 85, 5)
 sza_bin_means = (sza_bin_edges[1:] + sza_bin_edges[:-1]) / 2
 ice_bin_edges = np.array([0, 20, 80, 100.2, 255])
 ice_bin_means = (ice_bin_edges[1:] + ice_bin_edges[:-1]) / 2
 
-calc_slopes = np.full(((ice_bin_edges.shape[0] - 1), \
-                       (sza_bin_edges.shape[0] - 1), \
-                       (cod_bin_edges.shape[0] - 1)), np.nan)
-calc_counts = np.full(((ice_bin_edges.shape[0] - 1), \
-                       (sza_bin_edges.shape[0] - 1), \
-                       (cod_bin_edges.shape[0] - 1)), np.nan)
+bin_dict = {
+    'cod_bin_edges': cod_bin_edges, \
+    'cod_bin_means': cod_bin_means, \
+    'sza_bin_edges': sza_bin_edges, \
+    'sza_bin_means': sza_bin_means, \
+    'ice_bin_edges': ice_bin_edges, \
+    'ice_bin_means': ice_bin_means, \
+}
 
-trend_type = 'theil-sen'
-for ii in range(ice_bin_edges.shape[0] - 1):
-    print(ice_bin_edges[ii])
-    for jj in range(sza_bin_edges.shape[0] - 1):
-        for kk in range(cod_bin_edges.shape[0] - 1):
-            good_idxs = select_idxs(test_dict, 1, \
-                ice_bin_edges[ii], ice_bin_edges[ii + 1], \
-                cod_bin_edges[kk], cod_bin_edges[kk+1], \
-                sza_bin_edges[jj], sza_bin_edges[jj+1])
+# Plot the scattered NN output as function of AI for the bins given above
+# -----------------------------------------------------------------------
+#plot_NN_scatter_multiCOD(test_dict, cod_bin_edges, 1, 101, 255, 50, 55)
+#sys.exit()
 
-            calc_counts[ii,jj,kk] = good_idxs[0].shape[0]
-            
-            if(calc_counts[ii,jj,kk] > 2):
-                raw_ydata = test_dict['calc_swf'][good_idxs] - test_dict['ceres_swf'][good_idxs]
-                raw_xdata = test_dict['omi_uvai_pert'][good_idxs] 
-
-                if(trend_type == 'theil-sen'):
-                    #if((len(raw_xdata) >= 20)):
-                    res = stats.theilslopes(raw_ydata, raw_xdata, 0.90)
-                    calc_slopes[ii,jj,kk]   = res[0]
-
-                    #if((len(grid_xdata) > 20)):
-                    #    res = stats.theilslopes(grid_ydata, grid_xdata, 0.90)
-                    #    grid_slopes[ii,jj,kk]   = res[0]
-                elif(trend_type == 'linregress'):
-                    #if((len(raw_xdata) >= 20)):
-                    result1 = stats.linregress(raw_xdata,raw_ydata)
-                    calc_slopes[ii,jj,kk] = result1.slope 
-                    #raw_stderr[ii,jj,kk] = result1.stderr
-                    #raw_pvals[ii,jj,kk]  = result1.pvalue
+# Calculate the regression slopes and intercepts from the NN data
+# ---------------------------------------------------------------
+min_ob = 50
+slope_dict = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
+        sza_bin_edges, cod_bin_edges, ai_min = 0, min_ob = min_ob, \
+        trend_type = 'theil-sen')
+slope_dict2 = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
+        sza_bin_edges, cod_bin_edges, ai_min = 1, min_ob = min_ob, \
+        trend_type = 'theil-sen')
 
 
-fig = plt.figure(figsize = (9, 6))
-ax1 = fig.add_subplot(2,4,1)
-ax2 = fig.add_subplot(2,4,2)
-ax3 = fig.add_subplot(2,4,3)
-ax4 = fig.add_subplot(2,4,4)
-ax5 = fig.add_subplot(2,4,5)
-ax6 = fig.add_subplot(2,4,6)
-ax7 = fig.add_subplot(2,4,7)
-ax8 = fig.add_subplot(2,4,8)
+# Plot the binned NN/AI slopes for the 4 surface types
+# ----------------------------------------------------
+#plot_NN_bin_slopes(slope_dict, bin_dict, min_ob = min_ob)
 
-calc_slopes = np.ma.masked_where(abs(calc_slopes) > 50, calc_slopes)
+#sys.exit()
 
-ax1.pcolormesh(calc_slopes[0,:,:].T, cmap = 'bwr', vmin = -15, vmax = 15)
-ax2.pcolormesh(calc_slopes[1,:,:].T, cmap = 'bwr', vmin = -15, vmax = 15)
-ax3.pcolormesh(calc_slopes[2,:,:].T, cmap = 'bwr', vmin = -15, vmax = 15)
-ax4.pcolormesh(calc_slopes[3,:,:].T, cmap = 'bwr', vmin = -15, vmax = 15)
-ax5.pcolormesh(calc_counts[0,:,:].T, cmap = 'viridis')
-ax6.pcolormesh(calc_counts[1,:,:].T, cmap = 'viridis')
-ax7.pcolormesh(calc_counts[2,:,:].T, cmap = 'viridis')
-ax8.pcolormesh(calc_counts[3,:,:].T, cmap = 'viridis')
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#
+# TEST DAILY FORCING ESTIMATION 
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
-ax1.set_title('Ocean')
-ax2.set_title('Mix')
-ax3.set_title('Ice')
-ax4.set_title('Land')
+# Read in the daily NSIDC, MODIS, and OMI data
 
-ax1.set_xlabel('SZA dim')
-ax2.set_xlabel('SZA dim')
-ax3.set_xlabel('SZA dim')
-ax4.set_xlabel('SZA dim')
-ax1.set_ylabel('COD dim')
-ax2.set_ylabel('COD dim')
-ax3.set_ylabel('COD dim')
-ax4.set_ylabel('COD dim')
+begin_date = '200504'
+end_date   = '202009'
+season     = 'sunlight'
+minlat = 65.
+maxlat = 87.
+shawn_file = home_dir + '/Research/OMI/omi_shawn_daily_2005_2020_v2.hdf5'
+#jz_file    = home_dir + '/Research/OMI/omi_VJZ211_daily_2005_2020.hdf5'
+OMI_daily_VSJ4  = calcOMI_MonthAvg_FromDaily(shawn_file, min_AI = -0.10, minlat = minlat, maxlat = maxlat)
+#OMI_daily_VJZ211 = calcOMI_MonthAvg_FromDaily(jz_file, min_AI = -0.10, minlat = minlat, maxlat = maxlat)
 
-fig.tight_layout()
+daily_VSJ4 = readOMI_daily_HDF5(shawn_file, minlat = minlat, maxlat = maxlat)
 
-plt.show()
+ai_thresh = 0.05
+#ai_thresh = -0.15
+maxerr = 1.5
 
-sys.exit()
+# Pre-calculate the daily SZA values for 1 April to 30 September
+# at each latitude in the grid. Resulting shape is (num_days, num_latitudes)
+# --------------------------------------------------------------
+#apr01_idx = int(datetime(2005,4,1).strftime('%j'))
+#sep30_idx = int(datetime(2005,9,30).strftime('%j')) + 1
+#days = np.arange(1, 366)
+#days = np.arange(apr01_idx, sep30_idx)
+#del_angles = -23.45 * np.cos( np.radians((360 / 365) * (days + 10)))
+#latitudes = np.arange(minlat + 0.5, maxlat + 0.5, 1.0)
+#lat_szas = np.array([tlat - del_angles for tlat in latitudes]).T
 
-#fig = plt.figure()
-#ax = fig.add_subplot(1,1,1)
-ice_min = 20
-ice_max = 80
-sza_min = 60
-sza_max = 70
-for ii in range(flat_axs.shape[0]):
-    print("COD MIN", cod_bin_edges[ii], "COD MAX", cod_bin_edges[ii+1])
-    good_idxs = select_idxs(test_dict, 1, ice_min, ice_max, cod_bin_edges[ii], \
-        cod_bin_edges[ii+1], sza_min, sza_max) 
+# Calculate the daily forcing estimate values for a date_string
+#date_str = '20180705'
+#plot_NN_forcing_daily(date_str, daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict, bin_dict, minlat = 65., maxlat = 87., \
+#    ai_thresh = ai_thresh, maxerr = maxerr, save = False)
+#sys.exit()
+#values = test_calculate_type_forcing_v4(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict, bin_dict, date_str, minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr,\
+#    filter_bad_vals = True, \
+#    reference_ice = None, \
+#    reference_cld = None, \
+#    mod_slopes = None, \
+#    return_modis_nsidc = False)
 
-    diff_calc = test_dict['calc_swf'][good_idxs] - test_dict['ceres_swf'][good_idxs]
+#sys.exit()
 
-    local_xdata =test_dict['omi_uvai_pert'][good_idxs] 
+ai_thresh = 0.7
+#all_month_vals = \
+#    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, \
+#    reference_ice = None, reference_cld = None, mod_slopes = None, \
+#    filter_bad_vals = True, return_modis_nsidc = False, \
+#    use_intercept = True, debug = False)
+#write_daily_month_force_to_HDF5(all_month_vals, OMI_daily_VSJ4, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+#    dtype = 'pert', 
+#    name_add = '_dayaithresh07_v4_aimin0_useintcpt')
 
-    flat_axs[ii].scatter(local_xdata, diff_calc, s = 6, color = 'k')
-   
-    flat_axs[ii].set_title(str(cod_bin_edges[ii]))
- 
-    trend_type = 'theil-sen'
-    #trend_type = 'linregress'
-    if(len(local_xdata) > 10000):
-        print("ERROR: Plotting trend line with too many points")
-        print("       Preventing this for the sake of computer safety")
-    else:
-        plot_trend_line(flat_axs[ii], local_xdata, diff_calc, color='tab:red', \
-            linestyle = '-',  slope = trend_type)
+infile_aimin1 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4.hdf5'
+infile_aimin0 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt.hdf5'
 
-fig.tight_layout()
+infile = infile_aimin0
+all_month_dict = read_daily_month_force_HDF5(infile)
 
-plt.show()
+
+# Plot the trend of daily-gridded monthly forcing values
+# ------------------------------------------------------
+##plot_type_forcing_v3_all_months(all_month_vals, OMI_daily_VSJ4, \
+#plot_type_forcing_v3_all_months(all_month_dict['FORCE_EST'], OMI_daily_VSJ4, \
+#           minlat = 65, omi_data_type = 'pert', version4 = True)
+
+# Calculate the Arctic-wide average of the daily-gridded monthly forcing
+# values for each month and plot them
+# ----------------------------------------------------------------------
+##plot_type_forcing_v3_all_months_arctic_avg(all_month_vals, OMI_daily_VSJ4, \
+#plot_type_forcing_v3_all_months_arctic_avg(all_month_dict['FORCE_EST'], OMI_daily_VSJ4, \
+#    minlat = 65, trend_type = 'standard', omi_data_type = 'pert', version4 = True)
+
+#write_daily_month_force_to_HDF5(all_month_vals, OMI_daily_VSJ4, \
+#    name_add = '_dayaithresh07_aipert_dataminlat70')
+#write_daily_month_force_to_HDF5(all_month_vals, OMI_daily_VSJ4, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+#    dtype = 'pert', 
+#    name_add = '_dayaithresh07_v4_aimin0_useintcpt')
+
+# Calculate daily forcing values and average the daily values into
+# monthly forcing estimates, but here using the daily ice concentration
+# values from 2005 as a reference. Am using this to try to see how
+# the change in sea ice affects the aerosol forcing. May need to use
+# the average of the first three years of sea ice rather than one
+# year...
+# ----------------------------------------------------------------
+#infile_aimin0 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt.hdf5'
+ref_ice_vals = np.arange(2005,2021)
+for ref_ice in ref_ice_vals:
+    #all_month_vals_ice = calculate_type_forcing_v3_monthly(daily_VSJ4, \
+    #    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = ai_thresh, minlat = minlat, \
+    #    maxerr = maxerr, reference_ice = str(ref_ice))
+    all_month_vals = \
+        calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+        slope_dict, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+        ai_thresh = ai_thresh, maxerr = maxerr, \
+        reference_ice = str(ref_ice), reference_cld = None, mod_slopes = None, \
+        filter_bad_vals = True, return_modis_nsidc = False, \
+        use_intercept = True, debug = False)
+    write_daily_month_force_to_HDF5(all_month_vals_ice, OMI_daily_VSJ4, \
+        name_add = '_dayaithresh07_v4_aimin0_useintcpt_refice' + str(ref_ice))
+
+ref_cld_vals = np.arange(2005,2021)
+for ref_cld in ref_cld_vals:
+    #all_month_vals_cld = calculate_type_forcing_v3_monthly(daily_VSJ4, \
+    #    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = ai_thresh, minlat = minlat, \
+    #    maxerr = maxerr, reference_cld = str(ref_cld))
+    all_month_vals = \
+        calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+        slope_dict, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+        ai_thresh = ai_thresh, maxerr = maxerr, \
+        reference_ice = None, reference_cld = str(ref_cld), mod_slopes = None, \
+        filter_bad_vals = True, return_modis_nsidc = False, \
+        use_intercept = True, debug = False)
+    write_daily_month_force_to_HDF5(all_month_vals_cld, OMI_daily_VSJ4, \
+        name_add = '_dayaithresh07_v4_aimin0_useintcpt_refcld' + str(ref_cld))
+    
 
 
 sys.exit()
@@ -262,7 +406,7 @@ sys.exit()
 ##!#plot_compare_colocate_spatial(date_str, minlat = 65., zoom = False, \
 ##!#    save = False)
 
-plot_compare_neuralnet_output(sys.argv[1], save = False)
+plot_compare_NN_output(sys.argv[1], save = False)
 sys.exit()
 
 

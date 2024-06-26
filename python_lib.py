@@ -316,7 +316,8 @@ def plot_point_on_map(pax, plat, plon, markersize = 10, color = None, alpha = 1.
     pax.plot(plon, plat, linewidth=2, markersize = markersize, marker='.',
             transform=datacrs, color = color, alpha = alpha)
 
-def plot_theil_sen_trend(pax, xdata, ydata, color, linestyle, linewidth):
+def plot_theil_sen_trend(pax, xdata, ydata, color, linestyle, linewidth, \
+        plot_bounds = False):
 
     class Object(object):
         pass
@@ -330,7 +331,14 @@ def plot_theil_sen_trend(pax, xdata, ydata, color, linestyle, linewidth):
     # Then, plot the trend line on the figure
     pax.plot(xdata, res[1] + res[0] * xdata, \
         color=color, linestyle = linestyle)
-  
+ 
+    if(plot_bounds):
+        pax.plot(xdata, res[1] + res[2] * xdata, \
+            color=color, linestyle = linestyle)
+        pax.plot(xdata, res[1] + res[3] * xdata, \
+            color=color, linestyle = linestyle)
+        
+ 
     out_data = Object()
     out_data.slope = res[0]
     out_data.intercept = res[1]
@@ -360,12 +368,14 @@ def plot_lin_regress_trend(pax, xdata, ydata, color, linestyle, linewidth):
     return zdata
 
 def plot_trend_line(pax, xdata, ydata, color='black', linestyle = '-', \
-        linewidth = 1.5, slope = 'theil-sen'):
+        linewidth = 1.5, slope = 'theil-sen', plot_bounds = False):
 
     if(slope == 'theil-sen'):
-        out = plot_theil_sen_trend(pax, xdata, ydata, color, linestyle, linewidth)
+        out = plot_theil_sen_trend(pax, xdata, ydata, color, linestyle, \
+            linewidth, plot_bounds = plot_bounds)
     elif(slope == 'both'):
-        out = plot_theil_sen_trend(pax, xdata, ydata, color, linestyle, linewidth)
+        out = plot_theil_sen_trend(pax, xdata, ydata, color, linestyle, \
+            linewidth, plot_bounds = plot_bounds)
         out = plot_lin_regress_trend(pax, xdata, ydata, color, linestyle, linewidth)
     else:
         print("No slope type set. Using linear regression")
@@ -451,6 +461,11 @@ def plot_figure_text(ax, text, xval = None, yval = None, transform = None, \
         color = 'black', fontsize = 12, backgroundcolor = None,\
         halign = 'left', location = 'lower_right', weight = None):
 
+    if(location == 'lower_left'):
+        if(xval is None):
+            xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * 0.1
+        if(yval is None):
+            yval = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.10
     if(location == 'lower_right'):
         if(xval is None):
             xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * 0.95

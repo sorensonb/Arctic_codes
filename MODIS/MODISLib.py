@@ -2626,6 +2626,8 @@ def read_MODIS_MYD08_single(date_str, minlat = 65.5, \
     out_dict['lon']               = data['Longitude'][:]
     out_dict['cld_frac_mean']     = data['Cloud_Fraction_Mean'][keep_idxs,:]
     out_dict['cld_frac_std']      = data['Cloud_Fraction_StDev'][keep_idxs,:]
+    out_dict['cod_mean']          = data['Cloud_Optical_Depth_Mean'][keep_idxs,:]
+    out_dict['cod_std']           = data['Cloud_Optical_Depth_StDev'][keep_idxs,:]
     out_dict['ob_count']          = data['Ob_Counts'][keep_idxs,:]
     out_dict['day_cld_frac_mean'] = data['Cloud_Fraction_Day_Mean'][keep_idxs,:]
     out_dict['day_cld_frac_std']  = data['Cloud_Fraction_Day_StDev'][keep_idxs,:]
@@ -2637,7 +2639,7 @@ def read_MODIS_MYD08_single(date_str, minlat = 65.5, \
     # be switched around
     # -------------------------------------------------------------------
     if(transform_lat):
-        comp_vars = ['cld_frac_mean', 'cld_frac_std', 'ob_count',\
+        comp_vars = ['cld_frac_mean', 'cld_frac_std', 'cod_mean', 'cod_std', 'ob_count',\
             'day_cld_frac_mean','day_cld_frac_std','day_ob_count']
         for cvar in comp_vars:
             new_data = np.full(out_dict[cvar].shape, np.nan)
@@ -2654,6 +2656,10 @@ def read_MODIS_MYD08_single(date_str, minlat = 65.5, \
         (out_dict['day_cld_frac_mean'] < 0) | \
         (out_dict['day_cld_frac_mean'] > 1.0), out_dict['day_cld_frac_mean'])
 
+    out_dict['cod_std'] = np.ma.masked_where(out_dict['cod_mean'] > 200, out_dict['cod_std'])
+    out_dict['cod_mean'] = np.ma.masked_where(out_dict['cod_mean'] > 200, out_dict['cod_mean'])
+
+    #out_dict['cod_mean'] = np.where(MYD08_data['cod_mean'].mask == True, 0, MYD08_data['cod_mean'])
 
     data.close()
 

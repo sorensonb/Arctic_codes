@@ -10,6 +10,7 @@ home_dir = os.environ['HOME']
 import sys
 import json
 from scipy.interpolate import interp1d
+from mpl_toolkits.axes_grid1 import ImageGrid
 sys.path.append(home_dir)
 import python_lib
 import importlib
@@ -7373,6 +7374,7 @@ def plot_type_forcing_v3_all_months(all_month_values, OMI_monthly_data, \
         hstyle = '.....', \
         plot_zonal_avgs = False, plot_pvals = True, \
         omi_data_type = 'raw', \
+        version4 = False,
         save = False,debug = False):
 
     forcing_trends = np.full((6, OMI_monthly_data['LAT'].shape[0], \
@@ -7602,8 +7604,14 @@ def plot_type_forcing_v3_all_months(all_month_values, OMI_monthly_data, \
         else:
             pval_add = ''
 
-        outname = 'calc_arctic_forcing_v3_monthly_' + trend_type + \
-            zonal_add + pval_add + '_' + omi_data_type + '_minlat' + str(int(minlat)) + '.png'
+        if(version4):
+            version_add = 'v4'
+        else:
+            version_add = 'v3'
+
+        outname = 'calc_arctic_forcing_' + version_add + '_monthly_' + \
+            trend_type + zonal_add + pval_add + '_' + omi_data_type + \
+            '_minlat' + str(int(minlat)) + '.png'
         #fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else: 
@@ -7617,6 +7625,7 @@ def plot_type_forcing_v3_all_months_arctic_avg(all_month_values, \
         ai_thresh = 0.7, cld_idx = 0, maxerr = 2, \
         min_cloud = 0.95, data_type = 'raw', trend_type = 'standard', \
         omi_data_type = 'raw', 
+        version4 = False, 
         save = False,debug = False, month_values2 = None, \
         month_values3 = None, labels = None, max_pval = 0.05):
 
@@ -7670,11 +7679,15 @@ def plot_type_forcing_v3_all_months_arctic_avg(all_month_values, \
                 linestyle = '-', linewidth = lwidth, slope = trend_type)
             calc_trend = rvals.slope * len(xvals)
             ptext = 'ΔF$_{aer}$ = '+str(np.round(calc_trend, 3))
+            if(version4):
+                text_loc = 'lower_left'
+            else:
+                text_loc = 'upper_left'
             if(rvals.pvalue <= max_pval):
-                plot_figure_text(ax, ptext, location = 'upper_left', \
+                plot_figure_text(ax, ptext, location = text_loc, \
                     fontsize = fsize, color = color, weight = 'bold', backgroundcolor = 'white')
             else:
-                plot_figure_text(ax, ptext, location = 'upper_left', \
+                plot_figure_text(ax, ptext, location = text_loc, \
                     fontsize = fsize, color = color, backgroundcolor = 'white')
 
             trend_vals[ii] = calc_trend
@@ -7721,7 +7734,12 @@ def plot_type_forcing_v3_all_months_arctic_avg(all_month_values, \
     fig.tight_layout()
 
     if(save):
-        outname = 'calc_arctic_forcing_v3_monthly_arcticavg_' + trend_type + \
+        if(version4):
+            version_add = 'v4'
+        else:
+            version_add = 'v3'
+        outname = 'calc_arctic_forcing_' + version_add + \
+            '_monthly_arcticavg_' + trend_type + \
             file_add + '_' + omi_data_type + str(int(minlat)) + '.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
@@ -8343,9 +8361,18 @@ def test_error_calc(OMI_daily_data, OMI_monthly_data, coloc_dict, \
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-def combine_neuralnet_data(sim_name):
+
+# This function selects all the neural network output files 
+# for the given simulation , while also applying some QC criteria,
+# and returns a dictionary containing the observed and NN-estimated
+# SWF, in addition to the binning variables.
+def combine_NN_data(sim_name):
 
     files = glob('neuralnet_output/test_calc_out_' + sim_name + '*.hdf5')
+
+    if(len(files) == 0):
+        print("ERROR: NO FILES FOUND FOR SIM " + sim_name)
+        return
 
     # Figure out the total size to insert the data
     # ---------------------------------------------
@@ -8422,8 +8449,295 @@ def combine_neuralnet_data(sim_name):
 
     return combined_data
 
+# This function identifies the indices that give the NN data
+# that meet the AI, ICE, COD, and SZA requirements
+def select_idxs(test_dict, ai_min, ice_min, ice_max, \
+        cod_min, cod_max, sza_min, sza_max):
 
-def plot_compare_neuralnet_output(calc_data, save = False):
+    good_idxs = np.where(\
+        (test_dict['omi_uvai_pert'] >= ai_min) & \
+        (test_dict['nsidc_ice'] >= ice_min) & \
+        (test_dict['nsidc_ice'] < ice_max) & \
+        (test_dict['modis_cod'] >= cod_min) & \
+        (test_dict['modis_cod'] < cod_max) & \
+        ((test_dict['omi_sza'] >= sza_min) & \
+         (test_dict['omi_sza'] < sza_max))
+    )
+
+    return good_idxs
+
+# This function calculates the slope and intercepts for the 
+# forcing vs AI values. NOTE: here, forcing is calculated as NN - OBS.
+# 
+# NOTE: This is also where the error stuff can be done by 
+#       switching the slope found by Theil-Sen (res[0])
+#       to either the lower bound slope (res[2]) or 
+#       upper bound slope (res[3])
+# --------------------------------------------------------------------
+def calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
+        sza_bin_edges, cod_bin_edges, ai_min = 1, min_ob = 50, \
+        trend_type = 'theil-sen'):
+
+    slope_dict = {}
+    
+    calc_slopes = np.full(((ice_bin_edges.shape[0] - 1), \
+                           (sza_bin_edges.shape[0] - 1), \
+                           (cod_bin_edges.shape[0] - 1)), np.nan)
+    calc_intcpt = np.full(((ice_bin_edges.shape[0] - 1), \
+                           (sza_bin_edges.shape[0] - 1), \
+                           (cod_bin_edges.shape[0] - 1)), np.nan)
+    calc_counts = np.full(((ice_bin_edges.shape[0] - 1), \
+                           (sza_bin_edges.shape[0] - 1), \
+                           (cod_bin_edges.shape[0] - 1)), np.nan)
+    
+    # = = = = = = = = =
+    # 
+    # NOTE: From Scipy documentation, the theilslopes returns the following 4
+    #       variables: slope, intercept, low_slope, and high_slope. The last
+    #       two give the lower and upper bounds of the confidence interval
+    #       for the slope. COULD THIS BE USED FOR THE UNCERTAINTY ANALYSIS
+    #       INSTEAD OF THE SLOPE STANDARD ERROR VALUE FROM LINREGRESS???
+    #
+    #       Values 3 and 4 are slopes, but the lower bound slope of the 90%
+    #       confidence interval and the upper bound slope. They do not
+    #       contain any information about the confidence intervals of 
+    #       the intercept, so the result is not a "true" regression 
+    #       confidence interval.
+    #
+    # = = = = = = = = =
+    
+    # Loop over each of the bins and find the slope and intercept
+    # (either from linear regression or from Theil-Sen)
+    trend_type = 'theil-sen'
+    for ii in range(ice_bin_edges.shape[0] - 1):
+        print(ice_bin_edges[ii])
+        for jj in range(sza_bin_edges.shape[0] - 1):
+            for kk in range(cod_bin_edges.shape[0] - 1):
+                good_idxs = select_idxs(test_dict, ai_min, \
+                    ice_bin_edges[ii], ice_bin_edges[ii + 1], \
+                    cod_bin_edges[kk], cod_bin_edges[kk+1], \
+                    sza_bin_edges[jj], sza_bin_edges[jj+1])
+    
+                calc_counts[ii,jj,kk] = good_idxs[0].shape[0]
+                
+                if(calc_counts[ii,jj,kk] > 2):
+                    raw_ydata = test_dict['calc_swf'][good_idxs] - test_dict['ceres_swf'][good_idxs]
+                    raw_xdata = test_dict['omi_uvai_pert'][good_idxs] 
+    
+                    if(trend_type == 'theil-sen'):
+                        #if((len(raw_xdata) >= 20)):
+                        res = stats.theilslopes(raw_ydata, raw_xdata, 0.90)
+                        calc_slopes[ii,jj,kk]   = res[0]
+                        calc_intcpt[ii,jj,kk]   = res[1]
+                        # NOTE: If wanting to do an uncertainty estimate with
+                        #       Theil-Sen, this is where it would be done.
+                        #calc_slopes[ii,jj,kk]   = res[2] # lower bound slope
+                        #calc_slopes[ii,jj,kk]   = res[3] # upper bound slope
+    
+                        #if((len(grid_xdata) > 20)):
+                        #    res = stats.theilslopes(grid_ydata, grid_xdata, 0.90)
+                        #    grid_slopes[ii,jj,kk]   = res[0]
+                    elif(trend_type == 'linregress'):
+                        #if((len(raw_xdata) >= 20)):
+                        result1 = stats.linregress(raw_xdata,raw_ydata)
+                        calc_slopes[ii,jj,kk] = result1.slope 
+                        #raw_stderr[ii,jj,kk] = result1.stderr
+                        #raw_pvals[ii,jj,kk]  = result1.pvalue
+   
+    calc_slopes = np.ma.masked_where(calc_counts < min_ob, calc_slopes)
+    calc_intcpt = np.ma.masked_where(calc_counts < min_ob, calc_intcpt)
+    calc_counts = np.ma.masked_where(calc_counts < min_ob, calc_counts)
+ 
+    slope_dict['slopes'] = calc_slopes
+    slope_dict['intercepts'] = calc_intcpt
+    slope_dict['counts'] = calc_counts
+
+    return slope_dict
+
+
+# Plot the binned slopes for the 4 surface types
+# ----------------------------------------------
+def plot_NN_bin_slopes(slope_dict, bin_dict, min_ob = 50, save = False):
+
+    plt.close('all')
+    fig = plt.figure(figsize = (10, 5.5))
+    #ax1 = fig.add_subplot(2,4,1)
+    #ax2 = fig.add_subplot(2,4,2)
+    #ax3 = fig.add_subplot(2,4,3)
+    #ax4 = fig.add_subplot(2,4,4)
+    #ax5 = fig.add_subplot(2,4,5)
+    #ax6 = fig.add_subplot(2,4,6)
+    #ax7 = fig.add_subplot(2,4,7)
+    #ax8 = fig.add_subplot(2,4,8)
+
+    #axs = fig.subplots(nrows = 2, ncols = 4, sharex = True, sharey = True)
+    #ax1 = axs[0,0]  # ocean force
+    #ax2 = axs[0,1]  # mix force
+    #ax3 = axs[0,2]  # ice force
+    #ax4 = axs[0,3]  # land force
+    #ax5 = axs[1,0]  # ocean cloud
+    #ax6 = axs[1,1]  # mix cloud
+    #ax7 = axs[1,2]  # ice cloud
+    #ax8 = axs[1,3]  # land cloud
+
+  
+    grid = ImageGrid(fig, 111, \
+        nrows_ncols = (2, 4), \
+        axes_pad = 0.20, \
+        share_all = True, \
+        cbar_location = 'right', \
+        cbar_mode = 'edge', \
+        cbar_size = '7%', \
+        cbar_pad = 0.15)
+
+    axs = [ax for ax in grid] 
+    ax1 = axs[0]  # ocean force
+    ax2 = axs[1]  # mix force
+    ax3 = axs[2]  # ice force
+    ax4 = axs[3]  # land force
+    ax5 = axs[4]  # ocean cloud
+    ax6 = axs[5]  # mix cloud
+    ax7 = axs[6]  # ice cloud
+    ax8 = axs[7]  # land cloud
+ 
+    #calc_slopes = np.ma.masked_where(abs(slope_dict['slopes']) > 50, slope_dict['slopes'])
+    calc_slopes = np.ma.masked_where(slope_dict['counts'] < min_ob, slope_dict['slopes'])
+    calc_counts = np.ma.masked_where(slope_dict['counts'] < min_ob, slope_dict['counts'])
+  
+    print('count mins', np.min(calc_counts, axis = (1,2)))
+    print('count maxs', np.max(calc_counts, axis = (1,2)))
+
+ 
+    ax1.pcolormesh(calc_slopes[0,:,:].T, cmap = 'bwr', vmin = -15, vmax = 15)
+    ax2.pcolormesh(calc_slopes[1,:,:].T, cmap = 'bwr', vmin = -15, vmax = 15)
+    ax3.pcolormesh(calc_slopes[2,:,:].T, cmap = 'bwr', vmin = -15, vmax = 15)
+    mesh = ax4.pcolormesh(calc_slopes[3,:,:].T, cmap = 'bwr', vmin = -15, vmax = 15)
+    #cbar = plt.colorbar(mesh, ax = ax4, orientation = 'vertical', \
+    #    shrink = 0.8, extend = 'both')
+    ax5.pcolormesh(slope_dict['counts'][0,:,:].T, cmap = 'viridis')
+    ax6.pcolormesh(slope_dict['counts'][1,:,:].T, cmap = 'viridis')
+    ax7.pcolormesh(slope_dict['counts'][2,:,:].T, cmap = 'viridis')
+    mesh2 = ax8.pcolormesh(slope_dict['counts'][3,:,:].T, cmap = 'viridis')
+
+    #fig.colorbar(mesh, ax = axs.ravel().tolist())
+
+    sza_labels = [str(edge) for edge in bin_dict['sza_bin_edges']]
+    cod_labels = [str(edge) for edge in bin_dict['cod_bin_edges']]
+  
+    ax5.set_xticks([0,2,4,6,8])
+    ax1.set_yticks([0,1,2,3,4,5,6,7,8])
+    ax5.set_xticklabels(sza_labels[::2])
+    ax1.set_yticklabels(cod_labels[::1])
+     
+    ax1.set_title('Ocean')
+    ax2.set_title('Mix')
+    ax3.set_title('Ice')
+    ax4.set_title('Land')
+    
+    ax5.set_xlabel('OMI SZA [$^{o}$]')
+    ax6.set_xlabel('OMI SZA [$^{o}$]')
+    ax7.set_xlabel('OMI SZA [$^{o}$]')
+    ax8.set_xlabel('OMI SZA [$^{o}$]')
+    #ax2.set_xlabel('SZA dim')
+    #ax3.set_xlabel('SZA dim')
+    #ax4.set_xlabel('SZA dim')
+    ax1.set_ylabel('MODIS COD')
+    ax5.set_ylabel('MODIS COD')
+    #ax2.set_ylabel('COD dim')
+    #ax3.set_ylabel('COD dim')
+    #ax4.set_ylabel('COD dim')
+
+    ax1.set_title('Ocean\n(Ice % <= ' + str(int(bin_dict['ice_bin_edges'][0])) + '%)')
+    ax2.set_title('Mix\n(' + str(int(bin_dict['ice_bin_edges'][1])) + \
+        '% < Ice % < ' + str(int(bin_dict['ice_bin_edges'][2])) + '%)')
+    ax3.set_title('Ice\n(Ice % >= ' + str(int(bin_dict['ice_bin_edges'][3])) + '%)')
+    ax4.set_title('Land')
+  
+    axs[0].cax.colorbar(mesh, label = 'δForcing/δAI')
+    axs[5].cax.colorbar(mesh2, label = 'Counts')
+ 
+    plt.suptitle('Neural Net Forcing Slopes\nGrids with counts >= ' + str(int(min_ob)))
+ 
+    #fig.tight_layout()
+    if(save): 
+        outname = 'force_slopes_NN.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image:", outname)
+    else:
+        plt.show()
+
+# Plot the binned slopes for the 4 surface types
+# ----------------------------------------------
+def plot_NN_bin_slopes_codmean(slope_dict, bin_dict, min_ob = 50, save = False):
+
+    plt.close('all')
+    fig = plt.figure(figsize = (10, 3))
+    ax1 = fig.add_subplot(1,4,1)
+    ax2 = fig.add_subplot(1,4,2)
+    ax3 = fig.add_subplot(1,4,3)
+    ax4 = fig.add_subplot(1,4,4)
+
+    #calc_slopes = np.ma.masked_where(abs(slope_dict['slopes']) > 50, slope_dict['slopes'])
+    calc_slopes = np.ma.masked_where(slope_dict['counts'] < min_ob, slope_dict['slopes'])
+   
+    # Calculate the average and standard deviation along the y axis
+    # -------------------------------------------------------------
+    mean_slopes_as_func_cod = np.mean(calc_slopes, axis = 1)
+    std_slopes_as_func_cod  = np.std(calc_slopes, axis = 1)
+
+    ax1.plot( mean_slopes_as_func_cod[0])
+    ax2.plot(mean_slopes_as_func_cod[1])
+    ax3.plot(mean_slopes_as_func_cod[2])
+    ax4.plot(mean_slopes_as_func_cod[3])
+    ax1.plot( mean_slopes_as_func_cod[0] - std_slopes_as_func_cod[0], color = 'tab:blue', alpha = 0.5, linestyle = '--')
+    ax2.plot(mean_slopes_as_func_cod[1] - std_slopes_as_func_cod[1], color = 'tab:blue', alpha = 0.5, linestyle = '--')
+    ax3.plot(mean_slopes_as_func_cod[2] - std_slopes_as_func_cod[2], color = 'tab:blue', alpha = 0.5, linestyle = '--')
+    ax4.plot(mean_slopes_as_func_cod[3] - std_slopes_as_func_cod[3], color = 'tab:blue', alpha = 0.5, linestyle = '--')
+    ax1.plot( mean_slopes_as_func_cod[0] + std_slopes_as_func_cod[0], color = 'tab:blue', alpha = 0.5, linestyle = '--')
+    ax2.plot(mean_slopes_as_func_cod[1] + std_slopes_as_func_cod[1], color = 'tab:blue', alpha = 0.5, linestyle = '--')
+    ax3.plot(mean_slopes_as_func_cod[2] + std_slopes_as_func_cod[2], color = 'tab:blue', alpha = 0.5, linestyle = '--')
+    ax4.plot(mean_slopes_as_func_cod[3] + std_slopes_as_func_cod[3], color = 'tab:blue', alpha = 0.5, linestyle = '--')
+    ax1.set_ylim( -20, 20)
+    ax2.set_ylim(-20, 20)
+    ax3.set_ylim(-20, 20)
+    ax4.set_ylim(-20, 20)
+    ax1.axhline(0, color = 'k', linestyle = '--')
+    ax2.axhline(0, color = 'k', linestyle = '--')
+    ax3.axhline(0, color = 'k', linestyle = '--')
+    ax4.axhline(0, color = 'k', linestyle = '--')
+
+    ax1.set_title('Ocean')
+    ax2.set_title('Mix')
+    ax3.set_title('Ice')
+    ax4.set_title('Land')
+
+    ax1.set_xlabel('MODIS COD')
+    ax2.set_xlabel('MODIS COD')
+    ax3.set_xlabel('MODIS COD')
+    ax4.set_xlabel('MODIS COD')
+    ax1.set_ylabel('Forcing Eff. (δForcing/δAI)')   
+ 
+    sza_labels = [str(edge) for edge in bin_dict['sza_bin_edges']]
+    cod_labels = [str(edge) for edge in bin_dict['cod_bin_edges']]
+  
+    ax1.set_xticks([0,2,4,6,8])
+    ax1.set_xticklabels(cod_labels[::2])
+    ax2.set_xticks([0,2,4,6,8])
+    ax2.set_xticklabels(cod_labels[::2])
+    ax3.set_xticks([0,2,4,6,8])
+    ax3.set_xticklabels(cod_labels[::2])
+    ax4.set_xticks([0,2,4,6,8])
+    ax4.set_xticklabels(cod_labels[::2])
+
+    fig.tight_layout()
+    if(save):
+        outname = 'force_slopes_NN_szamean.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image:", outname)
+    else:
+        plt.show()
+
+def plot_compare_NN_output(calc_data, save = False):
     
     date_str = calc_data.strip().split('/')[-1].split('.')[0].split('_')[-1]
     dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
@@ -8547,5 +8861,524 @@ def plot_compare_neuralnet_output(calc_data, save = False):
         print("Saved image", outname)
     else:
         plt.show()
+
+# Example COD bin edges:
+#       cod_bin_edges = np.array([0,0.0001,2,4,8,12,20,30,50])
+#
+# This function plots the NN output for given COD bin edges
+# and for the specified AI, ICE, and SZA min/max values. For
+# each COD bin, the selected, scattered forcing 
+# (calculated as NN - OBS) data are plotted as a function of AI.
+# There is one plot for each COD bin.
+# --------------------------------------------------------------
+def plot_NN_scatter_multiCOD(test_dict, cod_bin_edges, \
+    ai_min, ice_min, ice_max, sza_min, sza_max, save = False):
+
+    fig = plt.figure(figsize = (12, 5))
+    axs = fig.subplots(nrows = 2, ncols = 4)
+    
+    flat_axs = axs.flatten()
+    
+    #ice_min = 101
+    #ice_max = 255
+    #sza_min = 50
+    #sza_max = 55
+    for ii in range(flat_axs.shape[0]):
+        print("COD MIN", cod_bin_edges[ii], "COD MAX", cod_bin_edges[ii+1])
+        good_idxs = select_idxs(test_dict, ai_min, ice_min, ice_max, cod_bin_edges[ii], \
+            cod_bin_edges[ii+1], sza_min, sza_max) 
+    
+        diff_calc = test_dict['calc_swf'][good_idxs] - test_dict['ceres_swf'][good_idxs]
+    
+        local_xdata =test_dict['omi_uvai_pert'][good_idxs] 
+    
+        flat_axs[ii].scatter(local_xdata, diff_calc, s = 6, color = 'k')
+       
+        flat_axs[ii].set_title(str(cod_bin_edges[ii]))
+     
+        trend_type = 'theil-sen'
+        #trend_type = 'linregress'
+        if(len(local_xdata) > 10000):
+            print("ERROR: Plotting trend line with too many points")
+            print("       Preventing this for the sake of computer safety")
+        else:
+            plot_trend_line(flat_axs[ii], local_xdata, diff_calc, color='tab:red', \
+                linestyle = '-',  slope = trend_type, plot_bounds = True)
+    
+    fig.tight_layout()
+    
+    plt.show()
+
+def plot_NN_forcing_daily(date_str, OMI_daily_data, OMI_monthly_data, \
+        slope_dict, bin_dict, minlat = 65., maxlat = 87., \
+        use_intercept = False, \
+        ai_thresh = -0.15, maxerr = 2., save = False):
+
+    # Load in the daily MODIS and NSIDC data
+    # --------------------------------------
+    file_strs = np.array([str(tval) for tval in OMI_daily_data['day_values']])
+    if(not (date_str in file_strs)):
+        # Return a nan array
+        # ------------------
+        print("WARNING: Date", date_str, "not in daily data. Returning nans")
+        return np.full(OMI_daily_data['grid_AI'][10,:,:].shape, np.nan)
+         
+    match_idx = np.where(date_str == file_strs)[0][0]
+    local_OMI_daily = np.ma.masked_where(\
+        OMI_daily_data['count_AI'][match_idx,:,:] == 0, \
+        OMI_daily_data['grid_AI'][match_idx,:,:])
+
+    estimate_forcings, MYD08_data, NSIDC_data = \
+        test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, \
+        slope_dict, bin_dict, date_str, minlat = minlat, maxlat = maxlat, \
+        ai_thresh = ai_thresh, maxerr = maxerr,\
+        filter_bad_vals = True, \
+        reference_ice = None, \
+        reference_cld = None, \
+        mod_slopes = None, \
+        return_modis_nsidc = True, \
+        use_intercept = use_intercept)
+
+    plt.close('all')
+    fig = plt.figure(figsize = (10, 6))
+    ax1 = fig.add_subplot(2,3,1, projection = ccrs.NorthPolarStereo(central_longitude = -50))
+    ax2 = fig.add_subplot(2,3,2, projection = ccrs.NorthPolarStereo(central_longitude = -50))
+    ax3 = fig.add_subplot(2,3,3)
+    ax4 = fig.add_subplot(2,3,4, projection = ccrs.NorthPolarStereo(central_longitude = -50))
+    ax5 = fig.add_subplot(2,3,5, projection = ccrs.NorthPolarStereo(central_longitude = -50))
+    mesh = ax1.pcolormesh(OMI_monthly_data['LON'], OMI_monthly_data['LAT'], \
+        local_OMI_daily, shading = 'auto', transform = datacrs, \
+        vmin = 0, vmax = 4, cmap = 'jet')
+    cbar = fig.colorbar(mesh, ax = ax1, label = 'AI')
+    ax1.coastlines()
+    ax1.set_extent([-180,180,65,90], datacrs)
+    ax1.set_boundary(circle, transform=ax1.transAxes)
+
+    mesh = ax2.pcolormesh(OMI_monthly_data['LON'], OMI_monthly_data['LAT'], \
+        estimate_forcings, shading = 'auto', transform = datacrs, \
+        vmin = -50, vmax = 50, cmap = 'bwr')
+    cbar = fig.colorbar(mesh, ax = ax2, label = 'Forcing [W/m2]')
+    ax2.coastlines()
+    ax2.set_extent([-180,180,65,90], datacrs)
+    ax2.set_extent([-180,180,65,90], datacrs)
+    ax2.set_boundary(circle, transform=ax2.transAxes)
+
+    keep_force = np.ma.masked_where(estimate_forcings == 0, estimate_forcings)
+    ax3.hist(keep_force.compressed(), bins = 50)
+    ax3.set_xlabel('Forcing [W/m2]')
+
+    mesh = ax4.pcolormesh(OMI_monthly_data['LON'], OMI_monthly_data['LAT'], \
+        MYD08_data['cod_mean'], shading = 'auto', transform = datacrs, \
+        vmin = 0, vmax = 50, cmap = 'viridis')
+    cbar = fig.colorbar(mesh, ax = ax4, label = 'COD')
+    ax4.coastlines()
+    ax4.set_extent([-180,180,65,90], datacrs)
+    ax4.set_extent([-180,180,65,90], datacrs)
+    ax4.set_boundary(circle, transform=ax4.transAxes)
+
+    mesh = ax5.pcolormesh(OMI_monthly_data['LON'], OMI_monthly_data['LAT'], \
+        MYD08_data['day_cld_frac_mean'], shading = 'auto', transform = datacrs, \
+        vmin = 0, vmax = 1.0, cmap = 'viridis')
+    cbar = fig.colorbar(mesh, ax = ax5, label = 'COD')
+    ax5.coastlines()
+    ax5.set_extent([-180,180,65,90], datacrs)
+    ax5.set_extent([-180,180,65,90], datacrs)
+    ax5.set_boundary(circle, transform=ax5.transAxes)
+
+    
+    plt.suptitle(date_str)
+    fig.tight_layout()
+
+    if(save):
+        outname = 'test_forcing_v4_' + date_str + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+    
+
+# use_intercept: in the forcing estimation calculation, setting this to True 
+#   makes the calculation use both the regression slope and regression to 
+#   calculate the estiated forcing. Doing this makes a calculation of:
+#
+#       forcing = slope * AI + intercept
+#
+# Setting this to False means only the slope is used, following:
+#
+#       forcing = slope * AI 
+# ----------------------------------------------------------------------------
+def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict, \
+        bin_dict, date_str, minlat = 70., maxlat = 87., ai_thresh = -0.15, \
+        maxerr = 2, 
+        reference_ice = None, reference_cld = None, mod_slopes = None, \
+        filter_bad_vals = True, return_modis_nsidc = True, use_intercept = False, \
+        debug = False):
+
+    ####################################
+    # BEGIN CODE TRANSPLANT FROM calculate_type_forcing_v3
+    ####################################
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d')   
+ 
+    # Load in the daily MODIS and NSIDC data
+    # --------------------------------------
+    file_strs = np.array([str(tval) for tval in OMI_daily_data['day_values']])
+    if(not (date_str in file_strs)):
+        # Return a nan array
+        # ------------------
+        print("WARNING: Date", date_str, "not in daily data. Returning nans")
+        return np.full(OMI_daily_data['grid_AI'][10,:,:].shape, np.nan)
+         
+    match_idx = np.where(date_str == file_strs)[0][0]
+    local_OMI_daily = np.ma.masked_where(\
+        OMI_daily_data['count_AI'][match_idx,:,:] == 0, \
+        OMI_daily_data['grid_AI'][match_idx,:,:])
+    
+    # tidx is the "month_idx"
+    # -----------------------    
+    tidx = int(date_str[4:6]) - 4
+    
+    if(reference_cld is None):
+        cld_str = date_str
+    else:
+        cld_str = reference_cld + date_str[4:]
+    
+    MYD08_data = read_MODIS_MYD08_single(cld_str, minlat = minlat, \
+        maxlat = maxlat)
+
+    # It appears that the MODIS COD values are missing in clear-sky
+    # conditions, so setting the missing COD value to 0 for now.    
+    # Not sure if this can be done, but am testing here
+    # -------------------------------------------------------------
+    MYD08_data['cod_mean'] = np.where(MYD08_data['cod_mean'].mask == True, 0, MYD08_data['cod_mean'])
+   
+    print('max MYD08 cod', np.min(MYD08_data['cod_mean']), np.max(MYD08_data['cod_mean']))
+ 
+    # Load in the single-day NSIDC ice concentration
+    #
+    # If the user wants to use a different year's ice values as a reference,
+    # modify the date string here accordingly
+    # ------------------------------------------------------------------------
+    if(reference_ice is None):
+        ice_str = date_str
+    else:
+        ice_str = reference_ice + date_str[4:]
+    
+    NSIDC_data =  readNSIDC_daily(ice_str, maxlat = maxlat)
+    NSIDC_data = grid_data_conc(NSIDC_data, minlat = minlat, maxlat = maxlat)
+    NSIDC_data['grid_ice_conc'] = np.ma.masked_where((NSIDC_data['grid_ice_conc'] < 0) | \
+        (NSIDC_data['grid_ice_conc'] > 100), NSIDC_data['grid_ice_conc']).squeeze()
+
+    clear_sky_AI = np.array([np.nanmean(\
+        np.ma.masked_where(OMI_monthly_data['AI'][midx::6,:,:] > ai_thresh,\
+        OMI_monthly_data['AI'][midx::6,:,:]), axis = 0) for midx in range(6)])
+    clear_sky_AI = clear_sky_AI[tidx,:,:]
+
+    land_mask   = NSIDC_data['grid_land'][:,:].mask
+    coast_mask  = NSIDC_data['grid_coastline'][:,:].mask
+    pole_mask   = NSIDC_data['grid_pole_hole'][:,:].mask
+    unused_mask = NSIDC_data['grid_unused'][:,:].mask
+    ice_mask    = NSIDC_data['grid_ice_conc'][:,:].mask
+
+    estimate_forcings = np.full(local_OMI_daily.shape, np.nan)
+
+    if(debug):
+        print("OMI SHAPE = ", local_OMI_daily.shape)
+        print("MOD SHAPE = ", MYD08_data['day_cld_frac_mean'].shape)
+        print("NSI SHAPE = ", NSIDC_data['grid_ice_conc'].shape)
+
+    # 2.  Loop over each individual month, over the latitudes first
+    # -----------------------------------
+    for ii in range(local_OMI_daily.shape[0]):
+
+        # Calculate the solar zenith angle here
+        # -------------------------------------
+        day_idx = int(dt_date_str.strftime('%j'))
+        del_angle = -23.45 * np.cos( np.radians((360 / 365) * (day_idx + 10)))
+        local_sza = NSIDC_data['grid_lat'][ii,0] - del_angle
+        #print('DATE:',date_str, ' LAT:', NSIDC_data['grid_lat'][ii,0],' SZA:',local_sza)
+        #latitude = NSIDC_data['grid_lat'][ii,0]
+        #lat_szas = np.array([tlat - del_angles for tlat in latitudes]).T
+
+        ## Extract the calculated SZA for this latitude band
+        #local_sza = lat_szas[day_idx,ii]
+
+        # Loop over the longitudes
+        for jj in range(local_OMI_daily.shape[1]):
+    
+            # 3.  Determine if a single gridbox has AI above the threshold
+            if(local_OMI_daily[ii,jj] < ai_thresh): 
+                # 3a. If not above the threshold, set forcing to 0 and continue
+                estimate_forcings[ii,jj] = 0.
+            else:
+                # 3b. If above the threshold,
+                # 4.  Determine the difference between this pixel's AI and the clear-sky
+                #     climatology.
+                delta_ai = local_OMI_daily[ii,jj] - \
+                           clear_sky_AI[ii,jj]
+
+                # Extract the daily NSIDC and MODIS COD values here
+                # Also, grab the pre-calculated 
+
+                # 6.  Extract the MODIS MYD08 value and weigh the "clear" and "cloud"
+                #     forcing values according to that cloud fraction.
+                #cld_frac = MYD08_data['day_cld_frac_mean'][ii,jj]
+                modis_cod = MYD08_data['cod_mean'][ii,jj]
+                cld_frac  = MYD08_data['day_cld_frac_mean'][ii,jj]
+                nsidc_ice = NSIDC_data['grid_ice_conc'][ii,jj]
+
+                # NOTE. If the cloud fraction is very small (< 0.1, 0.2?) but the 
+                # COD value is not 0, use a value of 0 for the COD
+                #print('{0:5.1f} {1:5.1f} {2:5.1f} {3:5.2f} {4:5.2f} {5:5.2f} {6:5.2f}'.format(\
+                #    OMI_daily_data['lat_values'][ii],OMI_daily_data['lon_values'][jj],\
+                #    local_sza, modis_cod, cld_frac, local_OMI_daily[ii,jj], nsidc_ice))
+
+                sza_idx = np.argmin(abs(local_sza - bin_dict['sza_bin_means']))
+                cod_idx = np.argmin(abs(modis_cod - bin_dict['cod_bin_means']))
+
+                #print(bin_dict['sza_bin_means'][sza_idx], bin_dict['cod_bin_means'][cod_idx])
+
+                # 5.  Extract the NSIDC surface type to figure out which forcing value
+                #     to use.
+                ice_idx = -9
+                if( (pole_mask[ii,jj] == True) & (unused_mask[ii,jj] == True) & \
+                    (land_mask[ii,jj] == True) & (coast_mask[ii,jj] == True) & \
+                    (ice_mask[ii,jj] == True)):
+                    if(debug):
+                        print(pole_mask[ii,jj], unused_mask[ii,jj], \
+                            land_mask[ii,jj], coast_mask[ii,jj], \
+                            ice_mask[ii,jj], 'ALL MASKED')
+                    #calc_forcing = 0.
+                    ice_idx = -9
+                else:
+                    if((pole_mask[ii,jj] == False) | \
+                       (unused_mask[ii,jj] == False)):
+                        # Bad grid points. NO forcing
+                        #calc_forcing =  0.
+                        ice_idx = -9
+                        if(debug):
+                            print(pole_mask[ii,jj], unused_mask[ii,jj], \
+                                land_mask[ii,jj], coast_mask[ii,jj], \
+                                ice_mask[ii,jj], 'POLE/UNUSED')
+
+                    elif((land_mask[ii,jj] == False) | \
+                         (coast_mask[ii,jj] == False)):
+                        # Use land forcing value
+                        if(debug):
+                            print(pole_mask[ii,jj], unused_mask[ii,jj], \
+                                land_mask[ii,jj], coast_mask[ii,jj], \
+                                ice_mask[ii,jj], 'LAND/COAST')
+
+                        # 2023/10/05 - added check to see if the smoke
+                        #   is above permanent ice (or above dry snow).
+                        #   If it is, use the ice forcing values. 
+                        #   Although, is it fair to do this since dry
+                        #   snow was removed from the initial forcing
+                        #   efficiency calculations...
+                        #
+                        # Check if the current grid box is permanent ice. 
+                        # In that case, use the ice forcing eff. values
+                        # -----------------------------------------------
+                        if(OMI_daily_data['grid_GPQF'][match_idx,ii,jj] == 3):
+                            # Use the ice slope index
+                            ice_idx = 0
+
+                            #calc_forcing = cld_frac * \
+                            #    cloud_dict['ice_forcing'][ii] + \
+                            #    (1 - cld_frac) * clear_dict['ice_forcing'][ii]
+                        else:
+                            # Use the land slope index 
+                            # CHANGED FROM EARLIER!!! 
+                            ice_idx = 3
+                            #calc_forcing = cld_frac * \
+                            #    cloud_dict['land_forcing'][ii] + \
+                            #    (1 - cld_frac) * clear_dict['land_forcing'][ii]
+                        #estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai 
+
+                    elif(ice_mask[ii,jj] == False):
+                        # Use either ice, mix, or ocean forcing value
+                        if(debug):
+                            print(pole_mask[ii,jj], unused_mask[ii,jj], \
+                                land_mask[ii,jj], coast_mask[ii,jj], \
+                                ice_mask[ii,jj], 'ICE/MIX/OCEAN')
+
+                        if( (NSIDC_data['grid_ice_conc'][ii,jj] < 20) ):
+                            # Use ocean forcing
+                            ice_idx = 0
+                            #calc_forcing = cld_frac * cloud_dict['ocean_forcing'][ii] + \
+                            #               (1 - cld_frac) * clear_dict['ocean_forcing'][ii]
+                            #estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai 
+                            
+
+                        elif( (NSIDC_data['grid_ice_conc'][ii,jj] >= 20)  & \
+                              (NSIDC_data['grid_ice_conc'][ii,jj] < 80)):
+                            # Use mix forcing
+                            ice_idx = 1
+                            #calc_forcing = cld_frac * cloud_dict['mix_forcing'][ii] + \
+                            #               (1 - cld_frac) * clear_dict['mix_forcing'][ii]
+                            #estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai 
+
+                        elif( (NSIDC_data['grid_ice_conc'][ii,jj] > 80) ):
+                            # Use ice forcing
+                            ice_idx = 2
+                            #calc_forcing = cld_frac * cloud_dict['ice_forcing'][ii] + \
+                            #               (1 - cld_frac) * clear_dict['ice_forcing'][ii]
+                            #estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai 
+
+                        else:
+                            if(debug):
+                                print("FAILED ICE")
+                            #calc_forcing = 0.
+                            ice_idx = -9
+
+                    else:
+                        if(debug):
+                            print("FAILED EVERYTHING")
+                        calc_forcing = 0.
+
+                if(ice_idx != -9): 
+                    #print("ICE INDEX = ", ice_idx)
+                    #calc_forcing = cld_frac * cloud_dict['ice_forcing'][ii] + \
+                    #               (1 - cld_frac) * clear_dict['ice_forcing'][ii]
+                    #estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai
+                    if(use_intercept):
+                        estimate_forcings[ii,jj] = \
+                            slope_dict['slopes'][ice_idx,sza_idx,cod_idx] * \
+                            local_OMI_daily[ii,jj] + \
+                            slope_dict['intercepts'][ice_idx,sza_idx,cod_idx]
+                    else:
+                        estimate_forcings[ii,jj] = \
+                            slope_dict['slopes'][ice_idx,sza_idx,cod_idx] * \
+                            local_OMI_daily[ii,jj]
+    
+
+    estimate_forcings = np.ma.masked_invalid(estimate_forcings) 
+
+    if(filter_bad_vals):
+        mean_val = np.nanmean(estimate_forcings)
+        std_val  = np.nanstd(estimate_forcings)
+
+        estimate_forcings = np.ma.masked_where(estimate_forcings > \
+            (mean_val + 8.0 * std_val), estimate_forcings)
+
+
+    if(return_modis_nsidc):
+        return estimate_forcings, MYD08_data, NSIDC_data
+    else:
+        return estimate_forcings
+
+# This verison is set up to use daily data, but still needs the monthly
+# OMI data to determine the clear-sky climatology.
+# ---------------------------------------------------------------------
+def calculate_type_forcing_v4_monthly(OMI_daily_data, OMI_monthly_data, \
+        slope_dict, bin_dict, month_idx, minlat = 70., maxlat = 87., ai_thresh = -0.15, \
+        maxerr = 2, \
+        reference_ice = None, reference_cld = None, mod_slopes = None, \
+        filter_bad_vals = True, return_modis_nsidc = True, \
+        use_intercept = False, debug = False):
+
+
+    # Set up arrays to hold the monthly-averaged forcing calculations
+    # ---------------------------------------------------------------
+    xdim = OMI_daily_data['grid_AI'].shape[1]
+    ydim = OMI_daily_data['grid_AI'].shape[2]
+    daily_force_vals = np.full( (31, xdim, ydim), np.nan)
+
+    if(str(month_idx) == 'all'):
+        l_all_months = True
+        month_force_vals = np.full(\
+            (OMI_monthly_data['DATES'].shape[0], xdim, ydim), \
+            np.nan)
+
+        begin_date_str = datetime.strptime(\
+            OMI_monthly_data['DATES'][0], '%Y%m')
+        end_date_str = datetime.strptime(\
+            OMI_monthly_data['DATES'][-1], '%Y%m') + \
+            relativedelta(months = 1) - timedelta(days = 1)
+    else:
+        l_all_months = False
+        month_force_vals = np.full(\
+            (OMI_monthly_data['DATES'][::6].shape[0], xdim, ydim), \
+            np.nan)
+
+        begin_date_str = datetime.strptime(\
+            OMI_monthly_data['DATES'][month_idx], '%Y%m')
+        end_date_str = datetime.strptime(\
+            OMI_monthly_data['DATES'][month_idx::6][-1], '%Y%m') + \
+            relativedelta(months = 1) - timedelta(days = 1)
+
+    local_date_str = begin_date_str
+
+    day_count = 0
+    month_count = 0
+    while(local_date_str <= end_date_str):
+
+        date_str = local_date_str.strftime('%Y%m%d')
+
+        print(date_str, day_count, month_count)
+
+        # Calculate the forcing value for this current day
+        # ------------------------------------------------
+        #estimate_forcing = \
+        #    calculate_type_forcing_v3(OMI_daily_data, OMI_monthly_data, \
+        #        coloc_dict, date_str, minlat = minlat, maxlat = maxlat, \
+        #        ai_thresh = ai_thresh, cld_idx = cld_idx, maxerr = maxerr,\
+        #        min_cloud = min_cloud, data_type = data_type,\
+        #        filter_bad_vals = filter_bad_vals, \
+        #        reference_ice = reference_ice, \
+        #        reference_cld = reference_cld, \
+        #        mod_slopes = mod_slopes, \
+        #        return_modis_nsidc = False)
+
+        estimate_forcing = \
+            test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, \
+            slope_dict, bin_dict, date_str, minlat = minlat, maxlat = maxlat, \
+            ai_thresh = ai_thresh, maxerr = maxerr,\
+            filter_bad_vals = filter_bad_vals, \
+            reference_ice = reference_ice, \
+            reference_cld = reference_cld, \
+            mod_slopes = mod_slopes, \
+            return_modis_nsidc = False,\
+            use_intercept = use_intercept)
+
+        # Insert the values into the daily holding array
+        # ----------------------------------------------
+        daily_force_vals[day_count,:,:] = estimate_forcing[:,:] 
+
+        # Increment working date
+        # ----------------------
+        new_work_date = local_date_str + timedelta(days = 1)
+
+        # If the new working date has a different month than
+        # the previous working date, then average the daily values
+        # and move the working date to the next desired month
+        # --------------------------------------------------------
+        if(new_work_date.month != local_date_str.month):
+            month_force_vals[month_count,:,:] = np.nanmean(\
+                daily_force_vals[:,:,:], axis = 0)
+            day_count = 0
+            month_count += 1            
+
+            if(l_all_months):
+                if(new_work_date.month == 10):
+                    new_work_date = new_work_date + relativedelta(months = 6)
+            else:
+                new_work_date = new_work_date + relativedelta(months = 11)
+            #new_work_date = datetime.strptime(
+            #    OMI_monthly_data['DATES'][month_idx::6][month_count], \
+            #    '%Y%m')
+
+            daily_force_vals[:,:,:] = np.nan 
+ 
+        # If the new working date has the same month as the 
+        # previous working date, just increment the day counter
+        # and the date string and continue
+        # -----------------------------------------------------
+        else:
+            day_count += 1
+
+        local_date_str = new_work_date
+
+    return month_force_vals
 
 
