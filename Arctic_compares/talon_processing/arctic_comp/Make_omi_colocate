@@ -1,8 +1,8 @@
 # Comment line
 
 EXEC = omi_comp_exec
-#COMP = h5fc
-COMP = gfortran
+COMP = h5fc
+#COMP = gfortran
 LIB_PATH = /home/blake.sorenson/OMI/colocate_lib/
 #TROP_LIB_PATH = /home/bsorenson/OMI/tropomi_colocate/
 #LIB_PATH = ../JZ_lib/
@@ -59,8 +59,10 @@ OBJECTS = colocate_vars.o \
 
 #FFLAGS = -g -O2 -Wall -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
 #LDFLAGS = -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
-FFLAGS = -g -O2 -Wall -fopenmp -fintrinsic-modules-path /usr/lib64/gfortran/modules -lhdf5_fortran
-LDFLAGS = -fopenmp -fintrinsic-modules-path /usr/lib64/gfortran/modules -lhdf5_fortran
+#FFLAGS = -g -O2 -Wall -fopenmp -fintrinsic-modules-path /usr/lib64/gfortran/modules -lhdf5_fortran
+#LDFLAGS = -fopenmp -fintrinsic-modules-path /usr/lib64/gfortran/modules -lhdf5_fortran
+FFLAGS = -g -O2 -Wall -fopenmp -I/cm/shared/apps/hdf5/1.14.0/include -L/cm/shared/apps/hdf5/1.14.0/lib/libhdf5hl_fortran.a
+LDFLAGS = -fopenmp -I/cm/shared/apps/hdf5/1.14.0/include -L/cm/shared/apps/hdf5/1.14.0/lib/libhdf5hl_fortran.a
 
 $(EXEC): $(OBJECTS)
 	$(COMP) $(LDFLAGS) $(OBJECTS) -o $(EXEC)

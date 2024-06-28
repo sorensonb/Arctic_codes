@@ -42,13 +42,22 @@ print("GPU available:", tf.config.list_physical_devices('GPU'))
 print("Built with CUDA:", tf.test.is_built_with_cuda())
 
 l_load_model = False
+l_save_data  = False
 if(len(sys.argv) < 2):
-    print("SYNTAX: ./tensorflow_ai_test.py simulation_name [load]")
+    print("SYNTAX: ./tensorflow_ai_test.py simulation_name [load] [save]")
     print("        [load]: if added, will load the model specified by simulation_name")
+    print("        [save]: if added, will generate output files for specs given below")
     sys.exit()
-elif(len(sys.argv) == 3):
-    if(sys.argv[2] == 'load'):
+elif(len(sys.argv) > 2):
+    #if(sys.argv[2] == 'load'):
+    if('load' in sys.argv[2:]):
         l_load_model = True
+    if('save' in sys.argv[2:]):
+        l_save_data = True
+
+print(sys.argv, sys.argv[2:])
+print(l_load_model, l_save_data)
+
 
 sim_name = sys.argv[1]
 
@@ -195,9 +204,7 @@ file_list = [
 aer_file_list = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_' + \
     date + '.hdf5' for date in file_list]
 
-print(len(aer_file_list))
-
-sys.exit()
+print('Num aerosol swaths', len(aer_file_list))
 
 # input variables
 # - OMI AI
@@ -245,6 +252,21 @@ data_path = data_dir
 
 files = glob('/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated*.hdf5')
 #files = glob('/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_200607*.hdf5')
+
+# NEW FOR NOLAND49: Remove the aerosol swaths from the training dataset
+# NEW FOR NOLAND49: Remove a sample clear-sky testing swath
+# ---------------------------------------------------------------------
+print("Before removing, length of files = ", len(files))
+for fname in aer_file_list:
+    if(fname in files):
+        files.remove(fname)
+        print('REMOVING', fname)
+
+clear_swaths = ['201807082244']
+files.remove('/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807082244.hdf5')
+print('REMOVING 201807082244')
+
+print("After removing, length of files = ", len(files))
 
 #files = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807052213.hdf5']
 
@@ -320,12 +342,12 @@ for ff in files:
         local_size = local_data.compressed().shape[0]
         total_size += local_size
         print(ff, local_size, total_size)
-        if(local_size > 0):
-            print('Overall AI max:', \
-                np.max(np.ma.masked_invalid(data['omi_uvai_pert'])), \
-                np.max(local_data))
-        else:
-            print("NO DATA")
+        ##!#if(local_size > 0):
+        ##!#    print('Overall AI max:', \
+        ##!#        np.max(np.ma.masked_invalid(data['omi_uvai_pert'])), \
+        ##!#        np.max(local_data))
+        ##!#else:
+        ##!#    print("NO DATA")
 
     data.close()
 
@@ -1060,6 +1082,52 @@ print('ICE',np.min(combined_data['nsidc_ice']), np.max(combined_data['nsidc_ice'
 #           Job ID = 124908  
 #           **** DOWN TO 3.19 BY EPOCH 5 **** IS THIS TOO GOOD?
 #
+# noland49: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on ALL data
+#               100 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 2.91
+#           INCLUDES LAND DATA, CH7, VZA
+#           FIXED DATA (CLDPRES NAN set to 1025)
+#           ONLY DIFFERENCE BETWEEN THIS AND noland48:
+#               All the aerosol-containing swaths and a testing aerosol-free 
+#               swathare removed 
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 27399  
+#           **** Down to 3.22 by Epoch 5 ****
+#
+# noland50: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on ALL data
+#               100 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 2.89
+#           INCLUDES LAND DATA, CH7, VZA
+#           FIXED DATA (CLDPRES NAN set to 1025)
+#           ONLY DIFFERENCE BETWEEN THIS AND noland49:
+#               Dropped testing percentage to 0.1
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 27899  
+#
+# noland51: 15 hidden layers
+#           8,12,16,24,32,64,64,64,64,64,32,24,16,12,8 nodes in each layer
+#           Trained on ALL data
+#               100 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 2.89
+#           INCLUDES LAND DATA, CH7, VZA
+#           FIXED DATA (CLDPRES NAN set to 1025)
+#           ONLY DIFFERENCE BETWEEN THIS AND noland50:
+#               Added 4 more hidden layers of 64 nodes each
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 27953  
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -1085,7 +1153,7 @@ if(l_load_model):
     model.summary()
 else:
 
-    pcnt_test = 0.25
+    pcnt_test = 0.10
     num_test = int(combined_data['omi_uvai_pert'].shape[0] * pcnt_test)
     num_train = combined_data['omi_uvai_pert'].shape[0] - num_test
     ranges = np.arange(0, combined_data['omi_uvai_pert'].shape[0])
@@ -1153,12 +1221,16 @@ else:
     hidden_layer4  = Dense(units = 24, activation = 'leaky_relu', name = 'hidden4')(hidden_layer3)
     hidden_layer5  = Dense(units = 32, activation = 'leaky_relu', name = 'hidden5')(hidden_layer4)
     hidden_layer6  = Dense(units = 64, activation = 'leaky_relu', name = 'hidden6')(hidden_layer5)
-    hidden_layer7  = Dense(units = 32, activation = 'leaky_relu', name = 'hidden7')(hidden_layer6)
-    hidden_layer8  = Dense(units = 24, activation = 'leaky_relu', name = 'hidden8')(hidden_layer7)
-    hidden_layer9  = Dense(units = 16, activation = 'leaky_relu', name = 'hidden9')(hidden_layer8)
-    hidden_layer10 = Dense(units = 12, activation = 'leaky_relu', name = 'hidden10')(hidden_layer9)
-    hidden_layer11 = Dense(units = 8, activation = 'leaky_relu', name = 'hidden11')(hidden_layer10)
-    prediction = Dense(1, activation = 'linear')(hidden_layer11)
+    hidden_layer7  = Dense(units = 64, activation = 'leaky_relu', name = 'hidden7')(hidden_layer6)
+    hidden_layer8  = Dense(units = 64, activation = 'leaky_relu', name = 'hidden8')(hidden_layer7)
+    hidden_layer9  = Dense(units = 64, activation = 'leaky_relu', name = 'hidden9')(hidden_layer8)
+    hidden_layer10 = Dense(units = 64, activation = 'leaky_relu', name = 'hidden10')(hidden_layer9)
+    hidden_layer11 = Dense(units = 32, activation = 'leaky_relu', name = 'hidden11')(hidden_layer10)
+    hidden_layer12 = Dense(units = 24, activation = 'leaky_relu', name = 'hidden12')(hidden_layer11)
+    hidden_layer13 = Dense(units = 16, activation = 'leaky_relu', name = 'hidden13')(hidden_layer12)
+    hidden_layer14 = Dense(units = 12, activation = 'leaky_relu', name = 'hidden14')(hidden_layer13)
+    hidden_layer15 = Dense(units = 8, activation = 'leaky_relu', name = 'hidden15')(hidden_layer14)
+    prediction = Dense(1, activation = 'linear')(hidden_layer15)
 
     #model = Model(inputs = [x1, x2, x3, x4, x5], outputs = prediction)
     model = Model(inputs = [x1, x2, x3, x4, x5, x6, x7], outputs = prediction)
@@ -1239,7 +1311,6 @@ else:
             )
     """
 
-l_save_data = True
 if(l_save_data):
 
     ##!#print(x_train[0:10,:])
@@ -1287,6 +1358,8 @@ if(l_save_data):
     else:
         print("ERROR: Invalid time value")
         sys.exit()  
+
+    aer_file_list = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807052213.hdf5']
  
     #for infile in files:
     for infile in aer_file_list:

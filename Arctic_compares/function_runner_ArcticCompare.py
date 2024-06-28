@@ -15,6 +15,21 @@ from sklearn.metrics import r2_score
 
 #sys.exit()
 
+#sys.exit()
+
+# Makes a plot of OMI AI, Observed SWF, NN SWF, and Regression
+# Designed for showing the validation of the NN under
+# aerosol-free conditions
+# -----------------------------------------------------------
+#plot_compare_NN_output_noaer(sys.argv[1], save = True)
+
+# Plots more stuff than the NN_output_noaer function
+# --------------------------------------------------
+#plot_compare_NN_output(sys.argv[1], save = True)
+#sys.exit()
+
+
+
 """
 date_str = '20180705'
 minlat = 65.
@@ -80,6 +95,13 @@ sys.exit()
 #  calculate_type_forcing_v4_monthly: calculates the single-day forcing 
 #            estimates and averages them into monthly averages.
 #
+#  plot_compare_NN_output_noaer(sys.argv[1], save = False):
+#           Makes a plot of Observed SWF, NN SWF, and Regression
+#           Designed for showing the validation of the NN under
+#           aerosol-free conditions
+# 
+#  plot_NN_architecture(save = False):
+#           Plots a graphic showing the NN architecture
 #
 #  plot_NN_scatter_multiCOD(test_dict, cod_bin_edges,...):
 #           This function plots the NN output for given COD bin edges
@@ -125,7 +147,8 @@ sys.exit()
 # Load in all the NN-estimated SWF values (and other values) for
 # simulation 'noland48'
 # ----------------------------------------------------------------
-test_dict = combine_NN_data('noland48')
+#test_dict = combine_NN_data('noland48')
+test_dict = combine_NN_data('noland50')
 
 # Identify the dictionary array indices that give the NN data
 # associated with:
@@ -155,9 +178,11 @@ bin_dict = {
     'ice_bin_means': ice_bin_means, \
 }
 
+
+
 # Plot the scattered NN output as function of AI for the bins given above
 # -----------------------------------------------------------------------
-#plot_NN_scatter_multiCOD(test_dict, cod_bin_edges, 1, 101, 255, 50, 55)
+#plot_NN_scatter_multiCOD(test_dict, cod_bin_edges, 0, 101, 255, 50, 55)
 #sys.exit()
 
 # Calculate the regression slopes and intercepts from the NN data
@@ -170,10 +195,26 @@ slope_dict2 = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
         sza_bin_edges, cod_bin_edges, ai_min = 1, min_ob = min_ob, \
         trend_type = 'theil-sen')
 
+# Plot the NN architecture
+# ------------------------
+#plot_NN_architecture(save = False)
+#sys.exit()
 
 # Plot the binned NN/AI slopes for the 4 surface types
 # ----------------------------------------------------
 #plot_NN_bin_slopes(slope_dict, bin_dict, min_ob = min_ob)
+#sys.exit()
+
+# Makes a plot of OMI AI, Observed SWF, NN SWF, and Regression
+# Designed for showing the validation of the NN under
+# aerosol-free conditions
+# -----------------------------------------------------------
+#plot_compare_NN_output_noaer(sys.argv[1], save = True)
+
+## Plots more stuff than the NN_output_noaer function
+## --------------------------------------------------
+#plot_compare_NN_output(sys.argv[1], save = True)
+#sys.exit()
 
 #sys.exit()
 
@@ -213,11 +254,11 @@ maxerr = 1.5
 #lat_szas = np.array([tlat - del_angles for tlat in latitudes]).T
 
 # Calculate the daily forcing estimate values for a date_string
-#date_str = '20180705'
-#plot_NN_forcing_daily(date_str, daily_VSJ4, OMI_daily_VSJ4, \
-#    slope_dict, bin_dict, minlat = 65., maxlat = 87., \
-#    ai_thresh = ai_thresh, maxerr = maxerr, save = False)
-#sys.exit()
+date_str = '20180705'
+plot_NN_forcing_daily(date_str, daily_VSJ4, OMI_daily_VSJ4, \
+    slope_dict, bin_dict, minlat = 65., maxlat = 87., \
+    ai_thresh = 0.7, maxerr = maxerr, save = False, use_intercept = True)
+sys.exit()
 #values = test_calculate_type_forcing_v4(daily_VSJ4, OMI_daily_VSJ4, \
 #    slope_dict, bin_dict, date_str, minlat = minlat, maxlat = maxlat, \
 #    ai_thresh = ai_thresh, maxerr = maxerr,\
@@ -248,6 +289,27 @@ infile_aimin0 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_d
 infile = infile_aimin0
 all_month_dict = read_daily_month_force_HDF5(infile)
 
+# Compare the results for different sea ice and cloud values
+# ----------------------------------------------------------
+#plot_type_forcing_v3_all_months_arctic_avg_manyrefice(all_month_dict['FORCE_EST'], \
+#       OMI_daily_VSJ4, minlat = 65, trend_type = 'standard', stype = 'ice', \
+#       ptype = 'forcing', vtype = 'v4', version4 = True)
+
+# Calculates the slopes of the refice or refcld simulations plotted
+# in the "plot_type_forcing_v3_all_months_arctic_avg_manyrefice" function.
+# ------------------------------------------------------------------------
+#ice_slopes = calc_forcing_slopes_v3_all_months_arctic_avg_manyrefice(all_month_dict['FORCE_EST'], \
+#       OMI_daily_VSJ4, minlat = 65, trend_type = 'standard', stype = 'ice', \
+#       ptype = 'forcing', version4 = True)
+
+# Print the results of the refice/cld simulation trend comparisons as 
+# a table
+# -------------------------------------------------------------------
+calc_print_forcing_slope_error_v3(all_month_dict['FORCE_EST'], \
+       OMI_daily_VSJ4, minlat = 65, trend_type = 'standard', \
+       vtype = 'v3', ptype = 'forcing', version4 = True)
+
+sys.exit()
 
 # Plot the trend of daily-gridded monthly forcing values
 # ------------------------------------------------------
@@ -258,7 +320,7 @@ all_month_dict = read_daily_month_force_HDF5(infile)
 # Calculate the Arctic-wide average of the daily-gridded monthly forcing
 # values for each month and plot them
 # ----------------------------------------------------------------------
-##plot_type_forcing_v3_all_months_arctic_avg(all_month_vals, OMI_daily_VSJ4, \
+#plot_type_forcing_v3_all_months_arctic_avg(all_month_vals, OMI_daily_VSJ4, \
 #plot_type_forcing_v3_all_months_arctic_avg(all_month_dict['FORCE_EST'], OMI_daily_VSJ4, \
 #    minlat = 65, trend_type = 'standard', omi_data_type = 'pert', version4 = True)
 
@@ -282,7 +344,7 @@ for ref_ice in ref_ice_vals:
     #all_month_vals_ice = calculate_type_forcing_v3_monthly(daily_VSJ4, \
     #    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = ai_thresh, minlat = minlat, \
     #    maxerr = maxerr, reference_ice = str(ref_ice))
-    all_month_vals = \
+    all_month_vals_ice = \
         calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
         slope_dict, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
         ai_thresh = ai_thresh, maxerr = maxerr, \
@@ -297,7 +359,7 @@ for ref_cld in ref_cld_vals:
     #all_month_vals_cld = calculate_type_forcing_v3_monthly(daily_VSJ4, \
     #    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = ai_thresh, minlat = minlat, \
     #    maxerr = maxerr, reference_cld = str(ref_cld))
-    all_month_vals = \
+    all_month_vals_cld = \
         calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
         slope_dict, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
         ai_thresh = ai_thresh, maxerr = maxerr, \
@@ -405,10 +467,6 @@ sys.exit()
 ##!##date_str = '201507081837'
 ##!#plot_compare_colocate_spatial(date_str, minlat = 65., zoom = False, \
 ##!#    save = False)
-
-plot_compare_NN_output(sys.argv[1], save = False)
-sys.exit()
-
 
 data = h5py.File('comp_data/testing/colocated_subset_201908110033.hdf5')
 
