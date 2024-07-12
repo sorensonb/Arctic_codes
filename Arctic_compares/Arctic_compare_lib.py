@@ -15,7 +15,7 @@ sys.path.append(home_dir)
 import python_lib
 import importlib
 from matplotlib.cm import turbo
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score, mean_squared_error
 from python_lib import circle, plot_trend_line, nearest_gridpoint, \
     aerosol_event_dict, init_proj, plot_lat_circles, plot_figure_text, \
     plot_subplot_label
@@ -31,6 +31,7 @@ sys.path.append(home_dir + '/Research/NSIDC')
 from NSIDCLib import *
 sys.path.append(home_dir + '/Research/FuLiou')
 from FuLiouLib import *
+from matplotlib.cm import ScalarMappable
 
 data_dir = home_dir + '/Research/Arctic_compares/comp_data/'
 datacrs = ccrs.PlateCarree()
@@ -7366,14 +7367,14 @@ def plot_type_forcing_v2_all_months(OMI_data, NSIDC_data, MYD08_data, \
     else: 
         plt.show()
 
-# omi_data_type = 'raw' or 'pert'
+# omi_data_type = 'thl' or 'lin'
 def plot_type_forcing_v3_all_months(all_month_values, OMI_monthly_data, \
         minlat = 70., maxlat = 87., use_szas = False, \
         ai_thresh = 0.7, cld_idx = 0, maxerr = 2, \
         min_cloud = 0.95, data_type = 'raw', trend_type = 'standard', \
         hstyle = '.....', \
         plot_zonal_avgs = False, plot_pvals = True, \
-        omi_data_type = 'raw', \
+        omi_data_type = 'linregress', \
         version4 = False,
         save = False,debug = False):
 
@@ -7618,27 +7619,184 @@ def plot_type_forcing_v3_all_months(all_month_values, OMI_monthly_data, \
         plt.show()
 
 
-# omi_data_type: 'raw' or 'pert'
+def plot_type_forcing_v3_all_months_arctic_avg_combined(all_month_values, \
+        OMI_monthly_data, version4 = False, max_pval = 0.05, \
+        slope_type = 'lin', 
+        horiz_orient = True, save = False):
+
+    # Prep the overall figure
+    # -----------------------
+    plt.close('all')
+    if(horiz_orient):
+        fig = plt.figure(figsize = (13, 6.5))
+        axs  = fig.subplots(nrows = 3, ncols = 6, sharex = True, sharey = True)
+        ax1  = axs[0,0]  # control April 
+        ax2  = axs[0,1]  # control May 
+        ax3  = axs[0,2]  # control June 
+        ax4  = axs[0,3]  # control July 
+        ax5  = axs[0,4]  # control August
+        ax6  = axs[0,5]  # control September
+        ax7  = axs[1,0]  # low     April 
+        ax8  = axs[1,1]  # low     May 
+        ax9  = axs[1,2]  # low     June 
+        ax10 = axs[1,3]  # low     July 
+        ax11 = axs[1,4]  # low     August
+        ax12 = axs[1,5]  # low     September
+        ax13 = axs[2,0]  # high    April 
+        ax14 = axs[2,1]  # high    May 
+        ax15 = axs[2,2]  # high    June 
+        ax16 = axs[2,3]  # high    July 
+        ax17 = axs[2,4]  # high    August
+        ax18 = axs[2,5]  # high    September
+        orient_add = '_horiz'
+    else:
+        #fig = plt.figure(figsize = (7.5, 11))
+        fig = plt.figure(figsize = (8, 9.5))
+        axs  = fig.subplots(nrows = 6, ncols = 3, sharex = True, sharey = True)
+        ax1  = axs[0,0]  # control April 
+        ax2  = axs[1,0]  # control May 
+        ax3  = axs[2,0]  # control June 
+        ax4  = axs[3,0]  # control July 
+        ax5  = axs[4,0]  # control August
+        ax6  = axs[5,0]  # control September
+        ax7  = axs[0,1]  # low     April 
+        ax8  = axs[1,1]  # low     May 
+        ax9  = axs[2,1]  # low     June 
+        ax10 = axs[3,1]  # low     July 
+        ax11 = axs[4,1]  # low     August
+        ax12 = axs[5,1]  # low     September
+        ax13 = axs[0,2]  # high    April 
+        ax14 = axs[1,2]  # high    May 
+        ax15 = axs[2,2]  # high    June 
+        ax16 = axs[3,2]  # high    July 
+        ax17 = axs[4,2]  # high    August
+        ax18 = axs[5,2]  # high    September
+        orient_add = '_vert'
+
+    # Plot the first row: control (65 - 87)
+    # -------------------------------------
+    ax_list = [ax1, ax2, ax3, ax4, ax5, ax6]
+    first_min, first_max = \
+        plot_type_forcing_v3_all_months_arctic_avg(all_month_values, \
+        OMI_monthly_data, \
+        axs = ax_list, \
+        minlat = 65., maxlat = 87., omi_data_type = 'lin', 
+        version4 = True, 
+        save = False, debug = False,max_pval = 0.05)
+
+
+    # Plot the second row: low (65 - 75)
+    # ----------------------------------
+    ax_list = [ax7, ax8, ax9, ax10, ax11, ax12]
+    secnd_min, secnd_max = \
+        plot_type_forcing_v3_all_months_arctic_avg(all_month_values, \
+        OMI_monthly_data, \
+        axs = ax_list, \
+        minlat = 65., maxlat = 75., omi_data_type = 'lin', 
+        version4 = True, 
+        save = False, debug = False,max_pval = 0.05)
+
+
+    # Plot the third row: high (75 - 87)
+    # ----------------------------------
+    ax_list = [ax13, ax14, ax15, ax16, ax17, ax18]
+    third_min, third_max = \
+    plot_type_forcing_v3_all_months_arctic_avg(all_month_values, \
+        OMI_monthly_data, \
+        axs = ax_list, \
+        minlat = 75., maxlat = 87., omi_data_type = 'lin', 
+        version4 = True, 
+        save = False, debug = False,max_pval = 0.05)
+
+    if(horiz_orient):
+        ax1.set_ylabel('Forcing [Wm$^{-2}$]')
+        ax7.set_ylabel('Forcing [Wm$^{-2}$]')
+        ax13.set_ylabel('Forcing [Wm$^{-2}$]')
+    else:
+        ax1.set_ylabel('Forcing [Wm$^{-2}$]')
+        ax2.set_ylabel('Forcing [Wm$^{-2}$]')
+        ax3.set_ylabel('Forcing [Wm$^{-2}$]')
+        ax4.set_ylabel('Forcing [Wm$^{-2}$]')
+        ax5.set_ylabel('Forcing [Wm$^{-2}$]')
+        ax6.set_ylabel('Forcing [Wm$^{-2}$]')
+
+        ax1.set_title('65$^{o}$ - 87$^{o}$ N', weight = 'bold')
+        ax7.set_title('65$^{o}$ - 75$^{o}$ N', weight = 'bold')
+        ax13.set_title('75$^{o}$ - 87$^{o}$ N', weight = 'bold')
+
+        fig.subplots_adjust(left = 0.2)
+
+        row_label_size = 12 
+        fig.text(0.07, 0.82, 'April', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.07, 0.69, 'May', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.07, 0.555, 'June', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.07, 0.42, 'July', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.07, 0.295, 'August', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.07, 0.16, 'September', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+
+
+
+    plt.suptitle('Arctic Regional Average Aerosol Forcing\n', 
+        weight = 'bold') 
+
+    all_ranges = [first_min, first_max, secnd_min, secnd_max, \
+        third_min, third_max]
+
+    for pax in axs.flatten():
+        pax.set_ylim(np.min(all_ranges), np.max(all_ranges))
+
+    #fig.tight_layout()
+
+    if(save):
+        file_add = ''
+        trend_add = ''
+        outname = 'calc_arctic_forcing_v3_monthly_arcticavg_aimin0_useintcpt_' + \
+            slope_type + orient_add + '_combined.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+
+# omi_data_type: 'lin' or 'thl'
 def plot_type_forcing_v3_all_months_arctic_avg(all_month_values, \
         OMI_monthly_data, \
+        axs = None, \
         minlat = 70., maxlat = 87., use_szas = False, \
         ai_thresh = 0.7, cld_idx = 0, maxerr = 2, \
         min_cloud = 0.95, data_type = 'raw', trend_type = 'standard', \
-        omi_data_type = 'raw', 
+        omi_data_type = 'lin', 
         version4 = False, 
         save = False,debug = False, month_values2 = None, \
         month_values3 = None, labels = None, max_pval = 0.05):
 
-    plt.close('all')
-    fig = plt.figure(figsize = (9, 5))
-    axs = fig.subplots(nrows = 2, ncols = 3)
+    in_ax = True
+    if(axs is None):
+        in_ax = False
+        plt.close('all')
+        fig = plt.figure(figsize = (9, 5))
+        axs = fig.subplots(nrows = 2, ncols = 3)
  
-    ax1 = axs[0,0]
-    ax2 = axs[0,1]
-    ax3 = axs[0,2]
-    ax4 = axs[1,0]
-    ax5 = axs[1,1]
-    ax6 = axs[1,2]
+        ax1 = axs[0,0]
+        ax2 = axs[0,1]
+        ax3 = axs[0,2]
+        ax4 = axs[1,0]
+        ax5 = axs[1,1]
+        ax6 = axs[1,2]
+    else:
+        ax1 = axs[0]   
+        ax2 = axs[1]   
+        ax3 = axs[2]   
+        ax4 = axs[3]   
+        ax5 = axs[4]   
+        ax6 = axs[5]   
+ 
     #ax1 = fig.add_subplot(2,3,1)
     #ax2 = fig.add_subplot(2,3,2)
     #ax3 = fig.add_subplot(2,3,3)
@@ -7648,32 +7806,46 @@ def plot_type_forcing_v3_all_months_arctic_avg(all_month_values, \
   
     xvals = np.arange(2005, 2021)
     lwidth = 0.5
-    fsize = 10
+    fsize = 8
 
     months = ['April','May','June','July','August','September']
     axs = [ax1, ax2, ax3, ax4, ax5, ax6]
 
-    def process_monthly_data(month_values, axs, data_type = None, \
-            linestyle = '-', color = 'tab:blue', alpha = 1.0):
+    def process_monthly_data(month_values, lats, axs, data_type = None, \
+            linestyle = '-', color = 'tab:blue', alpha = 1.0, minlat = 70., \
+            maxlat = 87., in_ax = False):
+
+        # Mask the month values that are outside the desired
+        # lat bounds
+        # --------------------------------------------------
+        keep_idxs = np.where((lats[:,0] >= (minlat + 0.5)) & \
+            (lats[:,0] < (maxlat + 0.5)))[0]
+
+        print("KEEP LATS = ", lats[keep_idxs,0])
 
         # Calculate the monthly averages of the estimated forcings
         # over the entire Arctic region
         # --------------------------------------------------------
-        arctic_avgs = np.array([np.nanmean(month_values[idx::6,:,:], \
+        #arctic_avgs = np.array([np.nanmean(month_values[idx::6,:,:], \
+        arctic_avgs = np.array([np.nanmean(month_values[idx::6,keep_idxs,:], \
             axis = (1,2)) for idx in range(6)])
 
-        plot_max = np.max(arctic_avgs) + 0.01 
-        plot_min = np.min(arctic_avgs) - 0.01 
+        plot_max = np.max(arctic_avgs) + 0.05 
+        plot_min = np.min(arctic_avgs) - 0.05 
+        ylims = [plot_min, plot_max]
 
         trend_vals = np.full(len(axs), np.nan)
     
         for ii, ax in enumerate(axs):
             print(months[ii])
+            ax.axhline(0, linestyle = '--', color = 'k', alpha = 0.5)
             ax.plot(xvals, arctic_avgs[ii], linestyle = linestyle, \
                 color = color, alpha = alpha)
-            ax.set_title(months[ii])   
-            ax.set_ylabel("Avg. Forcing [W/m2]")
-            ax.set_ylim(plot_min, plot_max)
+            ax.grid(alpha = 0.25, color = 'grey')
+            if(not in_ax):
+                ax.set_title(months[ii])   
+                ax.set_ylabel("Avg. Forcing [W/m2]")
+                ax.set_ylim(plot_min, plot_max)
             #if(data_type is None):
             rvals = plot_trend_line(ax, xvals, arctic_avgs[ii], color='black', \
                 linestyle = '-', linewidth = lwidth, slope = trend_type)
@@ -7681,30 +7853,54 @@ def plot_type_forcing_v3_all_months_arctic_avg(all_month_values, \
             ptext = 'ΔF$_{aer}$ = '+str(np.round(calc_trend, 3))
             if(version4):
                 text_loc = 'lower_left'
+                #ax.set_title(ptext, fontsize = 11)
+                if(rvals.pvalue <= max_pval):
+                    plot_figure_text(ax, ptext, xval = 2005, yval = -0.35, \
+                        fontsize = fsize, color = color, weight = 'bold', backgroundcolor = 'white')
+                else:
+                    plot_figure_text(ax, ptext, xval = 2005, yval = -0.35, \
+                        fontsize = fsize, color = color, backgroundcolor = 'white')
             else:
                 text_loc = 'upper_left'
-            if(rvals.pvalue <= max_pval):
-                plot_figure_text(ax, ptext, location = text_loc, \
-                    fontsize = fsize, color = color, weight = 'bold', backgroundcolor = 'white')
-            else:
-                plot_figure_text(ax, ptext, location = text_loc, \
-                    fontsize = fsize, color = color, backgroundcolor = 'white')
+                if(rvals.pvalue <= max_pval):
+                    plot_figure_text(ax, ptext, location = text_loc, \
+                        fontsize = fsize, color = color, weight = 'bold', backgroundcolor = 'white')
+                else:
+                    plot_figure_text(ax, ptext, location = text_loc, \
+                        fontsize = fsize, color = color, backgroundcolor = 'white')
 
             trend_vals[ii] = calc_trend
    
-        return trend_vals
+        return trend_vals, ylims
  
     file_add = ''
     title_add = ''
-    orig_trends = process_monthly_data(all_month_values, axs)
+    orig_trends, orig_lims = process_monthly_data(all_month_values, \
+        OMI_monthly_data['LAT'], axs, minlat = minlat, maxlat = maxlat, \
+        in_ax = in_ax)
+    total_lims = orig_lims
     if(month_values2 is not None):
-        v2_trends = process_monthly_data(month_values2, axs, color = 'tab:orange', data_type = labels[0])
+        v2_trends, v2_lims = process_monthly_data(month_values2, \
+            OMI_monthly_data['LAT'], axs, color = 'tab:orange', \
+            minlat = minlat, maxlat = maxlat, \
+            data_type = labels[0])
         file_add += '_' + labels[0]
         title_add += '\nOrange - ' + labels[0]
+        total_lims = total_lims + v2_lims
     if(month_values3 is not None):
-        v3_trends = process_monthly_data(month_values3, axs, color = 'tab:green', data_type = labels[1])
+        v3_trends, v3_lims = process_monthly_data(month_values3, \
+            OMI_monthly_data['LAT'], axs, color = 'tab:green', \
+            minlat = minlat, maxlat = maxlat, \
+            data_type = labels[1])
         file_add += labels[1]
         title_add += ', Green - ' + labels[1]
+        total_lims = total_lims + v3_lims
+    
+    print(total_lims)
+    total_min = np.min(total_lims)
+    total_max = np.max(total_lims)
+    for ii, ax in enumerate(axs):
+        ax.set_ylim(total_min, total_max) 
 
     # Calculate and print the percent error of the trends calculated from
     # the adderror and suberror simulations
@@ -7720,31 +7916,509 @@ def plot_type_forcing_v3_all_months_arctic_avg(all_month_values, \
  
     #plt.suptitle('Forcing Estimate 3: Daily-averaged Single Month Based' + \
         #'\nBold - Significant at p = ' + str(max_pval) + title_add, \
-    plt.suptitle('Observational Arctic Aerosol Forcing Estimate\n' + \
-        'Bold - Significant at p = ' + str(max_pval) + title_add, \
+    if(not in_ax):
+        plt.suptitle('Arctic Regional Average Aerosol Forcing: ' + str(minlat) + \
+            '$^{o}$ N - ' + str(maxlat) + '$^{o}$ N\n' + \
+            'Bold - Significant at p = ' + str(max_pval) + title_add, \
+            weight = 'bold') 
+
+        plot_subplot_label(ax1, 'a)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
+        plot_subplot_label(ax2, 'b)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
+        plot_subplot_label(ax3, 'c)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
+        plot_subplot_label(ax4, 'd)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
+        plot_subplot_label(ax5, 'e)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
+        plot_subplot_label(ax6, 'f)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
+
+        fig.tight_layout()
+
+        if(save):
+            if(version4):
+                version_add = 'v4'
+            else:
+                version_add = 'v3'
+            outname = 'calc_arctic_forcing_' + version_add + \
+                '_monthly_arcticavg_' + trend_type + \
+                file_add + '_' + omi_data_type + '_minlat' + str(int(minlat)) + \
+                '_maxlat' + str(int(maxlat)) + '.png'
+            fig.savefig(outname, dpi = 200)
+            print("Saved image", outname)
+        else: 
+            plt.show()
+
+    return total_min, total_max
+
+# omi_data_type: 'raw' or 'pert' NOT NEEDED ANYMORE
+# Takes a list of input HDF5 files and plots all the results
+# Assumes that the first argument is the base simulation
+# -----------------------------------------------------------
+def plot_type_forcing_v4_all_months_arctic_avg(all_month_files, \
+        minlat = 70., maxlat = 87., axs = None, \
+        data_type = 'raw', trend_type = 'standard', \
+        save = False,debug = False, labels = None, max_pval = 0.05,\
+        linestyle_list = None, linecolor_list = None):
+
+    in_ax = True
+    if(axs is None):
+        in_ax = False
+        plt.close('all')
+        fig = plt.figure(figsize = (9, 5))
+        axs = fig.subplots(nrows = 2, ncols = 3)
+ 
+        ax1 = axs[0,0]
+        ax2 = axs[0,1]
+        ax3 = axs[0,2]
+        ax4 = axs[1,0]
+        ax5 = axs[1,1]
+        ax6 = axs[1,2]
+    else:
+        ax1 = axs[0]   
+        ax2 = axs[1]   
+        ax3 = axs[2]   
+        ax4 = axs[3]   
+        ax5 = axs[4]   
+        ax6 = axs[5]   
+  
+    xvals = np.arange(2005, 2021)
+    lwidth = 0.5
+    fsize = 10
+
+    months = ['April','May','June','July','August','September']
+    axs = [ax1, ax2, ax3, ax4, ax5, ax6]
+
+    def process_monthly_data(infile, axs, data_type = None, \
+            linestyle = '-', color = 'tab:blue', alpha = 1.0, linewidth = None, \
+            minlat = 70., maxlat = 87., in_ax = False):
+
+        data_dict = read_daily_month_force_HDF5(infile)
+        month_values = data_dict['FORCE_EST']
+        lats = data_dict['LAT']
+
+        # Mask the month values that are outside the desired
+        # lat bounds
+        # --------------------------------------------------
+        keep_idxs = np.where((lats[:] >= (minlat + 0.5)) & \
+            (lats[:] < (maxlat + 0.5)))[0]
+
+        #print("KEEP LATS = ", lats[keep_idxs])
+
+        # Calculate the monthly averages of the estimated forcings
+        # over the entire Arctic region
+        # --------------------------------------------------------
+        #arctic_avgs = np.array([np.nanmean(month_values[idx::6,:,:], \
+        arctic_avgs = np.array([np.nanmean(month_values[idx::6,keep_idxs,:], \
+            axis = (1,2)) for idx in range(6)])
+
+
+        plot_max = np.max(arctic_avgs) + 0.01 
+        plot_min = np.min(arctic_avgs) - 0.01 
+        ylims = [plot_min, plot_max]
+
+        trend_vals = np.full(len(axs), np.nan)
+    
+        for ii, ax in enumerate(axs):
+            print(months[ii])
+            ax.axhline(0, linestyle = '--', color = 'tab:grey', alpha = 0.5)
+            ax.grid(alpha = 0.25, color = 'grey')
+            ax.plot(xvals, arctic_avgs[ii], linestyle = linestyle, \
+                color = color, alpha = alpha, linewidth = linewidth)
+            if(not in_ax):
+                ax.set_title(months[ii])   
+                ax.set_ylabel("Avg. Forcing [W/m2]")
+                ax.set_ylim(plot_min, plot_max)
+
+
+            # First, calculate the trend
+            zdata = stats.linregress(xvals,  arctic_avgs[ii])
+            calc_trend = len(xvals) * zdata.slope
+            #zdata = np.polyfit(xdata, ydata, 1)
+
+            #if(data_type is None):
+            #rvals = plot_trend_line(ax, xvals, arctic_avgs[ii], color='black', \
+            #    linestyle = '-', linewidth = linewidth, slope = trend_type)
+            #calc_trend = rvals.slope * len(xvals)
+            ptext = 'ΔF$_{aer}$ = '+str(np.round(calc_trend, 3))
+
+            #if(version4):
+            #    text_loc = 'lower_left'
+            #else:
+            #    text_loc = 'upper_left'
+            #if(rvals.pvalue <= max_pval):
+            #    plot_figure_text(ax, ptext, location = text_loc, \
+            #        fontsize = fsize, color = color, weight = 'bold', backgroundcolor = 'white')
+            #else:
+            #    plot_figure_text(ax, ptext, location = text_loc, \
+            #        fontsize = fsize, color = color, backgroundcolor = 'white')
+
+            trend_vals[ii] = calc_trend
+   
+        return trend_vals, ylims
+
+    for ii, infile in enumerate(all_month_files):
+
+        if(ii == 0):
+            pcolor = 'k'
+            linewidth = 2
+            alpha = 1
+        else:
+            pcolor = None
+            linewidth = 1
+            alpha = 1.00
+
+        if(linestyle_list is not None):
+            linestyle = linestyle_list[ii]
+            linecolor = linecolor_list[ii]
+            trend_vals, ylims = process_monthly_data(infile, axs, \
+                color = linecolor, linestyle = linestyle, \
+                linewidth = linewidth, alpha = alpha, minlat = minlat, \
+                maxlat = maxlat, in_ax = in_ax)
+        else:
+            trend_vals, ylims = process_monthly_data(infile, axs, \
+                color = pcolor, \
+                linewidth = linewidth, alpha = alpha, minlat = minlat, \
+                maxlat = maxlat, in_ax = in_ax)
+
+        if(ii == 0):
+            total_lims = ylims
+        else:
+            total_lims = total_lims + ylims
+     
+    # Replot the first line
+    # ---------------------    
+    _, _  = process_monthly_data(all_month_files[0], axs, color = 'k', \
+        linewidth = 1.5, alpha = 1.0, minlat = minlat, maxlat = maxlat, in_ax = in_ax)
+ 
+    #file_add = ''
+    title_add = ''
+    #orig_trends, orig_lims = process_monthly_data(all_month_values, axs)
+    #total_lims = orig_lims
+    #if(month_values2 is not None):
+    #    v2_trends, v2_lims = process_monthly_data(month_values2, axs, color = 'tab:orange', data_type = labels[0])
+    #    file_add += '_' + labels[0]
+    #    title_add += '\nOrange - ' + labels[0]
+    #    total_lims = total_lims + v2_lims
+    #if(month_values3 is not None):
+    #    v3_trends, v3_lims = process_monthly_data(month_values3, axs, color = 'tab:green', data_type = labels[1])
+    #    file_add += labels[1]
+    #    title_add += ', Green - ' + labels[1]
+    #    total_lims = total_lims + v3_lims
+    
+    print(total_lims)
+    total_min = np.min(total_lims)
+    total_max = np.max(total_lims)
+    for ii, ax in enumerate(axs):
+        ax.set_ylim(total_min, total_max) 
+
+    ##!## Calculate and print the percent error of the trends calculated from
+    ##!## the adderror and suberror simulations
+    ##!## -------------------------------------------------------------------
+    ##!#if(month_values2 is not None):
+    ##!#    for ii in range(orig_trends.shape[0]):
+    ##!#        pcnt_err1 = ((v2_trends[ii] - orig_trends[ii]) / orig_trends[ii]) * 100.
+    ##!#        pcnt_err2 = ((v3_trends[ii] - orig_trends[ii]) / orig_trends[ii]) * 100.
+    ##!#       
+    ##!#        print('{0:>6.2e} {1:>6.2e} {2:>6.2e} {3:>6.1f} {4:>6.1f}'.format(\
+    ##!#            orig_trends[ii], v2_trends[ii], v3_trends[ii], pcnt_err1, \
+    ##!#            pcnt_err2))
+ 
+    #plt.suptitle('Forcing Estimate 3: Daily-averaged Single Month Based' + \
+        #'\nBold - Significant at p = ' + str(max_pval) + title_add, \
+    #plt.suptitle('Observational Arctic Aerosol Forcing Estimate\n' + \
+    #    'Bold - Significant at p = ' + str(max_pval) + title_add, \
+    #    weight = 'bold') 
+    if(not in_ax):
+        plt.suptitle('Arctic Regional Average Aerosol Forcing: ' + str(minlat) + \
+            '$^{o}$ N - ' + str(maxlat) + '$^{o}$ N\n' + \
+            'Bold - Significant at p = ' + str(max_pval) + title_add, \
+            weight = 'bold') 
+
+        plot_subplot_label(ax1, 'a)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
+        plot_subplot_label(ax2, 'b)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
+        plot_subplot_label(ax3, 'c)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
+        plot_subplot_label(ax4, 'd)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
+        plot_subplot_label(ax5, 'e)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
+        plot_subplot_label(ax6, 'f)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
+
+        fig.tight_layout()
+
+        if(save):
+            version_add = 'v4'
+            outname = 'calc_arctic_forcing_uncert_' + version_add + \
+                '_monthly_arcticavg_' + trend_type + \
+                file_add + '_' + omi_data_type + str(int(minlat)) + '.png'
+            fig.savefig(outname, dpi = 200)
+            print("Saved image", outname)
+        else: 
+            plt.show()
+
+    return total_min, total_max
+
+def plot_type_forcing_v4_all_months_arctic_avg_combined(all_month_files, \
+        version4 = False, max_pval = 0.05, \
+        slope_type = 'lin', \
+        horiz_orient = True, save = False):
+
+    # Prep the overall figure
+    # -----------------------
+    plt.close('all')
+    if(horiz_orient):
+        fig = plt.figure(figsize = (13, 6.5))
+        axs  = fig.subplots(nrows = 3, ncols = 6, sharex = True, sharey = True)
+        ax1  = axs[0,0]  # control April 
+        ax2  = axs[0,1]  # control May 
+        ax3  = axs[0,2]  # control June 
+        ax4  = axs[0,3]  # control July 
+        ax5  = axs[0,4]  # control August
+        ax6  = axs[0,5]  # control September
+        ax7  = axs[1,0]  # low     April 
+        ax8  = axs[1,1]  # low     May 
+        ax9  = axs[1,2]  # low     June 
+        ax10 = axs[1,3]  # low     July 
+        ax11 = axs[1,4]  # low     August
+        ax12 = axs[1,5]  # low     September
+        ax13 = axs[2,0]  # high    April 
+        ax14 = axs[2,1]  # high    May 
+        ax15 = axs[2,2]  # high    June 
+        ax16 = axs[2,3]  # high    July 
+        ax17 = axs[2,4]  # high    August
+        ax18 = axs[2,5]  # high    September
+        orient_add = '_horiz'
+    else:
+        #fig = plt.figure(figsize = (7.5, 11))
+        fig = plt.figure(figsize = (8.5, 9.5))
+        axs  = fig.subplots(nrows = 6, ncols = 3, sharex = True, sharey = True)
+        ax1  = axs[0,0]  # control April 
+        ax2  = axs[1,0]  # control May 
+        ax3  = axs[2,0]  # control June 
+        ax4  = axs[3,0]  # control July 
+        ax5  = axs[4,0]  # control August
+        ax6  = axs[5,0]  # control September
+        ax7  = axs[0,1]  # low     April 
+        ax8  = axs[1,1]  # low     May 
+        ax9  = axs[2,1]  # low     June 
+        ax10 = axs[3,1]  # low     July 
+        ax11 = axs[4,1]  # low     August
+        ax12 = axs[5,1]  # low     September
+        ax13 = axs[0,2]  # high    April 
+        ax14 = axs[1,2]  # high    May 
+        ax15 = axs[2,2]  # high    June 
+        ax16 = axs[3,2]  # high    July 
+        ax17 = axs[4,2]  # high    August
+        ax18 = axs[5,2]  # high    September
+        orient_add = '_vert'
+
+
+    linestyle_dict = {
+        '': '-', 
+        'addslopeerror': '-', 
+        'subslopeerror': '--', 
+        'addintcpterror': '-', 
+        'subintcpterror': '--', 
+        'iceplus5': '-', 
+        'iceminus5': '--', 
+        'iceplus15': '-', 
+        'iceminus15': '--', 
+        'codplus2': '-', 
+        'codminus2': '--', 
+        'codplus5': '-', 
+        'codminus5': '--', 
+    }
+
+    linecolor_dict = {
+        '': 'k', 
+        'addslopeerror': 'tab:blue', 
+        'subslopeerror': 'tab:blue', 
+        'addintcpterror': 'tab:orange', 
+        'subintcpterror': 'tab:orange', 
+        'iceplus5': 'tab:olive', 
+        'iceminus5': 'tab:olive', 
+        'iceplus15': 'tab:red', 
+        'iceminus15': 'tab:red', 
+        'codplus2': 'tab:purple', 
+        'codminus2': 'tab:purple', 
+        'codplus5': 'tab:cyan', 
+        'codminus5': 'tab:cyan', 
+    }
+
+    linelabel_dict = {
+        '': 'k', 
+        'addslopeerror': '+ slope error', 
+        'subslopeerror': '-  slope error', 
+        'addintcpterror': '+ intcpt error', 
+        'subintcpterror': '-  intcpt error', 
+        'iceplus5': 'ice conc. + 5%', 
+        'iceminus5': 'ice conc.  -  5%', 
+        'iceplus15': 'ice conc. + 15%', 
+        'iceminus15': 'ice conc.  -  15%', 
+        'codplus2': 'COD + 2', 
+        'codminus2': 'COD  -  2', 
+        'codplus5': 'COD + 5', 
+        'codminus5': 'COD  -  5', 
+    }
+
+    file_types = [ptitle.strip().split('/')[-1].split('_')[-1][3:].split('.')[0] \
+        for ptitle in all_month_files]
+
+    linestyle_list = [linestyle_dict[ftype] for ftype in file_types]
+    linecolor_list = [linecolor_dict[ftype] for ftype in file_types]
+
+    print(linestyle_list, linecolor_list)
+
+    # Plot the first row: control (65 - 87)
+    # -------------------------------------
+    ax_list = [ax1, ax2, ax3, ax4, ax5, ax6]
+    ##!#first_min, first_max = \
+    ##!#    plot_type_forcing_v3_all_months_arctic_avg(all_month_values, \
+    ##!#    OMI_monthly_data, \
+    ##!#    axs = ax_list, \
+    ##!#    minlat = 65., maxlat = 87., omi_data_type = 'lin', 
+    ##!#    version4 = True, 
+    ##!#    save = False, debug = False,max_pval = 0.05)
+
+    first_min, first_max = \
+        plot_type_forcing_v4_all_months_arctic_avg(all_month_files, \
+        axs = ax_list, \
+        minlat = 65., maxlat = 87., \
+        data_type = 'raw', trend_type = 'standard', \
+        save = False,debug = False, labels = None,\
+        linestyle_list = linestyle_list, \
+        linecolor_list = linecolor_list)
+
+
+    # Plot the second row: low (65 - 75)
+    # ----------------------------------
+    ax_list = [ax7, ax8, ax9, ax10, ax11, ax12]
+    ##!#secnd_min, secnd_max = \
+    ##!#    plot_type_forcing_v3_all_months_arctic_avg(all_month_values, \
+    ##!#    OMI_monthly_data, \
+    ##!#    axs = ax_list, \
+    ##!#    minlat = 65., maxlat = 75., omi_data_type = 'lin', 
+    ##!#    version4 = True, 
+    ##!#    save = False, debug = False,max_pval = 0.05)
+
+    secnd_min, secnd_max = \
+        plot_type_forcing_v4_all_months_arctic_avg(all_month_files, \
+        axs = ax_list, \
+        minlat = 65., maxlat = 75., \
+        data_type = 'raw', trend_type = 'standard', \
+        save = False,debug = False, labels = None, \
+        linestyle_list = linestyle_list, \
+        linecolor_list = linecolor_list)
+
+    # Plot the third row: high (75 - 87)
+    # ----------------------------------
+    ax_list = [ax13, ax14, ax15, ax16, ax17, ax18]
+    ##!#third_min, third_max = \
+    ##!#plot_type_forcing_v3_all_months_arctic_avg(all_month_values, \
+    ##!#    OMI_monthly_data, \
+    ##!#    axs = ax_list, \
+    ##!#    minlat = 75., maxlat = 87., omi_data_type = 'lin', 
+    ##!#    version4 = True, 
+    ##!#    save = False, debug = False,max_pval = 0.05)
+
+    third_min, third_max = \
+        plot_type_forcing_v4_all_months_arctic_avg(all_month_files, \
+        axs = ax_list, \
+        minlat = 75., maxlat = 87., \
+        data_type = 'raw', trend_type = 'standard', \
+        save = False,debug = False, labels = None, \
+        linestyle_list = linestyle_list, \
+        linecolor_list = linecolor_list)
+
+
+    if(horiz_orient):
+        ax1.set_ylabel('Forcing [Wm$^{-2}$]')
+        ax7.set_ylabel('Forcing [Wm$^{-2}$]')
+        ax13.set_ylabel('Forcing [Wm$^{-2}$]')
+    else:
+        ax1.set_ylabel('Forcing [Wm$^{-2}$]')
+        ax2.set_ylabel('Forcing [Wm$^{-2}$]')
+        ax3.set_ylabel('Forcing [Wm$^{-2}$]')
+        ax4.set_ylabel('Forcing [Wm$^{-2}$]')
+        ax5.set_ylabel('Forcing [Wm$^{-2}$]')
+        ax6.set_ylabel('Forcing [Wm$^{-2}$]')
+
+        ax1.set_title('65$^{o}$ - 87$^{o}$ N', weight = 'bold')
+        ax7.set_title('65$^{o}$ - 75$^{o}$ N', weight = 'bold')
+        ax13.set_title('75$^{o}$ - 87$^{o}$ N', weight = 'bold')
+
+        fig.subplots_adjust(left = 0.2)
+
+        row_label_size = 12 
+        fig.text(0.08, 0.82, 'April', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.08, 0.69, 'May', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.08, 0.555, 'June', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.08, 0.42, 'July', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.08, 0.295, 'August', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.08, 0.16, 'September', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+
+        linestyle_list = [linestyle_dict[ftype] for ftype in file_types]
+        linecolor_list = [linecolor_dict[ftype] for ftype in file_types]
+        linelabel_list = [linelabel_dict[ftype] for ftype in file_types][1:]
+
+        # Extract all the file types here
+        # -------------------------------
+        custom_lines = [Line2D([0], [0], color = lcolor, linestyle = lstyle) \
+            for lcolor, lstyle in zip(linecolor_list[1:], linestyle_list[1:])]
+        
+        #custom_lines = [Line2D([0], [0], color='k'),
+        #                Line2D([0], [0], color='k', linestyle = '--'),\
+        #                Line2D([0], [0], color='k', linestyle = ':')]
+        #ax10.legend(custom_lines, ['0.64 μm', '2.25 μm', '10.35 μm'],\
+        #    fontsize = 8, loc = 2)
+
+        ##!#norm = mc.Normalize(vmin=2005, vmax = 2020)
+        ##!#bounds = np.arange(2005 - 0.5, 2020 + 1.5) 
+        ##!#ticks = np.arange(2005, 2020 + 1) 
+        ##!#cmap = 'turbo'
+
+        ##!#cbar_ax = fig.add_axes([0.20, 0.07, 0.7, 0.01])
+        ##!#if(stype == 'ice'):
+        ##!#    cbar_adder = 'sea ice'
+        ##!#elif(stype == 'cld'):
+        ##!#    cbar_adder = 'cloud optical depth'
+        #cbar = fig.colorbar(ScalarMappable(norm=norm, cmap=cmap),
+        #             cax=cbar_ax, orientation='horizontal', ticks = ticks[::3], \
+        #             boundaries = bounds, label='Year of ' + cbar_adder + ' used in forcing calculation')
+
+        fig.legend(custom_lines, linelabel_list, loc = 'lower center', \
+            bbox_to_anchor = (0, 0.01, 1, 1),\
+            bbox_transform = plt.gcf().transFigure, ncol=6, fontsize = 9)
+
+    all_ranges = [first_min, first_max, secnd_min, secnd_max, \
+        third_min, third_max]
+
+    plt.suptitle('Arctic Regional Average Aerosol Forcing\nUncertainty Analysis', \
         weight = 'bold') 
 
-    plot_subplot_label(ax1, 'a)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
-    plot_subplot_label(ax2, 'b)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
-    plot_subplot_label(ax3, 'c)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
-    plot_subplot_label(ax4, 'd)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
-    plot_subplot_label(ax5, 'e)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
-    plot_subplot_label(ax6, 'f)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
+    for pax in axs.flatten():
+        pax.set_ylim(np.min(all_ranges), np.max(all_ranges))
 
-    fig.tight_layout()
+    #fig.tight_layout()
 
     if(save):
-        if(version4):
-            version_add = 'v4'
-        else:
-            version_add = 'v3'
-        outname = 'calc_arctic_forcing_' + version_add + \
-            '_monthly_arcticavg_' + trend_type + \
-            file_add + '_' + omi_data_type + str(int(minlat)) + '.png'
+        file_add = ''
+        trend_add = ''
+        #outname = 'calc_arctic_forcing_v4_monthly_arcticavg_aimin0_useintcpt_ref' + stype + \
+        #    '_' + trend_type + file_add + trend_add + '_' + slope_type + \
+        #    orient_add + '_combined.png'
+
+        outname = 'calc_arctic_forcing_uncert_v4_' + \
+            'monthly_arcticavg_' + slope_type + orient_add + '_combined.png'
+
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
-    else: 
+    else:
         plt.show()
+
+
+
+
 
 # Used for plotting all the different ref-ice simulations
 # ptype: 'forcing', 'error', 'pcnt_error'
@@ -7753,14 +8427,16 @@ def plot_type_forcing_v3_all_months_arctic_avg(all_month_values, \
 #        or 'refcld' simulations.
 # return_slopes: returns the calculated slopes from each of the yearly
 #       simulations
+# slope_type: 'lin' or 'thl'
 def plot_type_forcing_v3_all_months_arctic_avg_manyrefice(all_month_vals, \
-        OMI_monthly_data, \
+        OMI_monthly_data, axs = None, \
         min_year = 2005, max_year = 2020, \
         minlat = 70., maxlat = 87., use_szas = False, \
         ai_thresh = 0.7, cld_idx = 0, maxerr = 2, \
         min_cloud = 0.95, data_type = 'raw', trend_type = 'standard', \
         save = False,debug = False, max_pval = 0.05, \
         ptype = 'forcing', vtype = '', \
+        slope_type = 'lin', \
         stype = 'ice', show_trends = False, \
         version4 = False):
 
@@ -7772,16 +8448,30 @@ def plot_type_forcing_v3_all_months_arctic_avg_manyrefice(all_month_vals, \
         print("ERROR: INVALID STYPE")
         return 
 
-    plt.close('all')
-    fig = plt.figure(figsize = (9, 5))
-    
-    ax1 = fig.add_subplot(2,3,1)
-    ax2 = fig.add_subplot(2,3,2)
-    ax3 = fig.add_subplot(2,3,3)
-    ax4 = fig.add_subplot(2,3,4)
-    ax5 = fig.add_subplot(2,3,5)
-    ax6 = fig.add_subplot(2,3,6)
+    in_ax = True
+    if(axs is None):
+        in_ax = False
+        plt.close('all')
+        fig = plt.figure(figsize = (9, 5))
+        axs = fig.subplots(nrows = 2, ncols = 3)
+ 
+        ax1 = axs[0,0]
+        ax2 = axs[0,1]
+        ax3 = axs[0,2]
+        ax4 = axs[1,0]
+        ax5 = axs[1,1]
+        ax6 = axs[1,2]
+    else:
+        ax1 = axs[0]   
+        ax2 = axs[1]   
+        ax3 = axs[2]   
+        ax4 = axs[3]   
+        ax5 = axs[4]   
+        ax6 = axs[5]   
   
+
+
+ 
     years = np.arange(min_year, max_year + 1)
     lwidth = 0.5
     fsize = 10
@@ -7800,9 +8490,15 @@ def plot_type_forcing_v3_all_months_arctic_avg_manyrefice(all_month_vals, \
         ax5.axhline(0, linestyle = '--', color = 'black')
         ax6.axhline(0, linestyle = '--', color = 'black')
     
+    # Mask the month values that are outside the desired
+    # lat bounds
+    # --------------------------------------------------
+    keep_idxs = np.where((OMI_monthly_data['LAT'][:,0] >= (minlat + 0.5)) & \
+        (OMI_monthly_data['LAT'][:,0] < (maxlat + 0.5)))[0]
+
     # Convert the base values to Arctic and monthly averages
     # ------------------------------------------------------
-    all_month_vals =  np.array([np.nanmean(all_month_vals[idx::6,:,:], \
+    all_month_vals =  np.array([np.nanmean(all_month_vals[idx::6,keep_idxs,:], \
         axis = (1,2)) for idx in range(6)])
 
     # Combined all the single-year stuff into one array
@@ -7821,9 +8517,14 @@ def plot_type_forcing_v3_all_months_arctic_avg_manyrefice(all_month_vals, \
         # Read in the force vals with this ref ice
         # ----------------------------------------
         if(version4):
-            filename = home_dir + '/Research/Arctic_compares/' + \
-                'arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_ref' + \
-                stype + str(year) + '.hdf5'
+            if(slope_type == 'thl'):
+                filename = home_dir + '/Research/Arctic_compares/' + \
+                    'arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_ref' + \
+                    stype + str(year) + '.hdf5'
+            else:
+                filename = home_dir + '/Research/Arctic_compares/' + \
+                    'arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_lin_ref' + \
+                    stype + str(year) + '.hdf5'
         else:
             filename = home_dir + '/Research/Arctic_compares/' + \
                 'arctic_month_est_forcing_dayaithresh07_' + vtype + 'ref' + \
@@ -7831,9 +8532,20 @@ def plot_type_forcing_v3_all_months_arctic_avg_manyrefice(all_month_vals, \
 
         print(filename)
         all_month_dict = read_daily_month_force_HDF5(filename)
+        month_values = all_month_dict['FORCE_EST']
+        lats = all_month_dict['LAT']
 
-        combined_vals[ii,:,:] = np.array([np.nanmean(\
-            all_month_dict['FORCE_EST'][idx::6,:,:], \
+        # Mask the month values that are outside the desired
+        # lat bounds
+        # --------------------------------------------------
+        keep_idxs = np.where((lats[:] >= (minlat + 0.5)) & \
+            (lats[:] < (maxlat + 0.5)))[0]
+
+        # Calculate the monthly averages of the estimated forcings
+        # over the entire Arctic region
+        # --------------------------------------------------------
+        #arctic_avgs = np.array([np.nanmean(month_values[idx::6,:,:], \
+        combined_vals[ii,:,:] = np.array([np.nanmean(month_values[idx::6,keep_idxs,:], \
             axis = (1,2)) for idx in range(6)])
 
         if(ptype == 'error'):
@@ -7878,38 +8590,758 @@ def plot_type_forcing_v3_all_months_arctic_avg_manyrefice(all_month_vals, \
     for jj in range(6):
   
         axs[jj].axhline(0, color = 'black', linestyle = '--', alpha = 0.75)
-        axs[jj].set_ylabel(plabel) 
-        axs[jj].set_title(months[jj])   
-        axs[jj].set_ylim(local_min, local_max)
+        axs[jj].grid(alpha = 0.25, color = 'grey')
         if(ptype == 'forcing'):
             axs[jj].plot(years, all_month_vals[jj,:], linestyle = '-', \
                 c = 'black', alpha = 1.0)
+        if(not in_ax):
+            axs[jj].set_ylabel(plabel) 
+            axs[jj].set_title(months[jj])   
+            axs[jj].set_ylim(local_min, local_max)
 
-    plot_subplot_label(ax1, 'a)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
-    plot_subplot_label(ax2, 'b)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
-    plot_subplot_label(ax3, 'c)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
-    plot_subplot_label(ax4, 'd)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
-    plot_subplot_label(ax5, 'e)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
-    plot_subplot_label(ax6, 'f)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
+    if(not in_ax):
+        plot_subplot_label(ax1, 'a)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
+        plot_subplot_label(ax2, 'b)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
+        plot_subplot_label(ax3, 'c)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
+        plot_subplot_label(ax4, 'd)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
+        plot_subplot_label(ax5, 'e)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
+        plot_subplot_label(ax6, 'f)', fontsize = 12, location = 'upper_upper_left', backgroundcolor = None)
 
-    plt.suptitle('Daily-averaged Single Month Estimated Forcing' + \
-        '\nSensitivity to ' + title_add + \
-        '\nBold - Significant at p = ' + str(max_pval), \
+        plt.suptitle('Arctic Regional Average Aerosol Forcing: ' + str(minlat) + \
+            '$^{o}$ N - ' + str(maxlat) + '$^{o}$ N\n' + \
+            'Sensitivity to ' + title_add,
+            weight = 'bold') 
+
+        fig.tight_layout()
+
+        if(save):
+            if(version4):
+                outname = 'calc_arctic_forcing_v4_monthly_arcticavg_aimin0_useintcpt_ref' + stype + \
+                    '_' + trend_type + file_add + trend_add + '_' + slope_type + \
+                '_minlat' + str(int(minlat)) + \
+                '_maxlat' + str(int(maxlat)) + '.png'
+            else:
+                outname = 'calc_arctic_forcing_v3_monthly_arcticavg_ref' + stype + \
+                    '_' + vtype + trend_type + file_add + trend_add + '_' + slope_type + \
+                    '_minlat' + str(int(minlat)) + \
+                '_maxlat' + str(int(maxlat)) + '.png'
+            fig.savefig(outname, dpi = 200)
+            print("Saved image", outname)
+        else: 
+            plt.show()
+
+    return local_min, local_max
+
+def plot_type_forcing_v4_all_months_arctic_avg_manyrefice_combined(all_month_vals, \
+        OMI_monthly_data, \
+        min_year = 2005, max_year = 2020, \
+        minlat = 70., maxlat = 87., trend_type = 'standard', \
+        save = False,debug = False, max_pval = 0.05, \
+        ptype = 'forcing', vtype = '', \
+        slope_type = 'lin', horiz_orient = True, \
+        stype = 'ice', show_trends = False, \
+        version4 = False):
+
+    if(stype == 'ice'):
+        title_add = 'Sea Ice Retreat'
+    elif(stype == 'cld'):
+        title_add = 'Arctic Cloud Optical Depth'
+    else:
+        print("ERROR: INVALID STYPE")
+        return 
+
+    # Prep the overall figure
+    # -----------------------
+    plt.close('all')
+    if(horiz_orient):
+        fig = plt.figure(figsize = (12, 6.5))
+        #axs  = fig.subplots(nrows = 3, ncols = 6, sharex = True, sharey = True)
+        ##ax1  = axs[0,0]  # control April 
+        ##ax2  = axs[0,1]  # control May 
+        ##ax3  = axs[0,2]  # control June 
+        ##ax4  = axs[0,3]  # control July 
+        ##ax5  = axs[0,4]  # control August
+        ##ax6  = axs[0,5]  # control September
+        ##ax7  = axs[1,0]  # low     April 
+        ##ax8  = axs[1,1]  # low     May 
+        ##ax9  = axs[1,2]  # low     June 
+        ##ax10 = axs[1,3]  # low     July 
+        ##ax11 = axs[1,4]  # low     August
+        ##ax12 = axs[1,5]  # low     September
+        ##ax13 = axs[2,0]  # high    April 
+        ##ax14 = axs[2,1]  # high    May 
+        ##ax15 = axs[2,2]  # high    June 
+        ##ax16 = axs[2,3]  # high    July 
+        ##ax17 = axs[2,4]  # high    August
+        ##ax18 = axs[2,5]  # high    September
+
+        grid = ImageGrid(fig, 111, \
+            nrows_ncols = (3, 6), \
+            axes_pad = 0.20, \
+            share_all = True, \
+            cbar_location = 'right', \
+            cbar_mode = 'edge', \
+            cbar_size = '7%', \
+            cbar_pad = 0.15)
+
+        ax1  = grid[0,0]  # control April 
+        ax2  = grid[0,1]  # control May 
+        ax3  = grid[0,2]  # control June 
+        ax4  = grid[0,3]  # control July 
+        ax5  = grid[0,4]  # control August
+        ax6  = grid[0,5]  # control September
+        ax7  = grid[1,0]  # low     April 
+        ax8  = grid[1,1]  # low     May 
+        ax9  = grid[1,2]  # low     June 
+        ax10 = grid[1,3]  # low     July 
+        ax11 = grid[1,4]  # low     August
+        ax12 = grid[1,5]  # low     September
+        ax13 = grid[2,0]  # high    April 
+        ax14 = grid[2,1]  # high    May 
+        ax15 = grid[2,2]  # high    June 
+        ax16 = grid[2,3]  # high    July 
+        ax17 = grid[2,4]  # high    August
+        ax18 = grid[2,5]  # high    September
+        orient_add = '_horiz'
+    else:
+        fig = plt.figure(figsize = (8.5, 9.5))
+        axs  = fig.subplots(nrows = 6, ncols = 3, sharex = True, sharey = True)
+        ax1  = axs[0,0]  # control April 
+        ax2  = axs[1,0]  # control May 
+        ax3  = axs[2,0]  # control June 
+        ax4  = axs[3,0]  # control July 
+        ax5  = axs[4,0]  # control August
+        ax6  = axs[5,0]  # control September
+        ax7  = axs[0,1]  # low     April 
+        ax8  = axs[1,1]  # low     May 
+        ax9  = axs[2,1]  # low     June 
+        ax10 = axs[3,1]  # low     July 
+        ax11 = axs[4,1]  # low     August
+        ax12 = axs[5,1]  # low     September
+        ax13 = axs[0,2]  # high    April 
+        ax14 = axs[1,2]  # high    May 
+        ax15 = axs[2,2]  # high    June 
+        ax16 = axs[3,2]  # high    July 
+        ax17 = axs[4,2]  # high    August
+        ax18 = axs[5,2]  # high    September
+
+        """
+        grid = ImageGrid(fig, 111, \
+            nrows_ncols = (6, 3), \
+            axes_pad = 0.20, \
+            share_all = True, \
+            cbar_location = 'bottom', \
+            cbar_mode = 'edge', \
+            cbar_size = '7%', \
+            cbar_pad = 0.15)
+
+        ax1  = axs[0,0]  # control April 
+        ax2  = axs[1,0]  # control May 
+        ax3  = axs[2,0]  # control June 
+        ax4  = axs[3,0]  # control July 
+        ax5  = axs[4,0]  # control August
+        ax6  = axs[5,0]  # control September
+        ax7  = axs[0,1]  # low     April 
+        ax8  = axs[1,1]  # low     May 
+        ax9  = axs[2,1]  # low     June 
+        ax10 = axs[3,1]  # low     July 
+        ax11 = axs[4,1]  # low     August
+        ax12 = axs[5,1]  # low     September
+        ax13 = axs[0,2]  # high    April 
+        ax14 = axs[1,2]  # high    May 
+        ax15 = axs[2,2]  # high    June 
+        ax16 = axs[3,2]  # high    July 
+        ax17 = axs[4,2]  # high    August
+        ax18 = axs[5,2]  # high    September
+        """
+        orient_add = '_vert'
+
+    # Plot the first row: control (65 - 87)
+    # -------------------------------------
+    ax_list = [ax1, ax2, ax3, ax4, ax5, ax6]
+    first_min, first_max = \
+        plot_type_forcing_v3_all_months_arctic_avg_manyrefice(\
+            all_month_vals, \
+            OMI_monthly_data, axs = ax_list, \
+            minlat = 65, maxlat = 87., trend_type = 'standard', stype = stype, \
+            ptype = ptype, vtype = 'v4', slope_type = slope_type, version4 = True)
+
+
+    # Plot the second row: low (65 - 75)
+    # ----------------------------------
+    ax_list = [ax7, ax8, ax9, ax10, ax11, ax12]
+    secnd_min, secnd_max = \
+        plot_type_forcing_v3_all_months_arctic_avg_manyrefice(\
+            all_month_vals, \
+            OMI_monthly_data, axs = ax_list, \
+            minlat = 65, maxlat = 75., trend_type = 'standard', stype = stype, \
+            ptype = ptype, vtype = 'v4', slope_type = slope_type, version4 = True)
+
+    # Plot the third row: high (75 - 87)
+    # ----------------------------------
+    ax_list = [ax13, ax14, ax15, ax16, ax17, ax18]
+    third_min, third_max = \
+        plot_type_forcing_v3_all_months_arctic_avg_manyrefice(\
+            all_month_vals, \
+            OMI_monthly_data, axs = ax_list, \
+            minlat = 75, maxlat = 87., trend_type = 'standard', stype = stype, \
+            ptype = ptype, vtype = 'v4', slope_type = slope_type, version4 = True)
+
+    all_ranges = [first_min, first_max, secnd_min, secnd_max, \
+        third_min, third_max]
+
+    for pax in axs.flatten():
+        pax.set_ylim(np.min(all_ranges), np.max(all_ranges))
+
+
+    if(horiz_orient):
+        ax1.set_ylabel('Forcing [Wm$^{-2}$]')
+        ax7.set_ylabel('Forcing [Wm$^{-2}$]')
+        ax13.set_ylabel('Forcing [Wm$^{-2}$]')
+
+        ax1.set_title('April', weight = 'bold')
+        ax2.set_title('May', weight = 'bold')
+        ax3.set_title('June', weight = 'bold')
+        ax4.set_title('July', weight = 'bold')
+        ax5.set_title('August', weight = 'bold')
+        ax6.set_title('September', weight = 'bold')
+
+        plot_figure_text(ax1, '65$^{o}$ - 87$^{o}$ N', \
+            location = 'lower_left', xval = None, yval = None, \
+            fontsize = 12, color = 'red', weight = 'bold', backgroundcolor = 'white')
+        plot_figure_text(ax7, '65$^{o}$ - 75$^{o}$ N', \
+            location = 'lower_left', xval = None, yval = None, \
+            fontsize = 12, color = 'red', weight = 'bold', \
+            backgroundcolor = 'white')
+        plot_figure_text(ax13, '75$^{o}$ - 87$^{o}$ N', \
+            location = 'lower_left', xval = None, yval = None, \
+            fontsize = 12, color = 'red', weight = 'bold', \
+            backgroundcolor = 'white')
+
+    else:
+        ax1.set_ylabel('Forcing [Wm$^{-2}$]')
+        ax2.set_ylabel('Forcing [Wm$^{-2}$]')
+        ax3.set_ylabel('Forcing [Wm$^{-2}$]')
+        ax4.set_ylabel('Forcing [Wm$^{-2}$]')
+        ax5.set_ylabel('Forcing [Wm$^{-2}$]')
+        ax6.set_ylabel('Forcing [Wm$^{-2}$]')
+
+        ax1.set_title('65$^{o}$ - 87$^{o}$ N', weight = 'bold')
+        ax7.set_title('65$^{o}$ - 75$^{o}$ N', weight = 'bold')
+        ax13.set_title('75$^{o}$ - 87$^{o}$ N', weight = 'bold')
+
+        fig.subplots_adjust(left = 0.2)
+
+        row_label_size = 12 
+        fig.text(0.07, 0.82, 'April', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.07, 0.69, 'May', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.07, 0.555, 'June', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.07, 0.42, 'July', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.07, 0.295, 'August', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+        fig.text(0.07, 0.16, 'September', ha='center', va='center', \
+            rotation='vertical',weight='bold',fontsize=row_label_size)
+
+        norm = mc.Normalize(vmin=2005, vmax = 2020)
+        bounds = np.arange(2005 - 0.5, 2020 + 1.5) 
+        ticks = np.arange(2005, 2020 + 1) 
+        cmap = 'turbo'
+
+        cbar_ax = fig.add_axes([0.20, 0.07, 0.7, 0.01])
+        if(stype == 'ice'):
+            cbar_adder = 'sea ice'
+        elif(stype == 'cld'):
+            cbar_adder = 'cloud optical depth'
+        cbar = fig.colorbar(ScalarMappable(norm=norm, cmap=cmap),
+                     cax=cbar_ax, orientation='horizontal', ticks = ticks[::3], \
+                     boundaries = bounds, label='Year of ' + cbar_adder + ' used in forcing calculation')
+
+
+    plt.suptitle('Arctic Regional Average Aerosol Forcing\n' + 
+        'Sensitivity to ' + title_add,  \
         weight = 'bold') 
+    #plt.suptitle('Arctic Regional Average Aerosol Forcing\n' + 
+    #    'Sensitivity to ' + title_add + \
+    #    '\nTop row: 65 - 87\nMiddle row: 65 - 75\nBottom row: 75 - 87',
+    #    weight = 'bold') 
 
-    fig.tight_layout()
-
+    ##row_label_size = 10 
+    ##fig.text(0.05, 0.70, 'Climatology', ha='center', va='center', \
+    ##    rotation='vertical',weight='bold',fontsize=row_label_size)
+    ##fig.text(0.05, 0.30, 'Trend', ha='center', va='center', \
+    ##    rotation='vertical',weight='bold',fontsize=row_label_size)
+    
+    #fig.tight_layout()
     if(save):
-        if(version4):
-            outname = 'calc_arctic_forcing_v4_monthly_arcticavg_aimin0_useintcpt_ref' + stype + \
-                '_' + vtype + trend_type + file_add + trend_add + '.png'
-        else:
-            outname = 'calc_arctic_forcing_v3_monthly_arcticavg_ref' + stype + \
-                '_' + vtype + trend_type + file_add + trend_add + '.png'
+        file_add = ''
+        trend_add = ''
+        outname = 'calc_arctic_forcing_v4_monthly_arcticavg_aimin0_useintcpt_ref' + stype + \
+            '_' + trend_type + file_add + trend_add + '_' + slope_type + \
+        orient_add + '_combined.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
-    else: 
+    else:
         plt.show()
+
+
+# This function gathers the refice and refcld simulation results,
+# as well as the uncertainty analyses,
+# calculates the trends from each refice and refcld simulation,
+# and calculates the mean and standard error of those
+# ref ice/cld simulations. The results are printed in a table
+def calc_print_forcing_slope_error_v4(all_month_vals, \
+        OMI_monthly_data, all_month_files, \
+        min_year = 2005, max_year = 2020, \
+        minlat = 65., maxlat = 87., \
+        trend_type = 'standard', ptype = 'forcing', \
+        vtype = '', version4 = True, slope_type = 'lin', 
+        save = False):
+    
+    ice_trend_dict = \
+        calc_forcing_slopes_v4_all_months_arctic_avg_manyrefice(all_month_vals, \
+        OMI_monthly_data, minlat = 65., maxlat = 87., stype = 'ice', slope_type = slope_type)
+
+    cld_trend_dict = \
+        calc_forcing_slopes_v4_all_months_arctic_avg_manyrefice(all_month_vals, \
+        OMI_monthly_data, minlat = 65., maxlat = 87., stype = 'cld', slope_type = slope_type)
+
+    uncert_trend_dict = calc_forcing_slopes_v4_all_months_arctic_avg_uncert(all_month_files, \
+            OMI_monthly_data, slope_type = slope_type)
+
+    years = np.arange(min_year, max_year + 1)
+
+
+    # = = = = = = = = = = = =
+    #
+    # refice results
+    #
+    # = = = = = = = = = = = =
+    keys = ['65-87','65-75','75-87']
+    months = ['Apr','May','Jun','Jul','Aug','Sep']
+    print('\nsimul   latrng  month  orig_ΔF avg_ΔF_err std_ΔF_err ' + \
+          'min_ΔF_err max_ΔF_err avg_%_err std_%_err min_%_err max_%_err')
+    for key in keys:
+        for ii, month in enumerate(months):
+            trend_errs = (ice_trend_dict['calc_trends'][key][:,ii] - \
+                           ice_trend_dict['orig_trends'][key][ii])
+            pcnt_errs =  (trend_errs / \
+                           ice_trend_dict['orig_trends'][key][ii]) * 100.
+        
+            ser_trend = std_trend / np.sqrt(len(uncert_trend_dict['calc_trends'][key][:,ii]))
+
+            avg_trend_err = np.mean(trend_errs)
+            std_trend_err = np.std(trend_errs)
+            min_trend_err = np.min(trend_errs)
+            max_trend_err = np.max(trend_errs)
+            avg_pcnt_err = np.mean(pcnt_errs)
+            std_pcnt_err = np.std(pcnt_errs)
+            min_pcnt_err = np.min(pcnt_errs)
+            max_pcnt_err = np.max(pcnt_errs)
+
+            # Format:
+            # 0: orignal trend
+            # 1: mean of the errors between the original trend and calculated trends
+            # 2: standard error of the trend errors calculated from the refice simulation
+            # 3: max error of the trend errors calculated from the refice simulation
+            # 4: min error of the trend errors calculated from the refice simulation
+            # 5: mean of the percent trend errors between the original trend and calculated trends
+            # 6: standard error of the percent trend errors calculated from the refice simulation
+            print('refice   ' + key + '   ' + month + ' {0:>9.1e} {1:>9.1e} {2:>10.1e} {3:>10.1e} {4:>10.1e} {5:>8.1f}% {6:>8.1f}% {7:>8.1f}% {8:>8.1f}%'.format(\
+                ice_trend_dict['orig_trends'][key][ii], \
+                avg_trend_err, std_trend_err, min_trend_err, max_trend_err, \
+                avg_pcnt_err, std_pcnt_err, min_pcnt_err, max_pcnt_err, \
+                ))
+
+    # = = = = = = = = = = = =
+    #
+    # refcld results
+    #
+    # = = = = = = = = = = = =
+    print('\nsimul   latrng  month  orig_ΔF avg_ΔF_err std_ΔF_err ' + \
+          'min_ΔF_err max_ΔF_err avg_%_err std_%_err min_%_err max_%_err')
+    for key in keys:
+        for ii, month in enumerate(months):
+            trend_errs = (cld_trend_dict['calc_trends'][key][:,ii] - \
+                           cld_trend_dict['orig_trends'][key][ii])
+            pcnt_errs =  (trend_errs / \
+                           cld_trend_dict['orig_trends'][key][ii]) * 100.
+        
+            avg_trend_err = np.mean(trend_errs)
+            std_trend_err = np.std(trend_errs)
+            min_trend_err = np.min(trend_errs)
+            max_trend_err = np.max(trend_errs)
+            avg_pcnt_err = np.mean(pcnt_errs)
+            std_pcnt_err = np.std(pcnt_errs)
+            min_pcnt_err = np.min(pcnt_errs)
+            max_pcnt_err = np.max(pcnt_errs)
+
+            # Format:
+            # 0: orignal trend
+            # 1: mean of the errors between the original trend and calculated trends
+            # 2: standard error of the trend errors calculated from the refice simulation
+            # 3: max error of the trend errors calculated from the refice simulation
+            # 4: min error of the trend errors calculated from the refice simulation
+            # 5: mean of the percent trend errors between the original trend and calculated trends
+            # 6: standard error of the percent trend errors calculated from the refice simulation
+            #print('refcld   ' + key + '   ' + month + ' {0:>11.1e} {1:>11.1e} {2:>12.1e} {3:>12.1e} {4:>12.1e} {5:>8.1f}% {6:>8.1f}% {7:>8.1f}% {8:>8.1f}%'.format(\
+            print('refcld   ' + key + '   ' + month + ' {0:>9.1e} {1:>9.1e} {2:>10.1e} {3:>10.1e} {4:>10.1e} {5:>8.1f}% {6:>8.1f}% {7:>8.1f}% {8:>8.1f}%'.format(\
+                cld_trend_dict['orig_trends'][key][ii], \
+                avg_trend_err, std_trend_err, min_trend_err, max_trend_err, \
+                avg_pcnt_err, std_pcnt_err, min_pcnt_err, max_pcnt_err, \
+                ))
+
+    # = = = = = = = = = = = =
+    #
+    # uncertainty results
+    #
+    # = = = = = = = = = = = =
+    print('\n\nCalculating the mean and stdev of the uncertainty runs. ' + \
+          'No abs. errors here. ser = standard error (stdev / sqrt(n))\n' + \
+           '\nsimul   latrng  month  orig_ΔF avg_unc_ΔF std_unc_ΔF ser_unc_ΔF ' + \
+          'min_unc_ΔF max_unc_ΔF avg_%_err std_%_err min_%_err max_%_err')
+    for key in keys:
+        for ii, month in enumerate(months):
+            #trend_errs = (uncert_trend_dict['calc_trends'][key][:,ii] - \
+            #               uncert_trend_dict['orig_trends'][key][ii])
+       
+            avg_trend = np.mean(uncert_trend_dict['calc_trends'][key][:,ii])
+            std_trend = np.std(uncert_trend_dict['calc_trends'][key][:,ii])
+            min_trend = np.min(uncert_trend_dict['calc_trends'][key][:,ii])
+            max_trend = np.max(uncert_trend_dict['calc_trends'][key][:,ii])
+
+            ser_trend = std_trend / np.sqrt(len(uncert_trend_dict['calc_trends'][key][:,ii]))
+
+            #print(avg_trend, uncert_trend_dict['calc_trends'][key][:,ii])
+            pcnt_errs =  ((uncert_trend_dict['calc_trends'][key][:,ii] - avg_trend) / \
+                           avg_trend) * 100.
+ 
+            avg_pcnt_err = np.mean(pcnt_errs)
+            std_pcnt_err = np.std(pcnt_errs)
+            min_pcnt_err = np.min(pcnt_errs)
+            max_pcnt_err = np.max(pcnt_errs)
+    
+            # Format:
+            # 0: original trend
+            # 1: mean of all the uncertainty runs
+            # 2: stdev of all the uncertainty runs
+            # 3: min of all the uncertainty runs
+            # 4: max of all the uncertainty runs
+            print('uncert   ' + key + '   ' + month + ' {0:>9.1e} {1:>9.1e} {2:>10.1e} {3:>10.1e} {4:>10.1e} {5:>10.1e} {6:>8.1f}% {7:>8.1f}% {8:>8.1f}% {9:>8.1f}%'.format(\
+                uncert_trend_dict['orig_trends'][key][ii], \
+                avg_trend, std_trend, ser_trend, min_trend, max_trend, \
+                avg_pcnt_err, std_pcnt_err, min_pcnt_err, max_pcnt_err, \
+                ))
+
+
+    print('\n\nCalculating the mean and stdev of the errors between the original and uncertainty runs.\n' + \
+          '\nsimul   latrng  month  orig_ΔF avg_ΔF_err std_ΔF_err ser_ΔF_err ' + \
+          'min_ΔF_err max_ΔF_err avg_%_err std_%_err min_%_err max_%_err')
+    for key in keys:
+        for ii, month in enumerate(months):
+            trend_errs = (uncert_trend_dict['calc_trends'][key][:,ii] - \
+                           uncert_trend_dict['orig_trends'][key][ii])
+            pcnt_errs =  (trend_errs / \
+                           cld_trend_dict['orig_trends'][key][ii]) * 100.
+
+ 
+            avg_trend_err = np.mean(trend_errs)
+            std_trend_err = np.std(trend_errs)
+            min_trend_err = np.min(trend_errs)
+            max_trend_err = np.max(trend_errs)
+            avg_pcnt_err = np.mean(pcnt_errs)
+            std_pcnt_err = np.std(pcnt_errs)
+            min_pcnt_err = np.min(pcnt_errs)
+            max_pcnt_err = np.max(pcnt_errs)
+    
+            ser_trend_err = std_trend_err / np.sqrt(len(uncert_trend_dict['calc_trends'][key][:,ii]))
+
+            # Format:
+            # 0: orignal trend
+            # 1: mean of the errors between the original trend and calculated trends
+            # 2: standard error of the trend errors calculated from the refice simulation
+            # 3: max error of the trend errors calculated from the refice simulation
+            # 4: min error of the trend errors calculated from the refice simulation
+            # 5: mean of the percent trend errors between the original trend and calculated trends
+            # 6: standard error of the percent trend errors calculated from the refice simulation
+            #print('uncert   ' + key + '   ' + month + ' {0:>9.1e} {1:>9.1e} {2:>10.1e} {3:>10.1e} {4:>10.1e} {5:>8.1f}% {6:>8.1f}% {7:>8.1f}% {8:>8.1f}%'.format(\
+            print('uncert   ' + key + '   ' + month + ' {0:>9.1e} {1:>9.1e} {2:>10.1e} {3:>10.1e} {4:>10.1e} {5:>10.1e} {6:>8.1f}% {7:>8.1f}% {8:>8.1f}% {9:>8.1f}%'.format(\
+                uncert_trend_dict['orig_trends'][key][ii], \
+                avg_trend_err, std_trend_err, ser_trend_err, min_trend_err, max_trend_err, \
+                avg_pcnt_err, std_pcnt_err, min_pcnt_err, max_pcnt_err, \
+                ))
+        
+
+
+
+# Assume that the slopes are only going to be calculated using "forcing"
+#   and not "error" or "pcnt_error"
+#
+# Assume that the first entry in all_month_files is the "original"
+# forcing values
+# ----------------------------------------------------------------
+def calc_forcing_slopes_v4_all_months_arctic_avg_uncert(all_month_files, \
+        OMI_monthly_data, \
+        min_year = 2005, max_year = 2020, \
+        minlat = 70., maxlat = 87., \
+        trend_type = 'standard', ptype = 'forcing', stype = 'ice', \
+        vtype = '', slope_type = 'lin', \
+        save = False):
+
+    years = np.arange(min_year, max_year + 1)
+    months = np.arange(6)
+    file_types = [ptitle.strip().split('/')[-1].split('_')[-1][3:].split('.')[0] \
+        for ptitle in all_month_files][1:]
+
+    calc_trend_dict = {}
+    calc_trend_dict['orig_trends'] = {}
+    calc_trend_dict['orig_force_vals'] = {}
+    calc_trend_dict['calc_trends'] = {}
+    calc_trend_dict['calc_force_vals'] = {}
+    calc_trend_dict['simulations'] = file_types
+
+    # Read in the original values, which should be housed in 
+    # index 0
+    # -------------------------------------------------------
+    all_month_dict = read_daily_month_force_HDF5(all_month_files[0])
+    all_month_vals = all_month_dict['FORCE_EST']
+
+    # ----------------------------------
+    #
+    # Calculate the original slopes
+    #
+    # ----------------------------------
+    lat_mins = [65., 65., 75.]
+    lat_maxs = [87., 75., 87.]
+
+    for kk in range(len(lat_mins)):
+
+        # Mask the month values that are outside the desired
+        # lat bounds
+        # --------------------------------------------------
+        lats = OMI_monthly_data['LAT'][:,0]
+        keep_idxs = np.where((lats[:] >= (lat_mins[kk] + 0.5)) & \
+            (lats[:] < (lat_maxs[kk] + 0.5)))[0]
+        print('HERE', lats[keep_idxs])
+
+        # Convert the base values to Arctic and monthly averages
+        # ------------------------------------------------------
+        local_month_vals =  np.array([np.nanmean(all_month_vals[idx::6,keep_idxs,:], \
+            axis = (1,2)) for idx in range(6)])
+
+        # Combined all the single-year stuff into one array
+        # ------------------------------------------------- 
+        combined_vals = np.full( (len(all_month_files), \
+            6, local_month_vals.shape[1]), np.nan)
+
+        # orig_slopes: the slopes of the original data, with the control
+        #               ice/cld values.
+        # calc_slopes: the slopes of the modified data, with the altered
+        #               ice/cld values from each ref year.
+        orig_slopes = np.full((6), np.nan)
+        calc_slopes = np.full( (len(file_types), 6), np.nan)
+
+        for ii in range(6):
+            # Calculate the slopes here
+            # -------------------------
+            if(trend_type == 'theil-sen'):
+                res = stats.theilslopes(local_month_vals[ii,:], years, 0.90)
+                delta_flux = res[0] * len(years)
+                #print("Theil-Sen: {0}x + {1}".format(res[0], res[1]))
+            elif((trend_type == 'linregress') | (trend_type == 'standard')):
+                zdata = stats.linregress(years, local_month_vals[ii,:])
+                delta_flux = len(years)* zdata.slope
+   
+            orig_slopes[ii] = delta_flux
+
+        if(vtype != ''):
+            vtype = vtype + '_'
+
+        # Begin the index at 1 here to skip the original values. These will be
+        # housed in a different key in the dictionary
+        # --------------------------------------------------------------------
+        for ii, infile in enumerate(all_month_files[1:]):
+
+            print(infile)
+            data_dict = read_daily_month_force_HDF5(infile)
+            month_values = data_dict['FORCE_EST']
+
+            # Calculate the monthly averages of the estimated forcings
+            # over the entire Arctic region
+            # --------------------------------------------------------
+            combined_vals[ii,:,:] = np.array([np.nanmean(month_values[idx::6,keep_idxs,:], \
+                axis = (1,2)) for idx in range(6)])
+
+            # Now, loop over each month and plot accordingly
+            # ----------------------------------------------
+            for jj in range(6):
+
+                # Calculate the slopes here
+                # -------------------------
+                if(trend_type == 'theil-sen'):
+                    res = stats.theilslopes(combined_vals[ii,jj,:], years, 0.90)
+                    delta_flux = res[0] * len(years)
+                    #print("Theil-Sen: {0}x + {1}".format(res[0], res[1]))
+                elif((trend_type == 'linregress') | (trend_type == 'standard')):
+                    zdata = stats.linregress(years, combined_vals[ii,jj,:])
+                    delta_flux = len(years)* zdata.slope
+   
+                calc_slopes[ii,jj] = delta_flux
+
+        # Insert these trends into the output dictionary
+        # ----------------------------------------------
+        dict_key = str(int(lat_mins[kk])) + '-' + str(int(lat_maxs[kk]))
+        calc_trend_dict['orig_trends'][dict_key] = orig_slopes
+        calc_trend_dict['orig_force_vals'][dict_key] = local_month_vals
+        calc_trend_dict['calc_trends'][dict_key] = calc_slopes
+        calc_trend_dict['calc_force_vals'][dict_key] = combined_vals
+ 
+    #return orig_slopes, calc_slopes
+    return calc_trend_dict
+
+
+# Assume that the slopes are only going to be calculated using "forcing"
+#   and not "error" or "pcnt_error"
+def calc_forcing_slopes_v4_all_months_arctic_avg_manyrefice(all_month_vals, \
+        OMI_monthly_data, \
+        min_year = 2005, max_year = 2020, \
+        minlat = 70., maxlat = 87., \
+        trend_type = 'standard', ptype = 'forcing', stype = 'ice', \
+        vtype = '', slope_type = 'lin', \
+        save = False):
+
+    years = np.arange(min_year, max_year + 1)
+    months = np.arange(6)
+
+    calc_trend_dict = {}
+    calc_trend_dict['orig_trends'] = {}
+    calc_trend_dict['orig_force_vals'] = {}
+    calc_trend_dict['calc_trends'] = {}
+    calc_trend_dict['calc_force_vals'] = {}
+    calc_trend_dict['years'] = years
+
+    # ----------------------------------
+    #
+    # Calculate the original slopes
+    #
+    # ----------------------------------
+    lat_mins = [65., 65., 75.]
+    lat_maxs = [87., 75., 87.]
+
+    for kk in range(len(lat_mins)):
+
+        # Mask the month values that are outside the desired
+        # lat bounds
+        # --------------------------------------------------
+        lats = OMI_monthly_data['LAT'][:,0]
+        keep_idxs = np.where((lats[:] >= (lat_mins[kk] + 0.5)) & \
+            (lats[:] < (lat_maxs[kk] + 0.5)))[0]
+        print('HERE', lats[keep_idxs])
+
+        # Convert the base values to Arctic and monthly averages
+        # ------------------------------------------------------
+        local_month_vals =  np.array([np.nanmean(all_month_vals[idx::6,keep_idxs,:], \
+            axis = (1,2)) for idx in range(6)])
+
+        # Combined all the single-year stuff into one array
+        # ------------------------------------------------- 
+        combined_vals = np.full( (years.shape[0], \
+            6, local_month_vals.shape[1]), np.nan)
+
+        # orig_slopes: the slopes of the original data, with the control
+        #               ice/cld values.
+        # calc_slopes: the slopes of the modified data, with the altered
+        #               ice/cld values from each ref year.
+        orig_slopes = np.full((6), np.nan)
+        calc_slopes = np.full( (years.shape[0], 6), np.nan)
+
+        for ii in range(6):
+            # Calculate the slopes here
+            # -------------------------
+            if(trend_type == 'theil-sen'):
+                res = stats.theilslopes(local_month_vals[ii,:], years, 0.90)
+                delta_flux = res[0] * len(years)
+                #print("Theil-Sen: {0}x + {1}".format(res[0], res[1]))
+            elif((trend_type == 'linregress') | (trend_type == 'standard')):
+                zdata = stats.linregress(years, local_month_vals[ii,:])
+                delta_flux = len(years)* zdata.slope
+   
+            orig_slopes[ii] = delta_flux
+
+        if(vtype != ''):
+            vtype = vtype + '_'
+
+        # ----------------------------------
+        #
+        # Calculate the modified slopes
+        #
+        # ----------------------------------
+        # Loop over each reference ice year, reading in the 
+        # individual forcing values.
+        for ii, year in enumerate(years):
+            # Read in the force vals with this ref ice
+            # ----------------------------------------
+            if(slope_type == 'thl'):
+                filename = home_dir + '/Research/Arctic_compares/' + \
+                    'arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_ref' + \
+                    stype + str(year) + '.hdf5'
+            else:
+                filename = home_dir + '/Research/Arctic_compares/' + \
+                    'arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_lin_ref' + \
+                    stype + str(year) + '.hdf5'
+
+            # Read in the force vals with this ref ice
+            # ----------------------------------------
+            print(filename)
+            all_month_dict = read_daily_month_force_HDF5(filename)
+            month_values = all_month_dict['FORCE_EST']
+
+            # Calculate the monthly averages of the estimated forcings
+            # over the entire Arctic region
+            # --------------------------------------------------------
+            #arctic_avgs = np.array([np.nanmean(month_values[idx::6,:,:], \
+            combined_vals[ii,:,:] = np.array([np.nanmean(month_values[idx::6,keep_idxs,:], \
+                axis = (1,2)) for idx in range(6)])
+
+            #if(ptype == 'error'):
+            #    combined_vals[ii,:,:] = (combined_vals[ii,:,:] - \
+            #        all_month_vals[:,:])
+            #elif(ptype == 'pcnt_error'):
+            #    combined_vals[ii,:,:] = ((combined_vals[ii,:,:] - all_month_vals[:,:]) / \
+            #        all_month_vals[:,:]) * 100.
+   
+            # Now, loop over each month and plot accordingly
+            # ----------------------------------------------
+            for jj in range(6):
+
+                # Calculate the slopes here
+                # -------------------------
+                if(trend_type == 'theil-sen'):
+                    res = stats.theilslopes(combined_vals[ii,jj,:], years, 0.90)
+                    delta_flux = res[0] * len(years)
+                    #print("Theil-Sen: {0}x + {1}".format(res[0], res[1]))
+                elif((trend_type == 'linregress') | (trend_type == 'standard')):
+                    zdata = stats.linregress(years, combined_vals[ii,jj,:])
+                    delta_flux = len(years)* zdata.slope
+   
+                calc_slopes[ii,jj] = delta_flux
+
+        # Insert these trends into the output dictionary
+        # ----------------------------------------------
+        dict_key = str(int(lat_mins[kk])) + '-' + str(int(lat_maxs[kk]))
+        calc_trend_dict['orig_trends'][dict_key] = orig_slopes
+        calc_trend_dict['orig_force_vals'][dict_key] = local_month_vals
+        calc_trend_dict['calc_trends'][dict_key] = calc_slopes
+        calc_trend_dict['calc_force_vals'][dict_key] = combined_vals
+ 
+    #return orig_slopes, calc_slopes
+    return calc_trend_dict
+
+
+
 
 # Assume that the slopes are only going to be calculated using "forcing"
 #   and not "error" or "pcnt_error"
@@ -8499,7 +9931,16 @@ def calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
     calc_slopes = np.full(((ice_bin_edges.shape[0] - 1), \
                            (sza_bin_edges.shape[0] - 1), \
                            (cod_bin_edges.shape[0] - 1)), np.nan)
+    calc_upper_slopes  = np.full(((ice_bin_edges.shape[0] - 1), \
+                            (sza_bin_edges.shape[0] - 1), \
+                            (cod_bin_edges.shape[0] - 1)), np.nan)
+    calc_lower_slopes  = np.full(((ice_bin_edges.shape[0] - 1), \
+                            (sza_bin_edges.shape[0] - 1), \
+                            (cod_bin_edges.shape[0] - 1)), np.nan)
     calc_intcpt = np.full(((ice_bin_edges.shape[0] - 1), \
+                           (sza_bin_edges.shape[0] - 1), \
+                           (cod_bin_edges.shape[0] - 1)), np.nan)
+    calc_intcpt_error = np.full(((ice_bin_edges.shape[0] - 1), \
                            (sza_bin_edges.shape[0] - 1), \
                            (cod_bin_edges.shape[0] - 1)), np.nan)
     calc_counts = np.full(((ice_bin_edges.shape[0] - 1), \
@@ -8524,7 +9965,7 @@ def calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
     
     # Loop over each of the bins and find the slope and intercept
     # (either from linear regression or from Theil-Sen)
-    trend_type = 'theil-sen'
+    #trend_type = 'theil-sen'
     for ii in range(ice_bin_edges.shape[0] - 1):
         print(ice_bin_edges[ii])
         for jj in range(sza_bin_edges.shape[0] - 1):
@@ -8547,8 +9988,8 @@ def calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
                         calc_intcpt[ii,jj,kk]   = res[1]
                         # NOTE: If wanting to do an uncertainty estimate with
                         #       Theil-Sen, this is where it would be done.
-                        #calc_slopes[ii,jj,kk]   = res[2] # lower bound slope
-                        #calc_slopes[ii,jj,kk]   = res[3] # upper bound slope
+                        calc_upper_slopes[ii,jj,kk]   = res[2] # lower bound slope
+                        calc_lower_slopes[ii,jj,kk]   = res[3] # upper bound slope
     
                         #if((len(grid_xdata) > 20)):
                         #    res = stats.theilslopes(grid_ydata, grid_xdata, 0.90)
@@ -8557,26 +9998,39 @@ def calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
                         #if((len(raw_xdata) >= 20)):
                         result1 = stats.linregress(raw_xdata,raw_ydata)
                         calc_slopes[ii,jj,kk] = result1.slope 
-                        #raw_stderr[ii,jj,kk] = result1.stderr
-                        #raw_pvals[ii,jj,kk]  = result1.pvalue
+                        calc_intcpt[ii,jj,kk] = result1.intercept
+                        calc_intcpt_error[ii,jj,kk] = result1.intercept_stderr
+                        calc_upper_slopes[ii,jj,kk] = result1.stderr
+                        calc_lower_slopes[ii,jj,kk] = result1.pvalue
    
     calc_slopes = np.ma.masked_where(calc_counts < min_ob, calc_slopes)
+    calc_upper_slopes = np.ma.masked_where(calc_counts < min_ob, calc_upper_slopes)
+    calc_lower_slopes = np.ma.masked_where(calc_counts < min_ob, calc_lower_slopes)
     calc_intcpt = np.ma.masked_where(calc_counts < min_ob, calc_intcpt)
+    calc_intcpt_error = np.ma.masked_where(calc_counts < min_ob, calc_intcpt_error)
     calc_counts = np.ma.masked_where(calc_counts < min_ob, calc_counts)
  
+    slope_dict['counts'] = calc_counts
     slope_dict['slopes'] = calc_slopes
     slope_dict['intercepts'] = calc_intcpt
-    slope_dict['counts'] = calc_counts
+    if(trend_type == 'theil-sen'):
+        slope_dict['upper_slopes'] = calc_upper_slopes
+        slope_dict['lower_slopes'] = calc_lower_slopes
+    else:
+        slope_dict['intcpt_stderr'] = calc_intcpt_error
+        slope_dict['slope_stderr'] = calc_upper_slopes
+        slope_dict['slope_pvals']  = calc_lower_slopes
+    slope_dict['trend_type'] = trend_type
 
     return slope_dict
 
 
 # Plot the binned slopes for the 4 surface types
 # ----------------------------------------------
-def plot_NN_bin_slopes(slope_dict, bin_dict, min_ob = 50, save = False):
+def plot_NN_bin_slopes(slope_dict, bin_dict, min_ob = 50, \
+            plot_error = False, save = False):
 
     plt.close('all')
-    fig = plt.figure(figsize = (10, 5.5))
     #ax1 = fig.add_subplot(2,4,1)
     #ax2 = fig.add_subplot(2,4,2)
     #ax3 = fig.add_subplot(2,4,3)
@@ -8596,9 +10050,26 @@ def plot_NN_bin_slopes(slope_dict, bin_dict, min_ob = 50, save = False):
     #ax7 = axs[1,2]  # ice cloud
     #ax8 = axs[1,3]  # land cloud
 
-  
+
+    if((slope_dict['trend_type'] == 'theil-sen') | \
+            ((slope_dict['trend_type'] == 'linregress') & \
+             (not plot_error))):  
+        fig = plt.figure(figsize = (10, 5.5))
+        nrows_ncols = (2, 4)
+    else:
+        fig = plt.figure(figsize = (10, 7.5))
+        nrows_ncols = (3, 4)
+        #grid = ImageGrid(fig, 111, \
+        #    nrows_ncols = (3, 4), \
+        #    axes_pad = 0.20, \
+        #    share_all = True, \
+        #    cbar_location = 'right', \
+        #    cbar_mode = 'edge', \
+        #    cbar_size = '7%', \
+        #    cbar_pad = 0.15)
+
     grid = ImageGrid(fig, 111, \
-        nrows_ncols = (2, 4), \
+        nrows_ncols = nrows_ncols, \
         axes_pad = 0.20, \
         share_all = True, \
         cbar_location = 'right', \
@@ -8615,6 +10086,12 @@ def plot_NN_bin_slopes(slope_dict, bin_dict, min_ob = 50, save = False):
     ax6 = axs[5]  # mix cloud
     ax7 = axs[6]  # ice cloud
     ax8 = axs[7]  # land cloud
+    #if(slope_dict['trend_type'] == 'linregress'):
+    if(plot_error):
+        ax9 = axs[8]  # ocean stderr
+        ax10 = axs[9]  # mix stderr
+        ax11 = axs[10]  # ice stderr
+        ax12 = axs[11]  # land stderr
  
     #calc_slopes = np.ma.masked_where(abs(slope_dict['slopes']) > 50, slope_dict['slopes'])
     calc_slopes = np.ma.masked_where(slope_dict['counts'] < min_ob, slope_dict['slopes'])
@@ -8630,19 +10107,41 @@ def plot_NN_bin_slopes(slope_dict, bin_dict, min_ob = 50, save = False):
     mesh = ax4.pcolormesh(calc_slopes[3,:,:].T, cmap = 'bwr', vmin = -15, vmax = 15)
     #cbar = plt.colorbar(mesh, ax = ax4, orientation = 'vertical', \
     #    shrink = 0.8, extend = 'both')
-    ax5.pcolormesh(slope_dict['counts'][0,:,:].T, cmap = 'viridis')
-    ax6.pcolormesh(slope_dict['counts'][1,:,:].T, cmap = 'viridis')
-    ax7.pcolormesh(slope_dict['counts'][2,:,:].T, cmap = 'viridis')
-    mesh2 = ax8.pcolormesh(slope_dict['counts'][3,:,:].T, cmap = 'viridis')
+    ax5.pcolormesh(slope_dict['counts'][0,:,:].T, cmap = 'viridis', vmin = 50, vmax = 5500)
+    ax6.pcolormesh(slope_dict['counts'][1,:,:].T, cmap = 'viridis', vmin = 50, vmax = 5500)
+    ax7.pcolormesh(slope_dict['counts'][2,:,:].T, cmap = 'viridis', vmin = 50, vmax = 5500)
+    mesh2 = ax8.pcolormesh(slope_dict['counts'][3,:,:].T, cmap = 'viridis', vmin = 50, vmax = 5500)
+
+    #if(slope_dict['trend_type'] == 'linregress'):
+    if(plot_error):
+        cmap = 'bwr' 
+        shrk = 1.0
+        cmap2 = plt.get_cmap('jet')
+        colorvals = np.arange(0, 6, 1)
+        norm = cm.BoundaryNorm(colorvals, cmap2.N, extend = 'max')
+
+        ax9.pcolormesh(slope_dict['slope_stderr'][0,:,:].T, norm = norm, shading = 'auto', cmap = 'jet')
+        ax10.pcolormesh(slope_dict['slope_stderr'][1,:,:].T, norm =norm, shading = 'auto', cmap = 'jet')
+        ax11.pcolormesh(slope_dict['slope_stderr'][2,:,:].T, norm =norm, shading = 'auto', cmap = 'jet')
+        mesh3 = ax12.pcolormesh(slope_dict['slope_stderr'][3,:,:].T, cmap = 'jet', \
+            norm = norm, shading = 'auto')
+        #cbar = plt.colorbar(ScalarMappable(norm = norm, cmap = cmap2),\
+        #    ax = ax12, orientation='vertical',shrink = shrk, extend = 'both')
+        
 
     #fig.colorbar(mesh, ax = axs.ravel().tolist())
 
     sza_labels = [str(edge) for edge in bin_dict['sza_bin_edges']]
     cod_labels = [str(edge) for edge in bin_dict['cod_bin_edges']]
-  
-    ax5.set_xticks([0,2,4,6,8])
+ 
+    #if(slope_dict['trend_type'] == 'theil-sen'): 
+    if(not plot_error): 
+        ax5.set_xticks([0,2,4,6,8])
+        ax5.set_xticklabels(sza_labels[::2])
+    else:
+        ax9.set_xticks([0,2,4,6,8])
+        ax9.set_xticklabels(sza_labels[::2])
     ax1.set_yticks([0,1,2,3,4,5,6,7,8])
-    ax5.set_xticklabels(sza_labels[::2])
     ax1.set_yticklabels(cod_labels[::1])
      
     ax1.set_title('Ocean')
@@ -8650,10 +10149,18 @@ def plot_NN_bin_slopes(slope_dict, bin_dict, min_ob = 50, save = False):
     ax3.set_title('Ice')
     ax4.set_title('Land')
     
-    ax5.set_xlabel('OMI SZA [$^{o}$]')
-    ax6.set_xlabel('OMI SZA [$^{o}$]')
-    ax7.set_xlabel('OMI SZA [$^{o}$]')
-    ax8.set_xlabel('OMI SZA [$^{o}$]')
+    #if(slope_dict['trend_type'] == 'theil-sen'): 
+    if(not plot_error): 
+        ax5.set_xlabel('OMI SZA [$^{o}$]')
+        ax6.set_xlabel('OMI SZA [$^{o}$]')
+        ax7.set_xlabel('OMI SZA [$^{o}$]')
+        ax8.set_xlabel('OMI SZA [$^{o}$]')
+    else:
+        ax9.set_xlabel('OMI SZA [$^{o}$]')
+        ax10.set_xlabel('OMI SZA [$^{o}$]')
+        ax11.set_xlabel('OMI SZA [$^{o}$]')
+        ax12.set_xlabel('OMI SZA [$^{o}$]')
+        ax9.set_ylabel('MODIS COD')
     #ax2.set_xlabel('SZA dim')
     #ax3.set_xlabel('SZA dim')
     #ax4.set_xlabel('SZA dim')
@@ -8666,17 +10173,32 @@ def plot_NN_bin_slopes(slope_dict, bin_dict, min_ob = 50, save = False):
     ax1.set_title('Ocean\n(Ice % <= ' + str(int(bin_dict['ice_bin_edges'][0])) + '%)')
     ax2.set_title('Mix\n(' + str(int(bin_dict['ice_bin_edges'][1])) + \
         '% < Ice % < ' + str(int(bin_dict['ice_bin_edges'][2])) + '%)')
-    ax3.set_title('Ice\n(Ice % >= ' + str(int(bin_dict['ice_bin_edges'][3])) + '%)')
+    ax3.set_title('Ice\n(Ice % >= ' + str(int(bin_dict['ice_bin_edges'][2])) + '%)')
     ax4.set_title('Land')
   
     axs[0].cax.colorbar(mesh, label = 'δForcing/δAI')
     axs[5].cax.colorbar(mesh2, label = 'Counts')
+    #if(slope_dict['trend_type'] == 'linregress'):
+    if(plot_error):
+        axs[11].cax.colorbar(mesh3, label = 'Slope Stderr')
+        
  
-    plt.suptitle('Neural Net Forcing Slopes\nGrids with counts >= ' + str(int(min_ob)))
+    if(slope_dict['trend_type'] == 'theil-sen'):
+        plt.suptitle('Neural Net Forcing Slopes - Theil-Sen\nGrids with counts >= ' + str(int(min_ob)))
+    else:
+        plt.suptitle('Neural Net Forcing Slopes - Linear Regression\nGrids with counts >= ' + str(int(min_ob)))
  
     #fig.tight_layout()
     if(save): 
-        outname = 'force_slopes_NN.png'
+        if(slope_dict['trend_type'] == 'theil-sen'):
+            type_adder = 'theilsen'
+        else:
+            type_adder = 'linregress'
+        if(plot_error):
+            error_add = '_error'
+        else:
+            error_add = ''
+        outname = 'force_slopes_NN_' + type_adder + error_add + '.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image:", outname)
     else:
@@ -8783,12 +10305,13 @@ def plot_compare_NN_output(calc_data, save = False):
     both_orig = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_orig)
     both_calc = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_calc)
     
-    fig = plt.figure(figsize = (10.5, 6))
-    ax5 = fig.add_subplot(2,3,1, projection = ccrs.NorthPolarStereo())
-    ax1 = fig.add_subplot(2,3,2, projection = ccrs.NorthPolarStereo())
-    ax2 = fig.add_subplot(2,3,3, projection = ccrs.NorthPolarStereo())
-    ax3 = fig.add_subplot(2,3,4, projection = ccrs.NorthPolarStereo())
-    ax4 = fig.add_subplot(2,3,5)
+    #fig = plt.figure(figsize = (10.5, 6))
+    fig = plt.figure(figsize = (8, 7))
+    ax5 = fig.add_subplot(2,2,1, projection = ccrs.NorthPolarStereo())
+    ax1 = fig.add_subplot(2,2,2, projection = ccrs.NorthPolarStereo())
+    ax2 = fig.add_subplot(2,2,3, projection = ccrs.NorthPolarStereo())
+    ax3 = fig.add_subplot(2,2,4, projection = ccrs.NorthPolarStereo())
+    #ax4 = fig.add_subplot(2,3,5)
     
     #ax4 = fig.add_subplot(2,2,4, projection = ccrs.NorthPolarStereo())
     
@@ -8810,7 +10333,7 @@ def plot_compare_NN_output(calc_data, save = False):
     ax2.coastlines()
     
     mesh = ax3.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], diff_calc, \
-        transform = ccrs.PlateCarree(), shading = 'auto', vmin = -40, vmax = 40, cmap = 'bwr')
+        transform = ccrs.PlateCarree(), shading = 'auto', vmin = -80, vmax = 80, cmap = 'bwr')
     cbar = fig.colorbar(mesh, ax = ax3, label = 'SWF [Wm$^{-2}$]')
     ax3.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
     ax3.set_title('Calculated - Observed')
@@ -8826,13 +10349,23 @@ def plot_compare_NN_output(calc_data, save = False):
     ax5.set_boundary(circle, transform=ax5.transAxes)
     ax5.coastlines()
     
-    
+   
+    """ 
     xy = np.vstack([both_orig.compressed(), both_calc.compressed()])
     if(len(both_orig.compressed()) > 1):
-            r2 = r2_score(both_orig.compressed(), both_calc.compressed())
-            z = stats.gaussian_kde(xy)(xy)       
-            ax4.scatter(both_orig.compressed(), both_calc.compressed(), c = z, s = 1)
-            ax4.set_title('r$^{2}$ = ' + str(np.round(r2, 3)))
+        r2 = r2_score(both_orig.compressed(), both_calc.compressed())
+        z = stats.gaussian_kde(xy)(xy)       
+        ax4.scatter(both_orig.compressed(), both_calc.compressed(), c = z, s = 1)
+        #ax4.set_title('r$^{2}$ = ' + str(np.round(r2, 3)))
+
+        # Calculate RMSE
+        # --------------
+        rmse = mean_squared_error(both_orig.compressed(), both_calc.compressed(), squared = False)
+        ptext = 'r$^{2}$ = ' + str(np.round(r2, 3)) + \
+            '\nRMSE = ' + str(np.round(rmse, 1))
+        #plot_figure_text(ax3, ptext, location = 'lower_right', \
+        plot_figure_text(ax4, ptext, xval = 400, yval = 25, \
+            fontsize = 10, color = 'black', weight = None, backgroundcolor = 'white')
     lims = [\
             np.min([ax4.get_xlim(), ax4.get_ylim()]),\
             np.max([ax4.get_xlim(), ax4.get_ylim()]),
@@ -8842,6 +10375,7 @@ def plot_compare_NN_output(calc_data, save = False):
     ax4.set_ylim(lims)
     ax4.set_xlabel('Observed SWF [Wm$^{-2}$]')
     ax4.set_ylabel('Calculated SWF [Wm$^{-2}$]')
+    """ 
    
     ##!#print(np.min(mask_cod), np.max(mask_cod))
      
@@ -8862,7 +10396,7 @@ def plot_compare_NN_output(calc_data, save = False):
     plot_subplot_label(ax1, 'b)', fontsize = 11, backgroundcolor = None)
     plot_subplot_label(ax2, 'c)', fontsize = 11, backgroundcolor = None)
     plot_subplot_label(ax5, 'a)', fontsize = 11, backgroundcolor = None)
-    plot_subplot_label(ax4, 'e)', fontsize = 11, backgroundcolor = None)
+    #plot_subplot_label(ax4, 'e)', fontsize = 11, backgroundcolor = None)
     
     plt.suptitle(dt_date_str.strftime('%Y-%m-%d %H:%M UTC'))
     
@@ -8947,7 +10481,19 @@ def plot_compare_NN_output_noaer(calc_data, save = False):
             r2 = r2_score(both_orig.compressed(), both_calc.compressed())
             z = stats.gaussian_kde(xy)(xy)       
             ax3.scatter(both_orig.compressed(), both_calc.compressed(), c = z, s = 1)
-            ax3.set_title('r$^{2}$ = ' + str(np.round(r2, 3)))
+
+            # Calculate RMSE
+            # --------------
+            rmse = mean_squared_error(both_orig.compressed(), both_calc.compressed(), squared = False)
+            #ax3.set_title('r$^{2}$ = ' + str(np.round(r2, 3)) + \
+            #    'RMSE = ' + str(np.round(rmse, 1)))
+            ptext = 'r$^{2}$ = ' + str(np.round(r2, 3)) + \
+                '\nRMSE = ' + str(np.round(rmse, 1))
+            #plot_figure_text(ax3, ptext, location = 'lower_right', \
+            plot_figure_text(ax3, ptext, xval = 400, yval = 50, \
+                fontsize = 10, color = 'black', weight = None, backgroundcolor = 'white')
+            
+
     lims = [\
             np.min([ax3.get_xlim(), ax3.get_ylim()]),\
             np.max([ax3.get_xlim(), ax3.get_ylim()]),
@@ -8958,9 +10504,10 @@ def plot_compare_NN_output_noaer(calc_data, save = False):
     ax3.set_xlabel('Observed SWF [Wm$^{-2}$]')
     ax3.set_ylabel('Calculated SWF [Wm$^{-2}$]')
    
-    plot_subplot_label(ax1, 'a)', fontsize = 11, backgroundcolor = None)
-    plot_subplot_label(ax2, 'b)', fontsize = 11, backgroundcolor = None)
-    plot_subplot_label(ax3, 'c)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax4, 'a)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax1, 'b)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax2, 'c)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax3, 'd)', fontsize = 11, backgroundcolor = None)
     
     plt.suptitle(dt_date_str.strftime('%Y-%m-%d %H:%M UTC'))
     
@@ -9055,54 +10602,76 @@ def plot_NN_forcing_daily(date_str, OMI_daily_data, OMI_monthly_data, \
         return_modis_nsidc = True, \
         use_intercept = use_intercept)
 
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d')
+
     plt.close('all')
-    fig = plt.figure(figsize = (10, 6))
-    ax1 = fig.add_subplot(2,3,1, projection = ccrs.NorthPolarStereo(central_longitude = -50))
-    ax2 = fig.add_subplot(2,3,2, projection = ccrs.NorthPolarStereo(central_longitude = -50))
-    ax3 = fig.add_subplot(2,3,3)
-    ax4 = fig.add_subplot(2,3,4, projection = ccrs.NorthPolarStereo(central_longitude = -50))
-    ax5 = fig.add_subplot(2,3,5, projection = ccrs.NorthPolarStereo(central_longitude = -50))
+    fig = plt.figure(figsize = (7, 6))
+    ax1 = fig.add_subplot(2,2,1, projection = ccrs.NorthPolarStereo(central_longitude = 0))
+    ax2 = fig.add_subplot(2,2,2, projection = ccrs.NorthPolarStereo(central_longitude = 0))
+    ax3 = fig.add_subplot(2,2,3, projection = ccrs.NorthPolarStereo(central_longitude = 0))
+    ax4 = fig.add_subplot(2,2,4, projection = ccrs.NorthPolarStereo(central_longitude = 0))
+
+    # Panel 1: OMI AI
+    # ---------------
     mesh = ax1.pcolormesh(OMI_monthly_data['LON'], OMI_monthly_data['LAT'], \
         local_OMI_daily, shading = 'auto', transform = datacrs, \
         vmin = 0, vmax = 4, cmap = 'jet')
-    cbar = fig.colorbar(mesh, ax = ax1, label = 'AI')
+    cbar = fig.colorbar(mesh, ax = ax1, label = 'AI Perturbation')
     ax1.coastlines()
     ax1.set_extent([-180,180,65,90], datacrs)
     ax1.set_boundary(circle, transform=ax1.transAxes)
+    ax1.set_title('OMI UVAI Perturbation')
 
+    # Panel 2: NSIDC ICE
+    # ------------------
+    #work_ice = np.ma.masked_where(NSIDC_data['grid_ice_conc'] > 80, NSIDC_data['grid_ice_conc'])
+    work_ice = np.ma.masked_where(NSIDC_data['grid_ice_conc'] < 1, NSIDC_data['grid_ice_conc'])
     mesh = ax2.pcolormesh(OMI_monthly_data['LON'], OMI_monthly_data['LAT'], \
-        estimate_forcings, shading = 'auto', transform = datacrs, \
-        vmin = -50, vmax = 50, cmap = 'bwr')
-    cbar = fig.colorbar(mesh, ax = ax2, label = 'Forcing [W/m2]')
+        work_ice, shading = 'auto', transform = datacrs, \
+        vmin = 1, vmax = 100, cmap = 'ocean')
+    cbar = fig.colorbar(mesh, ax = ax2, label = 'Sea Ice Conc [%]')
     ax2.coastlines()
+    ax2.add_feature(cfeature.LAND, zorder = 100, edgecolor = 'k', facecolor = 'tab:grey', alpha = 1.0)
     ax2.set_extent([-180,180,65,90], datacrs)
     ax2.set_extent([-180,180,65,90], datacrs)
     ax2.set_boundary(circle, transform=ax2.transAxes)
+    ax2.set_title('SSMIS Sea Ice Conc.')
 
-    keep_force = np.ma.masked_where(estimate_forcings == 0, estimate_forcings)
-    ax3.hist(keep_force.compressed(), bins = 50)
-    ax3.set_xlabel('Forcing [W/m2]')
+    ##!#keep_force = np.ma.masked_where(estimate_forcings == 0, estimate_forcings)
+    ##!#ax3.hist(keep_force.compressed(), bins = 50)
+    ##!#ax3.set_xlabel('Forcing [W/m2]')
 
-    mesh = ax4.pcolormesh(OMI_monthly_data['LON'], OMI_monthly_data['LAT'], \
+    # Panel 3: MODIS COD
+    # ------------------
+    mesh = ax3.pcolormesh(OMI_monthly_data['LON'], OMI_monthly_data['LAT'], \
         MYD08_data['cod_mean'], shading = 'auto', transform = datacrs, \
         vmin = 0, vmax = 50, cmap = 'viridis')
-    cbar = fig.colorbar(mesh, ax = ax4, label = 'COD')
+    cbar = fig.colorbar(mesh, ax = ax3, label = 'Cloud Optical Depth')
+    ax3.coastlines()
+    ax3.set_extent([-180,180,65,90], datacrs)
+    ax3.set_extent([-180,180,65,90], datacrs)
+    ax3.set_boundary(circle, transform=ax3.transAxes)
+    ax3.set_title('Aqua MODIS COD')
+
+    # Panel 4: Forcing
+    # ----------------
+    mesh = ax4.pcolormesh(OMI_monthly_data['LON'], OMI_monthly_data['LAT'], \
+        estimate_forcings, shading = 'auto', transform = datacrs, \
+        vmin = -50, vmax = 50, cmap = 'bwr')
+    cbar = fig.colorbar(mesh, ax = ax4, label = 'Forcing [Wm$^{-2}$]')
     ax4.coastlines()
     ax4.set_extent([-180,180,65,90], datacrs)
     ax4.set_extent([-180,180,65,90], datacrs)
     ax4.set_boundary(circle, transform=ax4.transAxes)
+    ax4.set_title('Aerosol Direct Forcing')
 
-    mesh = ax5.pcolormesh(OMI_monthly_data['LON'], OMI_monthly_data['LAT'], \
-        MYD08_data['day_cld_frac_mean'], shading = 'auto', transform = datacrs, \
-        vmin = 0, vmax = 1.0, cmap = 'viridis')
-    cbar = fig.colorbar(mesh, ax = ax5, label = 'COD')
-    ax5.coastlines()
-    ax5.set_extent([-180,180,65,90], datacrs)
-    ax5.set_extent([-180,180,65,90], datacrs)
-    ax5.set_boundary(circle, transform=ax5.transAxes)
-
+    plot_subplot_label(ax1, 'a)', fontsize = 12, backgroundcolor = None)
+    plot_subplot_label(ax2, 'b)', fontsize = 12, backgroundcolor = None)
+    plot_subplot_label(ax3, 'c)', fontsize = 12, backgroundcolor = None)
+    plot_subplot_label(ax4, 'd)', fontsize = 12, backgroundcolor = None)
     
-    plt.suptitle(date_str)
+    plt.suptitle(dt_date_str.strftime('Daily Estimated Aerosol Direct Forcing\n%Y-%m-%d'))
+
     fig.tight_layout()
 
     if(save):
@@ -9122,11 +10691,16 @@ def plot_NN_forcing_daily(date_str, OMI_daily_data, OMI_monthly_data, \
 # Setting this to False means only the slope is used, following:
 #
 #       forcing = slope * AI 
+#
+#
+# mod_slopes: 'upper', 'lower'
+# mod_ice: -5, 5, -15, 15
 # ----------------------------------------------------------------------------
 def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict, \
         bin_dict, date_str, minlat = 70., maxlat = 87., ai_thresh = -0.15, \
         maxerr = 2, 
         reference_ice = None, reference_cld = None, mod_slopes = None, \
+        mod_intercepts = None, mod_ice = None, mod_cod = None, \
         filter_bad_vals = True, return_modis_nsidc = True, use_intercept = False, \
         debug = False):
 
@@ -9243,6 +10817,15 @@ def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict,
                 cld_frac  = MYD08_data['day_cld_frac_mean'][ii,jj]
                 nsidc_ice = NSIDC_data['grid_ice_conc'][ii,jj]
 
+                if(mod_cod is not None):
+                    new_cod = modis_cod + mod_cod
+                    if(new_cod < 0):
+                        new_cod = 0
+                    elif(new_cod > bin_dict['cod_bin_edges'][-1]):
+                        new_cod = bin_dict['cod_bin_edges'][-1]
+
+                    modis_cod = new_cod
+
                 # NOTE. If the cloud fraction is very small (< 0.1, 0.2?) but the 
                 # COD value is not 0, use a value of 0 for the COD
                 #print('{0:5.1f} {1:5.1f} {2:5.1f} {3:5.2f} {4:5.2f} {5:5.2f} {6:5.2f}'.format(\
@@ -9318,23 +10901,46 @@ def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict,
                                 land_mask[ii,jj], coast_mask[ii,jj], \
                                 ice_mask[ii,jj], 'ICE/MIX/OCEAN')
 
-                        if( (NSIDC_data['grid_ice_conc'][ii,jj] < 20) ):
+                        # Account for if the user wants to test the sensitivity to ice
+                        # ------------------------------------------------------------
+                        if(mod_ice is not None):
+                            new_ice = nsidc_ice + mod_ice
+                            if(new_ice < 0):
+                                new_ice = 0
+                            elif(new_ice > 100):
+                                new_ice = 100
+                            #if((dt_date_str.year == 2015) & (dt_date_str.month == 7)):
+                            #    print("OLD ICE:", nsidc_ice, "NEW ICE:", new_ice)
+
+                            """
+                            if((nsidc_ice < 20) & (new_ice >= 20)):
+                                print("OCN TO MIX", np.round(nsidc_ice,1), np.round(new_ice,1), 'COD IDX = ', cod_idx)
+                            elif((nsidc_ice >= 20) & (new_ice < 20)):
+                                print("MIX TO OCN", np.round(nsidc_ice,1), np.round(new_ice,1), 'COD IDX = ', cod_idx)
+                            elif((nsidc_ice < 80) & (new_ice >= 80)):
+                                print("MIX TO ICE", np.round(nsidc_ice,1), np.round(new_ice,1), 'COD IDX = ', cod_idx)
+                            elif((nsidc_ice >= 80) & (new_ice < 80)):
+                                print("ICE TO MIX", np.round(nsidc_ice,1), np.round(new_ice,1), 'COD IDX = ', cod_idx)
+                            """
+
+                            nsidc_ice = new_ice
+
+
+                        if( (nsidc_ice < 20) ):
                             # Use ocean forcing
                             ice_idx = 0
                             #calc_forcing = cld_frac * cloud_dict['ocean_forcing'][ii] + \
                             #               (1 - cld_frac) * clear_dict['ocean_forcing'][ii]
                             #estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai 
                             
-
-                        elif( (NSIDC_data['grid_ice_conc'][ii,jj] >= 20)  & \
-                              (NSIDC_data['grid_ice_conc'][ii,jj] < 80)):
+                        elif( (nsidc_ice >= 20) & (nsidc_ice < 80)):
                             # Use mix forcing
                             ice_idx = 1
                             #calc_forcing = cld_frac * cloud_dict['mix_forcing'][ii] + \
                             #               (1 - cld_frac) * clear_dict['mix_forcing'][ii]
                             #estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai 
 
-                        elif( (NSIDC_data['grid_ice_conc'][ii,jj] > 80) ):
+                        elif( (nsidc_ice >= 80) ):
                             # Use ice forcing
                             ice_idx = 2
                             #calc_forcing = cld_frac * cloud_dict['ice_forcing'][ii] + \
@@ -9357,18 +10963,63 @@ def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict,
                     #calc_forcing = cld_frac * cloud_dict['ice_forcing'][ii] + \
                     #               (1 - cld_frac) * clear_dict['ice_forcing'][ii]
                     #estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai
-                    if(use_intercept):
-                        estimate_forcings[ii,jj] = \
-                            slope_dict['slopes'][ice_idx,sza_idx,cod_idx] * \
-                            local_OMI_daily[ii,jj] + \
-                            slope_dict['intercepts'][ice_idx,sza_idx,cod_idx]
+        
+                    if(mod_slopes is None):
+                        # Select the normal slope
+                        work_slope = slope_dict['slopes'][ice_idx,sza_idx,cod_idx]
+                    elif(mod_slopes == 'upper'):
+                        if(slope_dict['trend_type'] == 'theil-sen'):
+                            work_slope = slope_dict['upper_slopes'][ice_idx,sza_idx,cod_idx]
+                        else:
+                            work_slope = slope_dict['slopes'][ice_idx,sza_idx,cod_idx] + \
+                                slope_dict['slope_stderr'][ice_idx,sza_idx,cod_idx]
+                    elif(mod_slopes == 'lower'):
+                        if(slope_dict['trend_type'] == 'theil-sen'):
+                            work_slope = slope_dict['lower_slopes'][ice_idx,sza_idx,cod_idx]
+                        else:
+                            work_slope = slope_dict['slopes'][ice_idx,sza_idx,cod_idx] - \
+                                slope_dict['slope_stderr'][ice_idx,sza_idx,cod_idx]
                     else:
+                        print("WARNING: Invalid mod slopes. Must be " + \
+                            "'upper' or 'lower'. Using default")
+                        work_slope = slope_dict['slopes'][ice_idx,sza_idx,cod_idx]
+
+
+                    if(use_intercept):
+                        #slope_dict['slopes'][ice_idx,sza_idx,cod_idx] * \
+                        if(mod_intercepts is None):
+                            work_intercept = slope_dict['intercepts'][ice_idx,sza_idx,cod_idx]
+                        else:
+                            if(slope_dict['trend_type'] == 'linregress'):
+                                if(mod_intercepts == 'upper'): 
+                                    work_intercept = slope_dict['intercepts'][ice_idx,sza_idx,cod_idx] + \
+                                                     slope_dict['intcpt_stderr'][ice_idx,sza_idx,cod_idx]
+                                elif(mod_intercepts == 'lower'): 
+                                    work_intercept = slope_dict['intercepts'][ice_idx,sza_idx,cod_idx] - \
+                                                     slope_dict['intcpt_stderr'][ice_idx,sza_idx,cod_idx]
+                                else:
+                                    print("WARNING: Invalid mod intcpt. Must be " + \
+                                        "'upper' or 'lower'. Using default")
+                                    work_intercept = slope_dict['intercepts'][ice_idx,sza_idx,cod_idx]
+                            else:
+                                if(debug):
+                                    print("ERROR: NO INTERCEPT ERROR FOR THEIL-SEN REGRESSION")
+                                
+                                
                         estimate_forcings[ii,jj] = \
-                            slope_dict['slopes'][ice_idx,sza_idx,cod_idx] * \
-                            local_OMI_daily[ii,jj]
+                            work_slope * local_OMI_daily[ii,jj] + \
+                            work_intercept
+                    else:
+                        #slope_dict['slopes'][ice_idx,sza_idx,cod_idx] * \
+                        estimate_forcings[ii,jj] = \
+                            work_slope * local_OMI_daily[ii,jj]
     
 
     estimate_forcings = np.ma.masked_invalid(estimate_forcings) 
+
+    print("MIN MAX FORCINGS", np.round(np.nanmin(estimate_forcings),1), \
+        np.round(np.nanmax(estimate_forcings), 1), \
+        'MAX AI', np.round(np.max(local_OMI_daily),1))
 
     if(filter_bad_vals):
         mean_val = np.nanmean(estimate_forcings)
@@ -9390,6 +11041,7 @@ def calculate_type_forcing_v4_monthly(OMI_daily_data, OMI_monthly_data, \
         slope_dict, bin_dict, month_idx, minlat = 70., maxlat = 87., ai_thresh = -0.15, \
         maxerr = 2, \
         reference_ice = None, reference_cld = None, mod_slopes = None, \
+        mod_intercepts = None, mod_ice = None, mod_cod = None, \
         filter_bad_vals = True, return_modis_nsidc = True, \
         use_intercept = False, debug = False):
 
@@ -9427,6 +11079,8 @@ def calculate_type_forcing_v4_monthly(OMI_daily_data, OMI_monthly_data, \
 
     day_count = 0
     month_count = 0
+    #local_date_str = datetime(2015,7,1)
+    #end_date_str = datetime(2015,7,30)
     while(local_date_str <= end_date_str):
 
         date_str = local_date_str.strftime('%Y%m%d')
@@ -9454,6 +11108,9 @@ def calculate_type_forcing_v4_monthly(OMI_daily_data, OMI_monthly_data, \
             reference_ice = reference_ice, \
             reference_cld = reference_cld, \
             mod_slopes = mod_slopes, \
+            mod_intercepts = mod_intercepts, \
+            mod_ice = mod_ice, \
+            mod_cod = mod_cod, \
             return_modis_nsidc = False,\
             use_intercept = use_intercept)
 
@@ -9497,49 +11154,150 @@ def calculate_type_forcing_v4_monthly(OMI_daily_data, OMI_monthly_data, \
 
     return month_force_vals
 
-def plot_NN_architecture(save = False):
+def plot_NN_architecture(plot_lines = False, save = False):
 
+    # Set up the figure
+    # -----------------
+    fig = plt.figure(figsize = (11, 7))
+    ax = fig.add_subplot(1,1,1)
+
+    # Set up the first layer, which is the input layer
+    # ------------------------------------------------
     layer1_x  = [0] * 7
-    layer2_x  = [1] * 8
-    layer3_x  = [2] * 12
-    layer4_x  = [3] * 16
-    layer5_x  = [4] * 24
-    layer6_x  = [5] * 32
-    layer7_x  = [6] * 64
-    layer8_x  = [7] * 32
-    layer9_x  = [8] * 24
-    layer10_x = [9] * 16
-    layer11_x = [10] * 12
-    layer12_x = [11] * 8
-    layer13_x = [12] * 1
-
     layer1_y  = list(np.arange(7) + 28.5)
-    layer2_y  = list(np.arange(8) + 28)
-    layer3_y  = list(np.arange(12) + 26)
-    layer4_y  = list(np.arange(16) + 24)
-    layer5_y  = list(np.arange(24) + 20)
-    layer6_y  = list(np.arange(32) + 16)
-    layer7_y  = list(np.arange(64))
-    layer8_y  = list(np.arange(32) + 16)
-    layer9_y  = list(np.arange(24) + 20)
-    layer10_y = list(np.arange(16) + 24)
-    layer11_y = list(np.arange(12) + 26)
-    layer12_y = list(np.arange(8) + 28)
+    ax.scatter(layer1_x, layer1_y, color = 'tab:blue')
+    ax.text(0,70,'input',color = 'tab:blue', weight = 'bold', horizontalalignment = 'center')
+    ax.text(0,68,'n = 7',color = 'tab:blue', weight = 'bold', horizontalalignment = 'center')
+
+    # Set up the hidden layers
+    # ------------------------
+    delta_x = 1.0
+    num_hidden = 11
+    beg_hidden = 0 + delta_x
+    end_hidden = beg_hidden + num_hidden * delta_x
+    xvals = np.arange(beg_hidden, end_hidden, delta_x)
+    yvals = np.array([8,12,16,24,32,64,32,24,16,12,8])
+
+    print(xvals, yvals)
+    print(len(xvals), len(yvals))
+
+    for ii in range(len(xvals)):
+        offset = int((64 - yvals[ii]) / 2)
+
+        layerh_x = [xvals[ii]] * yvals[ii]
+        layerh_y = list(np.arange(yvals[ii]) + offset)
+
+        if(plot_lines):
+            if(ii == 0):
+                for jj in range(len(layer1_x)):
+                    for kk in range(len(layerh_x)):
+                        print(layer1_x[jj], layer1_y[jj], layerh_x[kk], layerh_y[kk])
+                        ax.plot([layer1_x[jj], layerh_x[kk]], [layer1_y[jj], layerh_y[kk]], linewidth = 1, color = 'black', alpha = 0.1)
+            else:
+                prev_offset = int((64 - yvals[ii - 1]) / 2)
+                prev_layerh_x = [xvals[ii - 1]] * yvals[ii - 1]
+                prev_layerh_y = list(np.arange(yvals[ii - 1]) + prev_offset)
+
+                for jj in range(len(prev_layerh_x)):
+                    for kk in range(len(layerh_x)):
+                        #print(prev_layerh_x[jj], layer1_y[jj], prev_layerh_x[kk], layerh_y[kk])
+                        ax.plot([prev_layerh_x[jj], layerh_x[kk]], \
+                            [prev_layerh_y[jj], layerh_y[kk]], linewidth = 1, color = 'black', alpha = 0.1)
+
+        ax.scatter(layerh_x, layerh_y, color = 'tab:gray')
+
+        ax.text(xvals[ii],70,'hidden' + str(int(ii + 1)),\
+            color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+        ax.text(xvals[ii],68,'n = ' + str(int(yvals[ii])),\
+            color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    
+    ##!#layer2_x  = [xvals[0]] * 8
+    ##!#layer3_x  = [xvals[1]] * 12
+    ##!#layer4_x  = [xvals[2]] * 16
+    ##!#layer5_x  = [xvals[3]] * 24
+    ##!#layer6_x  = [xvals[4]] * 32
+    ##!#layer7_x  = [xvals[5]] * 64
+    ##!#layer8_x  = [xvals[6]] * 32
+    ##!#layer9_x  = [xvals[7]] * 24
+    ##!#layer10_x = [xvals[8]] * 16
+    ##!#layer11_x = [xvals[9]] * 12
+    ##!#layer12_x = [xvals[10]] * 8
+
+    ##!#layer2_y  = list(np.arange(8) + 28)
+    ##!#layer3_y  = list(np.arange(12) + 26)
+    ##!#layer4_y  = list(np.arange(16) + 24)
+    ##!#layer5_y  = list(np.arange(24) + 20)
+    ##!#layer6_y  = list(np.arange(32) + 16)
+    ##!#layer7_y  = list(np.arange(64))
+    ##!#layer8_y  = list(np.arange(32) + 16)
+    ##!#layer9_y  = list(np.arange(24) + 20)
+    ##!#layer10_y = list(np.arange(16) + 24)
+    ##!#layer11_y = list(np.arange(12) + 26)
+    ##!#layer12_y = list(np.arange(8) + 28)
+
+    ##!#total_x = layer2_x + layer3_x + layer4_x + layer5_x + \
+    ##!#          layer6_x + layer7_x + layer8_x + layer9_x + layer10_x + \
+    ##!#          layer11_x + layer12_x
+
+    ##!#total_y = layer2_y + layer3_y + layer4_y + layer5_y + \
+    ##!#          layer6_y + layer7_y + layer8_y + layer9_y + layer10_y + \
+    ##!#          layer11_y + layer12_y
+
+    #ax.scatter(total_x, total_y, color = 'tab:gray')
+
+
+    ###ax.text(xvals[0],70,'hidden1',color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    ###ax.text(xvals[0],68,'n = 8',color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    ###ax.text(xvals[1],70,'hidden2',color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    ###ax.text(xvals[1],68,'n = 12',color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    ###ax.text(xvals[2],70,'hidden3',color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    ###ax.text(xvals[2],68,'n = 16',color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    ###ax.text(xvals[3],70,'hidden4',color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    ###ax.text(xvals[3],68,'n = 24',color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    ###ax.text(xvals[4],70,'hidden5',color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    ###ax.text(xvals[4],68,'n = 32',color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    ###ax.text(xvals[5],70,'hidden6',color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    ###ax.text(xvals[5],68,'n = 64',color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    ###ax.text(xvals[6],70,'hidden7',color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    ###ax.text(xvals[6],68,'n = 32',color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    ###ax.text(xvals[7],70,'hidden8',color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    ###ax.text(xvals[7],68,'n = 24',color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    ###ax.text(xvals[8],70,'hidden9',color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    ###ax.text(xvals[8],68,'n = 16',color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    ###ax.text(xvals[9],70,'hidden10',color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    ###ax.text(xvals[9],68,'n = 12',color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    ###ax.text(xvals[10],70,'hidden11',color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    ###ax.text(xvals[10],68,'n = 8',color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+
+    # Set up the final layer, which is the output layer
+    # -------------------------------------------------
+    xval = end_hidden
+    layer13_x = [xval] * 1
     layer13_y = [32]
 
-    total_x = layer1_x + layer2_x + layer3_x + layer4_x + layer5_x + \
-              layer6_x + layer7_x + layer8_x + layer9_x + layer10_x + \
-              layer11_x + layer12_x + layer13_x
+    if(plot_lines):
+        for jj in range(len(layerh_x)):
+            for kk in range(len(layer13_x)):
+                #print(prev_layerh_x[jj], layer1_y[jj], prev_layerh_x[kk], layerh_y[kk])
+                ax.plot([layerh_x[jj], layer13_x[kk]], \
+                    [layerh_y[jj], layer13_y[kk]], linewidth = 1, color = 'black', alpha = 0.1)
 
-    total_y = layer1_y + layer2_y + layer3_y + layer4_y + layer5_y + \
-              layer6_y + layer7_y + layer8_y + layer9_y + layer10_y + \
-              layer11_y + layer12_y + layer13_y
+    ax.scatter(layer13_x, layer13_y, color = 'tab:red')
+    ax.text(xval,70,'output',color = 'tab:red', weight = 'bold', horizontalalignment = 'center')
+    ax.text(xval,68,'n = 1',color = 'tab:red', weight = 'bold', horizontalalignment = 'center')
 
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
-    ax.scatter(total_x, total_y)
+    ax.axis('off')
     fig.tight_layout()
-    plt.show()
+    if(save):
+        if(plot_lines):
+            line_add = '_lines'
+        else:
+            line_add = ''
+        outname = 'nn_architecture' + line_add + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
 
 def plot_test_forcing_v4(OMI_daily_data, OMI_month_data, date_str, \
         coloc_dict, minlat = 65., maxlat = 87., ai_thresh = -0.15, \

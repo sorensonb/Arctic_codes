@@ -27,6 +27,7 @@ import os
 home_dir = os.environ['HOME']
 
 sys.path.append(home_dir + '/')
+viirs_dir = home_dir  + '/data/VIIRS/DNB/'
 #from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
 #    nearest_gridpoint, aerosol_event_dict, init_proj, \
 #    convert_radiance_to_temp
@@ -110,6 +111,89 @@ sat_changer = {
     'SNPP': 'NP0',\
     'JPSS': 'J10'
 }
+
+# param: MOD or DNB
+def identify_VIIRS_file(date_str, param, viirs_dir, satellite = 'SNPP'):
+
+    local_data_dir  = viirs_dir + satellite + '/'
+
+    base_url = 'https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/5200/V' + \
+        sat_changer[satellite] + '2' + param + '/'
+    base_url_geo = 'https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/5200/V' + \
+        sat_changer[satellite] + '3' + param + '/'
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+
+    # For each desired channel, figure out the closest file time
+    # to the input date
+    # ----------------------------------------------------------
+    try:
+        files = listFD(dt_date_str.strftime(base_url + '/%Y/%j/'), ext = '.nc')
+        geo_files = listFD(dt_date_str.strftime(base_url_geo + '/%Y/%j/'), ext = '.nc')
+    except subprocess.CalledProcessError:
+        print("ERROR: No VIIRS files for the input DTG",date_str)
+        return -2
+
+    if(len(files) == 0):
+        print("ERROR: No VIIRS files returned from the request. Exiting")
+        return -1
+    
+    # Remove the timestamps from the file strings
+    # -------------------------------------------
+    files_only = [tfile.strip().split('/')[-1] for tfile in files]
+    geo_files_only = [tfile.strip().split('/')[-1] for tfile in geo_files]
+
+    # Use the actual file times to get timestamps
+    # -------------------------------------------
+    file_dates = [datetime.strptime(tfile[10:22],'%Y%j.%H%M') for tfile in files_only]
+    geo_file_dates = [datetime.strptime(tfile[10:22],'%Y%j.%H%M') for tfile in geo_files_only]
+
+    # Figure out where the closest files to the desired time are
+    # ----------------------------------------------------------
+    time_diffs = np.array([abs((dt_date_str - ddate).total_seconds()) \
+        for ddate in file_dates])
+
+    # Extract the index of the matching MODIS file
+    # --------------------------------------------
+    file_idx = np.argmin(time_diffs)
+    found_file = files_only[file_idx]
+    geo_file = geo_files_only[file_idx]
+
+    # Check if the file is already downloaded
+    # ---------------------------------------
+    if(os.path.exists(local_data_dir + found_file)):
+        print(found_file + ' already exists. Not downloading')
+    else: 
+        # Download the data file
+        # ----------------------
+        cmnd = dt_date_str.strftime("wget \"" + base_url + '/%Y/%j/' + found_file + \
+            "\" --header \"Authorization: Bearer " + laads_daac_key + "\" -P .")
+        print(cmnd)
+        os.system(cmnd)
+
+        # Move the file to the destination folder
+        # ---------------------------------------
+        cmnd = "mv " + found_file + " " + local_data_dir
+        print(cmnd) 
+        os.system(cmnd)
+
+        # Now, grab the mathing MOD file 
+        # ------------------------------
+        #geo_file = 'V' + sat_changer[satellite] + '3' + param + '.' + found_file[10:] 
+        print('\nHEERE\n',base_url_geo, geo_file)
+        cmnd = dt_date_str.strftime("wget \"" + base_url_geo + '/%Y/%j/' + geo_file + \
+            "\" --header \"Authorization: Bearer " + laads_daac_key + "\" -P .")
+        print(cmnd)
+        os.system(cmnd)
+
+        # Move the file to the destination folder
+        # ---------------------------------------
+        cmnd = "mv " + geo_file + " " + local_data_dir
+        print(cmnd) 
+        os.system(cmnd)
+
+    return found_file 
+
 
 def find_plume_VIIRS(filename):
     VIIRS_data5  = readVIIRS_granule(filename, band = 'M05', zoom = True)
@@ -326,8 +410,9 @@ def plot_VIIRS_granule(VIIRS_data, ax = None, labelsize = 12, \
         vmax = VIIRS_data['vmax']
 
     pdata = np.copy(VIIRS_data['data'])
+    pdata = np.ma.masked_where((pdata < 0) | (pdata > 500), pdata)
 
-
+    print('MIN LON', np.min(VIIRS_data['lon']), 'MAX LON', np.max(VIIRS_data['lat']))
     mesh = ax.pcolormesh(VIIRS_data['lon'], VIIRS_data['lat'], pdata, \
         cmap = VIIRS_data['cmap'], vmin = vmin, vmax = vmax, \
         transform = ccrs.PlateCarree(), shading = 'auto')
@@ -518,6 +603,115 @@ def plot_VIIRS_scatter(fname1, fname2, band1, band2, ax = None, save = False):
  
     if(not in_ax):
         plt.show() 
+
+# city: 'TriCities', 
+def plot_VIIRS_twopanel(date_str1, date_str2, band, satellite = 'SNPP', \
+        check_download = False, vmin = None, vmax = None, zoom = False, \
+        city = 'TriCities', save = False):
+
+    file_adder = sat_changer[satellite]
+
+    mapcrs = init_proj('202107232155')
+    plt.close('all')
+    fig = plt.figure(figsize = (11,5))
+    ax1 = fig.add_subplot(1,2,1, projection = mapcrs)
+    ax2 = fig.add_subplot(1,2,2, projection = mapcrs)
+    
+   
+    if(check_download): 
+        identify_VIIRS_file(date_str1, band, viirs_dir, satellite = 'SNPP')
+        identify_VIIRS_file(date_str2, band, viirs_dir, satellite = 'SNPP')
+   
+    # Grab the filenames
+    # ------------------ 
+    dt_date_str1 = datetime.strptime(date_str1, '%Y%m%d%H%M')
+    dt_date_str2 = datetime.strptime(date_str2, '%Y%m%d%H%M')
+    filename1 = glob(dt_date_str1.strftime(viirs_dir + satellite + \
+        '/*02DNB.A%Y%j.%H%M*.nc'))[0]
+    filename2 = glob(dt_date_str2.strftime(viirs_dir + satellite + \
+        '/*02DNB.A%Y%j.%H%M*.nc'))[0]
+    print(filename1)
+    print(filename2)
+  
+    # --------------------------------------------------------------
+    # 
+    # Plot data for the first file
+    #
+    # --------------------------------------------------------------
+    
+    # Read the data for this granule
+    # ------------------------------
+    VIIRS_data = readVIIRS_granule(filename1,\
+        band = band, zoom = zoom)
+    
+    # Plot the data for this granule
+    # ------------------------------
+    plot_VIIRS_granule(VIIRS_data, ax = ax1, zoom = zoom, \
+            vmin = vmin, vmax = vmax, show_smoke = False)
+    
+    ax1.set_title(dt_date_str1.strftime('%Y-%m-%d %H:%M UTC\nSmoke-free'))
+    
+    ax1.coastlines()
+    ax1.add_feature(cfeature.BORDERS)
+    ax1.add_feature(cfeature.STATES)
+    
+    
+    # --------------------------------------------------------------
+    # 
+    # Plot data for the second file
+    #
+    # --------------------------------------------------------------
+    
+    # Read the data for this granule
+    # ------------------------------
+    VIIRS_data = readVIIRS_granule(filename2,\
+        band = band, zoom = zoom)
+    
+    # Plot the data for this granule
+    # ------------------------------
+    plot_VIIRS_granule(VIIRS_data, ax = ax2, zoom = zoom, \
+            vmin = vmin, vmax = vmax, show_smoke = False)
+    
+    ax2.set_title(dt_date_str2.strftime('%Y-%m-%d %H:%M UTC\nSmoky'))
+    
+    ax2.coastlines()
+    ax2.add_feature(cfeature.BORDERS)
+    ax2.add_feature(cfeature.STATES)
+
+    if(city == 'TriCities'):   
+        ax1.set_extent([-119.5, -118.9, 46., 46.5], datacrs)
+        ax2.set_extent([-119.5, -118.9, 46., 46.5], datacrs)
+    elif(city == 'Yakima'):   
+        ax1.set_extent([-120.9, -120.1, 46.3, 46.9], datacrs)
+        ax2.set_extent([-120.9, -120.1, 46.3, 46.9], datacrs)
+    else:
+        ax1.set_extent([-125., -113., 41., 49.5], datacrs)
+        ax2.set_extent([-125., -113., 41., 49.5], datacrs)
+ 
+    title_str =  'Suomi-NPP VIIRS DNB'
+    if(city == 'TriCities'):
+        title_str = title_str + '\nTri-Cities, WA'
+    if(city == 'Yakima'):
+        title_str = title_str + '\nYakima, WA'
+    plt.suptitle(title_str)
+    plot_subplot_label(ax1, '(a)', backgroundcolor = 'white')
+    plot_subplot_label(ax2, '(b)', backgroundcolor = 'white')
+ 
+    fig.tight_layout()
+    
+
+    if(save):
+        if(city is not None):
+            outname = 'viirs_twopanel_' + satellite + '_' + date_str1 + \
+                '_' + date_str2 + '_' + city + '.png'
+        else:
+            outname = 'viirs_twopanel_' + satellite + '_' + date_str1 + \
+                '_' + date_str2 + '.png'
+        plt.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else: 
+        plt.show()
+    
 
 def plot_VIIRS_sixpanel(satellite = 'SNPP', save = False):
 

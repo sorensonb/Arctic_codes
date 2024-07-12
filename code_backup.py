@@ -171,7 +171,11 @@ if(copy_talon):
     print(cmnd)
     os.system(cmnd)
 
-    cmnd = "scp " + talon_dir + "*.keras "+final_dir
+    cmnd = "scp " + talon_dir + "tested_models/*.keras "+final_dir
+    print(cmnd)
+    os.system(cmnd)
+
+    cmnd = "scp " + talon_dir + "tested_models/min_max*.json "+final_dir
     print(cmnd)
     os.system(cmnd)
 

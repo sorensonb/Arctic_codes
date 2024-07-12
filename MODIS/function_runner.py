@@ -7,6 +7,140 @@
 
 from MODISLib import *
 
+data = Dataset('MYD08_D3.A2018186.061.2018187175147.hdf')
+
+fig = plt.figure()
+ax1 = fig.add_subplot(1,2,1, projection = ccrs.NorthPolarStereo()) # COD Combined
+ax2 = fig.add_subplot(1,2,1, projection = ccrs.NorthPolarStereo()) # COD Combined
+
+mesh = ax1.pcolormesh(data['XDim'][:], data['YDim'][:], \
+    data['Cloud_Optical_Thickness_Combined_Mean'][:,:], \
+    transform = ccrs.PlateCarree(), shading = 'auto')
+cbar = fig.colorbar(mesh, ax = ax1)
+ax1.coastlines()
+ax1.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax1.set_boundary(circle, transform=ax1.transAxes)
+ax1.set_title('COD Combined Mean')
+
+mesh = ax2.pcolormesh(data['XDim'][:], data['YDim'][:], \
+    data['Cloud_Optical_Thickness_Combined_Mean'][:,:], \
+    transform = ccrs.PlateCarree(), shading = 'auto')
+cbar = fig.colorbar(mesh, ax = ax2)
+ax2.coastlines()
+ax2.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax2.set_boundary(circle, transform=ax2.transAxes)
+ax2.set_title('COD Combined Mean')
+
+
+
+
+"""
+fig = plt.figure()
+ax1 = fig.add_subplot(3,3,1, projection = ccrs.NorthPolarStereo()) # COD Combined
+ax2 = fig.add_subplot(3,3,2, projection = ccrs.NorthPolarStereo())
+ax3 = fig.add_subplot(3,3,3, projection = ccrs.NorthPolarStereo())
+ax4 = fig.add_subplot(3,3,4, projection = ccrs.NorthPolarStereo())
+ax5 = fig.add_subplot(3,3,5, projection = ccrs.NorthPolarStereo())
+ax6 = fig.add_subplot(3,3,6, projection = ccrs.NorthPolarStereo())
+ax7 = fig.add_subplot(3,3,7, projection = ccrs.NorthPolarStereo())
+ax8 = fig.add_subplot(3,3,8, projection = ccrs.NorthPolarStereo())
+ax9 = fig.add_subplot(3,3,9, projection = ccrs.NorthPolarStereo())
+
+mesh = ax1.pcolormesh(data['XDim'][:], data['YDim'][:], \
+    data['Cloud_Optical_Thickness_Combined_Mean'][:,:], \
+    transform = ccrs.PlateCarree(), shading = 'auto')
+cbar = fig.colorbar(mesh, ax = ax1)
+ax1.coastlines()
+ax1.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax1.set_boundary(circle, transform=ax1.transAxes)
+ax1.set_title('COD Combined Mean')
+
+mesh = ax2.pcolormesh(data['XDim'][:], data['YDim'][:], \
+    data['Cloud_Optical_Thickness_Liquid_Mean'][:,:], \
+    transform = ccrs.PlateCarree(), shading = 'auto')
+cbar = fig.colorbar(mesh, ax = ax2)
+ax2.coastlines()
+ax2.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax2.set_boundary(circle, transform=ax2.transAxes)
+ax2.set_title('COD Liquid Mean')
+
+mesh = ax3.pcolormesh(data['XDim'][:], data['YDim'][:], \
+    data['Cloud_Optical_Thickness_Ice_Mean'][:,:], \
+    transform = ccrs.PlateCarree(), shading = 'auto')
+cbar = fig.colorbar(mesh, ax = ax3)
+ax3.coastlines()
+ax3.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax3.set_boundary(circle, transform=ax3.transAxes)
+ax3.set_title('COD Ice Mean')
+
+mesh = ax4.pcolormesh(data['XDim'][:], data['YDim'][:], \
+    data['Cloud_Optical_Thickness_16_Liquid_Mean'][:,:], \
+    transform = ccrs.PlateCarree(), shading = 'auto')
+cbar = fig.colorbar(mesh, ax = ax4)
+ax4.coastlines()
+ax4.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax4.set_boundary(circle, transform=ax4.transAxes)
+ax4.set_title('COD 1.6 Liquid Mean')
+
+mesh = ax5.pcolormesh(data['XDim'][:], data['YDim'][:], \
+    data['Cloud_Optical_Thickness_16_Ice_Mean'][:,:], \
+    transform = ccrs.PlateCarree(), shading = 'auto')
+cbar = fig.colorbar(mesh, ax = ax5)
+ax5.coastlines()
+ax5.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax5.set_boundary(circle, transform=ax5.transAxes)
+ax5.set_title('COD 1.6 Ice Mean')
+
+mesh = ax6.pcolormesh(data['XDim'][:], data['YDim'][:], \
+    data['Cloud_Optical_Thickness_37_Liquid_Mean'][:,:], \
+    transform = ccrs.PlateCarree(), shading = 'auto')
+cbar = fig.colorbar(mesh, ax = ax6)
+ax6.coastlines()
+ax6.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax6.set_boundary(circle, transform=ax6.transAxes)
+ax6.set_title('COD 3.7 Liquid Mean')
+
+mesh = ax7.pcolormesh(data['XDim'][:], data['YDim'][:], \
+    data['Cloud_Optical_Thickness_37_Ice_Mean'][:,:], \
+    transform = ccrs.PlateCarree(), shading = 'auto')
+cbar = fig.colorbar(mesh, ax = ax7)
+ax7.coastlines()
+ax7.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax7.set_boundary(circle, transform=ax7.transAxes)
+ax7.set_title('COD 3.7 Ice Mean')
+
+mesh = ax8.pcolormesh(data['XDim'][:], data['YDim'][:], \
+    data['Cloud_Optical_Thickness_1621_Liquid_Mean'][:,:], \
+    transform = ccrs.PlateCarree(), shading = 'auto')
+cbar = fig.colorbar(mesh, ax = ax8)
+ax8.coastlines()
+ax8.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax8.set_boundary(circle, transform=ax8.transAxes)
+ax8.set_title('COD 1.6/2.1 Liquid Mean')
+
+mesh = ax9.pcolormesh(data['XDim'][:], data['YDim'][:], \
+    data['Cloud_Optical_Thickness_1621_Ice_Mean'][:,:], \
+    transform = ccrs.PlateCarree(), shading = 'auto')
+cbar = fig.colorbar(mesh, ax = ax9)
+ax9.coastlines()
+ax9.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax9.set_boundary(circle, transform=ax9.transAxes)
+ax9.set_title('COD 1.6/2.1 Ice Mean')
+
+fig.tight_layout()
+
+#data.close()
+
+plt.show()
+"""
+
+#date_str = '20180705'
+#tester = identify_MODIS_MYD08(date_str, dest_dir = './')
+#tester = identify_MODIS_MYD08(date_str, dest_dir = myd08_dir, dtype = 'daily')
+#write_MODIS_MYD08('20180705', minlat = 65.5)
+
+sys.exit()
+
 ##!#download_MODIS_file('201507062255', dest_dir = modis_dir, \
 ##!#    download_cloud_mask = False, \
 ##!#    download_myd06 = False)

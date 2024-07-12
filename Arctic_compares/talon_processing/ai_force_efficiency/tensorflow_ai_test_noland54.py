@@ -33,6 +33,7 @@ import sys
 import random
 import h5py
 from sklearn.model_selection import train_test_split
+import json
 
 
 #tf.debugging.set_log_device_placement(True)
@@ -57,7 +58,6 @@ elif(len(sys.argv) > 2):
 
 print(sys.argv, sys.argv[2:])
 print(l_load_model, l_save_data)
-
 
 sim_name = sys.argv[1]
 
@@ -215,275 +215,6 @@ print('Num aerosol swaths', len(aer_file_list))
 
 # output variable:
 # - CERES SWF
-
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-#
-# Prep the data
-#
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-
-#data_dir = '/home/blake.sorenson/OMI/arctic_comp/original_prep_data/'
-data_dir = '/home/blake.sorenson/OMI/arctic_comp/comp_data/'
-
-# Scale all input variables to 0 - 1
-
-#data_path = '/home/blake.sorenson/OMI/arctic_comp/original_prep_data/'
-data_path = data_dir
-##!#fdates = [
-##!#        '201807040005',\
-##!#        '201807040144',\
-##!#        '201807040322',\
-##!#        '201807041633',\
-##!#        '201807041812',\
-##!#        '201807041951',\
-##!#        '201807042130',\
-##!#        '201807042309',\
-##!#        '201807050048',\
-##!#        '201807050227',\
-##!#        '201807051538',\
-##!#        '201807051717',\
-##!#        '201807051856',\
-##!#        '201807052034',\
-##!#        '201807052213',\
-##!#        '201807052352'
-##!#    ]
-##!#
-##!#files = [data_path + 'colocated_subset_' + fdd + '.hdf5' for fdd in fdates]
-
-files = glob('/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated*.hdf5')
-#files = glob('/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_200607*.hdf5')
-
-# NEW FOR NOLAND49: Remove the aerosol swaths from the training dataset
-# NEW FOR NOLAND49: Remove a sample clear-sky testing swath
-# ---------------------------------------------------------------------
-print("Before removing, length of files = ", len(files))
-for fname in aer_file_list:
-    if(fname in files):
-        files.remove(fname)
-        print('REMOVING', fname)
-
-clear_swaths = ['201807082244']
-files.remove('/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807082244.hdf5')
-print('REMOVING 201807082244')
-
-print("After removing, length of files = ", len(files))
-
-#files = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807052213.hdf5']
-
-# Figure out the total size to insert the data
-# ---------------------------------------------
-#minlat = 70.
-min_ai = -2.0
-max_ai = 1.0
-minlat = 65.    # 2024/01/10: changed to 65.
-min_swf = 0.
-max_swf = 3000.
-max_cod = 70.
-min_ice = 0.
-max_ice = 500.
-    
-
-# NOTE: added the "==254" section so that it temporarily removes land data.
-#       Want to test the system over only ocean and/or ice to start with
-def select_data(data, min_ai, max_ai, minlat, min_swf, max_swf, max_cod):
-    local_data = np.ma.masked_invalid(data['omi_uvai_raw'])
-    return np.ma.masked_where( (local_data < min_ai) | \
-                               (local_data > max_ai) | \
-                               (data['omi_lat'][:,:] < minlat) | \
-                               (data['modis_ch1'][:,:] > 1.0)  | \
-                               (data['modis_ch7'][:,:] > 1.0)  | \
-                               ( (data['ceres_swf'][:,:] < min_swf) | \
-                               (data['ceres_swf'][:,:] > max_swf) ) | \
-                               (np.isnan(data['ceres_swf'][:,:]) == True) | \
-                               (data['ceres_alb'][:,:] == -999) | \
-                               (data['modis_cod'][:,:] == -999) | \
-                               (data['modis_cod'][:,:] > max_cod) | \
-                               (np.isnan(data['modis_cod'][:,:]) == True) | \
-                               (data['modis_cld_top_pres'][:,:] < 0) | \
-                               (data['modis_cld_top_pres'][:,:] > 1025) | \
-                               (np.isnan(data['modis_cld_top_pres'][:,:]) == True) | \
-                               (data['nsidc_ice'][:,:] == -999) | \
-                               (data['nsidc_ice'][:,:] == 251) | \
-                               #(data['nsidc_ice'][:,:] == 254) | \
-                               (data['nsidc_ice'][:,:] == 253), \
-                               local_data\
-    )
-    
-
-total_size = 0
-for ff in files:
-    data = h5py.File(ff,'r')
-
-    # See if CERES albedo is in the file
-    # ----------------------------------
-    if('ceres_alb' not in data.keys()):
-        print("ERROR: ",ff," DOES NOT CONTAIN CERES ALBEDO")
-    else:
-        local_data = select_data(data, min_ai, max_ai, minlat, min_swf, \
-            max_swf, max_cod)
-
-        #print(ff, np.max(local_data))
-        ##!#local_data = np.ma.masked_invalid(data['omi_uvai_raw'])
-        ##!#local_data = np.ma.masked_where( (abs(local_data) > 12) | \
-        ##!#                                 (data['omi_lat'][:,:] < minlat) | \
-        ##!#                                 ( (data['ceres_swf'][:,:] < 0) | \
-        ##!#                                 (data['ceres_swf'][:,:] > 3000) ) | \
-        ##!#                                 (data['modis_cod'][:,:] == -999) | \
-        ##!#                                 (data['modis_cod'][:,:] > 70) | \
-        ##!#                                 (np.isnan(data['modis_cod'][:,:]) == True) | \
-        ##!#                                 (data['nsidc_ice'][:,:] == -999) | \
-        ##!#                                 (data['nsidc_ice'][:,:] == 251) | \
-        ##!#                                 (data['nsidc_ice'][:,:] == 253), \
-        ##!#                                 local_data\
-        ##!#)
-
-        #local_data = np.ma.masked_where(np.isnan(local_data))
-
-        local_size = local_data.compressed().shape[0]
-        total_size += local_size
-        print(ff, local_size, total_size)
-        ##!#if(local_size > 0):
-        ##!#    print('Overall AI max:', \
-        ##!#        np.max(np.ma.masked_invalid(data['omi_uvai_pert'])), \
-        ##!#        np.max(local_data))
-        ##!#else:
-        ##!#    print("NO DATA")
-
-    data.close()
-
-combined_data = {}
-combined_data['omi_uvai_pert'] = np.full(total_size, np.nan)
-#combined_data['omi_uvai_raw']  = np.full(total_size, np.nan)
-#combined_data['modis_cld']     = np.full(total_size, np.nan)
-combined_data['modis_cld_top_pres']     = np.full(total_size, np.nan)
-combined_data['modis_cod']     = np.full(total_size, np.nan)
-combined_data['modis_ch1']     = np.full(total_size, np.nan)
-combined_data['modis_ch7']     = np.full(total_size, np.nan)
-combined_data['ceres_swf']     = np.full(total_size, np.nan)
-combined_data['ceres_alb']     = np.full(total_size, np.nan)
-combined_data['omi_sza']       = np.full(total_size, np.nan)
-combined_data['omi_vza']       = np.full(total_size, np.nan)
-#combined_data['omi_azm']       = np.full(total_size, np.nan)
-combined_data['omi_lat']       = np.full(total_size, np.nan)
-combined_data['nsidc_ice']     = np.full(total_size, np.nan)
-
-print("Loading data")
-
-# Loop back over the files and insert the data into the structure
-# ---------------------------------------------------------------
-total_size = 0
-beg_idx = 0
-end_idx = 0
-for ff in files:
-
-    data = h5py.File(ff,'r')
-
-
-    if('ceres_alb' in data.keys()):
-        local_data = select_data(data, min_ai, max_ai, minlat, min_swf, \
-            max_swf, max_cod)
-
-
-        # NOTE: Changed the omi variable here from "pert" to "raw" on 20230623.
-        #       This move should allow for coloc data to be read after 2020
-        ##!#local_data = np.ma.masked_invalid(data['omi_uvai_raw'])
-
-        ##!#local_data = np.ma.masked_where( (abs(local_data) > 12) | \
-        ##!#                                 (data['omi_lat'][:,:] < minlat) | \
-        ##!#                                 ( (data['ceres_swf'][:,:] < 0) | \
-        ##!#                                 (data['ceres_swf'][:,:] > 3000) ) | \
-        ##!#                                 (data['modis_cod'][:,:] == -999) | \
-        ##!#                                 (data['modis_cod'][:,:] > 70) | \
-        ##!#                                 (np.isnan(data['modis_cod'][:,:]) == True) | \
-        ##!#                                 (data['nsidc_ice'][:,:] == -999) | \
-        ##!#                                 (data['nsidc_ice'][:,:] == 251) | \
-        ##!#                                 (data['nsidc_ice'][:,:] == 253), 
-        ##!#                                 local_data\
-        ##!#)
-
-        #local_data = np.ma.masked_invalid(local_data)
-        #local_data = np.ma.masked_where(np.isnan(local_data))
-        local_size = local_data.compressed().shape[0]
-
-        beg_idx = end_idx
-        end_idx = beg_idx + local_size
-
-        for tkey in combined_data.keys():
-            combined_data[tkey][beg_idx:end_idx] = \
-                data[tkey][~local_data.mask]
-
-        print(beg_idx, end_idx, local_size)
-        #print(local_size, 'AT THIS STEP', np.nanmax(combined_data['omi_uvai_pert']))
-        total_size += local_size
-
-    data.close()
-
-print(combined_data['omi_uvai_pert'].shape)
-
-# Remove any values that still have missing AI for some reason
-good_idxs = np.where(np.isnan(combined_data['omi_uvai_pert']) == False)
-for tkey in combined_data.keys():
-    combined_data[tkey] = combined_data[tkey][good_idxs]
-
-# Fix the cloud top pressure so that '0' values (which I assume mean 'clear-sky'?)
-# are at 1025 rather than 0. This will hopefully give continuity from low clouds
-# to no clouds
-combined_data['modis_cld_top_pres'] = \
-    np.where(combined_data['modis_cld_top_pres'] == 0., 1025., \
-    combined_data['modis_cld_top_pres'])
-# TESTING: Make all NAN values to be "clear-sky"
-combined_data['modis_cld_top_pres'] = \
-    np.where(np.isnan(combined_data['modis_cld_top_pres'][:]) == True, 1025., \
-    combined_data['modis_cld_top_pres'][:])
-
-print(np.min(combined_data['modis_cld_top_pres']), np.max(combined_data['modis_cld_top_pres']))
-
-print("WHERE AI IS NAN", np.where(np.isnan(combined_data['omi_uvai_pert'])))
-
-print('AI ',np.min(combined_data['omi_uvai_pert']), np.max(combined_data['omi_uvai_pert']))
-print('SWF',np.min(combined_data['ceres_swf']), np.max(combined_data['ceres_swf']))
-print('COD',np.min(combined_data['modis_cod']), np.max(combined_data['modis_cod']))
-print('CH1',np.min(combined_data['modis_ch1']), np.max(combined_data['modis_ch1']))
-print('CH7',np.min(combined_data['modis_ch7']), np.max(combined_data['modis_ch7']))
-print('CTP',np.min(combined_data['modis_cld_top_pres']), np.max(combined_data['modis_cld_top_pres']))
-print('SZA',np.min(combined_data['omi_sza']), np.max(combined_data['omi_sza']))
-print('VZA',np.min(combined_data['omi_vza']), np.max(combined_data['omi_vza']))
-print('ALB',np.min(combined_data['ceres_alb']), np.max(combined_data['ceres_alb']))
-print('ICE',np.min(combined_data['nsidc_ice']), np.max(combined_data['nsidc_ice']))
-
-combined_data['nsidc_ice'][:] = \
-    np.where(combined_data['nsidc_ice'][:] == 254., 101., combined_data['nsidc_ice'][:])
-
-min_max_dict = {}
-
-key_variables = ['omi_uvai_pert', 'omi_sza', 'omi_vza', 'modis_cod', 'modis_cld_top_pres', 'nsidc_ice', \
-    'modis_ch1', 'modis_ch7','ceres_alb','ceres_swf']
-
-for key in key_variables:
-    min_max_dict[key] = {}
-    min_max_dict[key]['min'] = np.min(combined_data[key])
-    min_max_dict[key]['max'] = np.max(combined_data[key])
-
-    drange = min_max_dict[key]['max'] - min_max_dict[key]['min']
-    combined_data[key] = ((combined_data[key] - min_max_dict[key]['min']) / drange) * 100.
-    #combined_data[key] = ((combined_data[key] - min_max_dict[key]['min']) / drange) * 100.
-
-print('AI ',np.min(combined_data['omi_uvai_pert']), np.max(combined_data['omi_uvai_pert']))
-print('SWF',np.min(combined_data['ceres_swf']), np.max(combined_data['ceres_swf']))
-print('COD',np.min(combined_data['modis_cod']), np.max(combined_data['modis_cod']))
-print('CH1',np.min(combined_data['modis_ch1']), np.max(combined_data['modis_ch1']))
-print('CH7',np.min(combined_data['modis_ch7']), np.max(combined_data['modis_ch7']))
-print('CTP',np.min(combined_data['modis_cld_top_pres']), np.max(combined_data['modis_cld_top_pres']))
-print('SZA',np.min(combined_data['omi_sza']), np.max(combined_data['omi_sza']))
-print('VZA',np.min(combined_data['omi_vza']), np.max(combined_data['omi_vza']))
-print('ALB',np.min(combined_data['ceres_alb']), np.max(combined_data['ceres_alb']))
-print('ICE',np.min(combined_data['nsidc_ice']), np.max(combined_data['nsidc_ice']))
-    
-    
-
-
-
-
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
@@ -1114,6 +845,74 @@ print('ICE',np.min(combined_data['nsidc_ice']), np.max(combined_data['nsidc_ice'
 #           CLDPRES NANs are accounted for in 'select data'
 #           Job ID = 27899  
 #
+# noland51: 15 hidden layers
+#           8,12,16,24,32,64,64,64,64,64,32,24,16,12,8 nodes in each layer
+#           Trained on ALL data
+#               100 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 2.89
+#           INCLUDES LAND DATA, CH7, VZA
+#           FIXED DATA (CLDPRES NAN set to 1025)
+#           ONLY DIFFERENCE BETWEEN THIS AND noland50:
+#               Added 4 more hidden layers of 64 nodes each
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 27953  
+#           Bad results, high bias in center
+#
+# noland52: 13 hidden layers
+#           8,12,16,24,32,64,128,64,32,24,16,12,8 nodes in each layer
+#           Trained on ALL data
+#               100 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 2.86
+#           INCLUDES LAND DATA, CH7, VZA
+#           FIXED DATA (CLDPRES NAN set to 1025)
+#           ONLY DIFFERENCE BETWEEN THIS AND noland50:
+#               Added 2 more hidden layers of 128 and 64 nodes
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 28053  
+#
+# noland53: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on ALL data
+#               100 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 2.89
+#           INCLUDES LAND DATA, CH7, VZA
+#           FIXED DATA (CLDPRES NAN set to 1025)
+#
+#           SHOULD BE NO DIFFERENCES BETWEEN THIS AND noland50
+#               Am just saving the scaling values to a json file, which
+#               will be loaded in when the user wants to calculate output
+#               for all the aerosol files.
+#               
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 43157
+#  
+# noland54: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on ALL data
+#               100 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: ????
+#           INCLUDES LAND DATA, CH7, VZA
+#
+#           Only differences between this and noland53
+#               Removed the code to set 0-value and NaN-value CTP to 1025.
+#               Looked at the data and discovered that there are no 0-value
+#               or NaN-value CTPs in the input data.              
+#
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 43699
+#
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 # Inputs
@@ -1133,10 +932,335 @@ print('ICE',np.min(combined_data['nsidc_ice']), np.max(combined_data['nsidc_ice'
 batch_size = 128
 epochs = 100
 
+#minlat = 70.
+min_ai = -2.0
+max_ai = 1.0
+minlat = 65.    # 2024/01/10: changed to 65.
+min_swf = 0.
+max_swf = 3000.
+max_cod = 70.
+min_ice = 0.
+max_ice = 500.
+
 if(l_load_model):
+
+    # Load the model
+    # --------------
     model = tf.keras.models.load_model('test_model_' + sim_name + '.keras')
     model.summary()
+
+    # Load the min_max_dict values from the run
+    # -----------------------------------------
+    min_max_dict_name = 'min_max_dict_' + sim_name +  '.json'
+    with open(min_max_dict_name, 'r') as fin:
+        min_max_dict = json.load(fin)
+
 else:
+
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    #
+    # Prep the data
+    #
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    
+    #data_dir = '/home/blake.sorenson/OMI/arctic_comp/original_prep_data/'
+    data_dir = '/home/blake.sorenson/OMI/arctic_comp/comp_data/'
+    
+    # Scale all input variables to 0 - 1
+    
+    #data_path = '/home/blake.sorenson/OMI/arctic_comp/original_prep_data/'
+    data_path = data_dir
+    ##!#fdates = [
+    ##!#        '201807040005',\
+    ##!#        '201807040144',\
+    ##!#        '201807040322',\
+    ##!#        '201807041633',\
+    ##!#        '201807041812',\
+    ##!#        '201807041951',\
+    ##!#        '201807042130',\
+    ##!#        '201807042309',\
+    ##!#        '201807050048',\
+    ##!#        '201807050227',\
+    ##!#        '201807051538',\
+    ##!#        '201807051717',\
+    ##!#        '201807051856',\
+    ##!#        '201807052034',\
+    ##!#        '201807052213',\
+    ##!#        '201807052352'
+    ##!#    ]
+    ##!#
+    ##!#files = [data_path + 'colocated_subset_' + fdd + '.hdf5' for fdd in fdates]
+    
+    files = glob('/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated*.hdf5')
+    #files = glob('/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_200607*.hdf5')
+    
+    # NEW FOR NOLAND49: Remove the aerosol swaths from the training dataset
+    # NEW FOR NOLAND49: Remove a sample clear-sky testing swath
+    # ---------------------------------------------------------------------
+    print("Before removing, length of files = ", len(files))
+    for fname in aer_file_list:
+        if(fname in files):
+            files.remove(fname)
+            print('REMOVING', fname)
+    
+    clear_swaths = ['201807082244']
+    files.remove('/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807082244.hdf5')
+    print('REMOVING 201807082244')
+    
+    print("After removing, length of files = ", len(files))
+    
+    #files = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807052213.hdf5']
+    
+    # Figure out the total size to insert the data
+    # ---------------------------------------------
+    #minlat = 70.
+    min_ai = -2.0
+    max_ai = 1.0
+    minlat = 65.    # 2024/01/10: changed to 65.
+    min_swf = 0.
+    max_swf = 3000.
+    max_cod = 70.
+    min_ice = 0.
+    max_ice = 500.
+        
+    
+    # NOTE: added the "==254" section so that it temporarily removes land data.
+    #       Want to test the system over only ocean and/or ice to start with
+    def select_data(data, min_ai, max_ai, minlat, min_swf, max_swf, max_cod):
+        local_data = np.ma.masked_invalid(data['omi_uvai_raw'])
+        return np.ma.masked_where( (local_data < min_ai) | \
+                                   (local_data > max_ai) | \
+                                   (data['omi_lat'][:,:] < minlat) | \
+                                   (data['modis_ch1'][:,:] > 1.0)  | \
+                                   (data['modis_ch7'][:,:] > 1.0)  | \
+                                   ( (data['ceres_swf'][:,:] < min_swf) | \
+                                   (data['ceres_swf'][:,:] > max_swf) ) | \
+                                   (np.isnan(data['ceres_swf'][:,:]) == True) | \
+                                   (data['ceres_alb'][:,:] == -999) | \
+                                   (data['modis_cod'][:,:] == -999) | \
+                                   (data['modis_cod'][:,:] > max_cod) | \
+                                   (np.isnan(data['modis_cod'][:,:]) == True) | \
+                                   (data['modis_cld_top_pres'][:,:] < 0) | \
+                                   (data['modis_cld_top_pres'][:,:] > 1025) | \
+                                   (np.isnan(data['modis_cld_top_pres'][:,:]) == True) | \
+                                   (data['nsidc_ice'][:,:] == -999) | \
+                                   (data['nsidc_ice'][:,:] == 251) | \
+                                   #(data['nsidc_ice'][:,:] == 254) | \
+                                   (data['nsidc_ice'][:,:] == 253), \
+                                   local_data\
+        )
+        
+    
+    total_size = 0
+    for ff in files:
+        data = h5py.File(ff,'r')
+    
+        # See if CERES albedo is in the file
+        # ----------------------------------
+        if('ceres_alb' not in data.keys()):
+            print("ERROR: ",ff," DOES NOT CONTAIN CERES ALBEDO")
+        else:
+            local_data = select_data(data, min_ai, max_ai, minlat, min_swf, \
+                max_swf, max_cod)
+    
+            #print(ff, np.max(local_data))
+            ##!#local_data = np.ma.masked_invalid(data['omi_uvai_raw'])
+            ##!#local_data = np.ma.masked_where( (abs(local_data) > 12) | \
+            ##!#                                 (data['omi_lat'][:,:] < minlat) | \
+            ##!#                                 ( (data['ceres_swf'][:,:] < 0) | \
+            ##!#                                 (data['ceres_swf'][:,:] > 3000) ) | \
+            ##!#                                 (data['modis_cod'][:,:] == -999) | \
+            ##!#                                 (data['modis_cod'][:,:] > 70) | \
+            ##!#                                 (np.isnan(data['modis_cod'][:,:]) == True) | \
+            ##!#                                 (data['nsidc_ice'][:,:] == -999) | \
+            ##!#                                 (data['nsidc_ice'][:,:] == 251) | \
+            ##!#                                 (data['nsidc_ice'][:,:] == 253), \
+            ##!#                                 local_data\
+            ##!#)
+    
+            #local_data = np.ma.masked_where(np.isnan(local_data))
+    
+            local_size = local_data.compressed().shape[0]
+            total_size += local_size
+            print(ff, local_size, total_size)
+            ##!#if(local_size > 0):
+            ##!#    print('Overall AI max:', \
+            ##!#        np.max(np.ma.masked_invalid(data['omi_uvai_pert'])), \
+            ##!#        np.max(local_data))
+            ##!#else:
+            ##!#    print("NO DATA")
+    
+        data.close()
+    
+    combined_data = {}
+    combined_data['omi_uvai_pert'] = np.full(total_size, np.nan)
+    #combined_data['omi_uvai_raw']  = np.full(total_size, np.nan)
+    #combined_data['modis_cld']     = np.full(total_size, np.nan)
+    combined_data['modis_cld_top_pres']     = np.full(total_size, np.nan)
+    combined_data['modis_cod']     = np.full(total_size, np.nan)
+    combined_data['modis_ch1']     = np.full(total_size, np.nan)
+    combined_data['modis_ch7']     = np.full(total_size, np.nan)
+    combined_data['ceres_swf']     = np.full(total_size, np.nan)
+    combined_data['ceres_alb']     = np.full(total_size, np.nan)
+    combined_data['omi_sza']       = np.full(total_size, np.nan)
+    combined_data['omi_vza']       = np.full(total_size, np.nan)
+    #combined_data['omi_azm']       = np.full(total_size, np.nan)
+    combined_data['omi_lat']       = np.full(total_size, np.nan)
+    combined_data['nsidc_ice']     = np.full(total_size, np.nan)
+    
+    print("Loading data")
+    
+    # Loop back over the files and insert the data into the structure
+    # ---------------------------------------------------------------
+    total_size = 0
+    beg_idx = 0
+    end_idx = 0
+    for ff in files:
+    
+        data = h5py.File(ff,'r')
+    
+    
+        if('ceres_alb' in data.keys()):
+            local_data = select_data(data, min_ai, max_ai, minlat, min_swf, \
+                max_swf, max_cod)
+    
+    
+            # NOTE: Changed the omi variable here from "pert" to "raw" on 20230623.
+            #       This move should allow for coloc data to be read after 2020
+            ##!#local_data = np.ma.masked_invalid(data['omi_uvai_raw'])
+    
+            ##!#local_data = np.ma.masked_where( (abs(local_data) > 12) | \
+            ##!#                                 (data['omi_lat'][:,:] < minlat) | \
+            ##!#                                 ( (data['ceres_swf'][:,:] < 0) | \
+            ##!#                                 (data['ceres_swf'][:,:] > 3000) ) | \
+            ##!#                                 (data['modis_cod'][:,:] == -999) | \
+            ##!#                                 (data['modis_cod'][:,:] > 70) | \
+            ##!#                                 (np.isnan(data['modis_cod'][:,:]) == True) | \
+            ##!#                                 (data['nsidc_ice'][:,:] == -999) | \
+            ##!#                                 (data['nsidc_ice'][:,:] == 251) | \
+            ##!#                                 (data['nsidc_ice'][:,:] == 253), 
+            ##!#                                 local_data\
+            ##!#)
+    
+            #local_data = np.ma.masked_invalid(local_data)
+            #local_data = np.ma.masked_where(np.isnan(local_data))
+            local_size = local_data.compressed().shape[0]
+    
+            beg_idx = end_idx
+            end_idx = beg_idx + local_size
+    
+            for tkey in combined_data.keys():
+                combined_data[tkey][beg_idx:end_idx] = \
+                    data[tkey][~local_data.mask]
+    
+            print(beg_idx, end_idx, local_size)
+            #print(local_size, 'AT THIS STEP', np.nanmax(combined_data['omi_uvai_pert']))
+            total_size += local_size
+    
+        data.close()
+    
+    print(combined_data['omi_uvai_pert'].shape)
+    
+    # Remove any values that still have missing AI for some reason
+    good_idxs = np.where(np.isnan(combined_data['omi_uvai_pert']) == False)
+    for tkey in combined_data.keys():
+        combined_data[tkey] = combined_data[tkey][good_idxs]
+ 
+ 
+    # 2024-07-12: Testing how often the '0'-value CTPs show up
+    # --------------------------------------------------------
+    print(len(good_idxs[0]))
+    zero_idxs = np.where(combined_data['modis_cld_top_pres'] == 0.)
+    print('NUMBER OF ZERO CTP', len(zero_idxs[0]))  
+    print('Unique CTPs', np.unique(combined_data['modis_cld_top_pres']))  
+
+    # 2024-07-12: Testing how often the NaN-value CTPs show up
+    # --------------------------------------------------------
+    nan_idxs = np.where(np.isnan(combined_data['modis_cld_top_pres']) == True)
+    print('NUMBER OF NAN CTP', len(nan_idxs[0]))  
+
+    # Figure out what values of COD are found when the CTP is 1025
+    # ------------------------------------------------------------
+    """
+    check_idxs = np.where(combined_data['modis_cld_top_pres'] == 1025.)
+    check_cod_vals = combined_data['modis_cod'][check_idxs]
+    print('COD value ranges for 1025 CTP', np.min(check_cod_vals), np.max(check_cod_vals))  
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.hist(check_cod_vals, bins = 100)
+    ax.set_xlabel('COD')
+    ax.set_title('MODIS COD when MODIS CTP == 1025 mb')
+    fig.tight_layout()
+    fig.savefig('modis_cod_ctp1025_check.png', dpi = 200)
+    print("Saved image")
+    """
+    #sys.exit()
+ 
+    """ 
+    # Fix the cloud top pressure so that '0' values (which I assume mean 'clear-sky'?)
+    # are at 1025 rather than 0. This will hopefully give continuity from low clouds
+    # to no clouds
+    combined_data['modis_cld_top_pres'] = \
+        np.where(combined_data['modis_cld_top_pres'] == 0., 1025., \
+        combined_data['modis_cld_top_pres'])
+    # TESTING: Make all NAN values to be "clear-sky"
+    combined_data['modis_cld_top_pres'] = \
+        np.where(np.isnan(combined_data['modis_cld_top_pres'][:]) == True, 1025., \
+        combined_data['modis_cld_top_pres'][:])
+    """ 
+    
+    print(np.min(combined_data['modis_cld_top_pres']), np.max(combined_data['modis_cld_top_pres']))
+    
+    print("WHERE AI IS NAN", np.where(np.isnan(combined_data['omi_uvai_pert'])))
+    
+    print('AI ',np.min(combined_data['omi_uvai_pert']), np.max(combined_data['omi_uvai_pert']))
+    print('SWF',np.min(combined_data['ceres_swf']), np.max(combined_data['ceres_swf']))
+    print('COD',np.min(combined_data['modis_cod']), np.max(combined_data['modis_cod']))
+    print('CH1',np.min(combined_data['modis_ch1']), np.max(combined_data['modis_ch1']))
+    print('CH7',np.min(combined_data['modis_ch7']), np.max(combined_data['modis_ch7']))
+    print('CTP',np.min(combined_data['modis_cld_top_pres']), np.max(combined_data['modis_cld_top_pres']))
+    print('SZA',np.min(combined_data['omi_sza']), np.max(combined_data['omi_sza']))
+    print('VZA',np.min(combined_data['omi_vza']), np.max(combined_data['omi_vza']))
+    print('ALB',np.min(combined_data['ceres_alb']), np.max(combined_data['ceres_alb']))
+    print('ICE',np.min(combined_data['nsidc_ice']), np.max(combined_data['nsidc_ice']))
+    
+    combined_data['nsidc_ice'][:] = \
+        np.where(combined_data['nsidc_ice'][:] == 254., 101., combined_data['nsidc_ice'][:])
+    
+    min_max_dict = {}
+    
+    key_variables = ['omi_uvai_pert', 'omi_sza', 'omi_vza', 'modis_cod', 'modis_cld_top_pres', 'nsidc_ice', \
+        'modis_ch1', 'modis_ch7','ceres_alb','ceres_swf']
+    
+    for key in key_variables:
+        min_max_dict[key] = {}
+        min_max_dict[key]['min'] = np.min(combined_data[key])
+        min_max_dict[key]['max'] = np.max(combined_data[key])
+    
+        drange = min_max_dict[key]['max'] - min_max_dict[key]['min']
+        combined_data[key] = ((combined_data[key] - min_max_dict[key]['min']) / drange) * 100.
+        #combined_data[key] = ((combined_data[key] - min_max_dict[key]['min']) / drange) * 100.
+   
+    # Save the min_max_dict values to a json file for later loading
+    # -------------------------------------------------------------
+    min_max_dict_name = 'min_max_dict_' + sim_name + '.json'
+
+    with open(min_max_dict_name,'w') as fout:
+        json.dump(min_max_dict, fout, indent = 4)
+
+ 
+    print('AI ',np.min(combined_data['omi_uvai_pert']), np.max(combined_data['omi_uvai_pert']))
+    print('SWF',np.min(combined_data['ceres_swf']), np.max(combined_data['ceres_swf']))
+    print('COD',np.min(combined_data['modis_cod']), np.max(combined_data['modis_cod']))
+    print('CH1',np.min(combined_data['modis_ch1']), np.max(combined_data['modis_ch1']))
+    print('CH7',np.min(combined_data['modis_ch7']), np.max(combined_data['modis_ch7']))
+    print('CTP',np.min(combined_data['modis_cld_top_pres']), np.max(combined_data['modis_cld_top_pres']))
+    print('SZA',np.min(combined_data['omi_sza']), np.max(combined_data['omi_sza']))
+    print('VZA',np.min(combined_data['omi_vza']), np.max(combined_data['omi_vza']))
+    print('ALB',np.min(combined_data['ceres_alb']), np.max(combined_data['ceres_alb']))
+    print('ICE',np.min(combined_data['nsidc_ice']), np.max(combined_data['nsidc_ice']))
+    
+        
 
     pcnt_test = 0.10
     num_test = int(combined_data['omi_uvai_pert'].shape[0] * pcnt_test)
@@ -1340,8 +1464,9 @@ if(l_save_data):
         print("ERROR: Invalid time value")
         sys.exit()  
 
-    #aer_file_list = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807052213.hdf5']
-    aer_file_list = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807082244.hdf5']
+    aer_file_list = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807052213.hdf5', \
+                     '/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807082244.hdf5']
+    #aer_file_list = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807082244.hdf5']
  
     #for infile in files:
     for infile in aer_file_list:
@@ -1383,10 +1508,12 @@ if(l_save_data):
                     (data['nsidc_ice'][:,:] == 251) | \
                     (data['nsidc_ice'][:,:] == 253)  , data['omi_lat'])
 
+        """
         local_cldpres = np.where(data['modis_cld_top_pres'][:,:] == 0., 1025., \
                                     data['modis_cld_top_pres'][:,:])
         local_cldpres = np.where(np.isnan(local_cldpres) == True, 1025., \
                                     local_cldpres)
+        """
         local_ice     = np.where(data['nsidc_ice'][:,:] == 254.,101., \
                                     data['nsidc_ice'])
  

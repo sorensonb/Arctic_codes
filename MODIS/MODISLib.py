@@ -10940,3 +10940,65 @@ def plotMODIS_MYD08_MonthTrend(cloud_data,month_idx=None,save=False,\
 
     if(return_trend == True):
         return cloud_trends
+
+def plotMODIS_MYD08_COD_distribution(save=False):
+    begin_date = datetime(2005,4,1)
+    end_date = datetime(2020,9,30)
+    local_date = begin_date
+    
+    minlat = 65.
+    maxlat = 87.
+    
+    total_length = 0
+    
+    while(local_date <= end_date):
+        date_str = local_date.strftime('%Y%m%d')
+        MYD08_data = read_MODIS_MYD08_single(date_str, minlat = minlat, \
+            maxlat = maxlat)
+       
+        flat_arr = MYD08_data['cod_std'].flatten().compressed()
+        total_length += len(flat_arr)
+     
+        #print(date_str, np.round(np.min(MYD08_data['cod_std']), 1), \
+        #                np.round(np.mean(MYD08_data['cod_std']), 1), \
+        #                np.round(np.max(MYD08_data['cod_std']), 1), len(MYD08_data['cod_std'].flatten()))
+    
+        local_date = local_date + timedelta(days = 1)
+        if(local_date.month == 10):
+            local_date = local_date + relativedelta(months = 6)
+    
+    total_array = np.full(total_length, np.nan)
+    
+    begin_date = datetime(2005,4,1)
+    local_date = begin_date
+    beg_idx = 0
+    while(local_date <= end_date):
+        date_str = local_date.strftime('%Y%m%d')
+        MYD08_data = read_MODIS_MYD08_single(date_str, minlat = minlat, \
+            maxlat = maxlat)
+    
+        flat_arr = MYD08_data['cod_std'].flatten().compressed()
+        end_idx = beg_idx + len(flat_arr)   
+        total_array[beg_idx:end_idx] = flat_arr
+       
+        beg_idx = end_idx
+     
+        local_date = local_date + timedelta(days = 1)
+        if(local_date.month == 10):
+            local_date = local_date + relativedelta(months = 6)
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.hist(total_array, bins = 100)
+    ax.set_title('L3 MODIS COD Standard Deviation Distributions\n1 April - 30 September, 2005 - 2020')
+    ax.set_xlabel('MODIS COD STD')
+    ax.set_ylabel('Counts')
+    if(save):
+        fig.tight_layout()
+        outname = 'modis_cod_L3_std_dist_20050401_20200930.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+    
+

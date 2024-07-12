@@ -13,20 +13,177 @@ from sklearn.metrics import r2_score
 
 #make_gif('comp_images_20180705/', 'calc_swf_comp_20180705.gif')
 
+# Plots the distribution of MYD08 COD standard deviations
+# -------------------------------------------------------
+#plotMODIS_MYD08_COD_distribution(save=True)
 #sys.exit()
 
+
+
+"""
+#files = glob('comp_data/colocated_subset_20180705*.hdf5')
+#files = glob('comp_data/original_prep_data/colocated_subset_20180705*')
+files = glob('comp_data/testing/colocated_subset_2018070*')
+
+min_ai = -2.0
+max_ai = 1.0
+minlat = 65.    # 2024/01/10: changed to 65.
+min_swf = 0.
+max_swf = 3000.
+max_cod = 70.
+min_ice = 0.
+max_ice = 500.
+
+for ff in files:
+
+    data = h5py.File(ff)
+    dtime = ff.strip().split('/')[-1].split('_')[-1].split('.')[0]
+
+    print(dtime, data.keys())
+    local_data = np.ma.masked_invalid(data['omi_uvai_raw'])
+    #local_data =  np.ma.masked_where( (local_data < min_ai) | \
+    #                           (local_data > max_ai) | \
+    #                           (data['omi_lat'][:,:] < minlat) | \
+    #                           ( (data['ceres_swf'][:,:] < min_swf) | \
+    #                           (data['ceres_swf'][:,:] > max_swf) ) | \
+    #                           (np.isnan(data['ceres_swf'][:,:]) == True) | \
+    #                           (data['modis_cod'][:,:] == -999) | \
+    #                           (data['modis_cod'][:,:] > max_cod) | \
+    #                           (np.isnan(data['modis_cod'][:,:]) == True) | \
+    #                           #(data['modis_cld_top_pres'][:,:] < 0) | \
+    #                           #(data['modis_cld_top_pres'][:,:] > 1025) | \
+    #                           #(np.isnan(data['modis_cld_top_pres'][:,:]) == True) | \
+    #                           (data['nsidc_ice'][:,:] == -999) | \
+    #                           (data['nsidc_ice'][:,:] == 251) | \
+    #                           #(data['nsidc_ice'][:,:] == 254) | \
+    #                           (data['nsidc_ice'][:,:] == 253), \
+    #                           local_data)
+
+    #local_omi   = np.ma.masked_where(local_data.mask == False, data['omi_uvai_raw'])
+    #local_ceres = np.ma.masked_where(local_data.mask == False, data['ceres_swf'])
+    #local_ch7   = np.ma.masked_where(local_data.mask == False, data['modis_ch7'])
+    #local_cod   = np.ma.masked_where(local_data.mask == False, data['modis_cod'])
+    #local_ctp   = np.ma.masked_where(local_data.mask == False, data['modis_cld_top_pres'])
+    #local_ice   = np.ma.masked_where(local_data.mask == False, data['nsidc_ice'])
+
+    local_omi   = np.ma.masked_where(data['omi_uvai_raw'][:,:] == -999., data['omi_uvai_raw'][:,:])
+    local_ceres = np.ma.masked_where((data['ceres_swf'][:,:] == -999.) |
+                                     (data['ceres_swf'][:,:] > 3000), data['ceres_swf'][:,:])
+    local_ch7   = np.ma.masked_where(data['modis_ch7'][:,:] == -999., data['modis_ch7'][:,:])
+    local_cod   = np.ma.masked_where(data['modis_cod'][:,:] == -999., data['modis_cod'][:,:])
+    local_ctp   = np.ma.masked_where(data['modis_cld_top_pres'][:,:] == -999., data['modis_cld_top_pres'][:,:])
+    #local_ctp   = np.ma.masked_where(data['modis_cld_top_pres'][:,:] == -999., data['modis_ctp'][:,:])
+    local_ctp2   = np.ma.masked_where(local_ctp != 0., local_ctp)
+    local_ice   = np.ma.masked_where(data['nsidc_ice'][:,:] == -999., data['nsidc_ice'][:,:])
+
+    local_omi   = np.ma.masked_invalid(local_omi)
+    local_ceres = np.ma.masked_invalid(local_ceres)
+    local_ch7   = np.ma.masked_invalid(local_ch7)
+    local_cod   = np.ma.masked_invalid(local_cod)
+    local_ctp   = np.ma.masked_invalid(local_ctp)
+    local_ctp2  = np.ma.masked_invalid(local_ctp2)
+    #local_ctp   = np.ma.masked_invalid(local_ctp)
+    local_ice   = np.ma.masked_invalid(local_ice)
+ 
+    #combined_data['modis_cld_top_pres'] = \
+    # np.where(combined_data['modis_cld_top_pres'] == 0., 1025., \
+    # combined_data['modis_cld_top_pres'])
+    ## TESTING: Make all NAN values to be "clear-sky"
+    #combined_data['modis_cld_top_pres'] = \
+    #    np.where(np.isnan(combined_data['modis_cld_top_pres'][:]) == True, 1025., \
+    #    combined_data['modis_cld_top_pres'][:])
+
+    fig = plt.figure(figsize = (10, 6))
+    ax1 = fig.add_subplot(2,3,1, projection = ccrs.NorthPolarStereo()) # OMI UVAI
+    ax2 = fig.add_subplot(2,3,2, projection = ccrs.NorthPolarStereo()) # CERES SWF
+    ax3 = fig.add_subplot(2,3,3, projection = ccrs.NorthPolarStereo()) # MODIS CH7
+    ax4 = fig.add_subplot(2,3,4, projection = ccrs.NorthPolarStereo()) # MODIS COD
+    ax5 = fig.add_subplot(2,3,5, projection = ccrs.NorthPolarStereo()) # MODIS CLD TOP PRES 
+    ax6 = fig.add_subplot(2,3,6, projection = ccrs.NorthPolarStereo()) # NSIDC ICE
+
+    ax1.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], local_omi, \
+        transform = ccrs.PlateCarree(), shading = 'auto', cmap = 'jet')
+    ax1.set_extent([-180,180,65,90], ccrs.PlateCarree())
+    ax1.coastlines()
+    ax1.set_title('OMI AI')
+
+    ax2.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], local_ceres, \
+        transform = ccrs.PlateCarree(), shading = 'auto')
+    ax2.set_extent([-180,180,65,90], ccrs.PlateCarree())
+    ax2.coastlines()
+    ax2.set_title('CERES SWF')
+
+    ax3.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], local_ch7, \
+        transform = ccrs.PlateCarree(), shading = 'auto')
+    ax3.set_extent([-180,180,65,90], ccrs.PlateCarree())
+    ax3.coastlines()
+    ax3.set_title('MODIS CH7')
+
+    ax4.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], local_cod, \
+        transform = ccrs.PlateCarree(), shading = 'auto', vmax = 50)
+    ax4.set_extent([-180,180,65,90], ccrs.PlateCarree())
+    ax4.coastlines()
+    ax4.set_title('MODIS COD')
+
+    ax5.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], local_ctp, \
+        transform = ccrs.PlateCarree(), shading = 'auto')
+    ax5.set_extent([-180,180,65,90], ccrs.PlateCarree())
+    ax5.coastlines()
+    ax5.set_title('MODIS CTP')
+
+    ax6.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], local_ctp2, \
+        transform = ccrs.PlateCarree(), shading = 'auto')
+    ax6.set_extent([-180,180,65,90], ccrs.PlateCarree())
+    ax6.coastlines()
+    ax6.set_title('MODIS CTP NO NON-ZERO')
+
+    data.close()
+
+    plt.suptitle(dtime)
+
+    fig.tight_layout()
+    plt.show()
+
+sys.exit()
+"""
+    
+
+
+
+
+# Plot the NN architecture
+# ------------------------
+#plot_NN_architecture(save = True)
+#plot_NN_architecture(plot_lines = True, save = True)
 #sys.exit()
 
 # Makes a plot of OMI AI, Observed SWF, NN SWF, and Regression
 # Designed for showing the validation of the NN under
 # aerosol-free conditions
 # -----------------------------------------------------------
-#plot_compare_NN_output_noaer(sys.argv[1], save = True)
+#plot_compare_NN_output_noaer(sys.argv[1], save = False)
+#sys.exit()
 
 # Plots more stuff than the NN_output_noaer function
 # --------------------------------------------------
-#plot_compare_NN_output(sys.argv[1], save = True)
-#sys.exit()
+plot_compare_NN_output(sys.argv[1], save = True)
+sys.exit()
+
+#calc_data = sys.argv[1]
+#in_calc = h5py.File(calc_data)
+#
+#mask_orig = np.ma.masked_where((in_calc['ceres_swf'][:,:] == -999.) | \
+#                               (in_calc['ceres_swf'][:,:] > 3000), in_calc['ceres_swf'][:,:])
+#mask_calc = np.ma.masked_invalid(in_calc['calc_swf'])
+#mask_calc = np.ma.masked_where(mask_calc == -999., mask_calc)
+#
+#both_orig = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_orig).compressed()
+#both_calc = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_calc).compressed()
+#
+#rmse = mean_squared_error(both_orig, both_calc, squared = False)
+#mae = np.mean(abs(both_orig - both_calc))
+#
+#sys.exit()    
 
 
 
@@ -95,6 +252,16 @@ sys.exit()
 #  calculate_type_forcing_v4_monthly: calculates the single-day forcing 
 #            estimates and averages them into monthly averages.
 #
+#
+# calc_forcing_slopes_v4_all_months_arctic_avg_manyrefice(all_month_vals):
+#           Calculates the trends (original and modified) for either
+#           the refice or refcld simulations. The results are returned
+#           in a dictionary.
+#
+#
+# calc_forcing_slopes_v4_all_months_arctic_avg_uncert(all_month_files):
+#           Same as above, but for the specified uncertainty runs.
+#
 #  plot_compare_NN_output_noaer(sys.argv[1], save = False):
 #           Makes a plot of Observed SWF, NN SWF, and Regression
 #           Designed for showing the validation of the NN under
@@ -125,6 +292,16 @@ sys.exit()
 #           for a single day based on the forcing slopes (and bins)
 #           as well as the daily OMI AI, MODIS COD, NSIDC ICE, and
 #           the calculated solar zenith angle for the day. 
+#
+#  plot_type_forcing_v4_all_months_arctic_avg(all_month_files, \)
+#           Calculate Arctic-wide average for all of the provided monthly forcings.
+#           Meant to be a plot of the Monte Carlo-esque uncertainty analysis.
+#           The first file in the list is the control
+#
+# plot_type_forcing_v3_all_months_arctic_avg_combined(all_month_values, \)
+#           Plots three Arctic-averaged monthly results in one image:
+#           The first row is the 65 - 87, the second row is 65 - 75, and
+#           the third row is 75 - 87.
 #
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #
@@ -191,18 +368,17 @@ min_ob = 50
 slope_dict = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
         sza_bin_edges, cod_bin_edges, ai_min = 0, min_ob = min_ob, \
         trend_type = 'theil-sen')
-slope_dict2 = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
-        sza_bin_edges, cod_bin_edges, ai_min = 1, min_ob = min_ob, \
-        trend_type = 'theil-sen')
-
-# Plot the NN architecture
-# ------------------------
-#plot_NN_architecture(save = False)
-#sys.exit()
+slope_dict_lin = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
+        sza_bin_edges, cod_bin_edges, ai_min = 0, min_ob = min_ob, \
+        trend_type = 'linregress')
+#slope_dict2 = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
+#        sza_bin_edges, cod_bin_edges, ai_min = 1, min_ob = min_ob, \
+#        trend_type = 'theil-sen')
 
 # Plot the binned NN/AI slopes for the 4 surface types
 # ----------------------------------------------------
-#plot_NN_bin_slopes(slope_dict, bin_dict, min_ob = min_ob)
+#plot_NN_bin_slopes(slope_dict_lin, bin_dict, min_ob = min_ob, plot_error = False, save = True)
+#plot_NN_bin_slopes(slope_dict_lin, bin_dict, min_ob = min_ob, plot_error = True, save = True)
 #sys.exit()
 
 # Makes a plot of OMI AI, Observed SWF, NN SWF, and Regression
@@ -254,11 +430,12 @@ maxerr = 1.5
 #lat_szas = np.array([tlat - del_angles for tlat in latitudes]).T
 
 # Calculate the daily forcing estimate values for a date_string
-date_str = '20180705'
-plot_NN_forcing_daily(date_str, daily_VSJ4, OMI_daily_VSJ4, \
-    slope_dict, bin_dict, minlat = 65., maxlat = 87., \
-    ai_thresh = 0.7, maxerr = maxerr, save = False, use_intercept = True)
-sys.exit()
+#date_str = '20180705'
+#plot_NN_forcing_daily(date_str, daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, minlat = 65., maxlat = 87., \
+#    ai_thresh = 0.7, maxerr = maxerr, save = False, use_intercept = True)
+#sys.exit()
+
 #values = test_calculate_type_forcing_v4(daily_VSJ4, OMI_daily_VSJ4, \
 #    slope_dict, bin_dict, date_str, minlat = minlat, maxlat = maxlat, \
 #    ai_thresh = ai_thresh, maxerr = maxerr,\
@@ -285,15 +462,50 @@ ai_thresh = 0.7
 
 infile_aimin1 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4.hdf5'
 infile_aimin0 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt.hdf5'
+infile_aimin0_upper = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_upperslope.hdf5'
+infile_aimin0_lower = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_lowerslope.hdf5'
+infile_aimin0_lin = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_lin.hdf5'
+infile_aimin0_linaddslopeerror = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_linaddslopeerror.hdf5'
+infile_aimin0_linsubslopeerror = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_linsubslopeerror.hdf5'
+infile_aimin0_linaddintcpterror = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_linaddintcpterror.hdf5'
+infile_aimin0_linsubintcpterror = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_linsubintcpterror.hdf5'
+infile_aimin0_linaddbotherror = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_linaddintcpterror_addslopeerror.hdf5'
+infile_aimin0_linsubbotherror = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_linsubintcpterror_subslopeerror.hdf5'
+infile_aimin0_linicep5  = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_liniceplus5.hdf5'
+infile_aimin0_linicem5  = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_liniceminus5.hdf5'
+infile_aimin0_linicep15 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_liniceplus15.hdf5'
+infile_aimin0_linicem15 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_liniceminus15.hdf5'
+infile_aimin0_lincodp5  = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_lincodplus5.hdf5'
+infile_aimin0_lincodm5  = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_lincodminus5.hdf5'
+infile_aimin0_lincodp2  = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_lincodplus2.hdf5'
+infile_aimin0_lincodm2  = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_lincodminus2.hdf5'
 
-infile = infile_aimin0
+#infile = infile_aimin0
+infile = infile_aimin0_lin
 all_month_dict = read_daily_month_force_HDF5(infile)
+all_month_dict_thl = read_daily_month_force_HDF5(infile_aimin0)
+#all_month_dict_upper = read_daily_month_force_HDF5(infile_aimin0_linicep15)
+#all_month_dict_lower = read_daily_month_force_HDF5(infile_aimin0_linicem15)
+#all_month_dict_upper = read_daily_month_force_HDF5(infile_aimin0_upper)
+#all_month_dict_lower = read_daily_month_force_HDF5(infile_aimin0_lower)
+#all_month_dict_upper = read_daily_month_force_HDF5(infile_aimin0_linaddslopeerror)
+#all_month_dict_lower = read_daily_month_force_HDF5(infile_aimin0_linsubslopeerror)
+#all_month_dict_upper = read_daily_month_force_HDF5(infile_aimin0_linaddintcpterror)
+#all_month_dict_lower = read_daily_month_force_HDF5(infile_aimin0_linsubintcpterror)
 
 # Compare the results for different sea ice and cloud values
 # ----------------------------------------------------------
-#plot_type_forcing_v3_all_months_arctic_avg_manyrefice(all_month_dict['FORCE_EST'], \
-#       OMI_daily_VSJ4, minlat = 65, trend_type = 'standard', stype = 'ice', \
-#       ptype = 'forcing', vtype = 'v4', version4 = True)
+##plot_type_forcing_v3_all_months_arctic_avg_manyrefice(all_month_dict['FORCE_EST'], \
+##       OMI_daily_VSJ4, minlat = 65, trend_type = 'standard', stype = 'ice', \
+##       ptype = 'forcing', vtype = 'v4', version4 = True)
+#plot_type_forcing_v3_all_months_arctic_avg_manyrefice(all_month_dict_thl['FORCE_EST'], \
+#       OMI_daily_VSJ4, minlat = 65, maxlat = 75., trend_type = 'standard', stype = 'ice', \
+#       ptype = 'forcing', vtype = 'v4', slope_type = 'thl', version4 = True)
+
+plot_type_forcing_v4_all_months_arctic_avg_manyrefice_combined(all_month_dict_thl['FORCE_EST'], \
+    OMI_daily_VSJ4, slope_type = 'thl', stype = 'ice', show_trends = False, \
+    version4 = False, horiz_orient = False)
+sys.exit()
 
 # Calculates the slopes of the refice or refcld simulations plotted
 # in the "plot_type_forcing_v3_all_months_arctic_avg_manyrefice" function.
@@ -302,34 +514,247 @@ all_month_dict = read_daily_month_force_HDF5(infile)
 #       OMI_daily_VSJ4, minlat = 65, trend_type = 'standard', stype = 'ice', \
 #       ptype = 'forcing', version4 = True)
 
+ice_slopes = calc_forcing_slopes_v4_all_months_arctic_avg_manyrefice(all_month_dict['FORCE_EST'], \
+    OMI_daily_VSJ4, minlat = 65., maxlat = 87., stype = 'ice', slope_type = 'lin', \
+    save = False)
+cld_slopes = calc_forcing_slopes_v4_all_months_arctic_avg_manyrefice(all_month_dict['FORCE_EST'], \
+    OMI_daily_VSJ4, minlat = 65., maxlat = 87., stype = 'cld', slope_type = 'lin', \
+    save = False)
+
 # Print the results of the refice/cld simulation trend comparisons as 
 # a table
 # -------------------------------------------------------------------
-calc_print_forcing_slope_error_v3(all_month_dict['FORCE_EST'], \
-       OMI_daily_VSJ4, minlat = 65, trend_type = 'standard', \
-       vtype = 'v3', ptype = 'forcing', version4 = True)
-
-sys.exit()
+#calc_print_forcing_slope_error_v3(all_month_dict['FORCE_EST'], \
+#       OMI_daily_VSJ4, minlat = 65, trend_type = 'standard', \
+#       vtype = 'v3', ptype = 'forcing', version4 = True)
+#
+#sys.exit()
 
 # Plot the trend of daily-gridded monthly forcing values
 # ------------------------------------------------------
 ##plot_type_forcing_v3_all_months(all_month_vals, OMI_daily_VSJ4, \
 #plot_type_forcing_v3_all_months(all_month_dict['FORCE_EST'], OMI_daily_VSJ4, \
-#           minlat = 65, omi_data_type = 'pert', version4 = True)
-
+#           minlat = 65, omi_data_type = 'lin', version4 = True)
+#
 # Calculate the Arctic-wide average of the daily-gridded monthly forcing
 # values for each month and plot them
 # ----------------------------------------------------------------------
 #plot_type_forcing_v3_all_months_arctic_avg(all_month_vals, OMI_daily_VSJ4, \
 #plot_type_forcing_v3_all_months_arctic_avg(all_month_dict['FORCE_EST'], OMI_daily_VSJ4, \
-#    minlat = 65, trend_type = 'standard', omi_data_type = 'pert', version4 = True)
-
+#    minlat = 65, trend_type = 'standard', omi_data_type = 'lin', version4 = True)
+#sys.exit()
 #write_daily_month_force_to_HDF5(all_month_vals, OMI_daily_VSJ4, \
 #    name_add = '_dayaithresh07_aipert_dataminlat70')
 #write_daily_month_force_to_HDF5(all_month_vals, OMI_daily_VSJ4, \
 #    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
 #    dtype = 'pert', 
 #    name_add = '_dayaithresh07_v4_aimin0_useintcpt')
+
+
+# Calculate daily forcing values and average the daily values into
+# monthly forcing estimates, but by adding or subtracting the 
+# slope error from the SZA-mean AI/SWF slopes. 
+# ----------------------------------------------------------------
+#all_month_vals_upper = \
+#    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = 'upper', \
+#    filter_bad_vals = True, return_modis_nsidc = False, \
+#    use_intercept = True, debug = False)
+#write_daily_month_force_to_HDF5(all_month_vals_upper, OMI_daily_VSJ4, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+#    dtype = 'pert', 
+#    name_add = '_dayaithresh07_v4_aimin0_useintcpt_upperslope')
+#all_month_vals_lower = \
+#    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = 'lower', \
+#    filter_bad_vals = True, return_modis_nsidc = False, \
+#    use_intercept = True, debug = False)
+#write_daily_month_force_to_HDF5(all_month_vals_lower, OMI_daily_VSJ4, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+#    dtype = 'pert', 
+#    name_add = '_dayaithresh07_v4_aimin0_useintcpt_lowerslope')
+#sys.exit()
+
+# NOTE: maxerr is not used in the v4 calculations as of 2024/07/03
+#all_month_vals_upper_lin = \
+#    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = 'upper', \
+#    mod_intercepts = None, \
+#    filter_bad_vals = True, return_modis_nsidc = False, \
+#    use_intercept = True, debug = False)
+#write_daily_month_force_to_HDF5(all_month_vals_upper_lin, OMI_daily_VSJ4, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+#    dtype = 'pert', 
+#    name_add = '_dayaithresh07_v4_aimin0_useintcpt_linadderror')
+#all_month_vals_lower_lin = \
+#    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = 'lower', \
+#    mod_intercepts = None, \
+#    filter_bad_vals = True, return_modis_nsidc = False, \
+#    use_intercept = True, debug = False)
+#write_daily_month_force_to_HDF5(all_month_vals_lower_lin, OMI_daily_VSJ4, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+#    dtype = 'pert', 
+#    name_add = '_dayaithresh07_v4_aimin0_useintcpt_linsuberror')
+#all_month_vals_lin = \
+#    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+#    mod_intercepts = None, \
+#    filter_bad_vals = True, return_modis_nsidc = False, \
+#    use_intercept = True, debug = False)
+#write_daily_month_force_to_HDF5(all_month_vals_lin, OMI_daily_VSJ4, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+#    dtype = 'pert', 
+#    name_add = '_dayaithresh07_v4_aimin0_useintcpt_lin')
+#all_month_vals_upper_lin = \
+#    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+#    mod_intercepts = 'upper', \
+#    filter_bad_vals = True, return_modis_nsidc = False, \
+#    use_intercept = True, debug = False)
+#write_daily_month_force_to_HDF5(all_month_vals_upper_lin, OMI_daily_VSJ4, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+#    dtype = 'pert', 
+#    name_add = '_dayaithresh07_v4_aimin0_useintcpt_linaddintcpterror')
+#all_month_vals_lower_lin = \
+#    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+#    mod_intercepts = 'lower', \
+#    filter_bad_vals = True, return_modis_nsidc = False, \
+#    use_intercept = True, debug = False)
+#write_daily_month_force_to_HDF5(all_month_vals_lower_lin, OMI_daily_VSJ4, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+#    dtype = 'pert', 
+#    name_add = '_dayaithresh07_v4_aimin0_useintcpt_linsubintcpterror')
+#all_month_vals_upper_lin = \
+#    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = 'upper', \
+#    mod_intercepts = 'upper', \
+#    filter_bad_vals = True, return_modis_nsidc = False, \
+#    use_intercept = True, debug = False)
+#write_daily_month_force_to_HDF5(all_month_vals_upper_lin, OMI_daily_VSJ4, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+#    dtype = 'pert', 
+#    name_add = '_dayaithresh07_v4_aimin0_useintcpt_linaddintcpterror_addslopeerror')
+#all_month_vals_lower_lin = \
+#    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = 'lower', \
+#    mod_intercepts = 'lower', \
+#    filter_bad_vals = True, return_modis_nsidc = False, \
+#    use_intercept = True, debug = False)
+#write_daily_month_force_to_HDF5(all_month_vals_lower_lin, OMI_daily_VSJ4, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+#    dtype = 'pert', 
+#    name_add = '_dayaithresh07_v4_aimin0_useintcpt_linsubintcpterror_subslopeerror')
+#sys.exit()
+
+
+
+# Test the sensitivity to ice
+# ---------------------------
+#all_month_vals_ice_plus5 = \
+#    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+#    mod_ice = 5, \
+#    filter_bad_vals = True, return_modis_nsidc = False, \
+#    use_intercept = True, debug = False)
+#write_daily_month_force_to_HDF5(all_month_vals_ice_plus5, OMI_daily_VSJ4, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+#    dtype = 'pert', 
+#    name_add = '_dayaithresh07_v4_aimin0_useintcpt_liniceplus5')
+#all_month_vals_ice_minus5 = \
+#    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+#    mod_ice = -5, \
+#    filter_bad_vals = True, return_modis_nsidc = False, \
+#    use_intercept = True, debug = False)
+#write_daily_month_force_to_HDF5(all_month_vals_ice_minus5, OMI_daily_VSJ4, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+#    dtype = 'pert', 
+#    name_add = '_dayaithresh07_v4_aimin0_useintcpt_liniceminus5')
+#all_month_vals_ice_plus5 = \
+#    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+#    mod_cod = 5, \
+#    filter_bad_vals = True, return_modis_nsidc = False, \
+#    use_intercept = True, debug = False)
+#write_daily_month_force_to_HDF5(all_month_vals_ice_plus5, OMI_daily_VSJ4, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+#    dtype = 'pert', 
+#    name_add = '_dayaithresh07_v4_aimin0_useintcpt_lincodplus5')
+#all_month_vals_ice_minus5 = \
+#    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+#    mod_cod = -5, \
+#    filter_bad_vals = True, return_modis_nsidc = False, \
+#    use_intercept = True, debug = False)
+#write_daily_month_force_to_HDF5(all_month_vals_ice_minus5, OMI_daily_VSJ4, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+#    dtype = 'pert', 
+#    name_add = '_dayaithresh07_v4_aimin0_useintcpt_lincodminus5')
+
+#all_month_vals_ice_plus5 = \
+#    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+#    mod_cod = 2, \
+#    filter_bad_vals = True, return_modis_nsidc = False, \
+#    use_intercept = True, debug = False)
+#write_daily_month_force_to_HDF5(all_month_vals_ice_plus5, OMI_daily_VSJ4, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+#    dtype = 'pert', 
+#    name_add = '_dayaithresh07_v4_aimin0_useintcpt_lincodplus2')
+#all_month_vals_ice_minus5 = \
+#    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+#    mod_cod = -2, \
+#    filter_bad_vals = True, return_modis_nsidc = False, \
+#    use_intercept = True, debug = False)
+#write_daily_month_force_to_HDF5(all_month_vals_ice_minus5, OMI_daily_VSJ4, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+#    dtype = 'pert', 
+#    name_add = '_dayaithresh07_v4_aimin0_useintcpt_lincodminus2')
+#sys.exit()
+
+
+#all_month_vals_ice_plus15 = \
+#    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+#    mod_ice = 15, \
+#    filter_bad_vals = True, return_modis_nsidc = False, \
+#    use_intercept = True, debug = False)
+#write_daily_month_force_to_HDF5(all_month_vals_ice_plus15, OMI_daily_VSJ4, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+#    dtype = 'pert', 
+#    name_add = '_dayaithresh07_v4_aimin0_useintcpt_liniceplus15')
+#all_month_vals_ice_minus15 = \
+#    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+#    mod_ice = -15, \
+#    filter_bad_vals = True, return_modis_nsidc = False, \
+#    use_intercept = True, debug = False)
+#write_daily_month_force_to_HDF5(all_month_vals_ice_minus15, OMI_daily_VSJ4, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+#    dtype = 'pert', 
+#    name_add = '_dayaithresh07_v4_aimin0_useintcpt_liniceminus15')
+#
+#sys.exit()
 
 # Calculate daily forcing values and average the daily values into
 # monthly forcing estimates, but here using the daily ice concentration
@@ -338,37 +763,89 @@ sys.exit()
 # the average of the first three years of sea ice rather than one
 # year...
 # ----------------------------------------------------------------
-#infile_aimin0 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt.hdf5'
-ref_ice_vals = np.arange(2005,2021)
-for ref_ice in ref_ice_vals:
-    #all_month_vals_ice = calculate_type_forcing_v3_monthly(daily_VSJ4, \
-    #    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = ai_thresh, minlat = minlat, \
-    #    maxerr = maxerr, reference_ice = str(ref_ice))
-    all_month_vals_ice = \
-        calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
-        slope_dict, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
-        ai_thresh = ai_thresh, maxerr = maxerr, \
-        reference_ice = str(ref_ice), reference_cld = None, mod_slopes = None, \
-        filter_bad_vals = True, return_modis_nsidc = False, \
-        use_intercept = True, debug = False)
-    write_daily_month_force_to_HDF5(all_month_vals_ice, OMI_daily_VSJ4, \
-        name_add = '_dayaithresh07_v4_aimin0_useintcpt_refice' + str(ref_ice))
-
-ref_cld_vals = np.arange(2005,2021)
-for ref_cld in ref_cld_vals:
-    #all_month_vals_cld = calculate_type_forcing_v3_monthly(daily_VSJ4, \
-    #    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = ai_thresh, minlat = minlat, \
-    #    maxerr = maxerr, reference_cld = str(ref_cld))
-    all_month_vals_cld = \
-        calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
-        slope_dict, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
-        ai_thresh = ai_thresh, maxerr = maxerr, \
-        reference_ice = None, reference_cld = str(ref_cld), mod_slopes = None, \
-        filter_bad_vals = True, return_modis_nsidc = False, \
-        use_intercept = True, debug = False)
-    write_daily_month_force_to_HDF5(all_month_vals_cld, OMI_daily_VSJ4, \
-        name_add = '_dayaithresh07_v4_aimin0_useintcpt_refcld' + str(ref_cld))
+##infile_aimin0 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt.hdf5'
+#ref_ice_vals = np.arange(2005,2021)
+#for ref_ice in ref_ice_vals:
+#    #all_month_vals_ice = calculate_type_forcing_v3_monthly(daily_VSJ4, \
+#    #    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = ai_thresh, minlat = minlat, \
+#    #    maxerr = maxerr, reference_ice = str(ref_ice))
+#    all_month_vals_ice = \
+#        calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#        slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#        ai_thresh = ai_thresh, maxerr = maxerr, \
+#        reference_ice = str(ref_ice), reference_cld = None, mod_slopes = None, \
+#        filter_bad_vals = True, return_modis_nsidc = False, \
+#        use_intercept = True, debug = False)
+#    write_daily_month_force_to_HDF5(all_month_vals_ice, OMI_daily_VSJ4, \
+#        name_add = '_dayaithresh07_v4_aimin0_useintcpt_lin_refice' + str(ref_ice))
+#
+#ref_cld_vals = np.arange(2005,2021)
+#for ref_cld in ref_cld_vals:
+#    #all_month_vals_cld = calculate_type_forcing_v3_monthly(daily_VSJ4, \
+#    #    OMI_daily_VSJ4, lin_smth2_dict_v6, 'all', ai_thresh = ai_thresh, minlat = minlat, \
+#    #    maxerr = maxerr, reference_cld = str(ref_cld))
+#    all_month_vals_cld = \
+#        calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#        slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#        ai_thresh = ai_thresh, maxerr = maxerr, \
+#        reference_ice = None, reference_cld = str(ref_cld), mod_slopes = None, \
+#        filter_bad_vals = True, return_modis_nsidc = False, \
+#        use_intercept = True, debug = False)
+#    write_daily_month_force_to_HDF5(all_month_vals_cld, OMI_daily_VSJ4, \
+#        name_add = '_dayaithresh07_v4_aimin0_useintcpt_lin_refcld' + str(ref_cld))
+#sys.exit()
     
+# Calculate the Arctic-wide average of the daily-gridded monthly forcing
+# values for each month and plot them, but also plotting the '_adderror'
+# and '_suberror' results for the first look at an error analysis.
+# ----------------------------------------------------------------------
+#plot_type_forcing_v3_all_months_arctic_avg(all_month_dict['FORCE_EST'], 
+#    OMI_daily_VSJ4, minlat = 65, trend_type = 'standard', 
+#    month_values2 = all_month_dict_upper['FORCE_EST'], 
+#    month_values3 = all_month_dict_lower['FORCE_EST'], \
+#    omi_data_type = 'pert', labels = ['upper', 'lower'])
+
+# Plot the 65 - 87, 65 - 75, and 75 - 87 Arctic-avg results
+# ----------------------------------------------------------------------
+plot_type_forcing_v3_all_months_arctic_avg_combined(all_month_dict['FORCE_EST'], \
+    OMI_daily_VSJ4, version4 = False, max_pval = 0.05, save = False)
+sys.exit()
+
+# Calculate Arctic-wide average for all of the provided monthly forcings.
+# Meant to be a plot of the Monte Carlo-esque uncertainty analysis.
+# The first file in the list is the control
+# -----------------------------------------------------------------------
+all_month_files = [
+    infile_aimin0_lin, \
+    infile_aimin0_linaddslopeerror, \
+    infile_aimin0_linsubslopeerror, \
+    infile_aimin0_linaddintcpterror, \
+    infile_aimin0_linsubintcpterror, \
+    infile_aimin0_linicep5, \
+    infile_aimin0_linicem5, \
+    infile_aimin0_linicep15, \
+    infile_aimin0_linicem15, \
+    infile_aimin0_lincodp2, \
+    infile_aimin0_lincodm2, \
+    infile_aimin0_lincodp5, \
+    infile_aimin0_lincodm5
+]
+
+# This plots the 6-panel results for a specific latitude band
+# -----------------------------------------------------------
+#plot_type_forcing_v4_all_months_arctic_avg(all_month_files, \
+#        minlat = 70., maxlat = 87., \
+#        data_type = 'raw', trend_type = 'standard', \
+#        save = False,debug = False, labels = None)
+
+# This plots all the results from all 3 latitude bands
+# ----------------------------------------------------
+#plot_type_forcing_v4_all_months_arctic_avg_combined(all_month_files, \
+#    version4 = False, max_pval = 0.05, \
+#    horiz_orient = True, save = False)
+
+uncert_slopes =  calc_forcing_slopes_v4_all_months_arctic_avg_uncert(all_month_files, \
+        OMI_daily_VSJ4, slope_type = 'lin')
 
 
 sys.exit()
@@ -531,123 +1008,6 @@ data.close()
 
 sys.exit()
 
-
-
-
-#files = glob('comp_data/colocated_subset_20180705*.hdf5')
-files = glob('comp_data/original_prep_data/colocated_subset_20180705*')
-
-min_ai = -2.0
-max_ai = 1.0
-minlat = 65.    # 2024/01/10: changed to 65.
-min_swf = 0.
-max_swf = 3000.
-max_cod = 70.
-min_ice = 0.
-max_ice = 500.
-
-for ff in files:
-
-    data = h5py.File(ff)
-    dtime = ff.strip().split('/')[-1].split('_')[-1].split('.')[0]
-
-    print(dtime, data.keys())
-    local_data = np.ma.masked_invalid(data['omi_uvai_raw'])
-    #local_data =  np.ma.masked_where( (local_data < min_ai) | \
-    #                           (local_data > max_ai) | \
-    #                           (data['omi_lat'][:,:] < minlat) | \
-    #                           ( (data['ceres_swf'][:,:] < min_swf) | \
-    #                           (data['ceres_swf'][:,:] > max_swf) ) | \
-    #                           (np.isnan(data['ceres_swf'][:,:]) == True) | \
-    #                           (data['modis_cod'][:,:] == -999) | \
-    #                           (data['modis_cod'][:,:] > max_cod) | \
-    #                           (np.isnan(data['modis_cod'][:,:]) == True) | \
-    #                           #(data['modis_cld_top_pres'][:,:] < 0) | \
-    #                           #(data['modis_cld_top_pres'][:,:] > 1025) | \
-    #                           #(np.isnan(data['modis_cld_top_pres'][:,:]) == True) | \
-    #                           (data['nsidc_ice'][:,:] == -999) | \
-    #                           (data['nsidc_ice'][:,:] == 251) | \
-    #                           #(data['nsidc_ice'][:,:] == 254) | \
-    #                           (data['nsidc_ice'][:,:] == 253), \
-    #                           local_data)
-
-    #local_omi   = np.ma.masked_where(local_data.mask == False, data['omi_uvai_raw'])
-    #local_ceres = np.ma.masked_where(local_data.mask == False, data['ceres_swf'])
-    #local_ch7   = np.ma.masked_where(local_data.mask == False, data['modis_ch7'])
-    #local_cod   = np.ma.masked_where(local_data.mask == False, data['modis_cod'])
-    #local_ctp   = np.ma.masked_where(local_data.mask == False, data['modis_cld_top_pres'])
-    #local_ice   = np.ma.masked_where(local_data.mask == False, data['nsidc_ice'])
-
-    local_omi   = np.ma.masked_where(data['omi_uvai_raw'][:,:] == -999., data['omi_uvai_raw'][:,:])
-    local_ceres = np.ma.masked_where((data['ceres_swf'][:,:] == -999.) |
-                                     (data['ceres_swf'][:,:] > 3000), data['ceres_swf'][:,:])
-    local_ch7   = np.ma.masked_where(data['modis_ch7'][:,:] == -999., data['modis_ch7'][:,:])
-    local_cod   = np.ma.masked_where(data['modis_cod'][:,:] == -999., data['modis_cod'][:,:])
-    #local_ctp   = np.ma.masked_where(data['modis_cld_top_pres'][:,:] == -999., data['modis_ctp'][:,:])
-    local_ice   = np.ma.masked_where(data['nsidc_ice'][:,:] == -999., data['nsidc_ice'][:,:])
-
-    local_omi   = np.ma.masked_invalid(local_omi)
-    local_ceres = np.ma.masked_invalid(local_ceres)
-    local_ch7   = np.ma.masked_invalid(local_ch7)
-    local_cod   = np.ma.masked_invalid(local_cod)
-    #local_ctp   = np.ma.masked_invalid(local_ctp)
-    local_ice   = np.ma.masked_invalid(local_ice)
- 
-    #combined_data['modis_cld_top_pres'] = \
-    # np.where(combined_data['modis_cld_top_pres'] == 0., 1025., \
-    # combined_data['modis_cld_top_pres'])
-    ## TESTING: Make all NAN values to be "clear-sky"
-    #combined_data['modis_cld_top_pres'] = \
-    #    np.where(np.isnan(combined_data['modis_cld_top_pres'][:]) == True, 1025., \
-    #    combined_data['modis_cld_top_pres'][:])
-
-    fig = plt.figure()
-    ax1 = fig.add_subplot(2,3,1, projection = ccrs.NorthPolarStereo()) # OMI UVAI
-    ax2 = fig.add_subplot(2,3,2, projection = ccrs.NorthPolarStereo()) # CERES SWF
-    ax3 = fig.add_subplot(2,3,3, projection = ccrs.NorthPolarStereo()) # MODIS CH7
-    ax4 = fig.add_subplot(2,3,4, projection = ccrs.NorthPolarStereo()) # MODIS COD
-    ax5 = fig.add_subplot(2,3,5, projection = ccrs.NorthPolarStereo()) # MODIS CLD TOP PRES 
-    ax6 = fig.add_subplot(2,3,6, projection = ccrs.NorthPolarStereo()) # NSIDC ICE
-
-    ax1.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], local_omi, \
-        transform = ccrs.PlateCarree(), shading = 'auto', cmap = 'jet')
-    ax1.set_extent([-180,180,65,90], ccrs.PlateCarree())
-    ax1.coastlines()
-
-    ax2.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], local_ceres, \
-        transform = ccrs.PlateCarree(), shading = 'auto')
-    ax2.set_extent([-180,180,65,90], ccrs.PlateCarree())
-    ax2.coastlines()
-
-    ax3.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], local_ch7, \
-        transform = ccrs.PlateCarree(), shading = 'auto')
-    ax3.set_extent([-180,180,65,90], ccrs.PlateCarree())
-    ax3.coastlines()
-
-    ax4.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], local_cod, \
-        transform = ccrs.PlateCarree(), shading = 'auto')
-    ax4.set_extent([-180,180,65,90], ccrs.PlateCarree())
-    ax4.coastlines()
-
-    #ax5.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], local_ctp, \
-    #    transform = ccrs.PlateCarree(), shading = 'auto')
-    #ax5.set_extent([-180,180,65,90], ccrs.PlateCarree())
-    #ax5.coastlines()
-
-    ax6.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], local_ice, \
-        transform = ccrs.PlateCarree(), shading = 'auto')
-    ax6.set_extent([-180,180,65,90], ccrs.PlateCarree())
-    ax6.coastlines()
-
-    data.close()
-
-    plt.suptitle(dtime)
-
-    fig.tight_layout()
-    plt.show()
-
-sys.exit()
-    
 
 
 
