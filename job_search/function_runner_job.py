@@ -22,7 +22,6 @@ lat_lon_dict = read_lat_lon_from_csv()
 radius_miles = 50
 radius_km = radius_miles / 0.611
 
-
 def check_point_distance(data, threshold, plat, plon, lat_lon_dict):
 
     if('University' in data.keys()):

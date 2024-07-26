@@ -912,6 +912,24 @@ print('Num aerosol swaths', len(aer_file_list))
 #
 #           CLDPRES NANs are accounted for in 'select data'
 #           Job ID = 43699
+#  
+# noland55: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on ALL data
+#               100 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: ????
+#           INCLUDES LAND DATA, CH7, VZA
+#
+#           Only differences between this and noland54
+#               Changing the scaling values from 0 - 100 to 0 - 1000.
+#               Added 'scaling_range' variable
+#
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 65027
+#
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -941,6 +959,8 @@ max_swf = 3000.
 max_cod = 70.
 min_ice = 0.
 max_ice = 500.
+
+scaling_range = 1000.
 
 if(l_load_model):
 
@@ -1238,7 +1258,8 @@ else:
         min_max_dict[key]['max'] = np.max(combined_data[key])
     
         drange = min_max_dict[key]['max'] - min_max_dict[key]['min']
-        combined_data[key] = ((combined_data[key] - min_max_dict[key]['min']) / drange) * 100.
+        #combined_data[key] = ((combined_data[key] - min_max_dict[key]['min']) / drange) * 100.
+        combined_data[key] = ((combined_data[key] - min_max_dict[key]['min']) / drange) * scaling_range
         #combined_data[key] = ((combined_data[key] - min_max_dict[key]['min']) / drange) * 100.
    
     # Save the min_max_dict values to a json file for later loading
@@ -1259,8 +1280,21 @@ else:
     print('VZA',np.min(combined_data['omi_vza']), np.max(combined_data['omi_vza']))
     print('ALB',np.min(combined_data['ceres_alb']), np.max(combined_data['ceres_alb']))
     print('ICE',np.min(combined_data['nsidc_ice']), np.max(combined_data['nsidc_ice']))
-    
-        
+   
+    # Test unscaling here
+    # ------------------- 
+    test_swf = 500.
+    workval = ((test_swf - min_max_dict['ceres_swf']['min']) /  \
+        (min_max_dict['ceres_swf']['max'] - min_max_dict['ceres_swf']['min'])) * \
+        scaling_range
+    recalc_val = (((workval / scaling_range) * (min_max_dict['ceres_swf']['max'] - \
+        min_max_dict['ceres_swf']['min'])) + min_max_dict['ceres_swf']['min'])
+   
+    print("ORIGINAL SWF:", test_swf)
+    print("SCALED SWF:  ", workval)
+    print("UNSCALED SWF:", recalc_val)
+ 
+    sys.exit()    
 
     pcnt_test = 0.10
     num_test = int(combined_data['omi_uvai_pert'].shape[0] * pcnt_test)
@@ -1270,7 +1304,8 @@ else:
     train_idxs, test_idxs = train_test_split(ranges, test_size = num_test)
     
     print(train_idxs.shape, test_idxs.shape)
-    
+  
+  
     # Input format: OMI SZA, NSIDC ICE, MODIS COD
     x_train = np.array([combined_data['omi_sza'][train_idxs], \
                         combined_data['omi_vza'][train_idxs], \
@@ -1381,8 +1416,8 @@ else:
                                         combined_data['ceres_alb'][test_idxs][:10]])]).squeeze()
     
     
-    print(  ((combined_data['ceres_swf'][test_idxs][0:10] / 100) * drange) + min_max_dict['ceres_swf']['min'])
-    print(  ((test_out / 100) * drange) + min_max_dict['ceres_swf']['min'])
+    print(  ((combined_data['ceres_swf'][test_idxs][0:10] / scaling_range) * drange) + min_max_dict['ceres_swf']['min'])
+    print(  ((test_out / scaling_range) * drange) + min_max_dict['ceres_swf']['min'])
 
 
 
@@ -1566,7 +1601,7 @@ if(l_save_data):
                                             new_alb])]).squeeze()
 
 
-        calc_swf[:] = ((calc_swf[:] / 100) * \
+        calc_swf[:] = ((calc_swf[:] / scaling_range) * \
                 (min_max_dict['ceres_swf']['max'] - min_max_dict['ceres_swf']['min'])) + \
                 min_max_dict['ceres_swf']['min']
 

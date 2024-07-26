@@ -18,9 +18,13 @@ from pyhdf import SD
 import pandas as pd
 import h5py
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import ImageGrid
 import cartopy
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
+from satpy.scene import Scene
+from satpy import find_files_and_readers
+from satpy.writers import get_enhanced_image
 from glob import glob
 import os
 
@@ -315,40 +319,121 @@ def readVIIRS_granule(filename, band = 'M15', \
                 vmax = 10.0
 
             else:
-                dtype = band
-            
-                dnb = viirs_ds['observation_data/' + band][:]
-                dnb_scale = viirs_ds['observation_data/' + band].attrs['scale_factor']
-                dnb_offset = viirs_ds['observation_data/' + band].attrs['add_offset']
-
-                dnb = np.ma.masked_where(dnb < 0, dnb)
-                dnb = (dnb - dnb_offset) * dnb_scale
-                print(np.min(dnb), np.max(dnb))
-
-                # Use the band number to determine the colormap
-                # ---------------------------------------------
-                if(int(band[1:]) > 11):
-                    cmap = 'plasma'
-
-                    dnb = convert_radiance_to_temp(\
-                        (np.average(channel_dict[band]['Bandwidth'])), dnb)
-
-                    print('wavelength avg = ', np.average(channel_dict[band]['Bandwidth']))
-                    print('Radiances  ', np.min(dnb), np.max(dnb))
-                    label = 'Brightness temperature [K]'
-                    #label = 'Radiance [W m$^{-2}$ μm$^{-1}$ Sr$^{-1}$]'
-    
-                    if(np.max(dnb) > 330):
-                        vmax = 330
-                    else:
-                        vmax = None
+                if(str(band) == 'true_color'):
+                    dtype = 'true_color'
+                    # Pull out the red, green, and blue reflectance data
+                    # --------------------------------------------------
+                    red = viirs_ds['observation_data/M05'][:]
+                    red_scale = viirs_ds['observation_data/M05'].attrs['scale_factor']
+                    red_offset = viirs_ds['observation_data/M05'].attrs['add_offset']
+                    
+                    green = viirs_ds['observation_data/M04'][:]
+                    green_scale = viirs_ds['observation_data/M04'].attrs['scale_factor']
+                    green_offset = viirs_ds['observation_data/M04'].attrs['add_offset']
+                    
+                    blue = viirs_ds['observation_data/M03'][:]
+                    blue_scale = viirs_ds['observation_data/M03'].attrs['scale_factor']
+                    blue_offset = viirs_ds['observation_data/M03'].attrs['add_offset']
+                   
+                    """ 
+                    # The RGB reflectances are on a much higher resolution than the lats and
+                    # lons, so use only every 5th value
+                    # ----------------------------------------------------------------------
+                    red   = red[::5,::5]
+                    green = green[::5,::5]
+                    blue  = blue[::5,::5]
+                    
+                    # Extract the scales and offsets for each channel from the file. These are 
+                    # used to convert these reflectance values into usable data
+                    # ------------------------------------------------------------------------
+                    red_scale    = modis.select('EV_250_Aggr1km_RefSB').attributes().get('reflectance_scales')[0]
+                    red_offset   = modis.select('EV_250_Aggr1km_RefSB').attributes().get('reflectance_offsets')[0]
+                    green_scale  = modis.select('EV_500_Aggr1km_RefSB').attributes().get('reflectance_scales')[1]
+                    green_offset = modis.select('EV_500_Aggr1km_RefSB').attributes().get('reflectance_offsets')[1]
+                    blue_scale   = modis.select('EV_500_Aggr1km_RefSB').attributes().get('reflectance_scales')[0]
+                    blue_offset  = modis.select('EV_500_Aggr1km_RefSB').attributes().get('reflectance_offsets')[0]
+                    
+                    ##!## Close the satellite file object
+                    ##!## -------------------------------
+                    ##!#modis.end()
+                    """ 
+                    # The RGB reflectances are on a much higher resolution than the lats and
+                    
+                    # Use the scales and offset calibration values to convert from counts to
+                    # reflectance
+                    # ----------------------------------------------------------------------
+                    red   = (red - red_offset) * red_scale
+                    green = (green - green_offset) * green_scale
+                    blue  = (blue - blue_offset) * blue_scale
+                    
+                    red   = red*(255./1.1) 
+                    green = green*(255./1.1) 
+                    blue  = blue*(255./1.1) 
+                    
+                    # Create color scales for each RGB channel
+                    # ----------------------------------------
+                    old_val = np.array([0,30,60,120,190,255])
+                    ehn_val = np.array([0,110,160,210,240,255])
+                    red     = np.interp(red,old_val,ehn_val) / 255.
+                    old_val = np.array([0,30,60,120,190,255])
+                    ehn_val = np.array([0,110,160,200,230,240])
+                    green   = np.interp(green,old_val,ehn_val) / 255.
+                    old_val = np.array([0,30,60,120,190,255])
+                    ehn_val = np.array([0,100,150,210,240,255])
+                    blue    = np.interp(blue,old_val,ehn_val) / 255.
+                    
+                    # Combine the three RGB channels into 1 3-d array
+                    # -----------------------------------------------
+                    image = np.zeros((red.shape[0],red.shape[1],3))
+                    image[:,:,0] = red
+                    image[:,:,1] = green
+                    image[:,:,2] = blue
+                    
+                    # Convert the color values into a format usable for plotting
+                    # ----------------------------------------------------------
+                    colortuple = tuple(np.array([image[:,:,0].flatten(), \
+                        image[:,:,1].flatten(), image[:,:,2].flatten()]).transpose().tolist())
+                    
+                    dnb = np.ma.masked_where(np.isnan(image),image)
+                    label = 'True color'
+                    colors = 'True color'
+                    vmax = None
+                    cmap = None
                 else:
-                    cmap = 'Greys_r'
-                    label = 'Reflectance'
-                    if(np.max(dnb) > 1.0):
-                        vmax = 1.0
+                    dtype = band
+            
+                    dnb = viirs_ds['observation_data/' + band][:]
+                    dnb_scale = viirs_ds['observation_data/' + band].attrs['scale_factor']
+                    dnb_offset = viirs_ds['observation_data/' + band].attrs['add_offset']
+
+                    dnb = np.ma.masked_where(dnb < 0, dnb)
+                    dnb = (dnb - dnb_offset) * dnb_scale
+                    print(np.min(dnb), np.max(dnb))
+
+                    # Use the band number to determine the colormap
+                    # ---------------------------------------------
+                    if(int(band[1:]) > 11):
+                        cmap = 'plasma'
+
+                        dnb = convert_radiance_to_temp(\
+                            (np.average(channel_dict[band]['Bandwidth'])), dnb)
+
+                        print('wavelength avg = ', np.average(channel_dict[band]['Bandwidth']))
+                        print('Radiances  ', np.min(dnb), np.max(dnb))
+                        label = 'Brightness temperature [K]'
+                        #label = 'Radiance [W m$^{-2}$ μm$^{-1}$ Sr$^{-1}$]'
+    
+                        if(np.max(dnb) > 330):
+                            vmax = 330
+                        else:
+                            vmax = None
                     else:
-                        vmax = None
+                        cmap = 'Greys_r'
+                        label = 'Reflectance'
+                        if(np.max(dnb) > 1.0):
+                            vmax = 1.0
+                        else:
+                            vmax = None
                     
 
 
@@ -391,12 +476,277 @@ def readVIIRS_granule(filename, band = 'M15', \
     VIIRS_data['data']      = dnb
     VIIRS_data['vmax']      = vmax
     VIIRS_data['cmap']      = cmap
+    if(str(band) == 'true_color'):
+        VIIRS_data['colortuple'] = colortuple
+    else:
+        VIIRS_data['colortuple'] = None
 
     return VIIRS_data
 
+# dt_date_str is of format YYYYMMDDHHMM
+def read_VIIRS_channel(date_str, channel, zoom = False, swath = False, \
+        satellite = 'SNPP', add_time = 5, lat_lims = None, lon_lims = None):
+
+    data_dir = viirs_dir + satellite + '/'
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    if(channel == 'DNB'):
+        # DNB file reading doesn't work with Satpy file finder.
+        # Just grab the file given the DTG passed
+        # -----------------------------------------------------
+        filename = glob(dt_date_str.strftime(data_dir + '*02' + channel + '.A%Y%j.%H%M*.nc'))[0]
+
+        VIIRS_final = readVIIRS_granule(filename, channel, zoom = zoom)
+        
+        # If desired, clip the data to the lat/lon ranges
+        # ----------------------------------------------- 
+        if(lat_lims is not None):
+            mask_lat = np.ma.masked_where((VIIRS_final['lat'] < lat_lims[0]) | \
+                                          (VIIRS_final['lat'] > lat_lims[1]) | \
+                                          (VIIRS_final['lon'] < lon_lims[0]) | \
+                                          (VIIRS_final['lon'] > lon_lims[1]), \
+                                           VIIRS_final['lat'])
+            
+            keep_long_idx = np.array([False in mask_lat.mask[ii,:] for ii in range(mask_lat.shape[0])])
+            keep_short_idx = np.array([False in mask_lat.mask[:,ii] for ii in range(mask_lat.shape[1])])
+
+            VIIRS_final['lat']  = VIIRS_final['lat'][keep_long_idx, :][:,keep_short_idx]
+            VIIRS_final['lon']  = VIIRS_final['lon'][keep_long_idx, :][:,keep_short_idx]
+            VIIRS_final['data'] = VIIRS_final['data'][keep_long_idx, :][:,keep_short_idx]
+ 
+    else:
+        # Extract the filename given the channel
+        # --------------------------------------
+        dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+        dt_date_str_beg = datetime.strptime(date_str,"%Y%m%d%H%M")
+        dt_date_str_end = dt_date_str + timedelta(minutes = add_time)
+
+        files = find_files_and_readers(start_time = dt_date_str_beg, \
+            end_time = dt_date_str_end, base_dir = data_dir, \
+            reader = 'viirs_l1b')
+
+        # Grab only the 02MOD files
+        # -------------------------
+        is_02MOD = ['02MOD' in tfile for tfile in files['viirs_l1b']]
+        filename = sorted(list(np.array(files['viirs_l1b'])[is_02MOD]))
+ 
+        VIIRS_holder = {}
+        counter = 0
+        for ii, ifile in enumerate(filename):
+
+            print("Reading VIIRS channel",channel," from ",ifile)
+
+            VIIRS_data = readVIIRS_granule(ifile, channel, zoom = zoom)
+
+            VIIRS_holder[str(counter)] = VIIRS_data 
+
+            del VIIRS_data
+
+            counter += 1
+
+        print("HERE:", VIIRS_holder.keys())
+        VIIRS_final = {}
+        VIIRS_final['lat']  = np.concatenate([VIIRS_holder[key]['lat']  for key in VIIRS_holder.keys()], axis = 0)
+        VIIRS_final['lon']  = np.concatenate([VIIRS_holder[key]['lon']  for key in VIIRS_holder.keys()], axis = 0)
+        VIIRS_final['data'] = np.concatenate([VIIRS_holder[key]['data'] for key in VIIRS_holder.keys()], axis = 0)
+        VIIRS_final['cmap'] = VIIRS_holder['0']['cmap']
+        #VIIRS_final['vmax'] = np.max([VIIRS_holder[key]['vmax'] for key in VIIRS_holder.keys()])
+        VIIRS_final['vmax'] = VIIRS_holder['0']['vmax']
+        VIIRS_final['dtype'] = VIIRS_holder['0']['dtype']
+        VIIRS_final['satellite'] = VIIRS_holder['0']['satellite']
+        VIIRS_final['filename'] = filename
+
+        # If desired, clip the data to the lat/lon ranges
+        # ----------------------------------------------- 
+        if(lat_lims is not None):
+            mask_lat = np.ma.masked_where((VIIRS_final['lat'] < lat_lims[0]) | \
+                                          (VIIRS_final['lat'] > lat_lims[1]) | \
+                                          (VIIRS_final['lon'] < lon_lims[0]) | \
+                                          (VIIRS_final['lon'] > lon_lims[1]), \
+                                           VIIRS_final['lat'])
+            
+            keep_long_idx = np.array([False in mask_lat.mask[ii,:] for ii in range(mask_lat.shape[0])])
+            keep_short_idx = np.array([False in mask_lat.mask[:,ii] for ii in range(mask_lat.shape[1])])
+
+            VIIRS_final['lat']  = VIIRS_final['lat'][keep_long_idx, :][:,keep_short_idx]
+            VIIRS_final['lon']  = VIIRS_final['lon'][keep_long_idx, :][:,keep_short_idx]
+            VIIRS_final['data'] = VIIRS_final['data'][keep_long_idx, :, :][:,keep_short_idx]
+        
+        print(VIIRS_final['data'].shape, VIIRS_final['lat'].shape, VIIRS_final['lon'].shape)
+
+        if(str(channel) == 'true_color'):
+        
+            # Convert the color values into a format usable for plotting
+            # ----------------------------------------------------------
+            colortuple = tuple(np.array([VIIRS_final['data'][:,:,0].flatten(), \
+                VIIRS_final['data'][:,:,1].flatten(), \
+                VIIRS_final['data'][:,:,2].flatten()]).transpose().tolist())
+            VIIRS_final['colortuple'] = colortuple
+        else: 
+            VIIRS_final['colortuple'] = None
+
+    print('VIIRS LAT SHAPE: ',VIIRS_final['lat'].shape)
+
+    return VIIRS_final
+
+
+# SLIGHTLY DIFFERENT THAN read_MODIS_satpy
+# add_time: when wanting to grab a swath, specify the extra time desired, in minutes.
+#           By default, this value is 5, which should make the code 
+#           grab only single files
+# ----------------------------------------------------------------------------
+def read_VIIRS_satpy(date_str, channel, satellite = 'SNPP', \
+        composite = False, swath = False, \
+        zoom = True, return_xy = False, add_time = 5):
+#def read_true_color(date_str,composite = False):
+
+    data_dir = viirs_dir + satellite + '/'
+    
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+    dt_date_str_beg = datetime.strptime(date_str,"%Y%m%d%H%M")
+    dt_date_str_end = dt_date_str + timedelta(minutes = add_time)
+
+    files = find_files_and_readers(start_time = dt_date_str_beg, \
+        end_time = dt_date_str_end, base_dir = data_dir, \
+        reader = 'viirs_l1b')
+   
+    """ 
+    if(swath):
+
+        # Determine the correct GOES files associated with the date
+        # ---------------------------------------------------------
+        dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+        #dt_date_str_beg = dt_date_str - timedelta(minutes = 10) datetime.strptime(date_str,"%Y%m%d%H%M")
+        dt_date_str_beg = datetime.strptime(date_str,"%Y%m%d%H%M")
+        dt_date_str_end = dt_date_str + timedelta(minutes = add_time)
+
+        cmpst_add = '_composite'
+        #lat_lims = [60, 90]
+        #lon_lims = [-180, 180]
+
+        try:
+            # Use the Satpy find_files_and_readers to grab the files
+            # ------------------------------------------------------
+            files = find_files_and_readers(start_time = dt_date_str_beg, \
+                end_time = dt_date_str_end, base_dir = data_dir, \
+                reader = 'viirs_l1b')
+        except ValueError:
+            print("ERROR: no files found for dtg",date_str)
+            return
+
+        day_filenames = files
+        #lat_lims = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis_Lat']
+        #lon_lims = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis_Lon']
+
+    else:
+        # Determine the correct MODIS file associated with the date
+        # ---------------------------------------------------------
+        dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+        filename = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis']
+        print(filename)
+
+        if(type(filename) is list):
+            day_filenames = filename
+            cmpst_add = ''
+        else:
+            if(composite):
+                day_filenames = glob(filename[:50]+'*')
+                cmpst_add = '_composite'
+            else:
+                day_filenames = glob(filename)
+                cmpst_add = ''
+
+        # Extract the modis true-color plot limits
+        # ----------------------------------------
+        lat_lims = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis_Lat']
+        lon_lims = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][dt_date_str.strftime('%H%M')]['modis_Lon']
+    """ 
+
+    # Use satpy (Scene) to open the file
+    # ----------------------------------
+    scn = Scene(reader = 'viirs_l1b', filenames = files)
+
+    # Load true-color data
+    scn.load(['true_color'])
+    if(channel != 'true_color'): 
+        scn.load([str(channel)])
+        # NOTE: Removing the "calibration" section for VIIRS data
+        #scn.load([str(channel)], calibration = [channel_dict[str(channel)]['Unit_name']])
+    ##!#else:
+    ##!#    scn.load([str(channel)])
+
+    ##!#if(channel == 'true_color'):
+    ##!#    # Set the map projection and center the data
+    ##!#    # ------------------------------------------
+    #my_area = scn[str(channel)].attrs['area'].compute_optimal_bb_area({\
+    #if(not swath):
+    my_area = scn['true_color'].attrs['area'].compute_optimal_bb_area()
+    #my_area = scn['true_color'].attrs['area'].compute_optimal_bb_area({\
+    #    'proj':'lcc', 'lon_0': lon_lims[0], 'lat_0': lat_lims[0], \
+    #    'lat_1': lat_lims[0], 'lat_2': lat_lims[0]})
+    new_scn = scn.resample(my_area)
+    #else:
+    #    new_scn = scn
+
+    ##!#if(zoom):
+    ##!#    scn = scn.crop(ll_bbox = (lon_lims[0] + 0.65, lat_lims[0], \
+    ##!#        lon_lims[1] - 0.65, lat_lims[1]))
+
+    # Extract the lats, lons, and data
+    # -----------------------------------------------------
+    lons, lats = scn[str(channel)].attrs['area'].get_lonlats()
+    #lons, lats = new_scn[str(channel)].attrs['area'].get_lonlats()
+
+    if(channel == 'true_color'):
+        # Enhance the image for plotting
+        # ------------------------------
+        var = get_enhanced_image(new_scn[str(channel)]).data
+        var = var.transpose('y','x','bands')
+    else:
+        var = scn[str(channel)].data
+    #var = new_scn[str(channel)].data
+
+    if(not swath):
+        # Extract the map projection from the data for plotting
+        # -----------------------------------------------------
+        crs = new_scn['true_color'].attrs['area'].to_cartopy_crs()
+        #crs = new_scn[str(channel)].attrs['area'].to_cartopy_crs()
+    else:
+        #crs = ccrs.NorthPolarStereo()
+        crs = new_scn['true_color'].attrs['area'].to_cartopy_crs()
+
+
+    ##!#if(channel != 'true_color'):
+    ##!#    var = var.data
+
+    # Extract the appropriate units
+    # -----------------------------
+    if(channel == 'true_color'):
+        plabel = ''
+    else:
+        plabel = channel
+        #plabel = channel_dict[str(channel)]['Unit_name'].title() + ' [' + \
+        #    channel_dict[str(channel)]['Unit'] + ']'
+
+    if(return_xy):
+
+        y = new_scn[channel].y 
+        x = new_scn[channel].x 
+        del scn 
+        del new_scn
+        return var, crs, lons, lats, plabel, x, y
+        #return var, crs, lons, lats, lat_lims, lon_lims, plabel, x, y
+    else:
+        del scn 
+        del new_scn
+        return var, crs, lons, lats, plabel
+        #return var, crs, lons, lats, lat_lims, lon_lims, plabel
+    #return var, crs, lat_lims, lon_lims
+
+
 def plot_VIIRS_granule(VIIRS_data, ax = None, labelsize = 12, \
         labelticksize = 10, zoom = True, show_smoke = False, vmin = None, \
-        vmax = None, save = False):
+        vmax = None, colorbar = True, show_title = True, save = False):
 
     in_ax = True
     if(ax is None):
@@ -409,28 +759,36 @@ def plot_VIIRS_granule(VIIRS_data, ax = None, labelsize = 12, \
     if(vmax is None):
         vmax = VIIRS_data['vmax']
 
-    pdata = np.copy(VIIRS_data['data'])
-    pdata = np.ma.masked_where((pdata < 0) | (pdata > 500), pdata)
+    if(VIIRS_data['colortuple'] is not None):
+        ax.pcolormesh(VIIRS_data['lon'],VIIRS_data['lat'],\
+            VIIRS_data['data'][:,:,0],color= VIIRS_data['colortuple'], \
+            shading='auto', transform = ccrs.PlateCarree()) 
+    else:
+        pdata = np.copy(VIIRS_data['data'])
+        pdata = np.ma.masked_where((pdata < 0) | (pdata > 500), pdata)
 
-    print('MIN LON', np.min(VIIRS_data['lon']), 'MAX LON', np.max(VIIRS_data['lat']))
-    mesh = ax.pcolormesh(VIIRS_data['lon'], VIIRS_data['lat'], pdata, \
-        cmap = VIIRS_data['cmap'], vmin = vmin, vmax = vmax, \
-        transform = ccrs.PlateCarree(), shading = 'auto')
-    cbar = plt.colorbar(mesh, ax = ax, orientation='vertical',\
-        pad=0.03, shrink = 1.00, extend = 'both')
+        print('MIN LON', np.min(VIIRS_data['lon']), 'MAX LON', np.max(VIIRS_data['lat']))
+        mesh = ax.pcolormesh(VIIRS_data['lon'], VIIRS_data['lat'], pdata, \
+            cmap = VIIRS_data['cmap'], vmin = vmin, vmax = vmax, \
+            transform = ccrs.PlateCarree(), shading = 'auto')
+        if(colorbar):
+            cbar = plt.colorbar(mesh, ax = ax, orientation='vertical',\
+                pad=0.03, shrink = 1.00, extend = 'max')
 
-    cbar.set_label(VIIRS_data['label'], size = labelsize)
-    cbar.ax.tick_params(labelsize = labelticksize)
-    ax.set_title(VIIRS_data['dtype'])
+            cbar.set_label(VIIRS_data['label'], size = labelsize)
+            cbar.ax.tick_params(labelsize = labelticksize)
+        
+        if(show_title):
+            ax.set_title(VIIRS_data['dtype'])
 
-    if(show_smoke):    
-        hash_data, nohash_data = find_plume_VIIRS(VIIRS_data['filename'])
-        #plt.rcParams.update({'hatch.color': 'r'})
-        hatch_shape = '\\\\'
-        #hash0 = ax2.pcolor(MODIS_data_ch1['lon'],MODIS_data_ch1['lat'],\
-        #    hash_data[:MODIS_data_ch1['lat'].shape[0], :MODIS_data_ch1['lat'].shape[1]], hatch = hatch_shape, alpha=0., transform = datacrs)
-        ax.pcolor(VIIRS_data['lon'],VIIRS_data['lat'],\
-            hash_data, hatch = hatch_shape, alpha=0.40, transform = datacrs)
+        if(show_smoke):    
+            hash_data, nohash_data = find_plume_VIIRS(VIIRS_data['filename'])
+            #plt.rcParams.update({'hatch.color': 'r'})
+            hatch_shape = '\\\\'
+            #hash0 = ax2.pcolor(MODIS_data_ch1['lon'],MODIS_data_ch1['lat'],\
+            #    hash_data[:MODIS_data_ch1['lat'].shape[0], :MODIS_data_ch1['lat'].shape[1]], hatch = hatch_shape, alpha=0., transform = datacrs)
+            ax.pcolor(VIIRS_data['lon'],VIIRS_data['lat'],\
+                hash_data, hatch = hatch_shape, alpha=0.40, transform = datacrs)
      
 
     if(zoom):
@@ -510,6 +868,108 @@ def plot_VIIRS_figure(filename, satellite = 'SNPP', band = 'M12', \
 ##!#    }
 ##!#    
 ##!#}
+
+# channel must be an integer between 1 and 16
+# Am requiring lat_lims and lon_lims here 
+def plot_VIIRS_satpy(date_str, channel, lat_lims, lon_lims, \
+        ax = None, var = None, crs = None, lons = None, lats = None, \
+        vmin = None, vmax = None, ptitle = None, plabel = None, \
+        use_xy = False, satellite = 'SNPP', add_time = 5, \
+        labelsize = 10, colorbar = True, swath = False, zoom=True,save=False):
+
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    if(var is None): 
+        if(use_xy):
+            var, crs, lons, lats, plabel, xx, yy = read_VIIRS_satpy(date_str, str(channel), \
+                    satellite = satellite, zoom = True, return_xy = True, \
+                    add_time = add_time)
+        else:
+            var, crs, lons, lats, plabel= read_VIIRS_satpy(date_str, str(channel), \
+                    satellite = satellite, zoom = True, return_xy = False, \
+                    add_time = add_time)
+    
+    # Plot the GOES data
+    # ------------------
+    in_ax = True 
+    if(ax is None):
+        in_ax = False
+        plt.close('all')
+        fig = plt.figure()
+        if(use_xy):
+            mapcrs = init_proj(None)
+            ax = fig.add_subplot(1,1,1, projection=mapcrs)
+        else:
+            ax = fig.add_subplot(1,1,1, projection=crs)
+
+
+    ##!#ax.imshow(var.data, transform = crs, extent=(var.x[0], var.x[-1], \
+    ##!#    var.y[-1], var.y[0]), vmin = vmin, vmax = vmax, origin='upper', \
+    ##!#    cmap = 'Greys_r')
+    if(channel == 'true_color'):
+        ax.imshow(var.data, transform = crs, extent=(var.x[0], var.x[-1], \
+            var.y[-1], var.y[0]), origin='upper')
+    else:
+        if(use_xy):
+            im1 = ax.pcolormesh(xx, yy, var, transform = crs, \
+                vmin = vmin, vmax = vmax, \
+                cmap = channel_dict[str(channel)]['cmap'], \
+                shading = 'auto')
+        else:
+            #im1 = ax.imshow(var, transform = crs, vmin = vmin, vmax = vmax, \
+            im1 = ax.pcolormesh(lons, lats, var, transform = datacrs, \
+                vmin = vmin, vmax = vmax, \
+                cmap = channel_dict[str(channel)]['cmap'], \
+                shading = 'auto')
+        if(colorbar):
+            cbar = plt.colorbar(im1, ax = ax, pad = 0.03, fraction = 0.052, \
+                extend = 'both')
+            cbar.set_label(plabel.replace('_',' '), size = labelsize, weight = 'bold')
+    #ax.add_feature(cfeature.STATES)
+
+    # Zoom in the figure if desired
+    # -----------------------------
+    if(zoom):
+        ax.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+                       crs = ccrs.PlateCarree())
+        zoom_add = '_zoom'
+    else:
+        zoom_add = ''
+
+    #if(counties):
+    #    ax.add_feature(USCOUNTIES.with_scale('5m'), alpha = 0.5)    
+
+    # NOTE: commented out after removing the 'enhanced_image' code because
+    #       it doesn't work now .
+    ##!#ax.coastlines(resolution = '50m')
+    ##!#ax.add_feature(cfeature.STATES)
+    ##!#ax.add_feature(cfeature.BORDERS)
+    if(ptitle is None):
+        if(channel == 'true_color'):
+            ax.set_title('VIIRS '+ dt_date_str.strftime('%Y-%m-%d %H:%M'))
+        else:
+            ax.set_title('VIIRS Ch ' + str(channel) + ' (' + \
+                str(np.round(np.mean(channel_dict[str(channel)]['Bandwidth']),\
+                 3)) + ' μm )\n'+\
+                dt_date_str.strftime('%Y-%m-%d %H:%M'))
+    ##!#axcs.set_xlabel('Ch. ' + str(MODIS_data0['channel']) +' [' + \
+    ##!#    channel_dict[str(channel0)]['Bandwidth_label'] + \
+    ##!#    MODIS_data0['variable'])
+    else:
+        ax.set_title(ptitle)
+
+    if(not in_ax): 
+        print('here')
+        if(save):
+            outname = 'viirs_satpy_' + date_str + zoom_add + '.png'
+            plt.savefig(outname,dpi=300)
+            print("Saved image",outname)
+        else:
+            plt.show()
+
+
+
+
 
 # NOTE: MOD data first, then DNB
 def plot_VIIRS_scatter(fname1, fname2, band1, band2, ax = None, save = False):

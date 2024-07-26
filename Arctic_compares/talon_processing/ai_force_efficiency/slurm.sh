@@ -48,7 +48,8 @@ echo ""
 module load tensorflow2-py39-cuda11.8-gcc11/2.11.0
 
 
-time python tensorflow_ai_test_noland54.py $1 $2 $3
+time python tensorflow_ai_test_noland55.py $1 $2 $3
+#time python tensorflow_ai_test_noland54.py $1 $2 $3
 #time python tensorflow_ai_test_noland53.py $1 $2 $3
 #time python tensorflow_ai_test_noland52.py $1 $2 $3
 #time python tensorflow_ai_test_noland51.py $1 $2 $3

@@ -7,6 +7,7 @@
 
 from MODISLib import *
 
+"""
 data = Dataset('MYD08_D3.A2018186.061.2018187175147.hdf')
 
 fig = plt.figure()
@@ -30,6 +31,7 @@ ax2.coastlines()
 ax2.set_extent([-180,180,65,90], ccrs.PlateCarree())
 ax2.set_boundary(circle, transform=ax2.transAxes)
 ax2.set_title('COD Combined Mean')
+"""
 
 
 
@@ -139,7 +141,7 @@ plt.show()
 #tester = identify_MODIS_MYD08(date_str, dest_dir = myd08_dir, dtype = 'daily')
 #write_MODIS_MYD08('20180705', minlat = 65.5)
 
-sys.exit()
+#sys.exit()
 
 ##!#download_MODIS_file('201507062255', dest_dir = modis_dir, \
 ##!#    download_cloud_mask = False, \
@@ -311,7 +313,7 @@ ax5.set_extent([ -20, -12, 14, 24], datacrs)
 ax6.set_extent([ -20, -12, 14, 24], datacrs)
 ax8.set_extent([ -20, -12, 14, 24], datacrs)
 
-plt.suptitle(dt_date_str1.strftime('Top: Biomass Burning Smoke (%Y-%m-%d %H:%M UTC)\n') + \
+plt.suptitle(dt_date_str1.strftime('Top: Biomass Burning Smoke (%Y-%m-%d %H:%M  - 23:00 UTC)\n') + \
              dt_date_str2.strftime('Bottom: Desert Dust (%Y-%m-%d %H:%M UTC)'))
 
 ax1.coastlines()

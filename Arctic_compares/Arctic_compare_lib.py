@@ -8931,7 +8931,6 @@ def calc_print_forcing_slope_error_v4(all_month_vals, \
             pcnt_errs =  (trend_errs / \
                            ice_trend_dict['orig_trends'][key][ii]) * 100.
         
-            ser_trend = std_trend / np.sqrt(len(uncert_trend_dict['calc_trends'][key][:,ii]))
 
             avg_trend_err = np.mean(trend_errs)
             std_trend_err = np.std(trend_errs)
@@ -8942,6 +8941,7 @@ def calc_print_forcing_slope_error_v4(all_month_vals, \
             min_pcnt_err = np.min(pcnt_errs)
             max_pcnt_err = np.max(pcnt_errs)
 
+            #ser_trend = std_trend / np.sqrt(len(uncert_trend_dict['calc_trends'][key][:,ii]))
             # Format:
             # 0: orignal trend
             # 1: mean of the errors between the original trend and calculated trends
@@ -10170,7 +10170,7 @@ def plot_NN_bin_slopes(slope_dict, bin_dict, min_ob = 50, \
     #ax3.set_ylabel('COD dim')
     #ax4.set_ylabel('COD dim')
 
-    ax1.set_title('Ocean\n(Ice % <= ' + str(int(bin_dict['ice_bin_edges'][0])) + '%)')
+    ax1.set_title('Ocean\n(Ice % <= ' + str(int(bin_dict['ice_bin_edges'][1])) + '%)')
     ax2.set_title('Mix\n(' + str(int(bin_dict['ice_bin_edges'][1])) + \
         '% < Ice % < ' + str(int(bin_dict['ice_bin_edges'][2])) + '%)')
     ax3.set_title('Ice\n(Ice % >= ' + str(int(bin_dict['ice_bin_edges'][2])) + '%)')
@@ -10275,7 +10275,286 @@ def plot_NN_bin_slopes_codmean(slope_dict, bin_dict, min_ob = 50, save = False):
     else:
         plt.show()
 
-def plot_compare_NN_output(calc_data, save = False):
+# Overlays high AI OMI areas on true color imagery and forcing stuff
+def plot_compare_NN_output_overlay(calc_data, auto_zoom = True, save = False):
+    
+    # Load in the JSON file string relations
+    # --------------------------------------
+    with open(json_time_database, 'r') as fin:
+        file_date_dict = json.load(fin)
+
+    file_name = calc_data.strip().split('/')[-1] 
+    date_str = file_name.split('.')[0].split('_')[-1]
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+    
+    sim_name = file_name.split('_')[3]
+    print(sim_name, date_str)
+    
+    in_calc = h5py.File(calc_data)
+    
+    mask_orig = np.ma.masked_where((in_calc['ceres_swf'][:,:] == -999.) | \
+                                   (in_calc['ceres_swf'][:,:] > 3000), in_calc['ceres_swf'][:,:])
+    mask_calc = np.ma.masked_invalid(in_calc['calc_swf'])
+    mask_calc = np.ma.masked_where(mask_calc == -999., mask_calc)
+    
+    ##!#mask_ctp = np.ma.masked_invalid(in_calc['modis_cld_top_pres'][:,:])
+    ##!#mask_ctp = np.ma.masked_where(mask_ctp == -999., mask_ctp)
+    ##!#
+    ##!#mask_cod = np.ma.masked_invalid(in_calc['modis_cod'][:,:])
+    ##!#mask_cod = np.ma.masked_where(mask_cod == -999., mask_cod)
+    ##!#
+    ##!#mask_ice = np.ma.masked_invalid(in_calc['nsidc_ice'][:,:])
+    ##!#mask_ice = np.ma.masked_where(mask_ice == -999., mask_ice)
+    
+    diff_calc = mask_calc - mask_orig
+    
+    both_orig = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_orig)
+    both_calc = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_calc)
+
+    modis_date = file_date_dict[date_str]['MODIS'][0]
+   
+    if(auto_zoom):
+        mask_AI = np.ma.masked_where(in_calc['omi_uvai_pert'][:,:]  == -999., \
+            in_calc['omi_uvai_pert'][:,:])
+
+        # Figure out where the pixels containing AI are located
+        # -----------------------------------------------------
+        high_AI_idxs = np.where(mask_AI > 1.5)
+        #mask_AI = np.ma.masked_where(mask_AI < 1.5, mask_AI)
+
+        # Switch the longitudes to 0 - 360 rather than -180 - 180
+        # -------------------------------------------------------
+        work_lons = np.copy(in_calc['omi_lon'][:,:])
+        work_lons[work_lons < 0] = 360 + work_lons[work_lons < 0]
+        
+
+        # Figure out the minimum/maximum latitude/longitudes in the AI ranges
+        # -------------------------------------------------------------------
+        min_lat = np.min(in_calc['omi_lat'][:,:][high_AI_idxs]) - 2
+        max_lat = np.max(in_calc['omi_lat'][:,:][high_AI_idxs]) + 2
+        
+        if(max_lat > 90):
+            max_lat = 90
+
+        # Calculate the 5th and 95th percentiles of longitude to prevent
+        # outliers from ruining the mean or max/min values
+        # --------------------------------------------------------------
+        min_lon = np.percentile(work_lons[high_AI_idxs], 5) - 2
+        max_lon = np.percentile(work_lons[high_AI_idxs], 95) + 2
+
+        center_lon = (min_lon + max_lon) / 2.
+        workcrs = ccrs.NorthPolarStereo(central_longitude = center_lon)
+
+        #fig = plt.figure(figsize = (10.5, 6))
+        fig = plt.figure(figsize = (11, 7))
+        ax1 = fig.add_subplot(2,3,1, projection = workcrs) # OMI AI
+        ax2 = fig.add_subplot(2,3,2, projection = workcrs) # True color
+        ax3 = fig.add_subplot(2,3,3, projection = workcrs) # True color with OMI hashing
+        ax4 = fig.add_subplot(2,3,5, projection = workcrs) # Forcing
+        ax5 = fig.add_subplot(2,3,6, projection = workcrs) # Forcing with OMI hashing
+        
+    else:
+        workcrs = ccrs.NorthPolarStereo(central_longitude = 0)
+
+        #fig = plt.figure(figsize = (10.5, 6))
+        fig = plt.figure(figsize = (8, 7))
+        ax5 = fig.add_subplot(2,2,1, projection = workcrs)
+        ax1 = fig.add_subplot(2,2,2, projection = workcrs)
+        ax2 = fig.add_subplot(2,2,3, projection = workcrs)
+        ax3 = fig.add_subplot(2,2,4, projection = workcrs)
+ 
+    #ax4 = fig.add_subplot(2,3,5)
+    
+    #ax4 = fig.add_subplot(2,2,4, projection = ccrs.NorthPolarStereo())
+    
+    mesh = ax1.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_AI, \
+        transform = ccrs.PlateCarree(), shading = 'auto', vmax = 5, cmap = 'jet')
+    cbar = fig.colorbar(mesh, ax = ax1, label = 'OMI UVAI')
+    #ax1.set_extent([117, 170,70,  85], ccrs.PlateCarree())
+    if(auto_zoom):
+        ax1.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    else:
+        ax1.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+        ax1.set_boundary(circle, transform=ax1.transAxes)
+    ax1.set_title('OMI UVAI')
+    ax1.coastlines()
+    
+    plot_MODIS_channel(modis_date, 'true_color', swath = True, \
+        zoom = True, ax = ax2)
+    #mesh = ax2.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_calc, \
+    #    transform = ccrs.PlateCarree(), shading = 'auto')
+    #cbar = fig.colorbar(mesh, ax = ax2, label = 'SWF [Wm$^{-2}$]')
+    #ax2.set_extent([117, 170,70,  85], ccrs.PlateCarree())
+    if(auto_zoom):
+        ax2.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    else:
+        ax2.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+        ax2.set_boundary(circle, transform=ax2.transAxes)
+    ax2.set_title('MODIS True Color')
+    ax2.coastlines()
+    
+    plot_MODIS_channel(modis_date, 'true_color', swath = True, \
+        zoom = True, ax = ax3)
+
+    #mesh = ax3.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], diff_calc, \
+    #    transform = ccrs.PlateCarree(), shading = 'auto', vmin = -80, vmax = 80, cmap = 'bwr')
+    #cbar = fig.colorbar(mesh, ax = ax3, label = 'SWF [Wm$^{-2}$]')
+    #ax3.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
+    #ax3.set_boundary(circle, transform=ax3.transAxes)
+    #ax3.set_extent([117, 170,70,  85], ccrs.PlateCarree())
+    if(auto_zoom):
+        ax3.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    else:
+        ax3.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+        ax3.set_boundary(circle, transform=ax3.transAxes)
+    ax3.set_title('MODIS True Color (hashing)')
+    ax3.coastlines()
+    
+    mesh = ax4.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], diff_calc, \
+        transform = ccrs.PlateCarree(), vmin = -80, vmax = 80, shading = 'auto', cmap = 'bwr')
+    cbar = fig.colorbar(mesh, ax = ax4, label = 'Forcing [W$^{-2}$]')
+    #ax5.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
+    #ax5.set_boundary(circle, transform=ax5.transAxes)
+    #ax5.set_extent([117, 170,70,  85], ccrs.PlateCarree())
+    if(auto_zoom):
+        ax4.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    else:
+        ax4.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+        ax4.set_boundary(circle, transform=ax4.transAxes)
+    ax4.set_title('Forcing')
+    ax4.coastlines()
+   
+    mesh = ax5.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], diff_calc, \
+        transform = ccrs.PlateCarree(), vmin = -80, vmax = 80, shading = 'auto', cmap = 'bwr')
+    cbar = fig.colorbar(mesh, ax = ax5, label = 'Forcing [W$^{-2}$]')
+    #ax5.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
+    #ax5.set_boundary(circle, transform=ax5.transAxes)
+    #ax5.set_extent([117, 170,70,  85], ccrs.PlateCarree())
+    if(auto_zoom):
+        ax5.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    else:
+        ax5.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+        ax5.set_boundary(circle, transform=ax5.transAxes)
+    ax5.set_title('Forcing (hashing)')
+    ax5.coastlines()
+
+    # Figure out the high AI indices
+    # ------------------------------
+    hatch_style = '///'
+    if(auto_zoom):
+
+        # Figure out where the pixels containing AI are located
+        # -----------------------------------------------------
+        hasher = np.ma.masked_invalid(mask_AI)
+        hasher = np.ma.masked_where(hasher < 1.0, \
+            hasher)
+
+        print("MIN MASK AI:", np.min(hasher), 'MAX MASK AI:', np.nanmax(hasher))
+
+        #hash0 = ax1.pcolor(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], \
+        #    hasher, hatch = hatch_style, alpha=0., color = 'k', \
+        #    shading = 'auto', transform = datacrs)
+        #ax1.pcolor(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:],\
+        #    hasher, hatch = 'xx', alpha=0., transform = datacrs, shading = 'auto')
+        ax3.pcolor(work_lons, in_calc['omi_lat'][:,:],\
+            hasher, hatch = 'xx', alpha=0., transform = datacrs, shading = 'auto')
+        ax5.pcolor(work_lons, in_calc['omi_lat'][:,:],\
+            hasher, hatch = 'xx', alpha=0., transform = datacrs, shading = 'auto')
+
+    
+  
+    """ 
+    if(auto_zoom): 
+        work_force = np.abs(diff_calc)
+        work_force = np.ma.masked_where(mask_AI < 1.0, work_force)
+        mask_AI    = np.ma.masked_where(mask_AI < 1.0, mask_AI)  
+        work_force = np.ma.masked_invalid(work_force)
+        mask_AI    = np.ma.masked_invalid(mask_AI)
+        work_force = np.ma.masked_where(mask_AI.mask == True, work_force)
+        mask_AI    = np.ma.masked_where(work_force.mask == True, mask_AI)  
+
+
+        #print("HERE:", work_force.compressed().shape, mask_AI.compressed().shape)
+
+        if(len(mask_AI.compressed()) > 2):
+            r2 = r2_score(mask_AI.compressed(), work_force.compressed())
+            print('R2:', r2)
+            ax4.set_title('r$^{2}$ = ' + str(np.round(r2, 3)))
+
+        ax4.scatter(mask_AI, work_force, s = 6, color = 'k')
+        ax4.set_xlabel('OMI UVAI Perturbation')
+        ax4.set_ylabel('Forcing [W/m2]')
+    """ 
+ 
+    """ 
+    xy = np.vstack([both_orig.compressed(), both_calc.compressed()])
+    if(len(both_orig.compressed()) > 1):
+        r2 = r2_score(both_orig.compressed(), both_calc.compressed())
+        z = stats.gaussian_kde(xy)(xy)       
+        ax4.scatter(both_orig.compressed(), both_calc.compressed(), c = z, s = 1)
+        #ax4.set_title('r$^{2}$ = ' + str(np.round(r2, 3)))
+
+        # Calculate RMSE
+        # --------------
+        rmse = mean_squared_error(both_orig.compressed(), both_calc.compressed(), squared = False)
+        ptext = 'r$^{2}$ = ' + str(np.round(r2, 3)) + \
+            '\nRMSE = ' + str(np.round(rmse, 1))
+        #plot_figure_text(ax3, ptext, location = 'lower_right', \
+        plot_figure_text(ax4, ptext, xval = 400, yval = 25, \
+            fontsize = 10, color = 'black', weight = None, backgroundcolor = 'white')
+    lims = [\
+            np.min([ax4.get_xlim(), ax4.get_ylim()]),\
+            np.max([ax4.get_xlim(), ax4.get_ylim()]),
+    ]
+    ax4.plot(lims, lims, 'r', linestyle = ':', alpha = 0.75)
+    ax4.set_xlim(lims)
+    ax4.set_ylim(lims)
+    ax4.set_xlabel('Observed SWF [Wm$^{-2}$]')
+    ax4.set_ylabel('Calculated SWF [Wm$^{-2}$]')
+    """ 
+   
+    ##!#print(np.min(mask_cod), np.max(mask_cod))
+     
+    ##!#good_idxs = np.where( (mask_AI.mask == False) & \
+    ##!#                      (mask_calc.mask == False) & \
+    ##!#                      (mask_cod.mask == False) & \
+    ##!#                      (mask_ice > 80.) & \
+    ##!#                      (mask_ice < 101.) & \
+    ##!#                      (mask_AI > 2))
+    ##!#
+    ##!#scat_ai   = mask_AI[good_idxs].flatten()
+    ##!#scat_diff = diff_calc[good_idxs].flatten()
+    ##!#ax6.scatter(scat_ai, scat_diff, c = 'k', s = 6)
+    ##!#ax6.set_xlabel('OMI UVAI PERT')
+    ##!#ax6.set_ylabel('Calc Aer Forcing [W/m2]')
+    
+    plot_subplot_label(ax1, 'a)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax2, 'b)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax3, 'c)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax4, 'd)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax5, 'e)', fontsize = 11, backgroundcolor = None)
+    #plot_subplot_label(ax4, 'e)', fontsize = 11, backgroundcolor = None)
+    
+    plt.suptitle(dt_date_str.strftime('%Y-%m-%d %H:%M UTC'))
+    
+    #in_base.close()
+    in_calc.close()
+    
+    fig.tight_layout()
+
+    if(save):    
+        if(auto_zoom):
+            zoom_add = '_zoom'
+        else:
+            zoom_add = ''
+        outname = 'ceres_nn_compare_hashing_' + date_str + '_' + sim_name + zoom_add + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+
+def plot_compare_NN_output(calc_data, auto_zoom = False, save = False):
     
     file_name = calc_data.strip().split('/')[-1] 
     date_str = file_name.split('.')[0].split('_')[-1]
@@ -10304,13 +10583,58 @@ def plot_compare_NN_output(calc_data, save = False):
     
     both_orig = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_orig)
     both_calc = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_calc)
-    
-    #fig = plt.figure(figsize = (10.5, 6))
-    fig = plt.figure(figsize = (8, 7))
-    ax5 = fig.add_subplot(2,2,1, projection = ccrs.NorthPolarStereo())
-    ax1 = fig.add_subplot(2,2,2, projection = ccrs.NorthPolarStereo())
-    ax2 = fig.add_subplot(2,2,3, projection = ccrs.NorthPolarStereo())
-    ax3 = fig.add_subplot(2,2,4, projection = ccrs.NorthPolarStereo())
+   
+    mask_AI = np.ma.masked_where(in_calc['omi_uvai_pert'][:,:]  == -999., \
+        in_calc['omi_uvai_pert'][:,:])
+
+    if(auto_zoom):
+
+        # Figure out where the pixels containing AI are located
+        # -----------------------------------------------------
+        high_AI_idxs = np.where(mask_AI > 1.5)
+        #mask_AI = np.ma.masked_where(mask_AI < 1.5, mask_AI)
+
+        # Switch the longitudes to 0 - 360 rather than -180 - 180
+        # -------------------------------------------------------
+        work_lons = np.copy(in_calc['omi_lon'][:,:])
+        work_lons[work_lons < 0] = 360 + work_lons[work_lons < 0]
+        
+
+        # Figure out the minimum/maximum latitude/longitudes in the AI ranges
+        # -------------------------------------------------------------------
+        min_lat = np.min(in_calc['omi_lat'][:,:][high_AI_idxs]) - 2
+        max_lat = np.max(in_calc['omi_lat'][:,:][high_AI_idxs]) + 2
+        
+        if(max_lat > 90):
+            max_lat = 90
+
+        # Calculate the 5th and 95th percentiles of longitude to prevent
+        # outliers from ruining the mean or max/min values
+        # --------------------------------------------------------------
+        min_lon = np.percentile(work_lons[high_AI_idxs], 5) - 2
+        max_lon = np.percentile(work_lons[high_AI_idxs], 95) + 2
+
+        center_lon = (min_lon + max_lon) / 2.
+        workcrs = ccrs.NorthPolarStereo(central_longitude = center_lon)
+
+        #fig = plt.figure(figsize = (10.5, 6))
+        fig = plt.figure(figsize = (11, 7))
+        ax5 = fig.add_subplot(2,3,1, projection = workcrs)
+        ax1 = fig.add_subplot(2,3,2, projection = workcrs)
+        ax2 = fig.add_subplot(2,3,4, projection = workcrs)
+        ax3 = fig.add_subplot(2,3,5, projection = workcrs)
+        ax4 = fig.add_subplot(2,3,3)
+        
+    else:
+        workcrs = ccrs.NorthPolarStereo(central_longitude = 0)
+
+        #fig = plt.figure(figsize = (10.5, 6))
+        fig = plt.figure(figsize = (8, 7))
+        ax5 = fig.add_subplot(2,2,1, projection = workcrs)
+        ax1 = fig.add_subplot(2,2,2, projection = workcrs)
+        ax2 = fig.add_subplot(2,2,3, projection = workcrs)
+        ax3 = fig.add_subplot(2,2,4, projection = workcrs)
+ 
     #ax4 = fig.add_subplot(2,3,5)
     
     #ax4 = fig.add_subplot(2,2,4, projection = ccrs.NorthPolarStereo())
@@ -10318,38 +10642,76 @@ def plot_compare_NN_output(calc_data, save = False):
     mesh = ax1.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_orig, \
         transform = ccrs.PlateCarree(), shading = 'auto')
     cbar = fig.colorbar(mesh, ax = ax1, label = 'SWF [Wm$^{-2}$]')
-    ax1.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+    #ax1.set_extent([117, 170,70,  85], ccrs.PlateCarree())
+    if(auto_zoom):
+        ax1.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    else:
+        ax1.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+        ax1.set_boundary(circle, transform=ax1.transAxes)
     ax1.set_title('Observed SWF')
-    ax1.set_boundary(circle, transform=ax1.transAxes)
     ax1.coastlines()
-    
     
     mesh = ax2.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_calc, \
         transform = ccrs.PlateCarree(), shading = 'auto')
     cbar = fig.colorbar(mesh, ax = ax2, label = 'SWF [Wm$^{-2}$]')
-    ax2.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
+    #ax2.set_extent([117, 170,70,  85], ccrs.PlateCarree())
+    if(auto_zoom):
+        ax2.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    else:
+        ax2.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+        ax2.set_boundary(circle, transform=ax2.transAxes)
     ax2.set_title('Calc. Aerosol-free SWF')
-    ax2.set_boundary(circle, transform=ax2.transAxes)
     ax2.coastlines()
     
     mesh = ax3.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], diff_calc, \
         transform = ccrs.PlateCarree(), shading = 'auto', vmin = -80, vmax = 80, cmap = 'bwr')
     cbar = fig.colorbar(mesh, ax = ax3, label = 'SWF [Wm$^{-2}$]')
-    ax3.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
+    #ax3.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
+    #ax3.set_boundary(circle, transform=ax3.transAxes)
+    #ax3.set_extent([117, 170,70,  85], ccrs.PlateCarree())
+    if(auto_zoom):
+        ax3.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    else:
+        ax3.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+        ax3.set_boundary(circle, transform=ax3.transAxes)
     ax3.set_title('Calculated - Observed')
-    ax3.set_boundary(circle, transform=ax3.transAxes)
     ax3.coastlines()
     
-    mask_AI = np.ma.masked_where(in_calc['omi_uvai_pert'][:,:]  == -999., in_calc['omi_uvai_pert'][:,:])
     mesh = ax5.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_AI, \
         transform = ccrs.PlateCarree(), vmin = -2, vmax = 4, shading = 'auto', cmap = 'jet')
     cbar = fig.colorbar(mesh, ax = ax5, label = 'UVAI Perturbation')
-    ax5.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
+    #ax5.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
+    #ax5.set_boundary(circle, transform=ax5.transAxes)
+    #ax5.set_extent([117, 170,70,  85], ccrs.PlateCarree())
+    if(auto_zoom):
+        ax5.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    else:
+        ax5.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+        ax5.set_boundary(circle, transform=ax5.transAxes)
     ax5.set_title('OMI UVAI')
-    ax5.set_boundary(circle, transform=ax5.transAxes)
     ax5.coastlines()
-    
    
+    if(auto_zoom): 
+        work_force = np.abs(diff_calc)
+        work_force = np.ma.masked_where(mask_AI < 1.0, work_force)
+        mask_AI    = np.ma.masked_where(mask_AI < 1.0, mask_AI)  
+        work_force = np.ma.masked_invalid(work_force)
+        mask_AI    = np.ma.masked_invalid(mask_AI)
+        work_force = np.ma.masked_where(mask_AI.mask == True, work_force)
+        mask_AI    = np.ma.masked_where(work_force.mask == True, mask_AI)  
+
+
+        #print("HERE:", work_force.compressed().shape, mask_AI.compressed().shape)
+
+        if(len(mask_AI.compressed()) > 2):
+            r2 = r2_score(mask_AI.compressed(), work_force.compressed())
+            print('R2:', r2)
+            ax4.set_title('r$^{2}$ = ' + str(np.round(r2, 3)))
+
+        ax4.scatter(mask_AI, work_force, s = 6, color = 'k')
+        ax4.set_xlabel('OMI UVAI Perturbation')
+        ax4.set_ylabel('Forcing [W/m2]')
+ 
     """ 
     xy = np.vstack([both_orig.compressed(), both_calc.compressed()])
     if(len(both_orig.compressed()) > 1):
@@ -10406,7 +10768,11 @@ def plot_compare_NN_output(calc_data, save = False):
     fig.tight_layout()
 
     if(save):    
-        outname = 'ceres_nn_compare_' + date_str + '_' + sim_name + '.png'
+        if(auto_zoom):
+            zoom_add = '_zoom'
+        else:
+            zoom_add = ''
+        outname = 'ceres_nn_compare_' + date_str + '_' + sim_name + zoom_add + '.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
@@ -11450,4 +11816,83 @@ def plot_test_forcing_v4(OMI_daily_data, OMI_month_data, date_str, \
     else:
         plt.show()
 
+# This function grabs the OMI and CERES HDF5 files for given DTGs,
+# grabs 10 (or other specified number) of OMI points, finds the closest
+# CERES grid point to that OMI point, and figures out how many minutes
+# are between the OMI and CERES observations at that point.
+#
+# file_list is a list of date-time groups from comp_data to analyze
+def check_omi_ceres_time_offset(dir_list, num_points_per_file = 10):
+
+    base_date = datetime(year=1970,month=1,day=1)
+ 
+    # Loop over each directory
+    # ------------------------
+    for tdir in dir_list:
+ 
+        print('\n' + tdir)
+
+        day_str = tdir[:8]
+ 
+        omi_dstr = tdir.strip().split('/')[-1]
+      
+        # Grab the OMI data file
+        # ----------------------
+        omi_data = h5py.File('comp_data/' + day_str + '/' + tdir + \
+            '/omi_shawn_' + omi_dstr + '.hdf5')
+    
+        # Grab the CERES data file
+        # ------------------------
+        ceres_file = glob('comp_data/' + day_str + '/' + tdir + \
+            '/ceres_*.hdf5')[0]
+        ceres_data = h5py.File(ceres_file)
+
+        # Flatten the OMI lat, lon, and time
+        # ----------------------------------
+        omi_lats_flat = omi_data['latitude'][:,:].flatten()
+        omi_lons_flat = omi_data['longitude'][:,:].flatten()
+        omi_time_flat = omi_data['time'][:,:].flatten()
+
+        # Make sure the swaths only contain data north of 65
+        # --------------------------------------------------
+        check_minlat = np.min(omi_lats_flat)
+        if(check_minlat < 60):
+            print("ERROR: FULL SWATH")
+        else:
+
+            # Select "num_points_per_file" random indices from the OMI
+            # file
+            # --------------------------------------------------------
+            test_idxs = (np.random.random(num_points_per_file) * \
+                len(omi_time_flat)).astype('int')
+
+            print('  omi_lat   omi_lon   cer_lat   cer_lon      Δkm     minutes')
+            for tidx in test_idxs:
+
+                omi_lat  = omi_lats_flat[tidx]
+                omi_lon  = omi_lons_flat[tidx]
+                omi_time = omi_time_flat[tidx]
+    
+                # Find the matching CERES grid points
+                # -----------------------------------
+                match_idx = nearest_gridpoint(omi_lat, omi_lon, \
+                    ceres_data['latitude'][:,:], ceres_data['longitude'][:,:])
+
+                ceres_lat = ceres_data['latitude'][:,:][match_idx][0]
+                ceres_lon = ceres_data['longitude'][:,:][match_idx][0]
+    
+                # Calculate the OMI and CERES times based on base_date
+                # ----------------------------------------------------
+                omi_comp_time   = base_date + relativedelta(days = omi_time)
+                ceres_comp_time = base_date + relativedelta(days = ceres_data['time'][:,:][match_idx][0])
+
+                horiz_dist = find_distance_between_points(omi_lat, omi_lon, ceres_lat, ceres_lon)
+
+                minutes_offset = (omi_comp_time - ceres_comp_time).seconds / 60
+
+                print('{0:9.3f} {1:9.3f} {2:9.3f} {3:9.3f} {4:9.3f} {5:9.3f}'.format(\
+                    omi_lat, omi_lon, ceres_lat, ceres_lon, horiz_dist, minutes_offset))
+
+        omi_data.close()
+        ceres_data.close()
 

@@ -18,12 +18,11 @@ from sklearn.metrics import r2_score
 #plotMODIS_MYD08_COD_distribution(save=True)
 #sys.exit()
 
-
-
 """
 #files = glob('comp_data/colocated_subset_20180705*.hdf5')
 #files = glob('comp_data/original_prep_data/colocated_subset_20180705*')
-files = glob('comp_data/testing/colocated_subset_2018070*')
+#files = glob('comp_data/testing/colocated_subset_2018070*')
+files = glob('neuralnet_output/test_calc_out_noland50_2014081*')
 
 min_ai = -2.0
 max_ai = 1.0
@@ -40,7 +39,9 @@ for ff in files:
     dtime = ff.strip().split('/')[-1].split('_')[-1].split('.')[0]
 
     print(dtime, data.keys())
-    local_data = np.ma.masked_invalid(data['omi_uvai_raw'])
+    local_data = np.ma.masked_invalid(data['omi_uvai_pert'])
+
+    #local_data = np.ma.masked_invalid(data['omi_uvai_raw'])
     #local_data =  np.ma.masked_where( (local_data < min_ai) | \
     #                           (local_data > max_ai) | \
     #                           (data['omi_lat'][:,:] < minlat) | \
@@ -66,11 +67,14 @@ for ff in files:
     #local_ctp   = np.ma.masked_where(local_data.mask == False, data['modis_cld_top_pres'])
     #local_ice   = np.ma.masked_where(local_data.mask == False, data['nsidc_ice'])
 
-    local_omi   = np.ma.masked_where(data['omi_uvai_raw'][:,:] == -999., data['omi_uvai_raw'][:,:])
+    #local_omi   = np.ma.masked_where(data['omi_uvai_raw'][:,:] == -999., data['omi_uvai_raw'][:,:])
+    local_omi   = np.ma.masked_where(data['omi_uvai_pert'][:,:] == -999., data['omi_uvai_pert'][:,:])
     local_ceres = np.ma.masked_where((data['ceres_swf'][:,:] == -999.) |
                                      (data['ceres_swf'][:,:] > 3000), data['ceres_swf'][:,:])
-    local_ch7   = np.ma.masked_where(data['modis_ch7'][:,:] == -999., data['modis_ch7'][:,:])
+    #local_ch7   = np.ma.masked_where(data['modis_ch7'][:,:] == -999., data['modis_ch7'][:,:])
     local_cod   = np.ma.masked_where(data['modis_cod'][:,:] == -999., data['modis_cod'][:,:])
+    local_cod2  = np.where(np.isnan(data['modis_cod'][:,:]) == True, 0., data['modis_cod'][:,:])
+    local_cod2  = np.ma.masked_where(data['modis_cod'][:,:] == -999., local_cod2)
     local_ctp   = np.ma.masked_where(data['modis_cld_top_pres'][:,:] == -999., data['modis_cld_top_pres'][:,:])
     #local_ctp   = np.ma.masked_where(data['modis_cld_top_pres'][:,:] == -999., data['modis_ctp'][:,:])
     local_ctp2   = np.ma.masked_where(local_ctp != 0., local_ctp)
@@ -78,8 +82,9 @@ for ff in files:
 
     local_omi   = np.ma.masked_invalid(local_omi)
     local_ceres = np.ma.masked_invalid(local_ceres)
-    local_ch7   = np.ma.masked_invalid(local_ch7)
+    #local_ch7   = np.ma.masked_invalid(local_ch7)
     local_cod   = np.ma.masked_invalid(local_cod)
+    local_cod2  = np.ma.masked_invalid(local_cod2)
     local_ctp   = np.ma.masked_invalid(local_ctp)
     local_ctp2  = np.ma.masked_invalid(local_ctp2)
     #local_ctp   = np.ma.masked_invalid(local_ctp)
@@ -97,8 +102,8 @@ for ff in files:
     ax1 = fig.add_subplot(2,3,1, projection = ccrs.NorthPolarStereo()) # OMI UVAI
     ax2 = fig.add_subplot(2,3,2, projection = ccrs.NorthPolarStereo()) # CERES SWF
     ax3 = fig.add_subplot(2,3,3, projection = ccrs.NorthPolarStereo()) # MODIS CH7
-    ax4 = fig.add_subplot(2,3,4, projection = ccrs.NorthPolarStereo()) # MODIS COD
-    ax5 = fig.add_subplot(2,3,5, projection = ccrs.NorthPolarStereo()) # MODIS CLD TOP PRES 
+    ax4 = fig.add_subplot(2,3,5, projection = ccrs.NorthPolarStereo()) # MODIS COD
+    ax5 = fig.add_subplot(2,3,4, projection = ccrs.NorthPolarStereo()) # MODIS CLD TOP PRES 
     ax6 = fig.add_subplot(2,3,6, projection = ccrs.NorthPolarStereo()) # NSIDC ICE
 
     ax1.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], local_omi, \
@@ -113,17 +118,17 @@ for ff in files:
     ax2.coastlines()
     ax2.set_title('CERES SWF')
 
-    ax3.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], local_ch7, \
-        transform = ccrs.PlateCarree(), shading = 'auto')
-    ax3.set_extent([-180,180,65,90], ccrs.PlateCarree())
-    ax3.coastlines()
-    ax3.set_title('MODIS CH7')
+    #ax3.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], local_ch7, \
+    #    transform = ccrs.PlateCarree(), shading = 'auto')
+    #ax3.set_extent([-180,180,65,90], ccrs.PlateCarree())
+    #ax3.coastlines()
+    #ax3.set_title('MODIS CH7')
 
-    ax4.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], local_cod, \
+    ax4.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], local_cod2, \
         transform = ccrs.PlateCarree(), shading = 'auto', vmax = 50)
     ax4.set_extent([-180,180,65,90], ccrs.PlateCarree())
     ax4.coastlines()
-    ax4.set_title('MODIS COD')
+    ax4.set_title('MODIS COD NAN = 0')
 
     ax5.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], local_ctp, \
         transform = ccrs.PlateCarree(), shading = 'auto')
@@ -131,11 +136,11 @@ for ff in files:
     ax5.coastlines()
     ax5.set_title('MODIS CTP')
 
-    ax6.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], local_ctp2, \
-        transform = ccrs.PlateCarree(), shading = 'auto')
+    ax6.pcolormesh(data['omi_lon'][:,:], data['omi_lat'][:,:], local_cod, \
+        transform = ccrs.PlateCarree(), shading = 'auto', vmax = 50)
     ax6.set_extent([-180,180,65,90], ccrs.PlateCarree())
     ax6.coastlines()
-    ax6.set_title('MODIS CTP NO NON-ZERO')
+    ax6.set_title('MODIS COD NO NAN')
 
     data.close()
 
@@ -145,8 +150,8 @@ for ff in files:
     plt.show()
 
 sys.exit()
-"""
     
+"""
 
 
 
@@ -166,8 +171,12 @@ sys.exit()
 
 # Plots more stuff than the NN_output_noaer function
 # --------------------------------------------------
-plot_compare_NN_output(sys.argv[1], save = True)
-sys.exit()
+#plot_compare_NN_output(sys.argv[1], save = True)
+#sys.exit()
+
+#plot_compare_NN_output_overlay(sys.argv[1], auto_zoom = True, save = False)
+#sys.exit()
+
 
 #calc_data = sys.argv[1]
 #in_calc = h5py.File(calc_data)
@@ -184,6 +193,22 @@ sys.exit()
 #mae = np.mean(abs(both_orig - both_calc))
 #
 #sys.exit()    
+
+## Calculate time offset between OMI and CERES obs
+## -----------------------------------------------
+#dir_list = [\
+#    '200607240844', \
+#    '200607242334', \
+#    '200607270100', \
+#    '200804221841', \
+#    '201408112211', \
+#    '201708171050', \
+#    '201807052213', \
+#    '201908110033', \
+#]
+#
+#check_omi_ceres_time_offset(dir_list, num_points_per_file = 10)
+#sys.exit()
 
 
 
@@ -318,6 +343,13 @@ sys.exit()
 #    given the daily AI at that grid box.
 #
 #
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#
+# check_omi_ceres_time_offset(dir_list, num_points_per_file = 10):
+#           This function grabs the OMI and CERES HDF5 files for given DTGs,
+#           grabs 10 (or other specified number) of OMI points, finds the closest
+#           CERES grid point to that OMI point, and figures out how many minutes
+#           are between the OMI and CERES observations at that point.
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
@@ -364,13 +396,14 @@ bin_dict = {
 
 # Calculate the regression slopes and intercepts from the NN data
 # ---------------------------------------------------------------
-min_ob = 50
-slope_dict = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
-        sza_bin_edges, cod_bin_edges, ai_min = 0, min_ob = min_ob, \
-        trend_type = 'theil-sen')
-slope_dict_lin = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
-        sza_bin_edges, cod_bin_edges, ai_min = 0, min_ob = min_ob, \
-        trend_type = 'linregress')
+#min_ob = 50
+#slope_dict = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
+#        sza_bin_edges, cod_bin_edges, ai_min = 0, min_ob = min_ob, \
+#        trend_type = 'theil-sen')
+#slope_dict_lin = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
+#        sza_bin_edges, cod_bin_edges, ai_min = 0, min_ob = min_ob, \
+#        trend_type = 'linregress')
+
 #slope_dict2 = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
 #        sza_bin_edges, cod_bin_edges, ai_min = 1, min_ob = min_ob, \
 #        trend_type = 'theil-sen')
@@ -387,12 +420,19 @@ slope_dict_lin = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
 # -----------------------------------------------------------
 #plot_compare_NN_output_noaer(sys.argv[1], save = True)
 
-## Plots more stuff than the NN_output_noaer function
-## --------------------------------------------------
-#plot_compare_NN_output(sys.argv[1], save = True)
+# Plots more stuff than the NN_output_noaer function
+# --------------------------------------------------
+#plot_compare_NN_output(sys.argv[1], auto_zoom = True, save = False)
 #sys.exit()
+sim_name = 'noland50'
+files = glob('neuralnet_output/test_calc_out_' + sim_name + '_2019*.hdf5')
 
-#sys.exit()
+for tfile in files:
+    #plot_compare_NN_output(tfile, auto_zoom = True, save = True)
+    plot_compare_NN_output_overlay(tfile, auto_zoom = True, save = True)
+
+
+sys.exit()
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
@@ -502,10 +542,10 @@ all_month_dict_thl = read_daily_month_force_HDF5(infile_aimin0)
 #       OMI_daily_VSJ4, minlat = 65, maxlat = 75., trend_type = 'standard', stype = 'ice', \
 #       ptype = 'forcing', vtype = 'v4', slope_type = 'thl', version4 = True)
 
-plot_type_forcing_v4_all_months_arctic_avg_manyrefice_combined(all_month_dict_thl['FORCE_EST'], \
-    OMI_daily_VSJ4, slope_type = 'thl', stype = 'ice', show_trends = False, \
-    version4 = False, horiz_orient = False)
-sys.exit()
+#plot_type_forcing_v4_all_months_arctic_avg_manyrefice_combined(all_month_dict_thl['FORCE_EST'], \
+#    OMI_daily_VSJ4, slope_type = 'thl', stype = 'ice', show_trends = False, \
+#    version4 = False, horiz_orient = False)
+#sys.exit()
 
 # Calculates the slopes of the refice or refcld simulations plotted
 # in the "plot_type_forcing_v3_all_months_arctic_avg_manyrefice" function.
@@ -514,12 +554,12 @@ sys.exit()
 #       OMI_daily_VSJ4, minlat = 65, trend_type = 'standard', stype = 'ice', \
 #       ptype = 'forcing', version4 = True)
 
-ice_slopes = calc_forcing_slopes_v4_all_months_arctic_avg_manyrefice(all_month_dict['FORCE_EST'], \
-    OMI_daily_VSJ4, minlat = 65., maxlat = 87., stype = 'ice', slope_type = 'lin', \
-    save = False)
-cld_slopes = calc_forcing_slopes_v4_all_months_arctic_avg_manyrefice(all_month_dict['FORCE_EST'], \
-    OMI_daily_VSJ4, minlat = 65., maxlat = 87., stype = 'cld', slope_type = 'lin', \
-    save = False)
+#ice_slopes = calc_forcing_slopes_v4_all_months_arctic_avg_manyrefice(all_month_dict['FORCE_EST'], \
+#    OMI_daily_VSJ4, minlat = 65., maxlat = 87., stype = 'ice', slope_type = 'lin', \
+#    save = False)
+#cld_slopes = calc_forcing_slopes_v4_all_months_arctic_avg_manyrefice(all_month_dict['FORCE_EST'], \
+#    OMI_daily_VSJ4, minlat = 65., maxlat = 87., stype = 'cld', slope_type = 'lin', \
+#    save = False)
 
 # Print the results of the refice/cld simulation trend comparisons as 
 # a table
@@ -807,9 +847,9 @@ cld_slopes = calc_forcing_slopes_v4_all_months_arctic_avg_manyrefice(all_month_d
 
 # Plot the 65 - 87, 65 - 75, and 75 - 87 Arctic-avg results
 # ----------------------------------------------------------------------
-plot_type_forcing_v3_all_months_arctic_avg_combined(all_month_dict['FORCE_EST'], \
-    OMI_daily_VSJ4, version4 = False, max_pval = 0.05, save = False)
-sys.exit()
+#plot_type_forcing_v3_all_months_arctic_avg_combined(all_month_dict['FORCE_EST'], \
+#    OMI_daily_VSJ4, version4 = False, max_pval = 0.05, save = False)
+#sys.exit()
 
 # Calculate Arctic-wide average for all of the provided monthly forcings.
 # Meant to be a plot of the Monte Carlo-esque uncertainty analysis.
@@ -844,9 +884,16 @@ all_month_files = [
 #    version4 = False, max_pval = 0.05, \
 #    horiz_orient = True, save = False)
 
-uncert_slopes =  calc_forcing_slopes_v4_all_months_arctic_avg_uncert(all_month_files, \
-        OMI_daily_VSJ4, slope_type = 'lin')
+#uncert_slopes =  calc_forcing_slopes_v4_all_months_arctic_avg_uncert(all_month_files, \
+#        OMI_daily_VSJ4, slope_type = 'lin')
 
+calc_print_forcing_slope_error_v4(all_month_dict['FORCE_EST'], \
+    OMI_daily_VSJ4, all_month_files, \
+    min_year = 2005, max_year = 2020, \
+    minlat = 65., maxlat = 87., \
+    trend_type = 'standard', ptype = 'forcing', \
+    vtype = '', version4 = True, slope_type = 'lin', 
+    save = False)
 
 sys.exit()
 

@@ -295,7 +295,7 @@ def identify_axes(ax_dict, fontsize = 14, color = 'k', \
     for k, ax in ax_dict.items():
         ax.text(0.08, 0.92, k, transform = ax.transAxes, **kw)
     
-def init_proj(date_str):
+def init_proj(date_str = None):
     #mapcrs = Miller()
     if(date_str == None):
         mapcrs = ccrs.LambertConformal()
