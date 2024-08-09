@@ -10314,8 +10314,6 @@ def plot_compare_NN_output_overlay(calc_data, auto_zoom = True, save = False):
     modis_date = file_date_dict[date_str]['MODIS'][0]
    
     if(auto_zoom):
-        mask_AI = np.ma.masked_where(in_calc['omi_uvai_pert'][:,:]  == -999., \
-            in_calc['omi_uvai_pert'][:,:])
 
         # Figure out where the pixels containing AI are located
         # -----------------------------------------------------
@@ -10548,6 +10546,500 @@ def plot_compare_NN_output_overlay(calc_data, auto_zoom = True, save = False):
         else:
             zoom_add = ''
         outname = 'ceres_nn_compare_hashing_' + date_str + '_' + sim_name + zoom_add + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+def plot_L2_validate_regress_all(sim_name, slope_dict, bin_dict, \
+        ai_thresh = 0.7, mod_slopes = None, mod_intercepts = None, \
+        mod_cod = None, mod_ice = None, use_intercept = False, \
+        save = False):
+
+    # Retrieve all the aerosol NN output files
+    # ----------------------------------------
+    files = glob('neuralnet_output/test_calc_out_' + sim_name + '*.hdf5')
+
+    # Set up arrays to hold all the calculated forcing and actual 
+    # forcing values
+    # ------------------------------------------------------------
+    direct_forcings = np.full((110000), np.nan)
+    calc_forcings   = np.full((110000), np.nan)
+
+    beg_idx = 0
+    end_idx = 0
+    for calc_data in files:
+
+        file_name = calc_data.strip().split('/')[-1] 
+        date_str = file_name.split('.')[0].split('_')[-1]
+
+        if(date_str == '201807082244'):
+            continue
+
+        dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+        
+        sim_name = file_name.split('_')[3]
+        print(sim_name, date_str)
+        
+        in_calc = h5py.File(calc_data)
+
+        # Calculate forcing values estimated from the intercepts
+        # ------------------------------------------------------
+        testers = perform_forcing_calculation_v4(in_calc, slope_dict, bin_dict, \
+                ai_thresh = ai_thresh, mod_slopes = mod_slopes, \
+                mod_intercepts = mod_intercepts, mod_cod = mod_cod, \
+                mod_ice = mod_ice, use_intercept = use_intercept)
+        
+        mask_orig = np.ma.masked_where((in_calc['ceres_swf'][:,:] == -999.) | \
+                                       (in_calc['ceres_swf'][:,:] > 3000), in_calc['ceres_swf'][:,:])
+        mask_calc = np.ma.masked_invalid(in_calc['calc_swf'])
+        mask_calc = np.ma.masked_where(mask_calc == -999., mask_calc)
+   
+        testers = np.ma.masked_where(mask_calc.mask == True, testers)
+ 
+        ##!#mask_ctp = np.ma.masked_invalid(in_calc['modis_cld_top_pres'][:,:])
+        ##!#mask_ctp = np.ma.masked_where(mask_ctp == -999., mask_ctp)
+        ##!#
+        ##!#mask_cod = np.ma.masked_invalid(in_calc['modis_cod'][:,:])
+        ##!#mask_cod = np.ma.masked_where(mask_cod == -999., mask_cod)
+        ##!#
+        ##!#mask_ice = np.ma.masked_invalid(in_calc['nsidc_ice'][:,:])
+        ##!#mask_ice = np.ma.masked_where(mask_ice == -999., mask_ice)
+        
+        diff_calc = mask_calc - mask_orig
+        
+        mask_AI = np.ma.masked_where(in_calc['omi_uvai_pert'][:,:]  == -999., \
+            in_calc['omi_uvai_pert'][:,:])
+
+        testers = np.ma.masked_where(testers == 0, testers)
+        allmask_testers  = np.ma.masked_where((mask_orig.mask == True) | \
+                                              (mask_calc.mask == True) | \
+                                              (mask_AI.mask == True) | \
+                                              (testers.mask == True), testers)
+        allmask_diffcalc = np.ma.masked_where((mask_orig.mask == True) | \
+                                              (mask_calc.mask == True) | \
+                                              (mask_AI.mask == True) | \
+                                              (testers.mask == True), diff_calc)
+
+        in_calc.close()
+
+        print(allmask_testers.compressed().shape, testers.compressed().shape)
+
+        if( (allmask_testers.compressed().shape[0] == 0) | \
+            (allmask_testers.compressed().shape[0] == 0)):
+            print("ERROR: No good compressed values")
+            print("       Not making scatter plot")
+        else:
+       
+            end_idx = beg_idx + allmask_testers.compressed().shape[0]
+    
+            print("BEG IDX:", beg_idx, "END IDX:", end_idx)
+
+            direct_forcings[beg_idx:end_idx] = allmask_diffcalc.compressed()
+            calc_forcings[beg_idx:end_idx]   = allmask_testers.compressed()
+           
+            beg_idx = end_idx 
+
+    direct_forcings = np.ma.masked_invalid(direct_forcings).compressed()
+    calc_forcings   = np.ma.masked_invalid(calc_forcings).compressed()
+
+    print("\nCalculating r2 score")
+    r2 = r2_score(direct_forcings, calc_forcings)
+    print('R2:', r2)
+
+    # Calculate RMSE
+    # --------------
+    rmse = mean_squared_error(direct_forcings, calc_forcings, squared = False)
+    #ax3.set_title('r$^{2}$ = ' + str(np.round(r2, 3)) + \
+    #    'RMSE = ' + str(np.round(rmse, 1)))
+    ptext = 'r$^{2}$ = ' + str(np.round(r2, 3)) + \
+        '\nRMSE = ' + str(np.round(rmse, 1))
+
+    plt.close('all')
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.scatter(direct_forcings, calc_forcings, s = 2, color = 'k')
+    ax.axhline(0, linestyle = '--', color = 'grey', alpha = 0.5)
+    ax.axvline(0, linestyle = '--', color = 'grey', alpha = 0.5)
+    ax.set_title('r$^{2}$ = ' + str(np.round(r2, 3)))
+    ax.set_xlabel('L2 Forcing (NN - obs)')
+    ax.set_ylabel('L3-style Forcing (AI-based)')
+
+    fig.tight_layout()
+    if(save):
+        outname = 'validation_L2_allscatter.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+# Overlays high AI OMI areas on true color imagery and forcing stuff
+def plot_compare_NN_output_L2_validate(calc_data, slope_dict, bin_dict, \
+        mod_slopes = None, mod_intercepts = None, mod_cod = None, \
+        mod_ice = None, use_intercept = False, auto_zoom = True, \
+        ai_thresh = 0.7, save = False):
+    
+    # Load in the JSON file string relations
+    # --------------------------------------
+    with open(json_time_database, 'r') as fin:
+        file_date_dict = json.load(fin)
+
+    file_name = calc_data.strip().split('/')[-1] 
+    date_str = file_name.split('.')[0].split('_')[-1]
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+    
+    sim_name = file_name.split('_')[3]
+    print(sim_name, date_str)
+    
+    in_calc = h5py.File(calc_data)
+
+    # Calculate forcing values estimated from the intercepts
+    # ------------------------------------------------------
+    testers = perform_forcing_calculation_v4(in_calc, slope_dict, bin_dict, \
+            ai_thresh = ai_thresh, mod_slopes = mod_slopes, \
+            mod_intercepts = mod_intercepts, mod_cod = mod_cod, \
+            mod_ice = mod_ice, use_intercept = use_intercept)
+    
+    mask_orig = np.ma.masked_where((in_calc['ceres_swf'][:,:] == -999.) | \
+                                   (in_calc['ceres_swf'][:,:] > 3000), in_calc['ceres_swf'][:,:])
+    mask_calc = np.ma.masked_invalid(in_calc['calc_swf'])
+    mask_calc = np.ma.masked_where(mask_calc == -999., mask_calc)
+   
+    testers = np.ma.masked_where(mask_calc.mask == True, testers)
+ 
+    ##!#mask_ctp = np.ma.masked_invalid(in_calc['modis_cld_top_pres'][:,:])
+    ##!#mask_ctp = np.ma.masked_where(mask_ctp == -999., mask_ctp)
+    ##!#
+    ##!#mask_cod = np.ma.masked_invalid(in_calc['modis_cod'][:,:])
+    ##!#mask_cod = np.ma.masked_where(mask_cod == -999., mask_cod)
+    ##!#
+    ##!#mask_ice = np.ma.masked_invalid(in_calc['nsidc_ice'][:,:])
+    ##!#mask_ice = np.ma.masked_where(mask_ice == -999., mask_ice)
+    
+    diff_calc = mask_calc - mask_orig
+    
+    both_orig = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_orig)
+    both_calc = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_calc)
+
+    modis_date = file_date_dict[date_str]['MODIS'][0]
+   
+    mask_AI = np.ma.masked_where(in_calc['omi_uvai_pert'][:,:]  == -999., \
+        in_calc['omi_uvai_pert'][:,:])
+
+    if(auto_zoom):
+
+        # Figure out where the pixels containing AI are located
+        # -----------------------------------------------------
+        high_AI_idxs = np.where(mask_AI > 1.5)
+        #mask_AI = np.ma.masked_where(mask_AI < 1.5, mask_AI)
+
+        # Switch the longitudes to 0 - 360 rather than -180 - 180
+        # -------------------------------------------------------
+        work_lons = np.copy(in_calc['omi_lon'][:,:])
+        work_lons[work_lons < 0] = 360 + work_lons[work_lons < 0]
+        
+
+        # Figure out the minimum/maximum latitude/longitudes in the AI ranges
+        # -------------------------------------------------------------------
+        min_lat = np.min(in_calc['omi_lat'][:,:][high_AI_idxs]) - 2
+        max_lat = np.max(in_calc['omi_lat'][:,:][high_AI_idxs]) + 2
+        
+        if(max_lat > 90):
+            max_lat = 90
+
+        # Calculate the 5th and 95th percentiles of longitude to prevent
+        # outliers from ruining the mean or max/min values
+        # --------------------------------------------------------------
+        min_lon = np.percentile(work_lons[high_AI_idxs], 5) - 2
+        max_lon = np.percentile(work_lons[high_AI_idxs], 95) + 2
+
+        center_lon = (min_lon + max_lon) / 2.
+        workcrs = ccrs.NorthPolarStereo(central_longitude = center_lon)
+        
+    else:
+        workcrs = ccrs.NorthPolarStereo(central_longitude = 0)
+
+    plt.close('all')
+    fig = plt.figure(figsize = (11, 7))
+    ax1 = fig.add_subplot(2,3,1, projection = workcrs) # OMI AI
+    ax2 = fig.add_subplot(2,3,2, projection = workcrs) # True color
+    ax3 = fig.add_subplot(2,3,4, projection = workcrs) # Forcing direct calc
+    ax4 = fig.add_subplot(2,3,5, projection = workcrs) # Forcing from bin slopes
+    ax5 = fig.add_subplot(2,3,6) # Regression of 2 forcings?
+
+
+    # Plot OMI UVAI
+    # ------------- 
+    mesh = ax1.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_AI, \
+        transform = ccrs.PlateCarree(), shading = 'auto', vmax = 5, cmap = 'jet')
+    cbar = fig.colorbar(mesh, ax = ax1, label = 'OMI UVAI')
+    if(auto_zoom):
+        ax1.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    else:
+        ax1.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+        ax1.set_boundary(circle, transform=ax1.transAxes)
+    ax1.set_title('OMI UVAI')
+    ax1.coastlines()
+    
+    # Plot MODIS True Color
+    # ---------------------
+    plot_MODIS_channel(modis_date, 'true_color', swath = True, \
+        zoom = True, ax = ax2)
+    if(auto_zoom):
+        ax2.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    else:
+        ax2.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+        ax2.set_boundary(circle, transform=ax2.transAxes)
+    ax2.set_title('MODIS True Color')
+    ax2.coastlines()
+   
+    # Plot directly-calculated forcing (NN - obs)
+    # -------------------------------------------
+    mesh = ax3.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], diff_calc, \
+        transform = ccrs.PlateCarree(), vmin = -80, vmax = 80, shading = 'auto', cmap = 'bwr')
+    cbar = fig.colorbar(mesh, ax = ax3, label = 'Forcing [W$^{-2}$]')
+    if(auto_zoom):
+        ax3.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    else:
+        ax3.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+        ax3.set_boundary(circle, transform=ax3.transAxes)
+    ax3.set_title('Forcing')
+    ax3.coastlines()
+  
+    # Plot forcing calculated from the forcing slopes and intercepts
+    # -------------------------------------------------------------- 
+    mesh = ax4.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], testers, \
+        transform = ccrs.PlateCarree(), vmin = -80, vmax = 80, shading = 'auto', cmap = 'bwr')
+    cbar = fig.colorbar(mesh, ax = ax4, label = 'Forcing [W$^{-2}$]')
+    if(auto_zoom):
+        ax4.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    else:
+        ax4.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+        ax4.set_boundary(circle, transform=ax3.transAxes)
+    ax4.set_title('Forcing Validated')
+    ax4.coastlines()
+
+
+    testers = np.ma.masked_where(testers == 0, testers)
+    allmask_testers  = np.ma.masked_where((mask_orig.mask == True) | \
+                                         (mask_calc.mask == True) | \
+                                         (testers.mask == True), testers)
+    allmask_diffcalc = np.ma.masked_where((mask_orig.mask == True) | \
+                                          (mask_calc.mask == True) | \
+                                          (testers.mask == True), diff_calc)
+    #both_calc = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_calc)
+
+ 
+    #diff_calc = np.ma.masked_where(testers.mask == True, diff_calc) 
+    print(allmask_testers.compressed().shape, testers.compressed().shape)
+    if( (allmask_testers.compressed().shape[0] == 0) | \
+        (allmask_testers.compressed().shape[0] == 0)):
+        print("ERROR: No good compressed values")
+        print("       Not making scatter plot")
+    else:
+        r2 = r2_score(allmask_diffcalc.compressed(), allmask_testers.compressed())
+        print('R2:', r2)
+        ax5.set_title('r$^{2}$ = ' + str(np.round(r2, 3)))
+        ax5.scatter(allmask_diffcalc.compressed(), allmask_testers.compressed(), s = 6, color = 'k')
+
+ 
+    plot_subplot_label(ax1, 'a)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax2, 'b)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax3, 'c)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax4, 'd)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax5, 'e)', fontsize = 11, backgroundcolor = None)
+    
+    plt.suptitle(dt_date_str.strftime('%Y-%m-%d %H:%M UTC'))
+    
+    in_calc.close()
+    
+    fig.tight_layout()
+
+    if(save):    
+        if(auto_zoom):
+            zoom_add = '_zoom'
+        else:
+            zoom_add = ''
+        outname = 'ceres_nn_L2_validate_' + date_str + '_' + sim_name + zoom_add + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+
+# Zooms in the images on just the plume area
+def plot_compare_NN_output_v2(calc_data, auto_zoom = True, save = False):
+    
+    # Load in the JSON file string relations
+    # --------------------------------------
+    with open(json_time_database, 'r') as fin:
+        file_date_dict = json.load(fin)
+
+    file_name = calc_data.strip().split('/')[-1] 
+    date_str = file_name.split('.')[0].split('_')[-1]
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+    
+    sim_name = file_name.split('_')[3]
+    print(sim_name, date_str)
+    
+    in_calc = h5py.File(calc_data)
+    
+    mask_orig = np.ma.masked_where((in_calc['ceres_swf'][:,:] == -999.) | \
+                                   (in_calc['ceres_swf'][:,:] > 3000), in_calc['ceres_swf'][:,:])
+    mask_calc = np.ma.masked_invalid(in_calc['calc_swf'])
+    mask_calc = np.ma.masked_where(mask_calc == -999., mask_calc)
+    
+    ##!#mask_ctp = np.ma.masked_invalid(in_calc['modis_cld_top_pres'][:,:])
+    ##!#mask_ctp = np.ma.masked_where(mask_ctp == -999., mask_ctp)
+    ##!#
+    ##!#mask_cod = np.ma.masked_invalid(in_calc['modis_cod'][:,:])
+    ##!#mask_cod = np.ma.masked_where(mask_cod == -999., mask_cod)
+    ##!#
+    ##!#mask_ice = np.ma.masked_invalid(in_calc['nsidc_ice'][:,:])
+    ##!#mask_ice = np.ma.masked_where(mask_ice == -999., mask_ice)
+    
+    diff_calc = mask_calc - mask_orig
+    
+    both_orig = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_orig)
+    both_calc = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_calc)
+
+    modis_date = file_date_dict[date_str]['MODIS'][0]
+
+    mask_AI = np.ma.masked_where(in_calc['omi_uvai_pert'][:,:]  == -999., \
+        in_calc['omi_uvai_pert'][:,:])
+   
+    if(auto_zoom):
+
+        # Figure out where the pixels containing AI are located
+        # -----------------------------------------------------
+        high_AI_idxs = np.where(mask_AI > 1.5)
+        #mask_AI = np.ma.masked_where(mask_AI < 1.5, mask_AI)
+
+        # Switch the longitudes to 0 - 360 rather than -180 - 180
+        # -------------------------------------------------------
+        work_lons = np.copy(in_calc['omi_lon'][:,:])
+        work_lons[work_lons < 0] = 360 + work_lons[work_lons < 0]
+        
+
+        # Figure out the minimum/maximum latitude/longitudes in the AI ranges
+        # -------------------------------------------------------------------
+        min_lat = np.min(in_calc['omi_lat'][:,:][high_AI_idxs]) - 2
+        max_lat = np.max(in_calc['omi_lat'][:,:][high_AI_idxs]) + 2
+        
+        if(max_lat > 90):
+            max_lat = 90
+
+        # Calculate the 5th and 95th percentiles of longitude to prevent
+        # outliers from ruining the mean or max/min values
+        # --------------------------------------------------------------
+        min_lon = np.percentile(work_lons[high_AI_idxs], 5) - 2
+        max_lon = np.percentile(work_lons[high_AI_idxs], 95) + 2
+
+        center_lon = (min_lon + max_lon) / 2.
+        workcrs = ccrs.NorthPolarStereo(central_longitude = center_lon)
+
+    else:
+        workcrs = ccrs.NorthPolarStereo(central_longitude = 0)
+
+    #fig = plt.figure(figsize = (10.5, 6))
+    fig = plt.figure(figsize = (11, 7))
+    ax1 = fig.add_subplot(2,3,1, projection = workcrs) # OMI AI
+    ax2 = fig.add_subplot(2,3,2, projection = workcrs) # True color
+    ax3 = fig.add_subplot(2,3,4, projection = workcrs) # CERES SWF obs
+    ax4 = fig.add_subplot(2,3,5, projection = workcrs) # NN SWF 
+    ax5 = fig.add_subplot(2,3,6, projection = workcrs) # Forcing with OMI hashing
+        
+ 
+   
+    # Plot OMI UVAI
+    # ------------- 
+    mesh = ax1.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_AI, \
+        transform = ccrs.PlateCarree(), shading = 'auto', vmax = 5, cmap = 'jet')
+    cbar = fig.colorbar(mesh, ax = ax1, label = 'OMI UVAI')
+    if(auto_zoom):
+        ax1.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    else:
+        ax1.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+        ax1.set_boundary(circle, transform=ax1.transAxes)
+    ax1.set_title('OMI UVAI')
+    ax1.coastlines()
+   
+    # Plot MODIS True color
+    # --------------------- 
+    plot_MODIS_channel(modis_date, 'true_color', swath = True, \
+        zoom = True, ax = ax2)
+    if(auto_zoom):
+        ax2.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    else:
+        ax2.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+        ax2.set_boundary(circle, transform=ax2.transAxes)
+    ax2.set_title('MODIS True Color')
+    ax2.coastlines()
+   
+    # Plot CERES observations
+    # ----------------------- 
+    mesh = ax3.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_orig, \
+        transform = ccrs.PlateCarree(), shading = 'auto')
+    cbar = fig.colorbar(mesh, ax = ax3, label = 'SWF [Wm$^{-2}$]')
+    #ax1.set_extent([117, 170,70,  85], ccrs.PlateCarree())
+    if(auto_zoom):
+        ax3.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    else:
+        ax3.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+        ax3.set_boundary(circle, transform=ax3.transAxes)
+    ax3.set_title('Observed SWF')
+    ax3.coastlines()
+   
+    # Plot neural net output
+    # ---------------------- 
+    mesh = ax4.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_calc, \
+        transform = ccrs.PlateCarree(), shading = 'auto')
+    cbar = fig.colorbar(mesh, ax = ax4, label = 'SWF [Wm$^{-2}$]')
+    #ax2.set_extent([117, 170,70,  85], ccrs.PlateCarree())
+    if(auto_zoom):
+        ax4.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    else:
+        ax4.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+        ax4.set_boundary(circle, transform=ax4.transAxes)
+    ax4.set_title('Calc. Aerosol-free SWF')
+    ax4.coastlines()
+   
+    # Plot the estimated forcing
+    # -------------------------- 
+    mesh = ax5.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], diff_calc, \
+        transform = ccrs.PlateCarree(), shading = 'auto', vmin = -80, vmax = 80, cmap = 'bwr')
+    cbar = fig.colorbar(mesh, ax = ax5, label = 'SWF [Wm$^{-2}$]')
+    #ax3.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
+    #ax3.set_boundary(circle, transform=ax3.transAxes)
+    #ax3.set_extent([117, 170,70,  85], ccrs.PlateCarree())
+    if(auto_zoom):
+        ax5.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    else:
+        ax5.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+        ax5.set_boundary(circle, transform=ax5.transAxes)
+    ax5.set_title('Calculated - Observed')
+    ax5.coastlines()
+    
+    plot_subplot_label(ax1, 'a)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax2, 'b)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax3, 'c)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax4, 'd)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax5, 'e)', fontsize = 11, backgroundcolor = None)
+    #plot_subplot_label(ax4, 'e)', fontsize = 11, backgroundcolor = None)
+    
+    plt.suptitle(dt_date_str.strftime('%Y-%m-%d %H:%M UTC'))
+    
+    #in_base.close()
+    in_calc.close()
+    
+    fig.tight_layout()
+
+    if(save):    
+        if(auto_zoom):
+            zoom_add = '_zoom'
+        else:
+            zoom_add = ''
+        outname = 'ceres_nn_compare_v2_' + date_str + '_' + sim_name + zoom_add + '.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
@@ -10898,8 +11390,10 @@ def plot_compare_NN_output_noaer(calc_data, save = False):
 # There is one plot for each COD bin.
 # --------------------------------------------------------------
 def plot_NN_scatter_multiCOD(test_dict, cod_bin_edges, \
-    ai_min, ice_min, ice_max, sza_min, sza_max, save = False):
+        ai_min, ice_min, ice_max, sza_min, sza_max, trend_type = 'linregress', \
+        plot_bounds = False, save = False):
 
+    plt.close('all')
     fig = plt.figure(figsize = (12, 5))
     axs = fig.subplots(nrows = 2, ncols = 4)
     
@@ -10920,23 +11414,40 @@ def plot_NN_scatter_multiCOD(test_dict, cod_bin_edges, \
     
         flat_axs[ii].scatter(local_xdata, diff_calc, s = 6, color = 'k')
        
-        flat_axs[ii].set_title(str(cod_bin_edges[ii]))
+        flat_axs[ii].set_title('COD: ' + str(cod_bin_edges[ii]) + ' - ' + str(cod_bin_edges[ii + 1]))
     
         flat_axs[ii].set_xlabel('OMI AI')
         flat_axs[ii].set_ylabel('Forcing [W/m2]')
  
-        trend_type = 'theil-sen'
+        #trend_type = 'theil-sen'
         #trend_type = 'linregress'
         if(len(local_xdata) > 10000):
             print("ERROR: Plotting trend line with too many points")
             print("       Preventing this for the sake of computer safety")
         else:
             plot_trend_line(flat_axs[ii], local_xdata, diff_calc, color='tab:red', \
-                linestyle = '-',  slope = trend_type, plot_bounds = True)
-    
+                linestyle = '-',  slope = trend_type, plot_bounds = plot_bounds)
+ 
+    if(ice_min >= 101):
+        title_str = 'Land\n'
+    elif( (ice_min < 20 ) & (ice_max <= 20) ):
+        title_str = 'Ocean (' + str(ice_min) + '% < Sea Ice Conc. < ' + str(ice_max) + '%)\n'
+    elif( (ice_min >= 20 ) & (ice_max <= 80) ):
+        title_str = 'Mixed ice/ocean (' + str(ice_min) + ' < Sea Ice Conc. < ' + str(ice_max) + '%)\n'
+    elif( (ice_min >= 80 ) & (ice_max <= 100) ):
+        title_str = 'Ice (' + str(ice_min) + ' < Sea Ice Conc. < ' + str(ice_max) + '%)\n'
+    title_str = title_str + 'SZA: ' + str(sza_min) + ' - ' + str(sza_max)
+    plt.suptitle(title_str) 
+     
     fig.tight_layout()
-    
-    plt.show()
+    if(save):
+        outname = 'nn_force_scatter_multiCOD' + \
+            '_ice' + str(int(ice_min)) + 'to' + str(int(ice_max)) + \
+            '_sza' + str(int(sza_min)) + 'to' + str(int(sza_max)) + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:   
+        plt.show()
 
 def plot_NN_forcing_daily(date_str, OMI_daily_data, OMI_monthly_data, \
         slope_dict, bin_dict, minlat = 65., maxlat = 87., \
@@ -11047,6 +11558,294 @@ def plot_NN_forcing_daily(date_str, OMI_daily_data, OMI_monthly_data, \
     else:
         plt.show()
     
+
+#def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict, \
+#        bin_dict, date_str, minlat = 70., maxlat = 87., ai_thresh = -0.15, \
+#        maxerr = 2, 
+#        reference_ice = None, reference_cld = None, mod_slopes = None, \
+#        mod_intercepts = None, mod_ice = None, mod_cod = None, \
+#        filter_bad_vals = True, return_modis_nsidc = True, use_intercept = False, \
+#        debug = False):
+def perform_forcing_calculation_v4(l2_data_dict, slope_dict, bin_dict, \
+        ai_thresh = 0.7, mod_slopes = None, mod_intercepts = None, \
+        mod_cod = None, mod_ice = None, use_intercept = False):
+
+    local_OMI_data = l2_data_dict['omi_uvai_pert'][:,:]
+
+    estimate_forcings = np.full(local_OMI_data.shape, np.nan)
+
+    if(debug):
+        print("OMI SHAPE = ", local_OMI_data.shape)
+        #print("MOD SHAPE = ", MYD08_data['day_cld_frac_mean'].shape)
+        #print("NSI SHAPE = ", NSIDC_data['grid_ice_conc'].shape)
+
+    """
+    final_pole_hole = np.where((grid_pole_hole_cc != -999.) & \
+        ((grid_pole_hole_cc > grid_unused_cc) & \
+         (grid_pole_hole_cc > grid_coastline_cc) & \
+         (grid_pole_hole_cc > grid_land_cc)), \
+        251, np.nan).squeeze()
+    final_unused = np.where((grid_unused_cc != -999.) & \
+        ((grid_unused_cc > grid_pole_hole_cc) & \
+         (grid_unused_cc > grid_coastline_cc) & \
+         (grid_unused_cc > grid_land_cc)), \
+        252, np.nan).squeeze()
+    final_coastline = np.where((grid_coastline_cc != -999.) & \
+        ((grid_coastline_cc > grid_pole_hole_cc) & \
+         (grid_coastline_cc > grid_unused_cc) & \
+         (grid_coastline_cc > grid_land_cc)), \
+        253, np.nan).squeeze()
+    final_land = np.where((grid_land_cc != -999.) & \
+        ((grid_land_cc >= grid_pole_hole_cc) & \
+         (grid_land_cc >= grid_unused_cc) & \
+         (grid_land_cc >= grid_coastline_cc)), \
+        254, np.nan).squeeze()
+    """
+
+    # 2.  Loop over the x coordinate
+    # ------------------------------
+    for ii in range(local_OMI_data.shape[0]):
+
+        # Loop over the y coordinate
+        # --------------------------
+        for jj in range(local_OMI_data.shape[1]):
+    
+            # 3.  Determine if a single gridbox has AI above the threshold
+            if(local_OMI_data[ii,jj] < ai_thresh): 
+                # 3a. If not above the threshold, set forcing to 0 and continue
+                estimate_forcings[ii,jj] = 0.
+            else:
+                # 3b. If above the threshold,
+                # 4.  Determine the difference between this pixel's AI and the clear-sky
+                #     climatology.
+                #delta_ai = local_OMI_daily[ii,jj] - \
+                #           clear_sky_AI[ii,jj]
+
+                # Extract the daily NSIDC and MODIS COD values here
+                # Also, grab the pre-calculated 
+
+                # 6.  Extract the MODIS MYD08 value and weigh the "clear" and "cloud"
+                #     forcing values according to that cloud fraction.
+                local_sza = l2_data_dict['omi_sza'][ii,jj]
+                modis_cod = l2_data_dict['modis_cod'][ii,jj]
+                nsidc_ice = l2_data_dict['nsidc_ice'][ii,jj]
+
+                if(mod_cod is not None):
+                    new_cod = modis_cod + mod_cod
+                    if(new_cod < 0):
+                        new_cod = 0
+                    elif(new_cod > bin_dict['cod_bin_edges'][-1]):
+                        new_cod = bin_dict['cod_bin_edges'][-1]
+
+                    modis_cod = new_cod
+
+                # NOTE. If the cloud fraction is very small (< 0.1, 0.2?) but the 
+                # COD value is not 0, use a value of 0 for the COD
+                #print('{0:5.1f} {1:5.1f} {2:5.1f} {3:5.2f} {4:5.2f} {5:5.2f} {6:5.2f}'.format(\
+                #    OMI_daily_data['lat_values'][ii],OMI_daily_data['lon_values'][jj],\
+                #    local_sza, modis_cod, cld_frac, local_OMI_daily[ii,jj], nsidc_ice))
+
+                sza_idx = np.argmin(abs(local_sza - bin_dict['sza_bin_means']))
+                cod_idx = np.argmin(abs(modis_cod - bin_dict['cod_bin_means']))
+
+                #print(bin_dict['sza_bin_means'][sza_idx], bin_dict['cod_bin_means'][cod_idx])
+
+                # 5.  Extract the NSIDC surface type to figure out which forcing value
+                #     to use.
+                ice_idx = -9
+                if(nsidc_ice == -999.):
+                #if( (pole_mask[ii,jj] == True) & (unused_mask[ii,jj] == True) & \
+                #    (land_mask[ii,jj] == True) & (coast_mask[ii,jj] == True) & \
+                #    (ice_mask[ii,jj] == True)):
+                    if(debug):
+                        print(pole_mask[ii,jj], unused_mask[ii,jj], \
+                            land_mask[ii,jj], coast_mask[ii,jj], \
+                            ice_mask[ii,jj], 'ALL MASKED')
+                    #calc_forcing = 0.
+                    ice_idx = -9
+                else:
+                    if( (nsidc_ice == 251.) | (nsidc_ice == 252.)):
+                    #if((pole_mask[ii,jj] == False) | \
+                    #   (unused_mask[ii,jj] == False)):
+                        # Bad grid points. NO forcing
+                        #calc_forcing =  0.
+                        ice_idx = -9
+                        if(debug):
+                            print(pole_mask[ii,jj], unused_mask[ii,jj], \
+                                land_mask[ii,jj], coast_mask[ii,jj], \
+                                ice_mask[ii,jj], 'POLE/UNUSED')
+
+                    elif((nsidc_ice == 253.) | \
+                         (nsidc_ice == 254.)):
+                    #elif((land_mask[ii,jj] == False) | \
+                    #     (coast_mask[ii,jj] == False)):
+                        # Use land forcing value
+                        if(debug):
+                            print(pole_mask[ii,jj], unused_mask[ii,jj], \
+                                land_mask[ii,jj], coast_mask[ii,jj], \
+                                ice_mask[ii,jj], 'LAND/COAST')
+
+                        ice_idx = -1
+                        #ice_idx = 3
+                        # 2024/08/07 - currently unable to implement
+                        #   this with the L2 validation stuff because
+                        #   the GPQF data are not included in the
+                        #   neuralnet output files.
+
+                        # 2023/10/05 - added check to see if the smoke
+                        #   is above permanent ice (or above dry snow).
+                        #   If it is, use the ice forcing values. 
+                        #   Although, is it fair to do this since dry
+                        #   snow was removed from the initial forcing
+                        #   efficiency calculations...
+                        #
+                        # Check if the current grid box is permanent ice. 
+                        # In that case, use the ice forcing eff. values
+                        # -----------------------------------------------
+                        ##!#if(OMI_daily_data['grid_GPQF'][match_idx,ii,jj] == 3):
+                        ##!#    # Use the ice slope index
+                        ##!#    ice_idx = 0
+
+                        ##!#    #calc_forcing = cld_frac * \
+                        ##!#    #    cloud_dict['ice_forcing'][ii] + \
+                        ##!#    #    (1 - cld_frac) * clear_dict['ice_forcing'][ii]
+                        ##!#else:
+                        ##!#    # Use the land slope index 
+                        ##!#    # CHANGED FROM EARLIER!!! 
+                        ##!#    ice_idx = 3
+                        ##!#    #calc_forcing = cld_frac * \
+                        ##!#    #    cloud_dict['land_forcing'][ii] + \
+                        ##!#    #    (1 - cld_frac) * clear_dict['land_forcing'][ii]
+                        ##!##estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai 
+
+                    elif( (nsidc_ice >= 0) & (nsidc_ice <= 100)):
+                    #elif(ice_mask[ii,jj] == False):
+                        # Use either ice, mix, or ocean forcing value
+                        if(debug):
+                            print(pole_mask[ii,jj], unused_mask[ii,jj], \
+                                land_mask[ii,jj], coast_mask[ii,jj], \
+                                ice_mask[ii,jj], 'ICE/MIX/OCEAN')
+
+                        # Account for if the user wants to test the sensitivity to ice
+                        # ------------------------------------------------------------
+                        if(mod_ice is not None):
+                            new_ice = nsidc_ice + mod_ice
+                            if(new_ice < 0):
+                                new_ice = 0
+                            elif(new_ice > 100):
+                                new_ice = 100
+                            #if((dt_date_str.year == 2015) & (dt_date_str.month == 7)):
+                            #    print("OLD ICE:", nsidc_ice, "NEW ICE:", new_ice)
+
+                            """
+                            if((nsidc_ice < 20) & (new_ice >= 20)):
+                                print("OCN TO MIX", np.round(nsidc_ice,1), np.round(new_ice,1), 'COD IDX = ', cod_idx)
+                            elif((nsidc_ice >= 20) & (new_ice < 20)):
+                                print("MIX TO OCN", np.round(nsidc_ice,1), np.round(new_ice,1), 'COD IDX = ', cod_idx)
+                            elif((nsidc_ice < 80) & (new_ice >= 80)):
+                                print("MIX TO ICE", np.round(nsidc_ice,1), np.round(new_ice,1), 'COD IDX = ', cod_idx)
+                            elif((nsidc_ice >= 80) & (new_ice < 80)):
+                                print("ICE TO MIX", np.round(nsidc_ice,1), np.round(new_ice,1), 'COD IDX = ', cod_idx)
+                            """
+
+                            nsidc_ice = new_ice
+
+                        ice_idx = np.argmin(abs(nsidc_ice - bin_dict['ice_bin_means']))
+
+                        """
+                        if( (nsidc_ice < 20) ):
+                            # Use ocean forcing
+                            ice_idx = 0
+                            #calc_forcing = cld_frac * cloud_dict['ocean_forcing'][ii] + \
+                            #               (1 - cld_frac) * clear_dict['ocean_forcing'][ii]
+                            #estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai 
+                            
+                        elif( (nsidc_ice >= 20) & (nsidc_ice < 80)):
+                            # Use mix forcing
+                            ice_idx = 1
+                            #calc_forcing = cld_frac * cloud_dict['mix_forcing'][ii] + \
+                            #               (1 - cld_frac) * clear_dict['mix_forcing'][ii]
+                            #estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai 
+
+                        elif( (nsidc_ice >= 80) ):
+                            # Use ice forcing
+                            ice_idx = 2
+                            #calc_forcing = cld_frac * cloud_dict['ice_forcing'][ii] + \
+                            #               (1 - cld_frac) * clear_dict['ice_forcing'][ii]
+                            #estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai 
+
+                        else:
+                            if(debug):
+                                print("FAILED ICE")
+                            #calc_forcing = 0.
+                            ice_idx = -9
+                        """
+
+                    else:
+                        if(debug):
+                            print("FAILED EVERYTHING")
+                        calc_forcing = 0.
+
+                if(ice_idx != -9): 
+                    #print("ICE INDEX = ", ice_idx)
+                    #calc_forcing = cld_frac * cloud_dict['ice_forcing'][ii] + \
+                    #               (1 - cld_frac) * clear_dict['ice_forcing'][ii]
+                    #estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai
+        
+                    if(mod_slopes is None):
+                        # Select the normal slope
+                        work_slope = slope_dict['slopes'][ice_idx,sza_idx,cod_idx]
+                    elif(mod_slopes == 'upper'):
+                        if(slope_dict['trend_type'] == 'theil-sen'):
+                            work_slope = slope_dict['upper_slopes'][ice_idx,sza_idx,cod_idx]
+                        else:
+                            work_slope = slope_dict['slopes'][ice_idx,sza_idx,cod_idx] + \
+                                slope_dict['slope_stderr'][ice_idx,sza_idx,cod_idx]
+                    elif(mod_slopes == 'lower'):
+                        if(slope_dict['trend_type'] == 'theil-sen'):
+                            work_slope = slope_dict['lower_slopes'][ice_idx,sza_idx,cod_idx]
+                        else:
+                            work_slope = slope_dict['slopes'][ice_idx,sza_idx,cod_idx] - \
+                                slope_dict['slope_stderr'][ice_idx,sza_idx,cod_idx]
+                    else:
+                        print("WARNING: Invalid mod slopes. Must be " + \
+                            "'upper' or 'lower'. Using default")
+                        work_slope = slope_dict['slopes'][ice_idx,sza_idx,cod_idx]
+
+
+                    if(use_intercept):
+                        #slope_dict['slopes'][ice_idx,sza_idx,cod_idx] * \
+                        if(mod_intercepts is None):
+                            work_intercept = slope_dict['intercepts'][ice_idx,sza_idx,cod_idx]
+                        else:
+                            if(slope_dict['trend_type'] == 'linregress'):
+                                if(mod_intercepts == 'upper'): 
+                                    work_intercept = slope_dict['intercepts'][ice_idx,sza_idx,cod_idx] + \
+                                                     slope_dict['intcpt_stderr'][ice_idx,sza_idx,cod_idx]
+                                elif(mod_intercepts == 'lower'): 
+                                    work_intercept = slope_dict['intercepts'][ice_idx,sza_idx,cod_idx] - \
+                                                     slope_dict['intcpt_stderr'][ice_idx,sza_idx,cod_idx]
+                                else:
+                                    print("WARNING: Invalid mod intcpt. Must be " + \
+                                        "'upper' or 'lower'. Using default")
+                                    work_intercept = slope_dict['intercepts'][ice_idx,sza_idx,cod_idx]
+                            else:
+                                if(debug):
+                                    print("ERROR: NO INTERCEPT ERROR FOR THEIL-SEN REGRESSION")
+                                
+                                
+                        estimate_forcings[ii,jj] = \
+                            work_slope * local_OMI_data[ii,jj] + \
+                            work_intercept
+                    else:
+                        #slope_dict['slopes'][ice_idx,sza_idx,cod_idx] * \
+                        estimate_forcings[ii,jj] = \
+                            work_slope * local_OMI_data[ii,jj]
+
+    estimate_forcings = np.ma.masked_invalid(estimate_forcings) 
+
+    return estimate_forcings
+
 
 # use_intercept: in the forcing estimation calculation, setting this to True 
 #   makes the calculation use both the regression slope and regression to 
@@ -11180,7 +11979,7 @@ def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict,
                 #     forcing values according to that cloud fraction.
                 #cld_frac = MYD08_data['day_cld_frac_mean'][ii,jj]
                 modis_cod = MYD08_data['cod_mean'][ii,jj]
-                cld_frac  = MYD08_data['day_cld_frac_mean'][ii,jj]
+                #cld_frac  = MYD08_data['day_cld_frac_mean'][ii,jj]
                 nsidc_ice = NSIDC_data['grid_ice_conc'][ii,jj]
 
                 if(mod_cod is not None):
@@ -11254,7 +12053,8 @@ def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict,
                         else:
                             # Use the land slope index 
                             # CHANGED FROM EARLIER!!! 
-                            ice_idx = 3
+                            #ice_idx = 3
+                            ice_idx = -1
                             #calc_forcing = cld_frac * \
                             #    cloud_dict['land_forcing'][ii] + \
                             #    (1 - cld_frac) * clear_dict['land_forcing'][ii]
@@ -11291,7 +12091,9 @@ def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict,
 
                             nsidc_ice = new_ice
 
+                        ice_idx = np.argmin(abs(nsidc_ice - bin_dict['ice_bin_means']))
 
+                        """
                         if( (nsidc_ice < 20) ):
                             # Use ocean forcing
                             ice_idx = 0
@@ -11318,6 +12120,7 @@ def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict,
                                 print("FAILED ICE")
                             #calc_forcing = 0.
                             ice_idx = -9
+                        """
 
                     else:
                         if(debug):
@@ -11325,7 +12128,7 @@ def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict,
                         calc_forcing = 0.
 
                 if(ice_idx != -9): 
-                    #print("ICE INDEX = ", ice_idx)
+                    print("ICE VAL:", nsidc_ice, "ICE INDEX = ", ice_idx)
                     #calc_forcing = cld_frac * cloud_dict['ice_forcing'][ii] + \
                     #               (1 - cld_frac) * clear_dict['ice_forcing'][ii]
                     #estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai

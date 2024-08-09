@@ -237,6 +237,15 @@ os.system(cmnd)
 #print(cmnd)
 #os.system(cmnd)
 # ---------------------------------------------------------------------------- 
+# CATS analysis
+# ---------------------------------------------------------------------------- 
+print("CATS")
+final_dir = dest_dir + 'CATS/'
+cmnd = "find "+base_dir+"CATS/ -type f -name \"*.py\" | xargs cp -t "+final_dir
+#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
+# ---------------------------------------------------------------------------- 
 # CRIS analysis
 # ---------------------------------------------------------------------------- 
 print("CrIS")

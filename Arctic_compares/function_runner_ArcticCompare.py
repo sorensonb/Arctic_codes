@@ -169,14 +169,18 @@ sys.exit()
 #plot_compare_NN_output_noaer(sys.argv[1], save = False)
 #sys.exit()
 
+# Plot the zoomed in comparison
+# -----------------------------
+plot_compare_NN_output_v2(sys.argv[1], auto_zoom = True, save = True)
+sys.exit()
+
 # Plots more stuff than the NN_output_noaer function
 # --------------------------------------------------
-#plot_compare_NN_output(sys.argv[1], save = True)
+#plot_compare_NN_output(sys.argv[1], save = False)
 #sys.exit()
 
-#plot_compare_NN_output_overlay(sys.argv[1], auto_zoom = True, save = False)
+#plot_compare_NN_output_overlay(sys.argv[1], auto_zoom = False, save = False)
 #sys.exit()
-
 
 #calc_data = sys.argv[1]
 #in_calc = h5py.File(calc_data)
@@ -328,6 +332,12 @@ sys.exit()
 #           The first row is the 65 - 87, the second row is 65 - 75, and
 #           the third row is 75 - 87.
 #
+# plot_compare_NN_output_overlay(sys.argv[1], auto_zoom = True, save = False)
+#           Plots zoomed in images of OMI AI, MODIS true color, and 
+#           forcing, with hatched regions showing AI greater than xxx.
+#           Function written to determine if there was significant drift
+#           between the Aura and Aqua overpasses when viewing a smoke plume.
+#           
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #
 #                   STEPS FOR NEW DAILY FORCING ESTIMATION
@@ -375,7 +385,8 @@ cod_bin_edges = np.array([0,0.5,2,4,8,12,20,30,50])
 cod_bin_means = (cod_bin_edges[1:] + cod_bin_edges[:-1]) / 2
 sza_bin_edges = np.arange(40, 85, 5)
 sza_bin_means = (sza_bin_edges[1:] + sza_bin_edges[:-1]) / 2
-ice_bin_edges = np.array([0, 20, 80, 100.2, 255])
+#ice_bin_edges = np.array([0, 20, 80, 100.2, 255])
+ice_bin_edges = np.array([0, 20, 40, 60, 80, 100.2, 255])
 ice_bin_means = (ice_bin_edges[1:] + ice_bin_edges[:-1]) / 2
 
 bin_dict = {
@@ -391,18 +402,18 @@ bin_dict = {
 
 # Plot the scattered NN output as function of AI for the bins given above
 # -----------------------------------------------------------------------
-#plot_NN_scatter_multiCOD(test_dict, cod_bin_edges, 0, 101, 255, 50, 55)
-#sys.exit()
+plot_NN_scatter_multiCOD(test_dict, cod_bin_edges, 0, 101, 255, 50, 55, save = False)
+sys.exit()
 
 # Calculate the regression slopes and intercepts from the NN data
 # ---------------------------------------------------------------
-#min_ob = 50
+min_ob = 50
 #slope_dict = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
 #        sza_bin_edges, cod_bin_edges, ai_min = 0, min_ob = min_ob, \
 #        trend_type = 'theil-sen')
-#slope_dict_lin = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
-#        sza_bin_edges, cod_bin_edges, ai_min = 0, min_ob = min_ob, \
-#        trend_type = 'linregress')
+slope_dict_lin = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
+        sza_bin_edges, cod_bin_edges, ai_min = 0, min_ob = min_ob, \
+        trend_type = 'linregress')
 
 #slope_dict2 = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
 #        sza_bin_edges, cod_bin_edges, ai_min = 1, min_ob = min_ob, \
@@ -414,6 +425,29 @@ bin_dict = {
 #plot_NN_bin_slopes(slope_dict_lin, bin_dict, min_ob = min_ob, plot_error = True, save = True)
 #sys.exit()
 
+# Run L2 validation
+# -----------------
+##!#in_calc = h5py.File(sys.argv[1])
+##!#testers = perform_forcing_calculation_v4(in_calc, slope_dict_lin, bin_dict, \
+##!#        ai_thresh = 0.7, use_intercept = True)
+##!#
+##!#fig = plt.figure()
+##!#ax = fig.add_subplot(1,1,1, projection = ccrs.NorthPolarStereo())
+##!#ax.pcolormesh(in_calc['omi_lon'], in_calc['omi_lat'], testers, \
+##!#    shading = 'auto', vmin = -80, vmax = 80, cmap = 'bwr', \
+##!#    transform = ccrs.PlateCarree())
+##!#ax.coastlines()
+##!#ax.set_extent([-180,180,65,90], ccrs.PlateCarree())
+##!#
+##!#in_calc.close()
+##!#fig.tight_layout()
+##!#plt.show()
+##!#
+##!#sys.exit()
+plot_compare_NN_output_L2_validate(sys.argv[1], slope_dict_lin, bin_dict, \
+    auto_zoom = True, save = False)
+sys.exit()
+
 # Makes a plot of OMI AI, Observed SWF, NN SWF, and Regression
 # Designed for showing the validation of the NN under
 # aerosol-free conditions
@@ -424,15 +458,43 @@ bin_dict = {
 # --------------------------------------------------
 #plot_compare_NN_output(sys.argv[1], auto_zoom = True, save = False)
 #sys.exit()
+
 sim_name = 'noland50'
-files = glob('neuralnet_output/test_calc_out_' + sim_name + '_2019*.hdf5')
 
-for tfile in files:
-    #plot_compare_NN_output(tfile, auto_zoom = True, save = True)
-    plot_compare_NN_output_overlay(tfile, auto_zoom = True, save = True)
-
-
+plot_L2_validate_regress_all(sim_name, slope_dict_lin, bin_dict, \
+    ai_thresh = 0.7, mod_slopes = None, mod_intercepts = None, \
+    mod_cod = None, mod_ice = None, use_intercept = False, \
+    save = True)
 sys.exit()
+
+
+#files = glob('neuralnet_output/test_calc_out_' + sim_name + '*.hdf5')
+#
+#for tfile in files:
+#    #plot_compare_NN_output(tfile, auto_zoom = True, save = True)
+#    #plot_compare_NN_output_overlay(tfile, auto_zoom = True, save = True)
+#
+#    filedate = tfile.strip().split('/')[-1].split('_')[-1][:12]
+#    year = int(filedate[:8])
+#
+#    print(year)
+#    if( (year >= 20170708) & (year < 20190810) ):
+#
+#        plot_compare_NN_output_L2_validate(tfile, slope_dict_lin, bin_dict, \
+#            mod_slopes = None, mod_intercepts = None, mod_cod = None, \
+#            mod_ice = None, use_intercept = True, auto_zoom = True, \
+#            ai_thresh = 0.7, save = True)
+#
+#        cmnd = 'mv *validate*.png validation_L2_images/'
+#        print(cmnd)
+#        os.system(cmnd)
+#
+#sys.exit()
+
+
+
+
+#sys.exit()
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
@@ -457,6 +519,19 @@ daily_VSJ4 = readOMI_daily_HDF5(shawn_file, minlat = minlat, maxlat = maxlat)
 ai_thresh = 0.05
 #ai_thresh = -0.15
 maxerr = 1.5
+
+date_str = '20180705'
+#values = test_calculate_type_forcing_v4(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, date_str, minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr,\
+#    filter_bad_vals = True, \
+#    reference_ice = None, \
+#    reference_cld = None, \
+#    mod_slopes = None, \
+#    return_modis_nsidc = False, debug = True)
+#
+#sys.exit()
+
 
 # Pre-calculate the daily SZA values for 1 April to 30 September
 # at each latitude in the grid. Resulting shape is (num_days, num_latitudes)
