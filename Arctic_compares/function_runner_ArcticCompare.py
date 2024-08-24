@@ -13,6 +13,37 @@ from sklearn.metrics import r2_score
 
 #make_gif('comp_images_20180705/', 'calc_swf_comp_20180705.gif')
 
+# CODE FOR PLOTTING RAW VARIABLES FROM OMI FILES
+"""
+data = h5py.File(sys.argv[1])
+
+lat = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Latitude'][:,:]
+lon = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Geolocation Fields/Longitude'][:,:]
+hgt = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/FinalAerosolLayerHeight'][:,:]
+AI  = data['HDFEOS/SWATHS/Aerosol NearUV Swath/Data Fields/UVAerosolIndex'][:,:]
+
+hgt = np.ma.masked_where(hgt < 0, hgt)
+AI  = np.ma.masked_where((AI < -2) | (AI > 10), AI)
+
+data.close()
+
+fig = plt.figure(figsize = (11, 4))
+ax1 = fig.add_subplot(1,3,1, projection = ccrs.NorthPolarStereo())
+ax2 = fig.add_subplot(1,3,2, projection = ccrs.NorthPolarStereo())
+ax3 = fig.add_subplot(1,3,3)
+ax1.pcolormesh(lon, lat, hgt, transform = datacrs, shading = 'auto')
+ax1.coastlines()
+ax1.set_extent([-180,180,65,90], datacrs)
+ax2.pcolormesh(lon, lat, AI, transform = datacrs, shading = 'auto', cmap = 'jet')
+ax2.coastlines()
+ax2.set_extent([-180,180,65,90], datacrs)
+ax3.hist(hgt.compressed())
+fig.tight_layout()
+plt.show()
+
+sys.exit()
+"""
+
 # Plots the distribution of MYD08 COD standard deviations
 # -------------------------------------------------------
 #plotMODIS_MYD08_COD_distribution(save=True)
@@ -166,21 +197,35 @@ sys.exit()
 # Designed for showing the validation of the NN under
 # aerosol-free conditions
 # -----------------------------------------------------------
-#plot_compare_NN_output_noaer(sys.argv[1], save = False)
+#plot_compare_NN_output_noaer(sys.argv[1], save = True)
 #sys.exit()
-
-# Plot the zoomed in comparison
-# -----------------------------
-plot_compare_NN_output_v2(sys.argv[1], auto_zoom = True, save = True)
-sys.exit()
 
 # Plots more stuff than the NN_output_noaer function
 # --------------------------------------------------
 #plot_compare_NN_output(sys.argv[1], save = False)
 #sys.exit()
 
-#plot_compare_NN_output_overlay(sys.argv[1], auto_zoom = False, save = False)
+# Plot the zoomed in comparison
+# -----------------------------
+#plot_compare_NN_output_v2(sys.argv[1], auto_zoom = True, save = False)
 #sys.exit()
+
+# CODE TO SEE HOW WELL THE DIFFERENT NN OUTPUTS COMPARE FOR A GIVEN
+# SWATH TIME
+# -----------------------------------------------------------------
+#date_str = '201807052213'
+#skip_version = ['noland51','noland52','noland60','noland61']
+#compare_nn_version_output(date_str, skip_version = skip_version, save = False)
+#
+#sys.exit()
+
+#plot_compare_NN_output_overlay(sys.argv[1], auto_zoom = True, save = False)
+#sys.exit()
+
+
+
+
+
 
 #calc_data = sys.argv[1]
 #in_calc = h5py.File(calc_data)
@@ -291,11 +336,6 @@ sys.exit()
 # calc_forcing_slopes_v4_all_months_arctic_avg_uncert(all_month_files):
 #           Same as above, but for the specified uncertainty runs.
 #
-#  plot_compare_NN_output_noaer(sys.argv[1], save = False):
-#           Makes a plot of Observed SWF, NN SWF, and Regression
-#           Designed for showing the validation of the NN under
-#           aerosol-free conditions
-# 
 #  plot_NN_architecture(save = False):
 #           Plots a graphic showing the NN architecture
 #
@@ -332,13 +372,49 @@ sys.exit()
 #           The first row is the 65 - 87, the second row is 65 - 75, and
 #           the third row is 75 - 87.
 #
+# plot_compare_NN_output(sys.argv[1], save = False):
+#           Makes a plot of Observed SWF, NN SWF, and Regression
+#           Designed for showing the validation of the NN under
+#           aerosol-free conditions
+# 
+# plot_compare_NN_output_v2(sys.argv[1], auto_zoom = False, save = False):
+#           Plots OMI UVAI, MODIS true color, CERES obs, NN output,
+#           and forcing (NN - obs) for either the whole Arctic
+#           (auto_zoom = False) or just the plume area (auto_zoom = True)
+# 
+# plot_compare_NN_output_noaer(sys.argv[1], save = False):
+#           Makes a plot of Observed SWF, NN SWF, and Regression
+#           Designed for showing the validation of the NN under
+#           aerosol-free conditions
+# 
 # plot_compare_NN_output_overlay(sys.argv[1], auto_zoom = True, save = False)
 #           Plots zoomed in images of OMI AI, MODIS true color, and 
 #           forcing, with hatched regions showing AI greater than xxx.
 #           Function written to determine if there was significant drift
 #           between the Aura and Aqua overpasses when viewing a smoke plume.
 #           
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# compare_nn_version_output(date_str, skip_version = skip_version, save = False)
+#           This function reads in all NN output files for a given date_str,
+#           calculates the mean and standard deviations of both the nn SWF
+#           and the forcing (NN - obs), and plots the CERES obs, 
+#           NN mean, and standard deviation of the NN values at each
+#           swath point.
+# 
+#                        L2/L3 ERROR FUNCTIONS
+#
+# plot_L2_validate_regress_all(sim_name, slope_dict_lin, bin_dict,...
+#           This function grabs all the NN output files for the 
+#           given simualtion name (i.e. noland50), calculates L2-style
+#           (NN - CERES) and L3-style (regressions & AI) forcings for
+#           each aerosol-containing point in each swath and combines
+#           them into arrays. These are also plotted using...
+#
+# plot_scatter_hist_L2_L3_errors(direct_forcings, calc_forcings,...
+#           This function takes the direct (L2-style) and calculated 
+#           (L3-style) forcings from plot_L2_validate_regress_all and
+#           generates a scatter plot of the two, with error bars, and
+#           a histogram of all the errors. 
+#
 #
 #                   STEPS FOR NEW DAILY FORCING ESTIMATION
 #
@@ -385,8 +461,8 @@ cod_bin_edges = np.array([0,0.5,2,4,8,12,20,30,50])
 cod_bin_means = (cod_bin_edges[1:] + cod_bin_edges[:-1]) / 2
 sza_bin_edges = np.arange(40, 85, 5)
 sza_bin_means = (sza_bin_edges[1:] + sza_bin_edges[:-1]) / 2
-#ice_bin_edges = np.array([0, 20, 80, 100.2, 255])
-ice_bin_edges = np.array([0, 20, 40, 60, 80, 100.2, 255])
+ice_bin_edges = np.array([0, 20, 80, 100.2, 255])
+#ice_bin_edges = np.array([0, 20, 40, 60, 80, 100.2, 255])
 ice_bin_means = (ice_bin_edges[1:] + ice_bin_edges[:-1]) / 2
 
 bin_dict = {
@@ -400,11 +476,6 @@ bin_dict = {
 
 
 
-# Plot the scattered NN output as function of AI for the bins given above
-# -----------------------------------------------------------------------
-plot_NN_scatter_multiCOD(test_dict, cod_bin_edges, 0, 101, 255, 50, 55, save = False)
-sys.exit()
-
 # Calculate the regression slopes and intercepts from the NN data
 # ---------------------------------------------------------------
 min_ob = 50
@@ -415,38 +486,40 @@ slope_dict_lin = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
         sza_bin_edges, cod_bin_edges, ai_min = 0, min_ob = min_ob, \
         trend_type = 'linregress')
 
+# Plot the scattered NN output as function of AI for the bins given above
+# -----------------------------------------------------------------------
+#plot_NN_scatter_multiCOD(test_dict, cod_bin_edges, 0, 101, 255, 50, 55, save = False)
+#sys.exit()
+
+ai_min = 1
+sza_min = 40
+sza_max = 90
+plot_NN_scatter_combined_alltypes(test_dict, bin_dict, \
+    ai_min, sza_min, sza_max, trend_type = 'linregress', \
+    plot_bounds = False, save = True)
+sys.exit()
+# See what happens with differnet SZA bins. Is it necessary to bin
+# by the SZA?
+# -----------------------------------------------------------------
+sfc_idx = 0
+compare_sza_bin_impact_on_slopes(test_dict, bin_dict, sfc_idx, ai_min = 0, \
+    min_ob = min_ob, trend_type = 'linregress')
+sys.exit()
 #slope_dict2 = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
 #        sza_bin_edges, cod_bin_edges, ai_min = 1, min_ob = min_ob, \
 #        trend_type = 'theil-sen')
 
 # Plot the binned NN/AI slopes for the 4 surface types
 # ----------------------------------------------------
-#plot_NN_bin_slopes(slope_dict_lin, bin_dict, min_ob = min_ob, plot_error = False, save = True)
+plot_NN_bin_slopes(slope_dict_lin, bin_dict, min_ob = min_ob, plot_error = True, save = False)
 #plot_NN_bin_slopes(slope_dict_lin, bin_dict, min_ob = min_ob, plot_error = True, save = True)
-#sys.exit()
+sys.exit()
 
 # Run L2 validation
 # -----------------
-##!#in_calc = h5py.File(sys.argv[1])
-##!#testers = perform_forcing_calculation_v4(in_calc, slope_dict_lin, bin_dict, \
-##!#        ai_thresh = 0.7, use_intercept = True)
-##!#
-##!#fig = plt.figure()
-##!#ax = fig.add_subplot(1,1,1, projection = ccrs.NorthPolarStereo())
-##!#ax.pcolormesh(in_calc['omi_lon'], in_calc['omi_lat'], testers, \
-##!#    shading = 'auto', vmin = -80, vmax = 80, cmap = 'bwr', \
-##!#    transform = ccrs.PlateCarree())
-##!#ax.coastlines()
-##!#ax.set_extent([-180,180,65,90], ccrs.PlateCarree())
-##!#
-##!#in_calc.close()
-##!#fig.tight_layout()
-##!#plt.show()
-##!#
-##!#sys.exit()
-plot_compare_NN_output_L2_validate(sys.argv[1], slope_dict_lin, bin_dict, \
-    auto_zoom = True, save = False)
-sys.exit()
+#plot_compare_NN_output_L2_validate(sys.argv[1], slope_dict_lin, bin_dict, \
+#    auto_zoom = True, save = False)
+#sys.exit()
 
 # Makes a plot of OMI AI, Observed SWF, NN SWF, and Regression
 # Designed for showing the validation of the NN under
@@ -459,13 +532,24 @@ sys.exit()
 #plot_compare_NN_output(sys.argv[1], auto_zoom = True, save = False)
 #sys.exit()
 
-sim_name = 'noland50'
-
-plot_L2_validate_regress_all(sim_name, slope_dict_lin, bin_dict, \
-    ai_thresh = 0.7, mod_slopes = None, mod_intercepts = None, \
-    mod_cod = None, mod_ice = None, use_intercept = False, \
-    save = True)
-sys.exit()
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#
+# Calculate L2- and L3-style forcing estimates for all high AI colocation 
+# pixels
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#sim_name = 'noland50'
+#direct_forcings, calc_forcings = \
+#    plot_L2_validate_regress_all(sim_name, slope_dict_lin, bin_dict, \
+#    ai_thresh = 0.7, mod_slopes = None, mod_intercepts = None, \
+#    mod_cod = None, mod_ice = None, use_intercept = False, \
+#    min_cod = None, max_cod = None,\
+#    min_sza = None, max_sza = None, \
+#    min_ice = None, max_ice = None, \
+#    save = False, return_values = True)
+#plot_scatter_hist_L2_L3_errors(direct_forcings, calc_forcings, \
+#    num_bins = 100, delta_calc = 20, save = False)
+#sys.exit()
 
 
 #files = glob('neuralnet_output/test_calc_out_' + sim_name + '*.hdf5')
@@ -516,21 +600,81 @@ OMI_daily_VSJ4  = calcOMI_MonthAvg_FromDaily(shawn_file, min_AI = -0.10, minlat 
 
 daily_VSJ4 = readOMI_daily_HDF5(shawn_file, minlat = minlat, maxlat = maxlat)
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#
+# Figure out which days have high AI
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#threshold = 1.5
+#for ii in range(daily_VSJ4['day_values'].shape[0]):
+#    max_daily = np.max(daily_VSJ4['grid_AI'][ii,:,:])
+#    if(max_daily > threshold):
+#        print(daily_VSJ4['day_values'][ii])
+#sys.exit()
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
+# Plots daily AI, the clear-sky background, the departure from the background,
+# and the histogram of the departure values
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#plot_daily_OMI(daily_VSJ4, OMI_daily_VSJ4, 20050611)
+
 ai_thresh = 0.05
 #ai_thresh = -0.15
 maxerr = 1.5
 
-date_str = '20180705'
-#values = test_calculate_type_forcing_v4(daily_VSJ4, OMI_daily_VSJ4, \
-#    slope_dict_lin, bin_dict, date_str, minlat = minlat, maxlat = maxlat, \
-#    ai_thresh = ai_thresh, maxerr = maxerr,\
-#    filter_bad_vals = True, \
-#    reference_ice = None, \
-#    reference_cld = None, \
-#    mod_slopes = None, \
-#    return_modis_nsidc = False, debug = True)
-#
-#sys.exit()
+"""
+date_str = '20050403'
+ai_thresh = 0.7
+values_false = test_calculate_type_forcing_v4(daily_VSJ4, OMI_daily_VSJ4, \
+    slope_dict_lin, bin_dict, date_str, minlat = minlat, maxlat = maxlat, \
+    ai_thresh = ai_thresh, maxerr = maxerr,\
+    filter_bad_vals = True, \
+    reference_ice = None, \
+    reference_cld = None, \
+    use_intercept = True, 
+    mod_slopes = None, \
+    return_modis_nsidc = False, debug = False)
+values_true = test_calculate_type_forcing_v4(daily_VSJ4, OMI_daily_VSJ4, \
+    slope_dict_lin, bin_dict, date_str, minlat = minlat, maxlat = maxlat, \
+    ai_thresh = ai_thresh, maxerr = maxerr,\
+    filter_bad_vals = True, \
+    reference_ice = None, \
+    reference_cld = None, \
+    use_intercept = True, 
+    mod_slopes = None, \
+    return_modis_nsidc = False, debug = False)
+
+pmax = np.max([np.max(values_false), np.max(values_true)])
+pmin = np.min([np.min(values_false), np.min(values_true)])
+
+vmin = np.min([pmin, -abs(pmax)])
+vmax = np.max([abs(pmin), pmax])
+
+plt.close('all')
+fig = plt.figure()
+ax1 = fig.add_subplot(1,2,1, projection = ccrs.NorthPolarStereo())
+ax2 = fig.add_subplot(1,2,2, projection = ccrs.NorthPolarStereo())
+mesh = ax1.pcolormesh(OMI_daily_VSJ4['LON'][:,:], OMI_daily_VSJ4['LAT'][:,:], \
+    values_false, transform = ccrs.PlateCarree(), shading = 'auto', \
+    cmap = 'bwr', vmin = vmin, vmax = vmax)
+cbar = fig.colorbar(mesh, ax = ax1)
+ax1.coastlines()
+ax1.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax1.set_title('With bad vals')
+mesh = ax2.pcolormesh(OMI_daily_VSJ4['LON'][:,:], OMI_daily_VSJ4['LAT'][:,:], \
+    values_true, transform = ccrs.PlateCarree(), shading = 'auto', \
+    cmap = 'bwr', vmin = vmin, vmax = vmax)
+cbar = fig.colorbar(mesh, ax = ax2)
+ax2.coastlines()
+ax2.set_extent([-180,180,65,90], ccrs.PlateCarree())
+ax2.set_title('Without bad vals')
+fig.tight_layout()
+plt.show()
+sys.exit()
+"""
 
 
 # Pre-calculate the daily SZA values for 1 April to 30 September
@@ -575,6 +719,13 @@ ai_thresh = 0.7
 #    dtype = 'pert', 
 #    name_add = '_dayaithresh07_v4_aimin0_useintcpt')
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#
+# AS OF 2024/08/22: NEED TO GO BACK AND RECALCULATE ALL OF THESE USING
+#   THE NEW ICE BINS. THE CALCULATION CODE WILL NEED TO BE TWEAKED ACCORDINGLY
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+
 infile_aimin1 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4.hdf5'
 infile_aimin0 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt.hdf5'
 infile_aimin0_upper = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_upperslope.hdf5'
@@ -586,14 +737,16 @@ infile_aimin0_linaddintcpterror = home_dir + '/Research/Arctic_compares/arctic_m
 infile_aimin0_linsubintcpterror = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_linsubintcpterror.hdf5'
 infile_aimin0_linaddbotherror = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_linaddintcpterror_addslopeerror.hdf5'
 infile_aimin0_linsubbotherror = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_linsubintcpterror_subslopeerror.hdf5'
-infile_aimin0_linicep5  = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_liniceplus5.hdf5'
-infile_aimin0_linicem5  = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_liniceminus5.hdf5'
-infile_aimin0_linicep15 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_liniceplus15.hdf5'
-infile_aimin0_linicem15 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_liniceminus15.hdf5'
-infile_aimin0_lincodp5  = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_lincodplus5.hdf5'
-infile_aimin0_lincodm5  = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_lincodminus5.hdf5'
-infile_aimin0_lincodp2  = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_lincodplus2.hdf5'
-infile_aimin0_lincodm2  = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_lincodminus2.hdf5'
+infile_aimin0_linicep5   = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_liniceplus5.hdf5'
+infile_aimin0_linicem5   = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_liniceminus5.hdf5'
+infile_aimin0_linicep15  = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_liniceplus15.hdf5'
+infile_aimin0_linicem15  = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_liniceminus15.hdf5'
+infile_aimin0_lincodp5   = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_lincodplus5.hdf5'
+infile_aimin0_lincodm5   = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_lincodminus5.hdf5'
+infile_aimin0_lincodp2   = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_lincodplus2.hdf5'
+infile_aimin0_lincodm2   = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_lincodminus2.hdf5'
+infile_aimin0_linL2L3p30 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_linaddL2L3error30.hdf5'
+infile_aimin0_linL2L3m30 = home_dir + '/Research/Arctic_compares/arctic_month_est_forcing_dayaithresh07_v4_aimin0_useintcpt_linsubL2L3error30.hdf5'
 
 #infile = infile_aimin0
 infile = infile_aimin0_lin
@@ -772,6 +925,31 @@ all_month_dict_thl = read_daily_month_force_HDF5(infile_aimin0)
 #    name_add = '_dayaithresh07_v4_aimin0_useintcpt_linsubintcpterror_subslopeerror')
 #sys.exit()
 
+# Calculate monthly forcing values with L2/L3 (L2_L3) errors 
+# ---------------------------------------------------------
+#all_month_vals_lower_lin = \
+#    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+#    mod_intercepts = None, mod_L2_L3_error = 30,\
+#    filter_bad_vals = True, return_modis_nsidc = False, \
+#    use_intercept = True, debug = False)
+#write_daily_month_force_to_HDF5(all_month_vals_lower_lin, OMI_daily_VSJ4, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+#    dtype = 'pert', 
+#    name_add = '_dayaithresh07_v4_aimin0_useintcpt_linaddL2L3error30')
+#all_month_vals_lower_lin = \
+#    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+#    mod_intercepts = None, mod_L2_L3_error = -30,\
+#    filter_bad_vals = True, return_modis_nsidc = False, \
+#    use_intercept = True, debug = False)
+#write_daily_month_force_to_HDF5(all_month_vals_lower_lin, OMI_daily_VSJ4, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, minlat = minlat, 
+#    dtype = 'pert', 
+#    name_add = '_dayaithresh07_v4_aimin0_useintcpt_linsubL2L3error30')
+#sys.exit()
 
 
 # Test the sensitivity to ice
@@ -943,7 +1121,9 @@ all_month_files = [
     infile_aimin0_lincodp2, \
     infile_aimin0_lincodm2, \
     infile_aimin0_lincodp5, \
-    infile_aimin0_lincodm5
+    infile_aimin0_lincodm5, \
+    infile_aimin0_linL2L3p30, \
+    infile_aimin0_linL2L3m30
 ]
 
 # This plots the 6-panel results for a specific latitude band

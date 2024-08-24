@@ -15,6 +15,7 @@ sys.path.append(home_dir)
 import python_lib
 import importlib
 from matplotlib.cm import turbo
+from scipy.stats import sem
 from sklearn.metrics import r2_score, mean_squared_error
 from python_lib import circle, plot_trend_line, nearest_gridpoint, \
     aerosol_event_dict, init_proj, plot_lat_circles, plot_figure_text, \
@@ -32,6 +33,8 @@ from NSIDCLib import *
 sys.path.append(home_dir + '/Research/FuLiou')
 from FuLiouLib import *
 from matplotlib.cm import ScalarMappable
+import matplotlib.cm as cm
+import matplotlib as mpl
 
 data_dir = home_dir + '/Research/Arctic_compares/comp_data/'
 datacrs = ccrs.PlateCarree()
@@ -8221,6 +8224,8 @@ def plot_type_forcing_v4_all_months_arctic_avg_combined(all_month_files, \
         'codminus2': '--', 
         'codplus5': '-', 
         'codminus5': '--', 
+        'addL2L3error30': '-', 
+        'subL2L3error30': '--', 
     }
 
     linecolor_dict = {
@@ -8237,6 +8242,8 @@ def plot_type_forcing_v4_all_months_arctic_avg_combined(all_month_files, \
         'codminus2': 'tab:purple', 
         'codplus5': 'tab:cyan', 
         'codminus5': 'tab:cyan', 
+        'addL2L3error30': 'tab:brown', 
+        'subL2L3error30': 'tab:brown', 
     }
 
     linelabel_dict = {
@@ -8253,6 +8260,8 @@ def plot_type_forcing_v4_all_months_arctic_avg_combined(all_month_files, \
         'codminus2': 'COD  -  2', 
         'codplus5': 'COD + 5', 
         'codminus5': 'COD  -  5', 
+        'addL2L3error30': '+ 30 W/m2', 
+        'subL2L3error30': '- 30 W/m2', 
     }
 
     file_types = [ptitle.strip().split('/')[-1].split('_')[-1][3:].split('.')[0] \
@@ -10135,12 +10144,18 @@ def plot_NN_bin_slopes(slope_dict, bin_dict, min_ob = 50, \
     cod_labels = [str(edge) for edge in bin_dict['cod_bin_edges']]
  
     #if(slope_dict['trend_type'] == 'theil-sen'): 
-    if(not plot_error): 
-        ax5.set_xticks([0,2,4,6,8])
-        ax5.set_xticklabels(sza_labels[::2])
+    if((bin_dict['sza_bin_edges'][1] - bin_dict['sza_bin_edges'][0]) <= 5):
+        xtick_setter = np.arange(0, len(bin_dict['sza_bin_means']) + 1, 2)
+        label_setter = sza_labels[::2]
     else:
-        ax9.set_xticks([0,2,4,6,8])
-        ax9.set_xticklabels(sza_labels[::2])
+        xtick_setter = np.arange(0, len(bin_dict['sza_bin_means']) + 1)
+        label_setter = sza_labels[::1]
+    if(not plot_error): 
+        ax5.set_xticks(xtick_setter)
+        ax5.set_xticklabels(label_setter)
+    else:
+        ax9.set_xticks(xtick_setter)
+        ax9.set_xticklabels(label_setter)
     ax1.set_yticks([0,1,2,3,4,5,6,7,8])
     ax1.set_yticklabels(cod_labels[::1])
      
@@ -10294,8 +10309,11 @@ def plot_compare_NN_output_overlay(calc_data, auto_zoom = True, save = False):
     
     mask_orig = np.ma.masked_where((in_calc['ceres_swf'][:,:] == -999.) | \
                                    (in_calc['ceres_swf'][:,:] > 3000), in_calc['ceres_swf'][:,:])
+    mask_lwf  = np.ma.masked_where((in_calc['ceres_lwf'][:,:] == -999.) | \
+                                   (in_calc['ceres_lwf'][:,:] > 3000), in_calc['ceres_lwf'][:,:])
     mask_calc = np.ma.masked_invalid(in_calc['calc_swf'])
     mask_calc = np.ma.masked_where(mask_calc == -999., mask_calc)
+    mask_AI   = np.ma.masked_invalid(in_calc['omi_uvai_pert'])
     
     ##!#mask_ctp = np.ma.masked_invalid(in_calc['modis_cld_top_pres'][:,:])
     ##!#mask_ctp = np.ma.masked_where(mask_ctp == -999., mask_ctp)
@@ -10318,7 +10336,6 @@ def plot_compare_NN_output_overlay(calc_data, auto_zoom = True, save = False):
         # Figure out where the pixels containing AI are located
         # -----------------------------------------------------
         high_AI_idxs = np.where(mask_AI > 1.5)
-        #mask_AI = np.ma.masked_where(mask_AI < 1.5, mask_AI)
 
         # Switch the longitudes to 0 - 360 rather than -180 - 180
         # -------------------------------------------------------
@@ -10348,6 +10365,7 @@ def plot_compare_NN_output_overlay(calc_data, auto_zoom = True, save = False):
         ax1 = fig.add_subplot(2,3,1, projection = workcrs) # OMI AI
         ax2 = fig.add_subplot(2,3,2, projection = workcrs) # True color
         ax3 = fig.add_subplot(2,3,3, projection = workcrs) # True color with OMI hashing
+        ax6 = fig.add_subplot(2,3,4, projection = workcrs) # CERES lwf
         ax4 = fig.add_subplot(2,3,5, projection = workcrs) # Forcing
         ax5 = fig.add_subplot(2,3,6, projection = workcrs) # Forcing with OMI hashing
         
@@ -10391,15 +10409,14 @@ def plot_compare_NN_output_overlay(calc_data, auto_zoom = True, save = False):
     ax2.set_title('MODIS True Color')
     ax2.coastlines()
     
-    plot_MODIS_channel(modis_date, 'true_color', swath = True, \
-        zoom = True, ax = ax3)
-
     #mesh = ax3.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], diff_calc, \
     #    transform = ccrs.PlateCarree(), shading = 'auto', vmin = -80, vmax = 80, cmap = 'bwr')
     #cbar = fig.colorbar(mesh, ax = ax3, label = 'SWF [Wm$^{-2}$]')
     #ax3.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
     #ax3.set_boundary(circle, transform=ax3.transAxes)
     #ax3.set_extent([117, 170,70,  85], ccrs.PlateCarree())
+    plot_MODIS_channel(modis_date, 'true_color', swath = True, \
+        zoom = True, ax = ax3)
     if(auto_zoom):
         ax3.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
     else:
@@ -10408,6 +10425,20 @@ def plot_compare_NN_output_overlay(calc_data, auto_zoom = True, save = False):
     ax3.set_title('MODIS True Color (hashing)')
     ax3.coastlines()
     
+    mesh = ax6.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_lwf, \
+        transform = ccrs.PlateCarree(), vmin = None, vmax = None, shading = 'auto')
+    cbar = fig.colorbar(mesh, ax = ax6, label = 'LWF [Wm$^{-2}$]')
+    #ax5.set_extent([-180, 180,65, 90], ccrs.PlateCarree())
+    #ax5.set_boundary(circle, transform=ax5.transAxes)
+    #ax5.set_extent([117, 170,70,  85], ccrs.PlateCarree())
+    if(auto_zoom):
+        ax6.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    else:
+        ax6.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+        ax6.set_boundary(circle, transform=ax6.transAxes)
+    ax6.set_title('Forcing')
+    ax6.coastlines()
+   
     mesh = ax4.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], diff_calc, \
         transform = ccrs.PlateCarree(), vmin = -80, vmax = 80, shading = 'auto', cmap = 'bwr')
     cbar = fig.colorbar(mesh, ax = ax4, label = 'Forcing [W$^{-2}$]')
@@ -10457,6 +10488,8 @@ def plot_compare_NN_output_overlay(calc_data, auto_zoom = True, save = False):
         ax3.pcolor(work_lons, in_calc['omi_lat'][:,:],\
             hasher, hatch = 'xx', alpha=0., transform = datacrs, shading = 'auto')
         ax5.pcolor(work_lons, in_calc['omi_lat'][:,:],\
+            hasher, hatch = 'xx', alpha=0., transform = datacrs, shading = 'auto')
+        ax6.pcolor(work_lons, in_calc['omi_lat'][:,:],\
             hasher, hatch = 'xx', alpha=0., transform = datacrs, shading = 'auto')
 
     
@@ -10554,7 +10587,10 @@ def plot_compare_NN_output_overlay(calc_data, auto_zoom = True, save = False):
 def plot_L2_validate_regress_all(sim_name, slope_dict, bin_dict, \
         ai_thresh = 0.7, mod_slopes = None, mod_intercepts = None, \
         mod_cod = None, mod_ice = None, use_intercept = False, \
-        save = False):
+        min_sza = None, max_sza = None, \
+        min_ice = None, max_ice = None, \
+        min_cod = None, max_cod = None, \
+        return_values = False, save = False):
 
     # Retrieve all the aerosol NN output files
     # ----------------------------------------
@@ -10591,9 +10627,29 @@ def plot_L2_validate_regress_all(sim_name, slope_dict, bin_dict, \
                 mod_ice = mod_ice, use_intercept = use_intercept)
         
         mask_orig = np.ma.masked_where((in_calc['ceres_swf'][:,:] == -999.) | \
-                                       (in_calc['ceres_swf'][:,:] > 3000), in_calc['ceres_swf'][:,:])
+                                       (in_calc['ceres_swf'][:,:] > 3000), \
+                                        in_calc['ceres_swf'][:,:])
         mask_calc = np.ma.masked_invalid(in_calc['calc_swf'])
         mask_calc = np.ma.masked_where(mask_calc == -999., mask_calc)
+
+        title_str = ''
+        if(min_cod is not None):
+            title_str = str(min_cod) + ' < COD'
+            mask_calc = np.ma.masked_where(in_calc['modis_cod'][:,:] < min_cod, mask_calc)
+        if(max_cod is not None):
+            if(title_str != None):
+                title_str = title_str + ' < ' + str(max_cod)
+            else:
+                title_str = 'COD < ' + str(max_cod) + '\n'
+            mask_calc = np.ma.masked_where(in_calc['modis_cod'][:,:] > max_cod, mask_calc)
+        if(min_sza is not None):
+            mask_calc = np.ma.masked_where(in_calc['omi_sza'][:,:] < min_sza, mask_calc)
+        if(max_sza is not None):
+            mask_calc = np.ma.masked_where(in_calc['omi_sza'][:,:] > max_sza, mask_calc)
+        if(min_ice is not None):
+            mask_calc = np.ma.masked_where(in_calc['nsidc_ice'][:,:] < min_ice, mask_calc)
+        if(max_ice is not None):
+            mask_calc = np.ma.masked_where(in_calc['nsidc_ice'][:,:] > max_ice, mask_calc)
    
         testers = np.ma.masked_where(mask_calc.mask == True, testers)
  
@@ -10643,9 +10699,34 @@ def plot_L2_validate_regress_all(sim_name, slope_dict, bin_dict, \
     direct_forcings = np.ma.masked_invalid(direct_forcings).compressed()
     calc_forcings   = np.ma.masked_invalid(calc_forcings).compressed()
 
+    # Use the plotting function to generate a figure of the results
+    # -------------------------------------------------------------
+    plot_scatter_hist_L2_L3_errors(direct_forcings, calc_forcings, \
+        save = save)
+
+    if(return_values):
+        return direct_forcings, calc_forcings
+
+# delta_calc = the width of the calculated forcing bins 
+def plot_scatter_hist_L2_L3_errors(direct_forcings, calc_forcings, 
+            num_bins = 75, delta_calc = 20, save = False):
+
     print("\nCalculating r2 score")
     r2 = r2_score(direct_forcings, calc_forcings)
     print('R2:', r2)
+
+    # Calculate the individual errors between the forcings
+    # ----------------------------------------------------
+    errors = direct_forcings - calc_forcings
+
+    # Calculate the mean & standard deviation of these errors
+    # -------------------------------------------------------
+    mean_error = np.mean(errors)
+    stdev_error  = np.std(errors)
+    
+    print("Total mean error between L2 and L3 values:", mean_error)
+    print("Total stdev error between L2 and L3 values:", stdev_error)
+    print('\n')
 
     # Calculate RMSE
     # --------------
@@ -10656,22 +10737,114 @@ def plot_L2_validate_regress_all(sim_name, slope_dict, bin_dict, \
         '\nRMSE = ' + str(np.round(rmse, 1))
 
     plt.close('all')
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
-    ax.scatter(direct_forcings, calc_forcings, s = 2, color = 'k')
-    ax.axhline(0, linestyle = '--', color = 'grey', alpha = 0.5)
-    ax.axvline(0, linestyle = '--', color = 'grey', alpha = 0.5)
-    ax.set_title('r$^{2}$ = ' + str(np.round(r2, 3)))
-    ax.set_xlabel('L2 Forcing (NN - obs)')
-    ax.set_ylabel('L3-style Forcing (AI-based)')
+    fig = plt.figure(figsize = (9, 4))
+    ax1 = fig.add_subplot(1,2,1)
+    ax2 = fig.add_subplot(1,2,2)
+
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    #
+    # Plot the scatter of the direct (L2) vs calc (L3) forcings
+    #
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    ax1.scatter(direct_forcings, calc_forcings, s = 0.5, color = 'k')
+    xlims = ax1.get_xlim()
+    ylims = ax1.get_ylim()
+    ax1.plot([-300, 300], [-300, 300], color = 'tab:blue')
+    ax1.axhline(0, linestyle = '--', color = 'grey', alpha = 0.5)
+    ax1.axvline(0, linestyle = '--', color = 'grey', alpha = 0.5)
+    ax1.set_xlim(xlims)
+    ax1.set_ylim(ylims)
+    ax1.set_title('r$^{2}$ = ' + str(np.round(r2, 3)))
+    ax1.set_xlabel('L2 Forcing (NN - obs)')
+    ax1.set_ylabel('L3-style Forcing (AI-based)')
+    
+    # Calculate error statistics between the two
+    # ------------------------------------------
+    error_dict = calc_L2_L3_error_stats(direct_forcings, calc_forcings, \
+        delta_calc = delta_calc)
+    
+    # Use these error statistics to plot error bars
+    # ---------------------------------------------
+    ax1.errorbar(error_dict['mean_direct_values'], error_dict['bin_centers'], \
+        xerr = error_dict['stdev_errors'], fmt = '-o', markersize = 4.5, color = 'tab:red') 
+
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    #
+    # Plot a histogram of the errors
+    #
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    ax2.hist(errors, bins = num_bins, color = 'k')
+    ax2.axvline( mean_error + stdev_error, color = 'gray', linestyle = '--')
+    ax2.axvline( mean_error - stdev_error, color = 'gray', linestyle = '--')
+    ax2.set_xlabel('Errors (L2 - L3 forcing)')
+    ax2.set_ylabel('Counts')
 
     fig.tight_layout()
     if(save):
-        outname = 'validation_L2_allscatter.png'
+        outname = 'validation_L2_allscatter_histogram.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
         plt.show()
+
+# This function loops over bins along the calculated forcing
+# range and determines the mean, standard deviation, and 
+# count of the errors between the direct forcing (L2-style) and
+# the calculated forcing (L3-style) in each of the bins.
+# -------------------------------------------------------------
+def calc_L2_L3_error_stats(direct_forcings, calc_forcings, delta_calc = 20):
+
+    bin_edges = np.arange(-150, 112, delta_calc)
+    bin_centers = (bin_edges[1:] + bin_edges[:-1]) / 2
+
+    mean_errors   = np.full(bin_centers.shape[0], np.nan)
+    stdev_errors  = np.full(bin_centers.shape[0], np.nan)
+    stderr_errors = np.full(bin_centers.shape[0], np.nan)
+    count_errors  = np.full(bin_centers.shape[0], np.nan)
+
+    # This array will hold the average direct forcing value
+    # in each of the calc forcing bins
+    mean_direct_values = np.full(bin_centers.shape[0], np.nan)
+
+    for ii in range(bin_centers.shape[0]):
+        # Find the indices of all the calculated forcing values
+        # within this range. This looks at a section of the y axis
+        # of the scatter plot and grabs all those values in the
+        # current range
+        # --------------------------------------------------------
+        match_idxs = np.where( (calc_forcings > bin_edges[ii]) & \
+            (calc_forcings <= bin_edges[ii + 1]))
+
+        # Calculate the errors between the calculated forcing values
+        # and the corresponding direct forcing values
+        # ----------------------------------------------------------
+        errors = direct_forcings[match_idxs] - calc_forcings[match_idxs]
+
+        # Calculate the mean direct forcing value for this
+        # calculated forcing bin
+        # ------------------------------------------------
+        mean_direct_values[ii] = np.mean(direct_forcings[match_idxs])
+
+        mean_errors[ii]   = np.mean(errors)
+        stdev_errors[ii]  = np.std(errors)
+        stderr_errors[ii] = sem(errors)
+        count_errors[ii]  = errors.shape[0]
+
+        print(bin_edges[ii], bin_centers[ii], bin_edges[ii + 1], \
+            np.round(mean_errors[ii], 1), np.round(stdev_errors[ii], 1), \
+            np.round(stderr_errors[ii], 1))
+
+    out_dict = {}
+    out_dict['bin_edges'] = bin_edges
+    out_dict['bin_centers'] = bin_centers
+    out_dict['mean_direct_values'] = mean_direct_values
+    out_dict['mean_errors'] = mean_errors
+    out_dict['stdev_errors']  = stdev_errors
+    out_dict['stderr_errors']  = stderr_errors
+    out_dict['count_errors'] = count_errors
+
+    return out_dict
+    
 
 # Overlays high AI OMI areas on true color imagery and forcing stuff
 def plot_compare_NN_output_L2_validate(calc_data, slope_dict, bin_dict, \
@@ -10889,6 +11062,13 @@ def plot_compare_NN_output_v2(calc_data, auto_zoom = True, save = False):
     mask_calc = np.ma.masked_invalid(in_calc['calc_swf'])
     mask_calc = np.ma.masked_where(mask_calc == -999., mask_calc)
     
+    if('ceres_lwf' in in_calc.keys()):
+        l_contains_lwf = True
+        mask_lwf  = np.ma.masked_where((in_calc['ceres_lwf'][:,:] == -999.) | \
+                                       (in_calc['ceres_lwf'][:,:] > 3000), in_calc['ceres_lwf'][:,:])
+    else:
+        l_contains_lwf = False
+    
     ##!#mask_ctp = np.ma.masked_invalid(in_calc['modis_cld_top_pres'][:,:])
     ##!#mask_ctp = np.ma.masked_where(mask_ctp == -999., mask_ctp)
     ##!#
@@ -10945,6 +11125,8 @@ def plot_compare_NN_output_v2(calc_data, auto_zoom = True, save = False):
     fig = plt.figure(figsize = (11, 7))
     ax1 = fig.add_subplot(2,3,1, projection = workcrs) # OMI AI
     ax2 = fig.add_subplot(2,3,2, projection = workcrs) # True color
+    if(l_contains_lwf):
+        ax6 = fig.add_subplot(2,3,3, projection = workcrs) # CERES LWF obs
     ax3 = fig.add_subplot(2,3,4, projection = workcrs) # CERES SWF obs
     ax4 = fig.add_subplot(2,3,5, projection = workcrs) # NN SWF 
     ax5 = fig.add_subplot(2,3,6, projection = workcrs) # Forcing with OMI hashing
@@ -10975,11 +11157,29 @@ def plot_compare_NN_output_v2(calc_data, auto_zoom = True, save = False):
         ax2.set_boundary(circle, transform=ax2.transAxes)
     ax2.set_title('MODIS True Color')
     ax2.coastlines()
+  
+    max_swf = np.max([np.max(mask_orig), np.max(mask_calc)])
+    min_swf = np.min([np.min(mask_orig), np.min(mask_calc)])
+ 
+    if(l_contains_lwf):
+        # Plot CERES LWF observations
+        # --------------------------- 
+        mesh = ax6.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_lwf, \
+            transform = ccrs.PlateCarree(), shading = 'auto', vmin = None, vmax = None)
+        cbar = fig.colorbar(mesh, ax = ax6, label = 'LWF [Wm$^{-2}$]')
+        #ax1.set_extent([117, 170,70,  85], ccrs.PlateCarree())
+        if(auto_zoom):
+            ax6.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+        else:
+            ax6.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+            ax6.set_boundary(circle, transform=ax6.transAxes)
+        ax6.set_title('Observed LWF')
+        ax6.coastlines()
    
-    # Plot CERES observations
-    # ----------------------- 
+    # Plot CERES SWF observations
+    # --------------------------- 
     mesh = ax3.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_orig, \
-        transform = ccrs.PlateCarree(), shading = 'auto')
+        transform = ccrs.PlateCarree(), shading = 'auto', vmin = min_swf, vmax = max_swf)
     cbar = fig.colorbar(mesh, ax = ax3, label = 'SWF [Wm$^{-2}$]')
     #ax1.set_extent([117, 170,70,  85], ccrs.PlateCarree())
     if(auto_zoom):
@@ -10993,7 +11193,8 @@ def plot_compare_NN_output_v2(calc_data, auto_zoom = True, save = False):
     # Plot neural net output
     # ---------------------- 
     mesh = ax4.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_calc, \
-        transform = ccrs.PlateCarree(), shading = 'auto')
+        transform = ccrs.PlateCarree(), shading = 'auto', vmin = min_swf, vmax = max_swf)
+        #transform = ccrs.PlateCarree(), shading = 'auto')
     cbar = fig.colorbar(mesh, ax = ax4, label = 'SWF [Wm$^{-2}$]')
     #ax2.set_extent([117, 170,70,  85], ccrs.PlateCarree())
     if(auto_zoom):
@@ -11131,8 +11332,12 @@ def plot_compare_NN_output(calc_data, auto_zoom = False, save = False):
     
     #ax4 = fig.add_subplot(2,2,4, projection = ccrs.NorthPolarStereo())
     
+    max_swf = np.max([np.max(mask_orig), np.max(mask_calc)])
+    min_swf = np.min([np.min(mask_orig), np.min(mask_calc)])
+ 
     mesh = ax1.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_orig, \
-        transform = ccrs.PlateCarree(), shading = 'auto')
+        transform = ccrs.PlateCarree(), shading = 'auto', vmin = min_swf, vmax = max_swf)
+        #transform = ccrs.PlateCarree(), shading = 'auto')
     cbar = fig.colorbar(mesh, ax = ax1, label = 'SWF [Wm$^{-2}$]')
     #ax1.set_extent([117, 170,70,  85], ccrs.PlateCarree())
     if(auto_zoom):
@@ -11144,7 +11349,8 @@ def plot_compare_NN_output(calc_data, auto_zoom = False, save = False):
     ax1.coastlines()
     
     mesh = ax2.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_calc, \
-        transform = ccrs.PlateCarree(), shading = 'auto')
+        transform = ccrs.PlateCarree(), shading = 'auto', vmin = min_swf, vmax = max_swf)
+        #transform = ccrs.PlateCarree(), shading = 'auto')
     cbar = fig.colorbar(mesh, ax = ax2, label = 'SWF [Wm$^{-2}$]')
     #ax2.set_extent([117, 170,70,  85], ccrs.PlateCarree())
     if(auto_zoom):
@@ -11412,7 +11618,7 @@ def plot_NN_scatter_multiCOD(test_dict, cod_bin_edges, \
     
         local_xdata =test_dict['omi_uvai_pert'][good_idxs] 
     
-        flat_axs[ii].scatter(local_xdata, diff_calc, s = 6, color = 'k')
+        flat_axs[ii].scatter(local_xdata, diff_calc, s = 3, color = 'k')
        
         flat_axs[ii].set_title('COD: ' + str(cod_bin_edges[ii]) + ' - ' + str(cod_bin_edges[ii + 1]))
     
@@ -11448,6 +11654,123 @@ def plot_NN_scatter_multiCOD(test_dict, cod_bin_edges, \
         print("Saved image", outname)
     else:   
         plt.show()
+
+# This function plots the NN output for given COD bin edges
+# and for the specified AI, ICE, and SZA min/max values. For
+# each COD bin, the selected, scattered forcing 
+# (calculated as NN - OBS) data are plotted as a function of AI.
+# There is one plot for each COD bin.
+# --------------------------------------------------------------
+def plot_NN_scatter_combined_alltypes(test_dict, bin_dict, \
+        ai_min, sza_min, sza_max, trend_type = 'linregress', \
+        plot_bounds = False, show_specific_cod = None, save = False):
+
+    plt.close('all')
+    if(len(bin_dict['ice_bin_means']) == 4):
+        fig = plt.figure(figsize = (9, 8))
+        axs = fig.subplots(nrows = 2, ncols = 2, sharex = True, sharey = True)
+    elif(len(bin_dict['ice_bin_means']) == 6):
+        fig = plt.figure(figsize = (9, 6))
+        axs = fig.subplots(nrows = 2, ncols = 3, sharex = True, sharey = True)
+    
+    flat_axs = axs.flatten()
+
+    xvals = np.arange(len(bin_dict['cod_bin_means']))
+
+    plot_c = cm.turbo((xvals-np.min(xvals))/\
+        (np.max(xvals)-np.min(xvals)))
+   
+    # Loop over surface types
+    # -----------------------
+    for ii in range(len(bin_dict['ice_bin_means'])):
+
+        print('ICE BIN:', bin_dict['ice_bin_edges'][ii], bin_dict['ice_bin_edges'][ii + 1])
+
+        # Loop over COD ranges
+        # --------------------
+        for jj in range(len(bin_dict['cod_bin_means'])):
+
+            if( (show_specific_cod is None) | \
+                ( (show_specific_cod is not None ) & \
+                  (show_specific_cod == jj))):
+
+                print('COD BIN:', bin_dict['cod_bin_edges'][jj], bin_dict['cod_bin_edges'][jj + 1])
+                # Select the forcing values for these conditions
+                # ----------------------------------------------
+                good_idxs = select_idxs(test_dict, ai_min, \
+                    bin_dict['ice_bin_edges'][ii], bin_dict['ice_bin_edges'][ii + 1], \
+                    bin_dict['cod_bin_edges'][jj], bin_dict['cod_bin_edges'][jj + 1], \
+                    sza_min, sza_max) 
+
+                diff_calc = test_dict['calc_swf'][good_idxs] - test_dict['ceres_swf'][good_idxs]
+
+                local_xdata =test_dict['omi_uvai_pert'][good_idxs] 
+    
+                flat_axs[ii].scatter(local_xdata, diff_calc, s = 1, color = plot_c[jj])
+ 
+                print("SIZE:", len(local_xdata), len(diff_calc))
+                if(len(local_xdata) > 30000):
+                    print("ERROR: Plotting trend line with too many points")
+                    print("       Preventing this for the sake of computer safety")
+                else:
+                    plot_trend_line(flat_axs[ii], local_xdata, diff_calc, color= plot_c[jj], \
+                        linestyle = '-',  slope = trend_type, plot_bounds = plot_bounds)
+
+        flat_axs[ii].axhline(0, linestyle = ':', color = 'gray', alpha = 1.0) 
+        flat_axs[ii].grid(alpha = 0.5)
+        flat_axs[ii].set_title(str(bin_dict['ice_bin_edges'][ii]) + ' - ' + \
+            str(bin_dict['ice_bin_edges'][ii + 1]))
+   
+    if(len(bin_dict['ice_bin_means']) == 4):
+        flat_axs[2].set_xlabel('OMI AI')
+        flat_axs[3].set_xlabel('OMI AI')
+        flat_axs[0].set_ylabel('Forcing [W/m2]')
+        flat_axs[2].set_ylabel('Forcing [W/m2]')
+    elif(len(bin_dict['ice_bin_means']) == 6):
+        flat_axs[3].set_xlabel('OMI AI')
+        flat_axs[4].set_xlabel('OMI AI')
+        flat_axs[5].set_xlabel('OMI AI')
+        flat_axs[0].set_ylabel('Forcing [W/m2]')
+        flat_axs[3].set_ylabel('Forcing [W/m2]')
+
+    #cmap = cm.turbo
+    #norm = mc.Normalize(vmin=np.min(xvals), \
+    #    vmax = np.max(xvals))
+
+    cmap = 'turbo' 
+    shrk = 1.0
+    cmap2 = plt.get_cmap('turbo')
+    #colorvals = np.arange(0, len(xvals), 1)
+    colorvals = bin_dict['cod_bin_edges']
+    norm = mpl.colors.BoundaryNorm(colorvals, cmap2.N, extend = 'max')
+
+    #cbar = plt.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap),
+    #             ax=flat_axs[-1], orientation='vertical', label='COD')
+
+    #mesh = ax.pcolormesh(lons, lats, data[tidx,:,:], transform = ccrs.PlateCarree(), \
+    #    shading = 'auto', cmap = 'jet', vmax = value_max, vmin = -0.2)
+    #if(plot_cbar):
+    #fig.subplots_adjust(bottom = 0.8)
+    #cbar_ax = fig.add_axes([0.17, 0.10, 0.70, 0.01])
+    #fig.colorbar(cm.ScalarMappable(norm = norm, cmap = cmap), cax = cbar_ax, label = 'test', orientation = 'horizontal')
+
+
+    cbar_ax = fig.add_axes([0.17, 0.09, 0.70, 0.01])
+    cbar = fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), \
+        cax = cbar_ax, shrink = 0.8, orientation = 'horizontal', \
+        label = 'COD')
+    fig.tight_layout(rect = [0,0.1,1,1])
+    #cbar = fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), ax = axs, location = 'bottom', shrink = 0.8)
+
+    if(save):
+        outname = 'nn_force_scatter_combined.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:   
+        plt.show()
+
+
+
 
 def plot_NN_forcing_daily(date_str, OMI_daily_data, OMI_monthly_data, \
         slope_dict, bin_dict, minlat = 65., maxlat = 87., \
@@ -11750,6 +12073,7 @@ def perform_forcing_calculation_v4(l2_data_dict, slope_dict, bin_dict, \
 
                             nsidc_ice = new_ice
 
+                        # USED FOR NEW MIX BINS
                         ice_idx = np.argmin(abs(nsidc_ice - bin_dict['ice_bin_means']))
 
                         """
@@ -11862,10 +12186,11 @@ def perform_forcing_calculation_v4(l2_data_dict, slope_dict, bin_dict, \
 # mod_ice: -5, 5, -15, 15
 # ----------------------------------------------------------------------------
 def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict, \
-        bin_dict, date_str, minlat = 70., maxlat = 87., ai_thresh = -0.15, \
+        bin_dict, date_str, minlat = 70., maxlat = 87., ai_thresh = 0.7, \
         maxerr = 2, 
         reference_ice = None, reference_cld = None, mod_slopes = None, \
         mod_intercepts = None, mod_ice = None, mod_cod = None, \
+        mod_L2_L3_error = None, \
         filter_bad_vals = True, return_modis_nsidc = True, use_intercept = False, \
         debug = False):
 
@@ -11944,6 +12269,7 @@ def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict,
 
     # 2.  Loop over each individual month, over the latitudes first
     # -----------------------------------
+    num_good_points = 0
     for ii in range(local_OMI_daily.shape[0]):
 
         # Calculate the solar zenith angle here
@@ -11961,16 +12287,19 @@ def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict,
         # Loop over the longitudes
         for jj in range(local_OMI_daily.shape[1]):
     
-            # 3.  Determine if a single gridbox has AI above the threshold
-            if(local_OMI_daily[ii,jj] < ai_thresh): 
+            # 3b. If above the threshold,
+            # 4.  Determine the difference between this pixel's AI and the clear-sky
+            #     climatology.
+            delta_ai = local_OMI_daily[ii,jj] - \
+                       clear_sky_AI[ii,jj]
+
+            # 3.  Determine if a single gridbox has AI that is above the clear-sky
+            #       background by a threshold
+            #if(local_OMI_daily[ii,jj] < ai_thresh): 
+            if(delta_ai < ai_thresh): 
                 # 3a. If not above the threshold, set forcing to 0 and continue
                 estimate_forcings[ii,jj] = 0.
             else:
-                # 3b. If above the threshold,
-                # 4.  Determine the difference between this pixel's AI and the clear-sky
-                #     climatology.
-                delta_ai = local_OMI_daily[ii,jj] - \
-                           clear_sky_AI[ii,jj]
 
                 # Extract the daily NSIDC and MODIS COD values here
                 # Also, grab the pre-calculated 
@@ -12091,9 +12420,9 @@ def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict,
 
                             nsidc_ice = new_ice
 
-                        ice_idx = np.argmin(abs(nsidc_ice - bin_dict['ice_bin_means']))
+                        # USED FOR NEW MIX BINS
+                        #ice_idx = np.argmin(abs(nsidc_ice - bin_dict['ice_bin_means']))
 
-                        """
                         if( (nsidc_ice < 20) ):
                             # Use ocean forcing
                             ice_idx = 0
@@ -12120,7 +12449,6 @@ def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict,
                                 print("FAILED ICE")
                             #calc_forcing = 0.
                             ice_idx = -9
-                        """
 
                     else:
                         if(debug):
@@ -12128,7 +12456,8 @@ def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict,
                         calc_forcing = 0.
 
                 if(ice_idx != -9): 
-                    print("ICE VAL:", nsidc_ice, "ICE INDEX = ", ice_idx)
+                    num_good_points += 1
+                    #print("ICE VAL:", nsidc_ice, "ICE INDEX = ", ice_idx)
                     #calc_forcing = cld_frac * cloud_dict['ice_forcing'][ii] + \
                     #               (1 - cld_frac) * clear_dict['ice_forcing'][ii]
                     #estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai
@@ -12182,20 +12511,35 @@ def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict,
                         #slope_dict['slopes'][ice_idx,sza_idx,cod_idx] * \
                         estimate_forcings[ii,jj] = \
                             work_slope * local_OMI_daily[ii,jj]
+
+                    # Now, see if the user wants to modify the resulting
+                    # forcings by the L2/L3 errors
+                    # --------------------------------------------------
+                    if(mod_L2_L3_error is not None):
+                        estimate_forcings[ii,jj] = estimate_forcings[ii,jj] + mod_L2_L3_error
     
+
 
     estimate_forcings = np.ma.masked_invalid(estimate_forcings) 
 
-    print("MIN MAX FORCINGS", np.round(np.nanmin(estimate_forcings),1), \
-        np.round(np.nanmax(estimate_forcings), 1), \
-        'MAX AI', np.round(np.max(local_OMI_daily),1))
+    # Here, figure out if there are less than a threshold (20?) points
+    # with calculated forcings. If so, this may be noise that made it
+    # through the system. Mask the daily values here if that's the case?
+    #num_good_points = estimate_forcings.compressed().shape[0]
 
+    print("BERFR: MIN MAX FORCINGS", np.round(np.nanmin(estimate_forcings),1), \
+        np.round(np.nanmax(estimate_forcings), 1)) 
     if(filter_bad_vals):
         mean_val = np.nanmean(estimate_forcings)
         std_val  = np.nanstd(estimate_forcings)
 
         estimate_forcings = np.ma.masked_where(estimate_forcings > \
             (mean_val + 8.0 * std_val), estimate_forcings)
+
+    print("AFTER: MIN MAX FORCINGS", np.round(np.nanmin(estimate_forcings),1), \
+        np.round(np.nanmax(estimate_forcings), 1), \
+        'MAX AI', np.round(np.max(local_OMI_daily),1), \
+        'NUM GOOD POINTS', num_good_points)
 
 
     if(return_modis_nsidc):
@@ -12211,6 +12555,7 @@ def calculate_type_forcing_v4_monthly(OMI_daily_data, OMI_monthly_data, \
         maxerr = 2, \
         reference_ice = None, reference_cld = None, mod_slopes = None, \
         mod_intercepts = None, mod_ice = None, mod_cod = None, \
+        mod_L2_L3_error = None, \
         filter_bad_vals = True, return_modis_nsidc = True, \
         use_intercept = False, debug = False):
 
@@ -12280,6 +12625,7 @@ def calculate_type_forcing_v4_monthly(OMI_daily_data, OMI_monthly_data, \
             mod_intercepts = mod_intercepts, \
             mod_ice = mod_ice, \
             mod_cod = mod_cod, \
+            mod_L2_L3_error = mod_L2_L3_error, \
             return_modis_nsidc = False,\
             use_intercept = use_intercept)
 
@@ -12698,4 +13044,247 @@ def check_omi_ceres_time_offset(dir_list, num_points_per_file = 10):
 
         omi_data.close()
         ceres_data.close()
+
+# Plots the daily AI for a given date string as well as the corresponding
+# monthly clear-sky ...
+def plot_daily_OMI(daily_VSJ4, OMI_monthly_data, date_str, ai_thresh = 0.7):
+
+    tidx = int(str(date_str)[4:6]) - 4
+
+    clear_sky_AI = np.array([np.nanmean(\
+        np.ma.masked_where(OMI_monthly_data['AI'][midx::6,:,:] > ai_thresh,\
+        OMI_monthly_data['AI'][midx::6,:,:]), axis = 0) for midx in range(6)])
+    clear_sky_AI = clear_sky_AI[tidx,:,:]
+
+    match_idx = np.where(daily_VSJ4['day_values'] == int(date_str))[0][0]
+    max_daily_AI = np.max(daily_VSJ4['grid_AI'][match_idx,:,:])
+    plot_data = daily_VSJ4['grid_AI'][match_idx,:,:]
+
+    delta_ai = plot_data - clear_sky_AI
+   
+    delta_ai = np.ma.masked_where(delta_ai < ai_thresh, delta_ai)
+ 
+    plt.close('all')
+    fig = plt.figure(figsize = (9, 7))
+    ax1 = fig.add_subplot(2,2,1, projection = ccrs.NorthPolarStereo())
+    ax2 = fig.add_subplot(2,2,2, projection = ccrs.NorthPolarStereo())
+    ax3 = fig.add_subplot(2,2,3, projection = ccrs.NorthPolarStereo())
+    ax4 = fig.add_subplot(2,2,4)
+    mesh = ax1.pcolormesh(daily_VSJ4['lon_values'][:], \
+        daily_VSJ4['lat_values'][:], plot_data, \
+        transform = ccrs.PlateCarree(), \
+        shading = 'auto', cmap = 'jet', vmin = -2.0, vmax = 3)
+    cbar = fig.colorbar(mesh, ax = ax1)
+    ax1.coastlines()
+    ax1.set_extent([-180,180,65,90], ccrs.PlateCarree())
+    ax1.set_title(str(date_str) + '\nMax AI = ' + str(np.round(max_daily_AI, 1)))
+
+    mesh = ax2.pcolormesh(OMI_monthly_data['LON'][:,:], \
+        OMI_monthly_data['LAT'][:,:], clear_sky_AI[:,:], \
+        transform = ccrs.PlateCarree(), \
+        shading = 'auto', cmap = 'jet', vmin = -0.1, vmax = 0.1)
+    cbar = fig.colorbar(mesh, ax = ax2)
+    ax2.coastlines()
+    ax2.set_extent([-180,180,65,90], ccrs.PlateCarree())
+    ax2.set_title('Monthly clear-sky climo')
+
+    mesh = ax3.pcolormesh(OMI_monthly_data['LON'][:,:], \
+        OMI_monthly_data['LAT'][:,:], delta_ai, \
+        transform = ccrs.PlateCarree(), \
+        shading = 'auto', cmap = 'jet', vmin = 0, vmax = None)
+    cbar = fig.colorbar(mesh, ax = ax3)
+    ax3.coastlines()
+    ax3.set_extent([-180,180,65,90], ccrs.PlateCarree())
+    ax3.set_title('ΔAI (daily - clear_sky_bckd)')
+
+    plotter = delta_ai.compressed()
+    ax4.hist(plotter, bins = 20)
+    ax4.set_xlabel('Delta AI')
+    ax4.set_title('# valid points: ' + str(int(plotter.shape[0])))
+    
+    fig.tight_layout()
+    plt.show()
+
+def compare_nn_version_output(date_str, skip_version = None, save = False):
+
+    # Grab all the desired simulation files
+    # -------------------------------------
+    infiles = glob('neuralnet_output/*' + date_str + '.hdf5')
+
+    if(skip_version is not None):
+        switch_array = np.full(len(infiles), True)
+
+
+        for ii, tfile in enumerate(infiles):
+            this_version = tfile.split('/')[-1].split('_')[-2] 
+            print(this_version, this_version in skip_version)
+            if(this_version in skip_version):
+                switch_array[ii] = False
+
+        infiles = np.array(infiles)[switch_array]
+
+    # Figure out the size of the arrays needed
+    # ----------------------------------------
+    data = h5py.File(infiles[0])
+    sizer = data['ceres_swf'].shape
+    data.close()
+    
+    nn_force = np.full((len(infiles), sizer[0], sizer[1]), np.nan)
+    nn_swf   = np.full((len(infiles), sizer[0], sizer[1]), np.nan)
+    
+    for ii, infile in enumerate(infiles):
+        data = h5py.File(infile)
+    
+        calc_swf = data['calc_swf'][:,:]
+        ceres_swf = data['ceres_swf'][:,:]
+        ceres_swf = np.ma.masked_where( (ceres_swf == -999.) | (ceres_swf > 1000), ceres_swf)
+    
+        nn_swf[ii,:,:] = calc_swf
+        nn_force[ii,:,:] = calc_swf - ceres_swf
+        obs_swf = ceres_swf
+        lats    = data['omi_lat'][:,:]
+        lons    = data['omi_lon'][:,:]
+        data.close()
+        #plot_compare_NN_output_v2(infile, auto_zoom = False, save = False)
+    
+    nn_swf = np.ma.masked_invalid(nn_swf)
+    nn_force = np.ma.masked_invalid(nn_force)
+    
+    obs_swf = np.ma.masked_where((obs_swf == -999.) | (obs_swf > 1000), obs_swf)
+    
+    mean_nn_swf = np.mean(nn_swf, axis = 0)
+    std_nn_swf  = np.std(nn_swf, axis = 0)
+    mean_nn_force = np.mean(nn_force, axis = 0)
+    std_nn_force  = np.std(nn_force, axis = 0)
+    
+    fig = plt.figure(figsize = (9, 7))
+    ax1 = fig.add_subplot(2,2,1, projection = ccrs.NorthPolarStereo())
+    ax2 = fig.add_subplot(2,2,2, projection = ccrs.NorthPolarStereo())
+    ax3 = fig.add_subplot(2,2,3, projection = ccrs.NorthPolarStereo())
+    ax4 = fig.add_subplot(2,2,4)
+    mesh = ax1.pcolormesh(lons, lats, obs_swf, transform = ccrs.PlateCarree(), \
+        shading = 'auto')
+    cbar = fig.colorbar(mesh, ax = ax1, label = "SWF [W/m2]")
+    ax1.set_boundary(circle, transform=ax1.transAxes)
+    ax1.coastlines()
+    ax1.set_extent([-180,180,65,90], ccrs.PlateCarree())
+    ax1.set_title('CERES Obs.')
+    
+    mesh = ax2.pcolormesh(lons, lats, mean_nn_swf, transform = ccrs.PlateCarree(), \
+        shading = 'auto')
+    cbar = fig.colorbar(mesh, ax = ax2, label = "SWF [W/m2]")
+    ax2.set_boundary(circle, transform=ax2.transAxes)
+    ax2.coastlines()
+    ax2.set_extent([-180,180,65,90], ccrs.PlateCarree())
+    ax2.set_title('Average of NN versions')
+    
+    mesh = ax3.pcolormesh(lons, lats, std_nn_swf, transform = ccrs.PlateCarree(), \
+        shading = 'auto', vmax = 20)
+    cbar = fig.colorbar(mesh, ax = ax3, label = "SWF [W/m2]")
+    ax3.set_boundary(circle, transform=ax3.transAxes)
+    ax3.coastlines()
+    ax3.set_extent([-180,180,65,90], ccrs.PlateCarree())
+    ax3.set_title('Standard Dev. of NN versions')
+    
+    ax4.hist(std_nn_swf.compressed(), bins = 50)
+    ax4.set_xlabel('STD of NN SWF')
+    ax4.set_ylabel('Counts')
+   
+    plt.suptitle(date_str)
+ 
+    fig.tight_layout()
+    if(save):
+        outname = 'nn_version_compare_' + date_str + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+def compare_sza_bin_impact_on_slopes(test_dict, bin_dict, sfc_idx, ai_min = 0, \
+        min_ob = 50, trend_type = 'linregress', combined_plot = False):
+
+    # Set up different ranges of SZA bins to test
+    # -------------------------------------------
+    delta_sza = np.array([5, 10, 15, 20])
+
+    fig = plt.figure(figsize = (9, 7))
+    if(combined_plot):
+        axs = fig.subplots(nrows = 1, ncols = 1)
+        flat_ax = axs
+    else:
+        axs = fig.subplots(nrows = 2, ncols = 2, sharex = True, sharey = True)
+        flat_ax = axs.flatten()
+
+    xvals = np.arange(bin_dict['cod_bin_means'].shape[0])
+    cod_labels = [str(edge) for edge in bin_dict['cod_bin_edges']]
+  
+    linestyles = ['-','--',':','-.'] 
+    
+    min_force = 999
+    max_force = -999
+     
+    for ii in range(len(delta_sza)):
+        sza_bin_edges = np.arange(bin_dict['sza_bin_edges'][0], \
+            bin_dict['sza_bin_edges'][-1] + delta_sza[ii], delta_sza[ii])
+        sza_bin_means = (sza_bin_edges[1:] + sza_bin_edges[:-1]) / 2
+        print(sza_bin_edges)
+
+        # Calculate the regression slopes and intercepts for these SZA bins
+        # -----------------------------------------------------------------
+        slope_dict_lin = calc_NN_force_slope_intcpt(test_dict, bin_dict['ice_bin_edges'], \
+                sza_bin_edges, bin_dict['cod_bin_edges'], ai_min = ai_min, min_ob = min_ob, \
+                trend_type = 'linregress')
+
+        plot_slopes = np.ma.masked_where(slope_dict_lin['slope_stderr'] > 2, slope_dict_lin['slopes'])
+
+        if(np.nanmax(plot_slopes) > max_force):
+            max_force = np.nanmax(plot_slopes)
+        if(np.nanmin(plot_slopes) < min_force):
+            min_force = np.nanmin(plot_slopes)
+
+        # Plot these on the corresponding plot
+        # ------------------------------------
+        for jj in range(slope_dict_lin['slopes'].shape[1]): 
+            if(combined_plot):
+                flat_ax.plot(xvals, plot_slopes[sfc_idx,jj,:], \
+                    linestyle = linestyles[ii], \
+                    label = str(sza_bin_means[jj]))
+            else:
+                flat_ax[ii].plot(xvals, plot_slopes[sfc_idx,jj,:],\
+                    linestyle = linestyles[ii], \
+                    label = str(sza_bin_means[jj]))
+            #flat_ax.plot(xvals, slope_dict_lin['slopes'][sfc_idx,jj,:],linestyle = linestyles[ii])
+
+        if(combined_plot):
+            flat_ax.axhline(0, linestyle = ':', color = 'gray')
+            flat_ax.set_title('ΔSZA')
+            flat_ax.set_xticks([0,1,2,3,4,5,6,7,8])
+            flat_ax.set_xticklabels(cod_labels[::1])
+            flat_ax.set_xlabel('COD')
+            flat_ax.set_ylabel('Force. Eff. Slope [W m-2 AI-1]')
+            flat_ax.legend()
+        else:
+            flat_ax[ii].axhline(0, linestyle = ':', color = 'gray')
+            flat_ax[ii].set_title('ΔSZA = ' + str(delta_sza[ii]))
+            flat_ax[ii].set_xticks([0,1,2,3,4,5,6,7,8])
+            flat_ax[ii].set_xticklabels(cod_labels[::1])
+            flat_ax[ii].grid(alpha = 0.50, linestyle = ':')
+            flat_ax[ii].legend()
+
+    if(not combined_plot):
+        axs[0,0].set_ylabel('Force. Eff. Slope [W m-2 AI-1]')
+        axs[1,0].set_ylabel('Force. Eff. Slope [W m-2 AI-1]')
+        axs[1,0].set_xlabel('COD')
+        axs[1,1].set_xlabel('COD')
+
+    title_options = ['Ocean','Mix','Ice','Land']
+    plt.suptitle(title_options[sfc_idx])
+   
+    fig.tight_layout() 
+    plt.show()        
+
+
+
+
+
 

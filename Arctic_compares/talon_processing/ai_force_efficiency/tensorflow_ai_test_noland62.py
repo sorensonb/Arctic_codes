@@ -912,24 +912,153 @@ print('Num aerosol swaths', len(aer_file_list))
 #
 #           CLDPRES NANs are accounted for in 'select data'
 #           Job ID = 43699
-#  
-# noland55: 11 hidden layers
+#
+# noland56: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on ALL data
+#               300 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 2.86
+#           INCLUDES LAND DATA, CH7, VZA
+#
+#           Only differences between this and noland53
+#               Increased the training epochs from 100 to 300
+#
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 71032
+#
+#
+# #######
+#
+# Colocated all of 201807 and added another +/- 1 day
+# 
+# As a note, I made a file of the original coloc files used before
+# noland57 (including noland56), and modified noland56 to have
+# the option of running on these old files for continuity's sake.
+#
+# #######
+#
+# noland57: 11 hidden layers
 #           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
 #           Trained on ALL data
 #               100 epochs
 #               128 batch size
 #               Leaky ReLU activation hidden
 #               Linear activation out
-#           Ending MAE: ????
+#           Ending MAE: 2.86
 #           INCLUDES LAND DATA, CH7, VZA
 #
-#           Only differences between this and noland54
-#               Changing the scaling values from 0 - 100 to 0 - 1000.
-#               Added 'scaling_range' variable
+#           Only differences between this and noland53
+#               Added lots more coloc data to training/testing dataset
 #
 #           CLDPRES NANs are accounted for in 'select data'
-#           Job ID = 65027
+#           Job ID = 73792
 #
+#   noland56 output just after Epoch 41:
+#       22661/22661 - 66s - loss: 17.9939 - mae: 2.9488 - 66s/epoch - 3ms/step
+#   noland57 output just after Epoch 41:
+#       35172/35172 - 94s - loss: 17.5170 - mae: 2.9050 - 94s/epoch - 3ms/step
+#
+# noland58: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on ALL data
+#               700 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 2.81
+#           INCLUDES LAND DATA, CH7, VZA
+#
+#           Only differences between this and noland57
+#               Increased epochs from 100 to 700
+#
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 74156
+#
+#   noland56 output just after Epoch 41:
+#       22661/22661 - 66s - loss: 17.9939 - mae: 2.9488 - 66s/epoch - 3ms/step
+#   noland57 output just after Epoch 41:
+#       35172/35172 - 94s - loss: 17.5170 - mae: 2.9050 - 94s/epoch - 3ms/step
+#   noland58 output just after Epoch 41:
+#       35172/35172 - 94s - loss: 17.7206 - mae: 2.9220 - 94s/epoch - 3ms/step
+#
+# noland59: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on ALL data
+#               1200 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 2.795
+#           INCLUDES LAND DATA, CH7, VZA
+#
+#           Only differences between this and noland58
+#               Increased epochs from 700 to 1200
+#
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 78147
+#
+# noland60: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on ALL data
+#               100 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 3.09
+#           INCLUDES LAND DATA, VZA
+#
+#           Only differences between this and noland57
+#               MODIS 2.1 um data removed
+#               100 training epochs
+#               Added LWF to output files. Should be in coloc input files
+#
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 83245
+#
+# noland61: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on ALL data
+#               100 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 3.07
+#           INCLUDES LAND DATA, CH7, VZA
+#
+#           Only differences between this and noland57
+#               Added dropout of 0.2 after hidden layers 3 (16 nodes) and
+#                   8 (24 nodes)
+#               100 training epochs
+#               Added LWF to output files. Should be in coloc input files
+#
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 83245
+#
+# noland62: 13 hidden layers
+#           8,12,16,24,32,48,64,48,32,24,16,12,8 nodes in each layer
+#           Trained on ALL data
+#               100 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 2.85
+#           INCLUDES LAND DATA, CH7, VZA
+#
+#           Only differences between this and noland57
+#               Added hidden layers of size 48 around the 64 node middle
+#               100 training epochs
+#               Added LWF to output files. Should be in coloc input files
+#
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 83813
+#
+#   noland57 output just after Epoch 41:
+#       35172/35172 - 94s - loss: 17.5170 - mae: 2.9050 - 94s/epoch - 3ms/step
+#   noland62 output just after Epoch 41:
+#       35172/35172 - 113s - loss: 17.4246 - mae: 2.8963 - 113s/epoch - 3ms/step
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -959,8 +1088,6 @@ max_swf = 3000.
 max_cod = 70.
 min_ice = 0.
 max_ice = 500.
-
-scaling_range = 1000.
 
 if(l_load_model):
 
@@ -1010,8 +1137,22 @@ else:
     ##!#    ]
     ##!#
     ##!#files = [data_path + 'colocated_subset_' + fdd + '.hdf5' for fdd in fdates]
-    
-    files = glob('/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated*.hdf5')
+   
+    # Grab the desired files here. The user can supply a filename list if
+    # desired, but normally the code will just grab all available 
+    # colocated*.hdf5 in the data directory
+    # -------------------------------------------------------------------
+    l_USE_ONLY_PRE_NOLAND56_FILES = False
+
+    if(l_USE_ONLY_PRE_NOLAND56_FILES):
+        print("\nREADING PRE NOLAND57 FILES")
+
+        file_file = 'coloc_file_list_prenoland56.txt'
+        with open(file_file, 'r') as fin:
+            filenames = fin.readlines()       
+        files = [data_dir + fname.strip() for fname in sorted(filenames)] 
+    else:
+        files = glob('/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated*.hdf5')
     #files = glob('/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_200607*.hdf5')
     
     # NEW FOR NOLAND49: Remove the aerosol swaths from the training dataset
@@ -1246,7 +1387,7 @@ else:
     
     combined_data['nsidc_ice'][:] = \
         np.where(combined_data['nsidc_ice'][:] == 254., 101., combined_data['nsidc_ice'][:])
-    
+   
     min_max_dict = {}
     
     key_variables = ['omi_uvai_pert', 'omi_sza', 'omi_vza', 'modis_cod', 'modis_cld_top_pres', 'nsidc_ice', \
@@ -1258,8 +1399,7 @@ else:
         min_max_dict[key]['max'] = np.max(combined_data[key])
     
         drange = min_max_dict[key]['max'] - min_max_dict[key]['min']
-        #combined_data[key] = ((combined_data[key] - min_max_dict[key]['min']) / drange) * 100.
-        combined_data[key] = ((combined_data[key] - min_max_dict[key]['min']) / drange) * scaling_range
+        combined_data[key] = ((combined_data[key] - min_max_dict[key]['min']) / drange) * 100.
         #combined_data[key] = ((combined_data[key] - min_max_dict[key]['min']) / drange) * 100.
    
     # Save the min_max_dict values to a json file for later loading
@@ -1280,21 +1420,8 @@ else:
     print('VZA',np.min(combined_data['omi_vza']), np.max(combined_data['omi_vza']))
     print('ALB',np.min(combined_data['ceres_alb']), np.max(combined_data['ceres_alb']))
     print('ICE',np.min(combined_data['nsidc_ice']), np.max(combined_data['nsidc_ice']))
-   
-    # Test unscaling here
-    # ------------------- 
-    test_swf = 500.
-    workval = ((test_swf - min_max_dict['ceres_swf']['min']) /  \
-        (min_max_dict['ceres_swf']['max'] - min_max_dict['ceres_swf']['min'])) * \
-        scaling_range
-    recalc_val = (((workval / scaling_range) * (min_max_dict['ceres_swf']['max'] - \
-        min_max_dict['ceres_swf']['min'])) + min_max_dict['ceres_swf']['min'])
-   
-    print("ORIGINAL SWF:", test_swf)
-    print("SCALED SWF:  ", workval)
-    print("UNSCALED SWF:", recalc_val)
- 
-    sys.exit()    
+    
+        
 
     pcnt_test = 0.10
     num_test = int(combined_data['omi_uvai_pert'].shape[0] * pcnt_test)
@@ -1304,8 +1431,7 @@ else:
     train_idxs, test_idxs = train_test_split(ranges, test_size = num_test)
     
     print(train_idxs.shape, test_idxs.shape)
-  
-  
+    
     # Input format: OMI SZA, NSIDC ICE, MODIS COD
     x_train = np.array([combined_data['omi_sza'][train_idxs], \
                         combined_data['omi_vza'][train_idxs], \
@@ -1364,13 +1490,15 @@ else:
     hidden_layer3  = Dense(units = 16, activation = 'leaky_relu', name = 'hidden3')(hidden_layer2)
     hidden_layer4  = Dense(units = 24, activation = 'leaky_relu', name = 'hidden4')(hidden_layer3)
     hidden_layer5  = Dense(units = 32, activation = 'leaky_relu', name = 'hidden5')(hidden_layer4)
-    hidden_layer6  = Dense(units = 64, activation = 'leaky_relu', name = 'hidden6')(hidden_layer5)
-    hidden_layer7  = Dense(units = 32, activation = 'leaky_relu', name = 'hidden7')(hidden_layer6)
-    hidden_layer8  = Dense(units = 24, activation = 'leaky_relu', name = 'hidden8')(hidden_layer7)
-    hidden_layer9  = Dense(units = 16, activation = 'leaky_relu', name = 'hidden9')(hidden_layer8)
-    hidden_layer10 = Dense(units = 12, activation = 'leaky_relu', name = 'hidden10')(hidden_layer9)
-    hidden_layer11 = Dense(units = 8, activation = 'leaky_relu', name = 'hidden11')(hidden_layer10)
-    prediction = Dense(1, activation = 'linear')(hidden_layer11)
+    hidden_layer6  = Dense(units = 48, activation = 'leaky_relu', name = 'hidden6')(hidden_layer5)
+    hidden_layer7  = Dense(units = 64, activation = 'leaky_relu', name = 'hidden7')(hidden_layer6)
+    hidden_layer8  = Dense(units = 48, activation = 'leaky_relu', name = 'hidden8')(hidden_layer7)
+    hidden_layer9  = Dense(units = 32, activation = 'leaky_relu', name = 'hidden9')(hidden_layer8)
+    hidden_layer10 = Dense(units = 24, activation = 'leaky_relu', name = 'hidden10')(hidden_layer9)
+    hidden_layer11 = Dense(units = 16, activation = 'leaky_relu', name = 'hidden11')(hidden_layer10)
+    hidden_layer12 = Dense(units = 12, activation = 'leaky_relu', name = 'hidden12')(hidden_layer11)
+    hidden_layer13 = Dense(units = 8, activation = 'leaky_relu', name = 'hidden13')(hidden_layer12)
+    prediction = Dense(1, activation = 'linear')(hidden_layer13)
 
     #model = Model(inputs = [x1, x2, x3, x4, x5], outputs = prediction)
     model = Model(inputs = [x1, x2, x3, x4, x5, x6, x7], outputs = prediction)
@@ -1380,7 +1508,7 @@ else:
 
 
 
-    model.compile(loss = 'mean_squared_error', optimizer = 'adam', metrics = ['mae'])
+    model.compile(loss = 'mean_squared_error', optimizer = 'adam', metrics = ['mae','mse','accuracy'])
     model.summary()
     losses = model.fit(input_data, \
                         combined_data['ceres_swf'][train_idxs], \
@@ -1416,8 +1544,8 @@ else:
                                         combined_data['ceres_alb'][test_idxs][:10]])]).squeeze()
     
     
-    print(  ((combined_data['ceres_swf'][test_idxs][0:10] / scaling_range) * drange) + min_max_dict['ceres_swf']['min'])
-    print(  ((test_out / scaling_range) * drange) + min_max_dict['ceres_swf']['min'])
+    print(  ((combined_data['ceres_swf'][test_idxs][0:10] / 100) * drange) + min_max_dict['ceres_swf']['min'])
+    print(  ((test_out / 100) * drange) + min_max_dict['ceres_swf']['min'])
 
 
 
@@ -1499,12 +1627,9 @@ if(l_save_data):
         print("ERROR: Invalid time value")
         sys.exit()  
 
-    #aer_file_list = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807052213.hdf5', \
-    #                 '/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807082244.hdf5']
-    #aer_file_list = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807082244.hdf5']
     aer_file_list = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807052213.hdf5', \
-                     '/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807082244.hdf5', \
-                     '/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201908100308.hdf5']
+                     '/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807082244.hdf5']
+    #aer_file_list = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807082244.hdf5']
  
     #for infile in files:
     for infile in aer_file_list:
@@ -1604,7 +1729,7 @@ if(l_save_data):
                                             new_alb])]).squeeze()
 
 
-        calc_swf[:] = ((calc_swf[:] / scaling_range) * \
+        calc_swf[:] = ((calc_swf[:] / 100) * \
                 (min_max_dict['ceres_swf']['max'] - min_max_dict['ceres_swf']['min'])) + \
                 min_max_dict['ceres_swf']['min']
 
@@ -1698,6 +1823,7 @@ if(l_save_data):
         dset.create_dataset('omi_lat', data = data['omi_lat'][:,:])
         dset.create_dataset('calc_swf', data = calc_swf[:,:])
         dset.create_dataset('ceres_swf', data = data['ceres_swf'][:,:])
+        dset.create_dataset('ceres_lwf', data = data['ceres_lwf'][:,:])
         dset.create_dataset('omi_sza', data = data['omi_sza'][:,:])
         dset.create_dataset('omi_uvai_pert', data = data['omi_uvai_pert'][:,:])
         dset.create_dataset('modis_cld_top_pres', data = data['modis_cld_top_pres'][:,:])

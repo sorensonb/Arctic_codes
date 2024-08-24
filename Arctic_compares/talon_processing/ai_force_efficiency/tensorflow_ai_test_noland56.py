@@ -1495,9 +1495,10 @@ if(l_save_data):
         print("ERROR: Invalid time value")
         sys.exit()  
 
-    aer_file_list = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807052213.hdf5', \
-                     '/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807082244.hdf5']
     #aer_file_list = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807082244.hdf5']
+    aer_file_list = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807052213.hdf5', \
+                     '/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807082244.hdf5', \
+                     '/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201908100308.hdf5']
  
     #for infile in files:
     for infile in aer_file_list:

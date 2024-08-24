@@ -18,7 +18,8 @@
 #SBATCH --partition=talon-gpu32
 
 # Sets the maximum time the job can run (hh:mm:ss).
-#SBATCH --time=24:00:00
+#SBATCH --time=00:04:00
+####SBATCH --time=01-12:00:00
 
 # Specifies nodes for the job.
 ###SBATCH --nodes=1
@@ -48,7 +49,21 @@ echo ""
 module load tensorflow2-py39-cuda11.8-gcc11/2.11.0
 
 
-time python tensorflow_ai_test_noland58.py $1 $2 $3
+#time python tensorflow_ai_test_noland72.py $1 $2 $3
+time python tensorflow_ai_test_noland71.py $1 $2 $3
+#time python tensorflow_ai_test_noland70.py $1 $2 $3
+#time python tensorflow_ai_test_noland69.py $1 $2 $3
+#time python tensorflow_ai_test_noland68.py $1 $2 $3
+#time python tensorflow_ai_test_noland67.py $1 $2 $3
+#time python tensorflow_ai_test_noland66.py $1 $2 $3
+#time python tensorflow_ai_test_noland65.py $1 $2 $3
+#time python tensorflow_ai_test_noland64.py $1 $2 $3
+#time python tensorflow_ai_test_noland63.py $1 $2 $3
+#time python tensorflow_ai_test_noland62.py $1 $2 $3
+#time python tensorflow_ai_test_noland61.py $1 $2 $3
+#time python tensorflow_ai_test_noland60.py $1 $2 $3
+#time python tensorflow_ai_test_noland59.py $1 $2 $3
+#time python tensorflow_ai_test_noland58.py $1 $2 $3
 #time python tensorflow_ai_test_noland57.py $1 $2 $3
 #time python tensorflow_ai_test_noland56.py $1 $2 $3
 #time python tensorflow_ai_test_noland55.py $1 $2 $3
