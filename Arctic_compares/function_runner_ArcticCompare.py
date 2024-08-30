@@ -415,6 +415,13 @@ sys.exit()
 #           generates a scatter plot of the two, with error bars, and
 #           a histogram of all the errors. 
 #
+#plot_NN_forcing_daily_L2L3_errors(date_str, daily_VSJ4, \
+#    OMI_daily_VSJ4, slope_dict_lin, bin_dict, L2L3_err_mean, L2L3_err_std, \
+#           This funtion calculates daily forcing values originally, and then
+#           calculates (num_calcs) additional daily forcing values in which
+#           each grid point with a forcing value calculated has L2L3 error
+#           added that fits in a Gaussian distribution with the mean and 
+#           standard deviation given above.
 #
 #                   STEPS FOR NEW DAILY FORCING ESTIMATION
 #
@@ -443,7 +450,12 @@ sys.exit()
 # simulation 'noland48'
 # ----------------------------------------------------------------
 #test_dict = combine_NN_data('noland48')
-test_dict = combine_NN_data('noland50')
+#test_dict = combine_NN_data('noland50')
+print("AS OF 2024/08/27, USING NOLAND72")
+#sim_name = 'noland48'
+#sim_name = 'noland50'
+sim_name = 'noland72'
+test_dict = combine_NN_data('noland72')
 
 # Identify the dictionary array indices that give the NN data
 # associated with:
@@ -479,11 +491,12 @@ bin_dict = {
 # Calculate the regression slopes and intercepts from the NN data
 # ---------------------------------------------------------------
 min_ob = 50
+ai_min_forslopes = 0.0
 #slope_dict = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
 #        sza_bin_edges, cod_bin_edges, ai_min = 0, min_ob = min_ob, \
 #        trend_type = 'theil-sen')
 slope_dict_lin = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
-        sza_bin_edges, cod_bin_edges, ai_min = 0, min_ob = min_ob, \
+        sza_bin_edges, cod_bin_edges, ai_min = ai_min_forslopes, min_ob = min_ob, \
         trend_type = 'linregress')
 
 # Plot the scattered NN output as function of AI for the bins given above
@@ -491,29 +504,30 @@ slope_dict_lin = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
 #plot_NN_scatter_multiCOD(test_dict, cod_bin_edges, 0, 101, 255, 50, 55, save = False)
 #sys.exit()
 
-ai_min = 1
 sza_min = 40
 sza_max = 90
-plot_NN_scatter_combined_alltypes(test_dict, bin_dict, \
-    ai_min, sza_min, sza_max, trend_type = 'linregress', \
-    plot_bounds = False, save = True)
-sys.exit()
+#plot_NN_scatter_combined_alltypes(test_dict, bin_dict, \
+#    ai_min, sza_min, sza_max, trend_type = 'linregress', \
+#    plot_bounds = False, save = False)
+#sys.exit()
+
 # See what happens with differnet SZA bins. Is it necessary to bin
 # by the SZA?
 # -----------------------------------------------------------------
 sfc_idx = 0
-compare_sza_bin_impact_on_slopes(test_dict, bin_dict, sfc_idx, ai_min = 0, \
-    min_ob = min_ob, trend_type = 'linregress')
-sys.exit()
+maxerr = 1.5
+#compare_sza_bin_impact_on_slopes(test_dict, bin_dict, sfc_idx, ai_min = ai_min, \
+#    min_ob = min_ob, maxerr = maxerr, trend_type = 'linregress', combined_plot = False)
+#sys.exit()
 #slope_dict2 = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
 #        sza_bin_edges, cod_bin_edges, ai_min = 1, min_ob = min_ob, \
 #        trend_type = 'theil-sen')
 
 # Plot the binned NN/AI slopes for the 4 surface types
 # ----------------------------------------------------
-plot_NN_bin_slopes(slope_dict_lin, bin_dict, min_ob = min_ob, plot_error = True, save = False)
+#plot_NN_bin_slopes(slope_dict_lin, bin_dict, min_ob = min_ob, plot_error = True, save = False)
 #plot_NN_bin_slopes(slope_dict_lin, bin_dict, min_ob = min_ob, plot_error = True, save = True)
-sys.exit()
+#sys.exit()
 
 # Run L2 validation
 # -----------------
@@ -538,17 +552,37 @@ sys.exit()
 # pixels
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-#sim_name = 'noland50'
-#direct_forcings, calc_forcings = \
-#    plot_L2_validate_regress_all(sim_name, slope_dict_lin, bin_dict, \
-#    ai_thresh = 0.7, mod_slopes = None, mod_intercepts = None, \
-#    mod_cod = None, mod_ice = None, use_intercept = False, \
-#    min_cod = None, max_cod = None,\
-#    min_sza = None, max_sza = None, \
-#    min_ice = None, max_ice = None, \
-#    save = False, return_values = True)
+#sim_name = 'noland72'
+#infile = 'validate_values_' + sim_name + '.hdf5'
+#in_data = h5py.File(infile)
+#direct_forcings = in_data['direct_forcings']
+#calc_forcings   = in_data['calc_forcings']
+
+##direct_forcings, calc_forcings = \
+##    plot_L2_validate_regress_all(sim_name, slope_dict_lin, bin_dict, \
+##    ai_thresh = 0.7, mod_slopes = None, mod_intercepts = None, \
+##    mod_cod = None, mod_ice = None, use_intercept = False, \
+##    min_cod = None, max_cod = None,\
+##    min_sza = None, max_sza = None, \
+##    min_ice = None, max_ice = None, \
+##    save = False, return_values = True, save_values = False)
+##write_L2_L3_validation_values(direct_forcings, calc_forcings, sim_name, ai_min, bin_dict)
 #plot_scatter_hist_L2_L3_errors(direct_forcings, calc_forcings, \
-#    num_bins = 100, delta_calc = 20, save = False)
+#    num_bins = 200, delta_calc = 20, save = False)
+#sys.exit()
+
+## From np.mean and np.std on the errors
+## -------------------------------------
+#errors = calc_forcings - direct_forcings
+#mean_error = np.mean(errors) #  3.72
+#std_error  = np.std(errors)  # 29.04
+
+## From astropy fit to error histogram.
+## -----------------------------------
+## noland72?
+#mean_error = -3.321
+#std_error  = 22.969
+
 #sys.exit()
 
 
@@ -621,9 +655,9 @@ daily_VSJ4 = readOMI_daily_HDF5(shawn_file, minlat = minlat, maxlat = maxlat)
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #plot_daily_OMI(daily_VSJ4, OMI_daily_VSJ4, 20050611)
 
-ai_thresh = 0.05
+#ai_thresh = 0.05
 #ai_thresh = -0.15
-maxerr = 1.5
+#maxerr = 1.5
 
 """
 date_str = '20050403'
@@ -692,8 +726,101 @@ sys.exit()
 #date_str = '20180705'
 #plot_NN_forcing_daily(date_str, daily_VSJ4, OMI_daily_VSJ4, \
 #    slope_dict_lin, bin_dict, minlat = 65., maxlat = 87., \
-#    ai_thresh = 0.7, maxerr = maxerr, save = False, use_intercept = True)
+#    ai_thresh = 0.7, maxerr = maxerr, filter_bad_vals = True, \
+#    save = False, use_intercept = True)
 #sys.exit()
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
+# Test the L2L3_err stuff for a single day
+# 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#date_str = '20180705'
+#L2L3_err_mean = -3.321
+#L2L3_err_std  = 22.969
+#num_calcs = 10
+#
+#
+## This funtion calculates daily forcing values originally, and then
+## calculates (num_calcs) additional daily forcing values in which
+## each grid point with a forcing value calculated has L2L3 error
+## added that fits in a Gaussian distribution with the mean and 
+## standard deviation given above.
+## ------------------------------------------------------------------
+#plot_NN_forcing_daily_L2L3_errors(date_str, daily_VSJ4, \
+#    OMI_daily_VSJ4, slope_dict_lin, bin_dict, L2L3_err_mean, L2L3_err_std, \
+#    num_calcs, minlat = 65., maxlat = 87., \
+#    use_intercept = True, filter_bad_vals = False, \
+#    mod_L2_L3_error = None, \
+#    ai_thresh = 0.7, maxerr = maxerr, save = True)
+
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
+# Test the L2L3_err stuff for a whole study period
+#
+# NOTE: RUNNING WITH filter_bad_vals SET TO False
+# 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+ai_thresh = 0.7
+maxerr = 1.5
+
+# Calculate original values for reference
+all_month_vals_orig = \
+    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+    filter_bad_vals = False, return_modis_nsidc = False, \
+    mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
+    use_intercept = True, debug = False)
+all_month_vals_orig_filterbadvals = \
+    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+    filter_bad_vals = True, return_modis_nsidc = False, \
+    mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
+    use_intercept = True, debug = False)
+
+sys.exit()
+
+# Set up an array to hold the new values
+# --------------------------------------
+num_calc = 40
+
+all_month_vals_err_combined = np.full( (num_calc, \
+    all_month_vals_orig.shape[0], all_month_vals_orig.shape[1], \
+    all_month_vals_orig.shape[2]), np.nan)
+
+for ii in range(num_calc):
+    print("\n\n# = = = = = = = = = = = = \n#\nSIMULATION NUMBER ",ii,"\n#\n# = = = = = = = ")
+    all_month_vals_err_combined[ii,:,:,:] = \
+        calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+        slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+        ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+        filter_bad_vals = False, return_modis_nsidc = False, \
+        mod_L2_L3_error = None, L2L3_err_mean = -3.321, L2L3_err_std = 22.969, \
+        use_intercept = True, debug = False)
+
+# NEED A READER FUNCTION TOO
+#count10_errfile = 'arctic_month_est_forcing_L2L3err_count10.hdf5'
+write_daily_month_force_L2L3_error_to_HDF5(\
+    all_month_values_err_combined, OMI_daily_VSJ4, \
+    maxerr = None, ai_thresh = None, minlat = None, \
+    L2L3_err_mean = -3.321, L2L3_err_std = 22.969, \
+    dtype = None, 
+    save_path = './', name_add = '')
+
+
+
+
+sys.exit()
+
+
+
+
+
+
 
 #values = test_calculate_type_forcing_v4(daily_VSJ4, OMI_daily_VSJ4, \
 #    slope_dict, bin_dict, date_str, minlat = minlat, maxlat = maxlat, \
@@ -1135,9 +1262,10 @@ all_month_files = [
 
 # This plots all the results from all 3 latitude bands
 # ----------------------------------------------------
-#plot_type_forcing_v4_all_months_arctic_avg_combined(all_month_files, \
-#    version4 = False, max_pval = 0.05, \
-#    horiz_orient = True, save = False)
+plot_type_forcing_v4_all_months_arctic_avg_combined(all_month_files, \
+    version4 = False, max_pval = 0.05, \
+    horiz_orient = True, save = False)
+sys.exit()
 
 #uncert_slopes =  calc_forcing_slopes_v4_all_months_arctic_avg_uncert(all_month_files, \
 #        OMI_daily_VSJ4, slope_type = 'lin')

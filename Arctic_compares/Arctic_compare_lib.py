@@ -16,6 +16,7 @@ import python_lib
 import importlib
 from matplotlib.cm import turbo
 from scipy.stats import sem
+from astropy.modeling import models,fitting
 from sklearn.metrics import r2_score, mean_squared_error
 from python_lib import circle, plot_trend_line, nearest_gridpoint, \
     aerosol_event_dict, init_proj, plot_lat_circles, plot_figure_text, \
@@ -980,6 +981,45 @@ def write_daily_month_force_to_HDF5(all_month_values, OMI_monthly_data, \
         cdt.attrs['minlat'] = str(minlat)
     if(dtype is not None):
         cdt.attrs['omi_data_type'] = dtype
+
+    # Save, write, and close the HDF5 file
+    # --------------------------------------
+    dset.close()
+
+    print("Saved file ",outfile)  
+
+# Writes a single Shawn file to HDF5. 
+def write_daily_month_force_L2L3_error_to_HDF5(\
+        all_month_values, OMI_monthly_data, \
+        maxerr = None, ai_thresh = None, minlat = None, 
+        L2L3_err_mean = None, L2L3_err_std = None, \
+        dtype = None, 
+        save_path = './', name_add = ''):
+
+    # Create a new HDF5 dataset to write to the file
+    # ------------------------------------------------
+    num_runs = int(all_month_values.shape[0])
+    outfile = save_path + 'arctic_month_est_forcing_L2L3err_count' + str(num_runs) + '.hdf5'
+    dset = h5py.File(outfile,'w')
+
+    local_dates = np.array([int(tdate) for tdate in OMI_monthly_data['DATES']])
+ 
+    cdt = dset.create_dataset('latitude',  data = OMI_monthly_data['LAT'][:,0].squeeze())
+    cdt = dset.create_dataset('longitude', data = OMI_monthly_data['LON'][0,:].squeeze())
+    cdt = dset.create_dataset('dates', data = local_dates)
+    cdt = dset.create_dataset('force_estimate', data = all_month_values)
+    if(maxerr is not None):
+        cdt.attrs['maxerr'] = str(maxerr)
+    if(ai_thresh is not None):
+        cdt.attrs['ai_thresh'] = str(ai_thresh)
+    if(minlat is not None):
+        cdt.attrs['minlat'] = str(minlat)
+    if(dtype is not None):
+        cdt.attrs['omi_data_type'] = dtype
+    if(L2L3_err_mean is not None):
+        cdt.attrs['L2L3_err_mean'] = L2L3_err_mean
+    if(L2L3_err_std is not None):
+        cdt.attrs['L2L3_err_std'] = L2L3_err_std
 
     # Save, write, and close the HDF5 file
     # --------------------------------------
@@ -10022,6 +10062,8 @@ def calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
     slope_dict['counts'] = calc_counts
     slope_dict['slopes'] = calc_slopes
     slope_dict['intercepts'] = calc_intcpt
+    slope_dict['min_ob'] = min_ob
+    slope_dict['ai_min'] = ai_min
     if(trend_type == 'theil-sen'):
         slope_dict['upper_slopes'] = calc_upper_slopes
         slope_dict['lower_slopes'] = calc_lower_slopes
@@ -10590,7 +10632,7 @@ def plot_L2_validate_regress_all(sim_name, slope_dict, bin_dict, \
         min_sza = None, max_sza = None, \
         min_ice = None, max_ice = None, \
         min_cod = None, max_cod = None, \
-        return_values = False, save = False):
+        return_values = False, save = False, save_values = False):
 
     # Retrieve all the aerosol NN output files
     # ----------------------------------------
@@ -10699,6 +10741,10 @@ def plot_L2_validate_regress_all(sim_name, slope_dict, bin_dict, \
     direct_forcings = np.ma.masked_invalid(direct_forcings).compressed()
     calc_forcings   = np.ma.masked_invalid(calc_forcings).compressed()
 
+    if(save_values):
+        write_L2_L3_validation_values(direct_forcings, calc_forcings, \
+            sim_name, ai_min, bin_dict)
+
     # Use the plotting function to generate a figure of the results
     # -------------------------------------------------------------
     plot_scatter_hist_L2_L3_errors(direct_forcings, calc_forcings, \
@@ -10709,7 +10755,7 @@ def plot_L2_validate_regress_all(sim_name, slope_dict, bin_dict, \
 
 # delta_calc = the width of the calculated forcing bins 
 def plot_scatter_hist_L2_L3_errors(direct_forcings, calc_forcings, 
-            num_bins = 75, delta_calc = 20, save = False):
+            num_bins = 75, delta_calc = 20, astrofit = False, save = False):
 
     print("\nCalculating r2 score")
     r2 = r2_score(direct_forcings, calc_forcings)
@@ -10779,13 +10825,55 @@ def plot_scatter_hist_L2_L3_errors(direct_forcings, calc_forcings,
     ax2.set_xlabel('Errors (L2 - L3 forcing)')
     ax2.set_ylabel('Counts')
 
+    # Test using astropy to fit a Gaussian function
+    # ---------------------------------------------
+    if(astrofit):
+        bin_heights,bin_borders = np.histogram(errors,bins=num_bins)
+        bin_widths = np.diff(bin_borders)
+        bin_centers = bin_borders[:-1] + bin_widths / 2
+        t_init = models.Gaussian1D()
+        fit_t = fitting.LevMarLSQFitter()
+        t = fit_t(t_init, bin_centers, bin_heights)
+        print('Amplitude: ',np.round(t.amplitude.value,3))
+        print('Mean:      ',np.round(t.mean.value,3))
+        print('StDev:     ',np.round(t.stddev.value,3))
+        x_interval_for_fit = np.linspace(bin_centers[0],bin_centers[-1],200)
+        ax2.plot(x_interval_for_fit,t(x_interval_for_fit),label='fit',c='tab:red')
+
     fig.tight_layout()
     if(save):
-        outname = 'validation_L2_allscatter_histogram.png'
+        if(astrofit):
+            outname = 'validation_L2_allscatter_histogram_astrofit.png'
+        else:
+            outname = 'validation_L2_allscatter_histogram.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
         plt.show()
+
+def write_L2_L3_validation_values(direct_forcings, calc_forcings, \
+        sim_name, ai_min, bin_dict):
+
+    outfile = 'validate_values_' + sim_name + '.hdf5'
+    
+    dset = h5py.File(outfile,'w')
+
+    cdt = dset.create_dataset('direct_forcings', data = direct_forcings)
+    cdt = dset.create_dataset('calc_forcings', data = calc_forcings)
+    #if(maxerr is not None):
+    #    cdt.attrs['maxerr'] = str(maxerr)
+    #if(ai_thresh is not None):
+    #    cdt.attrs['ai_thresh'] = str(ai_thresh)
+    #if(minlat is not None):
+    #    cdt.attrs['minlat'] = str(minlat)
+    #if(dtype is not None):
+    #    cdt.attrs['omi_data_type'] = dtype
+
+    # Save, write, and close the HDF5 file
+    # --------------------------------------
+    dset.close()
+
+    print("Saved file ",outfile)  
 
 # This function loops over bins along the calculated forcing
 # range and determines the mean, standard deviation, and 
@@ -11669,9 +11757,11 @@ def plot_NN_scatter_combined_alltypes(test_dict, bin_dict, \
     if(len(bin_dict['ice_bin_means']) == 4):
         fig = plt.figure(figsize = (9, 8))
         axs = fig.subplots(nrows = 2, ncols = 2, sharex = True, sharey = True)
+        num_bins = 4
     elif(len(bin_dict['ice_bin_means']) == 6):
         fig = plt.figure(figsize = (9, 6))
         axs = fig.subplots(nrows = 2, ncols = 3, sharex = True, sharey = True)
+        num_bins = 6
     
     flat_axs = axs.flatten()
 
@@ -11721,12 +11811,14 @@ def plot_NN_scatter_combined_alltypes(test_dict, bin_dict, \
         flat_axs[ii].set_title(str(bin_dict['ice_bin_edges'][ii]) + ' - ' + \
             str(bin_dict['ice_bin_edges'][ii + 1]))
    
-    if(len(bin_dict['ice_bin_means']) == 4):
+    #if(len(bin_dict['ice_bin_means']) == 4):
+    if(num_bins == 4):
         flat_axs[2].set_xlabel('OMI AI')
         flat_axs[3].set_xlabel('OMI AI')
         flat_axs[0].set_ylabel('Forcing [W/m2]')
         flat_axs[2].set_ylabel('Forcing [W/m2]')
-    elif(len(bin_dict['ice_bin_means']) == 6):
+    #elif(len(bin_dict['ice_bin_means']) == 6):
+    elif(num_bins == 6):
         flat_axs[3].set_xlabel('OMI AI')
         flat_axs[4].set_xlabel('OMI AI')
         flat_axs[5].set_xlabel('OMI AI')
@@ -11763,7 +11855,8 @@ def plot_NN_scatter_combined_alltypes(test_dict, bin_dict, \
     #cbar = fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), ax = axs, location = 'bottom', shrink = 0.8)
 
     if(save):
-        outname = 'nn_force_scatter_combined.png'
+        outname = 'nn_force_scatter_combined_numsfcbins' + str(num_bins) + \
+            '_sza' + str(int(sza_min)) + 'to' + str(int(sza_max)) + '.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:   
@@ -11771,10 +11864,101 @@ def plot_NN_scatter_combined_alltypes(test_dict, bin_dict, \
 
 
 
+def test_NN_forcing_daily_L2L3_errs(date_str, OMI_daily_data, \
+        OMI_monthly_data, slope_dict, bin_dict, L2L3_err_mean, L2L3_err_std, \
+        num_calcs, minlat = 65., maxlat = 87., \
+        use_intercept = False, filter_bad_vals = True, \
+        mod_L2_L3_error = None, \
+        ai_thresh = -0.15, maxerr = 2., save = False):
+
+    # Set up an array to hold all the results
+    # ---------------------------------------
+    full_array = np.full( (num_calcs, OMI_daily_data['grid_AI'].shape[1], \
+        OMI_daily_data['grid_AI'].shape[2]), np.nan)
+   
+    for ii in range(num_calcs): 
+
+        estimate_forcings, MYD08_data, NSIDC_data = \
+            test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, \
+            slope_dict, bin_dict, date_str, minlat = minlat, maxlat = maxlat, \
+            ai_thresh = ai_thresh, maxerr = maxerr,\
+            filter_bad_vals = filter_bad_vals, \
+            reference_ice = None, \
+            reference_cld = None, \
+            mod_slopes = None, \
+            mod_L2_L3_error = mod_L2_L3_error, 
+            L2L3_err_mean = L2L3_err_mean, \
+            L2L3_err_std = L2L3_err_std, \
+            return_modis_nsidc = True, \
+            use_intercept = use_intercept)
+
+        full_array[ii,:,:] = estimate_forcings
+
+    estimate_forcings, MYD08_data, NSIDC_data = \
+        test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, \
+        slope_dict, bin_dict, date_str, minlat = minlat, maxlat = maxlat, \
+        ai_thresh = ai_thresh, maxerr = maxerr,\
+        filter_bad_vals = filter_bad_vals, \
+        reference_ice = None, \
+        reference_cld = None, \
+        mod_slopes = None, \
+        mod_L2_L3_error = None, 
+        L2L3_err_mean = None, \
+        L2L3_err_std = None, \
+        return_modis_nsidc = True, \
+        use_intercept = use_intercept)
+
+    return estimate_forcings, full_array
+
+def plot_NN_forcing_daily_L2L3_errors(date_str, OMI_daily_data, \
+        OMI_monthly_data, slope_dict, bin_dict, L2L3_err_mean, L2L3_err_std, \
+        num_calcs, minlat = 65., maxlat = 87., \
+        use_intercept = False, filter_bad_vals = True, \
+        mod_L2_L3_error = None, \
+        ai_thresh = -0.15, maxerr = 2., save = False):
+
+
+    estimate_forcings, full_array = \
+        test_NN_forcing_daily_L2L3_errs(date_str, OMI_daily_data, \
+        OMI_monthly_data, slope_dict, bin_dict, L2L3_err_mean, L2L3_err_std, \
+        num_calcs, minlat = minlat, maxlat = maxlat, \
+        use_intercept = use_intercept, filter_bad_vals = filter_bad_vals, \
+        mod_L2_L3_error = mod_L2_L3_error, \
+        ai_thresh = ai_thresh, maxerr = maxerr, save = False)
+    
+    full_masked = np.ma.masked_where(full_array == 0, full_array)
+    estimate_mask = np.ma.masked_where(estimate_forcings == 0, estimate_forcings)
+   
+    plt.close('all') 
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax2 = ax.twinx()
+    for ii in range(full_masked.shape[0]):
+        local_array = full_masked[ii,:,:].compressed().flatten()
+        hist = ax.hist(local_array, bins = 100, alpha = 0.25)
+   
+    hist = ax2.hist(estimate_mask.compressed().flatten(), 100, color = 'tab:blue')
+    ax.set_title(date_str + '\nOriginal mean: ' + \
+        str(np.round(np.mean(estimate_mask), 2)) + \
+        '\nNew mean: ' + str(np.round(np.nanmean(full_masked), 2)) + \
+        '\n# Runs = ' + str(num_calcs))
+    ax.set_xlabel('Daily Forcing [W/m2]')
+    ax.set_ylabel('Counts of Error Runs')
+    ax2.set_ylabel('Counts of Daily Forcings (Blue)')
+    fig.tight_layout()
+
+    if(save):
+        outname = 'daily_forcing_with_L2L3_err_numerr' + str(num_calcs) + '_test_' + date_str + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+    
 
 def plot_NN_forcing_daily(date_str, OMI_daily_data, OMI_monthly_data, \
         slope_dict, bin_dict, minlat = 65., maxlat = 87., \
-        use_intercept = False, \
+        use_intercept = False, filter_bad_vals = True, \
+        mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
         ai_thresh = -0.15, maxerr = 2., save = False):
 
     # Load in the daily MODIS and NSIDC data
@@ -11795,10 +11979,13 @@ def plot_NN_forcing_daily(date_str, OMI_daily_data, OMI_monthly_data, \
         test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, \
         slope_dict, bin_dict, date_str, minlat = minlat, maxlat = maxlat, \
         ai_thresh = ai_thresh, maxerr = maxerr,\
-        filter_bad_vals = True, \
+        filter_bad_vals = filter_bad_vals, \
         reference_ice = None, \
         reference_cld = None, \
         mod_slopes = None, \
+        mod_L2_L3_error = mod_L2_L3_error, 
+        L2L3_err_mean = L2L3_err_mean, \
+        L2L3_err_std = L2L3_err_std, \
         return_modis_nsidc = True, \
         use_intercept = use_intercept)
 
@@ -12190,7 +12377,7 @@ def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict,
         maxerr = 2, 
         reference_ice = None, reference_cld = None, mod_slopes = None, \
         mod_intercepts = None, mod_ice = None, mod_cod = None, \
-        mod_L2_L3_error = None, \
+        mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
         filter_bad_vals = True, return_modis_nsidc = True, use_intercept = False, \
         debug = False):
 
@@ -12421,34 +12608,38 @@ def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict,
                             nsidc_ice = new_ice
 
                         # USED FOR NEW MIX BINS
-                        #ice_idx = np.argmin(abs(nsidc_ice - bin_dict['ice_bin_means']))
 
-                        if( (nsidc_ice < 20) ):
-                            # Use ocean forcing
-                            ice_idx = 0
-                            #calc_forcing = cld_frac * cloud_dict['ocean_forcing'][ii] + \
-                            #               (1 - cld_frac) * clear_dict['ocean_forcing'][ii]
-                            #estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai 
-                            
-                        elif( (nsidc_ice >= 20) & (nsidc_ice < 80)):
-                            # Use mix forcing
-                            ice_idx = 1
-                            #calc_forcing = cld_frac * cloud_dict['mix_forcing'][ii] + \
-                            #               (1 - cld_frac) * clear_dict['mix_forcing'][ii]
-                            #estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai 
+                        if(len(bin_dict['ice_bin_means']) == 6):
+                            ice_idx = np.argmin(abs(nsidc_ice - bin_dict['ice_bin_means']))
+                            #print("USING NEW STYLE ICE VALUES") 
+                        else: 
+                            #print("USING OLD STYLE ICE VALUES") 
+                            if( (nsidc_ice < 20) ):
+                                # Use ocean forcing
+                                ice_idx = 0
+                                #calc_forcing = cld_frac * cloud_dict['ocean_forcing'][ii] + \
+                                #               (1 - cld_frac) * clear_dict['ocean_forcing'][ii]
+                                #estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai 
+                                
+                            elif( (nsidc_ice >= 20) & (nsidc_ice < 80)):
+                                # Use mix forcing
+                                ice_idx = 1
+                                #calc_forcing = cld_frac * cloud_dict['mix_forcing'][ii] + \
+                                #               (1 - cld_frac) * clear_dict['mix_forcing'][ii]
+                                #estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai 
 
-                        elif( (nsidc_ice >= 80) ):
-                            # Use ice forcing
-                            ice_idx = 2
-                            #calc_forcing = cld_frac * cloud_dict['ice_forcing'][ii] + \
-                            #               (1 - cld_frac) * clear_dict['ice_forcing'][ii]
-                            #estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai 
+                            elif( (nsidc_ice >= 80) ):
+                                # Use ice forcing
+                                ice_idx = 2
+                                #calc_forcing = cld_frac * cloud_dict['ice_forcing'][ii] + \
+                                #               (1 - cld_frac) * clear_dict['ice_forcing'][ii]
+                                #estimate_forcings[ii,jj] = 0. - calc_forcing * delta_ai 
 
-                        else:
-                            if(debug):
-                                print("FAILED ICE")
-                            #calc_forcing = 0.
-                            ice_idx = -9
+                            else:
+                                if(debug):
+                                    print("FAILED ICE")
+                                #calc_forcing = 0.
+                                ice_idx = -9
 
                     else:
                         if(debug):
@@ -12517,6 +12708,14 @@ def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict,
                     # --------------------------------------------------
                     if(mod_L2_L3_error is not None):
                         estimate_forcings[ii,jj] = estimate_forcings[ii,jj] + mod_L2_L3_error
+
+                    # Instead, see if the user wants to modify the resulting
+                    # forcings by L2/L3 errors that follow an error distribution
+                    # ----------------------------------------------------------
+                    elif(L2L3_err_mean is not None):
+                        error_val = np.random.normal(L2L3_err_mean, L2L3_err_std)
+                        #print("ADDING ERROR OF", error_val)
+                        estimate_forcings[ii,jj] = estimate_forcings[ii,jj] + error_val
     
 
 
@@ -12555,7 +12754,7 @@ def calculate_type_forcing_v4_monthly(OMI_daily_data, OMI_monthly_data, \
         maxerr = 2, \
         reference_ice = None, reference_cld = None, mod_slopes = None, \
         mod_intercepts = None, mod_ice = None, mod_cod = None, \
-        mod_L2_L3_error = None, \
+        mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
         filter_bad_vals = True, return_modis_nsidc = True, \
         use_intercept = False, debug = False):
 
@@ -12626,6 +12825,8 @@ def calculate_type_forcing_v4_monthly(OMI_daily_data, OMI_monthly_data, \
             mod_ice = mod_ice, \
             mod_cod = mod_cod, \
             mod_L2_L3_error = mod_L2_L3_error, \
+            L2L3_err_mean = L2L3_err_mean, \
+            L2L3_err_std  = L2L3_err_std, \
             return_modis_nsidc = False,\
             use_intercept = use_intercept)
 
@@ -13200,8 +13401,9 @@ def compare_nn_version_output(date_str, skip_version = None, save = False):
     else:
         plt.show()
 
-def compare_sza_bin_impact_on_slopes(test_dict, bin_dict, sfc_idx, ai_min = 0, \
-        min_ob = 50, trend_type = 'linregress', combined_plot = False):
+def compare_sza_bin_impact_on_slopes(test_dict, bin_dict, sfc_idx, \
+        ai_min = 0, min_ob = 50, maxerr = 2, trend_type = 'linregress', \
+        combined_plot = False, save = False):
 
     # Set up different ranges of SZA bins to test
     # -------------------------------------------
@@ -13235,7 +13437,9 @@ def compare_sza_bin_impact_on_slopes(test_dict, bin_dict, sfc_idx, ai_min = 0, \
                 sza_bin_edges, bin_dict['cod_bin_edges'], ai_min = ai_min, min_ob = min_ob, \
                 trend_type = 'linregress')
 
-        plot_slopes = np.ma.masked_where(slope_dict_lin['slope_stderr'] > 2, slope_dict_lin['slopes'])
+        plot_slopes = np.ma.masked_where(\
+            slope_dict_lin['slope_stderr'] > maxerr, \
+            slope_dict_lin['slopes'])
 
         if(np.nanmax(plot_slopes) > max_force):
             max_force = np.nanmax(plot_slopes)
@@ -13281,7 +13485,12 @@ def compare_sza_bin_impact_on_slopes(test_dict, bin_dict, sfc_idx, ai_min = 0, \
     plt.suptitle(title_options[sfc_idx])
    
     fig.tight_layout() 
-    plt.show()        
+    if(save):
+        outname = 'slope_sensitivity_to_sza_' + title_options[sfc_idx] + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()        
 
 
 
