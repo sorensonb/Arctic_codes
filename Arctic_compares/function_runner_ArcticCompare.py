@@ -197,7 +197,13 @@ sys.exit()
 # Designed for showing the validation of the NN under
 # aerosol-free conditions
 # -----------------------------------------------------------
-#plot_compare_NN_output_noaer(sys.argv[1], save = True)
+#plot_compare_NN_output_noaer(sys.argv[1], astrofit = True, save = True)
+#sys.exit()
+
+# Plot combined NN error distribution in clear-sky swaths
+# -------------------------------------------------------
+#plot_NN_error_dist_bulk('noland74', num_bins = 500, astrofit = True, \
+#    xmin = -150, xmax = 150, save = True)
 #sys.exit()
 
 # Plots more stuff than the NN_output_noaer function
@@ -451,11 +457,15 @@ sys.exit()
 # ----------------------------------------------------------------
 #test_dict = combine_NN_data('noland48')
 #test_dict = combine_NN_data('noland50')
-print("AS OF 2024/08/27, USING NOLAND72")
+#print("AS OF 2024/08/27, USING NOLAND72")
+#print("AS OF 2024/09/08, USING NOLAND50 AGAIN")
 #sim_name = 'noland48'
 #sim_name = 'noland50'
-sim_name = 'noland72'
-test_dict = combine_NN_data('noland72')
+#sim_name = 'noland72'
+#sim_name = 'noland73'
+sim_name = 'noland74'
+print("AS OF 2024/09/09, USING ", sim_name)
+test_dict = combine_NN_data(sim_name)
 
 # Identify the dictionary array indices that give the NN data
 # associated with:
@@ -473,8 +483,8 @@ cod_bin_edges = np.array([0,0.5,2,4,8,12,20,30,50])
 cod_bin_means = (cod_bin_edges[1:] + cod_bin_edges[:-1]) / 2
 sza_bin_edges = np.arange(40, 85, 5)
 sza_bin_means = (sza_bin_edges[1:] + sza_bin_edges[:-1]) / 2
-ice_bin_edges = np.array([0, 20, 80, 100.2, 255])
-#ice_bin_edges = np.array([0, 20, 40, 60, 80, 100.2, 255])
+#ice_bin_edges = np.array([0, 20, 80, 100.2, 255])
+ice_bin_edges = np.array([0, 20, 40, 60, 80, 100.2, 255])
 ice_bin_means = (ice_bin_edges[1:] + ice_bin_edges[:-1]) / 2
 
 bin_dict = {
@@ -507,8 +517,9 @@ slope_dict_lin = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
 sza_min = 40
 sza_max = 90
 #plot_NN_scatter_combined_alltypes(test_dict, bin_dict, \
-#    ai_min, sza_min, sza_max, trend_type = 'linregress', \
-#    plot_bounds = False, save = False)
+#    ai_min_forslopes, sza_min, sza_max, trend_type = 'linregress', \
+#    show_specific_cod = None, min_ai_for_stats = 2.0, \
+#    plot_bounds = False, save = True)
 #sys.exit()
 
 # See what happens with differnet SZA bins. Is it necessary to bin
@@ -526,7 +537,13 @@ maxerr = 1.5
 # Plot the binned NN/AI slopes for the 4 surface types
 # ----------------------------------------------------
 #plot_NN_bin_slopes(slope_dict_lin, bin_dict, min_ob = min_ob, plot_error = True, save = False)
-#plot_NN_bin_slopes(slope_dict_lin, bin_dict, min_ob = min_ob, plot_error = True, save = True)
+##plot_NN_bin_slopes(slope_dict_lin, bin_dict, min_ob = min_ob, plot_error = True, save = True)
+#sys.exit()
+
+# Plot the binned NN/AI slopes for the 4 surface types
+# ----------------------------------------------------
+#plot_NN_bin_slopes_6types(slope_dict_lin, bin_dict, 'slopes', min_ob = 50, \
+#            plot_error = False, save = False)
 #sys.exit()
 
 # Run L2 validation
@@ -552,24 +569,28 @@ maxerr = 1.5
 # pixels
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-#sim_name = 'noland72'
-#infile = 'validate_values_' + sim_name + '.hdf5'
-#in_data = h5py.File(infile)
-#direct_forcings = in_data['direct_forcings']
-#calc_forcings   = in_data['calc_forcings']
+#####sim_name = 'noland72'
+infile = 'validate_values_' + sim_name + '.hdf5'
+in_data = h5py.File(infile)
+direct_forcings = in_data['direct_forcings'][:]
+calc_forcings   = in_data['calc_forcings'][:]
 
-##direct_forcings, calc_forcings = \
-##    plot_L2_validate_regress_all(sim_name, slope_dict_lin, bin_dict, \
-##    ai_thresh = 0.7, mod_slopes = None, mod_intercepts = None, \
-##    mod_cod = None, mod_ice = None, use_intercept = False, \
-##    min_cod = None, max_cod = None,\
-##    min_sza = None, max_sza = None, \
-##    min_ice = None, max_ice = None, \
-##    save = False, return_values = True, save_values = False)
-##write_L2_L3_validation_values(direct_forcings, calc_forcings, sim_name, ai_min, bin_dict)
+#direct_forcings, calc_forcings = \
+#    plot_L2_validate_regress_all(sim_name, slope_dict_lin, bin_dict, \
+#    ai_thresh = 0.7, mod_slopes = None, mod_intercepts = None, \
+#    mod_cod = None, mod_ice = None, use_intercept = False, \
+#    min_cod = None, max_cod = None,\
+#    min_sza = None, max_sza = None, \
+#    min_ice = None, max_ice = None, \
+#    save = False, return_values = True, save_values = False)
+###write_L2_L3_validation_values(direct_forcings, calc_forcings, sim_name, ai_min, bin_dict)
 #plot_scatter_hist_L2_L3_errors(direct_forcings, calc_forcings, \
-#    num_bins = 200, delta_calc = 20, save = False)
+#    sim_name, num_bins = 200, delta_calc = 20, astrofit = True, \
+#    screen_outliers = False, save = False)
+#plot_hist_L2_L3_errors(direct_forcings, calc_forcings, sim_name, \
+#    ax = None, num_bins = 200, astrofit = False, save = False)
 #sys.exit()
+
 
 ## From np.mean and np.std on the errors
 ## -------------------------------------
@@ -582,8 +603,9 @@ maxerr = 1.5
 ## noland72?
 #mean_error = -3.321
 #std_error  = 22.969
-
-#sys.exit()
+## noland50, 6 surface types
+#mean_error = -2.571
+#std_error  = 22.167
 
 
 #files = glob('neuralnet_output/test_calc_out_' + sim_name + '*.hdf5')
@@ -632,6 +654,11 @@ shawn_file = home_dir + '/Research/OMI/omi_shawn_daily_2005_2020_v2.hdf5'
 OMI_daily_VSJ4  = calcOMI_MonthAvg_FromDaily(shawn_file, min_AI = -0.10, minlat = minlat, maxlat = maxlat)
 #OMI_daily_VJZ211 = calcOMI_MonthAvg_FromDaily(jz_file, min_AI = -0.10, minlat = minlat, maxlat = maxlat)
 
+# Plot spatial averages of OMI data
+# ---------------------------------
+plot_grid_OMI_trends_spatial(shawn_file, min_AI = -0.10, \
+    minlat = 65.5, maxlat = 87.5,  save = True)
+sys.exit()
 daily_VSJ4 = readOMI_daily_HDF5(shawn_file, minlat = minlat, maxlat = maxlat)
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
@@ -747,8 +774,9 @@ sys.exit()
 ## added that fits in a Gaussian distribution with the mean and 
 ## standard deviation given above.
 ## ------------------------------------------------------------------
+#error_type = 'L2L3'
 #plot_NN_forcing_daily_L2L3_errors(date_str, daily_VSJ4, \
-#    OMI_daily_VSJ4, slope_dict_lin, bin_dict, L2L3_err_mean, L2L3_err_std, \
+#    OMI_daily_VSJ4, slope_dict_lin, bin_dict, L2L3_err_mean, L2L3_err_std, error_type, \
 #    num_calcs, minlat = 65., maxlat = 87., \
 #    use_intercept = True, filter_bad_vals = False, \
 #    mod_L2_L3_error = None, \
@@ -766,6 +794,324 @@ sys.exit()
 ai_thresh = 0.7
 maxerr = 1.5
 
+# Control daily values
+# --------------------
+#daily_filename = 'arctic_daily_est_forcing_v1.hdf5'        
+daily_filename = 'arctic_daily_est_forcing_numsfcbins6.hdf5' # noland72
+daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v1.hdf5' # noland50
+daily_filename = 'arctic_daily_est_forcing_numsfcbins4.hdf5' # noland50
+daily_filename = 'arctic_daily_est_forcing_numsfcbins4_v1.hdf5' # noland72
+daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v2.hdf5' # noland74
+# Daily values with ice modifiations
+# ----------------------------------
+#ice_filename = 'arctic_daily_est_forcing_iceerr_v1.hdf5'
+ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr.hdf5' # noland72
+ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v1.hdf5' # noland50
+ice_filename = 'arctic_daily_est_forcing_numsfcbins4_iceerr.hdf5' # noland50
+ice_filename = 'arctic_daily_est_forcing_numsfcbins4_iceerr_v1.hdf5' # noland72
+ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v2.hdf5' # noland74
+# Daily values with COD modifiations
+# ----------------------------------
+#cod_filename = 'arctic_daily_est_forcing_coderr.hdf5'
+cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr.hdf5' # std = 5, noland72
+cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v1.hdf5' # std = 5, noland50
+cod_filename = 'arctic_daily_est_forcing_numsfcbins4_coderr.hdf5' # std = 5, noland50
+cod_filename = 'arctic_daily_est_forcing_numsfcbins4_coderr_v1.hdf5' # std = 5, noland72
+cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v2.hdf5' # std = 5, noland74
+
+#daily_dict = read_daily_month_force_L2L3_error_from_HDF5(daily_filename)
+#ice_dict   = read_daily_month_force_L2L3_error_from_HDF5(ice_filename)
+#cod_dict   = read_daily_month_force_L2L3_error_from_HDF5(cod_filename)
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+#
+# Functions for 4-panel plot with all analyzed errors
+# - NN - obs
+# - L2 - L3
+# - Ice errors
+# - COD errors
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+num_bins = 200
+plot_error_components_combined(direct_forcings, calc_forcings, sim_name, \
+    daily_filename, ice_filename, cod_filename, num_bins, \
+    astrofit = True, log_scale = True, save = False)
+sys.exit()
+
+
+# Using 6 sfc bins, 
+# ice errors: 
+#   Applied ice errors: mean = 0, std dev = 15
+#   Resulting forcing errors: mean = 0.011 W/m2, std dev = 3.11 W/m2
+# cod errors: 
+#   Applied ice errors: mean = 0, std dev = 5
+#   Resulting forcing errors: mean = 0.848 W/m2, std dev = 15.9 W/m2
+# L2L3 errors:
+##    noland50
+#       mean error (astrofit) = -2.57
+#       stdv error (astrofit) = 22.2
+#
+# Combined error = sqrt(
+
+# = = = = = =
+#
+# 2024/09/08
+#
+# USING 6 SURFACE BINS AND NOLAND50,
+#
+# Impacts of L3 ice errors on L3 forcing, from histogram
+#   Applied ice errors: mean = 0, std dev = 15
+#   Resulting forcing errors: mean = 0.031 W/m2, std dev = 3.24 W/m2
+# Impacts of L3 COD errors on L3 forcing, from histogram
+#   Applied COD errors: mean = 0, std dev = 5
+#   Resulting forcing errors: mean = 1.012 W/m2, std dev = 14.374 W/m2
+# L2L3 error numbers, from histogram
+#   Mean L2L3 error, with astrofit = -2.57 
+#   STDV L2L3 error, with astrofit = 22.2 
+#
+# Mean combined error = ice_error_mean + COD_error_mean + L2L3_error_mean = -1.527
+# STD  combined error = sqrt(ice_error_std**2 + COD_error_std**2 + L2L3_error**2) = 26.64
+# = = = = = =
+
+# = = = = = =
+#
+# 2024/09/09
+#
+# USING 6 SURFACE BINS AND NOLAND74,
+# 
+# NN vs Obs errors, from histogram
+#   Mean NN-ob error, with astrofit = 0.4
+#   StDv NN-ob error, with astrofit = 17.3
+# L2L3 error numbers, from histogram
+#   Mean L2L3 error, with astrofit = -3.74 
+#   STDV L2L3 error, with astrofit = 22.2 
+# Impacts of L3 ice errors on L3 forcing, from histogram
+#   Applied ice errors: mean = 0, std dev = 15
+#   Resulting forcing errors: mean = 0.002 W/m2, std dev = 3.16 W/m2
+# Impacts of L3 COD errors on L3 forcing, from histogram
+#   Applied COD errors: mean = 0, std dev = 5
+#   Resulting forcing errors: mean = 0.638 W/m2, std dev = 14.51 W/m2
+#
+# Mean combined error = ice_error_mean + COD_error_mean + L2L3_error_mean = -3.1
+# STD  combined error = sqrt(ice_error_std**2 + COD_error_std**2 + L2L3_error**2) = 26.70
+#
+# With NN-ob errors,
+# Mean combined error = nn_ob_error_mean + ice_error_mean + COD_error_mean + L2L3_error_mean = -2.7
+# STD  combined error = sqrt(nn_ob_error_mean**2 + ice_error_std**2 + COD_error_std**2 + L2L3_error**2) = 31.82
+#
+# = = = = = =
+
+
+# = = = = =
+#
+# TEST BULK ERROR ADDITIONS
+#
+# = = = = =
+
+
+
+
+total_err_mean = -2.7
+total_err_std = 31.82
+num_sims = 100
+#num_sims = 300
+minlat = 65.5
+maxlat = 87.5
+sim_values = None
+
+daily_dict = read_daily_month_force_L2L3_error_from_HDF5(daily_filename)
+sim_values = calc_force_vals_bulk(daily_dict, total_err_mean, total_err_std, \
+    minlat = minlat, maxlat = maxlat, num_sims = num_sims)
+
+# Test calculating trends across all calculations and across the whole grid
+# -------------------------------------------------------------------------
+forcing_trends = np.full( (sim_values.shape[0], 6, sim_values.shape[2], sim_values.shape[3]), np.nan)
+forcing_pvals  = np.full( (sim_values.shape[0], 6, sim_values.shape[2], sim_values.shape[3]), np.nan)
+forcing_uncert = np.full( (sim_values.shape[0], 6, sim_values.shape[2], sim_values.shape[3]), np.nan)
+
+for ii in range(6):
+    print(ii)
+    for jj in range(sim_values.shape[0]):
+        forcing_trends[jj,ii,:,:], forcing_pvals[jj,ii,:,:], \
+            forcing_uncert[jj,ii,:,:] = calc_forcing_grid_trend(\
+            sim_values[jj,ii::6,:,:], 'standard')
+
+
+#plot_test_trends_stdevs(daily_dict, forcing_trends, meanmax = 3.0, stdmax = 1.5)
+
+plot_bulk_sim_trends(daily_dict, forcing_trends, 'mean', vmax = 3.0, \
+    save = True)
+
+sys.exit()
+
+plot_sim_errors_bulk_arctic_avg_combined(daily_filename, total_err_mean, total_err_std, \
+    minlat = 65.5, maxlat = 90.5, num_sims = num_sims, sim_values = sim_values, \
+    plot_result_min_max_range = True, trend_type = 'linregress', \
+    flat_axs = None)
+
+sys.exit()
+
+minlat = 65.5
+maxlat = 90.5
+plot_sim_errors_bulk_arctic_avg(daily_filename, total_err_mean, \
+    total_err_std, minlat = minlat, maxlat = maxlat, num_sims = num_sims, \
+    sim_values = sim_values, plot_result_min_max_range = True, flat_axs = None)
+
+
+
+plot_sim_errors_bulk_arctic_avg_combined(daily_filename, total_err_mean, total_err_std, \
+    minlat = 65.5, maxlat = 90.5, num_sims = num_sims, sim_values = sim_values, \
+    plot_result_min_max_range = True, trend_type = 'linregress', \
+    flat_axs = None)
+
+fig.tight_layout()
+plt.show()
+sys.exit()
+
+#
+
+
+# CONTROL RUN
+# -----------
+cod_err_mean = None
+cod_err_std = None
+ice_err_mean = None
+ice_err_std = None
+all_month_vals_orig_alldaily = \
+    calculate_type_forcing_v4_alldaily(daily_VSJ4, OMI_daily_VSJ4, \
+    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+    filter_bad_vals = False, return_modis_nsidc = False, \
+    mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
+    ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
+    cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
+    use_intercept = True, debug = False)
+
+write_daily_month_force_L2L3_error_to_HDF5(\
+    all_month_vals_orig_alldaily, OMI_daily_VSJ4, \
+    slope_dict_lin, bin_dict, all_month_vals_orig_alldaily, \
+    minlat = minlat, maxlat = maxlat, \
+    maxerr = maxerr, ai_thresh = ai_thresh, \
+    L2L3_err_mean = None, L2L3_err_std = None, \
+    ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
+    cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
+    dtype = None, \
+    overwrite_old_file = False, \
+    write_daily_values = True, \
+    OMI_daily_data = daily_VSJ4, \
+    save_path = './', name_add = '_numsfcbins6')
+
+# ICE RUN
+# -----------
+cod_err_mean = None
+cod_err_std = None
+ice_err_mean = 0.
+ice_err_std = 15.
+all_month_vals_orig_alldaily = \
+    calculate_type_forcing_v4_alldaily(daily_VSJ4, OMI_daily_VSJ4, \
+    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+    filter_bad_vals = False, return_modis_nsidc = False, \
+    mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
+    ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
+    cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
+    use_intercept = True, debug = False)
+
+write_daily_month_force_L2L3_error_to_HDF5(\
+    all_month_vals_orig_alldaily, OMI_daily_VSJ4, \
+    slope_dict_lin, bin_dict, all_month_vals_orig_alldaily, \
+    minlat = minlat, maxlat = maxlat, \
+    maxerr = maxerr, ai_thresh = ai_thresh, \
+    L2L3_err_mean = None, L2L3_err_std = None, \
+    ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
+    cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
+    dtype = None, \
+    overwrite_old_file = False, \
+    write_daily_values = True, \
+    OMI_daily_data = daily_VSJ4, \
+    save_path = './', name_add = '_numsfcbins6_iceerr')
+
+# COD RUN
+# -------
+cod_err_mean = 0
+cod_err_std = 5
+ice_err_mean = None
+ice_err_std = None
+all_month_vals_orig_alldaily = \
+    calculate_type_forcing_v4_alldaily(daily_VSJ4, OMI_daily_VSJ4, \
+    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+    filter_bad_vals = False, return_modis_nsidc = False, \
+    mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
+    ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
+    cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
+    use_intercept = True, debug = False)
+
+write_daily_month_force_L2L3_error_to_HDF5(\
+    all_month_vals_orig_alldaily, OMI_daily_VSJ4, \
+    slope_dict_lin, bin_dict, all_month_vals_orig_alldaily, \
+    minlat = minlat, maxlat = maxlat, \
+    maxerr = maxerr, ai_thresh = ai_thresh, \
+    L2L3_err_mean = None, L2L3_err_std = None, \
+    ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
+    cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
+    dtype = None, \
+    overwrite_old_file = False, \
+    write_daily_values = True, \
+    OMI_daily_data = daily_VSJ4, \
+    save_path = './', name_add = '_numsfcbins6_coderr')
+
+
+sys.exit()
+
+all_month_vals_orig_alldaily = \
+    calculate_type_forcing_v4_alldaily(daily_VSJ4, OMI_daily_VSJ4, \
+    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+    filter_bad_vals = False, return_modis_nsidc = False, \
+    mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
+    ice_err_mean = 0., ice_err_std = 15., \
+    use_intercept = True, debug = False)
+
+write_daily_month_force_L2L3_error_to_HDF5(\
+    all_month_vals_orig_alldaily, OMI_daily_VSJ4, \
+    slope_dict_lin, bin_dict, all_month_vals_orig_alldaily, \
+    minlat = minlat, maxlat = maxlat, \
+    maxerr = maxerr, ai_thresh = ai_thresh, \
+    L2L3_err_mean = None, L2L3_err_std = None, \
+    ice_err_mean = 0, ice_err_std = 15, \
+    dtype = None, \
+    overwrite_old_file = False, \
+    write_daily_values = True, \
+    OMI_daily_data = daily_VSJ4, \
+    save_path = './', name_add = '_iceerr')
+
+
+sys.exit()
+
+write_daily_month_force_L2L3_error_to_HDF5(\
+    all_month_vals_orig_alldaily, OMI_daily_VSJ4, \
+    slope_dict_lin, bin_dict, all_month_vals_orig_alldaily, \
+    minlat = minlat, maxlat = maxlat, \
+    maxerr = maxerr, ai_thresh = ai_thresh, \
+    L2L3_err_mean = None, L2L3_err_std = None, \
+    ice_err_mean = 0, ice_err_std = 15, \
+    dtype = None, \
+    overwrite_old_file = False, \
+    write_daily_values = True, \
+    OMI_daily_data = daily_VSJ4, \
+    save_path = './', name_add = '')
+
+# Control daily values
+# --------------------
+daily_filename = 'arctic_daily_est_forcing.hdf5'        
+# Daily values with ice modifiations
+# ----------------------------------
+daily_filename = 'arctic_daily_est_forcing_iceerr.hdf5'
+daily_dict = read_daily_month_force_L2L3_error_from_HDF5(daily_filename)
+#print_L2L3_sim_info(daily_dict)
+
+sys.exit()
 # Calculate original values for reference
 all_month_vals_orig = \
     calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
@@ -774,20 +1120,18 @@ all_month_vals_orig = \
     filter_bad_vals = False, return_modis_nsidc = False, \
     mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
     use_intercept = True, debug = False)
-all_month_vals_orig_filterbadvals = \
-    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
-    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
-    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
-    filter_bad_vals = True, return_modis_nsidc = False, \
-    mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
-    use_intercept = True, debug = False)
+#all_month_vals_orig_filterbadvals = \
+#    calculate_type_forcing_v4_monthly(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+#    filter_bad_vals = True, return_modis_nsidc = False, \
+#    mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
+#    use_intercept = True, debug = False)
 
-sys.exit()
 
 # Set up an array to hold the new values
 # --------------------------------------
-num_calc = 40
-
+num_calc = 50
 all_month_vals_err_combined = np.full( (num_calc, \
     all_month_vals_orig.shape[0], all_month_vals_orig.shape[1], \
     all_month_vals_orig.shape[2]), np.nan)
@@ -805,14 +1149,48 @@ for ii in range(num_calc):
 # NEED A READER FUNCTION TOO
 #count10_errfile = 'arctic_month_est_forcing_L2L3err_count10.hdf5'
 write_daily_month_force_L2L3_error_to_HDF5(\
-    all_month_values_err_combined, OMI_daily_VSJ4, \
-    maxerr = None, ai_thresh = None, minlat = None, \
+    all_month_vals_err_combined, OMI_daily_VSJ4, \
+    slope_dict_lin, bin_dict, all_month_vals_orig, \
+    minlat = minlat, maxlat = maxlat, \
+    maxerr = maxerr, ai_thresh = ai_thresh, \
     L2L3_err_mean = -3.321, L2L3_err_std = 22.969, \
-    dtype = None, 
+    dtype = None, \
     save_path = './', name_add = '')
 
+current_files = ['arctic_month_est_forcing_L2L3err_count10.hdf5', \
+                 'arctic_month_est_forcing_L2L3err_count40.hdf5', \
+                 'arctic_month_est_forcing_L2L3err_count50_v1.hdf5']
 
 
+test_plot_L2L3_err_sims(current_files, save = False)
+sys.exit()
+
+fig = plt.figure()
+axs = fig.subplots(nrows = 2, ncols = 3)
+flat_axs = axs.flatten()
+titles = ['April','May','June','July','August','September']
+for tfile in current_files:
+    data_dict = read_daily_month_force_L2L3_error_from_HDF5(tfile)
+
+    arctic_avgs = np.nanmean(data_dict['force_estimate'], axis = (2, 3))
+
+    if('force_estimate_orig' in data_dict.keys()):
+        arctic_avgs_orig = np.nanmean(data_dict['force_estimate_orig'], axis = (1, 2))
+
+    # Plot the error results
+    # ----------------------
+    for ii in range(len(flat_axs)):
+        flat_axs[ii].plot(arctic_avgs[:,ii::6].T)
+
+        if('force_estimate_orig' in data_dict.keys()):
+            flat_axs[ii].plot(arctic_avgs_orig[ii::6], color = 'k')
+    
+flat_axs[0].set_title(titles[0]) 
+flat_axs[1].set_title(titles[1]) 
+flat_axs[2].set_title(titles[2]) 
+flat_axs[3].set_title(titles[3]) 
+flat_axs[4].set_title(titles[4]) 
+flat_axs[5].set_title(titles[5]) 
 
 sys.exit()
 
