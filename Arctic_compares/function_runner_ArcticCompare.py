@@ -203,7 +203,7 @@ sys.exit()
 # Plot combined NN error distribution in clear-sky swaths
 # -------------------------------------------------------
 #plot_NN_error_dist_bulk('noland74', num_bins = 500, astrofit = True, \
-#    xmin = -150, xmax = 150, save = True)
+#    xmin = -150, xmax = 150, save = False)
 #sys.exit()
 
 # Plots more stuff than the NN_output_noaer function
@@ -464,6 +464,7 @@ sys.exit()
 #sim_name = 'noland72'
 #sim_name = 'noland73'
 sim_name = 'noland74'
+#sim_name = 'noland75'
 print("AS OF 2024/09/09, USING ", sim_name)
 test_dict = combine_NN_data(sim_name)
 
@@ -479,7 +480,7 @@ test_dict = combine_NN_data(sim_name)
 
 # Define COD, SZA, and NSIDC ICE bin ranges
 # -----------------------------------------
-cod_bin_edges = np.array([0,0.5,2,4,8,12,20,30,50])
+cod_bin_edges = np.array([0,0.5,2,4,8,12,20,30,150])
 cod_bin_means = (cod_bin_edges[1:] + cod_bin_edges[:-1]) / 2
 sza_bin_edges = np.arange(40, 85, 5)
 sza_bin_means = (sza_bin_edges[1:] + sza_bin_edges[:-1]) / 2
@@ -519,7 +520,7 @@ sza_max = 90
 #plot_NN_scatter_combined_alltypes(test_dict, bin_dict, \
 #    ai_min_forslopes, sza_min, sza_max, trend_type = 'linregress', \
 #    show_specific_cod = None, min_ai_for_stats = 2.0, \
-#    plot_bounds = False, save = True)
+#    plot_bounds = False, save = False)
 #sys.exit()
 
 # See what happens with differnet SZA bins. Is it necessary to bin
@@ -647,19 +648,53 @@ calc_forcings   = in_data['calc_forcings'][:]
 begin_date = '200504'
 end_date   = '202009'
 season     = 'sunlight'
-minlat = 65.
-maxlat = 87.
+minlat = 65
+maxlat = 87
 shawn_file = home_dir + '/Research/OMI/omi_shawn_daily_2005_2020_v2.hdf5'
 #jz_file    = home_dir + '/Research/OMI/omi_VJZ211_daily_2005_2020.hdf5'
-OMI_daily_VSJ4  = calcOMI_MonthAvg_FromDaily(shawn_file, min_AI = -0.10, minlat = minlat, maxlat = maxlat)
+#OMI_daily_VSJ4  = calcOMI_MonthAvg_FromDaily(shawn_file, min_AI = -2.00, max_AI = -0.1, minlat = minlat, maxlat = maxlat)
+OMI_daily_VSJ4  = calcOMI_MonthAvg_FromDaily(shawn_file, min_AI = -0.10, max_AI = 20.0, minlat = minlat, maxlat = maxlat)
 #OMI_daily_VJZ211 = calcOMI_MonthAvg_FromDaily(jz_file, min_AI = -0.10, minlat = minlat, maxlat = maxlat)
+daily_VSJ4 = readOMI_daily_HDF5(shawn_file, minlat = minlat, maxlat = maxlat)
+
+##!#force_vals = test_calculate_type_forcing_v4(daily_VSJ4, OMI_daily_VSJ4, slope_dict_lin, \
+##!#        bin_dict, '20170822', minlat = minlat, maxlat = maxlat, ai_thresh = 0.7, \
+##!#        maxerr = 2, 
+##!#        reference_ice = None, reference_cld = None, mod_slopes = None, \
+##!#        mod_intercepts = None, \
+##!#        mod_ice = None, ice_err_mean = None, ice_err_std = None, \
+##!#        mod_cod = None, cod_err_mean = None, cod_err_std = None, \
+##!#        mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
+##!#        filter_bad_vals = False, return_modis_nsidc = False, use_intercept = True, \
+##!#        debug = False)
+##!#
+##!#fig = plt.figure()
+##!#ax = fig.add_subplot(1,1,1, projection = ccrs.NorthPolarStereo())
+##!#ax.pcolormesh(daily_VSJ4['lon_values'], daily_VSJ4['lat_values'], force_vals, vmin = -60, vmax = 60, \
+##!#    cmap = 'bwr', transform = ccrs.PlateCarree(), shading = 'auto')
+##!#ax.coastlines()
+##!#ax.set_extent([-180,180,65,90], ccrs.PlateCarree())
+##!#plt.show()
+##!#sys.exit()
 
 # Plot spatial averages of OMI data
 # ---------------------------------
-plot_grid_OMI_trends_spatial(shawn_file, min_AI = -0.10, \
-    minlat = 65.5, maxlat = 87.5,  save = True)
-sys.exit()
-daily_VSJ4 = readOMI_daily_HDF5(shawn_file, minlat = minlat, maxlat = maxlat)
+#plot_grid_OMI_trends_spatial(shawn_file, min_AI = 0.000, \
+#    max_AI = 20.0, minlat = 65.5, maxlat = 87.5,  save = False)
+#sys.exit()
+#plot_grid_OMI_climo_spatial(shawn_file, min_AI = -0.10, \
+#    max_AI = None, minlat = 65.5, maxlat = 90.5,  save = False)
+
+# Plot trends in Arctic averaged OMI AI data
+# ------------------------------------------
+#plot_OMI_trends_arctic_avg(shawn_file, min_AI = -0.10, minlat = 65.5, maxlat = 87.5, save = False);
+#plot_grid_OMI_trends_arctic_avg(OMI_daily_VSJ4, min_AI = -0.1, \
+#    max_AI = 20.0, minlat = 65.5, maxlat = 90.5,  flat_axs = None, \
+#    save = False)
+#plot_grid_OMI_trends_arctic_avg_combined(shawn_file, min_AI = -0.1, \
+#    max_AI = 20.0, save = False)
+#sys.exit()
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
@@ -832,11 +867,11 @@ cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v2.hdf5' # std = 5, 
 # - COD errors
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-num_bins = 200
-plot_error_components_combined(direct_forcings, calc_forcings, sim_name, \
-    daily_filename, ice_filename, cod_filename, num_bins, \
-    astrofit = True, log_scale = True, save = False)
-sys.exit()
+#num_bins = 200
+#plot_error_components_combined(direct_forcings, calc_forcings, sim_name, \
+#    daily_filename, ice_filename, cod_filename, num_bins, \
+#    astrofit = True, log_scale = True, save = False)
+#sys.exit()
 
 
 # Using 6 sfc bins, 
@@ -913,15 +948,30 @@ sys.exit()
 
 total_err_mean = -2.7
 total_err_std = 31.82
-num_sims = 100
+num_sims = 300
 #num_sims = 300
 minlat = 65.5
 maxlat = 87.5
 sim_values = None
 
 daily_dict = read_daily_month_force_L2L3_error_from_HDF5(daily_filename)
-sim_values = calc_force_vals_bulk(daily_dict, total_err_mean, total_err_std, \
-    minlat = minlat, maxlat = maxlat, num_sims = num_sims)
+return_std = False
+if(return_std):
+    sim_values, std_values = calc_force_vals_bulk(daily_dict, total_err_mean, total_err_std, \
+        minlat = minlat, maxlat = maxlat, num_sims = num_sims, return_std = True)
+else:
+    sim_values = calc_force_vals_bulk(daily_dict, total_err_mean, total_err_std, \
+        minlat = minlat, maxlat = maxlat, num_sims = num_sims, return_std = False)
+
+"""
+# Test calculating the standard deviations 
+# ----------------------------------------
+avg_std_per_sim_per_month = np.sqrt(np.sum(std_values[:,:,:,:]**2., axis = (2,3)) / std_values[:,:,:,:][0,0,:,:].flatten().shape[0])
+avg_mean_per_sim_per_month = np.nanmean(sim_values, axis = (2, 3))
+
+avg_mean_across_sims_aug = np.nanmean(avg_mean_per_sim_per_month[:,4::6], axis = 0)
+avg_std_across_sims_aug = np.sqrt(np.sum(avg_std_per_sim_per_month[:,4::6]**2., axis = (0)) / avg_std_per_sim_per_month[:,4::6].shape[0])
+"""
 
 # Test calculating trends across all calculations and across the whole grid
 # -------------------------------------------------------------------------
@@ -939,10 +989,10 @@ for ii in range(6):
 
 #plot_test_trends_stdevs(daily_dict, forcing_trends, meanmax = 3.0, stdmax = 1.5)
 
-plot_bulk_sim_trends(daily_dict, forcing_trends, 'mean', vmax = 3.0, \
-    save = True)
+#plot_bulk_sim_trends(daily_dict, forcing_trends, 'mean', vmax = 3.0, \
+#    save = True)
 
-sys.exit()
+#sys.exit()
 
 plot_sim_errors_bulk_arctic_avg_combined(daily_filename, total_err_mean, total_err_std, \
     minlat = 65.5, maxlat = 90.5, num_sims = num_sims, sim_values = sim_values, \

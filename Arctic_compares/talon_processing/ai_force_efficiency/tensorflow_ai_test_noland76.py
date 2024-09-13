@@ -1379,16 +1379,82 @@ print('Num clear swaths to be reserved', len(clear_file_list))
 #           Job ID = 89502 v1
 #           Job ID = 89692 v2
 #
-#   noland68 output just after Epoch 10:
-#       35172/35172 - 137s - loss: 18.6159 - mae: 3.0078 - 128s/epoch - 3ms/step
-#   noland69 output just after Epoch 10:
-#       35172/35172 - 126s - loss: 18.5678 - mae: 3.0036 - 126s/epoch - 3ms/step
-#   noland70 output just after Epoch 10:
-#       35172/35172 - 152s - loss: 18.3750 - mae: 2.9810 - 152s/epoch - 3ms/step
 #   noland73_v1 output just after Epoch 10:
 #       33750/33750 - 139s - loss: 18.3132 - mae: 2.9940 - 152s/epoch - 3ms/step
 #   noland73_v2 output just after Epoch 10:
 #       33750/33750 - 144s - loss: 18.2929 - mae: 2.9768 - 144s/epoch - 3ms/step
+#
+# noland74: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on ALL data
+#               100 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: ????
+#           INCLUDES LAND DATA, CH7, VZA
+#
+#           Only differences between this and noland57
+#               Saving 50 aerosol-free swaths for use in validating
+#               the NN output against CERES obs.
+#
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 89930
+#
+#   noland56 output just after Epoch 41:
+#       22661/22661 - 66s - loss: 17.9939 - mae: 2.9488 - 66s/epoch - 3ms/step
+#   noland57 output just after Epoch 41:
+#       35172/35172 - 94s - loss: 17.5170 - mae: 2.9050 - 94s/epoch - 3ms/step
+#   noland74 output just after Epoch 41:
+#       33750/33750 - 96s - loss: 17.5223 - mae: 2.9075 - 96s/epoch - 3ms/step
+#
+# noland75: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on ALL data
+#               100 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 2.87
+#           INCLUDES LAND DATA, CH7, VZA
+#
+#           Only differences between this and noland74
+#               Changed max_cod from 70 to 150
+#
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 91475
+#
+#   noland56 output just after Epoch 41:
+#       22661/22661 - 66s - loss: 17.9939 - mae: 2.9488 - 66s/epoch - 3ms/step
+#   noland57 output just after Epoch 41:
+#       35172/35172 - 94s - loss: 17.5170 - mae: 2.9050 - 94s/epoch - 3ms/step
+#   noland74 output just after Epoch 41:
+#       33750/33750 - 96s - loss: 17.5223 - mae: 2.9075 - 96s/epoch - 3ms/step
+#
+# noland76: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on ALL data
+#               100 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: ????
+#           INCLUDES LAND DATA, CH7, VZA
+#
+#           Only differences between this and noland74
+#               Setting the max AI to 0.5 instead of 1.0
+#
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 91761
+#
+#   noland56 output just after Epoch 41:
+#       22661/22661 - 66s - loss: 17.9939 - mae: 2.9488 - 66s/epoch - 3ms/step
+#   noland57 output just after Epoch 41:
+#       35172/35172 - 94s - loss: 17.5170 - mae: 2.9050 - 94s/epoch - 3ms/step
+#   noland74 output just after Epoch 41:
+#       33750/33750 - 96s - loss: 17.5223 - mae: 2.9075 - 96s/epoch - 3ms/step
+#
+#
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -1411,7 +1477,7 @@ epochs = 100
 
 #minlat = 70.
 min_ai = -2.0
-max_ai = 1.0
+max_ai = 0.5
 minlat = 65.    # 2024/01/10: changed to 65.
 min_swf = 0.
 max_swf = 3000.
@@ -1493,7 +1559,11 @@ else:
         if(fname in files):
             files.remove(fname)
             print('REMOVING', fname)
-   
+    
+    ##!#clear_swaths = ['201807082244']
+    ##!#files.remove('/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807082244.hdf5')
+    ##!#print('REMOVING 201807082244')
+
     # NEW FOR NOLAND73: Am randomly (at first) selecting 50 aerosol-free swaths to reserve
     # ------------------------------------------------------------------------------------
     #num_clear_swaths = 50
@@ -1518,14 +1588,14 @@ else:
     # Figure out the total size to insert the data
     # ---------------------------------------------
     #minlat = 70.
-    ###min_ai = -2.0
-    ###max_ai = 1.0
-    ###minlat = 65.    # 2024/01/10: changed to 65.
-    ###min_swf = 0.
-    ###max_swf = 3000.
-    ###max_cod = 70.
-    ###min_ice = 0.
-    ###max_ice = 500.
+    #min_ai = -2.0
+    #max_ai = 1.0
+    #minlat = 65.    # 2024/01/10: changed to 65.
+    #min_swf = 0.
+    #max_swf = 3000.
+    #max_cod = 70.
+    #min_ice = 0.
+    #max_ice = 500.
         
     
     # NOTE: added the "==254" section so that it temporarily removes land data.
@@ -1828,28 +1898,18 @@ else:
     #input_layer = concatenate([x1, x2, x3, x4, x5], name = 'input')
     #input_layer = concatenate([x1, x2, x3, x4, x5, x6], name = 'input')
     input_layer = concatenate([x1, x2, x3, x4, x5, x6, x7], name = 'input')
-#           16,24,32,40,48,56,64,72,80,88,80,72,64,56,48,40,32,24,16,8 nodes in each layer
-    hidden_layer1  = Dense(units = 16, activation = 'leaky_relu', name = 'hidden1')(input_layer)
-    hidden_layer2  = Dense(units = 24, activation = 'leaky_relu', name = 'hidden2')(hidden_layer1)
-    hidden_layer3  = Dense(units = 32, activation = 'leaky_relu', name = 'hidden3')(hidden_layer2)
-    hidden_layer4  = Dense(units = 40, activation = 'leaky_relu', name = 'hidden4')(hidden_layer3)
-    hidden_layer5  = Dense(units = 48, activation = 'leaky_relu', name = 'hidden5')(hidden_layer4)
-    hidden_layer6  = Dense(units = 56, activation = 'leaky_relu', name = 'hidden6')(hidden_layer5)
-    hidden_layer7  = Dense(units = 64, activation = 'leaky_relu', name = 'hidden7')(hidden_layer6)
-    hidden_layer8  = Dense(units = 72, activation = 'leaky_relu', name = 'hidden8')(hidden_layer7)
-    hidden_layer9  = Dense(units = 80, activation = 'leaky_relu', name = 'hidden9')(hidden_layer8)
-    hidden_layer10 = Dense(units = 88, activation = 'leaky_relu', name = 'hidden10')(hidden_layer9)
-    hidden_layer11 = Dense(units = 80, activation = 'leaky_relu', name = 'hidden11')(hidden_layer10)
-    hidden_layer12 = Dense(units = 72, activation = 'leaky_relu', name = 'hidden12')(hidden_layer11)
-    hidden_layer13 = Dense(units = 64, activation = 'leaky_relu', name = 'hidden13')(hidden_layer12)
-    hidden_layer14 = Dense(units = 56, activation = 'leaky_relu', name = 'hidden14')(hidden_layer13)
-    hidden_layer15 = Dense(units = 48, activation = 'leaky_relu', name = 'hidden15')(hidden_layer14)
-    hidden_layer16 = Dense(units = 40, activation = 'leaky_relu', name = 'hidden16')(hidden_layer15)
-    hidden_layer17 = Dense(units = 32, activation = 'leaky_relu', name = 'hidden17')(hidden_layer16)
-    hidden_layer18 = Dense(units = 24, activation = 'leaky_relu', name = 'hidden18')(hidden_layer17)
-    hidden_layer19 = Dense(units = 16, activation = 'leaky_relu', name = 'hidden19')(hidden_layer18)
-    hidden_layer20 = Dense(units = 8, activation = 'leaky_relu', name = 'hidden20')(hidden_layer19)
-    prediction = Dense(1, activation = 'linear')(hidden_layer20)
+    hidden_layer1  = Dense(units = 8, activation = 'leaky_relu', name = 'hidden1')(input_layer)
+    hidden_layer2  = Dense(units = 12, activation = 'leaky_relu', name = 'hidden2')(hidden_layer1)
+    hidden_layer3  = Dense(units = 16, activation = 'leaky_relu', name = 'hidden3')(hidden_layer2)
+    hidden_layer4  = Dense(units = 24, activation = 'leaky_relu', name = 'hidden4')(hidden_layer3)
+    hidden_layer5  = Dense(units = 32, activation = 'leaky_relu', name = 'hidden5')(hidden_layer4)
+    hidden_layer6  = Dense(units = 64, activation = 'leaky_relu', name = 'hidden6')(hidden_layer5)
+    hidden_layer7  = Dense(units = 32, activation = 'leaky_relu', name = 'hidden7')(hidden_layer6)
+    hidden_layer8  = Dense(units = 24, activation = 'leaky_relu', name = 'hidden8')(hidden_layer7)
+    hidden_layer9  = Dense(units = 16, activation = 'leaky_relu', name = 'hidden9')(hidden_layer8)
+    hidden_layer10 = Dense(units = 12, activation = 'leaky_relu', name = 'hidden10')(hidden_layer9)
+    hidden_layer11 = Dense(units = 8, activation = 'leaky_relu', name = 'hidden11')(hidden_layer10)
+    prediction = Dense(1, activation = 'linear')(hidden_layer11)
 
     #model = Model(inputs = [x1, x2, x3, x4, x5], outputs = prediction)
     model = Model(inputs = [x1, x2, x3, x4, x5, x6, x7], outputs = prediction)
@@ -1859,7 +1919,7 @@ else:
 
 
 
-    model.compile(loss = 'mean_squared_error', optimizer = 'adam', metrics = ['mae','mse','accuracy'])
+    model.compile(loss = 'mean_squared_error', optimizer = 'adam', metrics = ['mae'])
     model.summary()
     losses = model.fit(input_data, \
                         combined_data['ceres_swf'][train_idxs], \
@@ -1978,10 +2038,10 @@ if(l_save_data):
         print("ERROR: Invalid time value")
         sys.exit()  
 
+    #aer_file_list = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807082244.hdf5']
     #aer_file_list = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807052213.hdf5', \
     #                 '/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807082244.hdf5', \
     #                 '/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201908100308.hdf5']
-    #aer_file_list = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807082244.hdf5']
  
     #for infile in files:
     for infile in aer_file_list:

@@ -12539,7 +12539,7 @@ def plot_NN_forcing_daily_L2L3_errors(date_str, OMI_daily_data, \
     full_masked = np.ma.masked_where(full_array == 0, full_array)
     estimate_mask = np.ma.masked_where(estimate_forcings == 0, estimate_forcings)
   
-    return estimate_forcings, full_masked
+    #return estimate_forcings, full_masked
 
     plt.close('all') 
     fig = plt.figure()
@@ -14272,7 +14272,7 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
         data = h5py.File(ff,'r')
         #local_data = np.ma.masked_invalid(data['omi_uvai_raw'])
         local_data = np.ma.masked_invalid(data['omi_uvai_pert'])
-        local_data = np.ma.masked_where((local_data < -12) | (local_data > 1), local_data)
+        local_data = np.ma.masked_where((local_data < -12) | (local_data > 0.7), local_data)
         local_data = np.ma.masked_where(data['omi_lat'][:,:] < minlat, \
             local_data) 
         local_data = np.ma.masked_where((data['ceres_swf'][:,:] < -200.) | \
@@ -14307,7 +14307,8 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
         #       This move should allow for coloc data to be read after 2020
         #local_data = np.ma.masked_invalid(data['omi_uvai_raw'])
         local_data = np.ma.masked_invalid(data['omi_uvai_pert'])
-        local_data = np.ma.masked_where((local_data < -12) | (local_data > 1), local_data)
+        print("MAX AI FOR SWATH", ff, np.max(local_data))
+        local_data = np.ma.masked_where((local_data < -12) | (local_data > 0.7), local_data)
         local_data = np.ma.masked_where(data['omi_lat'][:,:] < minlat, \
             local_data) 
         local_data = np.ma.masked_where((data['ceres_swf'][:,:] < -200.) | \
@@ -14355,7 +14356,7 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
         print('Amplitude: ',np.round(t.amplitude.value,3))
         print('Mean:      ',np.round(t.mean.value,3))
         print('StDev:     ',np.round(t.stddev.value,3))
-        x_interval_for_fit = np.linspace(bin_centers[0],bin_centers[-1],200)
+        x_interval_for_fit = np.linspace(bin_centers[0],bin_centers[-1],400)
         ax.plot(x_interval_for_fit,t(x_interval_for_fit),label='fit',c='tab:red')
         ax.set_xlim(xmin, xmax)
 
@@ -14399,7 +14400,7 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
 
 
 def calc_force_vals_bulk(daily_dict, err_mean, err_std, minlat = 65.5, \
-        maxlat = 90.5, num_sims = 100):
+        maxlat = 90.5, num_sims = 100, return_std = False):
 
     # Figure out the number of months 
     # -------------------------------
@@ -14417,6 +14418,11 @@ def calc_force_vals_bulk(daily_dict, err_mean, err_std, minlat = 65.5, \
         test_lats.shape[0], \
         #daily_dict['force_estimate_orig'].shape[1], \
         daily_dict['force_estimate_orig'].shape[2]), np.nan)
+    if(return_std):
+        full_std = np.full( (num_sims, unique_months.shape[0], \
+            test_lats.shape[0], \
+            #daily_dict['force_estimate_orig'].shape[1], \
+            daily_dict['force_estimate_orig'].shape[2]), np.nan)
     
     for ii in range(unique_months.shape[0]):
         print(unique_months[ii])
@@ -14435,8 +14441,13 @@ def calc_force_vals_bulk(daily_dict, err_mean, err_std, minlat = 65.5, \
                 np.random.normal(err_mean, err_std, work_arr[jj,:,:,:][work_arr[jj,:,:,:] != 0].shape)
     
         full_arr[:,ii,:,:] = np.nanmean(work_arr, axis = (1))
-    
-    return full_arr       
+        if(return_std):
+            full_std[:,ii,:,:] = np.nanstd(work_arr, axis = (1))
+   
+    if(return_std): 
+        return full_arr, full_std       
+    else:
+        return full_arr
 
 # pvar: 'mean', 'stdev', 'min', 'max'
 def plot_bulk_sim_trends(daily_dict, forcing_trends, pvar, vmax = 1.0, \
@@ -14485,7 +14496,7 @@ def plot_bulk_sim_trends(daily_dict, forcing_trends, pvar, vmax = 1.0, \
         flat_axs[ii].set_title(str(ii))
 
         if(pvar == 'mean'):
-            hasher = np.ma.masked_where( (np.abs(plot_trends[ii,:,:]) <= stdv_trends[ii,:,:]), plot_trends[ii,:,:])
+            hasher = np.ma.masked_where( (np.abs(plot_trends[ii,:,:]) <= 1.0 * stdv_trends[ii,:,:]), plot_trends[ii,:,:])
             flat_axs[ii].pcolor(daily_dict['longitude'][:], daily_dict['latitude'][:], \
                 hasher, hatch = '....', alpha=0., shading = 'auto', transform = ccrs.PlateCarree())
         #hasher = np.ma.masked_where(out_dict['raw_stderr'][0,:,:] > maxerr, \
@@ -14531,7 +14542,7 @@ def plot_bulk_sim_trends(daily_dict, forcing_trends, pvar, vmax = 1.0, \
         plt.show()
 
 def plot_grid_OMI_trends_spatial(OMI_daily_data, min_AI = None, \
-        minlat = 65.5, maxlat = 90.5,  save = False):
+        max_AI = None, minlat = 65.5, maxlat = 90.5,  save = False):
     
     if(isinstance(OMI_daily_data, str)):
         if(min_AI is None):
@@ -14541,14 +14552,27 @@ def plot_grid_OMI_trends_spatial(OMI_daily_data, min_AI = None, \
         print("Reading daily OMI data from", OMI_daily_data)
         print("Converting daily data to monthly omi_uvai_pert averages")
         OMI_daily_data = calcOMI_MonthAvg_FromDaily(OMI_daily_data, \
-            min_AI = min_AI, minlat = minlat, maxlat = maxlat)
+            min_AI = min_AI, max_AI = max_AI, minlat = minlat, maxlat = maxlat)
 
     # Calculate gridded trends
-    grid_trends = np.full( (6, OMI_daily_data['AI'].shape[1],  \
-        OMI_daily_data['AI'].shape[2]), np.nan)
+    #grid_trends = np.full( (6, OMI_daily_data['AI'].shape[1],  \
+    #    OMI_daily_data['AI'].shape[2]), np.nan)
+   
+    plt.close('all') 
+    fig = plt.figure(figsize = (9, 8.5))
+    ax1 = fig.add_subplot(2,3,1, projection = ccrs.NorthPolarStereo())
+    ax2 = fig.add_subplot(2,3,2, projection = ccrs.NorthPolarStereo())
+    ax3 = fig.add_subplot(2,3,3, projection = ccrs.NorthPolarStereo())
+    ax4 = fig.add_subplot(2,3,4, projection = ccrs.NorthPolarStereo())
+    ax5 = fig.add_subplot(2,3,5, projection = ccrs.NorthPolarStereo())
+    ax6 = fig.add_subplot(2,3,6, projection = ccrs.NorthPolarStereo())
+    axs = [ax1, ax2, ax3, ax4, ax5, ax6]
+    titlers = ['Apr','May','June','July','Aug','Sep']
     
     for ii in range(6):
         print(ii)
+        grid_trends = np.full( (OMI_daily_data['AI'].shape[1],  \
+            OMI_daily_data['AI'].shape[2]), np.nan)
         for jj in range(OMI_daily_data['AI'].shape[1]):
             for kk in range(OMI_daily_data['AI'].shape[2]):
                 # Plot the individual runs
@@ -14558,7 +14582,8 @@ def plot_grid_OMI_trends_spatial(OMI_daily_data, min_AI = None, \
     
                 #if(trend_type=='standard'): 
                 result = stats.linregress(x_vals, local_sim_vals[:])
-                grid_trends[ii,jj,kk] = result.slope * len(x_vals)
+                grid_trends[jj,kk] = result.slope * len(x_vals)
+                #grid_trends[ii,jj,kk] = result.slope * len(x_vals)
     
                     #slope, intercept, r_value, p_value, std_err = \
                     #    stats.linregress(x_vals,work_mask.compressed())
@@ -14570,28 +14595,34 @@ def plot_grid_OMI_trends_spatial(OMI_daily_data, min_AI = None, \
                 #    trend_results[jj] = res[0] * len(x_vals)
                 #    #forcing_trends[i,j] = res[0]*len(x_vals)
     
-    fig = plt.figure(figsize = (9, 7))
-    ax1 = fig.add_subplot(2,3,1, projection = ccrs.NorthPolarStereo())
-    ax2 = fig.add_subplot(2,3,2, projection = ccrs.NorthPolarStereo())
-    ax3 = fig.add_subplot(2,3,3, projection = ccrs.NorthPolarStereo())
-    ax4 = fig.add_subplot(2,3,4, projection = ccrs.NorthPolarStereo())
-    ax5 = fig.add_subplot(2,3,5, projection = ccrs.NorthPolarStereo())
-    ax6 = fig.add_subplot(2,3,6, projection = ccrs.NorthPolarStereo())
     
-    axs = [ax1, ax2, ax3, ax4, ax5, ax6]
-    
-    titlers = ['Apr','May','June','July','Aug','Sep']
-    for ii in range(6):
-        axs[ii].pcolormesh(OMI_daily_data['LON'], OMI_daily_data['LAT'], \
-            grid_trends[ii,:,:], transform = ccrs.PlateCarree(), \
+    #for ii in range(6):
+        mesh = axs[ii].pcolormesh(OMI_daily_data['LON'], OMI_daily_data['LAT'], \
+            grid_trends[:,:], transform = ccrs.PlateCarree(), \
+            #grid_trends[ii,:,:], transform = ccrs.PlateCarree(), \
             shading = 'auto', cmap = 'bwr', vmin = -0.5, vmax = 0.5)
         axs[ii].set_boundary(circle, transform=axs[ii].transAxes)
         axs[ii].coastlines()
         axs[ii].set_extent([-180,180,65,90], ccrs.PlateCarree())
         axs[ii].set_title(titlers[ii])
+
+    plot_subplot_label(ax1, 'a)', fontsize = 12, backgroundcolor = 'white')
+    plot_subplot_label(ax2, 'b)', fontsize = 12, backgroundcolor = 'white')
+    plot_subplot_label(ax3, 'c)', fontsize = 12, backgroundcolor = 'white')
+    plot_subplot_label(ax4, 'd)', fontsize = 12, backgroundcolor = 'white')
+    plot_subplot_label(ax5, 'e)', fontsize = 12, backgroundcolor = 'white')
+    plot_subplot_label(ax6, 'f)', fontsize = 12, backgroundcolor = 'white')
+
+    plt.suptitle('OMI UVAI Trends\n2005 - 2020')
+    cbar_ax = fig.add_axes([0.17, 0.13, 0.70, 0.01])
+    cbar = fig.colorbar(mesh, \
+        cax = cbar_ax, shrink = 0.8, orientation = 'horizontal', \
+        extend = 'both', \
+        label = 'Trend of Perturbed OMI UVAI [AI(study period)$^{-1}$]')
+    
+    fig.tight_layout(rect = [0,0.1,1,1])
    
     if(save):
-        fig.tight_layout()
         if(min_AI < 0):
             outname = 'omi_grid_trend_minAI_N' + str(int(abs(min_AI) * 100)).zfill(3) + '.png'
         else:
@@ -14600,6 +14631,192 @@ def plot_grid_OMI_trends_spatial(OMI_daily_data, min_AI = None, \
         print("Saved image", outname)
     else:
         plt.show() 
+
+def plot_grid_OMI_climo_spatial(OMI_daily_data, min_AI = None, \
+        max_AI = None, minlat = 65.5, maxlat = 90.5,  save = False):
+    
+    if(isinstance(OMI_daily_data, str)):
+        if(min_AI is None):
+            print("ERROR: If providing an OMI daily file, must provide min_AI")
+            return
+
+        print("Reading daily OMI data from", OMI_daily_data)
+        print("Converting daily data to monthly omi_uvai_pert averages")
+        OMI_daily_data = calcOMI_MonthAvg_FromDaily(OMI_daily_data, \
+            min_AI = min_AI, max_AI = max_AI, minlat = minlat, maxlat = maxlat)
+
+    # Calculate gridded trends
+    #grid_trends = np.full( (6, OMI_daily_data['AI'].shape[1],  \
+    #    OMI_daily_data['AI'].shape[2]), np.nan)
+   
+    plt.close('all') 
+    fig = plt.figure(figsize = (9, 8.5))
+    ax1 = fig.add_subplot(2,3,1, projection = ccrs.NorthPolarStereo())
+    ax2 = fig.add_subplot(2,3,2, projection = ccrs.NorthPolarStereo())
+    ax3 = fig.add_subplot(2,3,3, projection = ccrs.NorthPolarStereo())
+    ax4 = fig.add_subplot(2,3,4, projection = ccrs.NorthPolarStereo())
+    ax5 = fig.add_subplot(2,3,5, projection = ccrs.NorthPolarStereo())
+    ax6 = fig.add_subplot(2,3,6, projection = ccrs.NorthPolarStereo())
+    axs = [ax1, ax2, ax3, ax4, ax5, ax6]
+    titlers = ['Apr','May','June','July','Aug','Sep']
+    
+    for ii in range(6):
+        print(ii)
+        grid_trends = np.full( (OMI_daily_data['AI'].shape[1],  \
+            OMI_daily_data['AI'].shape[2]), np.nan)
+
+        grid_climo = np.nanmean( OMI_daily_data['AI'][ii::6,:,:], axis = 0)
+        #for jj in range(OMI_daily_data['AI'].shape[1]):
+        #    for kk in range(OMI_daily_data['AI'].shape[2]):
+        #        # Plot the individual runs
+        #        # ------------------------
+        #        local_sim_vals = OMI_daily_data['AI'][ii::6,jj,kk]
+        #        x_vals = np.arange(local_sim_vals.shape[0])
+    
+        #        #if(trend_type=='standard'): 
+        #        result = stats.linregress(x_vals, local_sim_vals[:])
+        #        grid_trends[jj,kk] = result.slope * len(x_vals)
+        #        #grid_trends[ii,jj,kk] = result.slope * len(x_vals)
+    
+        #            #slope, intercept, r_value, p_value, std_err = \
+        #            #    stats.linregress(x_vals,work_mask.compressed())
+        #            #forcing_trends[i,j] = result.slope * len(x_vals)
+        #            #forcing_pvals[i,j]  = result.pvalue
+        #            #forcing_uncert[i,j] = result.stderr * len(x_vals)
+        #        #else:
+        #        #    res = stats.theilslopes(local_sim_vals[jj,:], x_vals, 0.90)
+        #        #    trend_results[jj] = res[0] * len(x_vals)
+        #        #    #forcing_trends[i,j] = res[0]*len(x_vals)
+    
+    
+    #for ii in range(6):
+        mesh = axs[ii].pcolormesh(OMI_daily_data['LON'], OMI_daily_data['LAT'], \
+            grid_climo[:,:], transform = ccrs.PlateCarree(), \
+            #grid_trends[ii,:,:], transform = ccrs.PlateCarree(), \
+            shading = 'auto', cmap = 'jet', vmin = -0.25, vmax = 0.25)
+        axs[ii].set_boundary(circle, transform=axs[ii].transAxes)
+        axs[ii].coastlines()
+        axs[ii].set_extent([-180,180,65,90], ccrs.PlateCarree())
+        axs[ii].set_title(titlers[ii])
+
+    plot_subplot_label(ax1, 'a)', fontsize = 12, backgroundcolor = 'white')
+    plot_subplot_label(ax2, 'b)', fontsize = 12, backgroundcolor = 'white')
+    plot_subplot_label(ax3, 'c)', fontsize = 12, backgroundcolor = 'white')
+    plot_subplot_label(ax4, 'd)', fontsize = 12, backgroundcolor = 'white')
+    plot_subplot_label(ax5, 'e)', fontsize = 12, backgroundcolor = 'white')
+    plot_subplot_label(ax6, 'f)', fontsize = 12, backgroundcolor = 'white')
+
+    plt.suptitle('OMI UVAI Climo\n2005 - 2020')
+    cbar_ax = fig.add_axes([0.17, 0.13, 0.70, 0.01])
+    cbar = fig.colorbar(mesh, \
+        cax = cbar_ax, shrink = 0.8, orientation = 'horizontal', \
+        extend = 'both', \
+        label = 'Perturbed OMI UVAI')
+    
+    fig.tight_layout(rect = [0,0.1,1,1])
+   
+    if(save):
+        if(min_AI < 0):
+            outname = 'omi_grid_climo_minAI_N' + str(int(abs(min_AI) * 100)).zfill(3) + '.png'
+        else:
+            outname = 'omi_grid_climo_minAI' + str(int(abs(min_AI) * 100)).zfill(3) + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show() 
+
+def plot_grid_OMI_trends_arctic_avg(OMI_daily_data, min_AI = None, \
+        max_AI = None, minlat = 65.5, maxlat = 90.5,  flat_axs = None, \
+        save = False):
+    
+    if(isinstance(OMI_daily_data, str)):
+        if(min_AI is None):
+            print("ERROR: If providing an OMI daily file, must provide min_AI")
+            return
+
+        print("Reading daily OMI data from", OMI_daily_data)
+        print("Converting daily data to monthly omi_uvai_pert averages")
+        OMI_daily_data = calcOMI_MonthAvg_FromDaily(OMI_daily_data, \
+            min_AI = min_AI, max_AI = max_AI, minlat = minlat, maxlat = maxlat)
+
+        local_AI = OMI_daily_data['AI'][:,:,:]
+
+    else:
+
+        # See if the user wants different latitude ranges plotted
+        # -------------------------------------------------------
+        test_lats = OMI_daily_data['LAT'][:,0] 
+        lat_idxs = np.where( (test_lats >= minlat) & (test_lats <= maxlat) )[0]
+        min_lat_idx = lat_idxs[0]
+        max_lat_idx = lat_idxs[-1] + 1
+        test_lats = test_lats[lat_idxs]
+        print("Working with latitudes",test_lats)
+        #sim_values = sim_values[:,:,min_lat_idx:max_lat_idx,:]
+        local_AI = OMI_daily_data['AI'][:,min_lat_idx:max_lat_idx,:]
+
+    arctic_avgs = np.nanmean(local_AI, axis = (1, 2))
+
+    in_ax = True
+    if(flat_axs is None): 
+        in_ax = False
+        plt.close('all') 
+        fig = plt.figure(figsize = (9, 6))
+        axs = fig.subplots(nrows = 2, ncols = 3, sharex = True, sharey = True)
+        flat_axs = axs.flatten()
+
+    for ii in range(flat_axs.shape[0]):
+
+        # Plot the individual runs
+        # ------------------------
+        local_AI_vals = arctic_avgs[ii::6]
+        x_vals = np.arange(local_AI_vals.shape[0])
+        flat_axs[ii].plot(arctic_avgs[ii::6], color = 'k')
+
+        plot_trend_line(flat_axs[ii], np.arange(local_AI_vals.shape[0]), \
+            local_AI_vals, color='tab:red', linestyle = '-', \
+            slope = 'linregress')
+        #flat_axs[ii].axhline(0, linestyle = '--', color = 'k') 
+
+       
+    if(not in_ax): 
+        fig.tight_layout() 
+        plt.show()
+
+def plot_grid_OMI_trends_arctic_avg_combined(OMI_daily_data, min_AI = None, \
+        max_AI = None, save = False):
+
+    plt.close('all')
+    fig = plt.figure(figsize = (9, 12))
+    axs = fig.subplots(nrows = 6, ncols = 3, sharex = True, sharey = True)
+
+    # Plot regional-averaged trends over the entire Arctic
+    # ----------------------------------------------------
+    minlat = 65.5
+    maxlat = 90.5
+    plot_grid_OMI_trends_arctic_avg(OMI_daily_data, min_AI = min_AI, \
+        max_AI = max_AI, minlat = minlat, maxlat = maxlat,  flat_axs = axs[:,0])
+
+    # Plot regional-averaged trends over the lower Arctic
+    # ----------------------------------------------------
+    minlat = 65.5
+    maxlat = 75.5
+    plot_grid_OMI_trends_arctic_avg(OMI_daily_data, min_AI = min_AI, \
+        max_AI = max_AI, minlat = minlat, maxlat = maxlat,  flat_axs = axs[:,1])
+
+    # Plot regional-averaged trends over the lower Arctic
+    # ----------------------------------------------------
+    minlat = 75.5
+    maxlat = 90.5
+    plot_grid_OMI_trends_arctic_avg(OMI_daily_data, min_AI = min_AI, \
+        max_AI = max_AI, minlat = minlat, maxlat = maxlat,  flat_axs = axs[:,2])
+
+    axs[0,0].set_title('65 - 90')
+    axs[0,1].set_title('65 - 75')
+    axs[0,2].set_title('75 - 90')
+    plt.suptitle('Perturbed OMI UVAI Regional Averages')
+
+    fig.tight_layout()
+    plt.show()
 
 
 def plot_test_trends_stdevs(daily_dict, forcing_trends, meanmax = 1.0, \
@@ -14724,7 +14941,7 @@ def plot_sim_errors_bulk_arctic_avg_combined(daily_filename, err_mean, err_std, 
     maxlat = 90.5
     plot_sim_errors_bulk_arctic_avg(daily_filename, err_mean, \
         err_std, minlat = minlat, maxlat = maxlat, num_sims = num_sims, \
-        sim_values = sim_values, plot_result_min_max_range = True, \
+        sim_values = sim_values, plot_result_min_max_range = plot_result_min_max_range, \
         flat_axs = axs[:,0])
 
     # Plot regional-averaged trends over the lower Arctic
@@ -14733,7 +14950,7 @@ def plot_sim_errors_bulk_arctic_avg_combined(daily_filename, err_mean, err_std, 
     maxlat = 75.5
     plot_sim_errors_bulk_arctic_avg(daily_filename, err_mean, \
         err_std, minlat = minlat, maxlat = maxlat, num_sims = num_sims, \
-        sim_values = sim_values, plot_result_min_max_range = True, \
+        sim_values = sim_values, plot_result_min_max_range = plot_result_min_max_range, \
         flat_axs = axs[:,1])
 
     # Plot regional-averaged trends over the lower Arctic
@@ -14742,7 +14959,7 @@ def plot_sim_errors_bulk_arctic_avg_combined(daily_filename, err_mean, err_std, 
     maxlat = 90.5
     plot_sim_errors_bulk_arctic_avg(daily_filename, err_mean, \
         err_std, minlat = minlat, maxlat = maxlat, num_sims = num_sims, \
-        sim_values = sim_values, plot_result_min_max_range = True, \
+        sim_values = sim_values, plot_result_min_max_range = plot_result_min_max_range, \
         flat_axs = axs[:,2])
 
     fig.tight_layout()
@@ -14752,13 +14969,17 @@ def plot_sim_errors_bulk_arctic_avg_combined(daily_filename, err_mean, err_std, 
 def plot_sim_errors_bulk_arctic_avg(daily_filename, err_mean, err_std, \
         minlat = 65.5, maxlat = 90.5, num_sims = 100, sim_values = None, \
         plot_result_min_max_range = False, trend_type = 'linregress', \
-        flat_axs = None):
+        flat_axs = None, return_std = False):
 
     daily_dict = read_daily_month_force_L2L3_error_from_HDF5(daily_filename)
 
     if(sim_values is None):
-        sim_values = calc_force_vals_bulk(daily_dict, err_mean, err_std, \
-            minlat = minlat, maxlat = maxlat, num_sims = num_sims)
+        if(return_std):
+            sim_values, std_values = calc_force_vals_bulk(daily_dict, err_mean, err_std, \
+                minlat = minlat, maxlat = maxlat, num_sims = num_sims, return_std = True)
+        else:
+            sim_values = calc_force_vals_bulk(daily_dict, err_mean, err_std, \
+                minlat = minlat, maxlat = maxlat, num_sims = num_sims, return_std = False)
     else:
         # See if the user wants different latitude ranges plotted
         # -------------------------------------------------------
