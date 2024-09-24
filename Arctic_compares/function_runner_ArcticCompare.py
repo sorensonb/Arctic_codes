@@ -13,6 +13,16 @@ from sklearn.metrics import r2_score
 
 #make_gif('comp_images_20180705/', 'calc_swf_comp_20180705.gif')
 
+fig = plt.figure(figsize = (7, 13), constrained_layout = True)
+subfigs = fig.subfigures(nrows = 3, ncols = 1, hspace = 0.10)
+
+axs1 = [subfigs[0].add_subplot(2,3,ii, projection = ccrs.NorthPolarStereo()) for ii in range(1,7)]
+axs2 = [subfigs[1].add_subplot(2,3,ii, projection = ccrs.NorthPolarStereo()) for ii in range(1,7)]
+axs3 = [subfigs[2].add_subplot(2,3,ii, projection = ccrs.NorthPolarStereo()) for ii in range(1,7)]
+
+plt.show()
+sys.exit()
+
 # CODE FOR PLOTTING RAW VARIABLES FROM OMI FILES
 """
 data = h5py.File(sys.argv[1])
@@ -203,7 +213,7 @@ sys.exit()
 # Plot combined NN error distribution in clear-sky swaths
 # -------------------------------------------------------
 #plot_NN_error_dist_bulk('noland74', num_bins = 500, astrofit = True, \
-#    xmin = -150, xmax = 150, save = False)
+#    xmin = -100, xmax = 100, save = False)
 #sys.exit()
 
 # Plots more stuff than the NN_output_noaer function
@@ -213,7 +223,12 @@ sys.exit()
 
 # Plot the zoomed in comparison
 # -----------------------------
-#plot_compare_NN_output_v2(sys.argv[1], auto_zoom = True, save = False)
+#plot_compare_NN_output_v2(sys.argv[1], auto_zoom = False, save = False)
+#sys.exit()
+
+# Compare the OMI, CERES, NN, and NN - CERES for two swaths
+# ---------------------------------------------------------
+#plot_compare_NN_output_double(sys.argv[1], sys.argv[2], save = False, include_scatter = False)
 #sys.exit()
 
 # CODE TO SEE HOW WELL THE DIFFERENT NN OUTPUTS COMPARE FOR A GIVEN
@@ -519,7 +534,7 @@ sza_min = 40
 sza_max = 90
 #plot_NN_scatter_combined_alltypes(test_dict, bin_dict, \
 #    ai_min_forslopes, sza_min, sza_max, trend_type = 'linregress', \
-#    show_specific_cod = None, min_ai_for_stats = 2.0, \
+#    show_specific_cod = 0, min_ai_for_stats = 2.0, \
 #    plot_bounds = False, save = False)
 #sys.exit()
 
@@ -571,10 +586,10 @@ maxerr = 1.5
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #####sim_name = 'noland72'
-infile = 'validate_values_' + sim_name + '.hdf5'
-in_data = h5py.File(infile)
-direct_forcings = in_data['direct_forcings'][:]
-calc_forcings   = in_data['calc_forcings'][:]
+#infile = 'validate_values_' + sim_name + '.hdf5'
+#in_data = h5py.File(infile)
+#direct_forcings = in_data['direct_forcings'][:]
+#calc_forcings   = in_data['calc_forcings'][:]
 
 #direct_forcings, calc_forcings = \
 #    plot_L2_validate_regress_all(sim_name, slope_dict_lin, bin_dict, \
@@ -948,7 +963,7 @@ cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v2.hdf5' # std = 5, 
 
 total_err_mean = -2.7
 total_err_std = 31.82
-num_sims = 300
+num_sims = 600
 #num_sims = 300
 minlat = 65.5
 maxlat = 87.5
@@ -973,11 +988,41 @@ avg_mean_across_sims_aug = np.nanmean(avg_mean_per_sim_per_month[:,4::6], axis =
 avg_std_across_sims_aug = np.sqrt(np.sum(avg_std_per_sim_per_month[:,4::6]**2., axis = (0)) / avg_std_per_sim_per_month[:,4::6].shape[0])
 """
 
+#ax.hist(forcing_trends[:,4,0,8])
+
+# Calculate confidence intervals for each trend
+# ---------------------------------------------
+# In the lib file,  from scipy.stats import norm as statnorm
+# conf_intvl = statnorm.interval(alpha = 0.90, loc = np.mean(forcing_trends[:,4,2,280]), scale = st.sem(forcing_trends[:,4,2,280]))
+
 # Test calculating trends across all calculations and across the whole grid
 # -------------------------------------------------------------------------
 forcing_trends = np.full( (sim_values.shape[0], 6, sim_values.shape[2], sim_values.shape[3]), np.nan)
 forcing_pvals  = np.full( (sim_values.shape[0], 6, sim_values.shape[2], sim_values.shape[3]), np.nan)
 forcing_uncert = np.full( (sim_values.shape[0], 6, sim_values.shape[2], sim_values.shape[3]), np.nan)
+
+##!#forcing_trend_onmean = np.full( (6, sim_values.shape[2], sim_values.shape[3]), np.nan)
+##!#forcing_pvals_onmean = np.full( (6, sim_values.shape[2], sim_values.shape[3]), np.nan)
+##!#forcing_uncrt_onmean = np.full( (6, sim_values.shape[2], sim_values.shape[3]), np.nan)
+##!#
+##!## Calculate the mean of the sim_values at all points
+##!## --------------------------------------------------
+##!#sim_means = np.nanmean(sim_values, axis = 0)
+##!#
+##!#for ii in range(6):
+##!#    for jj in range(sim_means.shape[1]):
+##!#        for kk in range(sim_means.shape[2]):
+##!#            work_mask = sim_means[ii::6,jj,kk]
+##!#            x_vals = np.arange(0,len(work_mask))
+##!#    
+##!#            result = stats.linregress(x_vals, work_mask)
+##!#            #slope, intercept, r_value, p_value, std_err = \
+##!#            #    stats.linregress(x_vals,work_mask.compressed())
+##!#            forcing_trend_onmean[ii,jj,kk] = result.slope * len(x_vals)
+##!#            forcing_pvals_onmean[ii,jj,kk]  = result.pvalue
+##!#            forcing_uncrt_onmean[ii,jj,kk] = result.stderr * len(x_vals)
+##!#
+##!#sys.exit()
 
 for ii in range(6):
     print(ii)
@@ -987,17 +1032,51 @@ for ii in range(6):
             sim_values[jj,ii::6,:,:], 'standard')
 
 
+
+month_idx = 3
+lat_idx = 3
+lon_idx = 341
+plot_force_trend_mean_std_dist(daily_dict, forcing_trends, month_idx, lat_idx, lon_idx, \
+    vmin = -1.5, vmax = 1.5, conf_window = 90, save = False)
+sys.exit()
+
+
 #plot_test_trends_stdevs(daily_dict, forcing_trends, meanmax = 3.0, stdmax = 1.5)
 
-#plot_bulk_sim_trends(daily_dict, forcing_trends, 'mean', vmax = 3.0, \
-#    save = True)
+# Plot the spatial trend averages or trend standard deviations at each
+# grid point
+# ---------------------------------------------------------------------
+#plot_bulk_sim_trends(daily_dict, forcing_trends, 'mean', vmax = 1.5, \
+#    save = False)
+
+# Plot the distribution of trend estimates at a lat/lon idx and month
+# -------------------------------------------------------------------
+test_error_dist(daily_dict, forcing_trends, 3, 10, 341, 20)
+sys.exit()
+
+# Plot the distribution of mean trends across the Arctic for each month
+# ---------------------------------------------------------------------
+plot_bulk_trend_dist_multimonth(daily_dict, forcing_trends, bins = 50, save = False, \
+    log_yscale = True, plot_single_month = None)
+sys.exit()
+
 
 #sys.exit()
 
-plot_sim_errors_bulk_arctic_avg_combined(daily_filename, total_err_mean, total_err_std, \
-    minlat = 65.5, maxlat = 90.5, num_sims = num_sims, sim_values = sim_values, \
-    plot_result_min_max_range = True, trend_type = 'linregress', \
-    flat_axs = None)
+#plot_sim_errors_bulk_arctic_avg_combined(daily_filename, total_err_mean, total_err_std, \
+#    minlat = 65.5, maxlat = 90.5, num_sims = num_sims, sim_values = sim_values, \
+#    plot_result_min_max_range = True, trend_type = 'linregress', \
+#    flat_axs = None)
+
+# Plot a 24-panel (6 row, 3 or 4 column) figure with:
+# - AI trends
+# - Mean of the forcing trends
+# - Standard deviation of the forcing trends
+# - (Optional) histogram of the trend values at each day
+plot_bulk_force_AI_trend(daily_dict, forcing_trends, shawn_file, \
+    vmax = 1.0, min_AI = 0.0, max_AI = 20.0, minlat = 65.5, \
+    maxlat = 90.5,  save = False)
+
 
 sys.exit()
 
