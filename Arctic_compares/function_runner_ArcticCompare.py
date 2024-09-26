@@ -12,17 +12,6 @@ import random
 from sklearn.metrics import r2_score
 
 #make_gif('comp_images_20180705/', 'calc_swf_comp_20180705.gif')
-
-fig = plt.figure(figsize = (7, 13), constrained_layout = True)
-subfigs = fig.subfigures(nrows = 3, ncols = 1, hspace = 0.10)
-
-axs1 = [subfigs[0].add_subplot(2,3,ii, projection = ccrs.NorthPolarStereo()) for ii in range(1,7)]
-axs2 = [subfigs[1].add_subplot(2,3,ii, projection = ccrs.NorthPolarStereo()) for ii in range(1,7)]
-axs3 = [subfigs[2].add_subplot(2,3,ii, projection = ccrs.NorthPolarStereo()) for ii in range(1,7)]
-
-plt.show()
-sys.exit()
-
 # CODE FOR PLOTTING RAW VARIABLES FROM OMI FILES
 """
 data = h5py.File(sys.argv[1])
@@ -228,7 +217,7 @@ sys.exit()
 
 # Compare the OMI, CERES, NN, and NN - CERES for two swaths
 # ---------------------------------------------------------
-#plot_compare_NN_output_double(sys.argv[1], sys.argv[2], save = False, include_scatter = False)
+#plot_compare_NN_output_double(sys.argv[1], sys.argv[2], save = True, include_scatter = False)
 #sys.exit()
 
 # CODE TO SEE HOW WELL THE DIFFERENT NN OUTPUTS COMPARE FOR A GIVEN
@@ -240,10 +229,13 @@ sys.exit()
 #
 #sys.exit()
 
+# Compare the plume locations between OMI and MODIS data
+# ------------------------------------------------------
 #plot_compare_NN_output_overlay(sys.argv[1], auto_zoom = True, save = False)
 #sys.exit()
 
-
+#plot_compare_NN_output_overlay_v2(sys.argv[1], auto_zoom = True, save = True)
+#sys.exit()
 
 
 
@@ -963,20 +955,200 @@ cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v2.hdf5' # std = 5, 
 
 total_err_mean = -2.7
 total_err_std = 31.82
-num_sims = 600
+num_sims = 300
 #num_sims = 300
 minlat = 65.5
 maxlat = 87.5
 sim_values = None
 
 daily_dict = read_daily_month_force_L2L3_error_from_HDF5(daily_filename)
-return_std = False
-if(return_std):
-    sim_values, std_values = calc_force_vals_bulk(daily_dict, total_err_mean, total_err_std, \
-        minlat = minlat, maxlat = maxlat, num_sims = num_sims, return_std = True)
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
+#
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+read_force_sim_vals = False
+save_force_vals = False    
+read_trend_sim_vals = True
+save_trend_vals = False    
+
+calc_region_avg_force_vals = False
+calc_force_trends_from_file = False
+
+if(read_trend_sim_vals):
+   
+    # NOTE: Only using 2 files here. Can change ":2" to allow it to read more files 
+    # -----------------------------------------------------------------------------
+    file_start = 'arctic_monthly_force_trends_count'
+    force_files = glob(file_start + '*.hdf5')[:2]
+
+    # Figure out how many simulations are in all the files
+    # ----------------------------------------------------
+    total_sims = 0
+    for ffile in force_files:
+        local_numsim = ffile.strip().split('/')[-1].split('_')[4].split('_')[0].split('.')[0][5:]   
+        total_sims += int(local_numsim)
+
+    print("Total number of sims:", total_sims)
+
+    # Create an array to hold the values (Assume 96 months)
+    # -----------------------------------------------------
+    forcing_trends = np.full( (total_sims, 6, daily_dict['latitude'].shape[0], daily_dict['longitude'].shape[0]), np.nan)
+
+    # Insert the values into the array
+    # --------------------------------
+    beg_idx = 0
+    end_idx = 0
+    for ii in range(len(force_files)):
+        local_numsim = int(force_files[ii].strip().split('/')[-1].split('_')[4].split('_')[0].split('.')[0][5:])
+        data = h5py.File(force_files[ii])
+        end_idx = beg_idx + local_numsim
+        forcing_trends[beg_idx:end_idx,:,:,:] = data['force_trends'][:,:,:,:]
+        data.close()
+        print(beg_idx, end_idx)
+        beg_idx = end_idx
+    
 else:
-    sim_values = calc_force_vals_bulk(daily_dict, total_err_mean, total_err_std, \
-        minlat = minlat, maxlat = maxlat, num_sims = num_sims, return_std = False)
+    if(read_force_sim_vals):
+        
+        # Grab the filenames
+        # NOTE: Only using 2 files here. Can change ":2" to allow it to read more files 
+        # -----------------------------------------------------------------------------
+        file_start = 'arctic_monthly_force_values_count'
+        force_files = glob(file_start +'*.hdf5')[:2]
+    
+        # Figure out how many simulations are in all the files
+        # ----------------------------------------------------
+        total_sims = 0
+        for ffile in force_files:
+            local_numsim = ffile.strip().split('/')[-1].split('_')[4].split('_')[0].split('.')[0][5:]   
+            total_sims += int(local_numsim)
+    
+        print("Total number of sims:", total_sims)
+   
+        if(calc_region_avg_force_vals): 
+            # Create an array to hold the region-averaged values 
+            # (Assume 96 months & 3 regions (65 - 90, 65 - 75, and 75 - 90)
+            # -------------------------------------------------------------
+            sim_values = np.full( (total_sims, 3, 96), np.nan)
+        else:
+            # Create an array to hold the values (Assume 96 months)
+            # -----------------------------------------------------
+            sim_values = np.full( (total_sims, 96, daily_dict['latitude'].shape[0], daily_dict['longitude'].shape[0]), np.nan)
+    
+        # Insert the values into the array
+        # --------------------------------
+        beg_idx = 0
+        end_idx = 0
+        for ii in range(len(force_files)):
+            local_numsim = int(force_files[ii].strip().split('/')[-1].split('_')[4].split('_')[0].split('.')[0][5:])
+            data = h5py.File(force_files[ii])
+            end_idx = beg_idx + local_numsim
+            
+            if(calc_region_avg_force_vals):
+                lat_mins = [65.5, 65.5, 75.5]
+                lat_maxs = [89.5, 75.5, 89.5]
+                for jj in range(len(lat_mins)):
+                    lat_idxs = np.where( (data['latitude'][:] >= lat_mins[jj]) & (data['latitude'][:] < lat_maxs[jj])) 
+                    lat_beg_idx = lat_idxs[0][0]
+                    lat_end_idx = lat_idxs[0][-1] + 1
+                    sim_values[beg_idx:end_idx,jj,:] = \
+                        np.nanmean(data['monthly_force_vals'][:,:,lat_beg_idx:lat_end_idx,:], axis = (2,3))
+            else:
+                sim_values[beg_idx:end_idx,:,:,:] = data['monthly_force_vals'][:,:,:,:]
+
+            data.close()
+            print(beg_idx, end_idx)
+            beg_idx = end_idx
+        
+    
+    else:
+        #for nn in range(2):
+            
+        return_std = False
+        if(return_std):
+            sim_values, std_values = calc_force_vals_bulk(daily_dict, total_err_mean, total_err_std, \
+                minlat = minlat, maxlat = maxlat, num_sims = num_sims, return_std = True)
+        else:
+            sim_values = calc_force_vals_bulk(daily_dict, total_err_mean, total_err_std, \
+                minlat = minlat, maxlat = maxlat, num_sims = num_sims, return_std = False)
+            #sim_values_2 = calc_force_vals_bulk(daily_dict, total_err_mean, total_err_std, \
+            #    minlat = minlat, maxlat = maxlat, num_sims = num_sims, return_std = False)
+    
+        if(save_force_vals):
+            # Save error monthly forcing values to an output file
+            # ---------------------------------------------------
+            write_monthly_force_vals_sims_to_HDF5(daily_dict, sim_values, \
+                total_err_mean, total_err_std, save_path = './', name_add = '')
+    
+    
+        # Test calculating trends across all calculations and across the whole grid
+        # -------------------------------------------------------------------------
+        forcing_trends = np.full( (sim_values.shape[0], 6, sim_values.shape[2], sim_values.shape[3]), np.nan)
+        #forcing_pvals  = np.full( (sim_values.shape[0], 6, sim_values.shape[2], sim_values.shape[3]), np.nan)
+        #forcing_uncert = np.full( (sim_values.shape[0], 6, sim_values.shape[2], sim_values.shape[3]), np.nan)
+        
+        for ii in range(6):
+            for jj in range(sim_values.shape[0]):
+                print(ii,jj)
+                forcing_trends[jj,ii,:,:], _, \
+                    _ = calc_forcing_grid_trend(\
+                    sim_values[jj,ii::6,:,:], 'standard')
+                #forcing_trends[jj,ii,:,:], forcing_pvals[jj,ii,:,:], \
+                #    forcing_uncert[jj,ii,:,:] = calc_forcing_grid_trend(\
+                #    sim_values[jj,ii::6,:,:], 'standard')
+        
+        
+        if(save_force_vals): 
+            # Save error trends to an output file
+            # -----------------------------------
+            write_monthly_force_trend_sims_to_HDF5(daily_dict, forcing_trends, \
+                total_err_mean, total_err_std, save_path = './', name_add = '')
+        
+        #del(sim_values)
+        #del(forcing_trends) 
+
+    # Plot time series of the many region-averaged monthly forcing values
+    # for a given region index (0 = entire Arctic, 1 = low Arctic, 
+    # 2 = high Arctic
+    # -------------------------------------------------------------------
+    plot_arctic_avg_region_trends(sim_values, 0)
+    
+    # FOR USE WITH REGION-AVERAGED FORCING VALUES
+    for kk in range(3):
+        print('region: ', kk)
+        for jj in range(6):
+
+            # Trend analysis
+            # --------------
+            #for ii in range(trend_vals.shape[0]):
+            #    result = stats.linregress(xvals, sim_values[ii,kk,jj::6])
+            #    trend_vals[ii] = result.slope * len(xvals)
+            #print(jj, np.round(np.mean(trend_vals), 3), np.round(np.std(trend_vals), 3))
+
+            # Mean analysis
+            # -------------
+            mean_force = np.nanmean(sim_values[:,kk,jj::6])
+            std_force1 = np.nanstd(sim_values[:,kk,jj::6])
+            std_force2 = np.sqrt(np.sum(np.nanstd(sim_values[:,kk,jj::6], axis = 1)**2.) / \
+                np.nanstd(sim_values[:,kk,jj::6], axis = 1).shape[0])
+            print(jj, np.round(mean_force, 3), np.round(std_force1, 3), np.round(std_force2, 3))
+
+
+
+# Plot an 18-panel (6 row, 3 or 4 column) figure with:
+# - AI trends
+# - Mean of the forcing trends
+# - Standard deviation of the forcing trends
+# ----------------------------------------------------
+#plot_bulk_force_AI_trend_v2(daily_dict, forcing_trends, shawn_file, \
+#    vmax = 1.5, min_AI = 0.0, max_AI = 20.0, minlat = 65.5, \
+#    maxlat = 90.5,  save = False)
+#sys.exit()
+   
+
 
 """
 # Test calculating the standard deviations 
@@ -988,57 +1160,17 @@ avg_mean_across_sims_aug = np.nanmean(avg_mean_per_sim_per_month[:,4::6], axis =
 avg_std_across_sims_aug = np.sqrt(np.sum(avg_std_per_sim_per_month[:,4::6]**2., axis = (0)) / avg_std_per_sim_per_month[:,4::6].shape[0])
 """
 
-#ax.hist(forcing_trends[:,4,0,8])
-
 # Calculate confidence intervals for each trend
 # ---------------------------------------------
 # In the lib file,  from scipy.stats import norm as statnorm
 # conf_intvl = statnorm.interval(alpha = 0.90, loc = np.mean(forcing_trends[:,4,2,280]), scale = st.sem(forcing_trends[:,4,2,280]))
 
-# Test calculating trends across all calculations and across the whole grid
-# -------------------------------------------------------------------------
-forcing_trends = np.full( (sim_values.shape[0], 6, sim_values.shape[2], sim_values.shape[3]), np.nan)
-forcing_pvals  = np.full( (sim_values.shape[0], 6, sim_values.shape[2], sim_values.shape[3]), np.nan)
-forcing_uncert = np.full( (sim_values.shape[0], 6, sim_values.shape[2], sim_values.shape[3]), np.nan)
-
-##!#forcing_trend_onmean = np.full( (6, sim_values.shape[2], sim_values.shape[3]), np.nan)
-##!#forcing_pvals_onmean = np.full( (6, sim_values.shape[2], sim_values.shape[3]), np.nan)
-##!#forcing_uncrt_onmean = np.full( (6, sim_values.shape[2], sim_values.shape[3]), np.nan)
-##!#
-##!## Calculate the mean of the sim_values at all points
-##!## --------------------------------------------------
-##!#sim_means = np.nanmean(sim_values, axis = 0)
-##!#
-##!#for ii in range(6):
-##!#    for jj in range(sim_means.shape[1]):
-##!#        for kk in range(sim_means.shape[2]):
-##!#            work_mask = sim_means[ii::6,jj,kk]
-##!#            x_vals = np.arange(0,len(work_mask))
-##!#    
-##!#            result = stats.linregress(x_vals, work_mask)
-##!#            #slope, intercept, r_value, p_value, std_err = \
-##!#            #    stats.linregress(x_vals,work_mask.compressed())
-##!#            forcing_trend_onmean[ii,jj,kk] = result.slope * len(x_vals)
-##!#            forcing_pvals_onmean[ii,jj,kk]  = result.pvalue
-##!#            forcing_uncrt_onmean[ii,jj,kk] = result.stderr * len(x_vals)
-##!#
-##!#sys.exit()
-
-for ii in range(6):
-    print(ii)
-    for jj in range(sim_values.shape[0]):
-        forcing_trends[jj,ii,:,:], forcing_pvals[jj,ii,:,:], \
-            forcing_uncert[jj,ii,:,:] = calc_forcing_grid_trend(\
-            sim_values[jj,ii::6,:,:], 'standard')
-
-
-
-month_idx = 3
-lat_idx = 3
-lon_idx = 341
-plot_force_trend_mean_std_dist(daily_dict, forcing_trends, month_idx, lat_idx, lon_idx, \
-    vmin = -1.5, vmax = 1.5, conf_window = 90, save = False)
-sys.exit()
+#month_idx = 3
+#lat_idx = 3
+#lon_idx = 341
+#plot_force_trend_mean_std_dist(daily_dict, forcing_trends, month_idx, lat_idx, lon_idx, \
+#    vmin = -1.5, vmax = 1.5, conf_window = 90, save = False)
+#sys.exit()
 
 
 #plot_test_trends_stdevs(daily_dict, forcing_trends, meanmax = 3.0, stdmax = 1.5)
@@ -1046,12 +1178,14 @@ sys.exit()
 # Plot the spatial trend averages or trend standard deviations at each
 # grid point
 # ---------------------------------------------------------------------
-#plot_bulk_sim_trends(daily_dict, forcing_trends, 'mean', vmax = 1.5, \
-#    save = False)
+plot_bulk_sim_trends(daily_dict, forcing_trends, 'mean', vmax = 1.5, \
+    save = False)
+
+sys.exit()
 
 # Plot the distribution of trend estimates at a lat/lon idx and month
 # -------------------------------------------------------------------
-test_error_dist(daily_dict, forcing_trends, 3, 10, 341, 20)
+test_error_dist(daily_dict, forcing_trends, 4, 2, 285, 20)
 sys.exit()
 
 # Plot the distribution of mean trends across the Arctic for each month
@@ -1073,9 +1207,9 @@ sys.exit()
 # - Mean of the forcing trends
 # - Standard deviation of the forcing trends
 # - (Optional) histogram of the trend values at each day
-plot_bulk_force_AI_trend(daily_dict, forcing_trends, shawn_file, \
-    vmax = 1.0, min_AI = 0.0, max_AI = 20.0, minlat = 65.5, \
-    maxlat = 90.5,  save = False)
+#plot_bulk_force_AI_trend(daily_dict, forcing_trends, shawn_file, \
+#    vmax = 1.0, min_AI = 0.0, max_AI = 20.0, minlat = 65.5, \
+#    maxlat = 90.5,  save = False)
 
 
 sys.exit()

@@ -1256,6 +1256,77 @@ def write_daily_month_force_L2L3_error_to_HDF5(\
 
     print("Saved file ",outfile)  
 
+
+# Writes a single Shawn file to HDF5. 
+def write_monthly_force_trend_sims_to_HDF5(daily_dict, forcing_trends, \
+        err_mean, err_std, save_path = './', name_add = ''):
+
+    outfile = save_path + 'arctic_monthly_force_trends_count' + \
+        str(int(forcing_trends.shape[0])) + name_add + '.hdf5'
+    if(os.path.exists(outfile)):
+        ii = 1
+        while(os.path.exists(outfile)):
+            outfile = save_path + 'arctic_monthly_force_trends_count' + \
+                str(int(forcing_trends.shape[0])) + name_add + '_v' + str(ii) + '.hdf5'
+            ii += 1
+
+    print(outfile)
+
+    dset = h5py.File(outfile,'w')
+
+    cdt = dset.create_dataset('latitude',  data = daily_dict['latitude'][:])
+    cdt = dset.create_dataset('longitude', data = daily_dict['longitude'][:])
+
+    cdt = dset.create_dataset('force_trends', data = forcing_trends)
+    cdt.attrs['description'] = 'Monthly forcing trends calculated using Monte Carlo error methods'
+
+    cdt.attrs['err_mean'] = str(err_mean)
+    cdt.attrs['err_std'] = str(err_std)
+    cdt.attrs['num_sims'] = str(forcing_trends.shape[0])
+
+    # Save, write, and close the HDF5 file
+    # --------------------------------------
+    dset.close()
+
+    print("Saved file ",outfile)  
+
+# Writes a single Shawn file to HDF5. 
+def write_monthly_force_vals_sims_to_HDF5(daily_dict, forcing_values, \
+        err_mean, err_std, save_path = './', name_add = ''):
+
+    outfile = save_path + 'arctic_monthly_force_values_count' + \
+        str(int(forcing_values.shape[0])) + name_add + '.hdf5'
+    if(os.path.exists(outfile)):
+        ii = 1
+        while(os.path.exists(outfile)):
+            outfile = save_path + 'arctic_monthly_force_values_count' + \
+                str(int(forcing_values.shape[0])) + name_add + '_v' + str(ii) + '.hdf5'
+            ii += 1
+
+    print(outfile)
+
+    dset = h5py.File(outfile,'w')
+
+    cdt = dset.create_dataset('latitude',  data = daily_dict['latitude'][:])
+    cdt = dset.create_dataset('longitude', data = daily_dict['longitude'][:])
+
+    cdt = dset.create_dataset('monthly_force_vals', data = forcing_values)
+    cdt.attrs['description'] = 'Monthly forcing trends calculated using Monte Carlo error methods'
+
+    cdt.attrs['err_mean'] = err_mean
+    cdt.attrs['err_std'] = err_std
+    cdt.attrs['num_sims'] = forcing_values.shape[0]
+
+    # Save, write, and close the HDF5 file
+    # --------------------------------------
+    dset.close()
+
+    print("Saved file ",outfile)  
+
+
+
+
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #
 # Processing functions
@@ -11039,6 +11110,158 @@ def plot_compare_NN_output_overlay(calc_data, auto_zoom = True, save = False):
     else:
         plt.show()
 
+
+# Overlays high AI OMI areas on true color imagery and forcing stuff
+def plot_compare_NN_output_overlay_v2(calc_data, auto_zoom = True, save = False):
+    
+    # Load in the JSON file string relations
+    # --------------------------------------
+    with open(json_time_database, 'r') as fin:
+        file_date_dict = json.load(fin)
+
+    file_name = calc_data.strip().split('/')[-1] 
+    date_str = file_name.split('.')[0].split('_')[-1]
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+    
+    sim_name = file_name.split('_')[3]
+    print(sim_name, date_str)
+    
+    in_calc = h5py.File(calc_data)
+    
+    mask_orig = np.ma.masked_where((in_calc['ceres_swf'][:,:] == -999.) | \
+                                   (in_calc['ceres_swf'][:,:] > 3000), in_calc['ceres_swf'][:,:])
+    mask_lwf  = np.ma.masked_where((in_calc['ceres_lwf'][:,:] == -999.) | \
+                                   (in_calc['ceres_lwf'][:,:] > 3000), in_calc['ceres_lwf'][:,:])
+    mask_calc = np.ma.masked_invalid(in_calc['calc_swf'])
+    mask_calc = np.ma.masked_where(mask_calc == -999., mask_calc)
+    mask_AI   = np.ma.masked_invalid(in_calc['omi_uvai_pert'])
+    
+    ##!#mask_ctp = np.ma.masked_invalid(in_calc['modis_cld_top_pres'][:,:])
+    ##!#mask_ctp = np.ma.masked_where(mask_ctp == -999., mask_ctp)
+    ##!#
+    ##!#mask_cod = np.ma.masked_invalid(in_calc['modis_cod'][:,:])
+    ##!#mask_cod = np.ma.masked_where(mask_cod == -999., mask_cod)
+    ##!#
+    ##!#mask_ice = np.ma.masked_invalid(in_calc['nsidc_ice'][:,:])
+    ##!#mask_ice = np.ma.masked_where(mask_ice == -999., mask_ice)
+    
+
+    modis_date = file_date_dict[date_str]['MODIS'][0]
+   
+    if(auto_zoom):
+
+        # Figure out where the pixels containing AI are located
+        # -----------------------------------------------------
+        high_AI_idxs = np.where(mask_AI > 1.5)
+
+        # Switch the longitudes to 0 - 360 rather than -180 - 180
+        # -------------------------------------------------------
+        work_lons = np.copy(in_calc['omi_lon'][:,:])
+        work_lons[work_lons < 0] = 360 + work_lons[work_lons < 0]
+        
+
+        # Figure out the minimum/maximum latitude/longitudes in the AI ranges
+        # -------------------------------------------------------------------
+        min_lat = np.min(in_calc['omi_lat'][:,:][high_AI_idxs]) - 2
+        max_lat = np.max(in_calc['omi_lat'][:,:][high_AI_idxs]) + 2
+        
+        if(max_lat > 90):
+            max_lat = 90
+
+        # Calculate the 5th and 95th percentiles of longitude to prevent
+        # outliers from ruining the mean or max/min values
+        # --------------------------------------------------------------
+        min_lon = np.percentile(work_lons[high_AI_idxs], 5) - 2
+        max_lon = np.percentile(work_lons[high_AI_idxs], 95) + 2
+
+        center_lon = (min_lon + max_lon) / 2.
+        workcrs = ccrs.NorthPolarStereo(central_longitude = center_lon)
+
+        #fig = plt.figure(figsize = (10.5, 6))
+        fig = plt.figure(figsize = (9, 4))
+        ax1 = fig.add_subplot(1,2,1, projection = workcrs) # OMI AI
+        ax2 = fig.add_subplot(1,2,2, projection = workcrs) # True color
+        
+    else:
+        workcrs = ccrs.NorthPolarStereo(central_longitude = 0)
+
+        #fig = plt.figure(figsize = (10.5, 6))
+        fig = plt.figure(figsize = (9, 4))
+        ax1 = fig.add_subplot(1,2,1, projection = workcrs)
+        ax2 = fig.add_subplot(1,2,2, projection = workcrs)
+ 
+    #ax4 = fig.add_subplot(2,3,5)
+    
+    #ax4 = fig.add_subplot(2,2,4, projection = ccrs.NorthPolarStereo())
+    
+    mesh = ax1.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_AI, \
+        transform = ccrs.PlateCarree(), shading = 'auto', vmax = 5, cmap = 'jet')
+    cbar = fig.colorbar(mesh, ax = ax1, label = 'OMI UVAI')
+    #ax1.set_extent([117, 170,70,  85], ccrs.PlateCarree())
+    if(auto_zoom):
+        ax1.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    else:
+        ax1.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+        ax1.set_boundary(circle, transform=ax1.transAxes)
+    ax1.set_title('OMI UVAI')
+    ax1.coastlines()
+    
+    plot_MODIS_channel(modis_date, 'true_color', swath = True, \
+        zoom = True, ax = ax2)
+    #mesh = ax2.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_calc, \
+    #    transform = ccrs.PlateCarree(), shading = 'auto')
+    #cbar = fig.colorbar(mesh, ax = ax2, label = 'SWF [Wm$^{-2}$]')
+    #ax2.set_extent([117, 170,70,  85], ccrs.PlateCarree())
+    if(auto_zoom):
+        ax2.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    else:
+        ax2.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+        ax2.set_boundary(circle, transform=ax2.transAxes)
+    ax2.set_title('Aqua MODIS\nTrue Color')
+    ax2.coastlines()
+    
+    # Figure out the high AI indices
+    # ------------------------------
+    hatch_style = '///'
+    if(auto_zoom):
+
+        # Figure out where the pixels containing AI are located
+        # -----------------------------------------------------
+        hasher = np.ma.masked_invalid(mask_AI)
+        hasher = np.ma.masked_where(hasher < 1.5, \
+            hasher)
+
+        print("MIN MASK AI:", np.min(hasher), 'MAX MASK AI:', np.nanmax(hasher))
+
+        ax2.pcolor(work_lons, in_calc['omi_lat'][:,:],\
+            hasher, hatch = 'xx', alpha=0., transform = datacrs, shading = 'auto')
+
+    
+    plot_subplot_label(ax1, 'a)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax2, 'b)', fontsize = 11, backgroundcolor = None)
+    
+    plt.suptitle(dt_date_str.strftime('%Y-%m-%d %H:%M UTC'))
+    
+    #in_base.close()
+    in_calc.close()
+    
+    fig.tight_layout()
+
+    if(save):    
+        if(auto_zoom):
+            zoom_add = '_zoom'
+        else:
+            zoom_add = ''
+        outname = 'ceres_nn_compare_hashing_' + date_str + '_' + sim_name + zoom_add + '_v2.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+
+
+
+
 def plot_L2_validate_regress_all(sim_name, slope_dict, bin_dict, \
         ai_thresh = 0.7, mod_slopes = None, mod_intercepts = None, \
         mod_cod = None, mod_ice = None, use_intercept = False, \
@@ -11946,17 +12169,41 @@ def plot_compare_NN_output_double(infile1, infile2, auto_zoom = False, \
         #ax9 = fig.add_subplot(2,5,5, sharex = ax10)
 
 
-        fig = plt.figure(figsize = (14, 11))
-        ax1 = fig.add_subplot(3,4,1, projection = workcrs) # date1 - OMI AI - date1
-        ax2 = fig.add_subplot(3,4,2, projection = workcrs) # date1 - CERES SWF
-        ax3 = fig.add_subplot(3,4,3, projection = workcrs) # date1 - NN SWF
-        ax4 = fig.add_subplot(3,4,4, projection = workcrs) # date1 - NN - CERES
-        ax5 = fig.add_subplot(3,4,5, projection = workcrs) # date2 - OMI AI - date1
-        ax6 = fig.add_subplot(3,4,6, projection = workcrs) # date2 - CERES SWF
-        ax7 = fig.add_subplot(3,4,7, projection = workcrs) # date2 - NN SWF
-        ax8 = fig.add_subplot(3,4,8, projection = workcrs) # date2 - NN - CERES
-        ax10= fig.add_subplot(3,4,10)
-        ax9 = fig.add_subplot(3,4,9, sharey = ax10)
+        #fig = plt.figure(figsize = (14, 11))
+        #ax1 = fig.add_subplot(3,4,1, projection = workcrs) # date1 - OMI AI - date1
+        #ax2 = fig.add_subplot(3,4,2, projection = workcrs) # date1 - CERES SWF
+        #ax3 = fig.add_subplot(3,4,3, projection = workcrs) # date1 - NN SWF
+        #ax4 = fig.add_subplot(3,4,4, projection = workcrs) # date1 - NN - CERES
+        #ax5 = fig.add_subplot(3,4,5, projection = workcrs) # date2 - OMI AI - date1
+        #ax6 = fig.add_subplot(3,4,6, projection = workcrs) # date2 - CERES SWF
+        #ax7 = fig.add_subplot(3,4,7, projection = workcrs) # date2 - NN SWF
+        #ax8 = fig.add_subplot(3,4,8, projection = workcrs) # date2 - NN - CERES
+        #ax10= fig.add_subplot(3,4,10)
+        #ax9 = fig.add_subplot(3,4,9, sharey = ax10)
+
+        fig = plt.figure(figsize = (10, 10), constrained_layout = True)
+        subfigs = fig.subfigures(nrows = 2, ncols = 1, wspace = 0.01)
+      
+        ax1 = subfigs[0].add_subplot(2,4,1, projection = ccrs.NorthPolarStereo()) 
+        ax2 = subfigs[0].add_subplot(2,4,2, projection = ccrs.NorthPolarStereo()) 
+        ax3 = subfigs[0].add_subplot(2,4,3, projection = ccrs.NorthPolarStereo()) 
+        ax4 = subfigs[0].add_subplot(2,4,4, projection = ccrs.NorthPolarStereo()) 
+        ax5 = subfigs[0].add_subplot(2,4,5, projection = ccrs.NorthPolarStereo()) 
+        ax6 = subfigs[0].add_subplot(2,4,6, projection = ccrs.NorthPolarStereo()) 
+        ax7 = subfigs[0].add_subplot(2,4,7, projection = ccrs.NorthPolarStereo()) 
+        ax8 = subfigs[0].add_subplot(2,4,8, projection = ccrs.NorthPolarStereo()) 
+
+        axs2  = subfigs[1].subplots(nrows = 1, ncols = 2, sharex = True, sharey = True)
+        ax9 = axs2[0]
+        ax10 = axs2[1]
+        #ax9  = subfigs[1].add_subplot(2,1,1)
+        #ax10 = subfigs[1].add_subplot(2,1,2)
+
+        #axs1 = [subfigs[0].add_subplot(6,1,ii, projection = ccrs.NorthPolarStereo()) for ii in range(1,7)]
+        #axs2 = [subfigs[1].add_subplot(6,1,ii, projection = ccrs.NorthPolarStereo()) for ii in range(1,7)]
+        #axs3 = [subfigs[2].add_subplot(6,1,ii, projection = ccrs.NorthPolarStereo()) for ii in range(1,7)]
+
+
     else:
         fig = plt.figure(figsize = (12.0, 7.5))
         #fig = plt.figure(figsize = (13, 10))
@@ -11969,6 +12216,9 @@ def plot_compare_NN_output_double(infile1, infile2, auto_zoom = False, \
         ax7 = fig.add_subplot(2,4,7, projection = workcrs) # date2 - NN SWF
         ax8 = fig.add_subplot(2,4,8, projection = workcrs) # date2 - NN - CERES
 
+        fig2 = plt.figure(figsize = (9, 4))
+        ax9 = fig2.add_subplot(1,2,1)
+        ax10 = fig2.add_subplot(1,2,2)
    
     # Plot OMI UVAI
     # ------------- 
@@ -12031,30 +12281,34 @@ def plot_compare_NN_output_double(infile1, infile2, auto_zoom = False, \
 
     # Plot scatter figures
     # --------------------
-    if(include_scatter):
-        mask_orig = np.ma.masked_where(in_calc['omi_uvai_pert'][:,:] > 1.0, mask_orig)
-        mask_calc = np.ma.masked_where(in_calc['omi_uvai_pert'][:,:] > 1.0, mask_calc)
-        both_orig = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_orig)
-        both_calc = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_calc)
-        both_orig = both_orig.compressed()
-        both_calc = both_calc.compressed()
-        xy = np.vstack([both_orig, both_calc])
-        print("HERE:", both_orig.shape[0])
-        if(len(both_orig) > 1):
-            r2 = r2_score(both_orig, both_calc)
-            z = stats.gaussian_kde(xy)(xy)       
-            ax9.scatter(both_orig, both_calc, c = z, s = 1)
-            lims = [\
-                    np.min([ax9.get_xlim(), ax9.get_ylim()]),\
-                    np.max([ax9.get_xlim(), ax9.get_ylim()]),
-            ]
-            ax9.plot(lims, lims, 'r', linestyle = ':', alpha = 1.00)
-            ax9.set_xlim(lims)
-            ax9.set_ylim(lims)
-            ax9.grid(alpha = 0.5)
-            #ax9.set_xlabel('CERES SWF')
-            ax9.set_ylabel('NN SWF')
-            ax9.set_xticklabels([])
+    #if(include_scatter):
+    mask_orig = np.ma.masked_where(in_calc['omi_uvai_pert'][:,:] > 1.0, mask_orig)
+    mask_calc = np.ma.masked_where(in_calc['omi_uvai_pert'][:,:] > 1.0, mask_calc)
+    both_orig = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_orig)
+    both_calc = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_calc)
+    both_orig = both_orig.compressed()
+    both_calc = both_calc.compressed()
+    xy = np.vstack([both_orig, both_calc])
+    print("HERE:", both_orig.shape[0])
+    if(len(both_orig) > 1):
+        r2 = r2_score(both_orig, both_calc)
+        z = stats.gaussian_kde(xy)(xy)       
+        ax9.scatter(both_orig, both_calc, c = z, s = 1)
+        lims = [\
+                np.min([ax9.get_xlim(), ax9.get_ylim()]),\
+                np.max([ax9.get_xlim(), ax9.get_ylim()]),
+        ]
+        ax9.plot(lims, lims, 'r', linestyle = ':', alpha = 1.00)
+        ax9.set_xlim(lims)
+        ax9.set_ylim(lims)
+        ax9.grid(alpha = 0.5)
+        ax9.set_xlabel('CERES SWF [Wm$^{-2}$]')
+        ax9.set_ylabel('NN SWF [Wm$^{-2}$]')
+        #ax9.set_xticklabels([])
+        ax9.set_title(dt_date_str1.strftime('%Y-%m-%d %H:%M UTC\nAerosol-free Swath'))
+        ptext = 'r$^{2}$ = ' + str(np.round(r2, 3))
+        plot_figure_text(ax9, ptext, xval = 450, yval = 100, \
+            fontsize = 10, color = 'black', weight = None, backgroundcolor = 'white')
 
     in_calc.close()
 
@@ -12136,31 +12390,36 @@ def plot_compare_NN_output_double(infile1, infile2, auto_zoom = False, \
     ax8.coastlines()
   
 
-    if(include_scatter):
-        # Plot scatter figures
-        # --------------------
-        mask_orig = np.ma.masked_where(in_calc['omi_uvai_pert'][:,:] > 1.0, mask_orig)
-        mask_calc = np.ma.masked_where(in_calc['omi_uvai_pert'][:,:] > 1.0, mask_calc)
-        both_orig = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_orig)
-        both_calc = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_calc)
-        both_orig = both_orig.compressed()
-        both_calc = both_calc.compressed()
-        xy = np.vstack([both_orig, both_calc])
-        print("HERE:", both_orig.shape[0])
-        if(len(both_orig) > 1):
-            r2 = r2_score(both_orig, both_calc)
-            z = stats.gaussian_kde(xy)(xy)       
-            ax10.scatter(both_orig, both_calc, c = z, s = 1)
-            lims = [\
-                    np.min([ax10.get_xlim(), ax10.get_ylim()]),\
-                    np.max([ax10.get_xlim(), ax10.get_ylim()]),
-            ]
-            ax10.plot(lims, lims, 'r', linestyle = ':', alpha = 1.00)
-            ax10.set_xlim(lims)
-            ax10.set_ylim(lims)
-            ax10.grid(alpha = 0.5)
-            ax10.set_xlabel('CERES SWF')
-            ax10.set_ylabel('NN SWF')
+    #if(include_scatter):
+    # Plot scatter figures
+    # --------------------
+    mask_orig = np.ma.masked_where(in_calc['omi_uvai_pert'][:,:] > 1.0, mask_orig)
+    mask_calc = np.ma.masked_where(in_calc['omi_uvai_pert'][:,:] > 1.0, mask_calc)
+    both_orig = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_orig)
+    both_calc = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_calc)
+    both_orig = both_orig.compressed()
+    both_calc = both_calc.compressed()
+    xy = np.vstack([both_orig, both_calc])
+    print("HERE:", both_orig.shape[0])
+    if(len(both_orig) > 1):
+        r2 = r2_score(both_orig, both_calc)
+        z = stats.gaussian_kde(xy)(xy)       
+        ax10.scatter(both_orig, both_calc, c = z, s = 1)
+        lims = [\
+                np.min([ax10.get_xlim(), ax10.get_ylim()]),\
+                np.max([ax10.get_xlim(), ax10.get_ylim()]),
+        ]
+        ax10.plot(lims, lims, 'r', linestyle = ':', alpha = 1.00)
+        ax10.set_xlim(lims)
+        ax10.set_ylim(lims)
+        ax10.grid(alpha = 0.5)
+        ax10.set_xlabel('CERES SWF [Wm$^{-2}$]')
+        #ax10.set_ylabel('NN SWF')
+        ax10.set_yticklabels([])
+        ax10.set_title(dt_date_str2.strftime('%Y-%m-%d %H:%M UTC\nAerosol Swath (Plotted for AI < 1)'))
+        ptext = 'r$^{2}$ = ' + str(np.round(r2, 3))
+        plot_figure_text(ax10, ptext, xval = 450, yval = 100, \
+            fontsize = 10, color = 'black', weight = None, backgroundcolor = 'white')
 
  
     in_calc.close()
@@ -12204,14 +12463,19 @@ def plot_compare_NN_output_double(infile1, infile2, auto_zoom = False, \
     plot_subplot_label(ax6, 'f)', fontsize = 11, backgroundcolor = None)
     plot_subplot_label(ax7, 'g)', fontsize = 11, backgroundcolor = None)
     plot_subplot_label(ax8, 'h)', fontsize = 11, backgroundcolor = None)
-    
-    plt.suptitle(dt_date_str1.strftime('Top:       %Y-%m-%d %H:%M UTC') + '\n' + \
-                 dt_date_str2.strftime('Bottom: %Y-%m-%d %H:%M UTC'))
-    
-    #fig.tight_layout()
-    #fig.tight_layout(rect = [0,0.05,1,1])
 
-    fig.subplots_adjust(wspace = 0.1, hspace = 0.00)
+    plot_subplot_label(ax9, 'i)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax10,'j)', fontsize = 11, backgroundcolor = None)
+    
+    fig.suptitle(dt_date_str1.strftime('Top:       %Y-%m-%d %H:%M UTC') + '\n' + \
+                 dt_date_str2.strftime('Bottom: %Y-%m-%d %H:%M UTC'))
+   
+    fig2.suptitle('Comparison of NN and CERES SWF')
+ 
+    fig.tight_layout(rect = [0,0.05,1,1])
+    fig2.tight_layout()
+
+    #fig.subplots_adjust(wspace = 0.1, hspace = 0.00)
 
     if(save):    
         if(auto_zoom):
@@ -12220,6 +12484,10 @@ def plot_compare_NN_output_double(infile1, infile2, auto_zoom = False, \
             zoom_add = ''
         outname = 'ceres_nn_compare_dual_v2_' + date_str1 + '_' + date_str2 + '_' + sim_name1 + zoom_add + '.png'
         fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+
+        outname = 'ceres_nn_compare_dual_scatter_' + date_str1 + '_' + date_str2 + '_' + sim_name1 + '.png'
+        fig2.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
         plt.subplot_tool()
@@ -14827,7 +15095,7 @@ def calc_force_vals_bulk(daily_dict, err_mean, err_std, minlat = 65.5, \
 
 # pvar: 'mean', 'stdev', 'min', 'max'
 def plot_bulk_sim_trends(daily_dict, forcing_trends, pvar, vmax = 1.0, \
-        save = False):
+        conf_window = 90, save = False):
 
     if(pvar == 'mean'):
         plot_trends = np.mean(forcing_trends, axis = 0)
@@ -14858,6 +15126,17 @@ def plot_bulk_sim_trends(daily_dict, forcing_trends, pvar, vmax = 1.0, \
     #num_sims = forcing_trends.shape[0]
     #stderr_trends = stdv_trends / np.sqrt(num_sims)
 
+    if(conf_window == 90):
+        conf_val = 1.645
+    elif(conf_window == 95):
+        conf_val = 1.960
+    else:
+        print("CURRENTLY INVALID CONFIDENCE INTERVAL. USING 90")
+        conf_val = 1.645
+
+    #window_min = plot_trends[month_idx,:,:] - (stdv_trends[month_idx,:,:] * conf_val)
+    #window_max = plot_trends[month_idx,:,:] + (stdv_trends[month_idx,:,:] * conf_val)
+
     plt.close('all')
     fig = plt.figure(figsize = (9, 8.5))
     ax1  = fig.add_subplot(2,3,1, projection = ccrs.NorthPolarStereo())
@@ -14882,13 +15161,19 @@ def plot_bulk_sim_trends(daily_dict, forcing_trends, pvar, vmax = 1.0, \
         flat_axs[ii].set_title(str(ii))
 
         if(pvar == 'mean'):
-            window_min = plot_trends[ii,:,:] - (stdv_trends[ii,:,:] * 1.0)
-            window_max = plot_trends[ii,:,:] + (stdv_trends[ii,:,:] * 1.0)
+            #window_min = plot_trends[ii,:,:] - (stdv_trends[ii,:,:] * 1.0)
+            #window_max = plot_trends[ii,:,:] + (stdv_trends[ii,:,:] * 1.0)
+
+            #hasher = np.ma.masked_where(  \
+            #    (plot_trends[ii,:,:] == 0) |
+            #    ((plot_trends[ii,:,:] < 0) & (window_max[:,:] > 0)) | \
+            #    ((plot_trends[ii,:,:] > 0) & (window_min[:,:] < 0)), plot_trends[ii,:,:])
 
             hasher = np.ma.masked_where(  \
-                (plot_trends[ii,:,:] == 0) |
-                ((plot_trends[ii,:,:] < 0) & (window_max[:,:] > 0)) | \
-                ((plot_trends[ii,:,:] > 0) & (window_min[:,:] < 0)), plot_trends[ii,:,:])
+                 (plot_trends[ii,:,:] == 0) |
+                 (np.abs(plot_trends[ii,:,:]) < \
+                  (stdv_trends[ii,:,:] * conf_val)), plot_trends[ii, :,:])
+
 
             #hasher = np.ma.masked_where( (np.abs(plot_trends[ii,:,:]) <= 1.0 * stdv_trends[ii,:,:]), plot_trends[ii,:,:])
             flat_axs[ii].pcolor(daily_dict['longitude'][:], daily_dict['latitude'][:], \
@@ -14907,7 +15192,7 @@ def plot_bulk_sim_trends(daily_dict, forcing_trends, pvar, vmax = 1.0, \
 
     if(pvar == 'mean'):
         plt.suptitle('Mean of ' + str(int(forcing_trends.shape[0])) + \
-            ' Forcing Trends\nHashing = Trend mean is more than 1 standard deviation from 0')
+            ' Observation-based Aerosol Direct Forcing Trends\nHashing = 90% Confidence in the trend being nonzero')
     elif(pvar == 'stdev'):
         plt.suptitle('Standard Deviation of ' + str(int(forcing_trends.shape[0])) + \
             ' Forcing Trends\nHashing = Trend mean is greater than standard deviation')
@@ -16212,6 +16497,268 @@ def plot_force_trend_mean_std_dist(daily_dict, forcing_trends, month_idx, \
 
 
 
+def plot_bulk_force_AI_trend_v2(daily_dict, forcing_trends, OMI_daily_data, \
+        vmax = 1.0, min_AI = None, max_AI = None, minlat = 65.5, \
+        maxlat = 90.5,  conf_level = 90., save = False):
+
+    if(isinstance(OMI_daily_data, str)):
+        if(min_AI is None):
+            print("ERROR: If providing an OMI daily file, must provide min_AI")
+            return
+
+        print("Reading daily OMI data from", OMI_daily_data)
+        print("Converting daily data to monthly omi_uvai_pert averages")
+        OMI_daily_data = calcOMI_MonthAvg_FromDaily(OMI_daily_data, \
+            min_AI = min_AI, max_AI = max_AI, minlat = minlat, maxlat = maxlat)
+
+    str_conf_level = str(conf_level)
+    if(conf_level > 1):
+        conf_level = conf_level / 100.
+    else:
+        str_conf_level = str(conf_level * 100)
+
+    mean_trends = np.nanmean(forcing_trends, axis = 0)
+    stdv_trends = np.std(forcing_trends, axis = 0)
+    stderr_trends = sem(forcing_trends, axis = 0), 
+    #stderr_trend = stdv_trend / np.sqrt(in_arr.shape[0])
+    conf_intvl = statnorm.interval(alpha = conf_level, \
+        loc = mean_trends, scale = stdv_trends)
+
+    #conf_intvl = statnorm.interval(alpha = conf_level, \
+    #    loc = mean_trend, scale = stdv_trend, )
+   
+    plt.close('all') 
+    fig = plt.figure(figsize = (7, 14), constrained_layout = False)
+    #subfigs = fig.subfigures(nrows = 1, ncols = 3, wspace = 0.04)
+    #
+    #axs1 = [subfigs[0].add_subplot(6,1,ii, projection = ccrs.NorthPolarStereo()) for ii in range(1,7)]
+    #axs2 = [subfigs[1].add_subplot(6,1,ii, projection = ccrs.NorthPolarStereo()) for ii in range(1,7)]
+    #axs3 = [subfigs[2].add_subplot(6,1,ii, projection = ccrs.NorthPolarStereo()) for ii in range(1,7)]
+    
+    ax01 = fig.add_subplot(6,3,1, projection = ccrs.NorthPolarStereo())
+    ax02 = fig.add_subplot(6,3,4, projection = ccrs.NorthPolarStereo())
+    ax03 = fig.add_subplot(6,3,7, projection = ccrs.NorthPolarStereo())
+    ax04 = fig.add_subplot(6,3,10, projection = ccrs.NorthPolarStereo())
+    ax05 = fig.add_subplot(6,3,13, projection = ccrs.NorthPolarStereo())
+    ax06 = fig.add_subplot(6,3,16, projection = ccrs.NorthPolarStereo())
+
+    ax11 = fig.add_subplot(6,3,2, projection = ccrs.NorthPolarStereo())
+    ax12 = fig.add_subplot(6,3,5, projection = ccrs.NorthPolarStereo())
+    ax13 = fig.add_subplot(6,3,8, projection = ccrs.NorthPolarStereo())
+    ax14 = fig.add_subplot(6,3,11, projection = ccrs.NorthPolarStereo())
+    ax15 = fig.add_subplot(6,3,14, projection = ccrs.NorthPolarStereo())
+    ax16 = fig.add_subplot(6,3,17, projection = ccrs.NorthPolarStereo())
+
+    ax21 = fig.add_subplot(6,3,3, projection = ccrs.NorthPolarStereo())
+    ax22 = fig.add_subplot(6,3,6, projection = ccrs.NorthPolarStereo())
+    ax23 = fig.add_subplot(6,3,9, projection = ccrs.NorthPolarStereo())
+    ax24 = fig.add_subplot(6,3,12, projection = ccrs.NorthPolarStereo())
+    ax25 = fig.add_subplot(6,3,15, projection = ccrs.NorthPolarStereo())
+    ax26 = fig.add_subplot(6,3,18, projection = ccrs.NorthPolarStereo())
+
+    omi_axs = [ax01,ax02, ax03, ax04, ax05, ax06]
+    mean_axs = [ax11,ax12, ax13, ax14, ax15, ax16]
+    stdv_axs = [ax21,ax22, ax23, ax24, ax25, ax26]
+    #total_list = [axs1, axs2, axs3]
+  
+    hasher = np.ma.masked_where( \
+        (mean_trends == 0 ) |
+        ( ((mean_trends > 0) & (conf_intvl[0] < 0)) | \
+          ((mean_trends < 0) & (conf_intvl[1] > 0)) ), mean_trends) 
 
 
+    titlers = ['Apr','May','June','July','Aug','Sep']
+    for ii in range(6):
+
+        # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   
+        #
+        # Plot the OMI trends
+        #
+        # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   
+        grid_trends = np.full( (OMI_daily_data['AI'].shape[1],  \
+            OMI_daily_data['AI'].shape[2]), np.nan)
+        for jj in range(OMI_daily_data['AI'].shape[1]):
+            for kk in range(OMI_daily_data['AI'].shape[2]):
+                # Plot the individual runs
+                # ------------------------
+                local_sim_vals = OMI_daily_data['AI'][ii::6,jj,kk]
+                x_vals = np.arange(local_sim_vals.shape[0])
+    
+                #if(trend_type=='standard'): 
+                result = stats.linregress(x_vals, local_sim_vals[:])
+                grid_trends[jj,kk] = result.slope * len(x_vals)
+                #grid_trends[ii,jj,kk] = result.slope * len(x_vals)
+    
+                    #slope, intercept, r_value, p_value, std_err = \
+                    #    stats.linregress(x_vals,work_mask.compressed())
+                    #forcing_trends[i,j] = result.slope * len(x_vals)
+                    #forcing_pvals[i,j]  = result.pvalue
+                    #forcing_uncert[i,j] = result.stderr * len(x_vals)
+                #else:
+                #    res = stats.theilslopes(local_sim_vals[jj,:], x_vals, 0.90)
+                #    trend_results[jj] = res[0] * len(x_vals)
+                #    #forcing_trends[i,j] = res[0]*len(x_vals)
+    
+    
+        omi_mesh = omi_axs[ii].pcolormesh(OMI_daily_data['LON'], OMI_daily_data['LAT'], \
+            grid_trends[:,:], transform = ccrs.PlateCarree(), \
+            #grid_trends[ii,:,:], transform = ccrs.PlateCarree(), \
+            shading = 'auto', cmap = 'bwr', vmin = -0.5, vmax = 0.5)
+        omi_axs[ii].set_boundary(circle, transform=omi_axs[ii].transAxes)
+        omi_axs[ii].coastlines()
+        omi_axs[ii].set_extent([-180,180,65,90], ccrs.PlateCarree())
+        #omi_axs[ii].set_title(titlers[ii])
+
+ 
+        # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   
+        #
+        # Plot the mean forcing trends
+        #
+        # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   
+
+        mean_mesh = mean_axs[ii].pcolormesh(daily_dict['longitude'][:], \
+            daily_dict['latitude'][:], mean_trends[ii,:,:], \
+            cmap = 'bwr', vmin = -vmax, vmax = vmax, \
+            transform = ccrs.PlateCarree(), shading = 'auto')
+        #cbar = fig.colorbar(mesh, ax = flat_axs[ii], pad = 0.03, fraction = 0.045)
+        mean_axs[ii].set_boundary(circle, transform = mean_axs[ii].transAxes)
+        mean_axs[ii].coastlines()
+        mean_axs[ii].set_extent([-180,180,65,90], ccrs.PlateCarree())
+        #omi_axs[ii].set_title(str(ii))
+
+        pvar = 'mean'
+        if(pvar == 'mean'):
+            #window_min = mean_trends[ii,:,:] - (stdv_trends[ii,:,:] * 1.0)
+            #window_max = mean_trends[ii,:,:] + (stdv_trends[ii,:,:] * 1.0)
+
+            #hasher = np.ma.masked_where(\
+            #    (mean_trends[ii,:,:] == 0) |
+            #    ((np.abs(mean_trends[ii,:,:]) < (stdv_trends[ii,:,:] + conf_inte)
+
+            #hasher = np.ma.masked_where(  \
+            #     (mean_trends[ii,:,:] == 0) |
+            #    ((mean_trends[ii,:,:] < 0) & (window_max[:,:] > 0)) | \
+            #    ((mean_trends[ii,:,:] > 0) & (window_min[:,:] < 0)), mean_trends[ii,:,:])
+
+            #hasher = np.ma.masked_where( (np.abs(plot_trends[ii,:,:]) <= 1.0 * stdv_trends[ii,:,:]), plot_trends[ii,:,:])
+            mean_axs[ii].pcolor(daily_dict['longitude'][:], \
+                daily_dict['latitude'][:], hasher[ii,:,:], hatch = '....', alpha=0., \
+                shading = 'auto', transform = ccrs.PlateCarree())
+
+
+        # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   
+        #
+        # Plot the stdv forcing trends
+        #
+        # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   
+        stdv_mesh = stdv_axs[ii].pcolormesh(daily_dict['longitude'][:], \
+            daily_dict['latitude'][:], stdv_trends[ii,:,:], \
+            cmap = 'jet', vmin = 0, vmax = vmax, \
+            transform = ccrs.PlateCarree(), shading = 'auto')
+        #cbar = fig.colorbar(mesh, ax = flat_axs[ii], pad = 0.03, fraction = 0.045)
+        stdv_axs[ii].set_boundary(circle, transform = stdv_axs[ii].transAxes)
+        stdv_axs[ii].coastlines()
+        stdv_axs[ii].set_extent([-180,180,65,90], ccrs.PlateCarree())
+        #omi_axs[ii].set_title(str(ii))
+ 
+    omi_axs[0].set_title('OMI UVAI Trend')
+    mean_axs[0].set_title('ADRF Trend Mean')
+    stdv_axs[0].set_title('ADRF Trend St. Dev.')
+
+
+    fig.tight_layout(rect = [0.04,0.05,1,1.00])
+
+    row_label_size = 10
+    plotloc = omi_axs[0].get_position() 
+    fig.text(plotloc.xmin - 0.03, (plotloc.ymax + plotloc.ymin) / 2., \
+        'April', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    #fig.text( ((plotloc.xmax + plotloc.xmin) / 2), plotloc.ymax + 0.02, \
+    #    'OMI UVAI Trend', ha = 'center', va = 'center', \
+    #    rotation = 'horizontal', weight = 'bold', fontsize = row_label_size + 1)
+    plotloc = omi_axs[1].get_position() 
+    fig.text(plotloc.xmin - 0.03, (plotloc.ymax + plotloc.ymin) / 2., \
+        'May', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    plotloc = omi_axs[2].get_position() 
+    fig.text(plotloc.xmin - 0.03, (plotloc.ymax + plotloc.ymin) / 2., \
+        'June', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    plotloc = omi_axs[3].get_position() 
+    fig.text(plotloc.xmin - 0.03, (plotloc.ymax + plotloc.ymin) / 2., \
+        'July', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    plotloc = omi_axs[4].get_position() 
+    fig.text(plotloc.xmin - 0.03, (plotloc.ymax + plotloc.ymin) / 2., \
+        'August', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    plotloc = omi_axs[5].get_position() 
+    fig.text(plotloc.xmin - 0.03, (plotloc.ymax + plotloc.ymin) / 2., \
+        'September', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+
+
+
+    #fig.text(axs1[5].get_position().xmin, axs1[5].get_position().ymin, '-')
+    #fig.text(axs1[5].get_position().xmin, axs1[5].get_position().ymax, '+')
+    #fig.text(axs1[5].get_position().xmax, axs1[5].get_position().ymin, '0')
+    #fig.text(axs1[5].get_position().xmax, axs1[5].get_position().ymax, 'l')
+
+    #fig.text(axs2[5].get_position().xmin, axs2[5].get_position().ymin, '-')
+    #fig.text(axs2[5].get_position().xmin, axs2[5].get_position().ymax, '+')
+    #fig.text(axs2[5].get_position().xmax, axs2[5].get_position().ymin, '0')
+    #fig.text(axs2[5].get_position().xmax, axs2[5].get_position().ymax, 'l')
+
+    #fig.text(axs3[5].get_position().xmin, axs3[5].get_position().ymin, '-')
+    #fig.text(axs3[5].get_position().xmin, axs3[5].get_position().ymax, '+')
+    #fig.text(axs3[5].get_position().xmax, axs3[5].get_position().ymin, '0')
+    #fig.text(axs3[5].get_position().xmax, axs3[5].get_position().ymax, 'l')
+
+    lowplot1 = omi_axs[5].get_position() 
+    diff_val = 0.01
+    cbar_ax1 = fig.add_axes([lowplot1.x0 + diff_val, lowplot1.y0 - 0.02, \
+        ((lowplot1.x1 - lowplot1.x0) - (diff_val * 2)), 0.01])
+    cbar = fig.colorbar(omi_mesh, \
+        cax = cbar_ax1, shrink = 0.8, orientation = 'horizontal', \
+        label = 'AI Trend', extend = 'max')
+    lowplot1 = mean_axs[5].get_position() 
+    #cbar_ax2 = fig.add_axes([0.40, 0.04, 0.23, 0.01])
+    cbar_ax2 = fig.add_axes([lowplot1.x0 + diff_val, lowplot1.y0 - 0.02, \
+        ((lowplot1.x1 - lowplot1.x0) - (diff_val * 2)), 0.01])
+    cbar = fig.colorbar(mean_mesh, \
+        cax = cbar_ax2, shrink = 0.8, orientation = 'horizontal', \
+        label = 'ADRF Trend [Wm$^{-2}$]', extend = 'both')
+    lowplot1 = stdv_axs[5].get_position() 
+    #cbar_ax3 = fig.add_axes([0.70, 0.04, 0.23, 0.01])
+    cbar_ax3 = fig.add_axes([lowplot1.x0 + diff_val, lowplot1.y0 - 0.02, \
+        ((lowplot1.x1 - lowplot1.x0) - (diff_val * 2)), 0.01])
+    cbar = fig.colorbar(stdv_mesh, \
+        cax = cbar_ax3, shrink = 0.8, orientation = 'horizontal', \
+        label = 'ADRF Trend Std Dev [Wm$^{-2}$]')
+
+    if(save):
+        outname = 'ai_force_trend_combined.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+
+def plot_arctic_avg_region_trends(sim_values, reg_idx):
+    plt.close('all')
+    fig = plt.figure(figsize = (10, 6))
+    axs = fig.subplots(nrows = 2, ncols = 3, sharex = True, sharey = True)
+    flat_axs = axs.flatten()
+    
+    for ii in range(6):
+        flat_axs[ii].plot(sim_values[:,reg_idx,ii::6].T)
+        flat_axs[ii].axhline(0, color = 'k', linestyle = ':')
+
+        result = stats.linregress(x_vals, work_mask.compressed())
+        #slope, intercept, r_value, p_value, std_err = \
+        #    stats.linregress(x_vals,work_mask.compressed())
+        forcing_trends[i,j] = result.slope * len(x_vals)
+        
+    fig.tight_layout()
+    plt.show() 
 
