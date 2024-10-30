@@ -693,9 +693,12 @@ def auto_all_download(date_str, download = True, rewrite_json = False, \
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 def read_colocated(date_str, minlat = 70., zoom = True, \
-        compare_tropomi = False):
-   
-    filename =  data_dir + 'colocated_subset_' + date_str + '.hdf5'
+        compare_tropomi = False, local_dir = None):
+  
+    if(local_dir is None):
+        local_dir = data_dir
+
+    filename =  local_dir + 'colocated_subset_' + date_str + '.hdf5'
     #filename =  data_dir + date_str[:8] + '/colocated_subset_' + date_str + '.hdf5'
     try:
         print(filename)
@@ -711,7 +714,7 @@ def read_colocated(date_str, minlat = 70., zoom = True, \
 
         if(date_str in file_date_dict.keys()):
             date_str2 = file_date_dict[date_str]['MODIS'][0]
-            filename =  data_dir + 'colocated_subset_' + date_str2 + '.hdf5'
+            filename =  local_dir + 'colocated_subset_' + date_str2 + '.hdf5'
             #filename =  data_dir + date_str2[:8] + '/colocated_subset_' + date_str2 + '.hdf5'
             print(filename)
             date_str = date_str2
@@ -1769,7 +1772,7 @@ def plot_compare_OMI_MODIS_v2(date_str, ch1, \
         ax1.set_title('Aqua MODIS True Color')
         ax2.set_title('Aqua MODIS Cloud Mask')
         ax3.set_title('Aqua MODIS 2.1 μm Refl.')
-        ax4.set_title('OMI UVAI Aerosol Index')
+        ax4.set_title('OMI UVAI')
         ax1.set_extent([ 125,165, 70, 85], datacrs)
         ax2.set_extent([ 125,165, 70, 85], datacrs)
         ax3.set_extent([ 125,165, 70, 85], datacrs)
@@ -1779,7 +1782,7 @@ def plot_compare_OMI_MODIS_v2(date_str, ch1, \
         ax1.set_title('Aqua MODIS True Color')
         ax2.set_title('Aqua MODIS Cloud Mask')
         ax3.set_title('Aqua MODIS 2.1 μm Refl.')
-        ax4.set_title('OMI UVAI Aerosol Index')
+        ax4.set_title('OMI UVAI')
         ax1.set_extent([ 145,200, 64, 80], datacrs)
         ax2.set_extent([ 145,200, 64, 80], datacrs)
         ax3.set_extent([ 145,200, 64, 80], datacrs)
@@ -1788,6 +1791,10 @@ def plot_compare_OMI_MODIS_v2(date_str, ch1, \
     else:
         plt.suptitle(dt_date_str.strftime('%H:%M UTC %d %B %Y'))
 
+    plot_subplot_label(ax1, 'a)', fontsize = 11, backgroundcolor = 'white')
+    plot_subplot_label(ax2, 'b)', fontsize = 11, backgroundcolor = 'white')
+    plot_subplot_label(ax3, 'c)', fontsize = 11, backgroundcolor = 'white')
+    plot_subplot_label(ax4, 'd)', fontsize = 11, backgroundcolor = 'white')
     
     fig1.tight_layout()
 
@@ -6615,7 +6622,7 @@ def plot_compare_slopes_scatter(out_dict, combined_data, comp_grid_data, \
 
 # dtype: 'RAW' or 'PERT'
 def calc_pcnt_aerosol_over_type(date_list, min_AI, ax = None, \
-        minlat = 70., dtype = 'RAW', save = False): 
+        minlat = 70., dtype = 'RAW', save = False, local_dir = None): 
 
     count_data  = np.full(len(date_list), np.nan)
     total_count = np.full(len(date_list), np.nan)
@@ -6637,7 +6644,7 @@ def calc_pcnt_aerosol_over_type(date_list, min_AI, ax = None, \
     pcnt_oth_clr    = np.full(len(date_list), np.nan)
     
     for ii, date in enumerate(date_list):
-        coloc_data = read_colocated(date, minlat = minlat)
+        coloc_data = read_colocated(date, minlat = minlat, local_dir = local_dir)
     
         # Test finding the indices with high aerosol
         # ------------------------------------------
@@ -6764,6 +6771,244 @@ def calc_pcnt_aerosol_over_type(date_list, min_AI, ax = None, \
             print("Saved image", outname)
         else:
             plt.show() 
+
+# = = = = = = =
+#
+# These taken from: https://stackoverflow.com/questions/18386210/annotating-ranges-of-data
+#
+# = = = = = = =
+
+##def rotate_point(x, y, angle_rad):
+##    cos,sin = np.cos(angle_rad),np.sin(angle_rad)
+##    return cos*x-sin*y,sin*x+cos*y
+##
+##def draw_brace(ax, span, position, text, text_pos, brace_scale=1.0, beta_scale=300., rotate=False, rotate_text=False):
+##    '''
+##        all positions and sizes are in axes units
+##        span: size of the curl
+##        position: placement of the tip of the curl
+##        text: label to place somewhere
+##        text_pos: position for the label
+##        beta_scale: scaling for the curl, higher makes a smaller radius
+##        rotate: true rotates to place the curl vertically
+##        rotate_text: true rotates the text vertically        
+##    '''
+##    # get the total width to help scale the figure
+##    ax_xmin, ax_xmax = ax.get_xlim()
+##    xax_span = ax_xmax - ax_xmin
+##    resolution = int(span/xax_span*100)*2+1 # guaranteed uneven
+##    beta = beta_scale/xax_span # the higher this is, the smaller the radius
+##    # center the shape at (0, 0)
+##    x = np.linspace(-span/2., span/2., resolution)
+##    # calculate the shape
+##    x_half = x[:int(resolution/2)+1]
+##    y_half_brace = (1/(1.+np.exp(-beta*(x_half-x_half[0])))
+##                + 1/(1.+np.exp(-beta*(x_half-x_half[-1]))))
+##    y = np.concatenate((y_half_brace, y_half_brace[-2::-1]))
+##    # put the tip of the curl at (0, 0)
+##    max_y = np.max(y)    
+##    min_y = np.min(y)
+##    y /= (max_y-min_y)
+##    y *= brace_scale
+##    y -= max_y
+##    # rotate the trace before shifting
+##    if rotate:
+##        x,y = rotate_point(x, y, np.pi/2)
+##    # shift to the user's spot   
+##    x += position[0]        
+##    y += position[1]
+##    ax.autoscale(False)
+##    ax.plot(x, y, color='black', lw=1, clip_on=False)
+##    # put the text
+##    ax.text(text_pos[0], text_pos[1], text, ha='center', va='bottom', rotation=90 if rotate_text else 0)
+
+
+def draw_brace(ax, xspan, yy, text):
+    """Draws an annotated brace outside the axes."""
+    xmin, xmax = xspan
+    xspan = xmax - xmin
+    ax_xmin, ax_xmax = ax.get_xlim()
+    xax_span = ax_xmax - ax_xmin
+
+    ymin, ymax = ax.get_ylim()
+    yspan = ymax - ymin
+    resolution = int(xspan/xax_span*100)*2+1 # guaranteed uneven
+    beta = 300./xax_span # the higher this is, the smaller the radius
+
+    x = np.linspace(xmin, xmax, resolution)
+    x_half = x[:int(resolution/2)+1]
+    y_half_brace = (1/(1.+np.exp(-beta*(x_half-x_half[0])))
+                + 1/(1.+np.exp(-beta*(x_half-x_half[-1]))))
+    y = np.concatenate((y_half_brace, y_half_brace[-2::-1]))
+    y = yy + (.05*y - .01)*yspan # adjust vertical position
+
+    ax.autoscale(False)
+    ax.plot(x, -y, color='black', lw=1, clip_on=False)
+
+    ax.text((xmax+xmin)/2., -yy-.17*yspan, text, ha='center', va='bottom', fontsize = 8)
+
+
+
+# dtype: 'RAW' or 'PERT'
+def calc_pcnt_aerosol_over_type_v2(sim_name, min_AI, ax = None, \
+        minlat = 70., dtype = 'RAW', save = False): 
+
+    file_list = glob('neuralnet_output/test_calc_out_' + sim_name + '*.hdf5')
+
+    count_data   = np.full(len(file_list), np.nan)
+    total_count  = np.full(len(file_list), np.nan)
+    total2_count = np.full(len(file_list), np.nan)
+    pcnt_ice     = np.full(len(file_list), np.nan)
+    pcnt_mix     = np.full(len(file_list), np.nan)
+    pcnt_ocn     = np.full(len(file_list), np.nan)
+    pcnt_lnd     = np.full(len(file_list), np.nan)
+    pcnt_oth     = np.full(len(file_list), np.nan)
+    pcnt_ice_cld = np.full(len(file_list), np.nan)
+    pcnt_mix_cld = np.full(len(file_list), np.nan)
+    pcnt_ocn_cld = np.full(len(file_list), np.nan)
+    pcnt_lnd_cld = np.full(len(file_list), np.nan)
+    pcnt_oth_cld = np.full(len(file_list), np.nan)
+    pcnt_ice_clr = np.full(len(file_list), np.nan)
+    pcnt_mix_clr = np.full(len(file_list), np.nan)
+    pcnt_ocn_clr = np.full(len(file_list), np.nan)
+    pcnt_lnd_clr = np.full(len(file_list), np.nan)
+    pcnt_oth_clr = np.full(len(file_list), np.nan)
+
+    for ii, ff in enumerate(file_list):
+    
+        # Read data from the file
+        # -----------------------
+        data = h5py.File(ff,'r')
+        print(ff)
+
+        # Test finding the indices with high aerosol
+        # ------------------------------------------
+        mask_data = np.ma.masked_invalid(data['omi_uvai_pert'][:,:])
+        mask_data = np.ma.masked_where(data['omi_uvai_pert'][:,:] < min_AI, \
+            mask_data)
+        mask_data = np.ma.masked_where(data['omi_lat'][:,:] < minlat, mask_data)
+        mask_data = np.ma.masked_where(data['nsidc_ice'][:,:] == -999., mask_data)
+
+        mask_ice = np.ma.masked_where((\
+            #data['nsidc_ice'][:,:] == -999.) | (data['nsidc_ice'][:,:] > 100.), \
+             data['nsidc_ice'][:,:] == -999.) | \
+            (data['nsidc_ice'][:,:] > 100.) | \
+            (data['nsidc_ice'][:,:] < 80.), \
+            mask_data)
+        mask_io_mix = np.ma.masked_where((\
+            #data['nsidc_ice'][:,:] == -999.) | (data['nsidc_ice'][:,:] > 100.), \
+             data['nsidc_ice'][:,:] == -999.) | \
+            (data['nsidc_ice'][:,:] >= 80.) | \
+            (data['nsidc_ice'][:,:] < 20.), \
+            mask_data)
+        mask_ocean = np.ma.masked_where((\
+             data['nsidc_ice'][:,:] == -999.) | \
+            (data['nsidc_ice'][:,:] >= 20.) | \
+            (data['nsidc_ice'][:,:] < 0.), \
+            mask_data)
+        mask_land = np.ma.masked_where((\
+             data['nsidc_ice'][:,:] == -999.) | \
+            (data['nsidc_ice'][:,:] != 254.), \
+            mask_data)
+        mask_othr = np.ma.masked_where((\
+             data['nsidc_ice'][:,:] == -999.) | \
+            (data['nsidc_ice'][:,:] < 251) | \
+            (data['nsidc_ice'][:,:] > 253), \
+            mask_data) 
+
+        count_data_val = mask_data.compressed().size
+        count_ice      = mask_ice.compressed().size
+        count_mix      = mask_io_mix.compressed().size
+        count_ocean    = mask_ocean.compressed().size
+        count_land     = mask_land.compressed().size
+        count_othr     = mask_othr.compressed().size
+
+        totals         = count_ice + count_mix + count_ocean + count_land + \
+            count_othr
+    
+        pcnt_ice_val = (count_ice / count_data_val) * 100.
+        pcnt_mix_val = (count_mix / count_data_val) * 100.
+        pcnt_ocn_val = (count_ocean / count_data_val) * 100.
+        pcnt_lnd_val = (count_land / count_data_val) * 100.
+        pcnt_oth_val = (count_othr / count_data_val) * 100.
+  
+        calc_sum = pcnt_ice_val + pcnt_mix_val + pcnt_ocn_val + pcnt_lnd_val + pcnt_oth_val  
+        if((calc_sum) != 100):
+            print("BAD SUM: ", ff, calc_sum)
+ 
+        count_data[ii]  = count_data_val
+        pcnt_ice[ii]    = pcnt_ice_val 
+        pcnt_mix[ii]    = pcnt_mix_val 
+        pcnt_ocn[ii]    = pcnt_ocn_val 
+        pcnt_lnd[ii]    = pcnt_lnd_val 
+        pcnt_oth[ii]    = pcnt_oth_val 
+        total_count[ii] = totals
+
+    print('    date      cnt    ice   mix    ocn    lnd    oth     tot')
+    for ii, date in enumerate(file_list):
+        print("%s %5d %6.1f %6.1f %6.1f %6.1f %6.1f %6.1f %5d" % \
+            (date, count_data[ii], pcnt_ice[ii], pcnt_mix[ii], pcnt_ocn[ii], \
+            pcnt_lnd[ii], pcnt_oth[ii], (pcnt_ice[ii]+ pcnt_mix[ii]+ pcnt_ocn[ii]+ \
+            pcnt_lnd[ii]+ pcnt_oth[ii]), total_count[ii]))
+            #pcnt_lnd[ii], pcnt_oth[ii], total_count[ii], total2_count[ii]))
+
+    print("TOTAL ACROSS SWATHS:", np.sum(total_count))
+
+    in_ax = True 
+    if(ax is None): 
+        plt.close('all')
+        in_ax = False
+        fig = plt.figure(figsize = (11, 3.5))
+        ax = fig.add_subplot(1,1,1)
+
+    xvals = np.arange(len(file_list))
+    
+    ax.bar(xvals, pcnt_ice, label = 'Ice')
+    ax.bar(xvals, pcnt_mix, bottom = pcnt_ice, label = 'Mix')
+    ax.bar(xvals, pcnt_ocn, bottom = pcnt_ice + pcnt_mix, label = 'Ocean')
+    ax.bar(xvals, pcnt_lnd, bottom = pcnt_ice + pcnt_mix + pcnt_ocn, label = 'Land')
+    ax.bar(xvals, pcnt_oth, bottom = pcnt_ice + pcnt_mix + pcnt_ocn + pcnt_lnd, label = 'Other')
+    ax.set_xlim([np.min(xvals), np.max(xvals)])
+    ax.xaxis.set_visible(False)
+    #lines, labels = ax.get_legend_handles_labels()
+    #lines, labels = [sum(lol, []) for lol in zip(*lines_labels)]
+    #ax.legend()
+    #plt.legend(lines, labels, loc = 'lower center', bbox_to_anchor = (0, 0.01, 1, 1),\
+    ax.legend(loc = 'center left', bbox_to_anchor = (1, 0.5),\
+        ncol=1)
+    
+    # Add brackets to the figure
+    # --------------------------
+    int_dates = np.array([int(ff.strip().split('/')[-1].split('_')[-1][:6]) for ff in file_list])
+    unique_dates = np.unique(int_dates)
+    print(int_dates)
+    for idate in unique_dates:
+        # Find indices of each date
+        # -------------------------
+        date_idxs = np.where(int_dates == idate)
+        beg_idx = date_idxs[0][0]
+        end_idx = date_idxs[0][-1]
+        print(idate, beg_idx, end_idx)
+    
+        #draw_brace(ax, 20, (20, 10), 'test', (20, -5), brace_scale=1.0, beta_scale=300., rotate=True, rotate_text=False)
+        dt_date = datetime.strptime(str(idate), '%Y%m')
+        draw_brace(ax, (beg_idx, end_idx), 0.1, dt_date.strftime('%b\n%Y'))
+
+    if(not in_ax):
+        ax.set_title('SSMIS Surface Types of L2 Arctic OMI Aerosol Swaths' + \
+            '\nPlotted for UVAI > ' + str(min_AI))
+        ax.set_xlabel('Swath Number')
+        ax.set_ylabel('Percent of OMI Aerosol Pixels [%]')
+        ax.set_ylim([0, 100])
+        fig.tight_layout()
+        if(save):
+            outname = 'aerosol_over_type_swath_minAI' + dtype + '_'+ str(int(min_AI*10)) + '_minlat' + str(int(minlat)) + '_v2.png'
+            fig.savefig(outname, dpi = 200)
+            print("Saved image", outname)
+        else:
+            plt.show() 
+
+
 
 def calc_pcnt_aerosol_over_type_dayavgs(day_data, min_AI, ax = None, \
         area_calc = False, hatch_cloud = False, plot_map = False): 
@@ -10118,7 +10363,7 @@ def test_error_calc(OMI_daily_data, OMI_monthly_data, coloc_dict, \
 
     # Calculate the standard error of the SZA-meaned slopes using
     #
-    # ς = std_dev / sqrt(N)
+    # σ_error = std_dev / sqrt(N)
     #
     # ------------------------------------------------------------
     clear_error, cloud_error = calc_slope_error(clear_slopes, cloud_slopes)
@@ -10317,6 +10562,7 @@ def calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
     # Loop over each of the bins and find the slope and intercept
     # (either from linear regression or from Theil-Sen)
     #trend_type = 'theil-sen'
+    dict_dims = ['ice','sza','cod']
     for ii in range(ice_bin_edges.shape[0] - 1):
         print(ice_bin_edges[ii])
         for jj in range(sza_bin_edges.shape[0] - 1):
@@ -10367,6 +10613,7 @@ def calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
     slope_dict['intercepts'] = calc_intcpt
     slope_dict['min_ob'] = min_ob
     slope_dict['ai_min'] = ai_min
+    slope_dict['dict_dims'] = dict_dims
     if(trend_type == 'theil-sen'):
         slope_dict['upper_slopes'] = calc_upper_slopes
         slope_dict['lower_slopes'] = calc_lower_slopes
@@ -10422,7 +10669,8 @@ def plot_NN_bin_slopes_6types(slope_dict, bin_dict, pvar, min_ob = 50, \
     #calc_slopes = np.ma.masked_where(abs(slope_dict['slopes']) > 50, slope_dict['slopes'])
     calc_slopes = np.ma.masked_where(slope_dict['counts'] < min_ob, slope_dict['slopes'])
     calc_counts = np.ma.masked_where(slope_dict['counts'] < min_ob, slope_dict['counts'])
-    calc_errors = np.ma.masked_where(slope_dict['counts'] < min_ob, slope_dict['slope_stderr'])
+    if(pvar == 'errors'):
+        calc_errors = np.ma.masked_where(slope_dict['counts'] < min_ob, slope_dict['slope_stderr'])
   
     print('slope mins', np.min(calc_slopes, axis = (1,2)))
     print('slope maxs', np.max(calc_slopes, axis = (1,2)))
@@ -11112,7 +11360,8 @@ def plot_compare_NN_output_overlay(calc_data, auto_zoom = True, save = False):
 
 
 # Overlays high AI OMI areas on true color imagery and forcing stuff
-def plot_compare_NN_output_overlay_v2(calc_data, auto_zoom = True, save = False):
+def plot_compare_NN_output_overlay_v2(calc_data, auto_zoom = True, \
+        label_xloc = None, label_yloc = None, save = False):
     
     # Load in the JSON file string relations
     # --------------------------------------
@@ -11179,8 +11428,9 @@ def plot_compare_NN_output_overlay_v2(calc_data, auto_zoom = True, save = False)
 
         #fig = plt.figure(figsize = (10.5, 6))
         fig = plt.figure(figsize = (9, 4))
-        ax1 = fig.add_subplot(1,2,1, projection = workcrs) # OMI AI
-        ax2 = fig.add_subplot(1,2,2, projection = workcrs) # True color
+        ax1 = fig.add_subplot(1,3,1, projection = workcrs) # OMI AI
+        ax2 = fig.add_subplot(1,3,2, projection = workcrs) # True color
+        ax3 = fig.add_subplot(1,3,3, projection = workcrs) # True color
         
     else:
         workcrs = ccrs.NorthPolarStereo(central_longitude = 0)
@@ -11189,6 +11439,7 @@ def plot_compare_NN_output_overlay_v2(calc_data, auto_zoom = True, save = False)
         fig = plt.figure(figsize = (9, 4))
         ax1 = fig.add_subplot(1,2,1, projection = workcrs)
         ax2 = fig.add_subplot(1,2,2, projection = workcrs)
+        ax3 = fig.add_subplot(1,2,3, projection = workcrs)
  
     #ax4 = fig.add_subplot(2,3,5)
     
@@ -11217,9 +11468,27 @@ def plot_compare_NN_output_overlay_v2(calc_data, auto_zoom = True, save = False)
     else:
         ax2.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
         ax2.set_boundary(circle, transform=ax2.transAxes)
-    ax2.set_title('Aqua MODIS\nTrue Color')
+    ax2.set_title('Aqua MODIS\nHatch: OMI UVAI > 1.5')
     ax2.coastlines()
-    
+   
+    plot_MODIS_channel(modis_date, 'true_color', swath = True, \
+        zoom = True, ax = ax3)
+    #mesh = ax2.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_calc, \
+    #    transform = ccrs.PlateCarree(), shading = 'auto')
+    #cbar = fig.colorbar(mesh, ax = ax2, label = 'SWF [Wm$^{-2}$]')
+    #ax2.set_extent([117, 170,70,  85], ccrs.PlateCarree())
+    if(auto_zoom):
+        ax3.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    else:
+        ax3.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+        ax3.set_boundary(circle, transform=ax2.transAxes)
+    ax3.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_AI, \
+        transform = ccrs.PlateCarree(), shading = 'auto', vmax = 5, cmap = 'jet', alpha = 0.1)
+    cbar = fig.colorbar(mesh, ax = ax3, label = 'OMI UVAI')
+    ax3.set_title('Aqua MODIS\nOMI UVAI Overlay')
+    ax3.coastlines()
+
+ 
     # Figure out the high AI indices
     # ------------------------------
     hatch_style = '///'
@@ -11236,9 +11505,33 @@ def plot_compare_NN_output_overlay_v2(calc_data, auto_zoom = True, save = False)
         ax2.pcolor(work_lons, in_calc['omi_lat'][:,:],\
             hasher, hatch = 'xx', alpha=0., transform = datacrs, shading = 'auto')
 
-    
-    plot_subplot_label(ax1, 'a)', fontsize = 11, backgroundcolor = None)
-    plot_subplot_label(ax2, 'b)', fontsize = 11, backgroundcolor = None)
+    font_size = 10 
+    if((label_xloc is not None) & (label_yloc is not None)):
+        plot_figure_text(ax1, 'a)', \
+            xval = label_xloc, yval = label_yloc, transform = ccrs.PlateCarree(), \
+            color = 'black', fontsize = font_size, backgroundcolor = 'white', \
+            halign = 'left', weight = 'bold')
+        plot_figure_text(ax2, 'b)', \
+            xval = label_xloc, yval = label_yloc, transform = ccrs.PlateCarree(), \
+            color = 'black', fontsize = font_size, backgroundcolor = 'white', \
+            halign = 'left', weight = 'bold')
+        plot_figure_text(ax3, 'c)', \
+            xval = label_xloc, yval = label_yloc, transform = ccrs.PlateCarree(), \
+            color = 'black', fontsize = font_size, backgroundcolor = 'white', \
+            halign = 'left', weight = 'bold')
+    else:
+        plot_figure_text(ax1, 'a)', \
+            xval = None, yval = None, transform = None, \
+            color = 'black', fontsize = font_size, backgroundcolor = 'white', \
+            halign = 'left', weight = 'bold')
+        plot_figure_text(ax2, 'b)', \
+            xval = None, yval = None, transform = None, \
+            color = 'black', fontsize = font_size, backgroundcolor = 'white', \
+            halign = 'left', weight = 'bold')
+        plot_figure_text(ax3, 'c)', \
+            xval = None, yval = None, transform = None, \
+            color = 'black', fontsize = font_size, backgroundcolor = 'white', \
+            halign = 'left', weight = 'bold')
     
     plt.suptitle(dt_date_str.strftime('%Y-%m-%d %H:%M UTC'))
     
@@ -11383,8 +11676,8 @@ def plot_L2_validate_regress_all(sim_name, slope_dict, bin_dict, \
 
     # Use the plotting function to generate a figure of the results
     # -------------------------------------------------------------
-    plot_scatter_hist_L2_L3_errors(direct_forcings, calc_forcings, \
-        sim_name, save = save)
+    #plot_scatter_hist_L2_L3_errors(direct_forcings, calc_forcings, \
+    #    sim_name, save = save)
 
     if(return_values):
         return direct_forcings, calc_forcings
@@ -11455,7 +11748,7 @@ def plot_hist_L2_L3_errors(direct_forcings, calc_forcings, sim_name, \
         ax.set_xlim(-150, 150)
     else:
         ax.set_xlim(xmin, xmax)
-    ax.set_xlabel('Forcing Errors (Wm$^{-2}$, L2 - L3 forcing)')
+    ax.set_xlabel('Forcing error (L2 - L3) [Wm$^{-2}$]')
     ax.set_ylabel('Counts')
     ax.set_title('Errors between L2 forcing (NN-based) and\n' + \
         'L3-style forcing (AI & LUT) applied to L2 data')
@@ -11475,10 +11768,10 @@ def plot_hist_L2_L3_errors(direct_forcings, calc_forcings, sim_name, \
         x_interval_for_fit = np.linspace(bin_centers[0],bin_centers[-1],200)
         ax.plot(x_interval_for_fit,t(x_interval_for_fit),label='fit',c='tab:red')
         xdiff = ax.get_xlim()[1] - ax.get_xlim()[0]
-        plot_xval = ax.get_xlim()[0]  + xdiff * 0.8
-        plot_yval = ax.get_ylim()[1] * 0.5
-        ptext = 'μ = ' + str(np.round(t.mean.value, 1)) + \
-            '\nς = ' + str(np.round(t.stddev.value, 1))
+        plot_xval = ax.get_xlim()[0]  + xdiff * 0.65
+        plot_yval = ax.get_ylim()[1] * 0.8
+        ptext = 'μ = ' + str(np.round(t.mean.value, 1)) + ' Wm$^{-2}$\n' + \
+            'σ = ' + str(np.round(t.stddev.value, 1)) + ' Wm$^{-2}$'
         plot_figure_text(ax, ptext, xval = plot_xval, yval = plot_yval, \
             fontsize = 10, color = 'black', weight = None, backgroundcolor = 'white')
 
@@ -11544,7 +11837,7 @@ def plot_scatter_hist_L2_L3_errors(direct_forcings, calc_forcings,
     # Plot the scatter of the direct (L2) vs calc (L3) forcings
     #
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-    plot_scatter_L2_L3_errors(direct_forcings, calc_forcigs, sim_name, \
+    plot_scatter_L2_L3_errors(direct_forcings, calc_forcings, sim_name, \
         ax = ax1, delta_calc = delta_calc, save = False)
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -11567,9 +11860,9 @@ def plot_scatter_hist_L2_L3_errors(direct_forcings, calc_forcings,
         plt.show()
 
 def write_L2_L3_validation_values(direct_forcings, calc_forcings, \
-        sim_name, ai_min, bin_dict):
+        sim_name, ai_min, bin_dict, name_add = ''):
 
-    outfile = 'validate_values_' + sim_name + '.hdf5'
+    outfile = 'validate_values_' + sim_name + name_add + '.hdf5'
     
     dset = h5py.File(outfile,'w')
 
@@ -12828,7 +13121,7 @@ def plot_compare_NN_output_noaer(calc_data, num_bins = 100, astrofit = False, \
             ax5.axvline(0, color = 'k', linestyle = '--')
             ax5.axvline(t.mean.value, color = 'r', linestyle = '--')
             ptext = 'μ = ' + str(np.round(t.mean.value, 1)) + \
-                '\nς = ' + str(np.round(t.stddev.value, 1))
+                '\nσ = ' + str(np.round(t.stddev.value, 1))
             #plot_figure_text(ax3, ptext, location = 'lower_right', \
             ax5.set_title(ptext)
             #plot_figure_text(ax5, ptext, xval = 100, yval = 800, \
@@ -12946,7 +13239,8 @@ def plot_NN_scatter_multiCOD(test_dict, cod_bin_edges, \
 def plot_NN_scatter_combined_alltypes(test_dict, bin_dict, \
         ai_min, sza_min, sza_max, trend_type = 'linregress', \
         plot_bounds = False, show_specific_cod = None, \
-        min_ai_for_stats = None, save = False):
+        min_ai_for_stats = None, return_line_vals = False, \
+        ai_calc_bins = None, save = False):
 
     plt.close('all')
     if(len(bin_dict['ice_bin_means']) == 4):
@@ -12954,7 +13248,7 @@ def plot_NN_scatter_combined_alltypes(test_dict, bin_dict, \
         axs = fig.subplots(nrows = 2, ncols = 2, sharex = True, sharey = True)
         num_bins = 4
     elif(len(bin_dict['ice_bin_means']) == 6):
-        fig = plt.figure(figsize = (9, 6))
+        fig = plt.figure(figsize = (9, 7.5))
         axs = fig.subplots(nrows = 2, ncols = 3, sharex = True, sharey = True)
         num_bins = 6
     
@@ -12964,7 +13258,22 @@ def plot_NN_scatter_combined_alltypes(test_dict, bin_dict, \
 
     plot_c = cm.turbo((xvals-np.min(xvals))/\
         (np.max(xvals)-np.min(xvals)))
-  
+ 
+    if(return_line_vals):
+        if(ai_calc_bins is None):
+            ai_calc_bins = np.array([0,2,4,6,30])
+        print("CALCULATING AI AVGS FOR BINS:", ai_calc_bins)
+
+        slope_vals = np.full( (len(bin_dict['ice_bin_means']), \
+            len(bin_dict['cod_bin_means'])), np.nan)
+        intpt_vals = np.full( (len(bin_dict['ice_bin_means']), \
+            len(bin_dict['cod_bin_means'])), np.nan)
+        mean_force_vals = np.full( (len(bin_dict['ice_bin_means']), \
+            len(bin_dict['cod_bin_means']), len(ai_calc_bins) - 1), np.nan)
+        std_force_vals = np.full( (len(bin_dict['ice_bin_means']), \
+            len(bin_dict['cod_bin_means']), len(ai_calc_bins) - 1), np.nan)
+        
+ 
     # Loop over surface types
     # -----------------------
     for ii in range(len(bin_dict['ice_bin_means'])):
@@ -13000,10 +13309,22 @@ def plot_NN_scatter_combined_alltypes(test_dict, bin_dict, \
                     print("ERROR: Plotting trend line with too many points")
                     print("       Preventing this for the sake of computer safety")
                 else:
-                    plot_trend_line(flat_axs[ii], local_xdata, diff_calc, color= plot_c[jj], \
+                    back_data = plot_trend_line(flat_axs[ii], local_xdata, diff_calc, color= plot_c[jj], \
                         linestyle = '-',  slope = trend_type, plot_bounds = plot_bounds)
+                    if(return_line_vals):
+                        slope_vals[ii,jj] = back_data.slope
+                        intpt_vals[ii,jj] = back_data.intercept
 
                 total_count += len(local_xdata)
+
+                if(return_line_vals):
+                    for kk in range(len(ai_calc_bins) - 1):
+                        range_calc = np.ma.masked_where(\
+                            (local_xdata < ai_calc_bins[kk]) | \
+                            (local_xdata > ai_calc_bins[kk + 1]), \
+                            diff_calc).compressed()
+                        mean_force_vals[ii,jj,kk] = np.nanmean(range_calc)
+                        std_force_vals[ii,jj,kk]  = np.nanstd(range_calc)
 
                 if(min_ai_for_stats != None):
                     diff_calc = np.ma.masked_where(local_xdata < min_ai_for_stats, diff_calc).compressed()
@@ -13030,6 +13351,7 @@ def plot_NN_scatter_combined_alltypes(test_dict, bin_dict, \
                 str(int(bin_dict['ice_bin_edges'][ii])) + '%)'
         elif( (bin_dict['ice_bin_edges'][ii + 1] > 150.) ):
             title_str = 'Land'
+        flat_axs[ii].set_ylim(-225, 225)
         flat_axs[ii].set_title(title_str + '\nn = ' + str(total_count))
         #flat_axs[ii].set_title(str(bin_dict['ice_bin_edges'][ii]) + ' - ' + \
         #    str(bin_dict['ice_bin_edges'][ii + 1]) + '\nn = ' + str(total_count))
@@ -13040,15 +13362,15 @@ def plot_NN_scatter_combined_alltypes(test_dict, bin_dict, \
     plot_subplot_label(flat_axs[2], 'c)', fontsize = 12, backgroundcolor = None, location = 'lower_right')
     plot_subplot_label(flat_axs[3], 'd)', fontsize = 12, backgroundcolor = None, location = 'lower_right')
     if(num_bins == 4):
-        flat_axs[2].set_xlabel('OMI AI Pert.')
-        flat_axs[3].set_xlabel('OMI AI Pert.')
+        flat_axs[2].set_xlabel('OMI UVAI Pert.')
+        flat_axs[3].set_xlabel('OMI UVAI Pert.')
         flat_axs[0].set_ylabel('Direct Forcing [Wm$^{-2}$]')
         flat_axs[2].set_ylabel('Direct Forcing [Wm$^{-2}$]')
     #elif(len(bin_dict['ice_bin_means']) == 6):
     elif(num_bins == 6):
-        flat_axs[3].set_xlabel('OMI AI Pert.')
-        flat_axs[4].set_xlabel('OMI AI Pert.')
-        flat_axs[5].set_xlabel('OMI AI Pert.')
+        flat_axs[3].set_xlabel('OMI UVAI Pert.')
+        flat_axs[4].set_xlabel('OMI UVAI Pert.')
+        flat_axs[5].set_xlabel('OMI UVAI Pert.')
         flat_axs[0].set_ylabel('Direct Forcing [Wm$^{-2}$]')
         flat_axs[3].set_ylabel('Direct Forcing [Wm$^{-2}$]')
         plot_subplot_label(flat_axs[4], 'e)', fontsize = 12, backgroundcolor = None, location = 'lower_right')
@@ -13083,6 +13405,7 @@ def plot_NN_scatter_combined_alltypes(test_dict, bin_dict, \
     fig.tight_layout(rect = [0,0.1,1,1])
     #cbar = fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), ax = axs, location = 'bottom', shrink = 0.8)
 
+
     if(save):
         if(show_specific_cod is not None):
             outname = 'nn_force_scatter_combined_' + test_dict['sim_name'] + '_numsfcbins' + str(num_bins) + \
@@ -13097,6 +13420,8 @@ def plot_NN_scatter_combined_alltypes(test_dict, bin_dict, \
     else:   
         plt.show()
 
+    if(return_line_vals):
+        return slope_vals, intpt_vals, mean_force_vals, std_force_vals, ai_calc_bins
 
 
 def test_NN_forcing_daily_L2L3_errs(date_str, OMI_daily_data, \
@@ -13260,7 +13585,7 @@ def plot_NN_forcing_daily(date_str, OMI_daily_data, OMI_monthly_data, \
         local_OMI_daily, shading = 'auto', transform = datacrs, \
         vmin = 0, vmax = 4, cmap = 'jet')
     cbar = fig.colorbar(mesh, ax = ax1, label = 'AI Perturbation')
-    ax1.coastlines()
+    ax1.coastlines(color = 'lightgrey')
     ax1.set_extent([-180,180,65,90], datacrs)
     ax1.set_boundary(circle, transform=ax1.transAxes)
     ax1.set_title('OMI UVAI Perturbation')
@@ -13290,7 +13615,7 @@ def plot_NN_forcing_daily(date_str, OMI_daily_data, OMI_monthly_data, \
         MYD08_data['cod_mean'], shading = 'auto', transform = datacrs, \
         vmin = 0, vmax = 50, cmap = 'viridis')
     cbar = fig.colorbar(mesh, ax = ax3, label = 'Cloud Optical Depth')
-    ax3.coastlines()
+    ax3.coastlines(color = 'lightgrey')
     ax3.set_extent([-180,180,65,90], datacrs)
     ax3.set_extent([-180,180,65,90], datacrs)
     ax3.set_boundary(circle, transform=ax3.transAxes)
@@ -13313,7 +13638,8 @@ def plot_NN_forcing_daily(date_str, OMI_daily_data, OMI_monthly_data, \
     plot_subplot_label(ax3, 'c)', fontsize = 12, backgroundcolor = None)
     plot_subplot_label(ax4, 'd)', fontsize = 12, backgroundcolor = None)
     
-    plt.suptitle(dt_date_str.strftime('Daily Estimated Aerosol Direct Forcing\n%Y-%m-%d'))
+    plt.suptitle(dt_date_str.strftime('Daily Estimated Aerosol Direct ' + \
+        'Radiative Forcing\n%Y-%m-%d'))
 
     fig.tight_layout()
 
@@ -14901,7 +15227,10 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
 
     # Read in the desired files
     # -------------------------
-    files = glob('neuralnet_output_clear/test_calc_out_' + sim_name + '*.hdf5')
+    if(sim_name == 'noland103'):
+        files = glob('neuralnet_output_clear_newfiles/test_calc_out_' + sim_name + '*.hdf5')
+    else:
+        files = glob('neuralnet_output_clear/test_calc_out_' + sim_name + '*.hdf5')
 
     if(len(files) == 0):
         print("ERROR: NO CLEAR FILES FOUND FOR SIM " + sim_name)
@@ -15006,12 +15335,13 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
 
         # Add statistics to plot
         # ----------------------
-        ptext = 'μ = ' + str(np.round(t.mean.value, 1)) + \
-            '\nς = ' + str(np.round(t.stddev.value, 1))
-    
         xdiff = ax.get_xlim()[1] - ax.get_xlim()[0]
-        plot_xval = ax.get_xlim()[0]  + xdiff * 0.8
-        plot_yval = ax.get_ylim()[1] * 0.5
+        plot_xval = ax.get_xlim()[0]  + xdiff * 0.65
+        plot_yval = ax.get_ylim()[1] * 0.8
+        ptext = 'μ = ' + str(np.round(t.mean.value, 1)) + ' Wm$^{-2}$\n' + \
+            'σ = ' + str(np.round(t.stddev.value, 1)) + ' Wm$^{-2}$'
+
+
         #plot_figure_text(ax3, ptext, location = 'lower_right', \
         #ax5.set_title(ptext)
         plot_figure_text(ax, ptext, xval = plot_xval, yval = plot_yval, \
@@ -15028,7 +15358,7 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
 
     ax.axvline(0, linestyle = '--', color = 'k', alpha = 0.5)
 
-    ax.set_xlabel('Errors (NN - obs, Wm$^{-2}$)')
+    ax.set_xlabel('Forcing Error (NN - CERES) [Wm$^{-2}$]')
     ax.set_ylabel('Counts')
     ax.set_title('Errors between L2 CERES & NN output\n' + \
         'under aerosol-free conditions')
@@ -15557,7 +15887,8 @@ def plot_grid_OMI_climo_spatial(OMI_daily_data, min_AI = None, \
         #        #    res = stats.theilslopes(local_sim_vals[jj,:], x_vals, 0.90)
         #        #    trend_results[jj] = res[0] * len(x_vals)
         #        #    #forcing_trends[i,j] = res[0]*len(x_vals)
-    
+   
+        mean_val = np.nanmean(grid_climo) 
     
     #for ii in range(6):
         mesh = axs[ii].pcolormesh(OMI_daily_data['LON'], OMI_daily_data['LAT'], \
@@ -15567,7 +15898,7 @@ def plot_grid_OMI_climo_spatial(OMI_daily_data, min_AI = None, \
         axs[ii].set_boundary(circle, transform=axs[ii].transAxes)
         axs[ii].coastlines()
         axs[ii].set_extent([-180,180,65,90], ccrs.PlateCarree())
-        axs[ii].set_title(titlers[ii])
+        axs[ii].set_title(titlers[ii] + '\nμ = ' + str(np.round(mean_val, 1)))
 
     plot_subplot_label(ax1, 'a)', fontsize = 12, backgroundcolor = 'white')
     plot_subplot_label(ax2, 'b)', fontsize = 12, backgroundcolor = 'white')
@@ -16046,7 +16377,7 @@ def plot_ice_error_histogram(daily_filename, ice_filename, \
     hist = ax.hist(diffs, bins = num_bins)
     if(log_scale):
         ax.set_yscale('log')
-    ax.set_xlabel('Forcing error [W/m2]')
+    ax.set_xlabel('Forcing error [Wm$^{-2}$]')
     ax.set_ylabel('Counts')
     ax.set_title('L3 Daily Forcing Errors Due to Ice Errors' + \
         '\nIce errors: Mean = ' + str(ice_dict['attributes']['ice_err_mean']) + \
@@ -16067,32 +16398,44 @@ def plot_ice_error_histogram(daily_filename, ice_filename, \
         print('StDev:     ',np.round(t.stddev.value,3))
         x_interval_for_fit = np.linspace(bin_centers[0],bin_centers[-1],200)
         ax.plot(x_interval_for_fit,t(x_interval_for_fit),label='fit',c='tab:red')
-        xdiff = ax.get_xlim()[1] - ax.get_xlim()[0]
-        plot_xval = ax.get_xlim()[0]  + xdiff * 0.8
-        plot_yval = ax.get_ylim()[1] * 0.5
+        #xdiff = ax.get_xlim()[1] - ax.get_xlim()[0]
+        #plot_xval = ax.get_xlim()[0]  + xdiff * 0.8
+        #plot_yval = ax.get_ylim()[1] * 0.5
         #ptext = 'μ = ' + str(np.round(t.mean.value, 1)) + \
-        #    '\nς = ' + str(np.round(t.stddev.value, 1))
+        #    '\nσ = ' + str(np.round(t.stddev.value, 1))
         #plot_figure_text(ax, ptext, xval = plot_xval, yval = plot_yval, \
         #    fontsize = 10, color = 'black', weight = None, backgroundcolor = 'white')
 
-    # Add statistics to plot
-    # ----------------------
-    ptext = 'μ = ' + str(np.round(mean_err, 1)) + \
-        '\nς = ' + str(np.round(std_err, 1))
-   
-    ax.set_xlim(xmin, xmax)
-    ax.axvline(0, linestyle = '--', color = 'k', alpha = 0.5)
- 
-    xdiff = ax.get_xlim()[1] - ax.get_xlim()[0]
-    plot_xval = ax.get_xlim()[0]  + xdiff * 0.8
-    if(log_scale):
-        plot_yval = ax.get_ylim()[1] * 0.005
+
+
+        xdiff = ax.get_xlim()[1] - ax.get_xlim()[0]
+        plot_xval = ax.get_xlim()[0]  + xdiff * 0.65
+        plot_yval = ax.get_ylim()[1] * 0.8
+        ptext = 'μ = ' + str(np.round(t.mean.value, 1)) + ' Wm$^{-2}$\n' + \
+            'σ = ' + str(np.round(t.stddev.value, 1)) + ' Wm$^{-2}$'
+
+
     else:
-        plot_yval = ax.get_ylim()[1] * 0.5
-    #plot_figure_text(ax3, ptext, location = 'lower_right', \
-    #ax5.set_title(ptext)
-    plot_figure_text(ax, ptext, xval = plot_xval, yval = plot_yval, \
-        fontsize = 10, color = 'black', weight = None, backgroundcolor = 'white')
+
+        # Add statistics to plot
+        # ----------------------
+        ptext = 'μ = ' + str(np.round(mean_err, 1)) + ' Wm$^{-2}$' + \
+            '\nσ = ' + str(np.round(std_err, 1)) + ' Wm$^{-2}$'
+
+        xdiff = ax.get_xlim()[1] - ax.get_xlim()[0]
+        plot_xval = ax.get_xlim()[0]  + xdiff * 0.65
+        if(log_scale):
+            plot_yval = ax.get_ylim()[1] * 0.05
+        else:
+            plot_yval = ax.get_ylim()[1] * 0.5
+        #plot_figure_text(ax3, ptext, location = 'lower_right', \
+        #ax5.set_title(ptext)
+        plot_figure_text(ax, ptext, xval = plot_xval, yval = plot_yval, \
+            fontsize = 10, color = 'black', weight = None, backgroundcolor = 'white')
+   
+        ax.set_xlim(xmin, xmax)
+        ax.axvline(0, linestyle = '--', color = 'k', alpha = 0.5)
+ 
 
     if(not in_ax):
         fig.tight_layout()
@@ -16167,7 +16510,7 @@ def plot_cod_error_histogram(daily_filename, cod_filename, num_bins = 50, \
     hist = ax.hist(diffs, bins = num_bins)
     if(log_scale):
         ax.set_yscale('log')
-    ax.set_xlabel('Forcing error [W/m2]')
+    ax.set_xlabel('Forcing error [Wm$^{-2}$]')
     ax.set_ylabel('Counts')
     ax.set_title('L3 Daily Forcing Errors Due to COD Errors' + \
         '\nCOD errors: Mean = ' + str(cod_dict['attributes']['cod_err_mean']) + \
@@ -16194,25 +16537,35 @@ def plot_cod_error_histogram(daily_filename, cod_filename, num_bins = 50, \
         plot_xval = ax.get_xlim()[0]  + xdiff * 0.8
         plot_yval = ax.get_ylim()[1] * 0.5
         #ptext = 'μ = ' + str(np.round(t.mean.value, 1)) + \
-        #    '\nς = ' + str(np.round(t.stddev.value, 1))
+        #    '\nσ = ' + str(np.round(t.stddev.value, 1))
         #plot_figure_text(ax, ptext, xval = plot_xval, yval = plot_yval, \
         #    fontsize = 10, color = 'black', weight = None, backgroundcolor = 'white')
 
-    # Add statistics to plot
-    # ----------------------
-    ptext = 'μ = ' + str(np.round(mean_err, 1)) + \
-        '\nς = ' + str(np.round(std_err, 1))
-    
-    xdiff = ax.get_xlim()[1] - ax.get_xlim()[0]
-    plot_xval = ax.get_xlim()[0]  + xdiff * 0.8
-    if(log_scale):
-        plot_yval = ax.get_ylim()[1] * 0.005
+
+
     else:
-        plot_yval = ax.get_ylim()[1] * 0.5
-    #plot_figure_text(ax3, ptext, location = 'lower_right', \
-    #ax5.set_title(ptext)
-    plot_figure_text(ax, ptext, xval = plot_xval, yval = plot_yval, \
-        fontsize = 10, color = 'black', weight = None, backgroundcolor = 'white')
+
+        # Add statistics to plot
+        # ----------------------
+        ptext = 'μ = ' + str(np.round(mean_err, 1)) + ' Wm$^{-2}$' + \
+            '\nσ = ' + str(np.round(std_err, 1)) + ' Wm$^{-2}$'
+
+        xdiff = ax.get_xlim()[1] - ax.get_xlim()[0]
+        plot_xval = ax.get_xlim()[0]  + xdiff * 0.65
+        if(log_scale):
+            plot_yval = ax.get_ylim()[1] * 0.05
+        else:
+            plot_yval = ax.get_ylim()[1] * 0.5
+        #plot_figure_text(ax3, ptext, location = 'lower_right', \
+        #ax5.set_title(ptext)
+        plot_figure_text(ax, ptext, xval = plot_xval, yval = plot_yval, \
+            fontsize = 10, color = 'black', weight = None, backgroundcolor = 'white')
+   
+        ax.set_xlim(xmin, xmax)
+        ax.axvline(0, linestyle = '--', color = 'k', alpha = 0.5)
+
+
+
 
 
     if(not in_ax):
@@ -16250,6 +16603,12 @@ def plot_error_components_combined(direct_forcings, calc_forcings, sim_name, \
     plot_cod_error_histogram(daily_filename, cod_filename, ax = ax4, \
         xmin = None, xmax = None, save = False, log_scale = log_scale, \
         num_bins = num_bins * 1, astrofit = False)
+
+    plot_subplot_label(ax1, 'a)', fontsize = 11, backgroundcolor = 'white')
+    plot_subplot_label(ax2, 'b)', fontsize = 11, backgroundcolor = 'white')
+    plot_subplot_label(ax3, 'c)', fontsize = 11, backgroundcolor = 'white', yval = 20000)
+    plot_subplot_label(ax4, 'd)', fontsize = 11, backgroundcolor = 'white', yval = 20000)
+
     fig.tight_layout()
 
     if(save):
@@ -16263,8 +16622,28 @@ def plot_error_components_combined(direct_forcings, calc_forcings, sim_name, \
     else:
         plt.show()
 
+def plot_many_trend_test(daily_dict, OMI_data, forcing_trends, month_idx, lat_idx, lon_idx, \
+        num_bins, conf_level = 90, save = False):
+
+    plt.close('all')
+    fig = plt.figure(figsize = (9, 4))
+    ax1 = fig.add_subplot(1,2,1)
+    ax2 = fig.add_subplot(1,2,2)
+
+    x_vals = np.arange(2005, 2021)
+    y_vals = OMI_data['AI'][month_idx::6,lat_idx, lon_idx]
+    result = stats.linregress(x_vals, y_vals)
+    ax1.plot(x_vals, y_vals)
+    print(result.pvalue)
+
+    test_error_dist(daily_dict, forcing_trends, month_idx, lat_idx, lon_idx, num_bins, \
+        ax = ax2, conf_level = conf_level, save = False)
+
+    fig.tight_layout()
+    plt.show()
+
 def test_error_dist(daily_dict, forcing_trends, month_idx, lat_idx, lon_idx, \
-        num_bins, ax = None, conf_level = 90, save = False):
+        num_bins, ax = None, conf_level = 90, sim_name = '', save = False):
 
     in_arr = forcing_trends[:,month_idx,lat_idx,lon_idx]
 
@@ -16328,7 +16707,10 @@ def test_error_dist(daily_dict, forcing_trends, month_idx, lat_idx, lon_idx, \
                 loc_adder = '_' + str(int(lat_val)) + 'N' + str(int(lon_val)) + 'W'
             else:
                 loc_adder = '_' + str(int(lat_val)) + 'N' + str(int(lon_val)) + 'E'
-            outname = 'trend_dist_monthidx' + str(month_idx) + '_numsims' + str(int(in_arr.shape[0])) + loc_adder + '.png'
+            if(sim_name != ''):
+                sim_name = '_' + sim_name
+            outname = 'trend_dist_monthidx' + str(month_idx) + '_numsims' + \
+                str(int(in_arr.shape[0])) + loc_adder + sim_name + '.png'
             fig.savefig(outname, dpi = 200)
             print("Saved image", outname)
         else:
@@ -16744,21 +17126,381 @@ def plot_bulk_force_AI_trend_v2(daily_dict, forcing_trends, OMI_daily_data, \
         plt.show()
 
 
+def plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, OMI_daily_data, \
+        NSIDC_data, MODIS_data, vmax = 1.0, min_AI = None, max_AI = None, minlat = 65.5, \
+        maxlat = 90.5,  conf_level = 90., save = False):
+
+    if(isinstance(OMI_daily_data, str)):
+        if(min_AI is None):
+            print("ERROR: If providing an OMI daily file, must provide min_AI")
+            return
+
+        print("Reading daily OMI data from", OMI_daily_data)
+        print("Converting daily data to monthly omi_uvai_pert averages")
+        OMI_daily_data = calcOMI_MonthAvg_FromDaily(OMI_daily_data, \
+            min_AI = min_AI, max_AI = max_AI, minlat = minlat, maxlat = maxlat)
+
+    str_conf_level = str(conf_level)
+    if(conf_level > 1):
+        conf_level = conf_level / 100.
+    else:
+        str_conf_level = str(conf_level * 100)
+
+    mean_trends = np.nanmean(forcing_trends, axis = 0)
+    stdv_trends = np.std(forcing_trends, axis = 0)
+    stderr_trends = sem(forcing_trends, axis = 0), 
+    #stderr_trend = stdv_trend / np.sqrt(in_arr.shape[0])
+    conf_intvl = statnorm.interval(alpha = conf_level, \
+        loc = mean_trends, scale = stdv_trends)
+
+    #conf_intvl = statnorm.interval(alpha = conf_level, \
+    #    loc = mean_trend, scale = stdv_trend, )
+   
+    plt.close('all') 
+    fig = plt.figure(figsize = (10, 14), constrained_layout = False)
+    #subfigs = fig.subfigures(nrows = 1, ncols = 3, wspace = 0.04)
+    #
+    #axs1 = [subfigs[0].add_subplot(6,1,ii, projection = ccrs.NorthPolarStereo()) for ii in range(1,7)]
+    #axs2 = [subfigs[1].add_subplot(6,1,ii, projection = ccrs.NorthPolarStereo()) for ii in range(1,7)]
+    #axs3 = [subfigs[2].add_subplot(6,1,ii, projection = ccrs.NorthPolarStereo()) for ii in range(1,7)]
+   
+    nrows = 6
+    ncols = 5
+    ax01 = fig.add_subplot(nrows,ncols, (1 - 1) * ncols + 1, projection = ccrs.NorthPolarStereo())
+    ax02 = fig.add_subplot(nrows,ncols, (2 - 1) * ncols + 1, projection = ccrs.NorthPolarStereo())
+    ax03 = fig.add_subplot(nrows,ncols, (3 - 1) * ncols + 1, projection = ccrs.NorthPolarStereo())
+    ax04 = fig.add_subplot(nrows,ncols, (4 - 1) * ncols + 1, projection = ccrs.NorthPolarStereo())
+    ax05 = fig.add_subplot(nrows,ncols, (5 - 1) * ncols + 1, projection = ccrs.NorthPolarStereo())
+    ax06 = fig.add_subplot(nrows,ncols, (6 - 1) * ncols + 1, projection = ccrs.NorthPolarStereo())
+
+    ax11 = fig.add_subplot(nrows,ncols, (1 - 1) * ncols + 2, projection = ccrs.NorthPolarStereo())
+    ax12 = fig.add_subplot(nrows,ncols, (2 - 1) * ncols + 2, projection = ccrs.NorthPolarStereo())
+    ax13 = fig.add_subplot(nrows,ncols, (3 - 1) * ncols + 2, projection = ccrs.NorthPolarStereo())
+    ax14 = fig.add_subplot(nrows,ncols, (4 - 1) * ncols + 2, projection = ccrs.NorthPolarStereo())
+    ax15 = fig.add_subplot(nrows,ncols, (5 - 1) * ncols + 2, projection = ccrs.NorthPolarStereo())
+    ax16 = fig.add_subplot(nrows,ncols, (6 - 1) * ncols + 2, projection = ccrs.NorthPolarStereo())
+
+    ax21 = fig.add_subplot(nrows,ncols, (1 - 1) * ncols + 3, projection = ccrs.NorthPolarStereo())
+    ax22 = fig.add_subplot(nrows,ncols, (2 - 1) * ncols + 3, projection = ccrs.NorthPolarStereo())
+    ax23 = fig.add_subplot(nrows,ncols, (3 - 1) * ncols + 3, projection = ccrs.NorthPolarStereo())
+    ax24 = fig.add_subplot(nrows,ncols, (4 - 1) * ncols + 3, projection = ccrs.NorthPolarStereo())
+    ax25 = fig.add_subplot(nrows,ncols, (5 - 1) * ncols + 3, projection = ccrs.NorthPolarStereo())
+    ax26 = fig.add_subplot(nrows,ncols, (6 - 1) * ncols + 3, projection = ccrs.NorthPolarStereo())
+
+    ax31 = fig.add_subplot(nrows,ncols, (1 - 1) * ncols + 4, projection = ccrs.NorthPolarStereo())
+    ax32 = fig.add_subplot(nrows,ncols, (2 - 1) * ncols + 4, projection = ccrs.NorthPolarStereo())
+    ax33 = fig.add_subplot(nrows,ncols, (3 - 1) * ncols + 4, projection = ccrs.NorthPolarStereo())
+    ax34 = fig.add_subplot(nrows,ncols, (4 - 1) * ncols + 4, projection = ccrs.NorthPolarStereo())
+    ax35 = fig.add_subplot(nrows,ncols, (5 - 1) * ncols + 4, projection = ccrs.NorthPolarStereo())
+    ax36 = fig.add_subplot(nrows,ncols, (6 - 1) * ncols + 4, projection = ccrs.NorthPolarStereo())
+
+    ax41 = fig.add_subplot(nrows,ncols, (1 - 1) * ncols + 5, projection = ccrs.NorthPolarStereo())
+    ax42 = fig.add_subplot(nrows,ncols, (2 - 1) * ncols + 5, projection = ccrs.NorthPolarStereo())
+    ax43 = fig.add_subplot(nrows,ncols, (3 - 1) * ncols + 5, projection = ccrs.NorthPolarStereo())
+    ax44 = fig.add_subplot(nrows,ncols, (4 - 1) * ncols + 5, projection = ccrs.NorthPolarStereo())
+    ax45 = fig.add_subplot(nrows,ncols, (5 - 1) * ncols + 5, projection = ccrs.NorthPolarStereo())
+    ax46 = fig.add_subplot(nrows,ncols, (6 - 1) * ncols + 5, projection = ccrs.NorthPolarStereo())
+
+    omi_axs = [ax01,ax02, ax03, ax04, ax05, ax06]
+    mean_axs = [ax11,ax12, ax13, ax14, ax15, ax16]
+    stdv_axs = [ax21,ax22, ax23, ax24, ax25, ax26]
+    ice_axs =  [ax31,ax32, ax33, ax34, ax35, ax36]
+    cld_axs =  [ax41,ax42, ax43, ax44, ax45, ax46]
+    #total_list = [axs1, axs2, axs3]
+  
+    hasher = np.ma.masked_where( \
+        (mean_trends == 0 ) |
+        ( ((mean_trends > 0) & (conf_intvl[0] < 0)) | \
+          ((mean_trends < 0) & (conf_intvl[1] > 0)) ), mean_trends) 
+
+
+    titlers = ['Apr','May','June','July','Aug','Sep']
+    for ii in range(6):
+
+        # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   
+        #
+        # Plot the OMI trends
+        #
+        # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   
+        grid_trends = np.full( (OMI_daily_data['AI'].shape[1],  \
+            OMI_daily_data['AI'].shape[2]), np.nan)
+        for jj in range(OMI_daily_data['AI'].shape[1]):
+            for kk in range(OMI_daily_data['AI'].shape[2]):
+                # Plot the individual runs
+                # ------------------------
+                local_sim_vals = OMI_daily_data['AI'][ii::6,jj,kk]
+                x_vals = np.arange(local_sim_vals.shape[0])
+    
+                #if(trend_type=='standard'): 
+                result = stats.linregress(x_vals, local_sim_vals[:])
+                grid_trends[jj,kk] = result.slope * len(x_vals)
+                #grid_trends[ii,jj,kk] = result.slope * len(x_vals)
+    
+                    #slope, intercept, r_value, p_value, std_err = \
+                    #    stats.linregress(x_vals,work_mask.compressed())
+                    #forcing_trends[i,j] = result.slope * len(x_vals)
+                    #forcing_pvals[i,j]  = result.pvalue
+                    #forcing_uncert[i,j] = result.stderr * len(x_vals)
+                #else:
+                #    res = stats.theilslopes(local_sim_vals[jj,:], x_vals, 0.90)
+                #    trend_results[jj] = res[0] * len(x_vals)
+                #    #forcing_trends[i,j] = res[0]*len(x_vals)
+    
+    
+        omi_mesh = omi_axs[ii].pcolormesh(OMI_daily_data['LON'], OMI_daily_data['LAT'], \
+            grid_trends[:,:], transform = ccrs.PlateCarree(), \
+            #grid_trends[ii,:,:], transform = ccrs.PlateCarree(), \
+            shading = 'auto', cmap = 'bwr', vmin = -0.4, vmax = 0.4)
+        omi_axs[ii].set_boundary(circle, transform=omi_axs[ii].transAxes)
+        omi_axs[ii].coastlines()
+        omi_axs[ii].set_extent([-180,180,65,90], ccrs.PlateCarree())
+        #omi_axs[ii].set_title(titlers[ii])
+
+ 
+        # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   
+        #
+        # Plot the mean forcing trends
+        #
+        # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   
+
+        mean_mesh = mean_axs[ii].pcolormesh(daily_dict['longitude'][:], \
+            daily_dict['latitude'][:], mean_trends[ii,:,:], \
+            cmap = 'bwr', vmin = -vmax, vmax = vmax, \
+            transform = ccrs.PlateCarree(), shading = 'auto')
+        #cbar = fig.colorbar(mesh, ax = flat_axs[ii], pad = 0.03, fraction = 0.045)
+        mean_axs[ii].set_boundary(circle, transform = mean_axs[ii].transAxes)
+        mean_axs[ii].coastlines()
+        mean_axs[ii].set_extent([-180,180,65,90], ccrs.PlateCarree())
+        #omi_axs[ii].set_title(str(ii))
+
+        pvar = 'mean'
+        if(pvar == 'mean'):
+            #window_min = mean_trends[ii,:,:] - (stdv_trends[ii,:,:] * 1.0)
+            #window_max = mean_trends[ii,:,:] + (stdv_trends[ii,:,:] * 1.0)
+
+            #hasher = np.ma.masked_where(\
+            #    (mean_trends[ii,:,:] == 0) |
+            #    ((np.abs(mean_trends[ii,:,:]) < (stdv_trends[ii,:,:] + conf_inte)
+
+            #hasher = np.ma.masked_where(  \
+            #     (mean_trends[ii,:,:] == 0) |
+            #    ((mean_trends[ii,:,:] < 0) & (window_max[:,:] > 0)) | \
+            #    ((mean_trends[ii,:,:] > 0) & (window_min[:,:] < 0)), mean_trends[ii,:,:])
+
+            #hasher = np.ma.masked_where( (np.abs(plot_trends[ii,:,:]) <= 1.0 * stdv_trends[ii,:,:]), plot_trends[ii,:,:])
+            mean_axs[ii].pcolor(daily_dict['longitude'][:], \
+                daily_dict['latitude'][:], hasher[ii,:,:], hatch = '....', alpha=0., \
+                shading = 'auto', transform = ccrs.PlateCarree())
+
+
+        # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   
+        #
+        # Plot the stdv forcing trends
+        #
+        # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   
+        stdv_mesh = stdv_axs[ii].pcolormesh(daily_dict['longitude'][:], \
+            daily_dict['latitude'][:], stdv_trends[ii,:,:], \
+            cmap = 'jet', vmin = 0, vmax = vmax, \
+            transform = ccrs.PlateCarree(), shading = 'auto')
+        #cbar = fig.colorbar(mesh, ax = flat_axs[ii], pad = 0.03, fraction = 0.045)
+        stdv_axs[ii].set_boundary(circle, transform = stdv_axs[ii].transAxes)
+        stdv_axs[ii].coastlines()
+        stdv_axs[ii].set_extent([-180,180,65,90], ccrs.PlateCarree())
+        #omi_axs[ii].set_title(str(ii))
+
+
+        # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   
+        #
+        # Plot the NSIDC ice trends
+        #
+        # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   
+        ice_mesh = plotNSIDC_MonthTrend(NSIDC_data,month_idx = ii,save=False,\
+            trend_type='linregress',season='',minlat=65.,return_trend=False, \
+            colorbar = False, colorbar_label_size = None,title = '', \
+            pax = ice_axs[ii], show_pval = False, uncert_ax = None)
+
+        # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   
+        #
+        # Plot the MODIS cloud frac trends
+        #
+        # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   
+        plotMODIS_MYD08_MonthTrend(MODIS_data,month_idx = ii,\
+            trend_type='linregress',season= '', minlat=65.5,\
+            colorbar = False, title = '', \
+            ax = cld_axs[ii], show_pval = False, uncert_ax = None, \
+            norm_to_decade = False, vmin = -0.3, vmax = 0.3, \
+            return_trend = False)
+
+ 
+    omi_axs[0].set_title('OMI UVAI Trend')
+    mean_axs[0].set_title('ADRF Trend Mean')
+    stdv_axs[0].set_title('ADRF Trend St. Dev.')
+    ice_axs[0].set_title('SSMIS Ice Conc. Trend.')
+    cld_axs[0].set_title('MODIS Cld. Frac. Trend.')
+
+
+    fig.tight_layout(rect = [0.04,0.05,1,1.00])
+
+    row_label_size = 10
+    plotloc = omi_axs[0].get_position() 
+    fig.text(plotloc.xmin - 0.03, (plotloc.ymax + plotloc.ymin) / 2., \
+        'April', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    #fig.text( ((plotloc.xmax + plotloc.xmin) / 2), plotloc.ymax + 0.02, \
+    #    'OMI UVAI Trend', ha = 'center', va = 'center', \
+    #    rotation = 'horizontal', weight = 'bold', fontsize = row_label_size + 1)
+    plotloc = omi_axs[1].get_position() 
+    fig.text(plotloc.xmin - 0.03, (plotloc.ymax + plotloc.ymin) / 2., \
+        'May', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    plotloc = omi_axs[2].get_position() 
+    fig.text(plotloc.xmin - 0.03, (plotloc.ymax + plotloc.ymin) / 2., \
+        'June', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    plotloc = omi_axs[3].get_position() 
+    fig.text(plotloc.xmin - 0.03, (plotloc.ymax + plotloc.ymin) / 2., \
+        'July', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    plotloc = omi_axs[4].get_position() 
+    fig.text(plotloc.xmin - 0.03, (plotloc.ymax + plotloc.ymin) / 2., \
+        'August', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    plotloc = omi_axs[5].get_position() 
+    fig.text(plotloc.xmin - 0.03, (plotloc.ymax + plotloc.ymin) / 2., \
+        'September', ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+
+
+
+    #fig.text(axs1[5].get_position().xmin, axs1[5].get_position().ymin, '-')
+    #fig.text(axs1[5].get_position().xmin, axs1[5].get_position().ymax, '+')
+    #fig.text(axs1[5].get_position().xmax, axs1[5].get_position().ymin, '0')
+    #fig.text(axs1[5].get_position().xmax, axs1[5].get_position().ymax, 'l')
+
+    #fig.text(axs2[5].get_position().xmin, axs2[5].get_position().ymin, '-')
+    #fig.text(axs2[5].get_position().xmin, axs2[5].get_position().ymax, '+')
+    #fig.text(axs2[5].get_position().xmax, axs2[5].get_position().ymin, '0')
+    #fig.text(axs2[5].get_position().xmax, axs2[5].get_position().ymax, 'l')
+
+    #fig.text(axs3[5].get_position().xmin, axs3[5].get_position().ymin, '-')
+    #fig.text(axs3[5].get_position().xmin, axs3[5].get_position().ymax, '+')
+    #fig.text(axs3[5].get_position().xmax, axs3[5].get_position().ymin, '0')
+    #fig.text(axs3[5].get_position().xmax, axs3[5].get_position().ymax, 'l')
+
+    lowplot1 = omi_axs[5].get_position() 
+    diff_val = 0.01
+    cbar_ax1 = fig.add_axes([lowplot1.x0 + diff_val, lowplot1.y0 - 0.02, \
+        ((lowplot1.x1 - lowplot1.x0) - (diff_val * 2)), 0.01])
+    cbar = fig.colorbar(omi_mesh, \
+        cax = cbar_ax1, shrink = 0.8, orientation = 'horizontal', \
+        label = 'AI Trend', extend = 'max')
+    lowplot1 = mean_axs[5].get_position() 
+    #cbar_ax2 = fig.add_axes([0.40, 0.04, 0.23, 0.01])
+    cbar_ax2 = fig.add_axes([lowplot1.x0 + diff_val, lowplot1.y0 - 0.02, \
+        ((lowplot1.x1 - lowplot1.x0) - (diff_val * 2)), 0.01])
+    cbar = fig.colorbar(mean_mesh, \
+        cax = cbar_ax2, shrink = 0.8, orientation = 'horizontal', \
+        label = 'ADRF Trend [Wm$^{-2}$]', extend = 'both')
+    lowplot1 = stdv_axs[5].get_position() 
+    #cbar_ax3 = fig.add_axes([0.70, 0.04, 0.23, 0.01])
+    cbar_ax3 = fig.add_axes([lowplot1.x0 + diff_val, lowplot1.y0 - 0.02, \
+        ((lowplot1.x1 - lowplot1.x0) - (diff_val * 2)), 0.01])
+    cbar = fig.colorbar(stdv_mesh, \
+        cax = cbar_ax3, shrink = 0.8, orientation = 'horizontal', \
+        label = 'ADRF Trend Std Dev [Wm$^{-2}$]')
+    lowplot1 = ice_axs[5].get_position() 
+    cbar_ax4 = fig.add_axes([lowplot1.x0 + diff_val, lowplot1.y0 - 0.02, \
+        ((lowplot1.x1 - lowplot1.x0) - (diff_val * 2)), 0.01])
+    #cbar = fig.colorbar(ice_mesh, \
+    #    cax = cbar_ax4, shrink = 0.8, orientation = 'horizontal', \
+    #    label = 'Sea Ice Conc. [%]')
+
+    if(save):
+        outname = 'ai_force_trend_ice_combined.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+
+
 def plot_arctic_avg_region_trends(sim_values, reg_idx):
     plt.close('all')
     fig = plt.figure(figsize = (10, 6))
     axs = fig.subplots(nrows = 2, ncols = 3, sharex = True, sharey = True)
     flat_axs = axs.flatten()
-    
+  
+    x_vals = np.arange(2005, 2021) 
+     
     for ii in range(6):
-        flat_axs[ii].plot(sim_values[:,reg_idx,ii::6].T)
+        flat_axs[ii].plot(x_vals, sim_values[:,reg_idx,ii::6].T)
         flat_axs[ii].axhline(0, color = 'k', linestyle = ':')
 
-        result = stats.linregress(x_vals, work_mask.compressed())
-        #slope, intercept, r_value, p_value, std_err = \
-        #    stats.linregress(x_vals,work_mask.compressed())
-        forcing_trends[i,j] = result.slope * len(x_vals)
+        #result = stats.linregress(x_vals, work_mask.compressed())
+        ##slope, intercept, r_value, p_value, std_err = \
+        ##    stats.linregress(x_vals,work_mask.compressed())
+        #forcing_trends[i,j] = result.slope * len(x_vals)
         
     fig.tight_layout()
     plt.show() 
+
+
+def calc_arctic_avg_region_trends(sim_values):
+
+    #trend_vals = np.full((sim_values.shape[0], 3, 6), np.nan)
+    #trend_pval = np.full((sim_values.shape[0], 3, 6), np.nan)
+   
+    xvals = np.arange(2005, 2021)
+ 
+    ## FOR USE WITH REGION-AVERAGED FORCING VALUES
+    #for kk in range(3):
+    #    print('region: ', kk)
+    #    for jj in range(6):
+    #
+    #        # Trend analysis
+    #        # --------------
+    #        #trend_vals = np.full( sim_values.shape[0], np.nan)
+    #        for ii in range(trend_vals.shape[0]):
+    #            result = stats.linregress(xvals, sim_values[ii,kk,jj::6])
+    #            trend_vals[ii,kk,jj] = result.slope * len(xvals)
+    #            trend_pval[ii,kk,jj] = result.pvalue
+    #        print(jj, np.round(np.mean(trend_vals[:,kk,jj]), 3), np.round(np.std(trend_vals[:,kk,jj]), 3))
+    #
+    #        # Mean analysis
+    #        # -------------
+    #        #mean_force = np.nanmean(sim_values[:,kk,jj::6])
+    #        #std_force1 = np.nanstd(sim_values[:,kk,jj::6])
+    #        #std_force2 = np.sqrt(np.sum(np.nanstd(sim_values[:,kk,jj::6], axis = 1)**2.) / \
+    #        #    np.nanstd(sim_values[:,kk,jj::6], axis = 1).shape[0])
+    #        #print(jj, np.round(mean_force, 3), np.round(std_force1, 3), np.round(std_force2, 3))
+
+    trend_vals_all = np.full( (3, 6, sim_values.shape[0]), np.nan)
+    trend_pval_all = np.full( (3, 6, sim_values.shape[0]), np.nan)
+    # FOR USE WITH REGION-AVERAGED FORCING VALUES
+    fmt_str = '    monthidx = {0:2d}, mean = {1:6.3f}, std = {2:6.3f}, ' + \
+        'minpval = {3:6.3f}, meanpval = {4:6.3f}, maxpval = {5:6.3f}'
+    for kk in range(3):
+        print('region: ', kk)
+        for jj in range(6):
+    
+            # Trend analysis
+            # --------------
+            #trend_vals = np.full( sim_values.shape[0], np.nan)
+            for ii in range(trend_vals_all.shape[2]):
+                result = stats.linregress(xvals, sim_values[ii,kk,jj::6])
+                #trend_vals[ii] = result.slope * len(xvals)
+                trend_vals_all[kk,jj,ii] = result.slope * len(xvals)
+                trend_pval_all[kk,jj,ii] = result.pvalue
+            print(fmt_str.format(jj, \
+                np.round(np.mean(trend_vals_all[kk,jj,:]), 3), \
+                np.round(np.std(trend_vals_all[kk,jj,:]), 3), \
+                np.round(np.min(trend_pval_all[kk,jj,:]), 3), \
+                np.round(np.mean(trend_pval_all[kk,jj,:]), 3), \
+                np.round(np.max(trend_pval_all[kk,jj,:]), 3)))
+
+
+    return trend_vals_all, trend_pval_all
+
+
+
 

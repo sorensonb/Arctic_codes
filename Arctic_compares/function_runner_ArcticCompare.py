@@ -12,6 +12,13 @@ import random
 from sklearn.metrics import r2_score
 
 #make_gif('comp_images_20180705/', 'calc_swf_comp_20180705.gif')
+
+#date_str = '201807052213'
+#plot_compare_OMI_MODIS_v2(date_str, 7, \
+#    omi_dtype = 'ltc3', minlat = 65., zoom = True, save = True)
+#sys.exit()
+
+
 # CODE FOR PLOTTING RAW VARIABLES FROM OMI FILES
 """
 data = h5py.File(sys.argv[1])
@@ -196,11 +203,15 @@ sys.exit()
 # Designed for showing the validation of the NN under
 # aerosol-free conditions
 # -----------------------------------------------------------
-#plot_compare_NN_output_noaer(sys.argv[1], astrofit = True, save = True)
+#plot_compare_NN_output_noaer(sys.argv[1], astrofit = True, save = False)
 #sys.exit()
 
 # Plot combined NN error distribution in clear-sky swaths
 # -------------------------------------------------------
+#plot_NN_error_dist_bulk('noland74', num_bins = 500, astrofit = True, \
+#plot_NN_error_dist_bulk('noland100', num_bins = 500, astrofit = True, \
+#plot_NN_error_dist_bulk('noland101', num_bins = 500, astrofit = True, \
+#plot_NN_error_dist_bulk('noland102', num_bins = 500, astrofit = True, \
 #plot_NN_error_dist_bulk('noland74', num_bins = 500, astrofit = True, \
 #    xmin = -100, xmax = 100, save = False)
 #sys.exit()
@@ -217,8 +228,11 @@ sys.exit()
 
 # Compare the OMI, CERES, NN, and NN - CERES for two swaths
 # ---------------------------------------------------------
-#plot_compare_NN_output_double(sys.argv[1], sys.argv[2], save = True, include_scatter = False)
-#sys.exit()
+plot_compare_NN_output_double('test_calc_out_noland103_201807082244.hdf5', \
+    'neuralnet_output/test_calc_out_noland103_201807052213.hdf5', \
+    save = False, include_scatter = False)
+#plot_compare_NN_output_double(sys.argv[1], sys.argv[2], save = False, include_scatter = False)
+sys.exit()
 
 # CODE TO SEE HOW WELL THE DIFFERENT NN OUTPUTS COMPARE FOR A GIVEN
 # SWATH TIME
@@ -471,9 +485,14 @@ sys.exit()
 #sim_name = 'noland72'
 #sim_name = 'noland73'
 sim_name = 'noland74'
+#sim_name = 'noland103'
 #sim_name = 'noland75'
 print("AS OF 2024/09/09, USING ", sim_name)
 test_dict = combine_NN_data(sim_name)
+
+
+#calc_pcnt_aerosol_over_type_v2(sim_name, 1.5, minlat = 70., dtype = 'PERT', ax = None)
+#sys.exit()
 
 # Identify the dictionary array indices that give the NN data
 # associated with:
@@ -579,14 +598,15 @@ maxerr = 1.5
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #####sim_name = 'noland72'
 #infile = 'validate_values_' + sim_name + '.hdf5'
-#in_data = h5py.File(infile)
-#direct_forcings = in_data['direct_forcings'][:]
-#calc_forcings   = in_data['calc_forcings'][:]
+infile = 'validate_values_' + sim_name + '_useintcptTrue.hdf5'
+in_data = h5py.File(infile)
+direct_forcings = in_data['direct_forcings'][:]
+calc_forcings   = in_data['calc_forcings'][:]
 
 #direct_forcings, calc_forcings = \
 #    plot_L2_validate_regress_all(sim_name, slope_dict_lin, bin_dict, \
 #    ai_thresh = 0.7, mod_slopes = None, mod_intercepts = None, \
-#    mod_cod = None, mod_ice = None, use_intercept = False, \
+#    mod_cod = None, mod_ice = None, use_intercept = True, \
 #    min_cod = None, max_cod = None,\
 #    min_sza = None, max_sza = None, \
 #    min_ice = None, max_ice = None, \
@@ -596,7 +616,7 @@ maxerr = 1.5
 #    sim_name, num_bins = 200, delta_calc = 20, astrofit = True, \
 #    screen_outliers = False, save = False)
 #plot_hist_L2_L3_errors(direct_forcings, calc_forcings, sim_name, \
-#    ax = None, num_bins = 200, astrofit = False, save = False)
+#    xmin = -100, xmax = 100, ax = None, num_bins = 200, astrofit = True, save = False)
 #sys.exit()
 
 
@@ -659,8 +679,12 @@ minlat = 65
 maxlat = 87
 shawn_file = home_dir + '/Research/OMI/omi_shawn_daily_2005_2020_v2.hdf5'
 #jz_file    = home_dir + '/Research/OMI/omi_VJZ211_daily_2005_2020.hdf5'
-#OMI_daily_VSJ4  = calcOMI_MonthAvg_FromDaily(shawn_file, min_AI = -2.00, max_AI = -0.1, minlat = minlat, maxlat = maxlat)
-OMI_daily_VSJ4  = calcOMI_MonthAvg_FromDaily(shawn_file, min_AI = -0.10, max_AI = 20.0, minlat = minlat, maxlat = maxlat)
+
+# Is this the "clean-sky" background version?
+OMI_daily_VSJ4  = calcOMI_MonthAvg_FromDaily(shawn_file, min_AI = -20.00, max_AI = 0.7, minlat = minlat, maxlat = maxlat)
+# Is this the OMI AI monthly trend version?
+#OMI_daily_VSJ4  = calcOMI_MonthAvg_FromDaily(shawn_file, min_AI = -0.10, max_AI = 20.0, minlat = minlat, maxlat = maxlat)
+
 #OMI_daily_VJZ211 = calcOMI_MonthAvg_FromDaily(jz_file, min_AI = -0.10, minlat = minlat, maxlat = maxlat)
 daily_VSJ4 = readOMI_daily_HDF5(shawn_file, minlat = minlat, maxlat = maxlat)
 
@@ -790,6 +814,14 @@ sys.exit()
 #del_angles = -23.45 * np.cos( np.radians((360 / 365) * (days + 10)))
 #latitudes = np.arange(minlat + 0.5, maxlat + 0.5, 1.0)
 #lat_szas = np.array([tlat - del_angles for tlat in latitudes]).T
+
+#  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#
+# 
+#
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # Calculate the daily forcing estimate values for a date_string
 #date_str = '20180705'
@@ -969,12 +1001,12 @@ daily_dict = read_daily_month_force_L2L3_error_from_HDF5(daily_filename)
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-read_force_sim_vals = False
+read_force_sim_vals = True
 save_force_vals = False    
-read_trend_sim_vals = True
+read_trend_sim_vals = False
 save_trend_vals = False    
 
-calc_region_avg_force_vals = False
+calc_region_avg_force_vals = True
 calc_force_trends_from_file = False
 
 if(read_trend_sim_vals):
@@ -1110,33 +1142,15 @@ else:
         #del(sim_values)
         #del(forcing_trends) 
 
-    # Plot time series of the many region-averaged monthly forcing values
-    # for a given region index (0 = entire Arctic, 1 = low Arctic, 
-    # 2 = high Arctic
-    # -------------------------------------------------------------------
-    plot_arctic_avg_region_trends(sim_values, 0)
-    
-    # FOR USE WITH REGION-AVERAGED FORCING VALUES
-    for kk in range(3):
-        print('region: ', kk)
-        for jj in range(6):
+# Plot time series of the many region-averaged monthly forcing values
+# for a given region index (0 = entire Arctic, 1 = low Arctic, 
+# 2 = high Arctic
+# -------------------------------------------------------------------
+#plot_arctic_avg_region_trends(sim_values, 0)
 
-            # Trend analysis
-            # --------------
-            #for ii in range(trend_vals.shape[0]):
-            #    result = stats.linregress(xvals, sim_values[ii,kk,jj::6])
-            #    trend_vals[ii] = result.slope * len(xvals)
-            #print(jj, np.round(np.mean(trend_vals), 3), np.round(np.std(trend_vals), 3))
+trends, pvals = calc_arctic_avg_region_trends(sim_values)
 
-            # Mean analysis
-            # -------------
-            mean_force = np.nanmean(sim_values[:,kk,jj::6])
-            std_force1 = np.nanstd(sim_values[:,kk,jj::6])
-            std_force2 = np.sqrt(np.sum(np.nanstd(sim_values[:,kk,jj::6], axis = 1)**2.) / \
-                np.nanstd(sim_values[:,kk,jj::6], axis = 1).shape[0])
-            print(jj, np.round(mean_force, 3), np.round(std_force1, 3), np.round(std_force2, 3))
-
-
+sys.exit()
 
 # Plot an 18-panel (6 row, 3 or 4 column) figure with:
 # - AI trends
@@ -2694,8 +2708,8 @@ dates = [
 #         '202108012242',
 #        ]
 
-#calc_pcnt_aerosol_over_type(dates, 1.5, minlat = 70., dtype = 'PERT', ax = None)
-#sys.exit()
+calc_pcnt_aerosol_over_type(dates, 1.5, minlat = 70., dtype = 'PERT', ax = None)
+sys.exit()
 #plot_aerosol_over_types(dates[102], min_AI = 2.0, ai_val = 'TROP_AI', save = False)
 #plot_aerosol_over_types(dates[125], min_AI = 2.0, ai_val = 'TROP_AI', save = False)
 

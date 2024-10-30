@@ -770,6 +770,7 @@ def plotNSIDC_MonthClimo(NSIDC_data,month_idx,minlat = 60, ax = None, \
     ax.set_extent([-180,180,minlat,90],datacrs)
     ax.set_extent([-180,180,minlat,90],datacrs)
     ax.set_boundary(circle, transform=ax.transAxes)
+    ax.add_feature(cartopy.feature.LAND,zorder=100,edgecolor='darkgrey',facecolor='darkgrey')
     #ax.set_xlim(-3430748.535086173,3430748.438879491)
     #ax.set_ylim(-3413488.8763307533,3443353.899053069)
     if(colorbar):

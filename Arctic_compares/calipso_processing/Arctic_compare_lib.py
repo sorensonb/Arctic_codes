@@ -14,6 +14,7 @@ sys.path.append(home_dir)
 import python_lib
 import importlib
 from matplotlib.cm import turbo
+import pyhdf
 from python_lib import circle, plot_trend_line, nearest_gridpoint, \
     aerosol_event_dict, init_proj, plot_lat_circles, plot_figure_text, \
     plot_subplot_label
@@ -178,109 +179,114 @@ def automate_all_preprocess(date_str, download = True, images = True, \
     # date_str should consist of an array of OMI swath times
     for dstr in date_str:
 
-        dt_date_str = datetime.strptime(dstr, '%Y%m%d%H%M')
+        try:
+            dt_date_str = datetime.strptime(dstr, '%Y%m%d%H%M')
 
-        print(dstr)
+            print(dstr)
 
-        # Select the matching MODIS swath time from the time JSON
-        # -------------------------------------------------------
+            # Select the matching MODIS swath time from the time JSON
+            # -------------------------------------------------------
 
-        if(images):
-            # Plot the first-look 6-panel comparison plot
-            # -------------------------------------------
-            #modis_date_str = file_date_dict[dstr]['MODIS'][0]
-            if(dt_date_str.year > 2020):
-                omi_dtype2 = 'control'
-            plot_compare_OMI_CERES_MODIS_NSIDC(dstr, 7, \
-                omi_dtype = omi_dtype2, minlat = minlat, zoom = True, \
-                save = True)
+            if(images):
+                # Plot the first-look 6-panel comparison plot
+                # -------------------------------------------
+                #modis_date_str = file_date_dict[dstr]['MODIS'][0]
+                if(dt_date_str.year > 2020):
+                    omi_dtype2 = 'control'
+                plot_compare_OMI_CERES_MODIS_NSIDC(dstr, 7, \
+                    omi_dtype = omi_dtype2, minlat = minlat, zoom = True, \
+                    save = True)
 
-        if(process):
+            if(process):
 
-            # Make a data storage directory, if one does not already exist
-            # ------------------------------------------------------------
-            save_dir = dt_date_str.strftime(data_dir + '%Y%m%d/')
-            print(save_dir)
+                # Make a data storage directory, if one does not already exist
+                # ------------------------------------------------------------
+                save_dir = dt_date_str.strftime(data_dir + '%Y%m%d/')
+                print(save_dir)
 
-            if(not os.path.exists(save_dir)):
-                print('Making ', save_dir)
-                os.system('mkdir ' +  save_dir)
+                if(not os.path.exists(save_dir)):
+                    print('Making ', save_dir)
+                    os.system('mkdir ' +  save_dir)
 
-            save_dir2 = dt_date_str.strftime(save_dir + '%Y%m%d%H%M/')
-            if(not os.path.exists(save_dir2)):
-                print('Making ', save_dir2)
-                os.system('mkdir ' +  save_dir2)
+                save_dir2 = dt_date_str.strftime(save_dir + '%Y%m%d%H%M/')
+                if(not os.path.exists(save_dir2)):
+                    print('Making ', save_dir2)
+                    os.system('mkdir ' +  save_dir2)
    
-            short_save_dir2 = dt_date_str.strftime('%Y%m%d/%Y%m%d%H%M/')
+                short_save_dir2 = dt_date_str.strftime('%Y%m%d/%Y%m%d%H%M/')
 
-            if(remove_ch2_file):
-                ch2_file = glob(save_dir2 + '*ch2*')
-                if(len(ch2_file) != 0):
-                    print("Removing old CH2 file")
-                    cmnd = 'rm ' + ch2_file[0]
-                    print(cmnd)
-                    os.system(cmnd)
-                else:
-                    print("No CH2 file to remove")
+                if(remove_ch2_file):
+                    ch2_file = glob(save_dir2 + '*ch2*')
+                    if(len(ch2_file) != 0):
+                        print("Removing old CH2 file")
+                        cmnd = 'rm ' + ch2_file[0]
+                        print(cmnd)
+                        os.system(cmnd)
+                    else:
+                        print("No CH2 file to remove")
  
-            # Run the data subsetter codes
-            # ----------------------------
-            if(dt_date_str.year <= 2020):
-                omi_type = omi_dtype
-            else:
-                omi_type = 'control'
-            write_swath_to_HDF5(dstr, omi_type, save_path = save_dir2, \
-                minlat = minlat, shawn_path = shawn_path, \
-                remove_empty_scans = remove_empty_scans)
-
-            if(not reprocess_only_omi):
-                write_CERES_hrly_grid_to_HDF5(file_date_dict[dstr]['CERES'], \
-                    save_path = save_dir2, minlat = minlat, \
+                # Run the data subsetter codes
+                # ----------------------------
+                if(dt_date_str.year <= 2020):
+                    omi_type = omi_dtype
+                else:
+                    omi_type = 'control'
+                write_swath_to_HDF5(dstr, omi_type, save_path = save_dir2, \
+                    minlat = minlat, shawn_path = shawn_path, \
                     remove_empty_scans = remove_empty_scans)
 
-                MODIS_date = file_date_dict[dstr]['MODIS'][0]
-                write_MODIS_to_HDF5(MODIS_date, channel = 1, swath = True, \
-                    save_path = save_dir2, minlat = minlat, \
-                    remove_empty_scans = remove_empty_scans)
-                write_MODIS_to_HDF5(MODIS_date, channel = 7, swath = True, \
-                    save_path = save_dir2, minlat = minlat, \
-                    remove_empty_scans = remove_empty_scans)
+                if(not reprocess_only_omi):
+                    write_CERES_hrly_grid_to_HDF5(file_date_dict[dstr]['CERES'], \
+                        save_path = save_dir2, minlat = minlat, \
+                        remove_empty_scans = remove_empty_scans)
 
-                NSIDC_date = file_date_dict[dstr]['NSIDC'][:8]
-                print(NSIDC_date)
-                writeNSIDC_to_HDF5(NSIDC_date, save_path = save_dir2, \
-                    minlat = minlat, remove_empty_scans = remove_empty_scans)
+                    MODIS_date = file_date_dict[dstr]['MODIS'][0]
+                    write_MODIS_to_HDF5(MODIS_date, channel = 1, swath = True, \
+                        save_path = save_dir2, minlat = minlat, \
+                        remove_empty_scans = remove_empty_scans)
+                    write_MODIS_to_HDF5(MODIS_date, channel = 7, swath = True, \
+                        save_path = save_dir2, minlat = minlat, \
+                        remove_empty_scans = remove_empty_scans)
 
-                if(include_tropomi & (dt_date_str.year > 2017)):                    
-                    generate_TROPOMI_prep_data(dstr, copy_to_raindrop = \
-                        copy_to_raindrop, minlat = minlat, \
-                        trop_time = file_date_dict[dstr]['TROPOMI'], \
-                        remove_large_files = remove_large_files)
+                    NSIDC_date = file_date_dict[dstr]['NSIDC'][:8]
+                    print(NSIDC_date)
+                    writeNSIDC_to_HDF5(NSIDC_date, save_path = save_dir2, \
+                        minlat = minlat, remove_empty_scans = remove_empty_scans)
 
-            # Finally, gzip the data
-            # ---------------------
-            os.chdir(data_dir)
-            cmnd = dt_date_str.strftime('tar -cvzf ' + \
-                'combined_subsets_%Y%m%d%H%M.tar.gz ' + short_save_dir2)
-            print(cmnd)
-            os.system(cmnd)
+                    if(include_tropomi & (dt_date_str.year > 2017)):                    
+                        generate_TROPOMI_prep_data(dstr, copy_to_raindrop = \
+                            copy_to_raindrop, minlat = minlat, \
+                            trop_time = file_date_dict[dstr]['TROPOMI'], \
+                            remove_large_files = remove_large_files)
 
-            if(copy_to_raindrop):
-                # Secure copy the gzipped file to Raindrop
-                # ----------------------------------------
-                cmnd = dt_date_str.strftime('scp ' + \
-                    'combined_subsets_%Y%m%d%H%M.tar.gz ' + \
-                    'bsorenson@134.129.222.68:' + \
-                    '/home/bsorenson/OMI/arctic_comp/comp_data/')
-                #cmnd = dt_date_str.strftime('scp ' + \
-                #    'combined_subsets_%Y%m%d%H%M.tar.gz ' + \
-                #    'bsorenson@raindrop.atmos.und.edu:' + \
-                #    '/home/bsorenson/OMI/arctic_comp/comp_data/')
+                # Finally, gzip the data
+                # ---------------------
+                os.chdir(data_dir)
+                cmnd = dt_date_str.strftime('tar -cvzf ' + \
+                    'combined_subsets_%Y%m%d%H%M.tar.gz ' + short_save_dir2)
                 print(cmnd)
                 os.system(cmnd)
 
-            if(remove_large_files):
-                print("Removing MODIS MYD06 and TROPOMI files. NOT ACTUALLY DONE")
+                if(copy_to_raindrop):
+                    # Secure copy the gzipped file to Raindrop
+                    # ----------------------------------------
+                    cmnd = dt_date_str.strftime('scp ' + \
+                        'combined_subsets_%Y%m%d%H%M.tar.gz ' + \
+                        'bsorenson@134.129.222.68:' + \
+                        '/home/bsorenson/OMI/arctic_comp/comp_data/')
+                    #cmnd = dt_date_str.strftime('scp ' + \
+                    #    'combined_subsets_%Y%m%d%H%M.tar.gz ' + \
+                    #    'bsorenson@raindrop.atmos.und.edu:' + \
+                    #    '/home/bsorenson/OMI/arctic_comp/comp_data/')
+                    print(cmnd)
+                    os.system(cmnd)
+
+                if(remove_large_files):
+                    print("Removing MODIS MYD06 and TROPOMI files. NOT ACTUALLY DONE")
+
+        except (pyhdf.error.HDF4Error, FileNotFoundError, OSError, KeyError, ValueError) as error:
+            print("# # # # # # #\n\nCAUGHT ", error, " ERROR FOR TIME ",dstr,\
+                "\n\n# # # # # # # # #")
                 
 
 def single_wrap_function(date_str, minlat, min_AI, out_time_dict, download, \
@@ -587,6 +593,9 @@ def auto_all_download(date_str, download = True, rewrite_json = False, \
                 print("ERROR: problems determining MODIS swath times " + \
                     "using CERES data")
                 print(" Cycling the loop.")
+                continue
+            except ValueError:
+                print("\n# # # #\n\nERROR: Bad data?\\n# # # # #")
                 continue
  
             if(download): 

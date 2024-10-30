@@ -1438,7 +1438,7 @@ print('Num clear swaths to be reserved', len(clear_file_list))
 #               128 batch size
 #               Leaky ReLU activation hidden
 #               Linear activation out
-#           Ending MAE: ????
+#           Ending MAE: 3.03
 #           INCLUDES LAND DATA, CH7, VZA
 #
 #           Only differences between this and noland74

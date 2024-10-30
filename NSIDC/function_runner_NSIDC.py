@@ -12,6 +12,20 @@ import sys
 sys.path.append(home_dir + '/Research/OMI')
 from OMILib import *
 
+begin_date = '200504'
+end_date   = '202009'
+season     = 'sunlight'
+minlat = 65.
+NSIDC_data = readNSIDC_monthly_grid_all(begin_date, end_date, \
+    season, calc_month = True, minlat = minlat, maxlat = 87.)
+plotNSIDC_MonthTrend(NSIDC_data,month_idx=4,save=False,\
+    trend_type='linregress',season='',minlat=70.,return_trend=False, \
+    colorbar = True, colorbar_label_size = None,title = None, \
+    pax = None, show_pval = False, uncert_ax = None)
+
+sys.exit()
+
+
 #begin_date = datetime(2017,4,1)
 #end_date   = datetime(2020,9,30)
 ##begin_date = datetime(2012,4,1)

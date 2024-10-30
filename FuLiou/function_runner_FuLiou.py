@@ -9,6 +9,79 @@ import importlib, FuLiouLib
 from FuLiouLib import *
 import sys
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
+# FuLiou aerosol height stuff
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+if(len(sys.argv) != 2):
+    print("SYNTAX: ./function_runner_FuLiou.py fuliou_outfile")
+    sys.exit()
+
+filename = sys.argv[1]
+
+def plot_temp_data(filename, work_type, work_alb, work_sza, flux_type = 'SWF'):
+
+    df = pd.read_csv(filename, delim_whitespace = True)
+    forcing = df[flux_type + '_PRISTINE'] - df[flux_type + '_TOTAL']
+    aer_depth = df['AerDepth']
+    aer_type  = df['AerType']
+    albedo    = df['Albedo']
+    sza       = df['SolarZenith']
+    aer_top = df['AerTop']
+   
+    keep_idxs = np.where( (aer_type.values == work_type) & \
+        (albedo.values == work_alb) & (sza.values == work_sza))
+    forcing   = forcing.values[keep_idxs]
+    aer_depth = aer_depth.values[keep_idxs]
+    aer_top   = aer_top.values[keep_idxs]
+    
+ 
+    depth_bins = np.arange(0, 5.1, 1.)
+    top_bins   = np.arange(0, 30, 4.)
+    
+    fig = plt.figure(figsize = (9, 4))
+    ax1 = fig.add_subplot(1,2,1)
+    ax2 = fig.add_subplot(1,2,2)
+    
+    for ii in range(len(depth_bins) - 1):
+    
+        keep_idxs = np.where( (aer_depth >= depth_bins[ii]) & (aer_depth < depth_bins[ii + 1]))
+        labeler = str(depth_bins[ii]) + ' - ' + str(depth_bins[ii + 1])
+        ax1.scatter(aer_top[keep_idxs], forcing[keep_idxs], label = labeler)
+    
+    ax1.legend()
+    ax1.set_xlabel('Aerosol Layer Top [km]')
+    ax1.set_ylabel('Forcing [Wm-2]')
+    ax1.axvline(5, linestyle = ':', color = 'k')
+    ax1.axvline(15, linestyle = ':', color = 'k')
+    
+    for ii in range(len(top_bins) - 1):
+    
+        keep_idxs = np.where( (aer_top >= top_bins[ii]) & (aer_top < top_bins[ii + 1]))
+        labeler = str(top_bins[ii]) + ' - ' + str(top_bins[ii + 1])
+        ax2.scatter(aer_depth[keep_idxs], forcing[keep_idxs], label = labeler)
+    
+    ax2.legend()
+    #ax2.scatter(aer_depth.values, forcing.values)
+    ax2.set_xlabel('Aerosol Layer Depth [km]')
+    ax2.set_ylabel('Forcing [Wm-2]')
+    plt.suptitle(flux_type + '\nAerType = ' + str(work_type) + ', ALB = ' + str(work_alb) + ', SZA = ' + str(work_sza)) 
+    fig.tight_layout()
+    plt.show()
+
+plot_temp_data(filename, 2, 0.5, 50)
+
+sys.exit()
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
+# NAAPS FuLiou stuff
+#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
 dates = ['20220909','20220915','20220922']
 for date in dates:
     old = h5py.File('fuliou_output_naaps_' + date + '.h5')

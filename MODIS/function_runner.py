@@ -7,6 +7,16 @@
 
 from MODISLib import *
 
+start_date = '200504'
+end_date   = '202009'
+myd08_data = read_MODIS_MYD08_monthrange(start_date,end_date,\
+    minlat=65.5, calc_month = False)
+plotMODIS_MYD08_MonthTrend(myd08_data,month_idx=None,save=False,\
+    trend_type='theil-sen', pvar = 'day', season='',minlat=65.5,return_trend=False, \
+    colorbar = True, colorbar_label_size = None,title = None, \
+    ax = None, show_pval = False, uncert_ax = None, norm_to_decade = True, vmin = -0.10, vmax = 0.10)
+
+sys.exit()
 """
 data = Dataset('MYD08_D3.A2018186.061.2018187175147.hdf')
 
