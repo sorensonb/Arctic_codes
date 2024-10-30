@@ -599,7 +599,7 @@ else:
 
 # Plot the distribution of trend estimates at a lat/lon idx and month
 # -------------------------------------------------------------------
-test_error_dist(daily_dict, forcing_trends, 4, 2, 285, 30)
+test_error_dist(daily_dict, forcing_trends, 4, 1, 287, 30)
 sys.exit()
 #test_error_dist(daily_dict, OMI_data, forcing_trends, 3, 10, 340, 30)
 OMI_data = calcOMI_MonthAvg_FromDaily(shawn_file, \

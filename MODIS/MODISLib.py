@@ -58,7 +58,8 @@ from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
 modis_dir = home_dir  + '/data/MODIS/Aqua/'
 data_dir  = modis_dir + 'MYD/'
 myd06_dir  = modis_dir + 'MYD06/'
-myd08_dir  = modis_dir + 'MYD08/'
+myd08_dir  = modis_dir + 'new_MYD08/'
+#myd08_dir  = modis_dir + 'new_MYD08/'
 cloud_dir = modis_dir + 'CLDMSK/'
 cloudL3_dir = home_dir + '/data/MODIS/combined/'
 cloudL3_daily_dir = home_dir + '/data/MODIS/combined/daily/'
@@ -3143,7 +3144,7 @@ def write_MODIS_CLDL3_monthly(cloud_data, minlat = 65.5, \
 #       file. 
 # date_str: 'YYYYMM' or 'YYYYMMDD'
 def write_MODIS_MYD08(date_str, minlat = 65.5, \
-        save_path = myd08_dir):
+        save_path = myd08_dir, remove_hdf_file = False):
 
     # Create a new netCDF dataset to write to the file
     # ------------------------------------------------
@@ -3158,9 +3159,10 @@ def write_MODIS_MYD08(date_str, minlat = 65.5, \
         return -3   
 
     dt_date_str = datetime.strptime(date_str, out_fmt)
-    data = identify_MODIS_MYD08(date_str)
-    data = Dataset(myd08_dir + dtype + '/' + data, 'r')
-
+    hdf_file = identify_MODIS_MYD08(date_str)
+    local_hdf_file = myd08_dir + dtype + '/' + hdf_file
+    data = Dataset(local_hdf_file, 'r')
+    print('HERE:', local_hdf_file)
  
     outfile = dt_date_str.strftime(save_path + \
         dtype + '/modis_MYD08_subset_' + out_fmt + '.nc')
@@ -3248,26 +3250,27 @@ def write_MODIS_MYD08(date_str, minlat = 65.5, \
 
     DAY_OB_COUNT = nc.createVariable('Day_Ob_Counts','f4',('ny','nx'))
     DAY_OB_COUNT.description='Total observation counts for day only'
-   
-    COP_CLOUDMASKCLEAR_COUNT = nc.createVariable('CloudMaskClear_Counts','i4', ('ny','nx'))
-    COP_CLOUDMASKCLEAR_COUNT.description = \
-        'Cloud Optical Properties Cloud Phase (Clear, CloudMaskClear(CSR=0))'
+  
+    if(dtype == 'daily'): 
+        COP_CLOUDMASKCLEAR_COUNT = nc.createVariable('CloudMaskClear_Counts','i4', ('ny','nx'))
+        COP_CLOUDMASKCLEAR_COUNT.description = \
+            'Cloud Optical Properties Cloud Phase (Clear, CloudMaskClear(CSR=0))'
 
-    COP_RESTORED_CLEAR_COUNT = nc.createVariable('RestoredToClear_Counts','i4', ('ny','nx'))
-    COP_RESTORED_CLEAR_COUNT.description = \
-        'Cloud Optical Properties Cloud Phase (Clear, RestoredToClear(CSR=2))'
+        COP_RESTORED_CLEAR_COUNT = nc.createVariable('RestoredToClear_Counts','i4', ('ny','nx'))
+        COP_RESTORED_CLEAR_COUNT.description = \
+            'Cloud Optical Properties Cloud Phase (Clear, RestoredToClear(CSR=2))'
 
-    COP_PARTLY_CLOUDY_COUNT = nc.createVariable('Partly_Cloudy_Counts','i4', ('nc','ny','nx'))
-    COP_PARTLY_CLOUDY_COUNT.description = \
-        'Cloud Optical Properties Cloud Phase ' + \
-        '(Partly Cloudy, CSR=1 or CSR=3): Pixel Counts ' + \
-        'in 3 cats: Liquid(1st) Ice(2nd) Undet(3rd)'
+        COP_PARTLY_CLOUDY_COUNT = nc.createVariable('Partly_Cloudy_Counts','i4', ('nc','ny','nx'))
+        COP_PARTLY_CLOUDY_COUNT.description = \
+            'Cloud Optical Properties Cloud Phase ' + \
+            '(Partly Cloudy, CSR=1 or CSR=3): Pixel Counts ' + \
+            'in 3 cats: Liquid(1st) Ice(2nd) Undet(3rd)'
 
-    COP_CLOUDMASKCLOUDY_COUNT = nc.createVariable('CloudMaskCloudy_Counts','i4', ('nc','ny','nx'))
-    COP_CLOUDMASKCLOUDY_COUNT.description = \
-        'Cloud Optical Properties Cloud Phase ' + \
-        '(Cloudy, Not Restored to Clear, CSR=0): Pixel Counts in 3 cats: ' + \
-        'Liquid(1st) Ice(2nd) Undet(3rd)'
+        COP_CLOUDMASKCLOUDY_COUNT = nc.createVariable('CloudMaskCloudy_Counts','i4', ('nc','ny','nx'))
+        COP_CLOUDMASKCLOUDY_COUNT.description = \
+            'Cloud Optical Properties Cloud Phase ' + \
+            '(Cloudy, Not Restored to Clear, CSR=0): Pixel Counts in 3 cats: ' + \
+            'Liquid(1st) Ice(2nd) Undet(3rd)'
 
 
     # Fill in dimension variables one-by-one.
@@ -3277,7 +3280,7 @@ def write_MODIS_MYD08(date_str, minlat = 65.5, \
     if(dtype == 'monthly'):
         CLD_FRAC_MEAN[:,:]     = data['Cloud_Fraction_Mean_Mean'][good_idx,:]
         CLD_FRAC_STD[:,:]      = data['Cloud_Fraction_Mean_Std'][good_idx,:]
-        COD_FRAC[:,:]          = data['Cloud_Optical_Thickness_Combined_Mean_Mean'][good_idx,:]
+        COD_MEAN[:,:]          = data['Cloud_Optical_Thickness_Combined_Mean_Mean'][good_idx,:]
         COD_STD[:,:]           = data['Cloud_Optical_Thickness_Combined_Mean_Std'][good_idx,:]
         OB_COUNT[:,:]          = data['Cloud_Fraction_Pixel_Counts'][good_idx,:]
         DAY_CLD_FRAC_MEAN[:,:] = data['Cloud_Fraction_Day_Mean_Mean'][good_idx,:]
@@ -3304,6 +3307,13 @@ def write_MODIS_MYD08(date_str, minlat = 65.5, \
     # Save, write, and close the netCDF file
     # --------------------------------------
     nc.close()
+
+    # Remove the large HDF file, if desired
+    # -------------------------------------
+    if(remove_hdf_file):
+        cmnd = 'rm ' + local_hdf_file
+        print(cmnd)
+        os.system(cmnd)
 
     print("Saved file ",outfile)  
 
@@ -10811,9 +10821,10 @@ def plotMODIS_CLDL3_MonthTrend(cloud_data,month_idx=None,save=False,\
 # pvar = 'day' --> only plot day data
 def plotMODIS_MYD08_MonthTrend(cloud_data,month_idx=None,save=False,\
         trend_type='standard',pvar = '', season='',minlat=65.,\
-        return_trend=False, colorbar = True, colorbar_label_size = None,\
-        title = None, ax = None, show_pval = False, uncert_ax = None, \
-        norm_to_decade = True, vmin = None, vmax = None):
+        return_trend=False, return_mesh = False, colorbar = True, \
+        colorbar_label_size = None, title = None, ax = None, \
+        show_pval = False, uncert_ax = None, norm_to_decade = True, \
+        vmin = None, vmax = None):
 
     trend_label=''
     if(trend_type=='thiel-sen'):
@@ -10950,6 +10961,8 @@ def plotMODIS_MYD08_MonthTrend(cloud_data,month_idx=None,save=False,\
 
     if(return_trend == True):
         return cloud_trends
+    if(return_mesh):
+        return mesh
 
 def plotMODIS_MYD08_COD_distribution(save=False):
     begin_date = datetime(2005,4,1)

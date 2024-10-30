@@ -7,6 +7,49 @@
 
 from MODISLib import *
 
+#tester = identify_MODIS_MYD08(date_str, dest_dir = myd08_dir)
+
+#base_date = datetime(2005,4,1)
+base_date = datetime(2007,4,1)
+end_date  = datetime(2020,9,30)
+local_date = base_date
+while(local_date <= end_date):
+    date_str = '201809'
+    date_str = local_date.strftime('%Y%m')
+    print(date_str)
+    write_MODIS_MYD08(date_str, minlat = 65.5, remove_hdf_file = True)
+
+    local_date = local_date + relativedelta(months = 1)
+    
+    if( local_date.month == 10 ):
+        local_date = local_date + relativedelta(months = 6)
+
+sys.exit()
+
+while(local_date <= end_date):
+    
+    date_str = local_date.strftime('%Y%m%d') 
+    print(date_str)
+    
+    write_MODIS_MYD08(date_str, minlat = 65.5)
+    ##write_MODIS_MYD08_monthly(date_str, minlat = 65.5)
+
+    # Remove the old single-day files 
+    cmnd = local_date.strftime('rm ' + myd08_dir + 'daily/MYD08_D3*.A%Y%j.*.hdf')
+    #cmnd = local_date.strftime('rm ' + myd08_dir + 'MYD08_M3*.A%Y%j.*.hdf')
+    print(cmnd)
+    os.system(cmnd)
+
+    # Increment the month and continue
+    local_date = local_date + timedelta(days = 1)
+
+    if(local_date.month == 10):
+        local_date = local_date + relativedelta(months = 6)
+
+
+sys.exit()
+
+
 start_date = '200504'
 end_date   = '202009'
 myd08_data = read_MODIS_MYD08_monthrange(start_date,end_date,\
@@ -17,6 +60,7 @@ plotMODIS_MYD08_MonthTrend(myd08_data,month_idx=None,save=False,\
     ax = None, show_pval = False, uncert_ax = None, norm_to_decade = True, vmin = -0.10, vmax = 0.10)
 
 sys.exit()
+
 """
 data = Dataset('MYD08_D3.A2018186.061.2018187175147.hdf')
 

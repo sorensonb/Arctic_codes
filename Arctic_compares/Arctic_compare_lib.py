@@ -15227,7 +15227,7 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
 
     # Read in the desired files
     # -------------------------
-    if(sim_name == 'noland103'):
+    if( (sim_name == 'noland103') | (sim_name == 'noland104') ):
         files = glob('neuralnet_output_clear_newfiles/test_calc_out_' + sim_name + '*.hdf5')
     else:
         files = glob('neuralnet_output_clear/test_calc_out_' + sim_name + '*.hdf5')
@@ -16881,7 +16881,7 @@ def plot_force_trend_mean_std_dist(daily_dict, forcing_trends, month_idx, \
 
 def plot_bulk_force_AI_trend_v2(daily_dict, forcing_trends, OMI_daily_data, \
         vmax = 1.0, min_AI = None, max_AI = None, minlat = 65.5, \
-        maxlat = 90.5,  conf_level = 90., save = False):
+        maxlat = 90.5,  conf_level = 90., sim_name = '', save = False):
 
     if(isinstance(OMI_daily_data, str)):
         if(min_AI is None):
@@ -17119,7 +17119,9 @@ def plot_bulk_force_AI_trend_v2(daily_dict, forcing_trends, OMI_daily_data, \
         label = 'ADRF Trend Std Dev [Wm$^{-2}$]')
 
     if(save):
-        outname = 'ai_force_trend_combined.png'
+        if(sim_name != ''):
+            sim_name = '_' + sim_name
+        outname = 'ai_force_trend_combined' + sim_name + '.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
@@ -17157,7 +17159,7 @@ def plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, OMI_daily_data, \
     #    loc = mean_trend, scale = stdv_trend, )
    
     plt.close('all') 
-    fig = plt.figure(figsize = (10, 14), constrained_layout = False)
+    fig = plt.figure(figsize = (10.5, 14), constrained_layout = False)
     #subfigs = fig.subfigures(nrows = 1, ncols = 3, wspace = 0.04)
     #
     #axs1 = [subfigs[0].add_subplot(6,1,ii, projection = ccrs.NorthPolarStereo()) for ii in range(1,7)]
@@ -17201,11 +17203,19 @@ def plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, OMI_daily_data, \
     ax45 = fig.add_subplot(nrows,ncols, (5 - 1) * ncols + 5, projection = ccrs.NorthPolarStereo())
     ax46 = fig.add_subplot(nrows,ncols, (6 - 1) * ncols + 5, projection = ccrs.NorthPolarStereo())
 
-    omi_axs = [ax01,ax02, ax03, ax04, ax05, ax06]
-    mean_axs = [ax11,ax12, ax13, ax14, ax15, ax16]
-    stdv_axs = [ax21,ax22, ax23, ax24, ax25, ax26]
-    ice_axs =  [ax31,ax32, ax33, ax34, ax35, ax36]
-    cld_axs =  [ax41,ax42, ax43, ax44, ax45, ax46]
+    #omi_axs = [ax01,ax02, ax03, ax04, ax05, ax06]
+    #mean_axs = [ax11,ax12, ax13, ax14, ax15, ax16]
+    #stdv_axs = [ax21,ax22, ax23, ax24, ax25, ax26]
+    #ice_axs =  [ax31,ax32, ax33, ax34, ax35, ax36]
+    #cld_axs =  [ax41,ax42, ax43, ax44, ax45, ax46]
+
+    ice_axs = [ax01,ax02, ax03, ax04, ax05, ax06]
+    cld_axs = [ax11,ax12, ax13, ax14, ax15, ax16]
+    omi_axs = [ax21,ax22, ax23, ax24, ax25, ax26]
+    mean_axs =  [ax31,ax32, ax33, ax34, ax35, ax36]
+    stdv_axs =  [ax41,ax42, ax43, ax44, ax45, ax46]
+
+
     #total_list = [axs1, axs2, axs3]
   
     hasher = np.ma.masked_where( \
@@ -17250,7 +17260,7 @@ def plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, OMI_daily_data, \
         omi_mesh = omi_axs[ii].pcolormesh(OMI_daily_data['LON'], OMI_daily_data['LAT'], \
             grid_trends[:,:], transform = ccrs.PlateCarree(), \
             #grid_trends[ii,:,:], transform = ccrs.PlateCarree(), \
-            shading = 'auto', cmap = 'bwr', vmin = -0.4, vmax = 0.4)
+            shading = 'auto', cmap = 'bwr', vmin = -0.3, vmax = 0.3)
         omi_axs[ii].set_boundary(circle, transform=omi_axs[ii].transAxes)
         omi_axs[ii].coastlines()
         omi_axs[ii].set_extent([-180,180,65,90], ccrs.PlateCarree())
@@ -17317,55 +17327,55 @@ def plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, OMI_daily_data, \
         ice_mesh = plotNSIDC_MonthTrend(NSIDC_data,month_idx = ii,save=False,\
             trend_type='linregress',season='',minlat=65.,return_trend=False, \
             colorbar = False, colorbar_label_size = None,title = '', \
-            pax = ice_axs[ii], show_pval = False, uncert_ax = None)
+            pax = ice_axs[ii], show_pval = False, uncert_ax = None, return_mesh = True)
 
         # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   
         #
         # Plot the MODIS cloud frac trends
         #
         # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   
-        plotMODIS_MYD08_MonthTrend(MODIS_data,month_idx = ii,\
-            trend_type='linregress',season= '', minlat=65.5,\
-            colorbar = False, title = '', \
-            ax = cld_axs[ii], show_pval = False, uncert_ax = None, \
-            norm_to_decade = False, vmin = -0.3, vmax = 0.3, \
-            return_trend = False)
+        #cld_mesh = plotMODIS_MYD08_MonthTrend(MODIS_data,month_idx = ii,\
+        #    trend_type='linregress',season= '', minlat=65.5,\
+        #    colorbar = False, title = '', \
+        #    ax = cld_axs[ii], show_pval = False, uncert_ax = None, \
+        #    norm_to_decade = False, vmin = -0.4, vmax = 0.4, \
+        #    return_trend = False, return_mesh = True)
 
  
     omi_axs[0].set_title('OMI UVAI Trend')
     mean_axs[0].set_title('ADRF Trend Mean')
     stdv_axs[0].set_title('ADRF Trend St. Dev.')
-    ice_axs[0].set_title('SSMIS Ice Conc. Trend.')
-    cld_axs[0].set_title('MODIS Cld. Frac. Trend.')
+    ice_axs[0].set_title('SSMIS\nIce Conc. Trend.')
+    cld_axs[0].set_title('MODIS\nCld. Frac. Trend.')
 
 
     fig.tight_layout(rect = [0.04,0.05,1,1.00])
 
     row_label_size = 10
-    plotloc = omi_axs[0].get_position() 
+    plotloc = ice_axs[0].get_position() 
     fig.text(plotloc.xmin - 0.03, (plotloc.ymax + plotloc.ymin) / 2., \
         'April', ha='center', va='center', \
         rotation='vertical',weight='bold',fontsize=row_label_size + 1)
     #fig.text( ((plotloc.xmax + plotloc.xmin) / 2), plotloc.ymax + 0.02, \
     #    'OMI UVAI Trend', ha = 'center', va = 'center', \
     #    rotation = 'horizontal', weight = 'bold', fontsize = row_label_size + 1)
-    plotloc = omi_axs[1].get_position() 
+    plotloc = ice_axs[1].get_position() 
     fig.text(plotloc.xmin - 0.03, (plotloc.ymax + plotloc.ymin) / 2., \
         'May', ha='center', va='center', \
         rotation='vertical',weight='bold',fontsize=row_label_size + 1)
-    plotloc = omi_axs[2].get_position() 
+    plotloc = ice_axs[2].get_position() 
     fig.text(plotloc.xmin - 0.03, (plotloc.ymax + plotloc.ymin) / 2., \
         'June', ha='center', va='center', \
         rotation='vertical',weight='bold',fontsize=row_label_size + 1)
-    plotloc = omi_axs[3].get_position() 
+    plotloc = ice_axs[3].get_position() 
     fig.text(plotloc.xmin - 0.03, (plotloc.ymax + plotloc.ymin) / 2., \
         'July', ha='center', va='center', \
         rotation='vertical',weight='bold',fontsize=row_label_size + 1)
-    plotloc = omi_axs[4].get_position() 
+    plotloc = ice_axs[4].get_position() 
     fig.text(plotloc.xmin - 0.03, (plotloc.ymax + plotloc.ymin) / 2., \
         'August', ha='center', va='center', \
         rotation='vertical',weight='bold',fontsize=row_label_size + 1)
-    plotloc = omi_axs[5].get_position() 
+    plotloc = ice_axs[5].get_position() 
     fig.text(plotloc.xmin - 0.03, (plotloc.ymax + plotloc.ymin) / 2., \
         'September', ha='center', va='center', \
         rotation='vertical',weight='bold',fontsize=row_label_size + 1)
@@ -17393,7 +17403,7 @@ def plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, OMI_daily_data, \
         ((lowplot1.x1 - lowplot1.x0) - (diff_val * 2)), 0.01])
     cbar = fig.colorbar(omi_mesh, \
         cax = cbar_ax1, shrink = 0.8, orientation = 'horizontal', \
-        label = 'AI Trend', extend = 'max')
+        label = 'UVAI Trend', extend = 'max')
     lowplot1 = mean_axs[5].get_position() 
     #cbar_ax2 = fig.add_axes([0.40, 0.04, 0.23, 0.01])
     cbar_ax2 = fig.add_axes([lowplot1.x0 + diff_val, lowplot1.y0 - 0.02, \
@@ -17411,9 +17421,15 @@ def plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, OMI_daily_data, \
     lowplot1 = ice_axs[5].get_position() 
     cbar_ax4 = fig.add_axes([lowplot1.x0 + diff_val, lowplot1.y0 - 0.02, \
         ((lowplot1.x1 - lowplot1.x0) - (diff_val * 2)), 0.01])
-    #cbar = fig.colorbar(ice_mesh, \
-    #    cax = cbar_ax4, shrink = 0.8, orientation = 'horizontal', \
-    #    label = 'Sea Ice Conc. [%]')
+    cbar = fig.colorbar(ice_mesh, \
+        cax = cbar_ax4, shrink = 0.8, orientation = 'horizontal', \
+        label = 'Sea Ice Conc. [%]')
+    #lowplot1 = cld_axs[5].get_position() 
+    #cbar_ax5 = fig.add_axes([lowplot1.x0 + diff_val, lowplot1.y0 - 0.02, \
+    #    ((lowplot1.x1 - lowplot1.x0) - (diff_val * 2)), 0.01])
+    #cbar = fig.colorbar(cld_mesh, \
+    #    cax = cbar_ax5, shrink = 0.8, orientation = 'horizontal', \
+    #    label = 'CLD TREND')
 
     if(save):
         outname = 'ai_force_trend_ice_combined.png'
@@ -17459,12 +17475,12 @@ def calc_arctic_avg_region_trends(sim_values):
     #
     #        # Trend analysis
     #        # --------------
-    #        #trend_vals = np.full( sim_values.shape[0], np.nan)
+    #        trend_vals = np.full( sim_values.shape[0], np.nan)
     #        for ii in range(trend_vals.shape[0]):
     #            result = stats.linregress(xvals, sim_values[ii,kk,jj::6])
-    #            trend_vals[ii,kk,jj] = result.slope * len(xvals)
-    #            trend_pval[ii,kk,jj] = result.pvalue
-    #        print(jj, np.round(np.mean(trend_vals[:,kk,jj]), 3), np.round(np.std(trend_vals[:,kk,jj]), 3))
+    #            trend_vals[ii] = result.slope * len(xvals)
+    #            #trend_pval[ii,kk,jj] = result.pvalue
+    #        print(jj, np.round(np.mean(trend_vals[:]), 3), np.round(np.std(trend_vals[:]), 3))
     #
     #        # Mean analysis
     #        # -------------

@@ -661,7 +661,7 @@ def calcNSIDC_grid_trend(NSIDC_data, month_idx, trend_type, mingrid_lat):
 # ptype is 'climo', 'trend'
 def plotNSIDC_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
         vmin = None, vmax = None, colorbar_label_size = 16, minlat = 65., \
-        colorbar = True, \
+        colorbar = True, return_mesh = False, \
         pvals = None):
 
     if(vmin == None):
@@ -730,6 +730,8 @@ def plotNSIDC_spatial(pax, plat, plon, pdata, ptype, ptitle = '', plabel = '', \
     print("USING ",ptitle)
     pax.set_title(ptitle)
 
+    if(return_mesh):
+        return mesh
 
 # Plot a monthly climatology 
 def plotNSIDC_MonthClimo(NSIDC_data,month_idx,minlat = 60, ax = None, \
@@ -795,6 +797,7 @@ def plotNSIDC_MonthClimo(NSIDC_data,month_idx,minlat = 60, ax = None, \
 # Designed to work with the netCDF data
 def plotNSIDC_MonthTrend(NSIDC_data,month_idx=None,save=False,\
         trend_type='standard',season='',minlat=65.,return_trend=False, \
+        return_mesh = False, \
         colorbar = True, colorbar_label_size = None,title = None, \
         pax = None, show_pval = False, uncert_ax = None):
 
@@ -879,10 +882,16 @@ def plotNSIDC_MonthTrend(NSIDC_data,month_idx=None,save=False,\
         fig1 = plt.figure(figsize = (6,6))
         ax = fig1.add_subplot(1,1,1, projection = mapcrs)
 
-        plotNSIDC_spatial(ax, NSIDC_data['grid_lat'], NSIDC_data['grid_lon'], \
-            nsidc_trends, 'trend', ptitle = title, plabel = 'Sea Ice Conc. per study period', \
-            vmin = v_min, vmax = v_max, colorbar_label_size = colorbar_label_size, \
-            minlat = minlat, pvals = nsidc_pvals, colorbar = colorbar)
+        if(return_mesh):
+            mesh = plotNSIDC_spatial(ax, NSIDC_data['grid_lat'], NSIDC_data['grid_lon'], \
+                nsidc_trends, 'trend', ptitle = title, plabel = 'Sea Ice Conc. per study period', \
+                vmin = v_min, vmax = v_max, colorbar_label_size = colorbar_label_size, \
+                minlat = minlat, pvals = nsidc_pvals, colorbar = colorbar, return_mesh = True)
+        else:
+            plotNSIDC_spatial(ax, NSIDC_data['grid_lat'], NSIDC_data['grid_lon'], \
+                nsidc_trends, 'trend', ptitle = title, plabel = 'Sea Ice Conc. per study period', \
+                vmin = v_min, vmax = v_max, colorbar_label_size = colorbar_label_size, \
+                minlat = minlat, pvals = nsidc_pvals, colorbar = colorbar)
 
         fig1.tight_layout()
 
@@ -912,6 +921,8 @@ def plotNSIDC_MonthTrend(NSIDC_data,month_idx=None,save=False,\
 
     if(return_trend == True):
         return nsidc_trends
+    if(return_mesh):
+        return mesh
 
 # Generate a 15-panel figure comparing the climatology and trend between 3
 # versions of the CERES data for all months

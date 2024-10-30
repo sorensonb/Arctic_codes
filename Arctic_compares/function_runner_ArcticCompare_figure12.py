@@ -629,10 +629,10 @@ myd08_data = read_MODIS_MYD08_monthrange(begin_date,end_date,\
 # - Mean of the forcing trends
 # - Standard deviation of the forcing trends
 # ----------------------------------------------------
-plot_bulk_force_AI_trend_v2(daily_dict, forcing_trends, shawn_file, \
-    vmax = 1.5, min_AI = 0.0, max_AI = 20.0, minlat = 65.5, \
-    maxlat = 90.5,  save = False)
-sys.exit()
+#plot_bulk_force_AI_trend_v2(daily_dict, forcing_trends, shawn_file, \
+#    vmax = 1.5, min_AI = 0.0, max_AI = 20.0, minlat = 65.5, \
+#    maxlat = 90.5, sim_name = sim_name,  save = True)
+#sys.exit()
 plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, shawn_file, \
     NSIDC_data, myd08_data, vmax = 1.5, min_AI = 0.0, max_AI = 20.0, minlat = 65.5, \
     maxlat = 90.5,  save = False)

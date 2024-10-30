@@ -179,7 +179,8 @@ from sklearn.metrics import r2_score
 #sim_name = 'noland72'
 #sim_name = 'noland73'
 #sim_name = 'noland74'
-sim_name = 'noland103'
+#sim_name = 'noland103'
+sim_name = 'noland104'
 #sim_name = 'noland75'
 print("AS OF 2024/09/09, USING ", sim_name)
 test_dict = combine_NN_data(sim_name)
@@ -249,9 +250,9 @@ calc_forcings   = in_data['calc_forcings'][:]
 #plot_scatter_hist_L2_L3_errors(direct_forcings, calc_forcings, \
 #    sim_name, num_bins = 200, delta_calc = 20, astrofit = True, \
 #    screen_outliers = False, save = False)
-#plot_hist_L2_L3_errors(direct_forcings, calc_forcings, sim_name, \
-#    ax = None, num_bins = 200, astrofit = False, save = False)
-#sys.exit()
+plot_hist_L2_L3_errors(direct_forcings, calc_forcings, sim_name, \
+    ax = None, num_bins = 200, astrofit = False, save = False)
+sys.exit()
 
 
 ## From np.mean and np.std on the errors

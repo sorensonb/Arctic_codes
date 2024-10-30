@@ -211,9 +211,10 @@ sys.exit()
 #plot_NN_error_dist_bulk('noland74', num_bins = 500, astrofit = True, \
 #plot_NN_error_dist_bulk('noland100', num_bins = 500, astrofit = True, \
 #plot_NN_error_dist_bulk('noland101', num_bins = 500, astrofit = True, \
-#plot_NN_error_dist_bulk('noland102', num_bins = 500, astrofit = True, \
+plot_NN_error_dist_bulk('noland103', num_bins = 500, astrofit = True, \
+    xmin = -100, xmax = 100, save = False)
+sys.exit()
 #plot_NN_error_dist_bulk('noland74', num_bins = 500, astrofit = True, \
-#    xmin = -100, xmax = 100, save = False)
 #sys.exit()
 
 # Plots more stuff than the NN_output_noaer function
@@ -1048,13 +1049,23 @@ else:
         # Grab the filenames
         # NOTE: Only using 2 files here. Can change ":2" to allow it to read more files 
         # -----------------------------------------------------------------------------
-        file_start = 'arctic_monthly_force_values_count'
-        force_files = glob(file_start +'*.hdf5')[:2]
-    
+        #file_start = 'arctic_monthly_force_values_count300'
+        #force_files = glob(file_start +'*.hdf5')[:2]
+        # NOTE: These files are for noland74, with old error
+
+        force_files = ['arctic_monthly_force_values_count300.hdf5', \
+                       'arctic_monthly_force_values_count300_v1.hdf5', \
+                       'arctic_monthly_force_values_count300_v2.hdf5', \
+                       'arctic_monthly_force_values_count300_v3.hdf5', \
+                       'arctic_monthly_force_values_count300_v4.hdf5']
+
+        force_files = force_files[:2]   
+ 
         # Figure out how many simulations are in all the files
         # ----------------------------------------------------
         total_sims = 0
         for ffile in force_files:
+            print(ffile)
             local_numsim = ffile.strip().split('/')[-1].split('_')[4].split('_')[0].split('.')[0][5:]   
             total_sims += int(local_numsim)
     
@@ -1148,7 +1159,8 @@ else:
 # -------------------------------------------------------------------
 #plot_arctic_avg_region_trends(sim_values, 0)
 
-trends, pvals = calc_arctic_avg_region_trends(sim_values)
+calc_arctic_avg_region_trends(sim_values)
+#trends, pvals = calc_arctic_avg_region_trends(sim_values)
 
 sys.exit()
 
