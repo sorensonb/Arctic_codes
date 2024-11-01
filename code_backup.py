@@ -29,7 +29,7 @@ copy_talon    = False
 ## Push
 #os.system('git push origin master')
 #sys.exit()
-
+#
 # ---------------------------------------------------------------------------- 
 # Backup the backup script
 # ---------------------------------------------------------------------------- 
@@ -254,6 +254,26 @@ cmnd = "find "+base_dir+"CrIS/ -type f -name \"*.py\" | xargs cp -t "+final_dir
 #cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
 print(cmnd)
 os.system(cmnd)
+# ---------------------------------------------------------------------------- 
+# Crop_Model Analysis
+# ---------------------------------------------------------------------------- 
+print("Crop_Model")
+final_dir = dest_dir + 'Crop_Model/'
+cmnd = "find "+base_dir+"Crop_Model/ -type f -name \"*.py\" | xargs cp -t "+final_dir
+#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
+
+cmnd = "find "+base_dir+"Crop_Model/ -type f -name \"*.cpp\" | xargs cp -t "+final_dir
+#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
+
+cmnd = "cp "+base_dir+"Crop_Model/Make* "+final_dir
+#cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
+print(cmnd)
+os.system(cmnd)
+
 # ---------------------------------------------------------------------------- 
 # OMI Codes
 # ---------------------------------------------------------------------------- 
