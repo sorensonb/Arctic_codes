@@ -340,6 +340,8 @@ if(sim_name == 'noland74'):
     daily_filename = 'arctic_daily_est_forcing_numsfcbins4_v1.hdf5' # noland72
     daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v2.hdf5' # noland74
 
+    #daily_filename = 'arctic_daily_est_forcing_numsfcbins6_final.hdf5' # noland74, redone for validation
+
     # Daily values with ref_cld
     # -------------------------
     refcld_filename = 'arctic_daily_est_forcing_numsfcbins6_refcld2005.hdf5' # noland74 , new error (doesn't matter)
@@ -357,6 +359,8 @@ if(sim_name == 'noland74'):
     ice_filename = 'arctic_daily_est_forcing_numsfcbins4_iceerr_v1.hdf5' # noland72
     ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v2.hdf5' # noland74
 
+    #ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_final.hdf5' # noland74, redone for validation
+
     # Daily values with COD modifiations
     # ----------------------------------
     #cod_filename = 'arctic_daily_est_forcing_coderr.hdf5'
@@ -365,6 +369,8 @@ if(sim_name == 'noland74'):
     cod_filename = 'arctic_daily_est_forcing_numsfcbins4_coderr.hdf5' # std = 5, noland50
     cod_filename = 'arctic_daily_est_forcing_numsfcbins4_coderr_v1.hdf5' # std = 5, noland72
     cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v2.hdf5' # std = 5, noland74
+
+    #cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_final.hdf5' # noland74, redone for validation
 
 elif(sim_name == 'noland103'):
     daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v3.hdf5' # noland103
@@ -711,9 +717,9 @@ plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, shawn_file, \
     #NSIDC_data, myd08_data, modis_var = 'cld_frac_mean', vmax = 1.5, \
     min_AI = 0.0, max_AI = 20.0, minlat = 65.5, \
     maxlat = 90.5,  sim_name = sim_name, save = True)
-plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, shawn_file, \
-    NSIDC_data, myd08_data, modis_var = 'cod_mean', vmax = 1.5, \
-    #NSIDC_data, myd08_data, modis_var = 'cld_frac_mean', vmax = 1.5, \
-    min_AI = 0.0, max_AI = 20.0, minlat = 65.5, \
-    maxlat = 90.5,  sim_name = sim_name, save = True)
+#plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, shawn_file, \
+#    NSIDC_data, myd08_data, modis_var = 'cod_mean', vmax = 1.5, \
+#    #NSIDC_data, myd08_data, modis_var = 'cld_frac_mean', vmax = 1.5, \
+#    min_AI = 0.0, max_AI = 20.0, minlat = 65.5, \
+#    maxlat = 90.5,  sim_name = sim_name, save = True)
 sys.exit()

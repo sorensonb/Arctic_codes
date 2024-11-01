@@ -26,8 +26,8 @@ daily_filename = 'arctic_daily_est_forcing_numsfcbins4.hdf5' # noland50
 daily_filename = 'arctic_daily_est_forcing_numsfcbins4_v1.hdf5' # noland72
 daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v2.hdf5' # noland74
 #daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v3.hdf5' # noland103
-daily_filename = 'arctic_daily_est_forcing_numsfcbins6_refcomp.hdf5' # noland74
-#daily_filename = 'arctic_daily_est_forcing_numsfcbins6_refcomp_v1.hdf5' # noland74, redone with max cod 50
+#daily_filename = 'arctic_daily_est_forcing_numsfcbins6_refcomp.hdf5' # noland74
+daily_filename = 'arctic_daily_est_forcing_numsfcbins6_refcomp_v1.hdf5' # noland74, redone with max cod 50
 
 # Daily values with ref_cld
 # -------------------------
@@ -37,12 +37,18 @@ refcld_filename = 'arctic_daily_est_forcing_numsfcbins6_refcld2005.hdf5' # nolan
 # -------------------------
 refice_filename = 'arctic_daily_est_forcing_numsfcbins6_refice2005.hdf5' # noland74 , new error (doesn't matter)
 
+# Daily values with ref_ice
+# -------------------------
+refboth_filename = 'arctic_daily_est_forcing_numsfcbins6_refboth2005.hdf5' # noland74 , new error (doesn't matter)
 
 
 daily_trends, cld_trends = plot_reficecld_comps_many_allregions(daily_filename, 'cld', \
     trend_type = 'linregress', minlat = 65.5, maxlat = 90.5, save = False, return_trends = True)
 
 daily_trends, ice_trends = plot_reficecld_comps_many_allregions(daily_filename, 'ice', \
+    trend_type = 'linregress', minlat = 65.5, maxlat = 90.5, save = False, return_trends = True)
+
+daily_trends, both_trends = plot_reficecld_comps_many_allregions(daily_filename, 'both', \
     trend_type = 'linregress', minlat = 65.5, maxlat = 90.5, save = False, return_trends = True)
 
 raw_cld_errors = np.full( cld_trends.shape, np.nan)

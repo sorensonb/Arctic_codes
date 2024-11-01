@@ -166,11 +166,231 @@ from sklearn.metrics import r2_score
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
+#sim_name = 'noland74'
+#
+## Read in the desired files
+## -------------------------
+#if( (sim_name == 'noland103') | (sim_name == 'noland104') ):
+#    files = glob('neuralnet_output_clear_newfiles/test_calc_out_' + sim_name + '*.hdf5')
+#else:
+#    files = glob('neuralnet_output_clear/test_calc_out_' + sim_name + '*.hdf5')
+#
+#if(len(files) == 0):
+#    print("ERROR: NO CLEAR FILES FOUND FOR SIM " + sim_name)
+#    sys.exit()
+#
+## Figure out the total size to insert the data
+## ---------------------------------------------
+##minlat = 70.
+#minlat = 65.    # 2024/01/10: changed to 65.
+#total_size = 0
+#for ff in files:
+#    data = h5py.File(ff,'r')
+#    #local_data = np.ma.masked_invalid(data['omi_uvai_raw'])
+#    local_data = np.ma.masked_invalid(data['omi_uvai_pert'])
+#    local_data = np.ma.masked_where((local_data < -12) | (local_data > 1.0), local_data)
+#    local_data = np.ma.masked_where(data['omi_lat'][:,:] < minlat, \
+#        local_data) 
+#    local_data = np.ma.masked_where((data['ceres_swf'][:,:] < -200.) | \
+#        (data['ceres_swf'][:,:] > 3000), \
+#        local_data) 
+#    local_data = np.ma.masked_where(np.isnan(data['calc_swf'][:,:]), local_data)
+#    local_size = local_data.compressed().shape[0]
+#    max_ai = np.max(local_data)
+#    print(ff, local_size, np.round(max_ai, 3))
+#    total_size += local_size
+#
+#    data.close()
+#
+#
+## Set up the data structure to hold all the data
+## ----------------------------------------------
+#combined_data = {}
+#combined_data['calc_swf']      = np.full(total_size, np.nan)
+#combined_data['ceres_swf']     = np.full(total_size, np.nan)
+#
+#print("Loading data")
+#
+## Loop back over the files and insert the data into the structure
+## ---------------------------------------------------------------
+#total_size = 0
+#beg_idx = 0
+#end_idx = 0
+#for ff in files:
+#
+#    data = h5py.File(ff,'r')
+#    # NOTE: Changed the omi variable here from "pert" to "raw" on 20230623.
+#    #       This move should allow for coloc data to be read after 2020
+#    #local_data = np.ma.masked_invalid(data['omi_uvai_raw'])
+#    local_data = np.ma.masked_invalid(data['omi_uvai_pert'])
+#    print("MAX AI FOR SWATH", ff, np.max(local_data))
+#    local_data = np.ma.masked_where((local_data < -12) | (local_data > 1.0), local_data)
+#    local_data = np.ma.masked_where(data['omi_lat'][:,:] < minlat, \
+#        local_data) 
+#    local_data = np.ma.masked_where((data['ceres_swf'][:,:] < -200.) | \
+#        (data['ceres_swf'][:,:] > 3000), \
+#        local_data) 
+#    local_data = np.ma.masked_where(np.isnan(data['calc_swf'][:,:]), local_data)
+#    local_size = local_data.compressed().shape[0]
+#
+#    beg_idx = end_idx
+#    end_idx = beg_idx + local_size
+#
+#    for tkey in combined_data.keys():
+#        combined_data[tkey][beg_idx:end_idx] = \
+#            data[tkey][~local_data.mask]
+#
+#    #print(local_size)
+#    total_size += local_size
+#
+#    data.close()
+#
+##errors = combined_data['calc_swf'] - combined_data['ceres_swf']
+#
+## Calculate RMSE for binned values
+## --------------------------------
+#swf_bins1 = np.arange(30, 600, 30)
+#rmse_vals1 = np.full(len(swf_bins1) - 1, np.nan)
+##rmse_vals2 = np.full(len(swf_bins1) - 1, np.nan)
+#for ii in range(len(swf_bins1) - 1):
+#    keep_idxs = np.where( (combined_data['ceres_swf'] >= swf_bins1[ii]) & \
+#        (combined_data['ceres_swf'] < swf_bins1[ii + 1]))
+#    if(len(keep_idxs[0]) > 2):
+#        rmse1 = mean_squared_error(combined_data['ceres_swf'][keep_idxs], \
+#            combined_data['calc_swf'][keep_idxs], squared = False)
+#        counts1 = len(keep_idxs[0])
+#        #keep_idxs = np.where( (both_orig2 >= swf_bins1[ii]) & (both_orig2 < swf_bins1[ii + 1]))
+#        #rmse2 = mean_squared_error(both_orig2[keep_idxs], both_calc2[keep_idxs], squared = False)
+#        #counts2 = len(keep_idxs[0])
+#        #print(swf_bins1[ii], swf_bins1[ii + 1], np.round(rmse1, 1), counts1, np.round(rmse2, 1), counts2) 
+#
+#        rmse_vals1[ii] = rmse1
+#        #rmse_vals2[ii] = rmse2
+#
+#swf_centers = (swf_bins1[1:] + swf_bins1[:-1])/2.
+#
+#fig = plt.figure()
+#ax = fig.add_subplot(1,1,1)
+#ax.scatter(swf_centers, rmse_vals1)
+#plt.show()
+#sys.exit()
+
+
+
+
+
+
+
+
+
+
+
+
+
+in_calc1 = h5py.File(sys.argv[1], 'r')
+mask_orig1 = np.ma.masked_where((in_calc1['ceres_swf'][:,:] == -999.) | \
+                               (in_calc1['ceres_swf'][:,:] > 3000), in_calc1['ceres_swf'][:,:])
+mask_calc1 = np.ma.masked_invalid(in_calc1['calc_swf'])
+mask_calc1 = np.ma.masked_where(mask_calc1 == -999., mask_calc1)
+
+in_calc2 = h5py.File(sys.argv[2], 'r')
+mask_orig2 = np.ma.masked_where((in_calc2['ceres_swf'][:,:] == -999.) | \
+                               (in_calc2['ceres_swf'][:,:] > 3000), in_calc2['ceres_swf'][:,:])
+mask_calc2 = np.ma.masked_invalid(in_calc2['calc_swf'])
+mask_calc2 = np.ma.masked_where(mask_calc2 == -999., mask_calc2)
+
+
+
+#mask_orig1 = np.ma.masked_where(np.isnan(in_calc1['omi_uvai_pert'][:,:]), mask_orig1)
+#mask_calc1 = np.ma.masked_where(np.isnan(in_calc1['omi_uvai_pert'][:,:]), mask_calc1)
+mask_orig1 = np.ma.masked_where(in_calc1['omi_uvai_pert'][:,:] > 1.0, mask_orig1)
+mask_calc1 = np.ma.masked_where(in_calc1['omi_uvai_pert'][:,:] > 1.0, mask_calc1)
+both_orig1 = np.ma.masked_where((mask_orig1.mask == True) | (mask_calc1.mask == True), mask_orig1)
+both_calc1 = np.ma.masked_where((mask_orig1.mask == True) | (mask_calc1.mask == True), mask_calc1)
+both_orig1 = both_orig1.compressed()
+both_calc1 = both_calc1.compressed()
+
+#mask_orig2 = np.ma.masked_where(np.isnan(in_calc2['omi_uvai_pert'][:,:]), mask_orig2)
+#mask_calc2 = np.ma.masked_where(np.isnan(in_calc2['omi_uvai_pert'][:,:]), mask_calc2)
+mask_orig2 = np.ma.masked_where(in_calc2['omi_uvai_pert'][:,:] > 1.0, mask_orig2)
+mask_calc2 = np.ma.masked_where(in_calc2['omi_uvai_pert'][:,:] > 1.0, mask_calc2)
+both_orig2 = np.ma.masked_where((mask_orig2.mask == True) | (mask_calc2.mask == True), mask_orig2)
+both_calc2 = np.ma.masked_where((mask_orig2.mask == True) | (mask_calc2.mask == True), mask_calc2)
+both_orig2 = both_orig2.compressed()
+both_calc2 = both_calc2.compressed()
+
+# Calculate RMSE for binned values
+# --------------------------------
+swf_bins1 = np.arange(30, 600, 30)
+rmse_vals1 = np.full(len(swf_bins1) - 1, np.nan)
+rmse_vals2 = np.full(len(swf_bins1) - 1, np.nan)
+for ii in range(len(swf_bins1) - 1):
+    keep_idxs = np.where( (both_orig1 >= swf_bins1[ii]) & (both_orig1 < swf_bins1[ii + 1]))
+    if(len(keep_idxs[0]) > 2):
+        rmse1 = mean_squared_error(both_orig1[keep_idxs], both_calc1[keep_idxs], squared = False)
+        counts1 = len(keep_idxs[0])
+        keep_idxs = np.where( (both_orig2 >= swf_bins1[ii]) & (both_orig2 < swf_bins1[ii + 1]))
+        rmse2 = mean_squared_error(both_orig2[keep_idxs], both_calc2[keep_idxs], squared = False)
+        counts2 = len(keep_idxs[0])
+        print(swf_bins1[ii], swf_bins1[ii + 1], np.round(rmse1, 1), counts1, np.round(rmse2, 1), counts2) 
+
+        rmse_vals1[ii] = rmse1
+        rmse_vals2[ii] = rmse2
+
+swf_centers = (swf_bins1[1:] + swf_bins1[:-1])/2.
+
+in_calc1.close()
+in_calc2.close()
+
+fig = plt.figure(figsize = (11, 4))
+ax1 = fig.add_subplot(1,3,1)
+ax2 = fig.add_subplot(1,3,2)
+ax3 = fig.add_subplot(1,3,3)
+
+xy = np.vstack([both_orig1, both_calc1])
+r2 = r2_score(both_orig1, both_calc1)
+z = stats.gaussian_kde(xy)(xy)       
+ax1.scatter(both_orig1, both_calc1, c = z, s = 1)
+lims = [\
+        np.min([ax1.get_xlim(), ax1.get_ylim()]),\
+        np.max([ax1.get_xlim(), ax1.get_ylim()]),
+]
+ax1.plot(lims, lims, 'r', linestyle = ':', alpha = 1.00)
+ax1.set_xlim(lims)
+ax1.set_ylim(lims)
+ax1.set_xlabel('CERES SWF [Wm$^{-2}$]')
+ax1.set_ylabel('NN SWF [Wm$^{-2}$]')
+
+xy = np.vstack([both_orig2, both_calc2])
+r2 = r2_score(both_orig2, both_calc2)
+z = stats.gaussian_kde(xy)(xy)       
+ax2.scatter(both_orig2, both_calc2, c = z, s = 1)
+lims = [\
+        np.min([ax2.get_xlim(), ax2.get_ylim()]),\
+        np.max([ax2.get_xlim(), ax2.get_ylim()]),
+]
+ax2.plot(lims, lims, 'r', linestyle = ':', alpha = 1.00)
+ax2.set_xlim(lims)
+ax2.set_ylim(lims)
+ax2.set_xlabel('CERES SWF [Wm$^{-2}$]')
+ax2.set_ylabel('NN SWF [Wm$^{-2}$]')
+
+ax3.scatter(swf_centers, rmse_vals1, label = 'File1')
+ax3.scatter(swf_centers, rmse_vals2, label = 'File2')
+ax3.legend()
+ax3.set_xlabel('CERES SWF [Wm$^{-2}$]')
+ax3.set_ylabel('RMSE [Wm$^{-2}$]')
+
+fig.tight_layout()
+plt.show()
+
+sys.exit()
+
 # Compare the OMI, CERES, NN, and NN - CERES for two swaths
 # ---------------------------------------------------------
 plot_compare_NN_output_double(sys.argv[1], \
     sys.argv[2], \
-    save = True, include_scatter = False)
+    save = False, include_scatter = False)
 #plot_compare_NN_output_double(sys.argv[1], sys.argv[2], save = False, include_scatter = False)
 
 

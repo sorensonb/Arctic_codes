@@ -2005,9 +2005,8 @@ def plot_compare_OMI_MODIS_NSIDC_v2_combined(date_str1, date_str2, ch1, \
         plt.show()
 
 
-def plot_compare_OMI_MODIS_NSIDC_v3_combined(calc_data1, calc_data2, \
+def plot_compare_OMI_MODIS_CERES_v3_combined(calc_data1, calc_data2, \
         omi_dtype = 'shawn', minlat = 65., zoom = False, save = False):
-    print("hi")
    
     in_calc1 = h5py.File(calc_data1)
     mask_AI  = np.ma.masked_invalid(in_calc1['omi_uvai_pert'])
@@ -2046,21 +2045,25 @@ def plot_compare_OMI_MODIS_NSIDC_v3_combined(calc_data1, calc_data2, \
     # Set up the figure
     # -----------------
     plt.close('all')
-    fig = plt.figure(figsize = (11, 6))
-    ax1 = fig.add_subplot(2,3,1, projection = workcrs1)
-    ax2 = fig.add_subplot(2,3,2, projection = workcrs1)
-    ax3 = fig.add_subplot(2,3,3, projection = workcrs1)
-    ax4 = fig.add_subplot(2,3,4, projection = workcrs2)
-    ax5 = fig.add_subplot(2,3,5, projection = workcrs2)
-    ax6 = fig.add_subplot(2,3,6, projection = workcrs2)
+    fig = plt.figure(figsize = (12.8, 5.5))
+    ax1 = fig.add_subplot(2,4,1, projection = workcrs1)
+    ax2 = fig.add_subplot(2,4,2, projection = workcrs1)
+    ax3 = fig.add_subplot(2,4,3, projection = workcrs1)
+    ax4 = fig.add_subplot(2,4,4, projection = workcrs1)
+    ax5 = fig.add_subplot(2,4,5, projection = workcrs2)
+    ax6 = fig.add_subplot(2,4,6, projection = workcrs2)
+    ax7 = fig.add_subplot(2,4,7, projection = workcrs2)
+    ax8 = fig.add_subplot(2,4,8, projection = workcrs2)
 
-    axs1 = [ax1, ax2, ax3]
-    axs2 = [ax4, ax5, ax6]
+    axs1 = [ax1, ax2, ax3, ax4]
+    axs2 = [ax5, ax6, ax7, ax8]
 
     plot_compare_OMI_MODIS_CERES(calc_data1, axs1, vmin = 75, \
-        vmax = 250, auto_zoom = True, zoom = False)
+        vmax = 250, auto_zoom = True, zoom = False, plot_titles = True, \
+        label_xloc = 115.7, label_yloc = 78.6, labels = ['a)','b)','c)','d)'])
     plot_compare_OMI_MODIS_CERES(calc_data2, axs2, vmin = 75, \
-        vmax = 450, auto_zoom = False, zoom = True)
+        vmax = 450, auto_zoom = False, zoom = True, \
+        label_xloc = -166, label_yloc = 65.4, labels = ['e)','f)','g)','h)'])
 
     #mask_AI  = np.ma.masked_invalid(in_calc1['omi_uvai_pert'])
     #hasher = np.ma.masked_invalid(mask_AI)
@@ -2070,9 +2073,9 @@ def plot_compare_OMI_MODIS_NSIDC_v3_combined(calc_data1, calc_data2, \
     #print("MIN MASK AI:", np.min(hasher), 'MAX MASK AI:', np.nanmax(hasher))
 
 
-    mask_AI = np.ma.masked_where(mask_AI < 1.5, mask_AI)
-    ax3.pcolormesh(in_calc1['omi_lon'][:,:], in_calc1['omi_lat'][:,:], mask_AI, \
-        transform = ccrs.PlateCarree(), shading = 'auto', vmin = -1, vmax = 5, cmap = 'jet', alpha = 0.5)
+    #mask_AI = np.ma.masked_where(mask_AI < 1.5, mask_AI)
+    #ax3.pcolormesh(in_calc1['omi_lon'][:,:], in_calc1['omi_lat'][:,:], mask_AI, \
+    #    transform = ccrs.PlateCarree(), shading = 'auto', vmin = -1, vmax = 5, cmap = 'jet', alpha = 0.5)
 
 
 
@@ -2082,15 +2085,39 @@ def plot_compare_OMI_MODIS_NSIDC_v3_combined(calc_data1, calc_data2, \
     #    hasher, alpha=0., shading = 'auto', \
     #    transform = ccrs.PlateCarree())
 
+    dt_date_str1 = datetime.strptime(calc_data1.strip().split('/')[-1].split('_')[-1][:12], '%Y%m%d%H%M')
+    dt_date_str2 = datetime.strptime(calc_data2.strip().split('/')[-1].split('_')[-1][:12], '%Y%m%d%H%M')
+
+    plt.suptitle('Top: Biomass Burning Smoke over Ocean\nBottom: Biomass Burning Smoke over Ice and Land')
+
+    fig.tight_layout(rect = [0.04,0.00,1.00,1.00])
+    row_label_size = 10
+    plotloc = axs1[0].get_position() 
+    fig.text(plotloc.xmin - 0.01, (plotloc.ymax + plotloc.ymin) / 2., \
+        dt_date_str1.strftime('%H:%M UTC %d-%b-%Y'), ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+    plotloc = axs2[0].get_position() 
+    fig.text(plotloc.xmin - 0.01, (plotloc.ymax + plotloc.ymin) / 2., \
+        dt_date_str2.strftime('%H:%M UTC %d-%b-%Y'), ha='center', va='center', \
+        rotation='vertical',weight='bold',fontsize=row_label_size + 1)
+
+
     in_calc1.close()
-    
-    fig.tight_layout()
-    plt.show()
+   
+    if(save):
+        outname = 'omi_modis_ceres_compare_v4_combined_' + dt_date_str1.strftime('%Y%m%d%H%M') + \
+            '_' + dt_date_str2.strftime('%Y%m%d%H%M') + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else: 
+        plt.show()
  
 def plot_compare_OMI_MODIS_CERES(calc_data, axs = None, \
         label_xloc = None, label_yloc = None, \
+        labels = None, 
         omi_dtype = 'shawn', minlat = 65., auto_zoom = True, \
         vmin = None, vmax = None, \
+        plot_titles = False, \
         zoom = False, save = False):
 
     # Load in the JSON file string relations
@@ -2167,7 +2194,7 @@ def plot_compare_OMI_MODIS_CERES(calc_data, axs = None, \
             min_lat = 64
             max_lat = 80
             min_lon = 155
-            max_lon = 200
+            max_lon = 195
 
         elif(date_str[:8] == '20140811'\
             ):
@@ -2187,13 +2214,15 @@ def plot_compare_OMI_MODIS_CERES(calc_data, axs = None, \
     if(axs is None):
         in_ax = False
         fig = plt.figure(figsize = figsize)
-        ax1 = fig.add_subplot(1,3,1, projection = workcrs)
-        ax2 = fig.add_subplot(1,3,2, projection = workcrs)
-        ax3 = fig.add_subplot(1,3,3, projection = workcrs)
+        ax1 = fig.add_subplot(1,4,1, projection = workcrs)
+        ax2 = fig.add_subplot(1,4,2, projection = workcrs)
+        ax3 = fig.add_subplot(1,4,3, projection = workcrs)
+        ax4 = fig.add_subplot(1,4,4, projection = workcrs)
     else:
         ax1 = axs[0]
         ax2 = axs[1]    
         ax3 = axs[2]
+        ax4 = axs[3]
  
     CERES_data_hrly = readgridCERES_hrly_grid(ceres_date, 'swf', \
         satellite = 'Aqua', minlat = 65.5)
@@ -2212,23 +2241,27 @@ def plot_compare_OMI_MODIS_CERES(calc_data, axs = None, \
     #else:
     #    ax2.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
     #    ax2.set_boundary(circle, transform=ax2.transAxes)
-    ax1.set_title('Aqua MODIS')
+    if(plot_titles):
+        ax1.set_title('Aqua MODIS')
+    else:
+        ax1.set_title(None)
     ax1.coastlines()
 
     # Plot the OMI data
     # ----------------- 
-    #mesh = ax2.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_AI, \
-    #    transform = ccrs.PlateCarree(), shading = 'auto', vmax = 5, cmap = 'jet')
-    #cbar = plt.colorbar(mesh, ax = ax2, label = 'OMI UVAI')
-    ##ax1.set_extent([117, 170,70,  85], ccrs.PlateCarree())
-    ##if((auto_zoom) | (zoom)):
-    ##if(auto_zoom):
-    #ax2.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
-    ##else:
-    ##    ax1.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
-    ##    ax1.set_boundary(circle, transform=ax1.transAxes)
-    #ax2.set_title('OMI UVAI')
-    #ax2.coastlines()
+    mesh = ax2.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_AI, \
+        transform = ccrs.PlateCarree(), shading = 'auto', vmin = -2, vmax = 5, cmap = 'jet')
+    cbar = plt.colorbar(mesh, ax = ax2, fraction = 0.046, label = 'OMI UVAI')
+    #ax1.set_extent([117, 170,70,  85], ccrs.PlateCarree())
+    #if((auto_zoom) | (zoom)):
+    #if(auto_zoom):
+    ax2.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    #else:
+    #    ax1.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+    #    ax1.set_boundary(circle, transform=ax1.transAxes)
+    if(plot_titles):
+        ax2.set_title('OMI UVAI')
+    ax2.coastlines()
    
   
     # Plot the CERES data
@@ -2237,30 +2270,37 @@ def plot_compare_OMI_MODIS_CERES(calc_data, axs = None, \
     plot_lat  = CERES_data_hrly['lat']
     mask_flux = CERES_data_hrly['swf']
 
-    mesh = ax2.pcolormesh(plot_lon, plot_lat,mask_flux,transform = datacrs,\
-        cmap = 'viridis', vmin = vmin, vmax = vmax, shading = 'auto')
-    cbar = plt.colorbar(mesh, ax = ax2, label = 'SWF [Wm$^{-2}$]')
-    ax2.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
-    #if(auto_zoom):
-    #    ax3.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
-    #else:
-    #    ax3.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
-    #    ax3.set_boundary(circle, transform=ax3.transAxes)
-    ax2.set_title('Aqua CERES TOA SWF')
-    ax2.coastlines()
-
     mesh = ax3.pcolormesh(plot_lon, plot_lat,mask_flux,transform = datacrs,\
         cmap = 'viridis', vmin = vmin, vmax = vmax, shading = 'auto')
-    cbar = plt.colorbar(mesh, ax = ax3, label = 'SWF [Wm$^{-2}$]')
+    cbar = plt.colorbar(mesh, ax = ax3, fraction = 0.046, label = 'SWF [Wm$^{-2}$]')
     ax3.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
     #if(auto_zoom):
     #    ax3.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
     #else:
     #    ax3.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
     #    ax3.set_boundary(circle, transform=ax3.transAxes)
-    ax3.set_title('Aqua CERES TOA SWF')
+    if(plot_titles):
+        ax3.set_title('Aqua CERES TOA SWF')
     ax3.coastlines()
 
+    mesh = ax4.pcolormesh(plot_lon, plot_lat,mask_flux,transform = datacrs,\
+        cmap = 'viridis', vmin = vmin, vmax = vmax, shading = 'auto')
+    cbar = plt.colorbar(mesh, ax = ax4, fraction = 0.046, label = 'SWF [Wm$^{-2}$]')
+    ax4.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    #if(auto_zoom):
+    #    ax3.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    #else:
+    #    ax3.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+    #    ax3.set_boundary(circle, transform=ax3.transAxes)
+    if(plot_titles):
+        ax4.set_title('Aqua CERES TOA SWF\nOverlay: UVAI > 1.0')
+    ax4.coastlines()
+
+
+    mask_AI   = np.ma.masked_invalid(in_calc['omi_uvai_pert'])
+    mask_AI = np.ma.masked_where(mask_AI < 1.0, mask_AI)
+    ax4.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_AI, \
+        transform = ccrs.PlateCarree(), shading = 'auto', vmin = -2, vmax = 5, cmap = 'jet', alpha = 0.5)
 
 
     ##!#plotCERES_hrly_figure(ceres_date, 'SWF',  \
@@ -2272,15 +2312,29 @@ def plot_compare_OMI_MODIS_CERES(calc_data, axs = None, \
 
     font_size = 10 
     if((label_xloc is not None) & (label_yloc is not None)):
-        plot_figure_text(ax1, 'a)', \
+        if(labels is not None):
+            label_text1 = labels[0]
+            label_text2 = labels[1]
+            label_text3 = labels[2]
+            label_text4 = labels[3]
+        else:
+            label_text1 = 'a)'
+            label_text2 = 'b)'
+            label_text3 = 'c)'
+            label_text4 = 'd)'
+        plot_figure_text(ax1, label_text1, \
             xval = label_xloc, yval = label_yloc, transform = ccrs.PlateCarree(), \
             color = 'black', fontsize = font_size, backgroundcolor = 'white', \
             halign = 'left', weight = 'bold')
-        plot_figure_text(ax2, 'b)', \
+        plot_figure_text(ax2, label_text2, \
             xval = label_xloc, yval = label_yloc, transform = ccrs.PlateCarree(), \
             color = 'black', fontsize = font_size, backgroundcolor = 'white', \
             halign = 'left', weight = 'bold')
-        plot_figure_text(ax3, 'c)', \
+        plot_figure_text(ax3, label_text3, \
+            xval = label_xloc, yval = label_yloc, transform = ccrs.PlateCarree(), \
+            color = 'black', fontsize = font_size, backgroundcolor = 'white', \
+            halign = 'left', weight = 'bold')
+        plot_figure_text(ax4, label_text4, \
             xval = label_xloc, yval = label_yloc, transform = ccrs.PlateCarree(), \
             color = 'black', fontsize = font_size, backgroundcolor = 'white', \
             halign = 'left', weight = 'bold')
@@ -2294,6 +2348,10 @@ def plot_compare_OMI_MODIS_CERES(calc_data, axs = None, \
             color = 'black', fontsize = font_size, backgroundcolor = 'white', \
             halign = 'left', weight = 'bold')
         plot_figure_text(ax3, 'c)', \
+            xval = None, yval = None, transform = None, \
+            color = 'black', fontsize = font_size, backgroundcolor = 'white', \
+            halign = 'left', weight = 'bold')
+        plot_figure_text(ax4, 'd)', \
             xval = None, yval = None, transform = None, \
             color = 'black', fontsize = font_size, backgroundcolor = 'white', \
             halign = 'left', weight = 'bold')
@@ -12190,7 +12248,7 @@ def write_L2_L3_validation_values(direct_forcings, calc_forcings, \
         sim_name, ai_min, bin_dict, name_add = ''):
 
     outfile = 'validate_values_' + sim_name + name_add + '.hdf5'
-    
+ 
     dset = h5py.File(outfile,'w')
 
     cdt = dset.create_dataset('direct_forcings', data = direct_forcings)
@@ -12902,6 +12960,8 @@ def plot_compare_NN_output_double(infile1, infile2, auto_zoom = False, \
     # Plot scatter figures
     # --------------------
     #if(include_scatter):
+    #mask_orig = np.ma.masked_where(np.isnan(in_calc['omi_uvai_pert'][:,:]), mask_orig)
+    #mask_calc = np.ma.masked_where(np.isnan(in_calc['omi_uvai_pert'][:,:]), mask_calc)
     mask_orig = np.ma.masked_where(in_calc['omi_uvai_pert'][:,:] > 1.0, mask_orig)
     mask_calc = np.ma.masked_where(in_calc['omi_uvai_pert'][:,:] > 1.0, mask_calc)
     both_orig = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_orig)
@@ -13013,6 +13073,8 @@ def plot_compare_NN_output_double(infile1, infile2, auto_zoom = False, \
     #if(include_scatter):
     # Plot scatter figures
     # --------------------
+    #mask_orig = np.ma.masked_where(np.isnan(in_calc['omi_uvai_pert'][:,:]), mask_orig)
+    #mask_calc = np.ma.masked_where(np.isnan(in_calc['omi_uvai_pert'][:,:]), mask_calc)
     mask_orig = np.ma.masked_where(in_calc['omi_uvai_pert'][:,:] > 1.0, mask_orig)
     mask_calc = np.ma.masked_where(in_calc['omi_uvai_pert'][:,:] > 1.0, mask_calc)
     both_orig = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_orig)
@@ -17828,7 +17890,7 @@ def plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, OMI_daily_data, \
         label = 'Ice Conc. Trend\n[% (study period)$^{-1}$]')
 
     if(modis_var == 'cld_frac_mean'):
-        label_text = ('Cld. Frac. Trend\n[% (study period$^{-2}$]')
+        label_text = ('Cld. Frac. Trend\n[% (study period$^{-1}$]')
     else:
         label_text = ('COD Trend\n[COD (study period)$^{-1}$]')
     lowplot1 = cld_axs[5].get_position() 
