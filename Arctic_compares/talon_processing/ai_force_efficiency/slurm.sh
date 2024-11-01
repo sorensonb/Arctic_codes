@@ -15,10 +15,10 @@
 #-----------------------------------
 
 #SBATCH --job-name=force_ai_test
-#SBATCH --partition=gpu-code-test
+#SBATCH --partition=talon-gpu32
 
 # Sets the maximum time the job can run (hh:mm:ss).
-#SBATCH --time=00:10:00
+#SBATCH --time=05:00:00
 ###SBATCH --time=01-12:00:00
 
 # Specifies nodes for the job.
@@ -49,7 +49,9 @@ echo ""
 module load tensorflow2-py39-cuda11.8-gcc11/2.11.0
 
 
-time python tensorflow_ai_test_noland103.py $1 $2 $3
+time python tensorflow_ai_test_noland105.py $1 $2 $3
+#time python tensorflow_ai_test_noland104.py $1 $2 $3
+#time python tensorflow_ai_test_noland103.py $1 $2 $3
 #time python tensorflow_ai_test_noland102.py $1 $2 $3
 #time python tensorflow_ai_test_noland101.py $1 $2 $3
 #time python tensorflow_ai_test_noland100.py $1 $2 $3

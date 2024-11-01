@@ -1151,6 +1151,7 @@ def write_daily_month_force_L2L3_error_to_HDF5(\
         slope_dict, bin_dict, control_run_values, \
         minlat = None, maxlat = None, \
         maxerr = None, ai_thresh = None, \
+        reference_ice = None, reference_cld = None, \
         L2L3_err_mean = None, L2L3_err_std = None, \
         ice_err_mean = None, ice_err_std = None, \
         cod_err_mean = None, cod_err_std = None, \
@@ -1194,14 +1195,24 @@ def write_daily_month_force_L2L3_error_to_HDF5(\
 
     if(write_daily_values):
         cdt = dset.create_dataset('force_estimate_orig', data = all_month_values)
-        if(L2L3_err_mean is not None):
-            cdt.attrs['description'] = 'Daily forcing values with L2L3 err modifications'
-        elif(ice_err_mean is not None):
-            cdt.attrs['description'] = 'Daily forcing values with ice err modifications'
-        elif(cod_err_mean is not None):
-            cdt.attrs['description'] = 'Daily forcing values with COD err modifications'
+        if( (reference_cld is not None) and (reference_ice is not None)):
+                cdt.attrs['description'] = 'Daily forcing values with clouds set to ' + \
+                    reference_cld + ' values and ice set to ' + reference_ice + ' values.'
         else:
-            cdt.attrs['description'] = 'Daily forcing values with no modifications'
+            if(L2L3_err_mean is not None):
+                cdt.attrs['description'] = 'Daily forcing values with L2L3 err modifications'
+            elif(ice_err_mean is not None):
+                cdt.attrs['description'] = 'Daily forcing values with ice err modifications'
+            elif(cod_err_mean is not None):
+                cdt.attrs['description'] = 'Daily forcing values with COD err modifications'
+            elif(reference_cld is not None):
+                cdt.attrs['description'] = 'Daily forcing values with clouds set to ' + \
+                    reference_cld + ' values'
+            elif(reference_ice is not None):
+                cdt.attrs['description'] = 'Daily forcing values with ice set to ' + \
+                    reference_ice + ' values'
+            else:
+                cdt.attrs['description'] = 'Daily forcing values with no modifications'
     else:
 
         cdt = dset.create_dataset('force_estimate_orig', data = control_run_values)
@@ -1229,6 +1240,10 @@ def write_daily_month_force_L2L3_error_to_HDF5(\
         cdt.attrs['cod_err_mean'] = cod_err_mean
     if(cod_err_std is not None):
         cdt.attrs['cod_err_std'] = cod_err_std
+    if(reference_cld is not None):
+        cdt.attrs['ref_cld'] = reference_cld
+    if(reference_ice is not None):
+        cdt.attrs['ref_ice'] = reference_ice
 
 
     grp = dset.create_group('slope_dict')
@@ -1871,6 +1886,7 @@ def plot_compare_OMI_MODIS_NSIDC_v2_combined(date_str1, date_str2, ch1, \
     else:
         mapcrs2 = mapcrs
 
+
     # Plot the MODIS true-color and channel data
     # ------------------------------------------
     modis_date1 = file_date_dict[date_str1]['MODIS'][0]
@@ -1989,6 +2005,317 @@ def plot_compare_OMI_MODIS_NSIDC_v2_combined(date_str1, date_str2, ch1, \
         plt.show()
 
 
+def plot_compare_OMI_MODIS_NSIDC_v3_combined(calc_data1, calc_data2, \
+        omi_dtype = 'shawn', minlat = 65., zoom = False, save = False):
+    print("hi")
+   
+    in_calc1 = h5py.File(calc_data1)
+    mask_AI  = np.ma.masked_invalid(in_calc1['omi_uvai_pert'])
+
+    # Figure out where the pixels containing AI are located
+    # -----------------------------------------------------
+    high_AI_idxs = np.where(mask_AI > 1.5)
+
+    # Switch the longitudes to 0 - 360 rather than -180 - 180
+    # -------------------------------------------------------
+    work_lons = np.copy(in_calc1['omi_lon'][:,:])
+    work_lons[work_lons < 0] = 360 + work_lons[work_lons < 0]
+    
+
+    # Figure out the minimum/maximum latitude/longitudes in the AI ranges
+    # -------------------------------------------------------------------
+    min_lat1 = np.min(in_calc1['omi_lat'][:,:][high_AI_idxs]) - 0
+    max_lat1 = np.max(in_calc1['omi_lat'][:,:][high_AI_idxs]) + 2
+    
+    if(max_lat1 > 90):
+        max_lat1 = 90
+
+    # Calculate the 5th and 95th percentiles of longitude to prevent
+    # outliers from ruining the mean or max/min values
+    # --------------------------------------------------------------
+    min_lon1 = np.percentile(work_lons[high_AI_idxs], 5) - 2
+    max_lon1 = np.percentile(work_lons[high_AI_idxs], 95) + 2
+
+    center_lon1 = (min_lon1 + max_lon1) / 2.
+    workcrs1 = ccrs.NorthPolarStereo(central_longitude = center_lon1)
+
+    # Now set up the crs for plot 2. 
+    # ------------------------------
+    workcrs2 = ccrs.NorthPolarStereo(central_longitude = 0)
+
+    # Set up the figure
+    # -----------------
+    plt.close('all')
+    fig = plt.figure(figsize = (11, 6))
+    ax1 = fig.add_subplot(2,3,1, projection = workcrs1)
+    ax2 = fig.add_subplot(2,3,2, projection = workcrs1)
+    ax3 = fig.add_subplot(2,3,3, projection = workcrs1)
+    ax4 = fig.add_subplot(2,3,4, projection = workcrs2)
+    ax5 = fig.add_subplot(2,3,5, projection = workcrs2)
+    ax6 = fig.add_subplot(2,3,6, projection = workcrs2)
+
+    axs1 = [ax1, ax2, ax3]
+    axs2 = [ax4, ax5, ax6]
+
+    plot_compare_OMI_MODIS_CERES(calc_data1, axs1, vmin = 75, \
+        vmax = 250, auto_zoom = True, zoom = False)
+    plot_compare_OMI_MODIS_CERES(calc_data2, axs2, vmin = 75, \
+        vmax = 450, auto_zoom = False, zoom = True)
+
+    #mask_AI  = np.ma.masked_invalid(in_calc1['omi_uvai_pert'])
+    #hasher = np.ma.masked_invalid(mask_AI)
+    #hasher = np.ma.masked_where( (hasher < 1.5), \
+    #    hasher)
+
+    #print("MIN MASK AI:", np.min(hasher), 'MAX MASK AI:', np.nanmax(hasher))
+
+
+    mask_AI = np.ma.masked_where(mask_AI < 1.5, mask_AI)
+    ax3.pcolormesh(in_calc1['omi_lon'][:,:], in_calc1['omi_lat'][:,:], mask_AI, \
+        transform = ccrs.PlateCarree(), shading = 'auto', vmin = -1, vmax = 5, cmap = 'jet', alpha = 0.5)
+
+
+
+    #ax3.pcolor(in_calc1['omi_lon'][:,:], in_calc1['omi_lat'][:,:],\
+    #    hasher, hatch = '...', alpha=0.0, transform = datacrs, color = 'r', shading = 'auto')
+    #ax1.pcolor(in_calc1['omi_lon'][:,:], in_calc1['omi_lat'][:,:], \
+    #    hasher, alpha=0., shading = 'auto', \
+    #    transform = ccrs.PlateCarree())
+
+    in_calc1.close()
+    
+    fig.tight_layout()
+    plt.show()
+ 
+def plot_compare_OMI_MODIS_CERES(calc_data, axs = None, \
+        label_xloc = None, label_yloc = None, \
+        omi_dtype = 'shawn', minlat = 65., auto_zoom = True, \
+        vmin = None, vmax = None, \
+        zoom = False, save = False):
+
+    # Load in the JSON file string relations
+    # --------------------------------------
+    with open(json_time_database, 'r') as fin:
+        file_date_dict = json.load(fin)
+
+    file_name = calc_data.strip().split('/')[-1] 
+    date_str = file_name.split('.')[0].split('_')[-1]
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+    
+    sim_name = file_name.split('_')[3]
+    print(sim_name, date_str)
+    
+    in_calc = h5py.File(calc_data)
+    
+    mask_orig = np.ma.masked_where((in_calc['ceres_swf'][:,:] == -999.) | \
+                                   (in_calc['ceres_swf'][:,:] > 3000), in_calc['ceres_swf'][:,:])
+    mask_lwf  = np.ma.masked_where((in_calc['ceres_lwf'][:,:] == -999.) | \
+                                   (in_calc['ceres_lwf'][:,:] > 3000), in_calc['ceres_lwf'][:,:])
+    mask_calc = np.ma.masked_invalid(in_calc['calc_swf'])
+    mask_calc = np.ma.masked_where(mask_calc == -999., mask_calc)
+    mask_AI   = np.ma.masked_invalid(in_calc['omi_uvai_pert'])
+    
+    # Plot the MODIS true-color and channel data
+    # ------------------------------------------
+    modis_date = file_date_dict[date_str]['MODIS'][0]
+    nsidc_date = file_date_dict[date_str]['NSIDC'][:8]
+    ceres_date = file_date_dict[date_str]['CERES']
+    omi_date   = date_str
+
+   
+    if(auto_zoom):
+
+        # Figure out where the pixels containing AI are located
+        # -----------------------------------------------------
+        high_AI_idxs = np.where(mask_AI > 1.5)
+
+        # Switch the longitudes to 0 - 360 rather than -180 - 180
+        # -------------------------------------------------------
+        work_lons = np.copy(in_calc['omi_lon'][:,:])
+        work_lons[work_lons < 0] = 360 + work_lons[work_lons < 0]
+        
+
+        # Figure out the minimum/maximum latitude/longitudes in the AI ranges
+        # -------------------------------------------------------------------
+        min_lat = np.min(in_calc['omi_lat'][:,:][high_AI_idxs]) - 0
+        max_lat = np.max(in_calc['omi_lat'][:,:][high_AI_idxs]) + 2
+        
+        if(max_lat > 90):
+            max_lat = 90
+
+        # Calculate the 5th and 95th percentiles of longitude to prevent
+        # outliers from ruining the mean or max/min values
+        # --------------------------------------------------------------
+        min_lon = np.percentile(work_lons[high_AI_idxs], 5) - 10
+        max_lon = np.percentile(work_lons[high_AI_idxs], 95) + 2
+
+        center_lon = (min_lon + max_lon) / 2.
+        workcrs = ccrs.NorthPolarStereo(central_longitude = center_lon)
+
+        #fig = plt.figure(figsize = (10.5, 6))
+        figsize = (10, 4)
+        #fig = plt.figure(figsize = (10, 4))
+        #ax1 = fig.add_subplot(1,3,1, projection = workcrs) # OMI AI
+        #ax2 = fig.add_subplot(1,3,2, projection = workcrs) # True color
+        #ax3 = fig.add_subplot(1,3,3, projection = workcrs) # True color
+        
+    else:
+        if((date_str[:8] == '20080422') | \
+           (date_str[:8] == '20180705')\
+            ):
+            workcrs = ccrs.NorthPolarStereo(central_longitude = 0)
+            min_lat = 64
+            max_lat = 80
+            min_lon = 155
+            max_lon = 200
+
+        elif(date_str[:8] == '20140811'\
+            ):
+            workcrs = ccrs.NorthPolarStereo(central_longitude = 135)
+            min_lat = 70
+            max_lat = 85
+            min_lon = 117
+            max_lon = 170
+        else:
+            #workcrs = mapcrs
+            workcrs = ccrs.NorthPolarStereo(central_longitude = 0)
+
+        figsize = (9, 4)
+
+
+    in_ax = True
+    if(axs is None):
+        in_ax = False
+        fig = plt.figure(figsize = figsize)
+        ax1 = fig.add_subplot(1,3,1, projection = workcrs)
+        ax2 = fig.add_subplot(1,3,2, projection = workcrs)
+        ax3 = fig.add_subplot(1,3,3, projection = workcrs)
+    else:
+        ax1 = axs[0]
+        ax2 = axs[1]    
+        ax3 = axs[2]
+ 
+    CERES_data_hrly = readgridCERES_hrly_grid(ceres_date, 'swf', \
+        satellite = 'Aqua', minlat = 65.5)
+    
+    # Plot the MODIS data
+    # ------------------- 
+    plot_MODIS_channel(modis_date, 'true_color', swath = True, \
+        zoom = True, ax = ax1)
+    #mesh = ax2.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_calc, \
+    #    transform = ccrs.PlateCarree(), shading = 'auto')
+    #cbar = fig.colorbar(mesh, ax = ax2, label = 'SWF [Wm$^{-2}$]')
+    #ax2.set_extent([117, 170,70,  85], ccrs.PlateCarree())
+    ax1.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    #if(auto_zoom):
+    #    ax2.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    #else:
+    #    ax2.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+    #    ax2.set_boundary(circle, transform=ax2.transAxes)
+    ax1.set_title('Aqua MODIS')
+    ax1.coastlines()
+
+    # Plot the OMI data
+    # ----------------- 
+    #mesh = ax2.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_AI, \
+    #    transform = ccrs.PlateCarree(), shading = 'auto', vmax = 5, cmap = 'jet')
+    #cbar = plt.colorbar(mesh, ax = ax2, label = 'OMI UVAI')
+    ##ax1.set_extent([117, 170,70,  85], ccrs.PlateCarree())
+    ##if((auto_zoom) | (zoom)):
+    ##if(auto_zoom):
+    #ax2.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    ##else:
+    ##    ax1.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+    ##    ax1.set_boundary(circle, transform=ax1.transAxes)
+    #ax2.set_title('OMI UVAI')
+    #ax2.coastlines()
+   
+  
+    # Plot the CERES data
+    # -------------------
+    plot_lon  = CERES_data_hrly['lon']
+    plot_lat  = CERES_data_hrly['lat']
+    mask_flux = CERES_data_hrly['swf']
+
+    mesh = ax2.pcolormesh(plot_lon, plot_lat,mask_flux,transform = datacrs,\
+        cmap = 'viridis', vmin = vmin, vmax = vmax, shading = 'auto')
+    cbar = plt.colorbar(mesh, ax = ax2, label = 'SWF [Wm$^{-2}$]')
+    ax2.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    #if(auto_zoom):
+    #    ax3.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    #else:
+    #    ax3.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+    #    ax3.set_boundary(circle, transform=ax3.transAxes)
+    ax2.set_title('Aqua CERES TOA SWF')
+    ax2.coastlines()
+
+    mesh = ax3.pcolormesh(plot_lon, plot_lat,mask_flux,transform = datacrs,\
+        cmap = 'viridis', vmin = vmin, vmax = vmax, shading = 'auto')
+    cbar = plt.colorbar(mesh, ax = ax3, label = 'SWF [Wm$^{-2}$]')
+    ax3.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    #if(auto_zoom):
+    #    ax3.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+    #else:
+    #    ax3.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
+    #    ax3.set_boundary(circle, transform=ax3.transAxes)
+    ax3.set_title('Aqua CERES TOA SWF')
+    ax3.coastlines()
+
+
+
+    ##!#plotCERES_hrly_figure(ceres_date, 'SWF',  \
+    ##!#    minlat = minlat, lat_circles = None, ax = ax3, title = 'SWF',\
+    ##!#    grid_data = True, zoom = zoom, vmax = 350, vmin = None, save = False)
+    ##!#if(auto_zoom):
+    ##!#    ax3.set_extent([min_lon, max_lon , min_lat, max_lat], ccrs.PlateCarree())
+ 
+
+    font_size = 10 
+    if((label_xloc is not None) & (label_yloc is not None)):
+        plot_figure_text(ax1, 'a)', \
+            xval = label_xloc, yval = label_yloc, transform = ccrs.PlateCarree(), \
+            color = 'black', fontsize = font_size, backgroundcolor = 'white', \
+            halign = 'left', weight = 'bold')
+        plot_figure_text(ax2, 'b)', \
+            xval = label_xloc, yval = label_yloc, transform = ccrs.PlateCarree(), \
+            color = 'black', fontsize = font_size, backgroundcolor = 'white', \
+            halign = 'left', weight = 'bold')
+        plot_figure_text(ax3, 'c)', \
+            xval = label_xloc, yval = label_yloc, transform = ccrs.PlateCarree(), \
+            color = 'black', fontsize = font_size, backgroundcolor = 'white', \
+            halign = 'left', weight = 'bold')
+    else:
+        plot_figure_text(ax1, 'a)', \
+            xval = None, yval = None, transform = None, \
+            color = 'black', fontsize = font_size, backgroundcolor = 'white', \
+            halign = 'left', weight = 'bold')
+        plot_figure_text(ax2, 'b)', \
+            xval = None, yval = None, transform = None, \
+            color = 'black', fontsize = font_size, backgroundcolor = 'white', \
+            halign = 'left', weight = 'bold')
+        plot_figure_text(ax3, 'c)', \
+            xval = None, yval = None, transform = None, \
+            color = 'black', fontsize = font_size, backgroundcolor = 'white', \
+            halign = 'left', weight = 'bold')
+    
+    plt.suptitle(dt_date_str.strftime('%Y-%m-%d %H:%M UTC'))
+    
+    #in_base.close()
+    in_calc.close()
+   
+    if(not in_ax):  
+        fig.tight_layout()
+
+        if(save):    
+            if(auto_zoom):
+                zoom_add = '_zoom'
+            else:
+                zoom_add = ''
+            outname = 'omi_modis_ceres_nn_compare_'+ date_str + '_' + zoom_add + '_v3.png'
+            fig.savefig(outname, dpi = 200)
+            print("Saved image", outname)
+        else:
+            plt.show()
 
 
 
@@ -13540,6 +13867,7 @@ def plot_NN_forcing_daily(date_str, OMI_daily_data, OMI_monthly_data, \
         slope_dict, bin_dict, minlat = 65., maxlat = 87., \
         use_intercept = False, filter_bad_vals = True, \
         mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
+        sim_name = '', \
         ai_thresh = -0.15, maxerr = 2., save = False):
 
     # Load in the daily MODIS and NSIDC data
@@ -13644,7 +13972,9 @@ def plot_NN_forcing_daily(date_str, OMI_daily_data, OMI_monthly_data, \
     fig.tight_layout()
 
     if(save):
-        outname = 'test_forcing_v4_' + date_str + '.png'
+        if(sim_name != ''):
+            sim_name = '_' + sim_name
+        outname = 'test_forcing_v4_' + date_str + sim_name + '.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
@@ -15371,6 +15701,48 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
             print("Saved image", outname)
         else:
             plt.show()
+
+def calc_monthly_force_from_daily(daily_dict, minlat = 65.5, maxlat = 90.5, \
+        return_std = False):
+
+    # Figure out the number of months 
+    # -------------------------------
+    months = np.array([int(str(tdate)[:6]) for tdate in daily_dict['dates']])
+    unique_months = np.unique(months)
+   
+    test_lats = daily_dict['latitude'] 
+    lat_idxs = np.where( (test_lats >= minlat) & (test_lats <= maxlat) )[0]
+    min_lat_idx = lat_idxs[0]
+    max_lat_idx = lat_idxs[-1] + 1
+    test_lats = test_lats[lat_idxs]
+    print("Working with latitudes",test_lats)
+
+    full_arr = np.full( (unique_months.shape[0], \
+        test_lats.shape[0], \
+        #daily_dict['force_estimate_orig'].shape[1], \
+        daily_dict['force_estimate_orig'].shape[2]), np.nan)
+    if(return_std):
+        full_std = np.full( (unique_months.shape[0], \
+            test_lats.shape[0], \
+            #daily_dict['force_estimate_orig'].shape[1], \
+            daily_dict['force_estimate_orig'].shape[2]), np.nan)
+    
+    for ii in range(unique_months.shape[0]):
+        print(unique_months[ii])
+        time_idxs = np.where(months == unique_months[ii])[0]
+    
+        full_arr[ii,:,:] = np.nanmean(\
+            daily_dict['force_estimate_orig'][time_idxs, \
+            min_lat_idx:max_lat_idx,:], axis = (0))
+        if(return_std):
+            full_std[ii,:,:] = np.nanstd(\
+                daily_dict['force_estimate_orig'][time_idxs, \
+                min_lat_idx:max_lat_idx,:], axis = (0))
+   
+    if(return_std): 
+        return full_arr, full_std       
+    else:
+        return full_arr
 
 
 def calc_force_vals_bulk(daily_dict, err_mean, err_std, minlat = 65.5, \
@@ -17129,8 +17501,9 @@ def plot_bulk_force_AI_trend_v2(daily_dict, forcing_trends, OMI_daily_data, \
 
 
 def plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, OMI_daily_data, \
-        NSIDC_data, MODIS_data, vmax = 1.0, min_AI = None, max_AI = None, minlat = 65.5, \
-        maxlat = 90.5,  conf_level = 90., save = False):
+        NSIDC_data, MODIS_data, modis_var = 'cld_frac_mean', vmax = 1.0, \
+        min_AI = None, max_AI = None, minlat = 65.5, \
+        maxlat = 90.5,  sim_name = '', conf_level = 90., save = False):
 
     if(isinstance(OMI_daily_data, str)):
         if(min_AI is None):
@@ -17223,6 +17596,10 @@ def plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, OMI_daily_data, \
         ( ((mean_trends > 0) & (conf_intvl[0] < 0)) | \
           ((mean_trends < 0) & (conf_intvl[1] > 0)) ), mean_trends) 
 
+    if(modis_var == 'cld_frac_mean'):
+        cld_lims = 40.
+    elif(modis_var == 'cod_mean'):
+        cld_lims = 10.
 
     titlers = ['Apr','May','June','July','Aug','Sep']
     for ii in range(6):
@@ -17333,20 +17710,42 @@ def plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, OMI_daily_data, \
         #
         # Plot the MODIS cloud frac trends
         #
-        # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   
-        #cld_mesh = plotMODIS_MYD08_MonthTrend(MODIS_data,month_idx = ii,\
-        #    trend_type='linregress',season= '', minlat=65.5,\
-        #    colorbar = False, title = '', \
-        #    ax = cld_axs[ii], show_pval = False, uncert_ax = None, \
-        #    norm_to_decade = False, vmin = -0.4, vmax = 0.4, \
-        #    return_trend = False, return_mesh = True)
+        # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+        if(modis_var == 'cod_mean'):
+            if(ii == 5):
+                plotMODIS_MYD08_MonthTrend(MODIS_data,modis_var,\
+                    month_idx = ii,\
+                    trend_type='linregress',season= '', minlat=65.5,\
+                    colorbar = False, title = '', \
+                    ax = cld_axs[ii], show_pval = False, uncert_ax = None, \
+                    norm_to_decade = False, vmin = -cld_lims, vmax = cld_lims, \
+                    return_trend = False, return_mesh = False)
+            else:
+                cld_mesh = plotMODIS_MYD08_MonthTrend(MODIS_data,modis_var,\
+                    month_idx = ii,\
+                    trend_type='linregress',season= '', minlat=65.5,\
+                    colorbar = False, title = '', \
+                    ax = cld_axs[ii], show_pval = False, uncert_ax = None, \
+                    norm_to_decade = False, vmin = -cld_lims, vmax = cld_lims, \
+                    return_trend = False, return_mesh = True)
+        else:
+            cld_mesh = plotMODIS_MYD08_MonthTrend(MODIS_data,modis_var,\
+                month_idx = ii,\
+                trend_type='linregress',season= '', minlat=65.5,\
+                colorbar = False, title = '', \
+                ax = cld_axs[ii], show_pval = False, uncert_ax = None, \
+                norm_to_decade = False, vmin = -cld_lims, vmax = cld_lims, \
+                return_trend = False, return_mesh = True)
 
  
     omi_axs[0].set_title('OMI UVAI Trend')
     mean_axs[0].set_title('ADRF Trend Mean')
     stdv_axs[0].set_title('ADRF Trend St. Dev.')
-    ice_axs[0].set_title('SSMIS\nIce Conc. Trend.')
-    cld_axs[0].set_title('MODIS\nCld. Frac. Trend.')
+    ice_axs[0].set_title('SSMIS\nIce Conc. Trend')
+    if(modis_var == 'cld_frac_mean'):
+        cld_axs[0].set_title('MODIS\nCld. Frac. Trend')
+    else:
+        cld_axs[0].set_title('MODIS COD Trend')
 
 
     fig.tight_layout(rect = [0.04,0.05,1,1.00])
@@ -17403,36 +17802,51 @@ def plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, OMI_daily_data, \
         ((lowplot1.x1 - lowplot1.x0) - (diff_val * 2)), 0.01])
     cbar = fig.colorbar(omi_mesh, \
         cax = cbar_ax1, shrink = 0.8, orientation = 'horizontal', \
-        label = 'UVAI Trend', extend = 'max')
+        label = 'UVAI Trend\n[UVAI (study period) $^{-1}$]', extend = 'max')
+
     lowplot1 = mean_axs[5].get_position() 
     #cbar_ax2 = fig.add_axes([0.40, 0.04, 0.23, 0.01])
     cbar_ax2 = fig.add_axes([lowplot1.x0 + diff_val, lowplot1.y0 - 0.02, \
         ((lowplot1.x1 - lowplot1.x0) - (diff_val * 2)), 0.01])
     cbar = fig.colorbar(mean_mesh, \
         cax = cbar_ax2, shrink = 0.8, orientation = 'horizontal', \
-        label = 'ADRF Trend [Wm$^{-2}$]', extend = 'both')
+        label = 'ADRF Trend\n[Wm$^{-2}$ (study period) $^{-1}$]', extend = 'both')
+
     lowplot1 = stdv_axs[5].get_position() 
     #cbar_ax3 = fig.add_axes([0.70, 0.04, 0.23, 0.01])
     cbar_ax3 = fig.add_axes([lowplot1.x0 + diff_val, lowplot1.y0 - 0.02, \
         ((lowplot1.x1 - lowplot1.x0) - (diff_val * 2)), 0.01])
     cbar = fig.colorbar(stdv_mesh, \
         cax = cbar_ax3, shrink = 0.8, orientation = 'horizontal', \
-        label = 'ADRF Trend Std Dev [Wm$^{-2}$]')
+        label = 'ADRF Trend Std Dev\n[Wm$^{-2}$]')
+
     lowplot1 = ice_axs[5].get_position() 
     cbar_ax4 = fig.add_axes([lowplot1.x0 + diff_val, lowplot1.y0 - 0.02, \
         ((lowplot1.x1 - lowplot1.x0) - (diff_val * 2)), 0.01])
     cbar = fig.colorbar(ice_mesh, \
         cax = cbar_ax4, shrink = 0.8, orientation = 'horizontal', \
-        label = 'Sea Ice Conc. [%]')
-    #lowplot1 = cld_axs[5].get_position() 
-    #cbar_ax5 = fig.add_axes([lowplot1.x0 + diff_val, lowplot1.y0 - 0.02, \
-    #    ((lowplot1.x1 - lowplot1.x0) - (diff_val * 2)), 0.01])
-    #cbar = fig.colorbar(cld_mesh, \
-    #    cax = cbar_ax5, shrink = 0.8, orientation = 'horizontal', \
-    #    label = 'CLD TREND')
+        label = 'Ice Conc. Trend\n[% (study period)$^{-1}$]')
+
+    if(modis_var == 'cld_frac_mean'):
+        label_text = ('Cld. Frac. Trend\n[% (study period$^{-2}$]')
+    else:
+        label_text = ('COD Trend\n[COD (study period)$^{-1}$]')
+    lowplot1 = cld_axs[5].get_position() 
+    cbar_ax5 = fig.add_axes([lowplot1.x0 + diff_val, lowplot1.y0 - 0.02, \
+        ((lowplot1.x1 - lowplot1.x0) - (diff_val * 2)), 0.01])
+    cbar = fig.colorbar(cld_mesh, \
+        cax = cbar_ax5, shrink = 0.8, orientation = 'horizontal', \
+        label = label_text)
 
     if(save):
-        outname = 'ai_force_trend_ice_combined.png'
+        if(modis_var == 'cld_frac_mean'):
+            modis_adder = '_cldfrac'
+        elif(modis_var == 'cod_mean'):
+            modis_adder = '_cod'
+        if(sim_name != ''):
+            sim_name = '_' + sim_name
+
+        outname = 'ai_force_trend_ice' + modis_adder + '_combined' + sim_name + '.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
@@ -17518,5 +17932,188 @@ def calc_arctic_avg_region_trends(sim_values):
     return trend_vals_all, trend_pval_all
 
 
+def plot_reficecld_comps(daily_dict, refcld_dict, refice_dict, reg_idx, \
+        trend_type = 'linregress', minlat = 65.5, maxlat = 90.5, save = False):
 
+    daily_month_vals = calc_monthly_force_from_daily(daily_dict, minlat = 65.5, maxlat = 90.5, \
+        return_std = False)
+    
+    refcld_month_vals = calc_monthly_force_from_daily(refcld_dict, minlat = 65.5, maxlat = 90.5, \
+        return_std = False)
+    
+    refice_month_vals = calc_monthly_force_from_daily(refice_dict, minlat = 65.5, maxlat = 90.5, \
+        return_std = False)
+    
+    daily_regions  = np.full( (3, daily_month_vals.shape[0]), np.nan)
+    refcld_regions = np.full( (3, daily_month_vals.shape[0]), np.nan)
+    refice_regions = np.full( (3, daily_month_vals.shape[0]), np.nan)
+    
+    lat_mins = [65.5, 65.5, 75.5]
+    lat_maxs = [89.5, 75.5, 89.5]
+    for jj in range(len(lat_mins)):
+        lat_idxs = np.where( (daily_dict['latitude'][:] >= lat_mins[jj]) & (daily_dict['latitude'][:] < lat_maxs[jj])) 
+        lat_beg_idx = lat_idxs[0][0]
+        lat_end_idx = lat_idxs[0][-1] + 1
+        daily_regions[jj,:] = \
+            np.nanmean(daily_month_vals[:,lat_beg_idx:lat_end_idx,:], axis = (1,2))
+        refcld_regions[jj,:] = \
+            np.nanmean(refcld_month_vals[:,lat_beg_idx:lat_end_idx,:], axis = (1,2))
+        refice_regions[jj,:] = \
+            np.nanmean(refice_month_vals[:,lat_beg_idx:lat_end_idx,:], axis = (1,2))
+    
+    fig = plt.figure(figsize = (8, 5))
+    axs = fig.subplots(2,3, sharex = True, sharey = True)
+    flat_axs = axs.flatten()
+
+    x_vals = np.arange(2005, 2021)   
+
+    def plot_ref_time_series(x_data, y_data, pax, trend_type, label):
+        
+        flat_axs[ii].plot(x_data, y_data, label = label)
+        if((trend_type == 'standard') | (trend_type == 'linregress')): 
+            result = stats.linregress(x_vals, y_data)
+            forcing_trend = result.slope * len(x_vals)
+            forcing_pval  = result.pvalue
+            forcing_uncert = result.stderr * len(x_vals)
+        else:
+            res = stats.theilslopes(y_data, x_vals, 0.90)
+            forcing_trend = res[0]*len(x_vals)
+
+
+        return forcing_trend    
+ 
+    for ii in range(len(flat_axs)):
+
+        # Do the daily trends first
+        # -------------------------
+        daily_trend = plot_ref_time_series(x_vals, \
+            daily_regions[reg_idx,ii::6], flat_axs[ii], trend_type, 'Control')
+
+        # Now, do ref cld trends
+        # ----------------------
+        refcld_trend = plot_ref_time_series(x_vals, \
+            refcld_regions[reg_idx,ii::6], flat_axs[ii], trend_type, 'Cld2005')
+
+        # Now, do ref ice trends
+        # ----------------------
+        refice_trend = plot_ref_time_series(x_vals, \
+            refice_regions[reg_idx,ii::6], flat_axs[ii], trend_type, 'Ice2005')
+
+        flat_axs[ii].axhline(0, color = 'k', linestyle = ':')
+
+        print("DAILY:", np.round(daily_trend, 4), \
+              "CLD:", np.round(refcld_trend, 4), \
+              "ICE:", np.round(refice_trend, 4))
+
+    flat_axs[5].legend()
+
+    fig.tight_layout()       
+    plt.show() 
+
+def plot_reficecld_comps_many_allregions(daily_filename, comp_type, \
+        trend_type = 'linregress', minlat = 65.5, maxlat = 90.5, \
+        return_trends = False, save = False):
+
+    daily_dict = read_daily_month_force_L2L3_error_from_HDF5(daily_filename)
+
+    # Find all the ref*** simulation files
+    # ------------------------------------
+    ref_files = glob('arctic_daily_est_forcing_numsfcbins6_ref' + comp_type + '*.hdf5')
+   
+    num_ref_sims = len(ref_files)
+    
+    # Calculate the values for the control run
+    # ----------------------------------------
+    daily_month_vals = calc_monthly_force_from_daily(daily_dict, minlat = 65.5, maxlat = 90.5, \
+        return_std = False)
+    
+    daily_vals = np.full( (3, daily_month_vals.shape[0]), np.nan)
+    ref_vals = np.full( (num_ref_sims, 3, daily_month_vals.shape[0]), np.nan)
+    
+    lat_mins = [65.5, 65.5, 75.5]
+    lat_maxs = [89.5, 75.5, 89.5]
+    
+    for jj in range(len(lat_mins)):
+        lat_idxs = np.where( (daily_dict['latitude'][:] >= lat_mins[jj]) & (daily_dict['latitude'][:] < lat_maxs[jj])) 
+        lat_beg_idx = lat_idxs[0][0]
+        lat_end_idx = lat_idxs[0][-1] + 1
+        daily_vals[jj,:] = \
+            np.nanmean(daily_month_vals[:,lat_beg_idx:lat_end_idx,:], axis = (1,2))
+    
+    # Calculate the values for the refcld/ice sims
+    # --------------------------------------------
+    for ii in range(num_ref_sims):
+    
+        ref_dict = read_daily_month_force_L2L3_error_from_HDF5(ref_files[ii])
+    
+        ref_month_vals = calc_monthly_force_from_daily(ref_dict, minlat = 65.5, maxlat = 90.5, \
+            return_std = False)
+        
+        for jj in range(len(lat_mins)):
+            lat_idxs = np.where( (daily_dict['latitude'][:] >= lat_mins[jj]) & (daily_dict['latitude'][:] < lat_maxs[jj])) 
+            lat_beg_idx = lat_idxs[0][0]
+            lat_end_idx = lat_idxs[0][-1] + 1
+            #daily_regions[jj,:] = \
+            #    np.nanmean(daily_month_vals[:,lat_beg_idx:lat_end_idx,:], axis = (1,2))
+            ref_vals[ii,jj,:] = \
+                np.nanmean(ref_month_vals[:,lat_beg_idx:lat_end_idx,:], axis = (1,2))
+   
+    # Plot the results
+    # ----------------
+    fig = plt.figure(figsize = (7, 11))
+    axs = fig.subplots(6,3, sharex = True, sharey = True)
+    
+    x_vals = np.arange(2005, 2021)   
+    
+    def plot_ref_time_series(x_data, y_data, pax, trend_type, label, color = None):
+        
+        pax.plot(x_data, y_data, label = label, color = color)
+        if((trend_type == 'standard') | (trend_type == 'linregress')): 
+            result = stats.linregress(x_vals, y_data)
+            forcing_trend = result.slope * len(x_vals)
+            forcing_pval  = result.pvalue
+            forcing_uncert = result.stderr * len(x_vals)
+        else:
+            res = stats.theilslopes(y_data, x_vals, 0.90)
+            forcing_trend = res[0]*len(x_vals)
+    
+    
+        return forcing_trend    
+    
+    ref_trends = np.full( (6, 3, num_ref_sims), np.nan)
+    daily_trends = np.full( (6, 3), np.nan)
+  
+    # Month loop  
+    for ii in range(6):
+ 
+        # Region loop 
+        for kk in range(3):
+
+            print("Region idx = ", kk)
+ 
+            # Sim loop 
+            for jj in range(ref_vals.shape[0]):
+    
+                # Now, do ref ice trends
+                # ----------------------
+                ref_trends[ii,kk,jj] = plot_ref_time_series(x_vals, \
+                    ref_vals[jj,kk,ii::6], axs[ii,kk], trend_type, 'Ice2005')
+    
+            # Do the daily trends first
+            # -------------------------
+            daily_trends[ii,kk] = plot_ref_time_series(x_vals, \
+                daily_vals[kk,ii::6], axs[ii,kk], trend_type, 'Control', color = 'k')
+    
+            axs[ii,kk].axhline(0, color = 'k', linestyle = ':')
+    
+            print("DAILY:", np.round(daily_trends[ii,kk], 4), \
+                  "REF:",   np.round(np.mean(ref_trends[ii,kk,:]), 4))
+    
+    #flat_axs[5].legend()
+    
+    fig.tight_layout()       
+    plt.show() 
+
+    if(return_trends):
+        return daily_trends, ref_trends
 

@@ -196,7 +196,7 @@ test_dict = combine_NN_data(sim_name)
 
 # Define COD, SZA, and NSIDC ICE bin ranges
 # -----------------------------------------
-cod_bin_edges = np.array([0,0.5,2,4,8,12,20,30,150])
+cod_bin_edges = np.array([0,0.5,2,4,8,12,20,30,50])
 cod_bin_means = (cod_bin_edges[1:] + cod_bin_edges[:-1]) / 2
 sza_bin_edges = np.arange(40, 85, 5)
 sza_bin_means = (sza_bin_edges[1:] + sza_bin_edges[:-1]) / 2
@@ -219,9 +219,9 @@ bin_dict = {
 # ---------------------------------------------------------------
 min_ob = 50
 ai_min_forslopes = 0.0
-#slope_dict = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
-#        sza_bin_edges, cod_bin_edges, ai_min = ai_min_forslopes, min_ob = min_ob, \
-#        trend_type = 'theil-sen')
+slope_dict = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
+        sza_bin_edges, cod_bin_edges, ai_min = ai_min_forslopes, min_ob = min_ob, \
+        trend_type = 'theil-sen')
 slope_dict_lin = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
         sza_bin_edges, cod_bin_edges, ai_min = ai_min_forslopes, min_ob = min_ob, \
         trend_type = 'linregress')
@@ -235,8 +235,8 @@ slope_dict_lin = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
 
 # Plot the binned NN/AI slopes for the 4 surface types
 # ----------------------------------------------------
-#plot_NN_bin_slopes_6types(slope_dict, bin_dict, 'slopes', min_ob = 50, \
-#            plot_error = False, save = True)
+plot_NN_bin_slopes_6types(slope_dict, bin_dict, 'slopes', min_ob = 50, \
+            plot_error = False, save = True)
 plot_NN_bin_slopes_6types(slope_dict_lin, bin_dict, 'slopes', min_ob = 50, \
-            plot_error = False, save = False)
+            plot_error = False, save = True)
 

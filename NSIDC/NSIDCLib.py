@@ -907,10 +907,18 @@ def plotNSIDC_MonthTrend(NSIDC_data,month_idx=None,save=False,\
         else:
             plt.show()
     else:
-        plotNSIDC_spatial(pax, NSIDC_data['grid_lat'], NSIDC_data['grid_lon'], \
-            nsidc_trends, 'trend', ptitle = title, plabel = 'Sea Ice Conc. per study period', \
-            vmin = v_min, vmax = v_max, colorbar_label_size = colorbar_label_size, \
-            minlat = minlat, colorbar = colorbar)
+
+        if(return_mesh):
+            mesh = plotNSIDC_spatial(pax, NSIDC_data['grid_lat'], NSIDC_data['grid_lon'], \
+                nsidc_trends, 'trend', ptitle = title, plabel = 'Sea Ice Conc. per study period', \
+                vmin = v_min, vmax = v_max, colorbar_label_size = colorbar_label_size, \
+                minlat = minlat, colorbar = colorbar, return_mesh = True)
+        else:
+            plotNSIDC_spatial(ax, NSIDC_data['grid_lat'], NSIDC_data['grid_lon'], \
+                nsidc_trends, 'trend', ptitle = title, plabel = 'Sea Ice Conc. per study period', \
+                vmin = v_min, vmax = v_max, colorbar_label_size = colorbar_label_size, \
+                minlat = minlat, pvals = nsidc_pvals, colorbar = colorbar)
+
 
     if(uncert_ax is not None):
         plotNSIDC_spatial(uncert_ax, NSIDC_data['grid_lat'], \

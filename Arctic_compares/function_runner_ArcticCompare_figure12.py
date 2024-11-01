@@ -195,7 +195,7 @@ test_dict = combine_NN_data(sim_name)
 
 # Define COD, SZA, and NSIDC ICE bin ranges
 # -----------------------------------------
-cod_bin_edges = np.array([0,0.5,2,4,8,12,20,30,150])
+cod_bin_edges = np.array([0,0.5,2,4,8,12,20,30,50])
 cod_bin_means = (cod_bin_edges[1:] + cod_bin_edges[:-1]) / 2
 sza_bin_edges = np.arange(40, 85, 5)
 sza_bin_means = (sza_bin_edges[1:] + sza_bin_edges[:-1]) / 2
@@ -291,35 +291,96 @@ daily_VSJ4 = readOMI_daily_HDF5(shawn_file, minlat = minlat, maxlat = maxlat)
 ai_thresh = 0.7
 maxerr = 1.5
 
+##!## Control daily values
+##!## --------------------
+##!##daily_filename = 'arctic_daily_est_forcing_v1.hdf5'        
+##!#daily_filename = 'arctic_daily_est_forcing_numsfcbins6.hdf5' # noland72
+##!#daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v1.hdf5' # noland50
+##!#daily_filename = 'arctic_daily_est_forcing_numsfcbins4.hdf5' # noland50
+##!#daily_filename = 'arctic_daily_est_forcing_numsfcbins4_v1.hdf5' # noland72
+##!#daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v2.hdf5' # noland74
+##!##daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v3.hdf5' # noland103
+##!#
+##!## Daily values with ref_cld
+##!## -------------------------
+##!#refcld_filename = 'arctic_daily_est_forcing_numsfcbins6_refcld2005.hdf5' # noland74 , new error (doesn't matter)
+##!#
+##!## Daily values with ref_ice
+##!## -------------------------
+##!#refice_filename = 'arctic_daily_est_forcing_numsfcbins6_refice2005.hdf5' # noland74 , new error (doesn't matter)
+##!#
+##!## Daily values with ice modifiations
+##!## ----------------------------------
+##!##ice_filename = 'arctic_daily_est_forcing_iceerr_v1.hdf5'
+##!#ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr.hdf5' # noland72
+##!#ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v1.hdf5' # noland50
+##!#ice_filename = 'arctic_daily_est_forcing_numsfcbins4_iceerr.hdf5' # noland50
+##!#ice_filename = 'arctic_daily_est_forcing_numsfcbins4_iceerr_v1.hdf5' # noland72
+##!#ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v2.hdf5' # noland74
+##!##ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v3.hdf5' # noland103
+##!#
+##!## Daily values with COD modifiations
+##!## ----------------------------------
+##!##cod_filename = 'arctic_daily_est_forcing_coderr.hdf5'
+##!#cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr.hdf5' # std = 5, noland72
+##!#cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v1.hdf5' # std = 5, noland50
+##!#cod_filename = 'arctic_daily_est_forcing_numsfcbins4_coderr.hdf5' # std = 5, noland50
+##!#cod_filename = 'arctic_daily_est_forcing_numsfcbins4_coderr_v1.hdf5' # std = 5, noland72
+##!#cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v2.hdf5' # std = 5, noland74
+##!##cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v3.hdf5' # std = 5, noland103
+
+
 # Control daily values
 # --------------------
 #daily_filename = 'arctic_daily_est_forcing_v1.hdf5'        
-daily_filename = 'arctic_daily_est_forcing_numsfcbins6.hdf5' # noland72
-daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v1.hdf5' # noland50
-daily_filename = 'arctic_daily_est_forcing_numsfcbins4.hdf5' # noland50
-daily_filename = 'arctic_daily_est_forcing_numsfcbins4_v1.hdf5' # noland72
-daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v2.hdf5' # noland74
-#daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v3.hdf5' # noland103
+if(sim_name == 'noland74'):
+    daily_filename = 'arctic_daily_est_forcing_numsfcbins6.hdf5' # noland72
+    daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v1.hdf5' # noland50
+    daily_filename = 'arctic_daily_est_forcing_numsfcbins4.hdf5' # noland50
+    daily_filename = 'arctic_daily_est_forcing_numsfcbins4_v1.hdf5' # noland72
+    daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v2.hdf5' # noland74
 
-# Daily values with ice modifiations
-# ----------------------------------
-#ice_filename = 'arctic_daily_est_forcing_iceerr_v1.hdf5'
-ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr.hdf5' # noland72
-ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v1.hdf5' # noland50
-ice_filename = 'arctic_daily_est_forcing_numsfcbins4_iceerr.hdf5' # noland50
-ice_filename = 'arctic_daily_est_forcing_numsfcbins4_iceerr_v1.hdf5' # noland72
-ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v2.hdf5' # noland74
-#ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v3.hdf5' # noland103
+    # Daily values with ref_cld
+    # -------------------------
+    refcld_filename = 'arctic_daily_est_forcing_numsfcbins6_refcld2005.hdf5' # noland74 , new error (doesn't matter)
+    
+    # Daily values with ref_ice
+    # -------------------------
+    refice_filename = 'arctic_daily_est_forcing_numsfcbins6_refice2005.hdf5' # noland74 , new error (doesn't matter)
 
-# Daily values with COD modifiations
-# ----------------------------------
-#cod_filename = 'arctic_daily_est_forcing_coderr.hdf5'
-cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr.hdf5' # std = 5, noland72
-cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v1.hdf5' # std = 5, noland50
-cod_filename = 'arctic_daily_est_forcing_numsfcbins4_coderr.hdf5' # std = 5, noland50
-cod_filename = 'arctic_daily_est_forcing_numsfcbins4_coderr_v1.hdf5' # std = 5, noland72
-cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v2.hdf5' # std = 5, noland74
-#cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v3.hdf5' # std = 5, noland103
+    # Daily values with ice modifiations
+    # ----------------------------------
+    #ice_filename = 'arctic_daily_est_forcing_iceerr_v1.hdf5'
+    ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr.hdf5' # noland72
+    ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v1.hdf5' # noland50
+    ice_filename = 'arctic_daily_est_forcing_numsfcbins4_iceerr.hdf5' # noland50
+    ice_filename = 'arctic_daily_est_forcing_numsfcbins4_iceerr_v1.hdf5' # noland72
+    ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v2.hdf5' # noland74
+
+    # Daily values with COD modifiations
+    # ----------------------------------
+    #cod_filename = 'arctic_daily_est_forcing_coderr.hdf5'
+    cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr.hdf5' # std = 5, noland72
+    cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v1.hdf5' # std = 5, noland50
+    cod_filename = 'arctic_daily_est_forcing_numsfcbins4_coderr.hdf5' # std = 5, noland50
+    cod_filename = 'arctic_daily_est_forcing_numsfcbins4_coderr_v1.hdf5' # std = 5, noland72
+    cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v2.hdf5' # std = 5, noland74
+
+elif(sim_name == 'noland103'):
+    daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v3.hdf5' # noland103
+
+    ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v3.hdf5' # noland103
+
+    cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v3.hdf5' # std = 5, noland103
+else:
+    print("INVALID SIM NAME")
+    sys.exit()
+
+
+
+
+
+
 
 #daily_dict = read_daily_month_force_L2L3_error_from_HDF5(daily_filename)
 #ice_dict   = read_daily_month_force_L2L3_error_from_HDF5(ice_filename)
@@ -410,26 +471,28 @@ cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v2.hdf5' # std = 5, 
 #
 # = = = = =
 
-
 # NEW ERROR VALUES AS OF 2024/10/30. These use noland103 and account for
 # use_intercepts in L2_L3 errors. The "...count300_noland103.hdf5" and 
 # "...count300_noland103_v1.hdf5" files were generated with these new error 
 # values.
 # -------------------------------------------------------------------------
-#total_err_mean = 0.1
-#total_err_std = 30.38
+if(sim_name == 'noland103'):
+    total_err_mean = 0.1
+    total_err_std = 30.38
+
+elif(sim_name == 'noland74'):
+    # NEW ERROR VALUES AS OF 2024/10/29, accounting for use_intercepts in the L2_L3 
+    # errors. The "...count300_newerror.hdf5" and "...count300_newerror_v1.hdf5"
+    # files were generated with these new error values. These also are for noland74
+    # -----------------------------------------------------------------------------
+    total_err_mean = 0.1
+    total_err_std = 30.93
+    
+    # OLD ERROR VALUES: for noland74
+    #total_err_mean = -2.7
+    #total_err_std = 31.82
 
 
-# NEW ERROR VALUES AS OF 2024/10/29, accounting for use_intercepts in the L2_L3 
-# errors. The "...count300_newerror.hdf5" and "...count300_newerror_v1.hdf5"
-# files were generated with these new error values
-# -----------------------------------------------------------------------------
-total_err_mean = 0.1
-total_err_std = 30.93
-
-# OLD ERROR VALUES:
-#total_err_mean = -2.7
-#total_err_std = 31.82
 num_sims = 300
 #num_sims = 300
 minlat = 65.5
@@ -456,8 +519,11 @@ if(read_trend_sim_vals):
    
     # NOTE: Only using 2 files here. Can change ":2" to allow it to read more files 
     # -----------------------------------------------------------------------------
-    file_start = 'arctic_monthly_force_trends_count300_newerror'
-    #file_start = 'arctic_monthly_force_trends_count'
+    if(sim_name == 'noland103'):
+        file_start = 'arctic_monthly_force_trends_count300_noland103'  # noland103, correct errors
+    elif(sim_name == 'noland74'):
+        file_start = 'arctic_monthly_force_trends_count300_newerror'  # noland74, correct errors
+        #file_start = 'arctic_monthly_force_trends_count'
     force_files = glob(file_start + '*.hdf5')[:2]
 
     # Figure out how many simulations are in all the files
@@ -492,7 +558,10 @@ else:
         # Grab the filenames
         # NOTE: Only using 2 files here. Can change ":2" to allow it to read more files 
         # -----------------------------------------------------------------------------
-        file_start = 'arctic_monthly_force_values_count300_newerror'
+        if(sim_name == 'noland103'):
+            file_start = 'arctic_monthly_force_values_count300_noland103'
+        elif(sim_name == 'noland74'):
+            file_start = 'arctic_monthly_force_values_count300_newerror' # noland74, correct errors
         #file_start = 'arctic_monthly_force_values_count'
         force_files = glob(file_start +'*.hdf5')[:2]
     
@@ -500,6 +569,7 @@ else:
         # ----------------------------------------------------
         total_sims = 0
         for ffile in force_files:
+            print(ffile)
             local_numsim = ffile.strip().split('/')[-1].split('_')[4].split('_')[0].split('.')[0][5:]   
             total_sims += int(local_numsim)
     
@@ -614,15 +684,6 @@ else:
             print(jj, np.round(mean_force, 3), np.round(std_force1, 3), np.round(std_force2, 3))
 
 
-begin_date = '200504'
-end_date   = '202009'
-season     = 'sunlight'
-minlat = 65.
-NSIDC_data = readNSIDC_monthly_grid_all(begin_date, end_date, \
-    season, calc_month = True, minlat = minlat, maxlat = 87.)
-
-myd08_data = read_MODIS_MYD08_monthrange(begin_date,end_date,\
-    minlat=65.5, calc_month = False)
 
 # Plot an 18-panel (6 row, 3 or 4 column) figure with:
 # - AI trends
@@ -633,6 +694,26 @@ myd08_data = read_MODIS_MYD08_monthrange(begin_date,end_date,\
 #    vmax = 1.5, min_AI = 0.0, max_AI = 20.0, minlat = 65.5, \
 #    maxlat = 90.5, sim_name = sim_name,  save = True)
 #sys.exit()
+
+begin_date = '200504'
+end_date   = '202009'
+season     = 'sunlight'
+minlat = 65.
+NSIDC_data = readNSIDC_monthly_grid_all(begin_date, end_date, \
+    season, calc_month = True, minlat = minlat, maxlat = 87.)
+
+myd08_data = read_MODIS_MYD08_monthrange(begin_date,end_date,\
+    minlat=65.5, calc_month = False)
+
+
 plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, shawn_file, \
-    NSIDC_data, myd08_data, vmax = 1.5, min_AI = 0.0, max_AI = 20.0, minlat = 65.5, \
-    maxlat = 90.5,  save = False)
+    NSIDC_data, myd08_data, modis_var = 'cld_frac_mean', vmax = 1.5, \
+    #NSIDC_data, myd08_data, modis_var = 'cld_frac_mean', vmax = 1.5, \
+    min_AI = 0.0, max_AI = 20.0, minlat = 65.5, \
+    maxlat = 90.5,  sim_name = sim_name, save = True)
+plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, shawn_file, \
+    NSIDC_data, myd08_data, modis_var = 'cod_mean', vmax = 1.5, \
+    #NSIDC_data, myd08_data, modis_var = 'cld_frac_mean', vmax = 1.5, \
+    min_AI = 0.0, max_AI = 20.0, minlat = 65.5, \
+    maxlat = 90.5,  sim_name = sim_name, save = True)
+sys.exit()

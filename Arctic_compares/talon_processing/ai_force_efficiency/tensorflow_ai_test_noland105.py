@@ -283,7 +283,7 @@ clear_date_list = ['200607211806',\
                    '201708222102',\
                    '201807041316',\
                    '201807070035',\
-                   '201807072340',\
+                   '201807082244',\
                    '201807180016',\
                    '201807210902',\
                    '201807222117',\
@@ -2063,6 +2063,54 @@ print('Num clear swaths to be reserved', len(clear_file_list))
 #   noland103 output just after epoch 41:
 #       31190/31190 - 86s - loss: 17.5430 - mae: 2.9140 - 86s/epoch - 3ms/step
 #
+# noland104: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on ALL data
+#               100 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 2.86
+#           INCLUDES LAND DATA, CH7, VZA
+#
+#           Only differences between this and noland103
+#               Exact same as 103, but with the 201807082244 swath swapped
+#                   into the clear list in place of '201807072340'
+#
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 106779
+#
+#   noland74 output just after Epoch 41:
+#       33750/33750 - 96s - loss: 17.5223 - mae: 2.9075 - 96s/epoch - 3ms/step
+#   noland100 output just after epoch 41:
+#       31426/31426 - 93s - loss: 17.5828 - mae: 2.9127 - 93s/epoch - 3ms/step
+#   noland103 output just after epoch 41:
+#       31190/31190 - 86s - loss: 17.5430 - mae: 2.9140 - 86s/epoch - 3ms/step
+#
+# noland105: 11 hidden layers
+#           8,12,16,24,32,64,32,24,16,12,8 nodes in each layer
+#           Trained on ALL data
+#               100 epochs
+#               128 batch size
+#               Leaky ReLU activation hidden
+#               Linear activation out
+#           Ending MAE: 2.86
+#           INCLUDES LAND DATA, CH7, VZA
+#
+#           Only differences between this and noland104
+#               No differences. Trying the same thing to see if it fixes the
+#                   issues with the NN & CERES comps from noland104.
+#
+#           CLDPRES NANs are accounted for in 'select data'
+#           Job ID = 107456
+#
+#   noland74 output just after Epoch 41:
+#       33750/33750 - 96s - loss: 17.5223 - mae: 2.9075 - 96s/epoch - 3ms/step
+#   noland100 output just after epoch 41:
+#       31426/31426 - 93s - loss: 17.5828 - mae: 2.9127 - 93s/epoch - 3ms/step
+#   noland103 output just after epoch 41:
+#       31190/31190 - 86s - loss: 17.5430 - mae: 2.9140 - 86s/epoch - 3ms/step
+#
 #
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -2682,7 +2730,7 @@ if(l_save_data):
         print("ERROR: Invalid time value")
         sys.exit()  
 
-    aer_file_list = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807082244.hdf5']
+    #aer_file_list = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807082244.hdf5']
     #aer_file_list = ['/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807052213.hdf5', \
     #                 '/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201807082244.hdf5', \
     #                 '/home/blake.sorenson/OMI/arctic_comp/comp_data/colocated_subset_201908100308.hdf5']

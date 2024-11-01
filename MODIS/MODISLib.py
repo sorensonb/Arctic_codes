@@ -58,7 +58,7 @@ from python_lib import plot_trend_line, plot_subplot_label, plot_figure_text, \
 modis_dir = home_dir  + '/data/MODIS/Aqua/'
 data_dir  = modis_dir + 'MYD/'
 myd06_dir  = modis_dir + 'MYD06/'
-myd08_dir  = modis_dir + 'new_MYD08/'
+myd08_dir  = modis_dir + 'MYD08/'
 #myd08_dir  = modis_dir + 'new_MYD08/'
 cloud_dir = modis_dir + 'CLDMSK/'
 cloudL3_dir = home_dir + '/data/MODIS/combined/'
@@ -2780,7 +2780,6 @@ def read_MODIS_CLDL3_monthrange(start_date,end_date,\
 # 2021/01/28: modified function to allow for Aqua data
 def read_MODIS_MYD08_monthrange(start_date,end_date,\
         minlat=65.5, maxlat = 89.5, calc_month = True,season = 'sunlight'):
-    CERES_data = {}
   
     spring=False
     summer=False
@@ -2848,6 +2847,10 @@ def read_MODIS_MYD08_monthrange(start_date,end_date,\
         len(lat_indices),len(lon_ranges)), np.nan)
     myd08_data['cld_frac_std']   = np.full((len(good_dstrs),\
         len(lat_indices),len(lon_ranges)), np.nan)
+    myd08_data['cod_mean']  = np.full((len(good_dstrs),\
+        len(lat_indices),len(lon_ranges)), np.nan)
+    myd08_data['cod_std']   = np.full((len(good_dstrs),\
+        len(lat_indices),len(lon_ranges)), np.nan)
     myd08_data['ob_count']       = np.full((len(good_dstrs),\
         len(lat_indices),len(lon_ranges)), np.nan)
     myd08_data['day_cld_frac_mean']  = np.full((len(good_dstrs),\
@@ -2873,6 +2876,10 @@ def read_MODIS_MYD08_monthrange(start_date,end_date,\
             cloud_data['cld_frac_mean'][:,:]
         myd08_data['cld_frac_std'][ii,:,:] = \
             cloud_data['cld_frac_std'][:,:]
+        myd08_data['cod_mean'][ii,:,:] = \
+            cloud_data['cod_mean'][:,:]
+        myd08_data['cod_std'][ii,:,:] = \
+            cloud_data['cod_std'][:,:]
         myd08_data['ob_count'][ii,:,:] = \
             cloud_data['ob_count'][:,:]
         myd08_data['day_cld_frac_mean'][ii,:,:] = \
@@ -2886,6 +2893,13 @@ def read_MODIS_MYD08_monthrange(start_date,end_date,\
         myd08_data['cld_frac_mean'] < 0, myd08_data['cld_frac_mean'])
     myd08_data['day_cld_frac_mean'] = np.ma.masked_where(\
         myd08_data['day_cld_frac_mean'] < 0, myd08_data['day_cld_frac_mean'])
+    myd08_data['cld_frac_mean'] = myd08_data['cld_frac_mean'] * 100.
+    myd08_data['day_cld_frac_mean'] = myd08_data['day_cld_frac_mean'] * 100.
+
+    if('cod_mean' in myd08_data.keys()):
+        myd08_data['cod_std'] = np.ma.masked_where(myd08_data['cod_mean'] > 200, myd08_data['cod_std'])
+        myd08_data['cod_mean'] = np.ma.masked_where(myd08_data['cod_mean'] > 200, myd08_data['cod_mean'])
+    
 
     ##!#if(calc_month == True):
     ##!#    CERES_data = calcCERES_MonthClimo(CERES_data)
@@ -2966,7 +2980,8 @@ def calcMODIS_CLDL3_grid_trend(cloud_data, month_idx, trend_type, minlat,\
 
     return ceres_trends, ceres_pvals, ceres_uncert
 
-def calcMODIS_MYD08_grid_trend(cloud_data, month_idx, trend_type, minlat,\
+#pvar: cld_frac_mean, cod_mean
+def calcMODIS_MYD08_grid_trend(cloud_data, month_idx, trend_type, pvar, minlat,\
         norm_to_decade = False, dtype = 'all'):
 
 
@@ -2994,7 +3009,7 @@ def calcMODIS_MYD08_grid_trend(cloud_data, month_idx, trend_type, minlat,\
     # Make copy of cloud_data array
     print(cloud_data['dates'][month_idx::index_jumper])
     local_data   = np.copy(cloud_data[dtype_adder + \
-        'cld_frac_mean'][month_idx::index_jumper,:,:])
+        pvar][month_idx::index_jumper,:,:])
     #local_counts = np.copy(cloud_data['OB_COUNT'][month_idx::index_jumper,:,:])
     #local_mask = np.ma.masked_where(local_counts == 0, local_data)
     local_mask = np.ma.masked_where(((local_data < 0) | \
@@ -10818,9 +10833,10 @@ def plotMODIS_CLDL3_MonthTrend(cloud_data,month_idx=None,save=False,\
         return cloud_trends
 
 # Designed to work with the netCDF data
-# pvar = 'day' --> only plot day data
-def plotMODIS_MYD08_MonthTrend(cloud_data,month_idx=None,save=False,\
-        trend_type='standard',pvar = '', season='',minlat=65.,\
+# dtype = 'day' --> only plot day data
+# pvar = 'cld_frac_mean', 'cod_mean'
+def plotMODIS_MYD08_MonthTrend(cloud_data,pvar,month_idx=None,save=False,\
+        trend_type='standard',dtype = '', season='',minlat=65.,\
         return_trend=False, return_mesh = False, colorbar = True, \
         colorbar_label_size = None, title = None, ax = None, \
         show_pval = False, uncert_ax = None, norm_to_decade = True, \
@@ -10857,9 +10873,18 @@ def plotMODIS_MYD08_MonthTrend(cloud_data,month_idx=None,save=False,\
     # --------------------------------------------------------------
     cloud_trends, cloud_pvals, cloud_uncert = \
         calcMODIS_MYD08_grid_trend(cloud_data, month_idx, trend_type, \
-        minlat, norm_to_decade = norm_to_decade, dtype = pvar)
+        pvar, minlat, norm_to_decade = norm_to_decade, dtype = dtype)
+
+    # Multiply the trends by 100 to get to percentages
+    # ------------------------------------------------
 
     print('Max trend',np.max(cloud_trends))
+
+    # Mask outrageous trends
+    # ----------------------
+    cloud_pvals  = np.ma.masked_where(abs(cloud_trends) > 200, cloud_pvals)
+    cloud_uncert = np.ma.masked_where(abs(cloud_trends) > 200, cloud_uncert)
+    cloud_trends = np.ma.masked_where(abs(cloud_trends) > 200, cloud_trends)
 
     if(not show_pval):
         cloud_pvals = None
@@ -10889,9 +10914,14 @@ def plotMODIS_MYD08_MonthTrend(cloud_data,month_idx=None,save=False,\
         month_string = start_date.strftime('%B') + ' '
 
     if(title is None):
-        title = 'MODIS MYD08 Cloud Fraction\n' + month_string + 'Trends'\
-            '\n'+start_date.strftime('%b. %Y') + ' - ' +\
-            end_date.strftime('%b. %Y')
+        if(pvar == 'cld_frac_mean'):
+            title = 'MODIS MYD08 Cloud Fraction\n' + month_string + 'Trends'\
+                '\n'+start_date.strftime('%b. %Y') + ' - ' +\
+                end_date.strftime('%b. %Y')
+        elif(pvar == 'cod_mean'):
+            title = 'MODIS MYD08 Cloud Optical Depth\n' + month_string + 'Trends'\
+                '\n'+start_date.strftime('%b. %Y') + ' - ' +\
+                end_date.strftime('%b. %Y')
 
     # Call plotCERES_spatial to add the data to the figure
 
@@ -10907,16 +10937,19 @@ def plotMODIS_MYD08_MonthTrend(cloud_data,month_idx=None,save=False,\
         vmax = np.max(cloud_trends)
         vmin = -vmax
 
-    colormap = plt.cm.seismic
-    norm = cm.BoundaryNorm(np.arange(vmin - 0.025, vmax + 0.05, 0.025), colormap.N)
+    #colormap = plt.cm.seismic
+    #norm = cm.BoundaryNorm(np.arange(vmin - 0.025, vmax + 0.05, 0.025), colormap.N)
     mesh = ax.pcolormesh(cloud_data['lon'], cloud_data['lat'], cloud_trends, \
-        shading = 'auto', transform = datacrs,\
-        cmap = colormap,\
-        norm = norm)
+        shading = 'auto', transform = datacrs, cmap = 'bwr', vmin = vmin, vmax = vmax)
+        #cmap = colormap,\
+        #norm = norm)
         #cmap = 'RdYlBu_r')
     if(colorbar):
         cbar = plt.colorbar(mesh, ax = ax, pad = 0.03, extend = 'both')
-        cbar.set_label('Cloud Fraction Trend')
+        if(pvar == 'cld_frac_mean'):
+            cbar.set_label('Cloud Fraction Trend')
+        elif(pvar == 'cod_mean'):
+            cbar.set_label('COD Trend')
     ax.coastlines()
     ax.set_extent([-180, 180, minlat, 90], datacrs)   
     ax.set_boundary(circle, transform=ax.transAxes)
@@ -10928,7 +10961,11 @@ def plotMODIS_MYD08_MonthTrend(cloud_data,month_idx=None,save=False,\
             month_adder = ''
             if(do_month == True):
                 month_adder = '_' + start_date.strftime('%b') 
-            out_name = 'cloud_frac_trend'+ month_adder + '_' + \
+            if(pvar == 'cld_frac_mean'):
+                var_adder = 'cloud_frac'
+            elif(pvar == 'cod_mean'):
+                var_adder = 'cod'
+            out_name = var_adder + '_trend'+ month_adder + '_' + \
                 start_date.strftime('%Y%m') + '_' + end_date.strftime('%Y%m') + \
                 '_min' + str(int(minlat)) + '.png'
             fig1.savefig(out_name,dpi=300)
@@ -10953,7 +10990,10 @@ def plotMODIS_MYD08_MonthTrend(cloud_data,month_idx=None,save=False,\
             norm = norm)
         if(colorbar):
             cbar = plt.colorbar(mesh, ax = uncert_ax, pad = 0.03, extend = 'both')
-            cbar.set_label('Cld. Frac. Trend Uncert.')
+            if(pvar == 'cld_frac_mean'):
+                cbar.set_label('Cld. Frac. Trend Uncert.')
+            elif(pvar == 'cod_mean'):
+                cbar.set_label('COD Trend Uncert.')
         uncert_ax.coastlines()
         uncert_ax.set_extent([-180, 180, minlat, 90], datacrs)   
         uncert_ax.set_boundary(circle, transform=uncert_ax.transAxes)
