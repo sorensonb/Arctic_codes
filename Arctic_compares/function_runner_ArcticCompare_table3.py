@@ -60,6 +60,14 @@ elif(sim_name == 'noland103'):
     ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v3.hdf5' # noland103
 
     cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v3.hdf5' # std = 5, noland103
+
+elif(sim_name == 'noland105'):
+    daily_filename = 'arctic_daily_est_forcing_numsfcbins6_noland105.hdf5' # noland103
+
+    ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_noland105.hdf5' # noland103
+
+    cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_noland105.hdf5' # std = 5, noland103
+
 else:
     print("INVALID SIM NAME")
     sys.exit()

@@ -15,6 +15,7 @@ sys.path.append(home_dir)
 import python_lib
 import importlib
 from matplotlib.cm import turbo
+import matplotlib.colors as mcolors
 from scipy.stats import sem
 from scipy.stats import norm as statnorm
 from astropy.modeling import models,fitting
@@ -1155,6 +1156,7 @@ def write_daily_month_force_L2L3_error_to_HDF5(\
         L2L3_err_mean = None, L2L3_err_std = None, \
         ice_err_mean = None, ice_err_std = None, \
         cod_err_mean = None, cod_err_std = None, \
+        calc_from_bckgd = None, \
         dtype = None, \
         overwrite_old_file = False, \
         write_daily_values = False, \
@@ -1244,6 +1246,8 @@ def write_daily_month_force_L2L3_error_to_HDF5(\
         cdt.attrs['ref_cld'] = reference_cld
     if(reference_ice is not None):
         cdt.attrs['ref_ice'] = reference_ice
+    if(calc_from_bckgd is not None):
+        cdt.attrs['calc_from_bckgd'] = calc_from_bckgd
 
 
     grp = dset.create_group('slope_dict')
@@ -1753,7 +1757,8 @@ def plot_compare_OMI_MODIS_v2(date_str, ch1, \
 
     # Read in data for value printing
     # -------------------------------
-    MODIS_ch7 = read_MODIS_channel(modis_date, 7, swath = True)
+    MODIS_ch7 = read_MODIS_channel(modis_date, 7, swath = True, \
+        include_cloud_mask = True)
 
     # Make the overall figure
     # -----------------------
@@ -1764,40 +1769,88 @@ def plot_compare_OMI_MODIS_v2(date_str, ch1, \
     ax2 = fig1.add_subplot(2,2,2, projection = mapcrs)
     ax3 = fig1.add_subplot(2,2,3, projection = mapcrs)
     ax4 = fig1.add_subplot(2,2,4, projection = mapcrs)
-   
-    plot_MODIS_channel(modis_date, 'true_color', swath = True, \
-        zoom = zoom, ax = ax1)
-    ax1.set_title('Aqua MODIS True Color')
-    plot_MODIS_channel(modis_date, 'cloud_mask', swath = True, \
-        zoom = zoom, ax = ax2, vmax = None)
-    ax2.set_title('Aqua MODIS Cloud Mask')
-    plot_MODIS_channel(modis_date, ch1, swath = True, \
-        zoom = zoom, ax = ax3, vmax = 0.4)
-    ax3.set_title('Aqua MODIS Ch7\n2.105 μm - 2.155 μm')
 
     # Plot the OMI data
     # -----------------
     plotOMI_single_swath_figure(omi_date, \
             dtype = omi_dtype, only_sea_ice = False, minlat = minlat, \
-            ax = ax4, skiprows = [52], lat_circles = None, save = False, \
+            ax = ax1, skiprows = [52], lat_circles = None, save = False, \
             zoom = zoom, shawn_path = shawn_path, colorbar = True)
+    ax1.set_title('OMI UVAI')
+   
+    plot_MODIS_channel(modis_date, 'true_color', swath = True, \
+        zoom = zoom, ax = ax2)
+    ax2.set_title('Aqua MODIS True Color')
+
+    plot_MODIS_channel(modis_date, ch1, swath = True, \
+        zoom = zoom, ax = ax3, vmax = 0.4)
+    ax3.set_title('Aqua MODIS Ch7\n2.105 μm - 2.155 μm')
+
+    # Plot the CH7 data with cloud mask overlaid
+    # ------------------------------------------
+    plot_MODIS_channel(modis_date, ch1, swath = True, \
+        zoom = zoom, ax = ax4, vmax = 0.4, plot_cbar = False)
+    col_dict = {0: 'tab:blue',1: 'tab:orange',2: 'tab:green',3: 'tab:red'}
+    labels = np.array(['Cloudy','Prob.\nCloudy','Prob.\nClear','Clear'])
+    ccmm = mcolors.ListedColormap([col_dict[x] for x in col_dict.keys()])
+    bounds = np.array([-0.5,0.5,1.5,2.5,3.5])   
+    norm = mcolors.BoundaryNorm(bounds, ccmm.N)
+    cld_mask = ax4.pcolormesh(MODIS_ch7['lon'], MODIS_ch7['lat'], \
+        MODIS_ch7['cloud_mask'], cmap = ccmm, norm = norm, \
+        transform = ccrs.PlateCarree(),
+        shading = 'auto', alpha = 0.3) 
+    cbar = plt.colorbar(ScalarMappable(norm = norm, cmap = ccmm), \
+        ticks = [0,1,2,3], ax = ax4, orientation='vertical', pad = 0.03, \
+        fraction = 0.052)
+    cbar.ax.set_yticklabels(labels)
+    #plot_MODIS_channel(modis_date, 'cloud_mask', swath = True, \
+    #    zoom = zoom, ax = ax2, vmax = None)
+    ax4.set_title('Aqua MODIS Ch7\nCloud Mask Overlay')
+
+    x1 = 162.8
+    y1 = 65.6
+    x2 = 172.7
+    y2 = 68.3
+    dx = x2 - x1
+    dy = y2 - y1
+    ax4.arrow(x1, y1, dx, dy, facecolor = 'red', width = 0.2, head_width = 0.2, edgecolor = 'red', transform = ccrs.PlateCarree())
+    x1 = 155.2
+    y1 = 64.8
+    plot_figure_text(ax4, 'Misclassified\nSmoke', xval = x1, yval = y1, \
+        transform = ccrs.PlateCarree(), \
+        color = 'black', fontsize = 8, backgroundcolor = None,\
+        halign = 'center', location = 'lower_right', weight = None)
+
+    x1 = -159.9
+    y1 = 79.3
+    x2 = -173.5
+    y2 = 71.6
+    dx = x2 - x1
+    dy = y2 - y1
+    #ax4.annotate('', xy = (x2, y2), xytext = (x1, y1), arrowprops = dict(headwidth = 1.0, headlength = 1.0, width = 0.2), transform = ccrs.PlateCarree())
+    ax4.arrow(x1, y1, dx, dy, facecolor = 'red', width = 0.2, head_width = 0.2, edgecolor = 'red', transform = ccrs.PlateCarree())
+    #plot_figure_text(ax4, 'Misclass.\nClear/Ice', xval = 148.1, yval = 67.6, \
+    plot_figure_text(ax4, 'Misclassified\nClear/Ice', xval = x1, yval = y1, \
+        transform = ccrs.PlateCarree(), \
+        color = 'black', fontsize = 8, backgroundcolor = 'white',\
+        halign = 'center', location = 'lower_right', weight = None)
     
     dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
     if(date_str[:8] == '20140811'):
-        ax1.set_title('Aqua MODIS True Color')
-        ax2.set_title('Aqua MODIS Cloud Mask')
-        ax3.set_title('Aqua MODIS 2.1 μm Refl.')
-        ax4.set_title('OMI UVAI')
+        #ax1.set_title('OMI UVAI')
+        #ax2.set_title('Aqua MODIS True Color')
+        #ax3.set_title('Aqua MODIS 2.1 μm Refl.')
+        #ax4.set_title('Aqua MODIS Cloud Mask')
         ax1.set_extent([ 125,165, 70, 85], datacrs)
         ax2.set_extent([ 125,165, 70, 85], datacrs)
         ax3.set_extent([ 125,165, 70, 85], datacrs)
         ax4.set_extent([ 125,165, 70, 85], datacrs)
         plt.suptitle(dt_date_str.strftime('%H:%M UTC %d %B %Y'))
     elif(date_str[:8] == '20180705'):
-        ax1.set_title('Aqua MODIS True Color')
-        ax2.set_title('Aqua MODIS Cloud Mask')
-        ax3.set_title('Aqua MODIS 2.1 μm Refl.')
-        ax4.set_title('OMI UVAI')
+        #ax1.set_title('OMI UVAI')
+        #ax2.set_title('Aqua MODIS True Color')
+        #ax3.set_title('Aqua MODIS 2.1 μm Refl.')
+        #ax4.set_title('Aqua MODIS Cloud Mask')
         ax1.set_extent([ 145,200, 64, 80], datacrs)
         ax2.set_extent([ 145,200, 64, 80], datacrs)
         ax3.set_extent([ 145,200, 64, 80], datacrs)
@@ -11812,7 +11865,7 @@ def plot_compare_NN_output_overlay_v2(calc_data, auto_zoom = True, \
         workcrs = ccrs.NorthPolarStereo(central_longitude = center_lon)
 
         #fig = plt.figure(figsize = (10.5, 6))
-        fig = plt.figure(figsize = (9, 4))
+        fig = plt.figure(figsize = (7.5, 4))
         ax1 = fig.add_subplot(1,3,1, projection = workcrs) # OMI AI
         ax2 = fig.add_subplot(1,3,2, projection = workcrs) # True color
         ax3 = fig.add_subplot(1,3,3, projection = workcrs) # True color
@@ -11853,7 +11906,8 @@ def plot_compare_NN_output_overlay_v2(calc_data, auto_zoom = True, \
     else:
         ax2.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
         ax2.set_boundary(circle, transform=ax2.transAxes)
-    ax2.set_title('Aqua MODIS\nHatch: OMI UVAI > 1.5')
+    ax2.set_title('Aqua MODIS\nTrue Color')
+    #ax2.set_title('Aqua MODIS\nHatch: OMI UVAI > 1.5')
     ax2.coastlines()
    
     plot_MODIS_channel(modis_date, 'true_color', swath = True, \
@@ -11870,6 +11924,7 @@ def plot_compare_NN_output_overlay_v2(calc_data, auto_zoom = True, \
     ax3.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_AI, \
         transform = ccrs.PlateCarree(), shading = 'auto', vmax = 5, cmap = 'jet', alpha = 0.1)
     cbar = fig.colorbar(mesh, ax = ax3, label = 'OMI UVAI')
+    #ax3.set_title('Aqua MODIS\nTrue Color')
     ax3.set_title('Aqua MODIS\nOMI UVAI Overlay')
     ax3.coastlines()
 
@@ -11877,18 +11932,18 @@ def plot_compare_NN_output_overlay_v2(calc_data, auto_zoom = True, \
     # Figure out the high AI indices
     # ------------------------------
     hatch_style = '///'
-    if(auto_zoom):
+    #if(auto_zoom):
 
-        # Figure out where the pixels containing AI are located
-        # -----------------------------------------------------
-        hasher = np.ma.masked_invalid(mask_AI)
-        hasher = np.ma.masked_where(hasher < 1.5, \
-            hasher)
+    #    # Figure out where the pixels containing AI are located
+    #    # -----------------------------------------------------
+    #    hasher = np.ma.masked_invalid(mask_AI)
+    #    hasher = np.ma.masked_where(hasher < 1.5, \
+    #        hasher)
 
-        print("MIN MASK AI:", np.min(hasher), 'MAX MASK AI:', np.nanmax(hasher))
+    #    print("MIN MASK AI:", np.min(hasher), 'MAX MASK AI:', np.nanmax(hasher))
 
-        ax2.pcolor(work_lons, in_calc['omi_lat'][:,:],\
-            hasher, hatch = 'xx', alpha=0., transform = datacrs, shading = 'auto')
+    #    ax2.pcolor(work_lons, in_calc['omi_lat'][:,:],\
+    #        hasher, hatch = 'xx', alpha=0., transform = datacrs, shading = 'auto')
 
     font_size = 10 
     if((label_xloc is not None) & (label_yloc is not None)):
@@ -12111,6 +12166,8 @@ def plot_hist_L2_L3_errors(direct_forcings, calc_forcings, sim_name, \
         xmin = None, xmax = None, ax = None, num_bins = 75, \
         astrofit = False, save = False):
 
+    # direct = L2
+    # calc   = L3
     errors = direct_forcings - calc_forcings
 
     mean_error = np.mean(errors)
@@ -13929,6 +13986,7 @@ def plot_NN_forcing_daily(date_str, OMI_daily_data, OMI_monthly_data, \
         slope_dict, bin_dict, minlat = 65., maxlat = 87., \
         use_intercept = False, filter_bad_vals = True, \
         mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
+        calc_from_bckgd = True, \
         sim_name = '', \
         ai_thresh = -0.15, maxerr = 2., save = False):
 
@@ -13958,6 +14016,7 @@ def plot_NN_forcing_daily(date_str, OMI_daily_data, OMI_monthly_data, \
         L2L3_err_mean = L2L3_err_mean, \
         L2L3_err_std = L2L3_err_std, \
         return_modis_nsidc = True, \
+        calc_from_bckgd = calc_from_bckgd, \
         use_intercept = use_intercept)
 
     dt_date_str = datetime.strptime(date_str, '%Y%m%d')
@@ -14345,12 +14404,18 @@ def perform_forcing_calculation_v4(l2_data_dict, slope_dict, bin_dict, \
 #
 # mod_slopes: 'upper', 'lower'
 # mod_ice: -5, 5, -15, 15
+# calc_from_bckgd: determines the rules by which forcing is calculated for
+#                  a grid box. If set to True (default), then the code determines if
+#                  the daily UVAI is greater than the OMI background by
+#                  more than the threshold value. If set to False, then the
+#                  code determines if the daily UVAI value is greater than
+#                  the threshold value.
 # ----------------------------------------------------------------------------
 def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict, \
         bin_dict, date_str, minlat = 70., maxlat = 87., ai_thresh = 0.7, \
         maxerr = 2, 
         reference_ice = None, reference_cld = None, mod_slopes = None, \
-        mod_intercepts = None, \
+        mod_intercepts = None, calc_from_bckgd = True, \
         mod_ice = None, ice_err_mean = None, ice_err_std = None, \
         mod_cod = None, cod_err_mean = None, cod_err_std = None, \
         mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
@@ -14430,6 +14495,8 @@ def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict,
         print("MOD SHAPE = ", MYD08_data['day_cld_frac_mean'].shape)
         print("NSI SHAPE = ", NSIDC_data['grid_ice_conc'].shape)
 
+    print("In calc, calc_from_bckgd: ", calc_from_bckgd)
+
     # 2.  Loop over each individual month, over the latitudes first
     # -----------------------------------
     num_good_points = 0
@@ -14459,7 +14526,10 @@ def test_calculate_type_forcing_v4(OMI_daily_data, OMI_monthly_data, slope_dict,
             # 3.  Determine if a single gridbox has AI that is above the clear-sky
             #       background by a threshold
             #if(local_OMI_daily[ii,jj] < ai_thresh): 
-            if(delta_ai < ai_thresh): 
+            #if(delta_ai < ai_thresh): 
+            # NOTE: New for noland105_noback (2024/11/06)
+            if( (calc_from_bckgd and (delta_ai < ai_thresh)) or \
+                ((not calc_from_bckgd) and (local_OMI_daily[ii,jj] < ai_thresh)) ): 
                 # 3a. If not above the threshold, set forcing to 0 and continue
                 estimate_forcings[ii,jj] = 0.
             else:
@@ -14892,6 +14962,7 @@ def calculate_type_forcing_v4_alldaily(OMI_daily_data, OMI_monthly_data, \
         mod_intercepts = None, \
         mod_ice = None, ice_err_mean = None, ice_err_std = None, \
         mod_cod = None,  cod_err_mean = None, cod_err_std = None, \
+        calc_from_bckgd = True, \
         mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
         filter_bad_vals = True, return_modis_nsidc = True, \
         use_intercept = False, debug = False):
@@ -14903,6 +14974,8 @@ def calculate_type_forcing_v4_alldaily(OMI_daily_data, OMI_monthly_data, \
     ydim = OMI_daily_data['grid_AI'].shape[2]
     tdim = OMI_daily_data['day_values'].shape[0]
     daily_force_vals = np.full( (tdim, xdim, ydim), np.nan)
+
+    print("calc_from_bckgd: ", calc_from_bckgd)
 
     day_count = 0
     month_count = 0
@@ -14946,6 +15019,7 @@ def calculate_type_forcing_v4_alldaily(OMI_daily_data, OMI_monthly_data, \
             mod_L2_L3_error = mod_L2_L3_error, \
             L2L3_err_mean = L2L3_err_mean, \
             L2L3_err_std  = L2L3_err_std, \
+            calc_from_bckgd = calc_from_bckgd, \
             return_modis_nsidc = False,\
             use_intercept = use_intercept)
 
@@ -15619,7 +15693,7 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
 
     # Read in the desired files
     # -------------------------
-    if( (sim_name == 'noland103') | (sim_name == 'noland104') ):
+    if( (sim_name == 'noland103') | (sim_name == 'noland104') | (sim_name == 'noland105')):
         files = glob('neuralnet_output_clear_newfiles/test_calc_out_' + sim_name + '*.hdf5')
     else:
         files = glob('neuralnet_output_clear/test_calc_out_' + sim_name + '*.hdf5')
@@ -15750,7 +15824,8 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
 
     ax.axvline(0, linestyle = '--', color = 'k', alpha = 0.5)
 
-    ax.set_xlabel('Forcing Error (NN - CERES) [Wm$^{-2}$]')
+    ax.set_xlabel('TOA SWF Error (NN - CERES) [Wm$^{-2}$]')
+    #ax.set_xlabel('Forcing Error (NN - CERES) [Wm$^{-2}$]')
     ax.set_ylabel('Counts')
     ax.set_title('Errors between L2 CERES & NN output\n' + \
         'under aerosol-free conditions')

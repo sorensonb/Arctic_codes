@@ -178,8 +178,9 @@ from sklearn.metrics import r2_score
 #sim_name = 'noland50'
 #sim_name = 'noland72'
 #sim_name = 'noland73'
-sim_name = 'noland74'
+#sim_name = 'noland74'
 #sim_name = 'noland103'
+sim_name = 'noland105'
 #sim_name = 'noland75'
 print("AS OF 2024/09/09, USING ", sim_name)
 test_dict = combine_NN_data(sim_name)
@@ -337,17 +338,25 @@ maxerr = 1.5
 ##!##cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v3.hdf5' # std = 5, noland103
 
 
+# HERERE:
+#run_type = 'final'
+#run_type = 'newerr'
+run_type = 'noback'
+
+
 # Control daily values
 # --------------------
 #daily_filename = 'arctic_daily_est_forcing_v1.hdf5'        
 if(sim_name == 'noland74'):
-    daily_filename = 'arctic_daily_est_forcing_numsfcbins6.hdf5' # noland72
-    daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v1.hdf5' # noland50
-    daily_filename = 'arctic_daily_est_forcing_numsfcbins4.hdf5' # noland50
-    daily_filename = 'arctic_daily_est_forcing_numsfcbins4_v1.hdf5' # noland72
-    daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v2.hdf5' # noland74
+    if(run_type == 'final'):
+        daily_filename = 'arctic_daily_est_forcing_numsfcbins6_final.hdf5' # noland74, redone for validation
+    else:
+        daily_filename = 'arctic_daily_est_forcing_numsfcbins6.hdf5' # noland72
+        daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v1.hdf5' # noland50
+        daily_filename = 'arctic_daily_est_forcing_numsfcbins4.hdf5' # noland50
+        daily_filename = 'arctic_daily_est_forcing_numsfcbins4_v1.hdf5' # noland72
+        daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v2.hdf5' # noland74
 
-    #daily_filename = 'arctic_daily_est_forcing_numsfcbins6_final.hdf5' # noland74, redone for validation
 
     # Daily values with ref_cld
     # -------------------------
@@ -357,27 +366,31 @@ if(sim_name == 'noland74'):
     # -------------------------
     refice_filename = 'arctic_daily_est_forcing_numsfcbins6_refice2005.hdf5' # noland74 , new error (doesn't matter)
 
-    # Daily values with ice modifiations
-    # ----------------------------------
-    #ice_filename = 'arctic_daily_est_forcing_iceerr_v1.hdf5'
-    ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr.hdf5' # noland72
-    ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v1.hdf5' # noland50
-    ice_filename = 'arctic_daily_est_forcing_numsfcbins4_iceerr.hdf5' # noland50
-    ice_filename = 'arctic_daily_est_forcing_numsfcbins4_iceerr_v1.hdf5' # noland72
-    ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v2.hdf5' # noland74
+    if(run_type == 'final'):
+        ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_final.hdf5' # noland74, redone for validation
+    else:
+        # Daily values with ice modifiations
+        # ----------------------------------
+        #ice_filename = 'arctic_daily_est_forcing_iceerr_v1.hdf5'
+        ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr.hdf5' # noland72
+        ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v1.hdf5' # noland50
+        ice_filename = 'arctic_daily_est_forcing_numsfcbins4_iceerr.hdf5' # noland50
+        ice_filename = 'arctic_daily_est_forcing_numsfcbins4_iceerr_v1.hdf5' # noland72
+        ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v2.hdf5' # noland74
 
-    ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_final.hdf5' # noland74, redone for validation
+    if(run_type == 'final'):
+        cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_final.hdf5' # noland74, redone for validation
+   
+    else: 
+        # Daily values with COD modifiations
+        # ----------------------------------
+        #cod_filename = 'arctic_daily_est_forcing_coderr.hdf5'
+        cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr.hdf5' # std = 5, noland72
+        cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v1.hdf5' # std = 5, noland50
+        cod_filename = 'arctic_daily_est_forcing_numsfcbins4_coderr.hdf5' # std = 5, noland50
+        cod_filename = 'arctic_daily_est_forcing_numsfcbins4_coderr_v1.hdf5' # std = 5, noland72
+        cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v2.hdf5' # std = 5, noland74
 
-    # Daily values with COD modifiations
-    # ----------------------------------
-    #cod_filename = 'arctic_daily_est_forcing_coderr.hdf5'
-    cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr.hdf5' # std = 5, noland72
-    cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v1.hdf5' # std = 5, noland50
-    cod_filename = 'arctic_daily_est_forcing_numsfcbins4_coderr.hdf5' # std = 5, noland50
-    cod_filename = 'arctic_daily_est_forcing_numsfcbins4_coderr_v1.hdf5' # std = 5, noland72
-    cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v2.hdf5' # std = 5, noland74
-
-    cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_final.hdf5' # noland74, redone for validation
 
 elif(sim_name == 'noland103'):
     daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v3.hdf5' # noland103
@@ -385,6 +398,28 @@ elif(sim_name == 'noland103'):
     ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v3.hdf5' # noland103
 
     cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v3.hdf5' # std = 5, noland103
+
+elif(sim_name == 'noland105'):
+    if(run_type == 'noback'):
+        daily_filename = 'arctic_daily_est_forcing_numsfcbins6_noland105_noback.hdf5' # noland103 run with no background 
+
+        ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_noland105_noback.hdf5' # noland103
+
+        cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_noland105_noback.hdf5' # std = 5, noland103
+    elif(run_type == 'newerr'):
+        daily_filename = 'arctic_daily_est_forcing_numsfcbins6_noland105_errtest.hdf5' # noland103 run with OMI_daily_data used
+                                                                                       # with min_AI = -0.1, and max_AI = 20
+
+        ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_noland105_errtest.hdf5' # noland103
+
+        cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_noland105_errtest.hdf5' # std = 5, noland103
+    else:
+        daily_filename = 'arctic_daily_est_forcing_numsfcbins6_noland105.hdf5' # noland103
+
+        ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_noland105.hdf5' # noland103
+
+        cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_noland105.hdf5' # std = 5, noland103
+
 else:
     print("INVALID SIM NAME")
     sys.exit()
@@ -492,21 +527,38 @@ else:
 # "...count300_noland103_v1.hdf5" files were generated with these new error 
 # values.
 # -------------------------------------------------------------------------
-if(sim_name == 'noland103'):
+if(sim_name == 'noland105'):
+    if(run_type == 'noback'):
+        total_err_mean = -2.0
+        total_err_std = 31.61
+    else:
+        total_err_mean = -2.2
+        total_err_std = 29.76
+
+elif(sim_name == 'noland103'):
     total_err_mean = 0.1
     total_err_std = 30.38
 
 elif(sim_name == 'noland74'):
-    # NEW ERROR VALUES AS OF 2024/10/29, accounting for use_intercepts in the L2_L3 
-    # errors. The "...count300_newerror.hdf5" and "...count300_newerror_v1.hdf5"
-    # files were generated with these new error values. These also are for noland74
-    # -----------------------------------------------------------------------------
-    total_err_mean = 0.1
-    total_err_std = 30.93
-    
-    # OLD ERROR VALUES: for noland74
-    #total_err_mean = -2.7
-    #total_err_std = 31.82
+    if(run_type == 'final'):
+        # VALIDATION (_final) ERROR VALUES AS OF 2024/11/04, accounting for use_intercepts in the L2_L3 
+        # errors. The "...count300_final.hdf5" and "...count300_final_v1.hdf5"
+        # files were generated with these new error values. These also are for noland74
+        # -----------------------------------------------------------------------------
+        total_err_mean = -0.1
+        total_err_std = 29.13
+
+    else:
+        # NEW ERROR VALUES AS OF 2024/10/29, accounting for use_intercepts in the L2_L3 
+        # errors. The "...count300_newerror.hdf5" and "...count300_newerror_v1.hdf5"
+        # files were generated with these new error values. These also are for noland74
+        # -----------------------------------------------------------------------------
+        total_err_mean = 0.1
+        total_err_std = 30.93
+        
+        # OLD ERROR VALUES: for noland74
+        #total_err_mean = -2.7
+        #total_err_std = 31.82
 
 num_sims = 300
 #num_sims = 300
@@ -523,9 +575,9 @@ daily_dict = read_daily_month_force_L2L3_error_from_HDF5(daily_filename)
 # = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 read_force_sim_vals = False
-save_force_vals = False
-read_trend_sim_vals = True
-save_trend_vals = False
+save_force_vals = True
+read_trend_sim_vals = False
+save_trend_vals = True
 
 calc_region_avg_force_vals = False
 calc_force_trends_from_file = False
@@ -534,11 +586,22 @@ if(read_trend_sim_vals):
    
     # NOTE: Only using 2 files here. Can change ":2" to allow it to read more files 
     # -----------------------------------------------------------------------------
-    if(sim_name == 'noland103'):
+    if(sim_name == 'noland105'):
+        if(run_type == 'noback'):
+            file_start = 'arctic_monthly_force_trends_count300_noland105_noback'  # noland105, but forcing calced without background
+        elif(run_type == 'newerr'):
+            file_start = 'arctic_monthly_force_trends_count300_noland105_errtest'  # noland105, but with OMI_daily_data used
+                                                                                       # with min_AI = -0.1, and max_AI = 20
+        else:
+            file_start = 'arctic_monthly_force_trends_count300_noland105'  # noland103
+    elif(sim_name == 'noland103'):
         file_start = 'arctic_monthly_force_trends_count300_noland103'  # noland103, correct errors
     elif(sim_name == 'noland74'):
-        file_start = 'arctic_monthly_force_trends_count300_newerror'  # noland74, correct errors
-        #file_start = 'arctic_monthly_force_trends_count'
+        if(run_type == 'final'):
+            file_start = 'arctic_monthly_force_trends_count300_final'  # noland74, final check
+        else:
+            file_start = 'arctic_monthly_force_trends_count300_newerror'  # noland74, correct errors
+            #file_start = 'arctic_monthly_force_trends_count'
     force_files = glob(file_start + '*.hdf5')[:2]
 
     # Figure out how many simulations are in all the files
@@ -574,11 +637,22 @@ else:
         # Grab the filenames
         # NOTE: Only using 2 files here. Can change ":2" to allow it to read more files 
         # -----------------------------------------------------------------------------
-        if(sim_name == 'noland103'):
+        if(sim_name == 'noland105'):
+            if(run_type == 'noback'):
+                file_start = 'arctic_monthly_force_values_count300_noland105_noback'
+            elif(run_type == 'newerr'):
+                file_start = 'arctic_monthly_force_values_count300_noland105_errtest'
+            else:
+                file_start = 'arctic_monthly_force_values_count300_noland105'
+        elif(sim_name == 'noland103'):
             file_start = 'arctic_monthly_force_values_count300_noland103'
         elif(sim_name == 'noland74'):
-            file_start = 'arctic_monthly_force_values_count300_newerror' # noland74, correct errors
-        #file_start = 'arctic_monthly_force_values_count'
+            if(run_type == 'final'):
+                file_start = 'arctic_monthly_force_values_count300_final' # noland74, final check
+            else:
+                file_start = 'arctic_monthly_force_values_count300_newerror' # noland74, correct errors
+            file_start = 'arctic_monthly_force_values_count'
+
         force_files = glob(file_start +'*.hdf5')[:2]
     
         # Figure out how many simulations are in all the files
@@ -642,9 +716,27 @@ else:
     
         if(save_force_vals):
             # Save error monthly forcing values to an output file
-            # ---------------------------------------------------
+            # --------------------------------------------------- 
+            if(sim_name == 'noland74'):
+                if(run_type == 'final'):
+                    name_add = '_final'
+                else:
+                    name_add = '_newerr'
+            elif(sim_name == 'noland103'):
+                name_add = '_noland103'
+
+            elif(sim_name == 'noland105'):
+                if(run_type == 'newerr'):
+                    name_add = '_noland105_noback'
+                elif(run_type == 'newerr'):
+                    name_add = '_noland105_errtest'
+                else:
+                    name_add = '_noland105'
+
             write_monthly_force_vals_sims_to_HDF5(daily_dict, sim_values, \
-                total_err_mean, total_err_std, save_path = './', name_add = '_newerror') #noland74, correct errors
+                total_err_mean, total_err_std, save_path = './', name_add = name_add)
+                #total_err_mean, total_err_std, save_path = './', name_add = '_final') #noland74, final check
+                #total_err_mean, total_err_std, save_path = './', name_add = '_newerror') #noland74, correct errors
                 #total_err_mean, total_err_std, save_path = './', name_add = '_noland103')
     
     
@@ -668,17 +760,35 @@ else:
         if(save_force_vals): 
             # Save error trends to an output file
             # -----------------------------------
+            if(sim_name == 'noland74'):
+                if(run_type == 'final'):
+                    name_add = '_final'
+                else:
+                    name_add = '_newerr'
+            elif(sim_name == 'noland103'):
+                name_add = '_noland103'
+
+            elif(sim_name == 'noland105'):
+                if(run_type == 'noback'):
+                    name_add = '_noland105_noback'
+                elif(run_type == 'newerr'):
+                    name_add = '_noland105_errtest'
+                else:
+                    name_add = '_noland105'
+
             write_monthly_force_trend_sims_to_HDF5(daily_dict, forcing_trends, \
-                total_err_mean, total_err_std, save_path = './', name_add = '_newerror') #noland74, correct errors
+                total_err_mean, total_err_std, save_path = './', name_add = name_add)
+                #total_err_mean, total_err_std, save_path = './', name_add = '_final') #noland74, final check
+                #total_err_mean, total_err_std, save_path = './', name_add = '_newerror') #noland74, correct errors
                 #total_err_mean, total_err_std, save_path = './', name_add = '_noland103')
         
         #del(sim_values)
         #del(forcing_trends) 
 
-
+sys.exit()
 # Plot the distribution of trend estimates at a lat/lon idx and month
 # -------------------------------------------------------------------
-test_error_dist(daily_dict, forcing_trends, 4, 1, 287, 30, sim_name = sim_name, save = True)
+test_error_dist(daily_dict, forcing_trends, 4, 1, 287, 30, sim_name = sim_name, save = False)
 sys.exit()
 #test_error_dist(daily_dict, OMI_data, forcing_trends, 3, 10, 340, 30)
 OMI_data = calcOMI_MonthAvg_FromDaily(shawn_file, \

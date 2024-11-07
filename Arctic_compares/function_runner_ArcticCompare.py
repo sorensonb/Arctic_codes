@@ -11,6 +11,44 @@ import random
 #from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
 
+
+minlat = 65
+maxlat = 87
+shawn_file = home_dir + '/Research/OMI/omi_shawn_daily_2005_2020_v2.hdf5'
+OMI_daily_VSJ4_high  = calcOMI_MonthAvg_FromDaily(shawn_file, min_AI = -0.10, max_AI = 20.0, minlat = minlat, maxlat = maxlat)
+OMI_daily_VSJ4_low   = calcOMI_MonthAvg_FromDaily(shawn_file, min_AI = -20.0, max_AI = 0.7, minlat = minlat, maxlat = maxlat)
+OMI_daily_VSJ4_all   = calcOMI_MonthAvg_FromDaily(shawn_file, min_AI = -20.0, max_AI = 20.0, minlat = minlat, maxlat = maxlat)
+
+high_vals = np.ma.masked_where(OMI_daily_VSJ4_high['AI'] > 0.7, OMI_daily_VSJ4_high['AI'])
+low_vals  = np.ma.masked_where(OMI_daily_VSJ4_low['AI'] > 0.7, OMI_daily_VSJ4_low['AI'])
+all_vals  = np.ma.masked_where(OMI_daily_VSJ4_all['AI'] > 0.7, OMI_daily_VSJ4_all['AI'])
+
+fig = plt.figure(figsize = (10, 5))
+axs = fig.subplots(2, 3, sharex = True, sharey = True)
+flat_axs = axs.flatten()
+
+for ii in range(6):
+    flat_axs[ii].hist(np.nanmean(high_vals[ii::6,:,:], axis = 0).flatten(), bins = 50, alpha = 0.5)
+    flat_axs[ii].hist(np.nanmean(low_vals[ii::6,:,:], axis = 0).flatten(), bins = 50, alpha = 0.5)
+    flat_axs[ii].hist(np.nanmean(all_vals[ii::6,:,:], axis = 0).flatten(), bins = 50, alpha = 0.5)
+    flat_axs[ii].set_title(str(ii))
+    flat_axs[ii].grid(alpha = 0.5)
+
+plt.suptitle('Comparison of monthly UVAI averages with different min/maxs\n' + \
+    'Blue:   min_AI = -0.10, max_AI = 20.0\n' + \
+    'Orange: min_AI = -20.0, max_AI = 0.7\n' + \
+    'Green:  min_AI = -20.0, max_AI = 20.0')
+
+fig.tight_layout()
+
+outname = 'omi_month_climo_hist_compare.png'
+fig.savefig(outname, dpi = 200)
+print("Saved image", outname)
+
+plt.show()
+sys.exit()
+
+
 #make_gif('comp_images_20180705/', 'calc_swf_comp_20180705.gif')
 
 #date_str = '201807052213'
@@ -211,7 +249,8 @@ sys.exit()
 #plot_NN_error_dist_bulk('noland74', num_bins = 500, astrofit = True, \
 #plot_NN_error_dist_bulk('noland100', num_bins = 500, astrofit = True, \
 #plot_NN_error_dist_bulk('noland101', num_bins = 500, astrofit = True, \
-plot_NN_error_dist_bulk('noland103', num_bins = 500, astrofit = True, \
+#plot_NN_error_dist_bulk('noland103', num_bins = 500, astrofit = True, \
+plot_NN_error_dist_bulk('noland105', num_bins = 500, astrofit = True, \
     xmin = -100, xmax = 100, save = False)
 sys.exit()
 #plot_NN_error_dist_bulk('noland74', num_bins = 500, astrofit = True, \

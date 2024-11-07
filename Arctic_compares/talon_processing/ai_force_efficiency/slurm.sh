@@ -15,10 +15,10 @@
 #-----------------------------------
 
 #SBATCH --job-name=force_ai_test
-#SBATCH --partition=talon-gpu32
+#SBATCH --partition=gpu-code-test
 
 # Sets the maximum time the job can run (hh:mm:ss).
-#SBATCH --time=05:00:00
+#SBATCH --time=00:10:00
 ###SBATCH --time=01-12:00:00
 
 # Specifies nodes for the job.

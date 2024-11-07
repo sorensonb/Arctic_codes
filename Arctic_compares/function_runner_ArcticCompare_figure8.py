@@ -178,7 +178,8 @@ from sklearn.metrics import r2_score
 #sim_name = 'noland50'
 #sim_name = 'noland72'
 #sim_name = 'noland73'
-sim_name = 'noland74'
+#sim_name = 'noland74'
+sim_name = 'noland105'
 #sim_name = 'noland103'
 #sim_name = 'noland75'
 print("AS OF 2024/09/09, USING ", sim_name)

@@ -178,8 +178,9 @@ from sklearn.metrics import r2_score
 #sim_name = 'noland50'
 #sim_name = 'noland72'
 #sim_name = 'noland73'
-sim_name = 'noland74'
+#sim_name = 'noland74'
 #sim_name = 'noland103'
+sim_name = 'noland105'
 #sim_name = 'noland75'
 print("AS OF 2024/09/09, USING ", sim_name)
 test_dict = combine_NN_data(sim_name)
@@ -291,6 +292,7 @@ date_str = '20180705'
 plot_NN_forcing_daily(date_str, daily_VSJ4, OMI_daily_VSJ4, \
     slope_dict_lin, bin_dict, minlat = 65., maxlat = 87., \
     ai_thresh = 0.7, maxerr = maxerr, filter_bad_vals = False, \
-    save = True, use_intercept = True, sim_name = sim_name)
+    calc_from_bckgd = False, \
+    save = False, use_intercept = True, sim_name = sim_name)
 sys.exit()
 

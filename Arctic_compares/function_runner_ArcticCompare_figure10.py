@@ -178,9 +178,10 @@ from sklearn.metrics import r2_score
 #sim_name = 'noland50'
 #sim_name = 'noland72'
 #sim_name = 'noland73'
-sim_name = 'noland74'
+#sim_name = 'noland74'
 #sim_name = 'noland103'
 #sim_name = 'noland104'
+sim_name = 'noland105'
 #sim_name = 'noland75'
 print("AS OF 2024/09/09, USING ", sim_name)
 test_dict = combine_NN_data(sim_name)
@@ -233,11 +234,22 @@ slope_dict_lin = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
 # pixels
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-infile = 'validate_values_' + sim_name + '_useintcptTrue_final.hdf5' # recalculation of noland74 one last time
-#infile = 'validate_values_' + sim_name + '_useintcptTrue.hdf5'
+#run_type = 'final'
+#run_type = 'newerr'
+run_type = 'noback'
+
+
+if(sim_name == 'noland105'):
+    infile = 'validate_values_' + sim_name + '_useintcptTrue.hdf5' # 
+elif(sim_name == 'noland74'):
+    if(run_type == 'final'):
+        infile = 'validate_values_' + sim_name + '_useintcptTrue_final.hdf5' # recalculation of noland74 one last time
+    else:
+        infile = 'validate_values_' + sim_name + '_useintcptTrue.hdf5'
 in_data = h5py.File(infile)
 direct_forcings = in_data['direct_forcings'][:]
 calc_forcings   = in_data['calc_forcings'][:]
+in_data.close()
 
 #direct_forcings, calc_forcings = \
 #    plot_L2_validate_regress_all(sim_name, slope_dict_lin, bin_dict, \
@@ -254,6 +266,18 @@ calc_forcings   = in_data['calc_forcings'][:]
 ##plot_hist_L2_L3_errors(direct_forcings, calc_forcings, sim_name, \
 ##    ax = None, num_bins = 200, astrofit = False, save = False)
 #sys.exit()
+
+##!## This is how the _useintcptTrue_noland105' file was made
+##!#direct_forcings, calc_forcings = \
+##!#    plot_L2_validate_regress_all(sim_name, slope_dict_lin, bin_dict, \
+##!#    ai_thresh = 0.7, mod_slopes = None, mod_intercepts = None, \
+##!#    mod_cod = None, mod_ice = None, use_intercept = True, \
+##!#    min_cod = None, max_cod = None,\
+##!#    min_sza = None, max_sza = None, \
+##!#    min_ice = None, max_ice = None, \
+##!#    save = False, return_values = True, save_values = False)
+##!#write_L2_L3_validation_values(direct_forcings, calc_forcings, sim_name, ai_min, bin_dict, name_add = '_useintcptTrue')
+##!#sys.exit()
 
 # This is how the _useintcptTrue_final' file was made
 ##!#direct_forcings, calc_forcings = \
@@ -291,10 +315,14 @@ maxlat = 87
 shawn_file = home_dir + '/Research/OMI/omi_shawn_daily_2005_2020_v2.hdf5'
 #jz_file    = home_dir + '/Research/OMI/omi_VJZ211_daily_2005_2020.hdf5'
 
+# NOTE: This is being used to test why the new versions have higher errors. The
+# noland105 _errtest files are generated using this one
+#OMI_daily_VSJ4  = calcOMI_MonthAvg_FromDaily(shawn_file, min_AI = -0.10, max_AI = 20.0, minlat = minlat, maxlat = maxlat)
 
 #NOTE: This is the format used to make the _v3 files
 # Is this the "clean-sky" background version?
 OMI_daily_VSJ4  = calcOMI_MonthAvg_FromDaily(shawn_file, min_AI = -20.00, max_AI = 0.7, minlat = minlat, maxlat = maxlat)
+
 # Is this the OMI AI monthly trend version?
 #OMI_daily_VSJ4  = calcOMI_MonthAvg_FromDaily(shawn_file, min_AI = -0.10, max_AI = 20.0, minlat = minlat, maxlat = maxlat)
 
@@ -317,14 +345,15 @@ maxerr = 1.5
 # --------------------
 #daily_filename = 'arctic_daily_est_forcing_v1.hdf5'        
 if(sim_name == 'noland74'):
-    daily_filename = 'arctic_daily_est_forcing_numsfcbins6.hdf5' # noland72
-    daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v1.hdf5' # noland50
-    daily_filename = 'arctic_daily_est_forcing_numsfcbins4.hdf5' # noland50
-    daily_filename = 'arctic_daily_est_forcing_numsfcbins4_v1.hdf5' # noland72
-    daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v2.hdf5' # noland74
-    daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v2.hdf5' # noland74
+    if(run_type == 'final'):
+        daily_filename = 'arctic_daily_est_forcing_numsfcbins6_final.hdf5' # noland74, redone for validation
+    else:
+        daily_filename = 'arctic_daily_est_forcing_numsfcbins6.hdf5' # noland72
+        daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v1.hdf5' # noland50
+        daily_filename = 'arctic_daily_est_forcing_numsfcbins4.hdf5' # noland50
+        daily_filename = 'arctic_daily_est_forcing_numsfcbins4_v1.hdf5' # noland72
+        daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v2.hdf5' # noland74
 
-    daily_filename = 'arctic_daily_est_forcing_numsfcbins6_final.hdf5' # noland74, redone for validation
 
     # Daily values with ref_cld
     # -------------------------
@@ -334,27 +363,31 @@ if(sim_name == 'noland74'):
     # -------------------------
     refice_filename = 'arctic_daily_est_forcing_numsfcbins6_refice2005.hdf5' # noland74 , new error (doesn't matter)
 
-    # Daily values with ice modifiations
-    # ----------------------------------
-    #ice_filename = 'arctic_daily_est_forcing_iceerr_v1.hdf5'
-    ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr.hdf5' # noland72
-    ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v1.hdf5' # noland50
-    ice_filename = 'arctic_daily_est_forcing_numsfcbins4_iceerr.hdf5' # noland50
-    ice_filename = 'arctic_daily_est_forcing_numsfcbins4_iceerr_v1.hdf5' # noland72
-    ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v2.hdf5' # noland74
+    if(run_type == 'final'):
+        ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_final.hdf5' # noland74, redone for validation
+    else:
+        # Daily values with ice modifiations
+        # ----------------------------------
+        #ice_filename = 'arctic_daily_est_forcing_iceerr_v1.hdf5'
+        ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr.hdf5' # noland72
+        ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v1.hdf5' # noland50
+        ice_filename = 'arctic_daily_est_forcing_numsfcbins4_iceerr.hdf5' # noland50
+        ice_filename = 'arctic_daily_est_forcing_numsfcbins4_iceerr_v1.hdf5' # noland72
+        ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v2.hdf5' # noland74
 
-    ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_final.hdf5' # noland74, redone for validation
+    if(run_type == 'final'):
+        cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_final.hdf5' # noland74, redone for validation
+   
+    else: 
+        # Daily values with COD modifiations
+        # ----------------------------------
+        #cod_filename = 'arctic_daily_est_forcing_coderr.hdf5'
+        cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr.hdf5' # std = 5, noland72
+        cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v1.hdf5' # std = 5, noland50
+        cod_filename = 'arctic_daily_est_forcing_numsfcbins4_coderr.hdf5' # std = 5, noland50
+        cod_filename = 'arctic_daily_est_forcing_numsfcbins4_coderr_v1.hdf5' # std = 5, noland72
+        cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v2.hdf5' # std = 5, noland74
 
-    # Daily values with COD modifiations
-    # ----------------------------------
-    #cod_filename = 'arctic_daily_est_forcing_coderr.hdf5'
-    cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr.hdf5' # std = 5, noland72
-    cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v1.hdf5' # std = 5, noland50
-    cod_filename = 'arctic_daily_est_forcing_numsfcbins4_coderr.hdf5' # std = 5, noland50
-    cod_filename = 'arctic_daily_est_forcing_numsfcbins4_coderr_v1.hdf5' # std = 5, noland72
-    cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v2.hdf5' # std = 5, noland74
-
-    cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_final.hdf5' # noland74, redone for validation
 
 elif(sim_name == 'noland103'):
     daily_filename = 'arctic_daily_est_forcing_numsfcbins6_v3.hdf5' # noland103
@@ -362,6 +395,30 @@ elif(sim_name == 'noland103'):
     ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_v3.hdf5' # noland103
 
     cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v3.hdf5' # std = 5, noland103
+
+elif(sim_name == 'noland105'):
+    if(run_type == 'noback'):
+        # noland105 but with daily forcing calculated if the daily UVAI is above
+        # the threshold. The OMI background monthly means are not considered
+        daily_filename = 'arctic_daily_est_forcing_numsfcbins6_noland105_noback.hdf5' # noland105 with daily forcing
+
+        ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_noland105_noback.hdf5' # noland103
+
+        #cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_noland105_noback_v1.hdf5' # std = 5, noland103
+        cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_noland105_noback.hdf5' # std = 5, noland103
+    elif(run_type == 'newerr'):
+        daily_filename = 'arctic_daily_est_forcing_numsfcbins6_noland105_errtest.hdf5' # noland103 run with OMI_daily_data used
+                                                                                       # with min_AI = -0.1, and max_AI = 20
+
+        ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_noland105_errtest.hdf5' # noland103
+
+        cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_noland105_errtest.hdf5' # std = 5, noland103
+    else:
+        daily_filename = 'arctic_daily_est_forcing_numsfcbins6_noland105.hdf5' # noland103
+
+        ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_noland105.hdf5' # noland103
+
+        cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_noland105.hdf5' # std = 5, noland103
 else:
     print("INVALID SIM NAME")
     sys.exit()
@@ -378,8 +435,129 @@ else:
 #
 # - final: I am regenerating all the files again to make sure the results
 #       are good (Running on 2024/11/01)
+# - noland105_errtest: Am testing what happens when rerunning the noland105
+#       numbers with OMI_daily_VSJ4 calculated using the following:
+#    OMI_daily_VSJ4  = calcOMI_MonthAvg_FromDaily(shawn_file, min_AI = -0.10, max_AI = 20.0, minlat = minlat, maxlat = maxlat)
+#
+# - noland105_noback: Running with calc_from_bckgd set to False. This means
+#           that instead of comparing the daily OMI UVAI to the background
+#           aerosol-free climatology, the daily OMI UVAI is just compared
+#           to the threshold.
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+
+# NOTE: These three are for noland105_noback
+
+# CONTROL RUN
+# -----------
+#cod_err_mean = None
+#cod_err_std = None
+#ice_err_mean = None
+#ice_err_std = None
+#calc_from_bckgd = False
+#all_month_vals_orig_alldaily = \
+#    calculate_type_forcing_v4_alldaily(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+#    filter_bad_vals = False, return_modis_nsidc = False, \
+#    mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
+#    calc_from_bckgd = calc_from_bckgd, \
+#    ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
+#    cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
+#    use_intercept = True, debug = False)
+#
+#write_daily_month_force_L2L3_error_to_HDF5(\
+#    all_month_vals_orig_alldaily, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, all_month_vals_orig_alldaily, \
+#    minlat = minlat, maxlat = maxlat, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, \
+#    L2L3_err_mean = None, L2L3_err_std = None, \
+#    ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
+#    cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
+#    dtype = None, \
+#    calc_from_bckgd = calc_from_bckgd, \
+#    overwrite_old_file = False, \
+#    write_daily_values = True, \
+#    OMI_daily_data = daily_VSJ4, \
+#    save_path = './', name_add = '_numsfcbins6_noland105_noback')
+#    #save_path = './', name_add = '_numsfcbins6_noland105_errtest')
+#    #save_path = './', name_add = '_numsfcbins6_noland105')
+#    #save_path = './', name_add = '_numsfcbins6_final')
+#
+## ICE RUN
+## -----------
+#cod_err_mean = None
+#cod_err_std = None
+#ice_err_mean = 0.
+#ice_err_std = 15.
+#calc_from_bckgd = False
+#all_month_vals_orig_alldaily = \
+#    calculate_type_forcing_v4_alldaily(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+#    filter_bad_vals = False, return_modis_nsidc = False, \
+#    calc_from_bckgd = calc_from_bckgd, \
+#    mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
+#    ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
+#    cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
+#    use_intercept = True, debug = False)
+#
+#write_daily_month_force_L2L3_error_to_HDF5(\
+#    all_month_vals_orig_alldaily, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, all_month_vals_orig_alldaily, \
+#    minlat = minlat, maxlat = maxlat, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, \
+#    L2L3_err_mean = None, L2L3_err_std = None, \
+#    ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
+#    cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
+#    dtype = None, \
+#    calc_from_bckgd = calc_from_bckgd, \
+#    overwrite_old_file = False, \
+#    write_daily_values = True, \
+#    OMI_daily_data = daily_VSJ4, \
+#    save_path = './', name_add = '_numsfcbins6_iceerr_noland105_noback')
+#    #save_path = './', name_add = '_numsfcbins6_iceerr_noland105_errtest')
+#    #save_path = './', name_add = '_numsfcbins6_iceerr_noland105')
+#    #save_path = './', name_add = '_numsfcbins6_iceerr_final')
+#
+## COD RUN
+## -------
+#cod_err_mean = 0
+#cod_err_std = 5
+#ice_err_mean = None
+#ice_err_std = None
+#calc_from_bckgd = False
+#all_month_vals_orig_alldaily = \
+#    calculate_type_forcing_v4_alldaily(daily_VSJ4, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+#    ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+#    filter_bad_vals = False, return_modis_nsidc = False, \
+#    mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
+#    calc_from_bckgd = calc_from_bckgd, \
+#    ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
+#    cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
+#    use_intercept = True, debug = False)
+#
+#write_daily_month_force_L2L3_error_to_HDF5(\
+#    all_month_vals_orig_alldaily, OMI_daily_VSJ4, \
+#    slope_dict_lin, bin_dict, all_month_vals_orig_alldaily, \
+#    minlat = minlat, maxlat = maxlat, \
+#    maxerr = maxerr, ai_thresh = ai_thresh, \
+#    L2L3_err_mean = None, L2L3_err_std = None, \
+#    ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
+#    cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
+#    dtype = None, \
+#    calc_from_bckgd = calc_from_bckgd, \
+#    overwrite_old_file = False, \
+#    write_daily_values = True, \
+#    OMI_daily_data = daily_VSJ4, \
+#    save_path = './', name_add = '_numsfcbins6_coderr_noland105_noback')
+#    #save_path = './', name_add = '_numsfcbins6_coderr_noland105_errtest')
+#    #save_path = './', name_add = '_numsfcbins6_coderr_noland105')
+#    #save_path = './', name_add = '_numsfcbins6_coderr_final')
+#
+#sys.exit()
+
 
 ## CONTROL RUN
 ## -----------
@@ -409,7 +587,9 @@ else:
 #    overwrite_old_file = False, \
 #    write_daily_values = True, \
 #    OMI_daily_data = daily_VSJ4, \
-#    save_path = './', name_add = '_numsfcbins6_final')
+#    save_path = './', name_add = '_numsfcbins6_noland105_errtest')
+#    #save_path = './', name_add = '_numsfcbins6_noland105')
+#    #save_path = './', name_add = '_numsfcbins6_final')
 #
 ## ICE RUN
 ## -----------
@@ -439,7 +619,9 @@ else:
 #    overwrite_old_file = False, \
 #    write_daily_values = True, \
 #    OMI_daily_data = daily_VSJ4, \
-#    save_path = './', name_add = '_numsfcbins6_iceerr_final')
+#    save_path = './', name_add = '_numsfcbins6_iceerr_noland105_errtest')
+#    #save_path = './', name_add = '_numsfcbins6_iceerr_noland105')
+#    #save_path = './', name_add = '_numsfcbins6_iceerr_final')
 #
 ## COD RUN
 ## -------
@@ -469,7 +651,9 @@ else:
 #    overwrite_old_file = False, \
 #    write_daily_values = True, \
 #    OMI_daily_data = daily_VSJ4, \
-#    save_path = './', name_add = '_numsfcbins6_coderr_final')
+#    save_path = './', name_add = '_numsfcbins6_coderr_noland105_errtest')
+#    #save_path = './', name_add = '_numsfcbins6_coderr_noland105')
+#    #save_path = './', name_add = '_numsfcbins6_coderr_final')
 #
 #sys.exit()
 

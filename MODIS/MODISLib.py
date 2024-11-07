@@ -3335,7 +3335,7 @@ def write_MODIS_MYD08(date_str, minlat = 65.5, \
  
 def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False, \
         ax = None, swath = False, vmin = None, vmax = None, \
-        ptitle = '', \
+        ptitle = '', plot_cbar = True, \
         circle_bound = True, plot_borders = True, labelsize = 12):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
@@ -3372,7 +3372,7 @@ def plot_MODIS_channel(date_str,channel,zoom=True,show_smoke=False, \
         ax = fig1.add_subplot(1,1,1, projection = mapcrs)
 
     plot_MODIS_spatial(MODIS_data, ax, zoom, circle_bound = circle_bound, \
-        vmin = vmin, vmax = vmax, ptitle = ptitle, \
+        vmin = vmin, vmax = vmax, ptitle = ptitle, plot_cbar = plot_cbar, \
         plot_borders = plot_borders, labelsize = labelsize)
 
     #mesh = ax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\
@@ -4157,7 +4157,7 @@ def compare_MODIS_3scatter(date_str,channel0,channel1,channel2,channel3,\
 def plot_MODIS_spatial(MODIS_data, pax, zoom, vmin = None, vmax = None, \
         #pvar = 'data', ptitle = None, labelsize = 13, labelticksize = 11, \
         pvar = 'data', ptitle = '', labelsize = 13, labelticksize = 11, \
-        circle_bound = False, plot_borders = True):
+        circle_bound = False, plot_borders = True, plot_cbar = True):
 
     print(MODIS_data['date'])
     local_dstr = datetime.strptime(MODIS_data['date'], '%Y%m%d%H%M')
@@ -4222,10 +4222,11 @@ def plot_MODIS_spatial(MODIS_data, pax, zoom, vmin = None, vmax = None, \
                        norm = norm, shading='auto', \
                        transform = ccrs.PlateCarree()) 
 
-        cbar = plt.colorbar(ScalarMappable(norm = norm, cmap = ccmm),\
-            ticks = [0,1,2,3], 
-            ax = pax, orientation='vertical', pad = 0.03, fraction = 0.052)
-        cbar.ax.set_yticklabels(labels)
+        if(plot_cbar):
+            cbar = plt.colorbar(ScalarMappable(norm = norm, cmap = ccmm),\
+                ticks = [0,1,2,3], 
+                ax = pax, orientation='vertical', pad = 0.03, fraction = 0.052)
+            cbar.ax.set_yticklabels(labels)
     else:
         # Plot channel 1
         mesh1 = pax.pcolormesh(MODIS_data['lon'],MODIS_data['lat'],\
@@ -4233,13 +4234,14 @@ def plot_MODIS_spatial(MODIS_data, pax, zoom, vmin = None, vmax = None, \
             vmin = vmin, \
             vmax = vmax, transform = datacrs) 
     
-        #cbar1 = plt.colorbar(mesh1,ax=pax,orientation='vertical',\
-        #    pad=0.03, fraction = 0.046)
-        cbar1 = plt.colorbar(mesh1, ax = pax, pad = 0.03, fraction = 0.052, \
-            extend = 'both')
-            #shrink = 0.870, pad=0.03,label=MODIS_data['variable'])
-        cbar1.set_label(MODIS_data['variable'], size = labelsize, weight = 'bold')
-        cbar1.ax.tick_params(labelsize = labelticksize)
+        if(plot_cbar):
+            #cbar1 = plt.colorbar(mesh1,ax=pax,orientation='vertical',\
+            #    pad=0.03, fraction = 0.046)
+            cbar1 = plt.colorbar(mesh1, ax = pax, pad = 0.03, fraction = 0.052, \
+                extend = 'both')
+                #shrink = 0.870, pad=0.03,label=MODIS_data['variable'])
+            cbar1.set_label(MODIS_data['variable'], size = labelsize, weight = 'bold')
+            cbar1.ax.tick_params(labelsize = labelticksize)
 
     if(plot_borders):
         pax.add_feature(cfeature.BORDERS)
