@@ -237,7 +237,108 @@ slope_dict_lin = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
 # Plot the binned NN/AI slopes for the 4 surface types
 # ----------------------------------------------------
 plot_NN_bin_slopes_6types(slope_dict, bin_dict, 'slopes', min_ob = 50, \
-            plot_error = False, save = True)
+            plot_error = False, save = False)
 plot_NN_bin_slopes_6types(slope_dict_lin, bin_dict, 'slopes', min_ob = 50, \
-            plot_error = False, save = True)
+            plot_error = False, save = False)
 
+# Dim 1 = ice
+# Dim 2 = sza
+# Dim 3 = COD
+
+# Print a table containing these output values
+# --------------------------------------------
+#ice_idx = 0
+#title_str = '           '
+#for ii in range(slope_vals.shape[1]):
+#    title_str += '{0:>15s}'.format(str(bin_dict['cod_bin_edges'][ii]) + '-' + str(bin_dict['cod_bin_edges'][ii + 1]))
+#    
+#print(title_str)
+
+
+print('# # # # # # # # # # # #\n\n      Slopes\n\n# # # # # # # # # # # #')
+for ii in range(bin_dict['ice_bin_means'].shape[0]):
+    print("\n# # # # # # # # # # # # # # # #\n    ICE bin = " + \
+        str(bin_dict['ice_bin_edges'][ii]) + ' - ' + \
+        str(bin_dict['ice_bin_edges'][ii + 1]) + \
+        '\n# # # # # # # # # # # # # # # #')
+
+    title_str = '           '
+    for kk in range(bin_dict['sza_bin_means'].shape[0]):
+        title_str += '{0:>8s}'.format(str(bin_dict['sza_bin_edges'][kk]) + '-' + \
+            str(bin_dict['sza_bin_edges'][kk + 1]))
+    print(title_str)
+
+    for jj in range(bin_dict['cod_bin_means'].shape[0]):
+        #out_str = ''
+        out_str = '{0:>11s}'.format(str(bin_dict['cod_bin_edges'][jj]) + \
+            '-' + str(bin_dict['cod_bin_edges'][jj + 1]))
+        for kk in range(bin_dict['sza_bin_edges'].shape[0] - 1):
+            out_str += "{0:8.1f}".format(slope_dict_lin['slopes'][ii,kk,jj])
+            #out_str += "{0:6.1f} +/- {1:<5.1f}".format(slope_dict_lin['slopes'][ii,jj,kk], std_force_vals[ii,jj,kk])
+        print(out_str)
+
+print('\n\n# # # # # # # # # # # #\n\n      Intercepts\n\n# # # # # # # # # # # #')
+for ii in range(bin_dict['ice_bin_means'].shape[0]):
+    print("\n# # # # # # # # # # # # # # # #\n    ICE bin = " + \
+        str(bin_dict['ice_bin_edges'][ii]) + ' - ' + \
+        str(bin_dict['ice_bin_edges'][ii + 1]) + \
+        '\n# # # # # # # # # # # # # # # #')
+
+    title_str = '           '
+    for kk in range(bin_dict['sza_bin_means'].shape[0]):
+        title_str += '{0:>8s}'.format(str(bin_dict['sza_bin_edges'][kk]) + '-' + \
+            str(bin_dict['sza_bin_edges'][kk + 1]))
+    print(title_str)
+
+    for jj in range(bin_dict['cod_bin_means'].shape[0]):
+        #out_str = ''
+        out_str = '{0:>11s}'.format(str(bin_dict['cod_bin_edges'][jj]) + \
+            '-' + str(bin_dict['cod_bin_edges'][jj + 1]))
+        for kk in range(bin_dict['sza_bin_edges'].shape[0] - 1):
+            out_str += "{0:8.1f}".format(slope_dict_lin['intercepts'][ii,kk,jj])
+            #out_str += "{0:6.1f} +/- {1:<5.1f}".format(slope_dict_lin['slopes'][ii,jj,kk], std_force_vals[ii,jj,kk])
+        print(out_str)
+
+print('\n\n# # # # # # # # # # # #\n\n      Slope Errors\n\n# # # # # # # # # # # #')
+for ii in range(bin_dict['ice_bin_means'].shape[0]):
+    print("\n# # # # # # # # # # # # # # # #\n    ICE bin = " + \
+        str(bin_dict['ice_bin_edges'][ii]) + ' - ' + \
+        str(bin_dict['ice_bin_edges'][ii + 1]) + \
+        '\n# # # # # # # # # # # # # # # #')
+
+    title_str = '           '
+    for kk in range(bin_dict['sza_bin_means'].shape[0]):
+        title_str += '{0:>8s}'.format(str(bin_dict['sza_bin_edges'][kk]) + '-' + \
+            str(bin_dict['sza_bin_edges'][kk + 1]))
+    print(title_str)
+
+    for jj in range(bin_dict['cod_bin_means'].shape[0]):
+        #out_str = ''
+        out_str = '{0:>11s}'.format(str(bin_dict['cod_bin_edges'][jj]) + \
+            '-' + str(bin_dict['cod_bin_edges'][jj + 1]))
+        for kk in range(bin_dict['sza_bin_edges'].shape[0] - 1):
+            out_str += "{0:8.1f}".format(slope_dict_lin['slope_stderr'][ii,kk,jj])
+            #out_str += "{0:6.1f} +/- {1:<5.1f}".format(slope_dict_lin['slopes'][ii,jj,kk], std_force_vals[ii,jj,kk])
+        print(out_str)
+
+print('\n\n# # # # # # # # # # # #\n\n      Counts\n\n# # # # # # # # # # # #')
+for ii in range(bin_dict['ice_bin_means'].shape[0]):
+    print("\n# # # # # # # # # # # # # # # #\n    ICE bin = " + \
+        str(bin_dict['ice_bin_edges'][ii]) + ' - ' + \
+        str(bin_dict['ice_bin_edges'][ii + 1]) + \
+        '\n# # # # # # # # # # # # # # # #')
+
+    title_str = '           '
+    for kk in range(bin_dict['sza_bin_means'].shape[0]):
+        title_str += '{0:>8s}'.format(str(bin_dict['sza_bin_edges'][kk]) + '-' + \
+            str(bin_dict['sza_bin_edges'][kk + 1]))
+    print(title_str)
+
+    for jj in range(bin_dict['cod_bin_means'].shape[0]):
+        #out_str = ''
+        out_str = '{0:>11s}'.format(str(bin_dict['cod_bin_edges'][jj]) + \
+            '-' + str(bin_dict['cod_bin_edges'][jj + 1]))
+        for kk in range(bin_dict['sza_bin_edges'].shape[0] - 1):
+            out_str += "{0:8.1f}".format(slope_dict_lin['counts'][ii,kk,jj])
+            #out_str += "{0:6.1f} +/- {1:<5.1f}".format(slope_dict_lin['slopes'][ii,jj,kk], std_force_vals[ii,jj,kk])
+        print(out_str)

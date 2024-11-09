@@ -48,8 +48,18 @@ echo ""
 
 module load tensorflow2-py39-cuda11.8-gcc11/2.11.0
 
+Before epoch 2: loss = 26.5864, mae = 3.57
+Before epoch 3: loss = 21.3848, mae = 3.23
+Before epoch 4: loss = 20.6500, mae = 3.18
+Before epoch 5: loss = 20.0771, mae = 3.13
+Before epoch 6: loss = 19.6317, mae = 3.09
+Epoch 12/100
+31198/31198 - 100s - loss: 18.4811 - mae: 2.9976 - 100s/epoch - 3ms/step
 
-time python tensorflow_ai_test_noland105.py $1 $2 $3
+time python tensorflow_ai_test_noland108.py $1 $2 $3
+#time python tensorflow_ai_test_noland107.py $1 $2 $3
+#time python tensorflow_ai_test_noland106.py $1 $2 $3
+#time python tensorflow_ai_test_noland105.py $1 $2 $3
 #time python tensorflow_ai_test_noland104.py $1 $2 $3
 #time python tensorflow_ai_test_noland103.py $1 $2 $3
 #time python tensorflow_ai_test_noland102.py $1 $2 $3

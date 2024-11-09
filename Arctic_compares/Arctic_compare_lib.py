@@ -1830,7 +1830,7 @@ def plot_compare_OMI_MODIS_v2(date_str, ch1, \
     #ax4.annotate('', xy = (x2, y2), xytext = (x1, y1), arrowprops = dict(headwidth = 1.0, headlength = 1.0, width = 0.2), transform = ccrs.PlateCarree())
     ax4.arrow(x1, y1, dx, dy, facecolor = 'red', width = 0.2, head_width = 0.2, edgecolor = 'red', transform = ccrs.PlateCarree())
     #plot_figure_text(ax4, 'Misclass.\nClear/Ice', xval = 148.1, yval = 67.6, \
-    plot_figure_text(ax4, 'Misclassified\nClear/Ice', xval = x1, yval = y1, \
+    plot_figure_text(ax4, 'Misclassified\nSmoke', xval = x1, yval = y1, \
         transform = ccrs.PlateCarree(), \
         color = 'black', fontsize = 8, backgroundcolor = 'white',\
         halign = 'center', location = 'lower_right', weight = None)
@@ -13180,7 +13180,7 @@ def plot_compare_NN_output_double(infile1, infile2, auto_zoom = False, \
         cbar_ax1 = fig.add_axes([0.03, 0.08, 0.20, 0.015])
         cbar = fig.colorbar(ai_mesh, \
             cax = cbar_ax1, shrink = 0.8, orientation = 'horizontal', \
-            label = 'AI', extend = 'max')
+            label = 'UVAI', extend = 'max')
         cbar_ax2 = fig.add_axes([0.30, 0.08, 0.40, 0.015])
         cbar = fig.colorbar(ceres_mesh, \
             cax = cbar_ax2, shrink = 0.8, orientation = 'horizontal', \
@@ -14095,7 +14095,11 @@ def plot_NN_forcing_daily(date_str, OMI_daily_data, OMI_monthly_data, \
     if(save):
         if(sim_name != ''):
             sim_name = '_' + sim_name
-        outname = 'test_forcing_v4_' + date_str + sim_name + '.png'
+        if(calc_from_bckgd):
+            bckgd_add = ''
+        else:
+            bckgd_add = '_noback'
+        outname = 'test_forcing_v4_' + date_str + sim_name + bckgd_add + '.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
@@ -15693,7 +15697,10 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
 
     # Read in the desired files
     # -------------------------
-    if( (sim_name == 'noland103') | (sim_name == 'noland104') | (sim_name == 'noland105')):
+    #if( (sim_name == 'noland103') | (sim_name == 'noland104') | \
+    #    (sim_name == 'noland105') | (sim_name == 'noland106') | |
+    #    (sim_name == 'noland107') ):
+    if( int(sim_name[6:]) >= 103) :
         files = glob('neuralnet_output_clear_newfiles/test_calc_out_' + sim_name + '*.hdf5')
     else:
         files = glob('neuralnet_output_clear/test_calc_out_' + sim_name + '*.hdf5')
@@ -17094,7 +17101,8 @@ def plot_cod_error_histogram(daily_filename, cod_filename, num_bins = 50, \
 
 def plot_error_components_combined(direct_forcings, calc_forcings, sim_name, \
         daily_filename, ice_filename, cod_filename, num_bins, \
-        astrofit = False, log_scale = False, xmin = -100, xmax = 100, save = False):
+        astrofit = False, log_scale = False, xmin = -100, xmax = 100, \
+        run_type = None, save = False):
 
     plt.close('all')
     fig = plt.figure(figsize = (9, 8))
@@ -17107,7 +17115,7 @@ def plot_error_components_combined(direct_forcings, calc_forcings, sim_name, \
     plot_hist_L2_L3_errors(direct_forcings, calc_forcings, sim_name, \
         ax = ax2, num_bins = num_bins * 4, astrofit = True, xmin = xmin, xmax = xmax, save = False)
     plot_ice_error_histogram(daily_filename, ice_filename, ax = ax3, \
-        xmin = None, xmax = None, save = False, log_scale = log_scale, \
+        xmin = -100, xmax = 100, save = False, log_scale = log_scale, \
         num_bins = num_bins, astrofit = False)
     plot_cod_error_histogram(daily_filename, cod_filename, ax = ax4, \
         xmin = None, xmax = None, save = False, log_scale = log_scale, \
@@ -17125,7 +17133,11 @@ def plot_error_components_combined(direct_forcings, calc_forcings, sim_name, \
             log_adder = '_logscale'
         else:
             log_adder = ''
-        outname = 'errors_L3_combined_' + sim_name + log_adder + '.png'
+        if(run_type is not None):
+            run_type = '_' + run_type
+        else:
+            run_type = ''
+        outname = 'errors_L3_combined_' + sim_name + log_adder + run_type + '.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
@@ -17152,7 +17164,8 @@ def plot_many_trend_test(daily_dict, OMI_data, forcing_trends, month_idx, lat_id
     plt.show()
 
 def test_error_dist(daily_dict, forcing_trends, month_idx, lat_idx, lon_idx, \
-        num_bins, ax = None, conf_level = 90, sim_name = '', save = False):
+        num_bins, ax = None, conf_level = 90, sim_name = '', run_type = '', \
+        save = False):
 
     in_arr = forcing_trends[:,month_idx,lat_idx,lon_idx]
 
@@ -17218,8 +17231,10 @@ def test_error_dist(daily_dict, forcing_trends, month_idx, lat_idx, lon_idx, \
                 loc_adder = '_' + str(int(lat_val)) + 'N' + str(int(lon_val)) + 'E'
             if(sim_name != ''):
                 sim_name = '_' + sim_name
+            if(run_type != ''):
+                run_type = '_' + run_type
             outname = 'trend_dist_monthidx' + str(month_idx) + '_numsims' + \
-                str(int(in_arr.shape[0])) + loc_adder + sim_name + '.png'
+                str(int(in_arr.shape[0])) + loc_adder + sim_name + run_type + '.png'
             fig.savefig(outname, dpi = 200)
             print("Saved image", outname)
         else:
@@ -17640,7 +17655,7 @@ def plot_bulk_force_AI_trend_v2(daily_dict, forcing_trends, OMI_daily_data, \
 def plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, OMI_daily_data, \
         NSIDC_data, MODIS_data, modis_var = 'cld_frac_mean', vmax = 1.0, \
         min_AI = None, max_AI = None, minlat = 65.5, \
-        maxlat = 90.5,  sim_name = '', conf_level = 90., save = False):
+        maxlat = 90.5,  sim_name = '', run_type = '', conf_level = 90., save = False):
 
     if(isinstance(OMI_daily_data, str)):
         if(min_AI is None):
@@ -17982,8 +17997,10 @@ def plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, OMI_daily_data, \
             modis_adder = '_cod'
         if(sim_name != ''):
             sim_name = '_' + sim_name
+        if(run_type != ''):
+            run_type = '_' + run_type
 
-        outname = 'ai_force_trend_ice' + modis_adder + '_combined' + sim_name + '.png'
+        outname = 'ai_force_trend_ice' + modis_adder + '_combined' + sim_name + run_type + '.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:

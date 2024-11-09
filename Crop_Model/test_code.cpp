@@ -8,6 +8,8 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <codecvt>
+#include <locale>
 #include <string>
 #include <math.h>
 
@@ -20,12 +22,14 @@
 int main(int argc, char *argv[])
 {
     using std::cout;
+    using std::wcout;
     using std::endl;
 
-    float inlat;
-    float inlon;
+    double inlat;
+    double inlon;
 
-    int f_mukey;
+    //int f_mukey;
+    std::wstring f_mukey;
 
     // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
     //
@@ -40,13 +44,15 @@ int main(int argc, char *argv[])
     }
     else
     {
-        inlat = atof(argv[1]);
-        inlon = atof(argv[2]);
+        sscanf(argv[1], "%lf", &inlat);
+        sscanf(argv[2], "%lf", &inlon);
+        //inlat = atod(argv[1]);
+        //inlon = atod(argv[2]);
     }
 
     f_mukey = getMukeyfromLatLon(inlat, inlon);
 
-    cout << "Mukey = " << f_mukey << endl;    
+    wcout << L"Mukey = " << f_mukey << endl;    
     
     return 0;
 
@@ -80,23 +86,27 @@ double find_distance(double rad_inlat, double rad_inlon, double rad_slat, double
 
 }
 
-int getMukeyfromLatLon(float inlat, float inlon) 
+std::wstring getMukeyfromLatLon(double inlat, double inlon) 
 {
     using std::cout;
+    using std::wcout;
     using std::endl;
 
-    float rad_inlat;
-    float rad_inlon;
+    double rad_inlat;
+    double rad_inlon;
 
-    float slat;
-    float slon;
-    int s_mukey;
+    double slat;
+    double slon;
+    std::string s_mukey;
+    std::wstring w_mukey;
+    //int s_mukey;
 
-    float rad_slat;
-    float rad_slon;
+    double rad_slat;
+    double rad_slon;
     double distance;
 
-    int f_mukey;
+    //int f_mukey;
+    std::wstring f_mukey;
     double f_lat;
     double f_lon;
     double f_dist;
@@ -106,9 +116,6 @@ int getMukeyfromLatLon(float inlat, float inlon)
 
     std::vector<std::string> row;
     std::string line, word, temp;
-
-    //cout << "Lat = " << inlat << " Lon = " << inlon << endl;
-    //cout << "Radlat = " << ConvertDegreesToRadians(inlat) << endl;
 
     // Convert the input latitude and longitude to radians 
     // (to save time later)
@@ -132,7 +139,8 @@ int getMukeyfromLatLon(float inlat, float inlon)
     f_lat = 89.99;
     f_lon = 179.99;
     f_dist = 99999.;
-    s_mukey = 0;
+    s_mukey = "";
+    //s_mukey = 0;
     while (!ifs.eof())
     {
         row.clear();
@@ -152,9 +160,11 @@ int getMukeyfromLatLon(float inlat, float inlon)
         {
             // Extract the latitude, longitude, and mukey from this line
             // ---------------------------------------------------------
-            slat = stof(row[0]);
-            slon = stof(row[1]);
-            s_mukey = stoi(row[2]);
+            slat = stod(row[0]);
+            slon = stod(row[1]);
+            s_mukey = row[2];
+            w_mukey = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(s_mukey);
+            //s_mukey = stoi(row[2]);
 
             // Convert the grid lat/lon to radians
             // -----------------------------------
@@ -177,7 +187,7 @@ int getMukeyfromLatLon(float inlat, float inlon)
                 f_lat = slat;
                 f_lon = slon;
                 f_dist = distance;
-                f_mukey = s_mukey;
+                f_mukey = w_mukey;
             }
 
         }
@@ -193,15 +203,15 @@ int getMukeyfromLatLon(float inlat, float inlon)
     {
         cout << "WARNING: Identified MUKEY point is far away from " << 
                 "input point" << endl;
-        cout << "Input values: " << endl;
-        cout << "   Lat =   " << inlat << endl;
-        cout << "   Lon =   " << inlon << endl;
-        cout << "Matching values: " << endl;
-        cout << "   Lat =   " << f_lat << endl;
-        cout << "   Lon =   " << f_lon << endl;
-        cout << "   Dist =  " << f_dist << endl;
-        cout << "   Mukey = " << f_mukey << endl;
     }
+    cout << "Input values: " << endl;
+    cout << "   Lat =   " << inlat << endl;
+    cout << "   Lon =   " << inlon << endl;
+    cout << "Matching values: " << endl;
+    cout << "   Lat =   " << f_lat << endl;
+    cout << "   Lon =   " << f_lon << endl;
+    cout << "   Dist =  " << f_dist << endl;
+    wcout << "   Mukey = " << f_mukey << endl;
 
     //cout << "lines = " << count << endl;
 

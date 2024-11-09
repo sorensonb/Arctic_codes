@@ -262,7 +262,7 @@ infile = 'validate_values_' + sim_name + '_useintcptTrue.hdf5'
 in_data = h5py.File(infile)
 direct_forcings = in_data['direct_forcings'][:]
 calc_forcings   = in_data['calc_forcings'][:]
-
+in_data.close()
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
@@ -341,7 +341,8 @@ maxerr = 1.5
 # HERERE:
 #run_type = 'final'
 #run_type = 'newerr'
-run_type = 'noback'
+run_type = 'noback1'
+#run_type = 'noback2' # noback2: same as noback, but with the sign of the NN - CERES error flipped
 
 
 # Control daily values
@@ -400,12 +401,18 @@ elif(sim_name == 'noland103'):
     cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v3.hdf5' # std = 5, noland103
 
 elif(sim_name == 'noland105'):
-    if(run_type == 'noback'):
-        daily_filename = 'arctic_daily_est_forcing_numsfcbins6_noland105_noback.hdf5' # noland103 run with no background 
+    if(run_type == 'noback2'):
+        daily_filename = 'arctic_daily_est_forcing_numsfcbins6_noland105_noback1.hdf5' # noland103 run with no background 
 
-        ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_noland105_noback.hdf5' # noland103
+        ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_noland105_noback1.hdf5' # noland103
 
-        cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_noland105_noback.hdf5' # std = 5, noland103
+        cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_noland105_noback1.hdf5' # std = 5, noland103
+    elif(run_type == 'noback1'):
+        daily_filename = 'arctic_daily_est_forcing_numsfcbins6_noland105_noback1.hdf5' # noland103 run with no background 
+
+        ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_noland105_noback1.hdf5' # noland103
+
+        cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_noland105_noback1.hdf5' # std = 5, noland103
     elif(run_type == 'newerr'):
         daily_filename = 'arctic_daily_est_forcing_numsfcbins6_noland105_errtest.hdf5' # noland103 run with OMI_daily_data used
                                                                                        # with min_AI = -0.1, and max_AI = 20
@@ -528,7 +535,10 @@ else:
 # values.
 # -------------------------------------------------------------------------
 if(sim_name == 'noland105'):
-    if(run_type == 'noback'):
+    if(run_type == 'noback2'):
+        total_err_mean = 0.8
+        total_err_std = 31.61
+    elif(run_type == 'noback1'):
         total_err_mean = -2.0
         total_err_std = 31.61
     else:
@@ -575,9 +585,9 @@ daily_dict = read_daily_month_force_L2L3_error_from_HDF5(daily_filename)
 # = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 read_force_sim_vals = False
-save_force_vals = True
-read_trend_sim_vals = False
-save_trend_vals = True
+save_force_vals = False
+read_trend_sim_vals = True
+save_trend_vals = False
 
 calc_region_avg_force_vals = False
 calc_force_trends_from_file = False
@@ -587,8 +597,10 @@ if(read_trend_sim_vals):
     # NOTE: Only using 2 files here. Can change ":2" to allow it to read more files 
     # -----------------------------------------------------------------------------
     if(sim_name == 'noland105'):
-        if(run_type == 'noback'):
-            file_start = 'arctic_monthly_force_trends_count300_noland105_noback'  # noland105, but forcing calced without background
+        if(run_type == 'noback2'):
+            file_start = 'arctic_monthly_force_trends_count300_noland105_noback2'  # noland105, but forcing calced without background
+        elif(run_type == 'noback1'):
+            file_start = 'arctic_monthly_force_trends_count300_noland105_noback1'  # noland105, but forcing calced without background
         elif(run_type == 'newerr'):
             file_start = 'arctic_monthly_force_trends_count300_noland105_errtest'  # noland105, but with OMI_daily_data used
                                                                                        # with min_AI = -0.1, and max_AI = 20
@@ -638,8 +650,10 @@ else:
         # NOTE: Only using 2 files here. Can change ":2" to allow it to read more files 
         # -----------------------------------------------------------------------------
         if(sim_name == 'noland105'):
-            if(run_type == 'noback'):
-                file_start = 'arctic_monthly_force_values_count300_noland105_noback'
+            if(run_type == 'noback2'):
+                file_start = 'arctic_monthly_force_values_count300_noland105_noback2'
+            elif(run_type == 'noback1'):
+                file_start = 'arctic_monthly_force_values_count300_noland105_noback1'
             elif(run_type == 'newerr'):
                 file_start = 'arctic_monthly_force_values_count300_noland105_errtest'
             else:
@@ -726,8 +740,10 @@ else:
                 name_add = '_noland103'
 
             elif(sim_name == 'noland105'):
-                if(run_type == 'newerr'):
-                    name_add = '_noland105_noback'
+                if(run_type == 'noback2'):
+                    name_add = '_noland105_noback2'
+                elif(run_type == 'noback1'):
+                    name_add = '_noland105_noback1'
                 elif(run_type == 'newerr'):
                     name_add = '_noland105_errtest'
                 else:
@@ -769,8 +785,10 @@ else:
                 name_add = '_noland103'
 
             elif(sim_name == 'noland105'):
-                if(run_type == 'noback'):
-                    name_add = '_noland105_noback'
+                if(run_type == 'noback2'):
+                    name_add = '_noland105_noback2'
+                elif(run_type == 'noback1'):
+                    name_add = '_noland105_noback1'
                 elif(run_type == 'newerr'):
                     name_add = '_noland105_errtest'
                 else:
@@ -785,7 +803,7 @@ else:
         #del(sim_values)
         #del(forcing_trends) 
 
-sys.exit()
+
 # Plot the distribution of trend estimates at a lat/lon idx and month
 # -------------------------------------------------------------------
 test_error_dist(daily_dict, forcing_trends, 4, 1, 287, 30, sim_name = sim_name, save = False)

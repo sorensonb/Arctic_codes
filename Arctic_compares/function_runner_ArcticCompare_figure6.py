@@ -279,118 +279,119 @@ from sklearn.metrics import r2_score
 
 
 
+l_calc_noise_floor = False
 
 
 
 
+if(l_calc_noise_floor):
 
+    in_calc1 = h5py.File(sys.argv[1], 'r')
+    mask_orig1 = np.ma.masked_where((in_calc1['ceres_swf'][:,:] == -999.) | \
+                                   (in_calc1['ceres_swf'][:,:] > 3000), in_calc1['ceres_swf'][:,:])
+    mask_calc1 = np.ma.masked_invalid(in_calc1['calc_swf'])
+    mask_calc1 = np.ma.masked_where(mask_calc1 == -999., mask_calc1)
+    
+    in_calc2 = h5py.File(sys.argv[2], 'r')
+    mask_orig2 = np.ma.masked_where((in_calc2['ceres_swf'][:,:] == -999.) | \
+                                   (in_calc2['ceres_swf'][:,:] > 3000), in_calc2['ceres_swf'][:,:])
+    mask_calc2 = np.ma.masked_invalid(in_calc2['calc_swf'])
+    mask_calc2 = np.ma.masked_where(mask_calc2 == -999., mask_calc2)
+    
+    
+    
+    #mask_orig1 = np.ma.masked_where(np.isnan(in_calc1['omi_uvai_pert'][:,:]), mask_orig1)
+    #mask_calc1 = np.ma.masked_where(np.isnan(in_calc1['omi_uvai_pert'][:,:]), mask_calc1)
+    mask_orig1 = np.ma.masked_where(in_calc1['omi_uvai_pert'][:,:] > 1.0, mask_orig1)
+    mask_calc1 = np.ma.masked_where(in_calc1['omi_uvai_pert'][:,:] > 1.0, mask_calc1)
+    both_orig1 = np.ma.masked_where((mask_orig1.mask == True) | (mask_calc1.mask == True), mask_orig1)
+    both_calc1 = np.ma.masked_where((mask_orig1.mask == True) | (mask_calc1.mask == True), mask_calc1)
+    both_orig1 = both_orig1.compressed()
+    both_calc1 = both_calc1.compressed()
+    
+    #mask_orig2 = np.ma.masked_where(np.isnan(in_calc2['omi_uvai_pert'][:,:]), mask_orig2)
+    #mask_calc2 = np.ma.masked_where(np.isnan(in_calc2['omi_uvai_pert'][:,:]), mask_calc2)
+    mask_orig2 = np.ma.masked_where(in_calc2['omi_uvai_pert'][:,:] > 1.0, mask_orig2)
+    mask_calc2 = np.ma.masked_where(in_calc2['omi_uvai_pert'][:,:] > 1.0, mask_calc2)
+    both_orig2 = np.ma.masked_where((mask_orig2.mask == True) | (mask_calc2.mask == True), mask_orig2)
+    both_calc2 = np.ma.masked_where((mask_orig2.mask == True) | (mask_calc2.mask == True), mask_calc2)
+    both_orig2 = both_orig2.compressed()
+    both_calc2 = both_calc2.compressed()
+    
+    # Calculate RMSE for binned values
+    # --------------------------------
+    swf_bins1 = np.arange(30, 600, 30)
+    rmse_vals1 = np.full(len(swf_bins1) - 1, np.nan)
+    rmse_vals2 = np.full(len(swf_bins1) - 1, np.nan)
+    for ii in range(len(swf_bins1) - 1):
+        keep_idxs = np.where( (both_orig1 >= swf_bins1[ii]) & (both_orig1 < swf_bins1[ii + 1]))
+        if(len(keep_idxs[0]) > 2):
+            rmse1 = mean_squared_error(both_orig1[keep_idxs], both_calc1[keep_idxs], squared = False)
+            counts1 = len(keep_idxs[0])
+            keep_idxs = np.where( (both_orig2 >= swf_bins1[ii]) & (both_orig2 < swf_bins1[ii + 1]))
+            rmse2 = mean_squared_error(both_orig2[keep_idxs], both_calc2[keep_idxs], squared = False)
+            counts2 = len(keep_idxs[0])
+            print(swf_bins1[ii], swf_bins1[ii + 1], np.round(rmse1, 1), counts1, np.round(rmse2, 1), counts2) 
+    
+            rmse_vals1[ii] = rmse1
+            rmse_vals2[ii] = rmse2
+    
+    swf_centers = (swf_bins1[1:] + swf_bins1[:-1])/2.
+    
+    in_calc1.close()
+    in_calc2.close()
+    
+    fig = plt.figure(figsize = (11, 4))
+    ax1 = fig.add_subplot(1,3,1)
+    ax2 = fig.add_subplot(1,3,2)
+    ax3 = fig.add_subplot(1,3,3)
+    
+    xy = np.vstack([both_orig1, both_calc1])
+    r2 = r2_score(both_orig1, both_calc1)
+    z = stats.gaussian_kde(xy)(xy)       
+    ax1.scatter(both_orig1, both_calc1, c = z, s = 1)
+    lims = [\
+            np.min([ax1.get_xlim(), ax1.get_ylim()]),\
+            np.max([ax1.get_xlim(), ax1.get_ylim()]),
+    ]
+    ax1.plot(lims, lims, 'r', linestyle = ':', alpha = 1.00)
+    ax1.set_xlim(lims)
+    ax1.set_ylim(lims)
+    ax1.set_xlabel('CERES SWF [Wm$^{-2}$]')
+    ax1.set_ylabel('NN SWF [Wm$^{-2}$]')
+    
+    xy = np.vstack([both_orig2, both_calc2])
+    r2 = r2_score(both_orig2, both_calc2)
+    z = stats.gaussian_kde(xy)(xy)       
+    ax2.scatter(both_orig2, both_calc2, c = z, s = 1)
+    lims = [\
+            np.min([ax2.get_xlim(), ax2.get_ylim()]),\
+            np.max([ax2.get_xlim(), ax2.get_ylim()]),
+    ]
+    ax2.plot(lims, lims, 'r', linestyle = ':', alpha = 1.00)
+    ax2.set_xlim(lims)
+    ax2.set_ylim(lims)
+    ax2.set_xlabel('CERES SWF [Wm$^{-2}$]')
+    ax2.set_ylabel('NN SWF [Wm$^{-2}$]')
+    
+    ax3.scatter(swf_centers, rmse_vals1, label = 'File1')
+    ax3.scatter(swf_centers, rmse_vals2, label = 'File2')
+    ax3.legend()
+    ax3.set_xlabel('CERES SWF [Wm$^{-2}$]')
+    ax3.set_ylabel('RMSE [Wm$^{-2}$]')
+    
+    fig.tight_layout()
+    plt.show()
+    
+    sys.exit()
 
+else:
 
-
-in_calc1 = h5py.File(sys.argv[1], 'r')
-mask_orig1 = np.ma.masked_where((in_calc1['ceres_swf'][:,:] == -999.) | \
-                               (in_calc1['ceres_swf'][:,:] > 3000), in_calc1['ceres_swf'][:,:])
-mask_calc1 = np.ma.masked_invalid(in_calc1['calc_swf'])
-mask_calc1 = np.ma.masked_where(mask_calc1 == -999., mask_calc1)
-
-in_calc2 = h5py.File(sys.argv[2], 'r')
-mask_orig2 = np.ma.masked_where((in_calc2['ceres_swf'][:,:] == -999.) | \
-                               (in_calc2['ceres_swf'][:,:] > 3000), in_calc2['ceres_swf'][:,:])
-mask_calc2 = np.ma.masked_invalid(in_calc2['calc_swf'])
-mask_calc2 = np.ma.masked_where(mask_calc2 == -999., mask_calc2)
-
-
-
-#mask_orig1 = np.ma.masked_where(np.isnan(in_calc1['omi_uvai_pert'][:,:]), mask_orig1)
-#mask_calc1 = np.ma.masked_where(np.isnan(in_calc1['omi_uvai_pert'][:,:]), mask_calc1)
-mask_orig1 = np.ma.masked_where(in_calc1['omi_uvai_pert'][:,:] > 1.0, mask_orig1)
-mask_calc1 = np.ma.masked_where(in_calc1['omi_uvai_pert'][:,:] > 1.0, mask_calc1)
-both_orig1 = np.ma.masked_where((mask_orig1.mask == True) | (mask_calc1.mask == True), mask_orig1)
-both_calc1 = np.ma.masked_where((mask_orig1.mask == True) | (mask_calc1.mask == True), mask_calc1)
-both_orig1 = both_orig1.compressed()
-both_calc1 = both_calc1.compressed()
-
-#mask_orig2 = np.ma.masked_where(np.isnan(in_calc2['omi_uvai_pert'][:,:]), mask_orig2)
-#mask_calc2 = np.ma.masked_where(np.isnan(in_calc2['omi_uvai_pert'][:,:]), mask_calc2)
-mask_orig2 = np.ma.masked_where(in_calc2['omi_uvai_pert'][:,:] > 1.0, mask_orig2)
-mask_calc2 = np.ma.masked_where(in_calc2['omi_uvai_pert'][:,:] > 1.0, mask_calc2)
-both_orig2 = np.ma.masked_where((mask_orig2.mask == True) | (mask_calc2.mask == True), mask_orig2)
-both_calc2 = np.ma.masked_where((mask_orig2.mask == True) | (mask_calc2.mask == True), mask_calc2)
-both_orig2 = both_orig2.compressed()
-both_calc2 = both_calc2.compressed()
-
-# Calculate RMSE for binned values
-# --------------------------------
-swf_bins1 = np.arange(30, 600, 30)
-rmse_vals1 = np.full(len(swf_bins1) - 1, np.nan)
-rmse_vals2 = np.full(len(swf_bins1) - 1, np.nan)
-for ii in range(len(swf_bins1) - 1):
-    keep_idxs = np.where( (both_orig1 >= swf_bins1[ii]) & (both_orig1 < swf_bins1[ii + 1]))
-    if(len(keep_idxs[0]) > 2):
-        rmse1 = mean_squared_error(both_orig1[keep_idxs], both_calc1[keep_idxs], squared = False)
-        counts1 = len(keep_idxs[0])
-        keep_idxs = np.where( (both_orig2 >= swf_bins1[ii]) & (both_orig2 < swf_bins1[ii + 1]))
-        rmse2 = mean_squared_error(both_orig2[keep_idxs], both_calc2[keep_idxs], squared = False)
-        counts2 = len(keep_idxs[0])
-        print(swf_bins1[ii], swf_bins1[ii + 1], np.round(rmse1, 1), counts1, np.round(rmse2, 1), counts2) 
-
-        rmse_vals1[ii] = rmse1
-        rmse_vals2[ii] = rmse2
-
-swf_centers = (swf_bins1[1:] + swf_bins1[:-1])/2.
-
-in_calc1.close()
-in_calc2.close()
-
-fig = plt.figure(figsize = (11, 4))
-ax1 = fig.add_subplot(1,3,1)
-ax2 = fig.add_subplot(1,3,2)
-ax3 = fig.add_subplot(1,3,3)
-
-xy = np.vstack([both_orig1, both_calc1])
-r2 = r2_score(both_orig1, both_calc1)
-z = stats.gaussian_kde(xy)(xy)       
-ax1.scatter(both_orig1, both_calc1, c = z, s = 1)
-lims = [\
-        np.min([ax1.get_xlim(), ax1.get_ylim()]),\
-        np.max([ax1.get_xlim(), ax1.get_ylim()]),
-]
-ax1.plot(lims, lims, 'r', linestyle = ':', alpha = 1.00)
-ax1.set_xlim(lims)
-ax1.set_ylim(lims)
-ax1.set_xlabel('CERES SWF [Wm$^{-2}$]')
-ax1.set_ylabel('NN SWF [Wm$^{-2}$]')
-
-xy = np.vstack([both_orig2, both_calc2])
-r2 = r2_score(both_orig2, both_calc2)
-z = stats.gaussian_kde(xy)(xy)       
-ax2.scatter(both_orig2, both_calc2, c = z, s = 1)
-lims = [\
-        np.min([ax2.get_xlim(), ax2.get_ylim()]),\
-        np.max([ax2.get_xlim(), ax2.get_ylim()]),
-]
-ax2.plot(lims, lims, 'r', linestyle = ':', alpha = 1.00)
-ax2.set_xlim(lims)
-ax2.set_ylim(lims)
-ax2.set_xlabel('CERES SWF [Wm$^{-2}$]')
-ax2.set_ylabel('NN SWF [Wm$^{-2}$]')
-
-ax3.scatter(swf_centers, rmse_vals1, label = 'File1')
-ax3.scatter(swf_centers, rmse_vals2, label = 'File2')
-ax3.legend()
-ax3.set_xlabel('CERES SWF [Wm$^{-2}$]')
-ax3.set_ylabel('RMSE [Wm$^{-2}$]')
-
-fig.tight_layout()
-plt.show()
-
-sys.exit()
-
-# Compare the OMI, CERES, NN, and NN - CERES for two swaths
-# ---------------------------------------------------------
-plot_compare_NN_output_double(sys.argv[1], \
-    sys.argv[2], \
-    save = False, include_scatter = False)
-#plot_compare_NN_output_double(sys.argv[1], sys.argv[2], save = False, include_scatter = False)
+    # Compare the OMI, CERES, NN, and NN - CERES for two swaths
+    # ---------------------------------------------------------
+    plot_compare_NN_output_double(sys.argv[1], \
+        sys.argv[2], \
+        save = True, include_scatter = False)
+    #plot_compare_NN_output_double(sys.argv[1], sys.argv[2], save = False, include_scatter = False)
 
 

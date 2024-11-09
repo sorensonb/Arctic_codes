@@ -236,20 +236,20 @@ slope_dict_lin = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #run_type = 'final'
 #run_type = 'newerr'
-run_type = 'noback'
+run_type = 'noback1'
 
 
-if(sim_name == 'noland105'):
-    infile = 'validate_values_' + sim_name + '_useintcptTrue.hdf5' # 
-elif(sim_name == 'noland74'):
-    if(run_type == 'final'):
-        infile = 'validate_values_' + sim_name + '_useintcptTrue_final.hdf5' # recalculation of noland74 one last time
-    else:
-        infile = 'validate_values_' + sim_name + '_useintcptTrue.hdf5'
-in_data = h5py.File(infile)
-direct_forcings = in_data['direct_forcings'][:]
-calc_forcings   = in_data['calc_forcings'][:]
-in_data.close()
+#if(sim_name == 'noland105'):
+#    infile = 'validate_values_' + sim_name + '_useintcptTrue.hdf5' # 
+#elif(sim_name == 'noland74'):
+#    if(run_type == 'final'):
+#        infile = 'validate_values_' + sim_name + '_useintcptTrue_final.hdf5' # recalculation of noland74 one last time
+#    else:
+#        infile = 'validate_values_' + sim_name + '_useintcptTrue.hdf5'
+#in_data = h5py.File(infile)
+#direct_forcings = in_data['direct_forcings'][:]
+#calc_forcings   = in_data['calc_forcings'][:]
+#in_data.close()
 
 #direct_forcings, calc_forcings = \
 #    plot_L2_validate_regress_all(sim_name, slope_dict_lin, bin_dict, \
@@ -397,15 +397,15 @@ elif(sim_name == 'noland103'):
     cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v3.hdf5' # std = 5, noland103
 
 elif(sim_name == 'noland105'):
-    if(run_type == 'noback'):
+    if(run_type == 'noback1'):
         # noland105 but with daily forcing calculated if the daily UVAI is above
         # the threshold. The OMI background monthly means are not considered
-        daily_filename = 'arctic_daily_est_forcing_numsfcbins6_noland105_noback.hdf5' # noland105 with daily forcing
+        daily_filename = 'arctic_daily_est_forcing_numsfcbins6_noland105_noback1.hdf5' # noland105 with daily forcing
 
-        ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_noland105_noback.hdf5' # noland103
+        ice_filename = 'arctic_daily_est_forcing_numsfcbins6_iceerr_noland105_noback1.hdf5' # noland103
 
-        #cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_noland105_noback_v1.hdf5' # std = 5, noland103
-        cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_noland105_noback.hdf5' # std = 5, noland103
+        #cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_noland105_noback1_v1.hdf5' # std = 5, noland103
+        cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_noland105_noback1.hdf5' # std = 5, noland103
     elif(run_type == 'newerr'):
         daily_filename = 'arctic_daily_est_forcing_numsfcbins6_noland105_errtest.hdf5' # noland103 run with OMI_daily_data used
                                                                                        # with min_AI = -0.1, and max_AI = 20
@@ -439,14 +439,14 @@ else:
 #       numbers with OMI_daily_VSJ4 calculated using the following:
 #    OMI_daily_VSJ4  = calcOMI_MonthAvg_FromDaily(shawn_file, min_AI = -0.10, max_AI = 20.0, minlat = minlat, maxlat = maxlat)
 #
-# - noland105_noback: Running with calc_from_bckgd set to False. This means
+# - noland105_noback1: Running with calc_from_bckgd set to False. This means
 #           that instead of comparing the daily OMI UVAI to the background
 #           aerosol-free climatology, the daily OMI UVAI is just compared
 #           to the threshold.
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
-# NOTE: These three are for noland105_noback
+# NOTE: These three are for noland105_noback1
 
 # CONTROL RUN
 # -----------
@@ -479,7 +479,7 @@ else:
 #    overwrite_old_file = False, \
 #    write_daily_values = True, \
 #    OMI_daily_data = daily_VSJ4, \
-#    save_path = './', name_add = '_numsfcbins6_noland105_noback')
+#    save_path = './', name_add = '_numsfcbins6_noland105_noback1')
 #    #save_path = './', name_add = '_numsfcbins6_noland105_errtest')
 #    #save_path = './', name_add = '_numsfcbins6_noland105')
 #    #save_path = './', name_add = '_numsfcbins6_final')
@@ -515,7 +515,7 @@ else:
 #    overwrite_old_file = False, \
 #    write_daily_values = True, \
 #    OMI_daily_data = daily_VSJ4, \
-#    save_path = './', name_add = '_numsfcbins6_iceerr_noland105_noback')
+#    save_path = './', name_add = '_numsfcbins6_iceerr_noland105_noback1')
 #    #save_path = './', name_add = '_numsfcbins6_iceerr_noland105_errtest')
 #    #save_path = './', name_add = '_numsfcbins6_iceerr_noland105')
 #    #save_path = './', name_add = '_numsfcbins6_iceerr_final')
@@ -551,7 +551,7 @@ else:
 #    overwrite_old_file = False, \
 #    write_daily_values = True, \
 #    OMI_daily_data = daily_VSJ4, \
-#    save_path = './', name_add = '_numsfcbins6_coderr_noland105_noback')
+#    save_path = './', name_add = '_numsfcbins6_coderr_noland105_noback1')
 #    #save_path = './', name_add = '_numsfcbins6_coderr_noland105_errtest')
 #    #save_path = './', name_add = '_numsfcbins6_coderr_noland105')
 #    #save_path = './', name_add = '_numsfcbins6_coderr_final')
@@ -659,76 +659,76 @@ else:
 
 # REF CLD 2005 RUN
 # ----------------
-#cod_err_mean = None
-#cod_err_std = None
-#ice_err_mean = None
-#ice_err_std = None
-#years = np.arange(2006, 2021)
-#for year in years:
-#    ref_cld = str(year)
-#    all_month_vals_orig_alldaily = \
-#        calculate_type_forcing_v4_alldaily(daily_VSJ4, OMI_daily_VSJ4, \
-#        slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
-#        ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
-#        reference_cld = ref_cld, reference_ice = None, \
-#        filter_bad_vals = False, return_modis_nsidc = False, \
-#        mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
-#        ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
-#        cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
-#        use_intercept = True, debug = False)
-#    
-#    write_daily_month_force_L2L3_error_to_HDF5(\
-#        all_month_vals_orig_alldaily, OMI_daily_VSJ4, \
-#        slope_dict_lin, bin_dict, all_month_vals_orig_alldaily, \
-#        minlat = minlat, maxlat = maxlat, \
-#        maxerr = maxerr, ai_thresh = ai_thresh, \
-#        reference_cld = ref_cld, reference_ice = None, \
-#        L2L3_err_mean = None, L2L3_err_std = None, \
-#        ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
-#        cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
-#        dtype = None, \
-#        overwrite_old_file = False, \
-#        write_daily_values = True, \
-#        OMI_daily_data = daily_VSJ4, \
-#        save_path = './', name_add = '_numsfcbins6_refcld' + ref_cld)
-#sys.exit()
+cod_err_mean = None
+cod_err_std = None
+ice_err_mean = None
+ice_err_std = None
+years = np.arange(2006, 2021, 2)
+for year in years:
+    ref_cld = str(year)
+    all_month_vals_orig_alldaily = \
+        calculate_type_forcing_v4_alldaily(daily_VSJ4, OMI_daily_VSJ4, \
+        slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+        ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+        reference_cld = ref_cld, reference_ice = None, \
+        filter_bad_vals = False, return_modis_nsidc = False, \
+        mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
+        ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
+        cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
+        use_intercept = True, debug = False)
+    
+    write_daily_month_force_L2L3_error_to_HDF5(\
+        all_month_vals_orig_alldaily, OMI_daily_VSJ4, \
+        slope_dict_lin, bin_dict, all_month_vals_orig_alldaily, \
+        minlat = minlat, maxlat = maxlat, \
+        maxerr = maxerr, ai_thresh = ai_thresh, \
+        reference_cld = ref_cld, reference_ice = None, \
+        L2L3_err_mean = None, L2L3_err_std = None, \
+        ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
+        cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
+        dtype = None, \
+        overwrite_old_file = False, \
+        write_daily_values = True, \
+        OMI_daily_data = daily_VSJ4, \
+        save_path = './', name_add = '_numsfcbins6_refcld' + ref_cld + '_' + sim_name)
 
-## REF ICE 2005 RUN
-## ----------------
-#cod_err_mean = None
-#cod_err_std = None
-#ice_err_mean = None
-#ice_err_std = None
+# REF ICE 2005 RUN
+# ----------------
+cod_err_mean = None
+cod_err_std = None
+ice_err_mean = None
+ice_err_std = None
 #years = np.arange(2006, 2021)
-#for year in years:
-#    #ref_ice = '2005'
-#    ref_ice = str(year)
-#    all_month_vals_orig_alldaily = \
-#        calculate_type_forcing_v4_alldaily(daily_VSJ4, OMI_daily_VSJ4, \
-#        slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
-#        ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
-#        reference_cld = None, reference_ice = ref_ice, \
-#        filter_bad_vals = False, return_modis_nsidc = False, \
-#        mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
-#        ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
-#        cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
-#        use_intercept = True, debug = False)
-#    
-#    write_daily_month_force_L2L3_error_to_HDF5(\
-#        all_month_vals_orig_alldaily, OMI_daily_VSJ4, \
-#        slope_dict_lin, bin_dict, all_month_vals_orig_alldaily, \
-#        minlat = minlat, maxlat = maxlat, \
-#        maxerr = maxerr, ai_thresh = ai_thresh, \
-#        reference_cld = None, reference_ice = ref_ice, \
-#        L2L3_err_mean = None, L2L3_err_std = None, \
-#        ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
-#        cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
-#        dtype = None, \
-#        overwrite_old_file = False, \
-#        write_daily_values = True, \
-#        OMI_daily_data = daily_VSJ4, \
-#        save_path = './', name_add = '_numsfcbins6_refice' + ref_ice)
-#sys.exit()
+for year in years:
+    #ref_ice = '2005'
+    ref_ice = str(year)
+    all_month_vals_orig_alldaily = \
+        calculate_type_forcing_v4_alldaily(daily_VSJ4, OMI_daily_VSJ4, \
+        slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
+        ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
+        reference_cld = None, reference_ice = ref_ice, \
+        filter_bad_vals = False, return_modis_nsidc = False, \
+        mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
+        ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
+        cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
+        use_intercept = True, debug = False)
+    
+    write_daily_month_force_L2L3_error_to_HDF5(\
+        all_month_vals_orig_alldaily, OMI_daily_VSJ4, \
+        slope_dict_lin, bin_dict, all_month_vals_orig_alldaily, \
+        minlat = minlat, maxlat = maxlat, \
+        maxerr = maxerr, ai_thresh = ai_thresh, \
+        reference_cld = None, reference_ice = ref_ice, \
+        L2L3_err_mean = None, L2L3_err_std = None, \
+        ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
+        cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
+        dtype = None, \
+        overwrite_old_file = False, \
+        write_daily_values = True, \
+        OMI_daily_data = daily_VSJ4, \
+        #save_path = './', name_add = '_numsfcbins6_refice' + ref_ice)
+        save_path = './', name_add = '_numsfcbins6_refice' + ref_cld + '_' + sim_name)
+sys.exit()
 
 ## REF BOTH RUNS
 #cod_err_mean = None
@@ -763,7 +763,7 @@ else:
 #        overwrite_old_file = False, \
 #        write_daily_values = True, \
 #        OMI_daily_data = daily_VSJ4, \
-#        save_path = './', name_add = '_numsfcbins6_refboth' + ref_both)
+#        save_path = './', name_add = '_numsfcbins6_refboth' + ref_both + '_' + sim_name)
 #sys.exit()
 
 #  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -786,7 +786,7 @@ else:
 num_bins = 100
 plot_error_components_combined(direct_forcings, calc_forcings, sim_name, \
     daily_filename, ice_filename, cod_filename, num_bins, \
-    astrofit = True, log_scale = True, save = False)
+    astrofit = True, log_scale = True, save = True, run_type = run_type)
 sys.exit()
 
 
