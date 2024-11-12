@@ -341,8 +341,8 @@ maxerr = 1.5
 # HERERE:
 #run_type = 'final'
 #run_type = 'newerr'
-run_type = 'noback1'
-#run_type = 'noback2' # noback2: same as noback, but with the sign of the NN - CERES error flipped
+#run_type = 'noback1'
+run_type = 'noback2' # noback2: same as noback, but with the sign of the NN - CERES error flipped
 
 
 # Control daily values
@@ -806,7 +806,8 @@ else:
 
 # Plot the distribution of trend estimates at a lat/lon idx and month
 # -------------------------------------------------------------------
-test_error_dist(daily_dict, forcing_trends, 4, 1, 287, 30, sim_name = sim_name, save = False)
+test_error_dist(daily_dict, forcing_trends, 4, 1, 287, 20, \
+    sim_name = sim_name, run_type = run_type, save = False)
 sys.exit()
 #test_error_dist(daily_dict, OMI_data, forcing_trends, 3, 10, 340, 30)
 OMI_data = calcOMI_MonthAvg_FromDaily(shawn_file, \

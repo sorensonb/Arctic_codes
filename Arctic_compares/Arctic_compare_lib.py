@@ -15693,7 +15693,8 @@ def compare_sza_bin_impact_on_slopes(test_dict, bin_dict, sfc_idx, \
         plt.show()        
 
 def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
-        xmax = None, ax = None, astrofit = False, save = False):
+        xmax = None, ax = None, astrofit = False, \
+        use_correct_NN_error_calc = False, save = False):
 
     # Read in the desired files
     # -------------------------
@@ -15775,7 +15776,12 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
     
         data.close()
 
-    errors = combined_data['calc_swf'] - combined_data['ceres_swf']
+    if(use_correct_NN_error_calc):
+        print("Calculating NN errors using CERES - NN")
+        errors = combined_data['ceres_swf'] - combined_data['calc_swf']
+    else:
+        print("Calculating NN errors using NN - CERES")
+        errors = combined_data['calc_swf'] - combined_data['ceres_swf']
     mean_err = np.mean(errors)
     std_err  = np.std(errors)
     median_err = np.median(errors)
@@ -15831,7 +15837,10 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
 
     ax.axvline(0, linestyle = '--', color = 'k', alpha = 0.5)
 
-    ax.set_xlabel('TOA SWF Error (NN - CERES) [Wm$^{-2}$]')
+    if(use_correct_NN_error_calc):
+        ax.set_xlabel('TOA SWF Error (CERES - NN) [Wm$^{-2}$]')
+    else:
+        ax.set_xlabel('TOA SWF Error (NN - CERES) [Wm$^{-2}$]')
     #ax.set_xlabel('Forcing Error (NN - CERES) [Wm$^{-2}$]')
     ax.set_ylabel('Counts')
     ax.set_title('Errors between L2 CERES & NN output\n' + \
@@ -15840,7 +15849,12 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
     if(not in_ax):
         fig.tight_layout()
         if(save):
-            outname = 'errors_aerfree_dist_' + sim_name + '.png'
+            if(use_correct_NN_error_calc):
+                err_calc_add = '_correct'
+            else:
+                err_calc_add = ''
+            outname = 'errors_aerfree_dist_' + sim_name + err_calc_add + \
+                '.png'
             fig.savefig(outname, dpi = 200)
             print("Saved image", outname)
         else:
@@ -17101,6 +17115,7 @@ def plot_cod_error_histogram(daily_filename, cod_filename, num_bins = 50, \
 
 def plot_error_components_combined(direct_forcings, calc_forcings, sim_name, \
         daily_filename, ice_filename, cod_filename, num_bins, \
+        use_correct_NN_error_calc = False, \
         astrofit = False, log_scale = False, xmin = -100, xmax = 100, \
         run_type = None, save = False):
 
@@ -17111,7 +17126,9 @@ def plot_error_components_combined(direct_forcings, calc_forcings, sim_name, \
     ax3 = fig.add_subplot(2,2,3)
     ax4 = fig.add_subplot(2,2,4)
     plot_NN_error_dist_bulk(sim_name, ax = ax1, num_bins = num_bins * 4, astrofit = True, \
-        xmin = xmin, xmax = xmax, save = True)
+        xmin = xmin, xmax = xmax, \
+        use_correct_NN_error_calc = use_correct_NN_error_calc, \
+        save = False)
     plot_hist_L2_L3_errors(direct_forcings, calc_forcings, sim_name, \
         ax = ax2, num_bins = num_bins * 4, astrofit = True, xmin = xmin, xmax = xmax, save = False)
     plot_ice_error_histogram(daily_filename, ice_filename, ax = ax3, \
@@ -17137,7 +17154,11 @@ def plot_error_components_combined(direct_forcings, calc_forcings, sim_name, \
             run_type = '_' + run_type
         else:
             run_type = ''
-        outname = 'errors_L3_combined_' + sim_name + log_adder + run_type + '.png'
+        if(use_correct_NN_error_calc):
+            err_calc_add = '_correctNNerr'
+        else:
+            err_calc_add = ''
+        outname = 'errors_L3_combined_' + sim_name + log_adder + run_type + err_calc_add + '.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
@@ -18165,6 +18186,7 @@ def plot_reficecld_comps(daily_dict, refcld_dict, refice_dict, reg_idx, \
     plt.show() 
 
 def plot_reficecld_comps_many_allregions(daily_filename, comp_type, \
+        file_start = 'arctic_daily_est_forcing_numsfcbins6', \
         trend_type = 'linregress', minlat = 65.5, maxlat = 90.5, \
         return_trends = False, save = False):
 
@@ -18172,7 +18194,7 @@ def plot_reficecld_comps_many_allregions(daily_filename, comp_type, \
 
     # Find all the ref*** simulation files
     # ------------------------------------
-    ref_files = glob('arctic_daily_est_forcing_numsfcbins6_ref' + comp_type + '*.hdf5')
+    ref_files = glob(file_start + '_ref' + comp_type + '*.hdf5')
    
     num_ref_sims = len(ref_files)
     

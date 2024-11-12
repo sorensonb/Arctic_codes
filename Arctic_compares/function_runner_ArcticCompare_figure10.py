@@ -236,20 +236,21 @@ slope_dict_lin = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #run_type = 'final'
 #run_type = 'newerr'
-run_type = 'noback1'
+#run_type = 'noback1'
+run_type = 'noback2'
 
 
-#if(sim_name == 'noland105'):
-#    infile = 'validate_values_' + sim_name + '_useintcptTrue.hdf5' # 
-#elif(sim_name == 'noland74'):
-#    if(run_type == 'final'):
-#        infile = 'validate_values_' + sim_name + '_useintcptTrue_final.hdf5' # recalculation of noland74 one last time
-#    else:
-#        infile = 'validate_values_' + sim_name + '_useintcptTrue.hdf5'
-#in_data = h5py.File(infile)
-#direct_forcings = in_data['direct_forcings'][:]
-#calc_forcings   = in_data['calc_forcings'][:]
-#in_data.close()
+if(sim_name == 'noland105'):
+    infile = 'validate_values_' + sim_name + '_useintcptTrue.hdf5' # 
+elif(sim_name == 'noland74'):
+    if(run_type == 'final'):
+        infile = 'validate_values_' + sim_name + '_useintcptTrue_final.hdf5' # recalculation of noland74 one last time
+    else:
+        infile = 'validate_values_' + sim_name + '_useintcptTrue.hdf5'
+in_data = h5py.File(infile)
+direct_forcings = in_data['direct_forcings'][:]
+calc_forcings   = in_data['calc_forcings'][:]
+in_data.close()
 
 #direct_forcings, calc_forcings = \
 #    plot_L2_validate_regress_all(sim_name, slope_dict_lin, bin_dict, \
@@ -397,7 +398,7 @@ elif(sim_name == 'noland103'):
     cod_filename = 'arctic_daily_est_forcing_numsfcbins6_coderr_v3.hdf5' # std = 5, noland103
 
 elif(sim_name == 'noland105'):
-    if(run_type == 'noback1'):
+    if( (run_type == 'noback1') | (run_type == 'noback2') ):
         # noland105 but with daily forcing calculated if the daily UVAI is above
         # the threshold. The OMI background monthly means are not considered
         daily_filename = 'arctic_daily_est_forcing_numsfcbins6_noland105_noback1.hdf5' # noland105 with daily forcing
@@ -663,7 +664,9 @@ cod_err_mean = None
 cod_err_std = None
 ice_err_mean = None
 ice_err_std = None
-years = np.arange(2006, 2021, 2)
+calc_from_bckgd = False # This is for noback runs.
+years = np.arange(2008, 2021, 3)
+#years = np.arange(2005, 2021, 3)
 for year in years:
     ref_cld = str(year)
     all_month_vals_orig_alldaily = \
@@ -672,6 +675,7 @@ for year in years:
         ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
         reference_cld = ref_cld, reference_ice = None, \
         filter_bad_vals = False, return_modis_nsidc = False, \
+        calc_from_bckgd = calc_from_bckgd, \
         mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
         ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
         cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
@@ -686,11 +690,13 @@ for year in years:
         L2L3_err_mean = None, L2L3_err_std = None, \
         ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
         cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
+        calc_from_bckgd = calc_from_bckgd, \
         dtype = None, \
         overwrite_old_file = False, \
         write_daily_values = True, \
         OMI_daily_data = daily_VSJ4, \
-        save_path = './', name_add = '_numsfcbins6_refcld' + ref_cld + '_' + sim_name)
+        save_path = './', name_add = '_numsfcbins6_' + sim_name + '_' + run_type + '_refcld' + ref_cld)
+        #save_path = './', name_add = '_numsfcbins6_refcld' + ref_cld + '_' + sim_name +'_' + run_type)
 
 # REF ICE 2005 RUN
 # ----------------
@@ -698,7 +704,8 @@ cod_err_mean = None
 cod_err_std = None
 ice_err_mean = None
 ice_err_std = None
-#years = np.arange(2006, 2021)
+calc_from_bckgd = False # This is for noback runs.
+years = np.arange(2005, 2021, 3)
 for year in years:
     #ref_ice = '2005'
     ref_ice = str(year)
@@ -707,6 +714,7 @@ for year in years:
         slope_dict_lin, bin_dict, 'all', minlat = minlat, maxlat = maxlat, \
         ai_thresh = ai_thresh, maxerr = maxerr, mod_slopes = None, \
         reference_cld = None, reference_ice = ref_ice, \
+        calc_from_bckgd = calc_from_bckgd, \
         filter_bad_vals = False, return_modis_nsidc = False, \
         mod_L2_L3_error = None, L2L3_err_mean = None, L2L3_err_std = None, \
         ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
@@ -719,6 +727,7 @@ for year in years:
         minlat = minlat, maxlat = maxlat, \
         maxerr = maxerr, ai_thresh = ai_thresh, \
         reference_cld = None, reference_ice = ref_ice, \
+        calc_from_bckgd = calc_from_bckgd, \
         L2L3_err_mean = None, L2L3_err_std = None, \
         ice_err_mean = ice_err_mean, ice_err_std = ice_err_std, \
         cod_err_mean = cod_err_mean, cod_err_std = cod_err_std, \
@@ -727,7 +736,7 @@ for year in years:
         write_daily_values = True, \
         OMI_daily_data = daily_VSJ4, \
         #save_path = './', name_add = '_numsfcbins6_refice' + ref_ice)
-        save_path = './', name_add = '_numsfcbins6_refice' + ref_cld + '_' + sim_name)
+        save_path = './', name_add = '_numsfcbins6_' + sim_name + '_' + run_type + '_refice' + ref_ice)
 sys.exit()
 
 ## REF BOTH RUNS
@@ -786,6 +795,7 @@ sys.exit()
 num_bins = 100
 plot_error_components_combined(direct_forcings, calc_forcings, sim_name, \
     daily_filename, ice_filename, cod_filename, num_bins, \
+    use_correct_NN_error_calc = True, \
     astrofit = True, log_scale = True, save = True, run_type = run_type)
 sys.exit()
 

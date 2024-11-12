@@ -336,8 +336,8 @@ maxerr = 1.5
 # set to 'noland74' and run_type set to 'newerr'
 #run_type = 'final'
 #run_type = 'newerr'
-run_type = 'noback1'
-#run_type = 'noback2' # noback2: same as noback, but with the sign of the NN - CERES error flipped
+#run_type = 'noback1'
+run_type = 'noback2' # noback2: same as noback, but with the sign of the NN - CERES error flipped
 
 
 # Control daily values

@@ -15,7 +15,7 @@ dest_dir = home_dir + "/Arctic_codes/"
 
 copy_raindrop = False
 copy_calipso  = False
-copy_talon    = True
+copy_talon    = False
 
 ## Add new stuff
 #os.chdir(dest_dir)
