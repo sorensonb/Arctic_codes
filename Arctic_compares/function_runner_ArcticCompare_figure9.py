@@ -293,6 +293,6 @@ plot_NN_forcing_daily(date_str, daily_VSJ4, OMI_daily_VSJ4, \
     slope_dict_lin, bin_dict, minlat = 65., maxlat = 87., \
     ai_thresh = 0.7, maxerr = maxerr, filter_bad_vals = False, \
     calc_from_bckgd = False, \
-    save = True, use_intercept = True, sim_name = sim_name)
+    save = False, use_intercept = True, sim_name = sim_name)
 sys.exit()
 

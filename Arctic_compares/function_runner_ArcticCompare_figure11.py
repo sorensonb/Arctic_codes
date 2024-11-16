@@ -584,14 +584,15 @@ daily_dict = read_daily_month_force_L2L3_error_from_HDF5(daily_filename)
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-read_force_sim_vals = False
+read_force_sim_vals = True
 save_force_vals = False
-read_trend_sim_vals = True
+read_trend_sim_vals = False
 save_trend_vals = False
 
 calc_region_avg_force_vals = False
 calc_force_trends_from_file = False
 
+sys.exit()
 if(read_trend_sim_vals):
    
     # NOTE: Only using 2 files here. Can change ":2" to allow it to read more files 
@@ -802,7 +803,6 @@ else:
         
         #del(sim_values)
         #del(forcing_trends) 
-
 
 # Plot the distribution of trend estimates at a lat/lon idx and month
 # -------------------------------------------------------------------

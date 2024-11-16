@@ -113,6 +113,7 @@ else:
 
 
 
+daily_dict = read_daily_month_force_L2L3_error_from_HDF5(daily_filename)
 
 ##!## Control daily values
 ##!## --------------------
@@ -132,10 +133,11 @@ else:
 ##!## -------------------------
 ##!#refice_filename = 'arctic_daily_est_forcing_numsfcbins6_refice2005.hdf5' # noland74 , new error (doesn't matter)
 
+# NOTE: Set read_force_sim_vals to True to get the table3 values
 
-read_force_sim_vals = True
+read_force_sim_vals = False
 save_force_vals = False    
-read_trend_sim_vals = False
+read_trend_sim_vals = True
 save_trend_vals = False    
 
 calc_region_avg_force_vals = True
@@ -173,6 +175,7 @@ if(read_trend_sim_vals):
     # ----------------------------------------------------
     total_sims = 0
     for ffile in force_files:
+        print(ffile)
         local_numsim = ffile.strip().split('/')[-1].split('_')[4].split('_')[0].split('.')[0][5:]   
         total_sims += int(local_numsim)
 
@@ -344,11 +347,51 @@ else:
         #del(sim_values)
         #del(forcing_trends) 
 
-# Plot time series of the many region-averaged monthly forcing values
-# for a given region index (0 = entire Arctic, 1 = low Arctic, 
-# 2 = high Arctic
-# -------------------------------------------------------------------
-trends, pvals = calc_arctic_avg_region_trends(sim_values)
-plot_arctic_avg_region_trends(sim_values, 1)
-sys.exit()    
+if(read_force_sim_vals):
+    # Plot time series of the many region-averaged monthly forcing values
+    # for a given region index (0 = entire Arctic, 1 = low Arctic, 
+    # 2 = high Arctic
+    # -------------------------------------------------------------------
+    trends, pvals = calc_arctic_avg_region_trends(sim_values)
+    plot_arctic_avg_region_trends(sim_values, 1)
+
+elif(read_trend_sim_vals):
+
+    # Calculate the percent error between the 300 run and 600 run simulations
+    # -----------------------------------------------------------------------
+    total_means = np.nanmean(forcing_trends, axis = (0))
+    first300_means = np.nanmean(forcing_trends[:300,:,:,:], axis = (0))
+    last300_means  = np.nanmean(forcing_trends[300:,:,:,:], axis = (0))
+   
+
+    # Calculate the mean percent error between the 300 and 600 run simulations
+    # for 600-run simulations with means greater than these values
+    cvals = np.arange(0.001, 4, 0.001) 
+
+    first300_cvalerrs = np.array([np.nanmean(np.abs(\
+        (first300_means[np.where(np.abs(total_means) >= cval)] - \
+        total_means[np.where(np.abs(total_means) >= cval)]) / \
+        total_means[np.where(np.abs(total_means) >= cval)]) * 100.) \
+        for cval in cvals])
+
+    last300_cvalerrs = np.array([np.nanmean(np.abs(\
+        (last300_means[np.where(np.abs(total_means) >= cval)] - \
+        total_means[np.where(np.abs(total_means) >= cval)]) / \
+        total_means[np.where(np.abs(total_means) >= cval)]) * 100.) \
+        for cval in cvals])
+
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.plot(cvals, first300_cvalerrs)
+    ax.plot(cvals, last300_cvalerrs)
+    ax.set_xlabel('Min 600-run trend mean for comparison')
+    ax.set_ylabel('Mean pecent error between\n300-run and 600-run mean trends')
+    ax.grid()
+    fig.tight_layout()
+    outname = 'pcnt_err_as_func_of_mintrendval_' + sim_name + '_' + run_type + '.png'
+    fig.savefig(outname, dpi = 200)
+    print("Saved image", outname)
+    plt.show()
+
+
 

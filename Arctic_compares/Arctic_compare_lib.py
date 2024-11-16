@@ -16,8 +16,8 @@ import python_lib
 import importlib
 from matplotlib.cm import turbo
 import matplotlib.colors as mcolors
-from scipy.stats import sem
-from scipy.stats import norm as statnorm
+#from scipy.stats import sem
+from scipy.stats import sem, norm as statnorm
 from astropy.modeling import models,fitting
 from sklearn.metrics import r2_score, mean_squared_error
 from python_lib import circle, plot_trend_line, nearest_gridpoint, \
@@ -11215,14 +11215,20 @@ def plot_NN_bin_slopes_6types(slope_dict, bin_dict, pvar, min_ob = 50, \
         type_text = 'Linear'
     
     if(pvar == 'slopes'):
-        plt.suptitle('Slopes of AI vs. Forcing Regression (' + type_text + \
-            ')\nGrids with counts >= ' + str(int(min_ob)))
+        plt.suptitle('Slopes of UVAI vs. ADRF ' + type_text + ' Regression Equations\n' + \
+            'Plotted for Grids with Counts $\geq$ ' + str(int(min_ob)))
     elif(pvar == 'counts'): 
         plt.suptitle('Counts in each bin\nGrids with counts >= ' + str(int(min_ob)))
     elif(pvar == 'errors'): 
         plt.suptitle('Slope Errors of AI vs. Forcing Regression (' + type_text + \
             ')\nGrids with counts >= ' + str(int(min_ob)))
 
+    plot_subplot_label(ax1, 'a)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax2, 'b)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax3, 'c)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax4, 'd)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax5, 'e)', fontsize = 11, backgroundcolor = None)
+    plot_subplot_label(ax6, 'f)', fontsize = 11, backgroundcolor = None)
 
  
     #fig.tight_layout()
@@ -12164,11 +12170,19 @@ def plot_scatter_L2_L3_errors(direct_forcings, calc_forcings, sim_name, \
 
 def plot_hist_L2_L3_errors(direct_forcings, calc_forcings, sim_name, \
         xmin = None, xmax = None, ax = None, num_bins = 75, \
+        use_correct_error_calc = False, \
         astrofit = False, save = False):
 
     # direct = L2
     # calc   = L3
-    errors = direct_forcings - calc_forcings
+    if(use_correct_error_calc):
+        print("Calculating L2/L3 errors using: calc (L3) - direct (L2)")
+        xlabel_text = 'Forcing error (L3 - L2) [Wm$^{-2}$]'
+        errors = calc_forcings - direct_forcings
+    else:
+        print("Calculating L2/L3 errors using: direct (L2) - calc (L3)")
+        xlabel_text = 'Forcing error (L2 - L3) [Wm$^{-2}$]'
+        errors = direct_forcings - calc_forcings
 
     mean_error = np.mean(errors)
     stdev_error  = np.std(errors)
@@ -12190,7 +12204,7 @@ def plot_hist_L2_L3_errors(direct_forcings, calc_forcings, sim_name, \
         ax.set_xlim(-150, 150)
     else:
         ax.set_xlim(xmin, xmax)
-    ax.set_xlabel('Forcing error (L2 - L3) [Wm$^{-2}$]')
+    ax.set_xlabel(xlabel_text)
     ax.set_ylabel('Counts')
     ax.set_title('Errors between L2 forcing (NN-based) and\n' + \
         'L3-style forcing (AI & LUT) applied to L2 data')
@@ -12220,7 +12234,11 @@ def plot_hist_L2_L3_errors(direct_forcings, calc_forcings, sim_name, \
     if(not in_ax):
         if(save):
             fig.tight_layout()
-            outname = 'force_L2L3_error_hist_' + sim_name + '.png'
+            if(use_correct_error_calc):
+                err_calc_add = '_correct'
+            else:
+                err_calc_add = ''
+            outname = 'force_L2L3_error_hist_' + sim_name + err_calc_add + '.png'
             fig.savefig(outname, dpi = 200)
             print("Saved image", outname)
         else:
@@ -13028,7 +13046,9 @@ def plot_compare_NN_output_double(infile1, infile2, auto_zoom = False, \
     xy = np.vstack([both_orig, both_calc])
     print("HERE:", both_orig.shape[0])
     if(len(both_orig) > 1):
-        r2 = r2_score(both_orig, both_calc)
+        #r2 = r2_score(both_orig, both_calc)
+        pearsonr, pearson_pval = stats.pearsonr(both_orig, both_calc)
+        print("pearsonr, pval = ", pearsonr, pearson_pval)
         z = stats.gaussian_kde(xy)(xy)       
         ax9.scatter(both_orig, both_calc, c = z, s = 1)
         lims = [\
@@ -13043,7 +13063,8 @@ def plot_compare_NN_output_double(infile1, infile2, auto_zoom = False, \
         ax9.set_ylabel('NN SWF [Wm$^{-2}$]')
         #ax9.set_xticklabels([])
         ax9.set_title(dt_date_str1.strftime('%Y-%m-%d %H:%M UTC\nAerosol-free Swath'))
-        ptext = 'r$^{2}$ = ' + str(np.round(r2, 3))
+        #ptext = 'r$^{2}$ = ' + str(np.round(r2, 3))
+        ptext = 'r = ' + str(np.round(pearsonr, 3))
         plot_figure_text(ax9, ptext, xval = 450, yval = 100, \
             fontsize = 10, color = 'black', weight = None, backgroundcolor = 'white')
 
@@ -13141,7 +13162,9 @@ def plot_compare_NN_output_double(infile1, infile2, auto_zoom = False, \
     xy = np.vstack([both_orig, both_calc])
     print("HERE:", both_orig.shape[0])
     if(len(both_orig) > 1):
-        r2 = r2_score(both_orig, both_calc)
+        #r2 = r2_score(both_orig, both_calc)
+        pearsonr, pearson_pval = stats.pearsonr(both_orig, both_calc)
+        print("pearsonr, pval = ", pearsonr, pearson_pval)
         z = stats.gaussian_kde(xy)(xy)       
         ax10.scatter(both_orig, both_calc, c = z, s = 1)
         lims = [\
@@ -13155,8 +13178,9 @@ def plot_compare_NN_output_double(infile1, infile2, auto_zoom = False, \
         ax10.set_xlabel('CERES SWF [Wm$^{-2}$]')
         #ax10.set_ylabel('NN SWF')
         ax10.set_yticklabels([])
-        ax10.set_title(dt_date_str2.strftime('%Y-%m-%d %H:%M UTC\nAerosol Swath (Plotted for AI < 1)'))
-        ptext = 'r$^{2}$ = ' + str(np.round(r2, 3))
+        ax10.set_title(dt_date_str2.strftime('%Y-%m-%d %H:%M UTC\nAerosol Swath (Plotted for UVAI < 1)'))
+        #ptext = 'r$^{2}$ = ' + str(np.round(r2, 3))
+        ptext = 'r = ' + str(np.round(pearsonr, 3))
         plot_figure_text(ax10, ptext, xval = 450, yval = 100, \
             fontsize = 10, color = 'black', weight = None, backgroundcolor = 'white')
 
@@ -15694,7 +15718,7 @@ def compare_sza_bin_impact_on_slopes(test_dict, bin_dict, sfc_idx, \
 
 def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
         xmax = None, ax = None, astrofit = False, \
-        use_correct_NN_error_calc = False, save = False):
+        use_correct_error_calc = False, save = False):
 
     # Read in the desired files
     # -------------------------
@@ -15776,12 +15800,13 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
     
         data.close()
 
-    if(use_correct_NN_error_calc):
-        print("Calculating NN errors using CERES - NN")
-        errors = combined_data['ceres_swf'] - combined_data['calc_swf']
-    else:
+    if(use_correct_error_calc):
         print("Calculating NN errors using NN - CERES")
         errors = combined_data['calc_swf'] - combined_data['ceres_swf']
+    else:
+        print("Calculating NN errors using CERES - NN")
+        errors = combined_data['ceres_swf'] - combined_data['calc_swf']
+
     mean_err = np.mean(errors)
     std_err  = np.std(errors)
     median_err = np.median(errors)
@@ -15837,10 +15862,10 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
 
     ax.axvline(0, linestyle = '--', color = 'k', alpha = 0.5)
 
-    if(use_correct_NN_error_calc):
-        ax.set_xlabel('TOA SWF Error (CERES - NN) [Wm$^{-2}$]')
-    else:
+    if(use_correct_error_calc):
         ax.set_xlabel('TOA SWF Error (NN - CERES) [Wm$^{-2}$]')
+    else:
+        ax.set_xlabel('TOA SWF Error (CERES - NN) [Wm$^{-2}$]')
     #ax.set_xlabel('Forcing Error (NN - CERES) [Wm$^{-2}$]')
     ax.set_ylabel('Counts')
     ax.set_title('Errors between L2 CERES & NN output\n' + \
@@ -15849,7 +15874,7 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
     if(not in_ax):
         fig.tight_layout()
         if(save):
-            if(use_correct_NN_error_calc):
+            if(use_correct_error_calc):
                 err_calc_add = '_correct'
             else:
                 err_calc_add = ''
@@ -16852,6 +16877,7 @@ def test_plot_L2L3_err_sims(current_files, minlat = None, maxlat = None, save = 
 
 def plot_ice_error_histogram(daily_filename, ice_filename, \
         log_scale = False, num_bins = 50, xmin = None, xmax = None, \
+        use_correct_error_calc = False, \
         astrofit = False, ax = None, save = False):
     
     # Read the original daily values
@@ -16888,7 +16914,15 @@ def plot_ice_error_histogram(daily_filename, ice_filename, \
 
     # Calculate the differences between the original and modified L3 daily values
     # ---------------------------------------------------------------------------
-    diffs = flat_orig[good_idxs] - flat_ice[good_idxs]
+    if(use_correct_error_calc):
+        print("Calculating ice errors using: ice_err - original")
+        xlabel_text = 'Forcing error (ADRF$_{ice    error}$ - ADRF$_{orig}$) [Wm$^{-2}$]'
+        diffs = flat_ice[good_idxs] - flat_orig[good_idxs]
+    else:
+        print("Calculating ice errors using: original - ice_err")
+        #xlabel_text = 'Forcing error (L2 - L3) [Wm$^{-2}$]'
+        xlabel_text = 'Forcing error (ADRF$_{orig}$ - ADRF$_{ice    error}$) [Wm$^{-2}$]'
+        diffs = flat_orig[good_idxs] - flat_ice[good_idxs]
 
     # Calculate statistics
     # --------------------
@@ -16907,7 +16941,7 @@ def plot_ice_error_histogram(daily_filename, ice_filename, \
     hist = ax.hist(diffs, bins = num_bins)
     if(log_scale):
         ax.set_yscale('log')
-    ax.set_xlabel('Forcing error [Wm$^{-2}$]')
+    ax.set_xlabel(xlabel_text)
     ax.set_ylabel('Counts')
     ax.set_title('L3 Daily Forcing Errors Due to Ice Errors' + \
         '\nIce errors: Mean = ' + str(ice_dict['attributes']['ice_err_mean']) + \
@@ -16937,6 +16971,7 @@ def plot_ice_error_histogram(daily_filename, ice_filename, \
         #    fontsize = 10, color = 'black', weight = None, backgroundcolor = 'white')
 
 
+        ax.set_xlim(xmin, xmax)
 
         xdiff = ax.get_xlim()[1] - ax.get_xlim()[0]
         plot_xval = ax.get_xlim()[0]  + xdiff * 0.65
@@ -16947,6 +16982,7 @@ def plot_ice_error_histogram(daily_filename, ice_filename, \
 
     else:
 
+        ax.set_xlim(xmin, xmax)
         # Add statistics to plot
         # ----------------------
         ptext = 'μ = ' + str(np.round(mean_err, 1)) + ' Wm$^{-2}$' + \
@@ -16963,7 +16999,6 @@ def plot_ice_error_histogram(daily_filename, ice_filename, \
         plot_figure_text(ax, ptext, xval = plot_xval, yval = plot_yval, \
             fontsize = 10, color = 'black', weight = None, backgroundcolor = 'white')
    
-        ax.set_xlim(xmin, xmax)
         ax.axvline(0, linestyle = '--', color = 'k', alpha = 0.5)
  
 
@@ -16975,8 +17010,13 @@ def plot_ice_error_histogram(daily_filename, ice_filename, \
                 log_adder = '_logscale'
             else:
                 log_adder = ''
+            if(use_correct_NN_error_calc):
+                err_calc_add = '_correctNNerr'
+            else:
+                err_calc_add = ''
             outname = 'ice_error_daily_forcing_impacts_numsfcbins' + \
-                str(num_ice_bins) + '_' + daily_dict['slope_dict']['sim_name'] + log_adder + '.png'
+                str(num_ice_bins) + '_' + daily_dict['slope_dict']['sim_name'] + \
+                log_adder + err_calc_add + '.png'
             fig.savefig(outname, dpi = 200)
             print("Saved image", outname)
         else:
@@ -16984,6 +17024,7 @@ def plot_ice_error_histogram(daily_filename, ice_filename, \
 
 def plot_cod_error_histogram(daily_filename, cod_filename, num_bins = 50, \
         log_scale = False, xmin = None, xmax = None, ax = None, \
+        use_correct_error_calc = False, \
         astrofit = False, save = False):
     
     # Read the original daily values
@@ -17019,7 +17060,15 @@ def plot_cod_error_histogram(daily_filename, cod_filename, num_bins = 50, \
 
     # Calculate the differences between the original and modified L3 daily values
     # ---------------------------------------------------------------------------
-    diffs = flat_orig[good_idxs] - flat_cod[good_idxs]
+    if(use_correct_error_calc):
+        print("Calculating cod errors using: cod_err - original")
+        xlabel_text = 'Forcing error (ADRF$_{cod error}$ - ADRF$_{orig}$) [Wm$^{-2}$]'
+        diffs = flat_cod[good_idxs] - flat_orig[good_idxs]
+    else:
+        print("Calculating cod errors using: original - ice_err")
+        #xlabel_text = 'Forcing error (L2 - L3) [Wm$^{-2}$]'
+        xlabel_text = 'Forcing error (ADRF$_{orig}$ - ADRF$_{cod error}$) [Wm$^{-2}$]'
+        diffs = flat_orig[good_idxs] - flat_cod[good_idxs]
 
     print("Num values = ", diffs.shape[0])
 
@@ -17040,7 +17089,7 @@ def plot_cod_error_histogram(daily_filename, cod_filename, num_bins = 50, \
     hist = ax.hist(diffs, bins = num_bins)
     if(log_scale):
         ax.set_yscale('log')
-    ax.set_xlabel('Forcing error [Wm$^{-2}$]')
+    ax.set_xlabel(xlabel_text)
     ax.set_ylabel('Counts')
     ax.set_title('L3 Daily Forcing Errors Due to COD Errors' + \
         '\nCOD errors: Mean = ' + str(cod_dict['attributes']['cod_err_mean']) + \
@@ -17106,8 +17155,13 @@ def plot_cod_error_histogram(daily_filename, cod_filename, num_bins = 50, \
                 log_adder = '_logscale'
             else:
                 log_adder = ''
+            if(use_correct_NN_error_calc):
+                err_calc_add = '_correctNNerr'
+            else:
+                err_calc_add = ''
             outname = 'cod_error_daily_forcing_impacts_numsfcbins' + \
-                str(num_ice_bins) + '_' + daily_dict['slope_dict']['sim_name']+ log_adder + '.png'
+                str(num_ice_bins) + '_' + daily_dict['slope_dict']['sim_name']+ \
+                log_adder + err_calc_add + '.png'
             fig.savefig(outname, dpi = 200)
             print("Saved image", outname)
         else:
@@ -17115,7 +17169,7 @@ def plot_cod_error_histogram(daily_filename, cod_filename, num_bins = 50, \
 
 def plot_error_components_combined(direct_forcings, calc_forcings, sim_name, \
         daily_filename, ice_filename, cod_filename, num_bins, \
-        use_correct_NN_error_calc = False, \
+        use_correct_error_calc = False, \
         astrofit = False, log_scale = False, xmin = -100, xmax = 100, \
         run_type = None, save = False):
 
@@ -17125,17 +17179,22 @@ def plot_error_components_combined(direct_forcings, calc_forcings, sim_name, \
     ax2 = fig.add_subplot(2,2,2)
     ax3 = fig.add_subplot(2,2,3)
     ax4 = fig.add_subplot(2,2,4)
-    plot_NN_error_dist_bulk(sim_name, ax = ax1, num_bins = num_bins * 4, astrofit = True, \
+    plot_NN_error_dist_bulk(sim_name, ax = ax1, num_bins = num_bins * 4, \
+        astrofit = astrofit, \
         xmin = xmin, xmax = xmax, \
-        use_correct_NN_error_calc = use_correct_NN_error_calc, \
+        use_correct_error_calc = use_correct_error_calc, \
         save = False)
     plot_hist_L2_L3_errors(direct_forcings, calc_forcings, sim_name, \
-        ax = ax2, num_bins = num_bins * 4, astrofit = True, xmin = xmin, xmax = xmax, save = False)
+        ax = ax2, num_bins = num_bins * 4, astrofit = astrofit, \
+        use_correct_error_calc = use_correct_error_calc, \
+        xmin = xmin, xmax = xmax, save = False)
     plot_ice_error_histogram(daily_filename, ice_filename, ax = ax3, \
         xmin = -100, xmax = 100, save = False, log_scale = log_scale, \
+        use_correct_error_calc = use_correct_error_calc, \
         num_bins = num_bins, astrofit = False)
     plot_cod_error_histogram(daily_filename, cod_filename, ax = ax4, \
         xmin = None, xmax = None, save = False, log_scale = log_scale, \
+        use_correct_error_calc = use_correct_error_calc, \
         num_bins = num_bins * 1, astrofit = False)
 
     plot_subplot_label(ax1, 'a)', fontsize = 11, backgroundcolor = 'white')
@@ -17154,8 +17213,9 @@ def plot_error_components_combined(direct_forcings, calc_forcings, sim_name, \
             run_type = '_' + run_type
         else:
             run_type = ''
-        if(use_correct_NN_error_calc):
-            err_calc_add = '_correctNNerr'
+        if(use_correct_error_calc):
+            err_calc_add = '_correcterr'
+            #err_calc_add = '_correctNNerr'
         else:
             err_calc_add = ''
         outname = 'errors_L3_combined_' + sim_name + log_adder + run_type + err_calc_add + '.png'

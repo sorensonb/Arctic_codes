@@ -93,16 +93,22 @@ raw_ice_errors = np.full( cld_trends.shape, np.nan)
 pcnt_cld_errors = np.full( cld_trends.shape, np.nan)
 pcnt_ice_errors = np.full( cld_trends.shape, np.nan)
 
+# Dimensions: 6, 3, 16
+# 6:  month idx
+# 3:  region idx
+# 16: refice/cld idx
+
 # Month loop
 for ii in range(daily_trends.shape[0]):
+    # Region loop
     for jj in range(daily_trends.shape[1]):
         # Calculate the error statistics between the original value and ref val
         # ---------------------------------------------------------------------
         raw_cld_errors[ii,jj]  = cld_trends[ii,jj,:]  - daily_trends[ii,jj]
-        pcnt_cld_errors[ii,jj] = (raw_cld_errors[ii,jj] / daily_trends[ii,jj]) * 100.
+        pcnt_cld_errors[ii,jj] = abs(raw_cld_errors[ii,jj] / daily_trends[ii,jj]) * 100.
 
         raw_ice_errors[ii,jj]  = ice_trends[ii,jj,:]  - daily_trends[ii,jj]
-        pcnt_ice_errors[ii,jj] = (raw_ice_errors[ii,jj] / daily_trends[ii,jj]) * 100.
+        pcnt_ice_errors[ii,jj] = abs(raw_ice_errors[ii,jj] / daily_trends[ii,jj]) * 100.
 
         print(ii, jj, np.round(daily_trends[ii,jj], 4), \
             np.round(np.mean(raw_ice_errors[ii,jj]), 4), \
