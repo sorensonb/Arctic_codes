@@ -17,19 +17,6 @@ copy_raindrop = False
 copy_calipso  = False
 copy_talon    = False
 
-## Add new stuff
-#os.chdir(dest_dir)
-#os.system('git add .')
-#
-## Determine today's date for the command
-#today_str = datetime.today().strftime('%Y/%m/%d')
-#cmnd = 'git commit -m \"Backup '+today_str + '\"'
-#os.system(cmnd)
-#
-## Push
-#os.system('git push origin master')
-#sys.exit()
-
 # ---------------------------------------------------------------------------- 
 # Backup the backup script
 # ---------------------------------------------------------------------------- 
@@ -649,3 +636,16 @@ os.system(cmnd)
 #
 ## Push
 #os.system('git push origin master')
+# Add new stuff
+os.chdir(dest_dir)
+os.system('git add .')
+
+# Determine today's date for the command
+today_str = datetime.today().strftime('%Y/%m/%d')
+cmnd = 'git commit -m \"Backup '+today_str + '\"'
+os.system(cmnd)
+
+# Push
+os.system('git push origin master')
+sys.exit()
+
