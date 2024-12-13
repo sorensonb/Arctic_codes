@@ -944,7 +944,7 @@ def plot_tempdiffs(thermo_scn2, ax = None, save = False):
     ax.set_title('Thermosonde Temperature Differences', fontsize = 8)
     ax.set_xlabel('$\Delta$T [K]', fontsize = 9)
     ax.set_ylabel('Altitude [km]', fontsize = 9)
-    ax.tick_params(axis = 'both', labelsize=8)
+    ax.tick_params(axis = 'both', labelsize=9)
     ylims = ax.get_ylim()
     ax.set_ylim(0,ylims[1])
     ##!#if(pre2019 == True):
@@ -1024,10 +1024,10 @@ def plot_dual_vert_tempdiffs(date_str, save = False):
     plot_vert_tempdiffs(date_str, ax = ax1, save = False, calc_abs = False)
     plot_vert_tempdiffs(date_str, ax = ax2, save = False, calc_abs = True)
     
-    plt.suptitle(dt_date_str.strftime('%d-%b-%Y Thermosonde Flight'))
+    plt.suptitle(dt_date_str.strftime('%Y-%m-%d Thermosonde Flight'))
     
-    plot_subplot_label(ax1, '(a)')
-    plot_subplot_label(ax2, '(b)')
+    plot_subplot_label(ax1, 'a)')
+    plot_subplot_label(ax2, 'b)')
     
     ax1.legend()
     ax2.legend()
@@ -1039,7 +1039,8 @@ def plot_dual_vert_tempdiffs(date_str, save = False):
         filename = 'tempdiff_radio_vs_thermo_abs_' + date_str + '.png'
         fig.savefig(filename, dpi = 300)
         print("Saved image", filename)
-
+    else:
+        plt.show()
 
 
 #def plot_cn2_figure(in_data, ax = None, raw = False, old = False, \
@@ -1070,7 +1071,7 @@ def plot_cn2_figure(date_str, ax = None, raw = False, old = False, \
     ax.set_title('Estimated $C_{n}^{2}$', fontsize = 10)
     ax.set_ylabel('Altitude [km]', fontsize = 9)
     ax.set_xlabel("log$_{10}$ [$C_{n}^{2}$ [m$^{-2/3}$]]", fontsize = 9)
-    ax.tick_params(axis = 'both', labelsize=7)
+    ax.tick_params(axis = 'both', labelsize=9)
 
     max_alt = -99.
 
@@ -1111,6 +1112,8 @@ def plot_cn2_figure(date_str, ax = None, raw = False, old = False, \
             #olabel=a['TITLE'].split(" ")[0]+" "+a['TITLE'].split(" ")[1]+" "+\
             #       a['TITLE'].split(" ")[-1]
             olabel=data['LABEL'].split()[0]
+            if(olabel == 'GRAW'):
+                olabel = 'RAOB'
             savename = data['NAME']+'_CN2.png'
             ax.plot(np.log10(data['CN2']),(data['ALT']/1000.),color=colors[ii],label=olabel)
 
@@ -1179,7 +1182,7 @@ def plot_cn2_figure(date_str, ax = None, raw = False, old = False, \
 ##!#    plt.show()
 ##!#    #plt.savefig("17_11_17_23_02_35_CKN_corrected_compared.png",dpi=300)
 
-def plot_combined_figure(date_str, save = False):
+def plot_combined_figure(date_str, show_synth_data = False, save = False):
    
     if(date_str == '2018050505'):
         synth_date = '201805 00'
@@ -1187,11 +1190,13 @@ def plot_combined_figure(date_str, save = False):
     else:
         synth_date = '201905 00'
         ylim = [0, 6.5]
+
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H')
  
     in_data = [file_dict[date_str]['radio_file'], \
         file_dict[date_str]['model_file']]
     
-    fig = plt.figure(figsize = (10,4))
+    fig = plt.figure(figsize = (11,4))
     #fig = plt.figure(figsize = (14,4))
     gs = fig.add_gridspec(1,3)
     #gs = fig.add_gridspec(1,3, hspace = 0.3)
@@ -1199,18 +1204,24 @@ def plot_combined_figure(date_str, save = False):
     ax1  = fig.add_subplot(gs[0,1])   # true color    
     ax2  = fig.add_subplot(gs[0,2])   # true color 
     plot_sounding_figure(in_data, fig = fig, skew = gs[0,0], \
-        save = False, color = None)
+        save = False, color = None, \
+        ptitle = dt_date_str.strftime('%Y-%m-%d %H:00 UTC'))
     #plot_sounding_figure(file_dict[date_str]['bis_files'], fig = fig, skew = gs[0,1], \
     #    save = False)
     
-    thermo_scn2 = read_temp_diffs(file_dict[date_str]['radio_file_orig'], file_dict[date_str]['thermo_file'])
-    plot_synthetic(synth_date, 'tempdiff', ax = ax1, plot_lines = 'smooth', pcolor = 'tab:purple') 
+    thermo_scn2 = read_temp_diffs(file_dict[date_str]['radio_file_orig'], \
+        file_dict[date_str]['thermo_file'])
+    if(show_synth_data):
+        plot_synthetic(synth_date, 'tempdiff', ax = ax1, \
+            plot_lines = 'smooth', pcolor = 'tab:purple') 
     plot_tempdiffs(thermo_scn2, ax = ax1, save = False)
     ax1.set_ylim(ylim)
  
     #ax1_lims = ax1.get_ylim()
     #plot_cn2_figure(in_data, ax = ax2, raw = False, old = False, \
-    plot_synthetic(synth_date, 'cn2', ax = ax2, plot_lines = 'smooth', pcolor = 'tab:purple') 
+    if(show_synth_data):
+        plot_synthetic(synth_date, 'cn2', ax = ax2, plot_lines = 'smooth', \
+            pcolor = 'tab:purple') 
     plot_cn2_figure(date_str, ax = ax2, raw = False, old = False, \
             save = False, no_3km = False, ymax = ylim[1])
             #save = False, no_3km = False, ymax = ax1_lims[1])
@@ -1223,9 +1234,16 @@ def plot_combined_figure(date_str, save = False):
     ax1.set_title('Temperature Differences', fontsize = 10)
     ax1.set_title('  b)', loc = 'left', weight = 'bold')
     ax2.set_title('  c)', loc = 'left', weight = 'bold')
+
+    #plt.suptitle(date_str)
+
     fig.tight_layout()
     if(save):
-        outname = 'combined_cn2_'+date_str+'_singlerow.png'
+        if(show_synth_data):
+            synth_add = '_synth'
+        else:
+            synth_add = ''
+        outname = 'combined_cn2_'+date_str+'_singlerow' + synth_add + '.png'
         #outname = 'combined_cn2_'+date_str+'.png'
         fig.savefig(outname, dpi = 300)
         print("Saved image", outname)
@@ -1291,9 +1309,9 @@ def plot_calibration_curves(date_str, save = False):
 
     ax1.plot(xdata1_1, func(xdata1_1, *popt), linestyle = '-', color = 'tab:olive')
     ax1.text(xdata1_1[2] + 0.5, ydata1_1[2], \
-        "V$_{{COR}}$= {0:.3f}*ln(V$_{{RMS}}$) + {1:.3f}\nr$^2$ = {2:}\nV$_{{RMS}}$ < {3:.3f}".format(*popt, \
+        "V$_{{COR}}$= {0:.3f}*ln(V$_{{RMS}}$) + {1:.3f}\nR$^2$ = {2:}\nV$_{{RMS}}$ < {3:.3f}".format(*popt, \
         np.round(r2_11,3), split_val), \
-        color = 'k', backgroundcolor = 'white', weight = 'bold')
+        color = 'tab:olive', backgroundcolor = 'white', weight = 'bold')
     ##!#out = plot_trend_line(ax1, xdata1_1, ydata1_1, color = 'tab:red', \
     ##!#    linestyle = '-', slope = 'lin-regress', linewidth = 0.5)
     ##!#print(out)
@@ -1302,16 +1320,16 @@ def plot_calibration_curves(date_str, save = False):
     ax1.plot(xdata1_2,p1_2(xdata1_2), color = 'tab:orange', linestyle = '-')
     if(z1_2[1] < 0):
         ax1.text(xdata1[2], ydata1[10], \
-            "V$_{{COR}}$ = {0:.3f}*V$_{{RMS}}$ - {1:.3f}\nr$^2$ = {2}\nV$_{{RMS}}$ >= {3:.3f}".format(\
+            "V$_{{COR}}$ = {0:.3f}*V$_{{RMS}}$ - {1:.3f}\nR$^2$ = {2}\nV$_{{RMS}}$ >= {3:.3f}".format(\
             z1_2[0], abs(z1_2[1]), np.round(r2_12), split_val), \
-            color = 'k', backgroundcolor = 'white', weight = 'bold')
+            color = 'tab:orange', backgroundcolor = 'white', weight = 'bold')
     else:       
         ax1.text(xdata1[2], ydata1[10], \
-            "V$_{{COR}}$ = {0:.3f}*V$_{{RMS}}$ + {1:.3f}\nr$^2$ = {2}\nV$_{{RMS}}$ >= {3:.3f}".format(\
+            "V$_{{COR}}$ = {0:.3f}*V$_{{RMS}}$ + {1:.3f}\nR$^2$ = {2}\nV$_{{RMS}}$ >= {3:.3f}".format(\
             z1_2[0], abs(z1_2[1]), np.round(r2_12), split_val), \
-            color = 'k', backgroundcolor = 'white', weight = 'bold')
+            color = 'tab:orange', backgroundcolor = 'white', weight = 'bold')
     print(z1_2)
-    ax1.plot(xdata1,ydata1, 'o', markersize = 4)
+    ax1.plot(xdata1,ydata1, 'o', markersize = 4, color = 'k')
     ax1.set_xlabel('V$_{RMS}$ (V)', fontsize = 12)
     ax1.set_ylabel('V$_{Corrected}$ (V)', fontsize = 12)
     ax1.set_title('Voltage Calibration')
@@ -1323,14 +1341,14 @@ def plot_calibration_curves(date_str, save = False):
     print(z2)
     if(z2[1] < 0):
         ax2.text(xdata2[2], ydata2[10], \
-            "ΔT = {0:.3f}*V$_{{COR}}$ - {1:.3f}\nr$^2$ = {2:}".format(z2[0], abs(z2[1]), np.round(r2_2)), \
+            "ΔT = {0:.3f}*V$_{{COR}}$ - {1:.3f}\nR$^2$ = {2:}".format(z2[0], abs(z2[1]), np.round(r2_2)), \
             color = 'k', backgroundcolor = 'white', weight = 'bold')
     else:       
         ax2.text(xdata2[2], ydata2[10], \
-            "ΔT = {0:.3f}*V$_{{COR}}$ + {1:.3f}\nr$^2$ = {2:}".format(z2, np.round(r2_2)), \
+            "ΔT = {0:.3f}*V$_{{COR}}$ + {1:.3f}\nR$^2$ = {2:}".format(z2, np.round(r2_2)), \
             color = 'k', backgroundcolor = 'white', weight = 'bold')
  
-    ax2.plot(xdata2,ydata2, 'o', markersize = 4)
+    ax2.plot(xdata2,ydata2, 'o', markersize = 4, color = 'k')
     #ax2.plot(xdata2,p2(xdata2),'r--')
     ax2.set_xlabel('V$_{Corrected}$ (V)', fontsize = 12)
     ax2.set_ylabel('ΔT (K)', fontsize = 12)

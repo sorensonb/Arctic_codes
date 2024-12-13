@@ -23,10 +23,10 @@ from python_lib import *
 # colors is used to color each sounding and its associated wind barbs
 colors=['tab:cyan','tab:red','tab:red','cyan','purple','olive','black']
 
-lwidth = 0.6
+lwidth = 1.0
 
 def plot_sounding_figure(in_data, fig = None, skew = None, save = False, \
-        color = None):
+        ptitle = None, color = None):
 
     dt_date_str = datetime.strptime(in_data[0].strip().split('/')[-1][:13],'%y%m%d_%H%M%S')
 
@@ -54,17 +54,21 @@ def plot_sounding_figure(in_data, fig = None, skew = None, save = False, \
     # Add adiabats and mixing ratio lines and set axis limits
     skew.ax.set_ylim(1050, 50)
     skew.ax.set_xlim(-50,50)
-    skew.plot_dry_adiabats(np.arange(-50,151,10)*units.degC, linewidth = lwidth)
-    skew.plot_moist_adiabats(np.arange(-50,41,10)*units.degC, linewidth = lwidth)
-    skew.plot_mixing_lines(linewidth = lwidth)
-    skew.ax.set_title(dt_date_str.strftime('%Y/%m/%d %H:%M UTC'), fontsize = 9)
-    skew.ax.text(-158, 46, 'a)', weight = 'bold', fontsize = 12)
+    skew.plot_dry_adiabats(np.arange(-50,200,10)*units.degC, linewidth = lwidth - 0.2)
+    skew.plot_moist_adiabats(np.arange(-50,41,10)*units.degC, linewidth = lwidth - 0.2)
+    skew.plot_mixing_lines(linewidth = lwidth - 0.2)
+    if(ptitle is None):
+        skew.ax.set_title(dt_date_str.strftime('%Y-%m-%d %H:%M UTC'))
+    else:
+        skew.ax.set_title(ptitle, fontsize = 10)
+        skew.ax.set_title('  a)', loc = 'left', weight = 'bold')
+    #skew.ax.text(-158, 46, 'a)', weight = 'bold', fontsize = 12)
     #plt.title('2019/05/04 03:00 UTC',fontsize=14)
-    skew.ax.set_xlabel('Temperature [Degrees C]', fontsize = 8)
+    skew.ax.set_xlabel('Temperature [Degrees C]', fontsize = 10)
     #plt.xlabel('Temperature [Degrees C]',fontsize=12)
-    skew.ax.set_ylabel('Pressure [mb]', fontsize = 8)
+    skew.ax.set_ylabel('Pressure [mb]', fontsize = 10)
     #plt.ylabel('Pressure [mb]',fontsize=12)
-    skew.ax.tick_params(axis = 'both', labelsize=7)
+    skew.ax.tick_params(axis = 'both', labelsize=8)
     
     #plt.title(sounding1['TITLE']+" vs "+sounding2['TITLE'])
     skew.ax.legend(loc='upper left', prop={'size': 8}, framealpha = 1)
@@ -82,6 +86,8 @@ def plot_sounding(data, skew, idx = 0, color = None):
     # The name consists of the type and time/forecast of the sounding
     t1label=data['LABEL'].split()
     tlabel=t1label[0]
+    if(tlabel == 'GRAW'):
+        tlabel = 'RAOB'
     #tlabel=t1label[0]+' '+t1label[1]
     # Add units to the data
     data['PRESS']=data['PRESS']*units.mbar
@@ -96,7 +102,7 @@ def plot_sounding(data, skew, idx = 0, color = None):
     skew.plot(data['PRESS'], data['DP'], color, linewidth = lwidth + 0.2)
     # Generate wind barbs at every 25 millibars
     plotP = []
-    my_interval=np.arange(100, 1000, 50) * units('mbar')
+    my_interval=np.arange(100, 1000, 75) * units('mbar')
     #my_interval=np.arange(100, 1000, 25) * units('mbar')
     for center in my_interval:
         index=(np.abs(data['PRESS']-center)).argmin()
@@ -104,4 +110,4 @@ def plot_sounding(data, skew, idx = 0, color = None):
             plotP.append(index) 
     # Plot the wind barbs using the same color as the data/dp profiles
     skew.plot_barbs(data['PRESS'][plotP], data['UWIND'][plotP],                \
-                    data['VWIND'][plotP], color = colors[idx], linewidth = lwidth)
+                    data['VWIND'][plotP], color = colors[idx], linewidth = lwidth - 0.2)

@@ -2367,6 +2367,7 @@ def read_MODIS_channel(date_str, channel, zoom = False, swath = False, \
         MODIS_data = read_MODIS_granule(ifile, local_channel, zoom = zoom)
 
         if(include_cloud_mask):
+            print("CLOUD FILE:", cloud_name[ii])
             cloud_data = Dataset(cloud_name[ii])
             MODIS_data['cloud_mask'] = cloud_data[\
                 'geophysical_data/Integer_Cloud_Mask'][::5,::5]

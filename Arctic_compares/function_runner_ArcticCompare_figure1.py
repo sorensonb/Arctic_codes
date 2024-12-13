@@ -14,7 +14,7 @@ from sklearn.metrics import r2_score
 #make_gif('comp_images_20180705/', 'calc_swf_comp_20180705.gif')
 
 plot_compare_OMI_MODIS_CERES_v3_combined(sys.argv[1], sys.argv[2], \
-    omi_dtype = 'shawn', minlat = 65., zoom = False, save = True)
+    omi_dtype = 'shawn', minlat = 65., zoom = False, save = False)
 #plot_compare_OMI_MODIS_CERES(sys.argv[1], axs = None, \
 #    omi_dtype = 'shawn', minlat = 65., auto_zoom = False, zoom = True, save = False)
 sys.exit()

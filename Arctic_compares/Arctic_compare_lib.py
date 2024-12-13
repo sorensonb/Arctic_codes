@@ -13046,9 +13046,9 @@ def plot_compare_NN_output_double(infile1, infile2, auto_zoom = False, \
     xy = np.vstack([both_orig, both_calc])
     print("HERE:", both_orig.shape[0])
     if(len(both_orig) > 1):
-        #r2 = r2_score(both_orig, both_calc)
-        pearsonr, pearson_pval = stats.pearsonr(both_orig, both_calc)
-        print("pearsonr, pval = ", pearsonr, pearson_pval)
+        r2 = r2_score(both_orig, both_calc)
+        #pearsonr, pearson_pval = stats.pearsonr(both_orig, both_calc)
+        #print("pearsonr, pval = ", pearsonr, pearson_pval)
         z = stats.gaussian_kde(xy)(xy)       
         ax9.scatter(both_orig, both_calc, c = z, s = 1)
         lims = [\
@@ -13063,8 +13063,8 @@ def plot_compare_NN_output_double(infile1, infile2, auto_zoom = False, \
         ax9.set_ylabel('NN SWF [Wm$^{-2}$]')
         #ax9.set_xticklabels([])
         ax9.set_title(dt_date_str1.strftime('%Y-%m-%d %H:%M UTC\nAerosol-free Swath'))
-        #ptext = 'r$^{2}$ = ' + str(np.round(r2, 3))
-        ptext = 'r = ' + str(np.round(pearsonr, 3))
+        ptext = 'R$^{2}$ = ' + str(np.round(r2, 3))
+        #ptext = 'r = ' + str(np.round(pearsonr, 3))
         plot_figure_text(ax9, ptext, xval = 450, yval = 100, \
             fontsize = 10, color = 'black', weight = None, backgroundcolor = 'white')
 
@@ -13162,9 +13162,9 @@ def plot_compare_NN_output_double(infile1, infile2, auto_zoom = False, \
     xy = np.vstack([both_orig, both_calc])
     print("HERE:", both_orig.shape[0])
     if(len(both_orig) > 1):
-        #r2 = r2_score(both_orig, both_calc)
-        pearsonr, pearson_pval = stats.pearsonr(both_orig, both_calc)
-        print("pearsonr, pval = ", pearsonr, pearson_pval)
+        r2 = r2_score(both_orig, both_calc)
+        #pearsonr, pearson_pval = stats.pearsonr(both_orig, both_calc)
+        #print("pearsonr, pval = ", pearsonr, pearson_pval)
         z = stats.gaussian_kde(xy)(xy)       
         ax10.scatter(both_orig, both_calc, c = z, s = 1)
         lims = [\
@@ -13179,8 +13179,8 @@ def plot_compare_NN_output_double(infile1, infile2, auto_zoom = False, \
         #ax10.set_ylabel('NN SWF')
         ax10.set_yticklabels([])
         ax10.set_title(dt_date_str2.strftime('%Y-%m-%d %H:%M UTC\nAerosol Swath (Plotted for UVAI < 1)'))
-        #ptext = 'r$^{2}$ = ' + str(np.round(r2, 3))
-        ptext = 'r = ' + str(np.round(pearsonr, 3))
+        ptext = 'R$^{2}$ = ' + str(np.round(r2, 3))
+        #ptext = 'r = ' + str(np.round(pearsonr, 3))
         plot_figure_text(ax10, ptext, xval = 450, yval = 100, \
             fontsize = 10, color = 'black', weight = None, backgroundcolor = 'white')
 

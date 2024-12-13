@@ -1,0 +1,126 @@
+# Comment line
+
+EXEC = trop_coloc_exec 
+#COMP = h5fc
+COMP = gfortran
+LIB_PATH = /home/blake.sorenson/OMI/colocate_lib/
+H5_LIB_PATH = /home/blake.sorenson/OMI/JZ_analysis/JZ_lib/
+#FORT_LIB_PATH = ../../fort_lib/
+OBJECTS = colocate_vars.o \
+			h5_vars.o \
+			read_prep_TROP_AI.o \
+			read_prep_TROP_SSA0.o \
+			read_prep_TROP_SSA1.o \
+			read_prep_TROP_SSA2.o \
+			read_prep_TROP_LAT.o \
+			read_prep_TROP_LON.o \
+			read_h5_AI.o \
+			read_h5_LAT.o \
+			read_h5_LON.o \
+			read_h5_LATCRNR.o \
+			read_h5_LONCRNR.o \
+			read_h5_SZA.o \
+			read_h5_VZA.o \
+			read_h5_AZM.o \
+            write_h5_OMI_LAT.o \
+            write_h5_OMI_LON.o \
+            write_h5_OMI_SZA.o \
+            write_h5_OMI_VZA.o \
+            write_h5_OMI_AZM.o \
+            write_h5_OMI_AI_raw.o \
+            write_h5_TROP_AI.o \
+            write_output_file.o \
+			trop_colocate.o
+
+#FFLAGS = -g -O2 -Wall -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
+#LDFLAGS = -I/usr/include -L/usr/lib64/libhdf5hl_fortran.a
+FFLAGS = -g -O2 -Wall -fopenmp -fintrinsic-modules-path /usr/lib64/gfortran/modules -lhdf5_fortran
+LDFLAGS = -fopenmp -fintrinsic-modules-path /usr/lib64/gfortran/modules -lhdf5_fortran
+
+$(EXEC): $(OBJECTS)
+	$(COMP) $(LDFLAGS) $(OBJECTS) -o $(EXEC)
+
+colocate_vars.o: $(LIB_PATH)colocate_vars.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)colocate_vars.f90
+
+h5_vars.o: $(H5_LIB_PATH)h5_vars.f90
+	$(COMP) $(FFLAGS) -c $(H5_LIB_PATH)h5_vars.f90
+
+read_prep_TROP_AI.o: $(LIB_PATH)read_prep_TROP_AI.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_prep_TROP_AI.f90
+
+read_prep_TROP_SSA0.o: $(LIB_PATH)read_prep_TROP_SSA0.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_prep_TROP_SSA0.f90
+
+read_prep_TROP_SSA1.o: $(LIB_PATH)read_prep_TROP_SSA1.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_prep_TROP_SSA1.f90
+
+read_prep_TROP_SSA2.o: $(LIB_PATH)read_prep_TROP_SSA2.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_prep_TROP_SSA2.f90
+
+read_prep_TROP_LAT.o: $(LIB_PATH)read_prep_TROP_LAT.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_prep_TROP_LAT.f90
+
+read_prep_TROP_LON.o: $(LIB_PATH)read_prep_TROP_LON.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_prep_TROP_LON.f90
+
+read_h5_AI.o: $(H5_LIB_PATH)read_h5_AI.f90
+	$(COMP) $(FFLAGS) -c $(H5_LIB_PATH)read_h5_AI.f90
+
+read_h5_LAT.o: $(H5_LIB_PATH)read_h5_LAT.f90
+	$(COMP) $(FFLAGS) -c $(H5_LIB_PATH)read_h5_LAT.f90
+
+read_h5_LON.o: $(H5_LIB_PATH)read_h5_LON.f90
+	$(COMP) $(FFLAGS) -c $(H5_LIB_PATH)read_h5_LON.f90
+
+read_h5_LATCRNR.o: $(H5_LIB_PATH)read_h5_LATCRNR.f90
+	$(COMP) $(FFLAGS) -c $(H5_LIB_PATH)read_h5_LATCRNR.f90
+
+read_h5_LONCRNR.o: $(H5_LIB_PATH)read_h5_LONCRNR.f90
+	$(COMP) $(FFLAGS) -c $(H5_LIB_PATH)read_h5_LONCRNR.f90
+
+read_h5_SZA.o: $(H5_LIB_PATH)read_h5_SZA.f90
+	$(COMP) $(FFLAGS) -c $(H5_LIB_PATH)read_h5_SZA.f90
+
+read_h5_VZA.o: $(H5_LIB_PATH)read_h5_VZA.f90
+	$(COMP) $(FFLAGS) -c $(H5_LIB_PATH)read_h5_VZA.f90
+
+read_h5_AZM.o: $(H5_LIB_PATH)read_h5_AZM.f90
+	$(COMP) $(FFLAGS) -c $(H5_LIB_PATH)read_h5_AZM.f90
+
+write_h5_OMI_LAT.o: $(LIB_PATH)write_h5_OMI_LAT.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)write_h5_OMI_LAT.f90
+
+write_h5_OMI_LON.o: $(LIB_PATH)write_h5_OMI_LON.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)write_h5_OMI_LON.f90
+
+write_h5_OMI_SZA.o: $(LIB_PATH)write_h5_OMI_SZA.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)write_h5_OMI_SZA.f90
+
+write_h5_OMI_VZA.o: $(LIB_PATH)write_h5_OMI_VZA.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)write_h5_OMI_VZA.f90
+
+write_h5_OMI_AZM.o: $(LIB_PATH)write_h5_OMI_AZM.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)write_h5_OMI_AZM.f90
+
+write_h5_OMI_AI_raw.o: $(LIB_PATH)write_h5_OMI_AI_raw.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)write_h5_OMI_AI_raw.f90
+
+write_h5_TROP_AI.o: $(LIB_PATH)write_h5_TROP_AI.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)write_h5_TROP_AI.f90
+
+write_output_file.o: $(LIB_PATH)write_output_file.f90
+	$(COMP) $(FFLAGS) -c $(LIB_PATH)write_h5_output_file.f90
+
+#
+#read_h5_XTRACK.o: $(LIB_PATH)read_h5_XTRACK.f90
+#	$(COMP) $(FFLAGS) -c $(LIB_PATH)read_h5_XTRACK.f90
+
+#print_climo.o: $(FORT_LIB_PATH)print_climo.f90
+#	$(COMP) $(FFLAGS) -c $(FORT_LIB_PATH)print_climo.f90
+
+trop_colocate.o: trop_colocate.f90 $(LIB_PATH)colocate_vars.f90
+	$(COMP) $(FFLAGS) -c trop_colocate.f90
+
+clean:
+	rm $(EXEC) $(OBJECTS) *.mod
