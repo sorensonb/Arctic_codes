@@ -5816,9 +5816,10 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
         fig0 = plt.figure()
         pax = fig0.add_subplot(1,1,1, projection = ccrs.NorthPolarStereo())
 
-    if(gridlines):
-        pax.gridlines()
-    pax.coastlines(resolution = '50m')
+    #if(gridlines):
+    #    pax.gridlines()
+    pax.coastlines()
+    #pax.coastlines(resolution = '50m')
     if(title == ''):
         title = 'OMI UVAI ' + OMI_hrly['dtype'] + ' ' + OMI_hrly['date']
     pax.set_title(title)
@@ -5961,9 +5962,9 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
                 transform = datacrs, cmap = colormap,\
                 vmin = vmin, vmax = vmax,\
                 shading='auto')
-        gl = pax.gridlines(crs = ccrs.PlateCarree(), draw_labels = False, \
-            linewidth = 1, color = 'gray', alpha = 0.5, linestyle = '-',\
-            y_inline = True, xlocs = range(-180, 180, 30), ylocs = range(70, 90, 10))
+        #gl = pax.gridlines(crs = ccrs.PlateCarree(), draw_labels = False, \
+        #    linewidth = 1, color = 'gray', alpha = 0.5, linestyle = '-',\
+        #    y_inline = True, xlocs = range(-180, 180, 30), ylocs = range(70, 90, 10))
 
         if(label == ''):
             if(OMI_hrly['dtype'] == 'shawn'):
@@ -5982,8 +5983,8 @@ def plotOMI_single_swath(pax, OMI_hrly, pvar = 'UVAI', minlat = 65., \
 
     # Center the figure over the Arctic
     pax.set_extent([-180,180,minlat,90],ccrs.PlateCarree())
-    pax.add_feature(cfeature.BORDERS)
-    pax.add_feature(cfeature.STATES)
+    #pax.add_feature(cfeature.BORDERS)
+    #pax.add_feature(cfeature.STATES)
     if(circle_bound):
         pax.set_boundary(circle, transform=pax.transAxes)
 

@@ -177,7 +177,8 @@ from sklearn.metrics import r2_score
 #sim_name = 'noland50'
 #sim_name = 'noland72'
 #sim_name = 'noland73'
-sim_name = 'noland74'
+#sim_name = 'noland74'
+sim_name = 'noland105'
 #sim_name = 'noland103'
 #sim_name = 'noland75'
 print("AS OF 2024/09/09, USING ", sim_name)
@@ -319,5 +320,5 @@ dates = [
 #calc_pcnt_aerosol_over_type(dates, 1.5, minlat = 70., dtype = 'PERT', ax = None, local_dir = 'comp_data/new_data_20241029/')
 #sys.exit()
 
-calc_pcnt_aerosol_over_type_v2(sim_name, 1.0, minlat = 65., dtype = 'PERT', ax = None)
-sys.exit()
+calc_pcnt_aerosol_over_type_v2(sim_name, 1.0, minlat = 65., \
+    dtype = 'PERT', ax = None, save = True)

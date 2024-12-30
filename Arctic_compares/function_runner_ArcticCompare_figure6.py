@@ -2,6 +2,9 @@
 
 """
 
+  SYNTAX FOR PAPER: ./function_runner_ArcticCompare_figure6.py 
+        neuralnet_output_clear_newfiles/test_calc_out_noland105_201807082244.hdf5 
+        neuralnet_output/test_calc_out_noland105_201807052213.hdf5
 
 """
 
@@ -391,7 +394,7 @@ else:
     # ---------------------------------------------------------
     plot_compare_NN_output_double(sys.argv[1], \
         sys.argv[2], \
-        save = False, include_scatter = False)
+        save = True, include_scatter = False)
     #plot_compare_NN_output_double(sys.argv[1], sys.argv[2], save = False, include_scatter = False)
 
 

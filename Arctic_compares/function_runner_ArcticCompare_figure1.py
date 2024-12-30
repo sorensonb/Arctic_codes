@@ -2,6 +2,9 @@
 
 """
 
+  SYNTAX FOR PAPER: ./function_runner_ArcticCompare_figure1.py 
+      neuralnet_output/test_calc_out_noland105_201408112032.hdf5
+      neuralnet_output/test_calc_out_noland105_201807052213.hdf5
 
 """
 
@@ -14,7 +17,9 @@ from sklearn.metrics import r2_score
 #make_gif('comp_images_20180705/', 'calc_swf_comp_20180705.gif')
 
 plot_compare_OMI_MODIS_CERES_v3_combined(sys.argv[1], sys.argv[2], \
-    omi_dtype = 'shawn', minlat = 65., zoom = False, save = False)
+    omi_dtype = 'shawn', minlat = 65., zoom = False, \
+    min_ai_overlay = 1.0, save = True)
+
 #plot_compare_OMI_MODIS_CERES(sys.argv[1], axs = None, \
 #    omi_dtype = 'shawn', minlat = 65., auto_zoom = False, zoom = True, save = False)
 sys.exit()

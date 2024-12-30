@@ -13,7 +13,7 @@ from sklearn.metrics import r2_score
 
 # Plot the NN architecture
 # ------------------------
-plot_NN_architecture(save = False)
+plot_NN_architecture(save = True)
 #plot_NN_architecture(plot_lines = True, save = True)
 #sys.exit()
 

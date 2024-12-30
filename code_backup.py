@@ -13,9 +13,9 @@ home_dir = os.environ['HOME']
 base_dir = home_dir + "/Research/"
 dest_dir = home_dir + "/Arctic_codes/"
 
-copy_raindrop = True
-copy_calipso  = True
-copy_talon    = True
+copy_raindrop = False
+copy_calipso  = False
+copy_talon    = False
 
 ## Add new stuff
 #os.chdir(dest_dir)
@@ -614,22 +614,6 @@ if(copy_raindrop):
     print(cmnd)
     os.system(cmnd)
 
-if(copy_talon):
-    talon_dir = "blake.sorenson@134.129.128.241:/home/blake.sorenson/OMI/tropomi_colocate/"
-    #rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/OMI/tropomi_colocate/"
-    
-    final_dir = dest_dir + 'TROPOMI/talon_processing/'
-    cmnd = "scp "+talon_dir+"*.f90 "+final_dir
-    print(cmnd)
-    os.system(cmnd)
-    cmnd = "scp "+talon_dir+"Make* "+final_dir
-    print(cmnd)
-    os.system(cmnd)
-    
-    cmnd = "scp "+talon_dir+"/auto_trop_process*.sh "+final_dir
-    print(cmnd)
-    os.system(cmnd)
-
 # ---------------------------------------------------------------------------- 
 # Siphon/Metpy Codes
 # ---------------------------------------------------------------------------- 
@@ -665,3 +649,16 @@ os.system(cmnd)
 #
 ## Push
 #os.system('git push origin master')
+# Add new stuff
+os.chdir(dest_dir)
+os.system('git add .')
+
+# Determine today's date for the command
+today_str = datetime.today().strftime('%Y/%m/%d')
+cmnd = 'git commit -m \"Backup '+today_str + '\"'
+os.system(cmnd)
+
+# Push
+os.system('git push origin master')
+sys.exit()
+

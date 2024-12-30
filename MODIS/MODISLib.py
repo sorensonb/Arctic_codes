@@ -2367,7 +2367,6 @@ def read_MODIS_channel(date_str, channel, zoom = False, swath = False, \
         MODIS_data = read_MODIS_granule(ifile, local_channel, zoom = zoom)
 
         if(include_cloud_mask):
-            print("CLOUD FILE:", cloud_name[ii])
             cloud_data = Dataset(cloud_name[ii])
             MODIS_data['cloud_mask'] = cloud_data[\
                 'geophysical_data/Integer_Cloud_Mask'][::5,::5]
@@ -2808,7 +2807,7 @@ def read_MODIS_MYD08_monthrange(start_date,end_date,\
  
     # Grab all the filenames for the matching year
     # --------------------------------------------
-    allfiles = glob(myd08_dir + 'monthly/modis*subset*.nc')
+    allfiles = sorted(glob(myd08_dir + 'monthly/modis*subset*.nc'))
 
     # Grab just the dates
     # -------------------

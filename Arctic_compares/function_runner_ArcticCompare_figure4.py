@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
- 
+
   SYNTAX FOR PAPER: ./function_runner_ArcticCompare_figure4.py neuralnet_output/test_calc_out_noland105_201908100308.hdf5
 
 """

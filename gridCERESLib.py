@@ -45,7 +45,6 @@ import cartopy.feature as cfeature
 from cartopy.util import add_cyclic_point
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 import os
-from glob import glob
 from scipy.stats import pearsonr,spearmanr
 from sklearn.linear_model import HuberRegressor
 from sklearn.preprocessing import StandardScaler
@@ -68,7 +67,8 @@ if(home_dir + '/Research/OMI' not in sys.path):
 if(home_dir + '/Research/NAAPS' not in sys.path):
     sys.path.append(home_dir + '/Research/NAAPS')
 from NSIDCLib import *
-from NAAPSLib import *
+from glob import glob
+#from NAAPSLib import *
 ##!## Compute a circle in axes coordinates, which we can use as a boundary
 ##!## for the map. We can pan/zoom as much as we like - the boundary will be
 ##!## permanently circular.

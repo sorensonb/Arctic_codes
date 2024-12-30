@@ -1779,17 +1779,21 @@ def plot_compare_OMI_MODIS_v2(date_str, ch1, \
     ax1.set_title('OMI UVAI')
    
     plot_MODIS_channel(modis_date, 'true_color', swath = True, \
-        zoom = zoom, ax = ax2)
+        zoom = zoom, ax = ax2, plot_borders = False)
     ax2.set_title('Aqua MODIS True Color')
+    ax2.coastlines()
 
     plot_MODIS_channel(modis_date, ch1, swath = True, \
-        zoom = zoom, ax = ax3, vmax = 0.4)
+        zoom = zoom, ax = ax3, vmax = 0.4, plot_borders = False)
     ax3.set_title('Aqua MODIS Ch7\n2.105 μm - 2.155 μm')
+    ax3.coastlines()
 
     # Plot the CH7 data with cloud mask overlaid
     # ------------------------------------------
     plot_MODIS_channel(modis_date, ch1, swath = True, \
-        zoom = zoom, ax = ax4, vmax = 0.4, plot_cbar = False)
+        zoom = zoom, ax = ax4, vmax = 0.4, plot_cbar = False, \
+        plot_borders = False)
+    ax4.coastlines()
     col_dict = {0: 'tab:blue',1: 'tab:orange',2: 'tab:green',3: 'tab:red'}
     labels = np.array(['Cloudy','Prob.\nCloudy','Prob.\nClear','Clear'])
     ccmm = mcolors.ListedColormap([col_dict[x] for x in col_dict.keys()])
@@ -1845,7 +1849,7 @@ def plot_compare_OMI_MODIS_v2(date_str, ch1, \
         ax2.set_extent([ 125,165, 70, 85], datacrs)
         ax3.set_extent([ 125,165, 70, 85], datacrs)
         ax4.set_extent([ 125,165, 70, 85], datacrs)
-        plt.suptitle(dt_date_str.strftime('%H:%M UTC %d %B %Y'))
+        plt.suptitle(dt_date_str.strftime('%d %B %Y %H:%M UTC'))
     elif(date_str[:8] == '20180705'):
         #ax1.set_title('OMI UVAI')
         #ax2.set_title('Aqua MODIS True Color')
@@ -1855,9 +1859,9 @@ def plot_compare_OMI_MODIS_v2(date_str, ch1, \
         ax2.set_extent([ 145,200, 64, 80], datacrs)
         ax3.set_extent([ 145,200, 64, 80], datacrs)
         ax4.set_extent([ 145,200, 64, 80], datacrs)
-        plt.suptitle(dt_date_str.strftime('%H:%M UTC %d %B %Y'))
-    else:
-        plt.suptitle(dt_date_str.strftime('%H:%M UTC %d %B %Y'))
+        plt.suptitle(dt_date_str.strftime('%d %B %Y %H:%M UTC'))
+    else:                                                     
+        plt.suptitle(dt_date_str.strftime('%d %B %Y %H:%M UTC'))
 
     plot_subplot_label(ax1, 'a)', fontsize = 11, backgroundcolor = 'white')
     plot_subplot_label(ax2, 'b)', fontsize = 11, backgroundcolor = 'white')
@@ -1868,7 +1872,7 @@ def plot_compare_OMI_MODIS_v2(date_str, ch1, \
 
     if(save):
         outname = 'omi_modis_compare_v2_' + omi_date + '.png'
-        fig1.savefig(outname, dpi = 200)
+        fig1.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else:
         plt.show()
@@ -2059,7 +2063,8 @@ def plot_compare_OMI_MODIS_NSIDC_v2_combined(date_str1, date_str2, ch1, \
 
 
 def plot_compare_OMI_MODIS_CERES_v3_combined(calc_data1, calc_data2, \
-        omi_dtype = 'shawn', minlat = 65., zoom = False, save = False):
+        omi_dtype = 'shawn', minlat = 65., zoom = False, \
+        min_ai_overlay = 1.5, save = False):
    
     in_calc1 = h5py.File(calc_data1)
     mask_AI  = np.ma.masked_invalid(in_calc1['omi_uvai_pert'])
@@ -2113,10 +2118,14 @@ def plot_compare_OMI_MODIS_CERES_v3_combined(calc_data1, calc_data2, \
 
     plot_compare_OMI_MODIS_CERES(calc_data1, axs1, vmin = 75, \
         vmax = 250, auto_zoom = True, zoom = False, plot_titles = True, \
-        label_xloc = 115.7, label_yloc = 78.6, labels = ['a)','b)','c)','d)'])
+        plot_borders = False, \
+        label_xloc = 115.7, label_yloc = 78.6, labels = ['a)','b)','c)','d)'], \
+        min_ai_overlay = min_ai_overlay)
     plot_compare_OMI_MODIS_CERES(calc_data2, axs2, vmin = 75, \
         vmax = 450, auto_zoom = False, zoom = True, \
-        label_xloc = -166, label_yloc = 65.4, labels = ['e)','f)','g)','h)'])
+        plot_borders = False, \
+        label_xloc = -166, label_yloc = 65.4, labels = ['e)','f)','g)','h)'], \
+        min_ai_overlay = min_ai_overlay)
 
     #mask_AI  = np.ma.masked_invalid(in_calc1['omi_uvai_pert'])
     #hasher = np.ma.masked_invalid(mask_AI)
@@ -2147,11 +2156,11 @@ def plot_compare_OMI_MODIS_CERES_v3_combined(calc_data1, calc_data2, \
     row_label_size = 10
     plotloc = axs1[0].get_position() 
     fig.text(plotloc.xmin - 0.01, (plotloc.ymax + plotloc.ymin) / 2., \
-        dt_date_str1.strftime('%H:%M UTC %d-%b-%Y'), ha='center', va='center', \
+        dt_date_str1.strftime('%d %b %Y %H:%M UTC'), ha='center', va='center', \
         rotation='vertical',weight='bold',fontsize=row_label_size + 1)
     plotloc = axs2[0].get_position() 
     fig.text(plotloc.xmin - 0.01, (plotloc.ymax + plotloc.ymin) / 2., \
-        dt_date_str2.strftime('%H:%M UTC %d-%b-%Y'), ha='center', va='center', \
+        dt_date_str2.strftime('%d %b %Y %H:%M UTC'), ha='center', va='center', \
         rotation='vertical',weight='bold',fontsize=row_label_size + 1)
 
 
@@ -2160,7 +2169,7 @@ def plot_compare_OMI_MODIS_CERES_v3_combined(calc_data1, calc_data2, \
     if(save):
         outname = 'omi_modis_ceres_compare_v4_combined_' + dt_date_str1.strftime('%Y%m%d%H%M') + \
             '_' + dt_date_str2.strftime('%Y%m%d%H%M') + '.png'
-        fig.savefig(outname, dpi = 200)
+        fig.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else: 
         plt.show()
@@ -2168,9 +2177,11 @@ def plot_compare_OMI_MODIS_CERES_v3_combined(calc_data1, calc_data2, \
 def plot_compare_OMI_MODIS_CERES(calc_data, axs = None, \
         label_xloc = None, label_yloc = None, \
         labels = None, 
+        plot_borders = False, \
         omi_dtype = 'shawn', minlat = 65., auto_zoom = True, \
         vmin = None, vmax = None, \
         plot_titles = False, \
+        min_ai_overlay = 1.5, \
         zoom = False, save = False):
 
     # Load in the JSON file string relations
@@ -2283,7 +2294,7 @@ def plot_compare_OMI_MODIS_CERES(calc_data, axs = None, \
     # Plot the MODIS data
     # ------------------- 
     plot_MODIS_channel(modis_date, 'true_color', swath = True, \
-        zoom = True, ax = ax1)
+        zoom = True, ax = ax1, plot_borders = plot_borders)
     #mesh = ax2.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_calc, \
     #    transform = ccrs.PlateCarree(), shading = 'auto')
     #cbar = fig.colorbar(mesh, ax = ax2, label = 'SWF [Wm$^{-2}$]')
@@ -2346,12 +2357,13 @@ def plot_compare_OMI_MODIS_CERES(calc_data, axs = None, \
     #    ax3.set_extent([-180, 180,65,  90], ccrs.PlateCarree())
     #    ax3.set_boundary(circle, transform=ax3.transAxes)
     if(plot_titles):
-        ax4.set_title('Aqua CERES TOA SWF\nOverlay: UVAI > 1.0')
+        ax4.set_title('Aqua CERES TOA SWF\nOverlay: UVAI > ' + \
+            str(min_ai_overlay))
     ax4.coastlines()
 
 
     mask_AI   = np.ma.masked_invalid(in_calc['omi_uvai_pert'])
-    mask_AI = np.ma.masked_where(mask_AI < 1.0, mask_AI)
+    mask_AI = np.ma.masked_where(mask_AI < min_ai_overlay, mask_AI)
     ax4.pcolormesh(in_calc['omi_lon'][:,:], in_calc['omi_lat'][:,:], mask_AI, \
         transform = ccrs.PlateCarree(), shading = 'auto', vmin = -2, vmax = 5, cmap = 'jet', alpha = 0.5)
 
@@ -7291,7 +7303,7 @@ def draw_brace(ax, xspan, yy, text):
 def calc_pcnt_aerosol_over_type_v2(sim_name, min_AI, ax = None, \
         minlat = 70., dtype = 'RAW', save = False): 
 
-    file_list = glob('neuralnet_output/test_calc_out_' + sim_name + '*.hdf5')
+    file_list = sorted(glob('neuralnet_output/test_calc_out_' + sim_name + '*.hdf5'))
 
     count_data   = np.full(len(file_list), np.nan)
     total_count  = np.full(len(file_list), np.nan)
@@ -7401,18 +7413,20 @@ def calc_pcnt_aerosol_over_type_v2(sim_name, min_AI, ax = None, \
 
     xvals = np.arange(len(file_list))
     
-    ax.bar(xvals, pcnt_ice, label = 'Ice')
-    ax.bar(xvals, pcnt_mix, bottom = pcnt_ice, label = 'Mix')
-    ax.bar(xvals, pcnt_ocn, bottom = pcnt_ice + pcnt_mix, label = 'Ocean')
-    ax.bar(xvals, pcnt_lnd, bottom = pcnt_ice + pcnt_mix + pcnt_ocn, label = 'Land')
-    ax.bar(xvals, pcnt_oth, bottom = pcnt_ice + pcnt_mix + pcnt_ocn + pcnt_lnd, label = 'Other')
+    ice_bar = ax.bar(xvals, pcnt_ice, label = 'Ice')
+    mix_bar = ax.bar(xvals, pcnt_mix, bottom = pcnt_ice, label = 'Mix')
+    ocn_bar = ax.bar(xvals, pcnt_ocn, bottom = pcnt_ice + pcnt_mix, label = 'Ocean')
+    lnd_bar = ax.bar(xvals, pcnt_lnd, bottom = pcnt_ice + pcnt_mix + pcnt_ocn, label = 'Land')
+    oth_bar = ax.bar(xvals, pcnt_oth, bottom = pcnt_ice + pcnt_mix + pcnt_ocn + pcnt_lnd, label = 'Other')
     ax.set_xlim([np.min(xvals), np.max(xvals)])
     ax.xaxis.set_visible(False)
     #lines, labels = ax.get_legend_handles_labels()
     #lines, labels = [sum(lol, []) for lol in zip(*lines_labels)]
     #ax.legend()
     #plt.legend(lines, labels, loc = 'lower center', bbox_to_anchor = (0, 0.01, 1, 1),\
-    ax.legend(loc = 'center left', bbox_to_anchor = (1, 0.5),\
+    lines = [oth_bar, lnd_bar, ocn_bar, mix_bar, ice_bar]
+    labels = ['Other', 'Land', 'Ocean', 'Mix', 'Ice']
+    ax.legend(lines, labels, loc = 'center left', bbox_to_anchor = (1, 0.5),\
         ncol=1)
     
     # Add brackets to the figure
@@ -7441,7 +7455,7 @@ def calc_pcnt_aerosol_over_type_v2(sim_name, min_AI, ax = None, \
         fig.tight_layout()
         if(save):
             outname = 'aerosol_over_type_swath_minAI' + dtype + '_'+ str(int(min_AI*10)) + '_minlat' + str(int(minlat)) + '_v2.png'
-            fig.savefig(outname, dpi = 200)
+            fig.savefig(outname, dpi = 300)
             print("Saved image", outname)
         else:
             plt.show() 
@@ -10848,7 +10862,7 @@ def test_error_calc(OMI_daily_data, OMI_monthly_data, coloc_dict, \
 # SWF, in addition to the binning variables.
 def combine_NN_data(sim_name):
 
-    files = glob('neuralnet_output/test_calc_out_' + sim_name + '*.hdf5')
+    files = sorted(glob('neuralnet_output/test_calc_out_' + sim_name + '*.hdf5'))
 
     if(len(files) == 0):
         print("ERROR: NO FILES FOUND FOR SIM " + sim_name)
@@ -11979,7 +11993,7 @@ def plot_compare_NN_output_overlay_v2(calc_data, auto_zoom = True, \
             color = 'black', fontsize = font_size, backgroundcolor = 'white', \
             halign = 'left', weight = 'bold')
     
-    plt.suptitle(dt_date_str.strftime('%Y-%m-%d %H:%M UTC'))
+    plt.suptitle(dt_date_str.strftime('%Y %b %d %H:%M UTC'))
     
     #in_base.close()
     in_calc.close()
@@ -11992,7 +12006,7 @@ def plot_compare_NN_output_overlay_v2(calc_data, auto_zoom = True, \
         else:
             zoom_add = ''
         outname = 'ceres_nn_compare_hashing_' + date_str + '_' + sim_name + zoom_add + '_v2.png'
-        fig.savefig(outname, dpi = 200)
+        fig.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else:
         plt.show()
@@ -12829,7 +12843,9 @@ def plot_compare_NN_output_v2(calc_data, auto_zoom = True, save = False):
 # Zooms in the images on just the plume area
 def plot_compare_NN_output_double(infile1, infile2, auto_zoom = False, \
         save = False, include_scatter = False):
-   
+  
+    print("HERE:", include_scatter)
+ 
     file_name1 = infile1.strip().split('/')[-1] 
     file_name2 = infile2.strip().split('/')[-1] 
     date_str1 = file_name1.split('.')[0].split('_')[-1]
@@ -13062,7 +13078,7 @@ def plot_compare_NN_output_double(infile1, infile2, auto_zoom = False, \
         ax9.set_xlabel('CERES SWF [Wm$^{-2}$]')
         ax9.set_ylabel('NN SWF [Wm$^{-2}$]')
         #ax9.set_xticklabels([])
-        ax9.set_title(dt_date_str1.strftime('%Y-%m-%d %H:%M UTC\nAerosol-free Swath'))
+        ax9.set_title(dt_date_str1.strftime('%d %b %Y %H:%M UTC\nAerosol-free Swath'))
         ptext = 'R$^{2}$ = ' + str(np.round(r2, 3))
         #ptext = 'r = ' + str(np.round(pearsonr, 3))
         plot_figure_text(ax9, ptext, xval = 450, yval = 100, \
@@ -13178,7 +13194,7 @@ def plot_compare_NN_output_double(infile1, infile2, auto_zoom = False, \
         ax10.set_xlabel('CERES SWF [Wm$^{-2}$]')
         #ax10.set_ylabel('NN SWF')
         ax10.set_yticklabels([])
-        ax10.set_title(dt_date_str2.strftime('%Y-%m-%d %H:%M UTC\nAerosol Swath (Plotted for UVAI < 1)'))
+        ax10.set_title(dt_date_str2.strftime('%d %b %Y %H:%M UTC\nAerosol Swath (Plotted for UVAI < 1)'))
         ptext = 'R$^{2}$ = ' + str(np.round(r2, 3))
         #ptext = 'r = ' + str(np.round(pearsonr, 3))
         plot_figure_text(ax10, ptext, xval = 450, yval = 100, \
@@ -13230,8 +13246,8 @@ def plot_compare_NN_output_double(infile1, infile2, auto_zoom = False, \
     plot_subplot_label(ax9, 'i)', fontsize = 11, backgroundcolor = None)
     plot_subplot_label(ax10,'j)', fontsize = 11, backgroundcolor = None)
     
-    fig.suptitle(dt_date_str1.strftime('Top:       %Y-%m-%d %H:%M UTC') + '\n' + \
-                 dt_date_str2.strftime('Bottom: %Y-%m-%d %H:%M UTC'))
+    fig.suptitle(dt_date_str1.strftime('Top:       %d %b %Y %H:%M UTC') + '\n' + \
+                 dt_date_str2.strftime('Bottom: %d %b %Y %H:%M UTC'))
    
     fig2.suptitle('Comparison of NN and CERES SWF')
  
@@ -13246,7 +13262,7 @@ def plot_compare_NN_output_double(infile1, infile2, auto_zoom = False, \
         else:
             zoom_add = ''
         outname = 'ceres_nn_compare_dual_v2_' + date_str1 + '_' + date_str2 + '_' + sim_name1 + zoom_add + '.png'
-        fig.savefig(outname, dpi = 200)
+        fig.savefig(outname, dpi = 300)
         print("Saved image", outname)
 
         outname = 'ceres_nn_compare_dual_scatter_' + date_str1 + '_' + date_str2 + '_' + sim_name1 + '.png'
@@ -15234,7 +15250,7 @@ def plot_NN_architecture(plot_lines = False, save = False):
         else:
             line_add = ''
         outname = 'nn_architecture' + line_add + '.png'
-        fig.savefig(outname, dpi = 200)
+        fig.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else:
         plt.show()
