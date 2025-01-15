@@ -15,6 +15,7 @@ dest_dir = home_dir + "/Arctic_codes/"
 
 copy_raindrop = False
 copy_calipso  = False
+copy_jpss     = True
 copy_talon    = False
 
 ## Add new stuff
@@ -273,6 +274,17 @@ cmnd = "cp "+base_dir+"Crop_Model/Make* "+final_dir
 #cmnd = "cp "+base_dir+"OMI/*.py "+dest_dir
 print(cmnd)
 os.system(cmnd)
+
+if(copy_jpss):
+    jpss_dir = "blake.sorenson@134.129.222.14:/data/almanacDA_zhang_forblake/M-SPAM/runtest/"
+    #rain_dir = "bsorenson@raindrop.atmos.und.edu:/home/bsorenson/OMI/"
+
+    #final_dir = dest_dir + 'CSCI/CSCI_544/jpss_work/'
+
+    cmnd = "scp " + jpss_dir + "*.py " + final_dir
+    print(cmnd)
+    os.system(cmnd)
+
 
 # ---------------------------------------------------------------------------- 
 # OMI Codes

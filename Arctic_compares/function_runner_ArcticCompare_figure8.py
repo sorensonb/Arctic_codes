@@ -239,7 +239,7 @@ slope_dict_lin = calc_NN_force_slope_intcpt(test_dict, ice_bin_edges, \
 #plot_NN_bin_slopes_6types(slope_dict, bin_dict, 'slopes', min_ob = 50, \
 #            plot_error = False, save = True)
 plot_NN_bin_slopes_6types(slope_dict_lin, bin_dict, 'slopes', min_ob = 50, \
-            plot_error = False, save = False)
+            plot_error = False, save = True)
 sys.exit()
 # Dim 1 = ice
 # Dim 2 = sza

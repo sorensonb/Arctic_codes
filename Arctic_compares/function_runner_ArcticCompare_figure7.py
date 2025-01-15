@@ -234,7 +234,7 @@ slope_vals, intpt_vals, mean_force_vals, std_force_vals, ai_calc_bins = \
     ai_min_forslopes, sza_min, sza_max, trend_type = 'linregress', \
     show_specific_cod = None, min_ai_for_stats = 2.0, \
     plot_bounds = False, return_line_vals = True, ai_calc_bins = ai_calc_bins, \
-    save = False)
+    save = True)
 
 # Print a table containing these output values
 # --------------------------------------------

@@ -796,7 +796,7 @@ num_bins = 100
 plot_error_components_combined(direct_forcings, calc_forcings, sim_name, \
     daily_filename, ice_filename, cod_filename, num_bins, \
     use_correct_error_calc = True, \
-    astrofit = True, log_scale = True, save = False, run_type = run_type)
+    astrofit = True, log_scale = True, save = True, run_type = run_type)
 sys.exit()
 
 

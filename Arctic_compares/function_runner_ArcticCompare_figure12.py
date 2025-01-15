@@ -838,7 +838,7 @@ plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, shawn_file, \
     NSIDC_data, myd08_data, modis_var = 'cld_frac_mean', vmax = 1.5, \
     #NSIDC_data, myd08_data, modis_var = 'cld_frac_mean', vmax = 1.5, \
     min_AI = 0.0, max_AI = 20.0, minlat = 65.5, \
-    maxlat = 90.5,  sim_name = sim_name, run_type = run_type, save = False)
+    maxlat = 90.5,  sim_name = sim_name, run_type = run_type, save = True)
 #plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, shawn_file, \
 #    NSIDC_data, myd08_data, modis_var = 'cod_mean', vmax = 1.5, \
 #    #NSIDC_data, myd08_data, modis_var = 'cld_frac_mean', vmax = 1.5, \

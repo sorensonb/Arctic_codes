@@ -11259,7 +11259,7 @@ def plot_NN_bin_slopes_6types(slope_dict, bin_dict, pvar, min_ob = 50, \
         else:
             error_add = ''
         outname = 'force_bin_' + pvar + '_NN_numsfcbins6_' + slope_dict['sim_name']  + type_adder + error_add + '.png'
-        fig.savefig(outname, dpi = 200)
+        fig.savefig(outname, dpi = 300)
         print("Saved image:", outname)
     else:
         plt.show()
@@ -11993,7 +11993,7 @@ def plot_compare_NN_output_overlay_v2(calc_data, auto_zoom = True, \
             color = 'black', fontsize = font_size, backgroundcolor = 'white', \
             halign = 'left', weight = 'bold')
     
-    plt.suptitle(dt_date_str.strftime('%Y %b %d %H:%M UTC'))
+    plt.suptitle(dt_date_str.strftime('%d %b %Y %H:%M UTC'))
     
     #in_base.close()
     in_calc.close()
@@ -13901,7 +13901,7 @@ def plot_NN_scatter_combined_alltypes(test_dict, bin_dict, \
             #outname = 'nn_force_scatter_combined_numsfcbins' + str(num_bins) + \
             outname = 'nn_force_scatter_combined_' + test_dict['sim_name'] + '_numsfcbins' + str(num_bins) + \
                 '_sza' + str(int(sza_min)) + 'to' + str(int(sza_max)) + '.png'
-        fig.savefig(outname, dpi = 200)
+        fig.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else:   
         plt.show()
@@ -14128,7 +14128,7 @@ def plot_NN_forcing_daily(date_str, OMI_daily_data, OMI_monthly_data, \
     plot_subplot_label(ax4, 'd)', fontsize = 12, backgroundcolor = None)
     
     plt.suptitle(dt_date_str.strftime('Daily Estimated Aerosol Direct ' + \
-        'Radiative Forcing\n%Y-%m-%d'))
+        'Radiative Forcing\n%d %b %Y'))
 
     fig.tight_layout()
 
@@ -14140,7 +14140,7 @@ def plot_NN_forcing_daily(date_str, OMI_daily_data, OMI_monthly_data, \
         else:
             bckgd_add = '_noback'
         outname = 'test_forcing_v4_' + date_str + sim_name + bckgd_add + '.png'
-        fig.savefig(outname, dpi = 200)
+        fig.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else:
         plt.show()
@@ -17235,7 +17235,7 @@ def plot_error_components_combined(direct_forcings, calc_forcings, sim_name, \
         else:
             err_calc_add = ''
         outname = 'errors_L3_combined_' + sim_name + log_adder + run_type + err_calc_add + '.png'
-        fig.savefig(outname, dpi = 200)
+        fig.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else:
         plt.show()
@@ -17332,7 +17332,7 @@ def test_error_dist(daily_dict, forcing_trends, month_idx, lat_idx, lon_idx, \
                 run_type = '_' + run_type
             outname = 'trend_dist_monthidx' + str(month_idx) + '_numsims' + \
                 str(int(in_arr.shape[0])) + loc_adder + sim_name + run_type + '.png'
-            fig.savefig(outname, dpi = 200)
+            fig.savefig(outname, dpi = 300)
             print("Saved image", outname)
         else:
             plt.show()    
@@ -18098,7 +18098,7 @@ def plot_bulk_force_AI_trend_v3(daily_dict, forcing_trends, OMI_daily_data, \
             run_type = '_' + run_type
 
         outname = 'ai_force_trend_ice' + modis_adder + '_combined' + sim_name + run_type + '.png'
-        fig.savefig(outname, dpi = 200)
+        fig.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else:
         plt.show()
