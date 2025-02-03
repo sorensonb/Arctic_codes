@@ -248,7 +248,7 @@ def cn2_calc_thermo(tempdiff, first, temp=None):
         if tempdiff[i] is ma.masked:
             cn2 = np.append(cn2[:],tempdiff[i])
         else:
-            p    = press[i]*100
+            p    = press[i]
             t    = temp[i]+273.15
             diff = (tempdiff[i])**2
 
@@ -256,6 +256,12 @@ def cn2_calc_thermo(tempdiff, first, temp=None):
             # The actual equation to use is:
             # cn2(h) = (((76*10**-8)*(p/(t**2)))**2)*ct2(h), where
             # ct2(h) = (tempdiff**2)*r**-0.6666667
+            #
+            # NOTE: In this equation, air pressure is in units of Pa, thus 
+            #       increasing the magnitude of the exponent from 10**-6 to 
+            #       10**-8. In keeping with references such as Frehlich et al, 2010, 
+            #       am switching back to 10^-6 and putting pressures back into
+            #       hPa. 
             #
             ########################################################################
  
@@ -265,7 +271,8 @@ def cn2_calc_thermo(tempdiff, first, temp=None):
             # Calculate refractive index structure parameter
             #ct2 = (diff**2)*r**-(2/3)
             ct2 = diff
-            x =(((76*10**-8)*(p/(t**2)))**2)*ct2 
+            x =(((79*(10**-6))*(p/(t**2)))**2)*ct2 
+            #x =(((76*10**-8)*(p/(t**2)))**2)*ct2 
             cn2   = np.append(cn2[:], x)
 
     # If a dictionary was passed, update the dictionary to contain the 

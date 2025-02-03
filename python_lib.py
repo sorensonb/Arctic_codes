@@ -433,6 +433,12 @@ def plot_subplot_label(ax, label, xval = None, yval = None, transform = None, \
     elif(location == 'lower_right'):
         y_lim = 0.05
         x_lim = 0.90
+    elif(location == 'middle_left'):
+        y_lim = 0.05
+        x_lim = 0.50
+    elif(location == 'middle_right'):
+        y_lim = 0.50
+        x_lim = 0.85
 
     if(xval is None):
         xval = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * x_lim
