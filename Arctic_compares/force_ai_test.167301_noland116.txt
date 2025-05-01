@@ -1,21 +1,21 @@
 Number of OpenMP Threads: 
-Job start: Thu May  1 01:20:08 PM CDT 2025
+Job start: Thu May  1 04:17:07 PM CDT 2025
 
-2025-05-01 13:20:09.079523: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX512F
+2025-05-01 16:17:08.893379: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX512F
 To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2025-05-01 13:20:33.494910: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX512F
+2025-05-01 16:17:39.426507: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX512F
 To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2025-05-01 13:20:34.548279: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1613] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 14784 MB memory:  -> device: 0, name: Tesla V100-SXM2-16GB, pci bus id: 0000:15:00.0, compute capability: 7.0
-2025-05-01 13:20:34.549960: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1613] Created device /job:localhost/replica:0/task:0/device:GPU:1 with 14784 MB memory:  -> device: 1, name: Tesla V100-SXM2-16GB, pci bus id: 0000:16:00.0, compute capability: 7.0
-2025-05-01 13:20:34.551334: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1613] Created device /job:localhost/replica:0/task:0/device:GPU:2 with 14784 MB memory:  -> device: 2, name: Tesla V100-SXM2-16GB, pci bus id: 0000:3a:00.0, compute capability: 7.0
-2025-05-01 13:20:34.552527: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1613] Created device /job:localhost/replica:0/task:0/device:GPU:3 with 14784 MB memory:  -> device: 3, name: Tesla V100-SXM2-16GB, pci bus id: 0000:3b:00.0, compute capability: 7.0
-2025-05-01 13:20:34.553688: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1613] Created device /job:localhost/replica:0/task:0/device:GPU:4 with 14784 MB memory:  -> device: 4, name: Tesla V100-SXM2-16GB, pci bus id: 0000:89:00.0, compute capability: 7.0
-2025-05-01 13:20:34.554910: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1613] Created device /job:localhost/replica:0/task:0/device:GPU:5 with 14784 MB memory:  -> device: 5, name: Tesla V100-SXM2-16GB, pci bus id: 0000:8a:00.0, compute capability: 7.0
-2025-05-01 13:20:34.556058: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1613] Created device /job:localhost/replica:0/task:0/device:GPU:6 with 14784 MB memory:  -> device: 6, name: Tesla V100-SXM2-16GB, pci bus id: 0000:b2:00.0, compute capability: 7.0
-2025-05-01 13:20:34.557169: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1613] Created device /job:localhost/replica:0/task:0/device:GPU:7 with 14784 MB memory:  -> device: 7, name: Tesla V100-SXM2-16GB, pci bus id: 0000:b3:00.0, compute capability: 7.0
+2025-05-01 16:17:40.553329: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1613] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 14784 MB memory:  -> device: 0, name: Tesla V100-SXM2-16GB, pci bus id: 0000:15:00.0, compute capability: 7.0
+2025-05-01 16:17:40.554921: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1613] Created device /job:localhost/replica:0/task:0/device:GPU:1 with 14784 MB memory:  -> device: 1, name: Tesla V100-SXM2-16GB, pci bus id: 0000:16:00.0, compute capability: 7.0
+2025-05-01 16:17:40.556286: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1613] Created device /job:localhost/replica:0/task:0/device:GPU:2 with 14784 MB memory:  -> device: 2, name: Tesla V100-SXM2-16GB, pci bus id: 0000:3a:00.0, compute capability: 7.0
+2025-05-01 16:17:40.557480: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1613] Created device /job:localhost/replica:0/task:0/device:GPU:3 with 14784 MB memory:  -> device: 3, name: Tesla V100-SXM2-16GB, pci bus id: 0000:3b:00.0, compute capability: 7.0
+2025-05-01 16:17:40.558641: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1613] Created device /job:localhost/replica:0/task:0/device:GPU:4 with 14784 MB memory:  -> device: 4, name: Tesla V100-SXM2-16GB, pci bus id: 0000:89:00.0, compute capability: 7.0
+2025-05-01 16:17:40.559834: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1613] Created device /job:localhost/replica:0/task:0/device:GPU:5 with 14784 MB memory:  -> device: 5, name: Tesla V100-SXM2-16GB, pci bus id: 0000:8a:00.0, compute capability: 7.0
+2025-05-01 16:17:40.561010: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1613] Created device /job:localhost/replica:0/task:0/device:GPU:6 with 14784 MB memory:  -> device: 6, name: Tesla V100-SXM2-16GB, pci bus id: 0000:b2:00.0, compute capability: 7.0
+2025-05-01 16:17:40.562205: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1613] Created device /job:localhost/replica:0/task:0/device:GPU:7 with 14784 MB memory:  -> device: 7, name: Tesla V100-SXM2-16GB, pci bus id: 0000:b3:00.0, compute capability: 7.0
 GPU available: [PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU'), PhysicalDevice(name='/physical_device:GPU:1', device_type='GPU'), PhysicalDevice(name='/physical_device:GPU:2', device_type='GPU'), PhysicalDevice(name='/physical_device:GPU:3', device_type='GPU'), PhysicalDevice(name='/physical_device:GPU:4', device_type='GPU'), PhysicalDevice(name='/physical_device:GPU:5', device_type='GPU'), PhysicalDevice(name='/physical_device:GPU:6', device_type='GPU'), PhysicalDevice(name='/physical_device:GPU:7', device_type='GPU')]
 Built with CUDA: True
-['tensorflow_ai_test_noland115.py', 'noland115'] []
+['tensorflow_ai_test_noland116.py', 'noland116'] []
 False False 
 Num aerosol swaths 131
 Num clear swaths to be reserved 50
@@ -3890,7 +3890,7 @@ VZA 0.0 100.0
 ALB 0.0 100.0
 ICE 0.0 100.0
 (3993260,) (443695,)
-96.91769349043358 100.0
+97.89217083573881 100.0
 EPOCHS: 100
 BATCH SIZE: 128
 INPUT DATA SHAPE (7, 3993260)
@@ -3950,225 +3950,60 @@ Trainable params: 7,289
 Non-trainable params: 0
 __________________________________________________________________________________________________
 Epoch 1/100
-2025-05-01 13:20:36.608998: I tensorflow/compiler/xla/service/service.cc:173] XLA service 0x1ebbbb20 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
-2025-05-01 13:20:36.609094: I tensorflow/compiler/xla/service/service.cc:181]   StreamExecutor device (0): Tesla V100-SXM2-16GB, Compute Capability 7.0
-2025-05-01 13:20:36.609107: I tensorflow/compiler/xla/service/service.cc:181]   StreamExecutor device (1): Tesla V100-SXM2-16GB, Compute Capability 7.0
-2025-05-01 13:20:36.609118: I tensorflow/compiler/xla/service/service.cc:181]   StreamExecutor device (2): Tesla V100-SXM2-16GB, Compute Capability 7.0
-2025-05-01 13:20:36.609129: I tensorflow/compiler/xla/service/service.cc:181]   StreamExecutor device (3): Tesla V100-SXM2-16GB, Compute Capability 7.0
-2025-05-01 13:20:36.609139: I tensorflow/compiler/xla/service/service.cc:181]   StreamExecutor device (4): Tesla V100-SXM2-16GB, Compute Capability 7.0
-2025-05-01 13:20:36.609149: I tensorflow/compiler/xla/service/service.cc:181]   StreamExecutor device (5): Tesla V100-SXM2-16GB, Compute Capability 7.0
-2025-05-01 13:20:36.609159: I tensorflow/compiler/xla/service/service.cc:181]   StreamExecutor device (6): Tesla V100-SXM2-16GB, Compute Capability 7.0
-2025-05-01 13:20:36.609169: I tensorflow/compiler/xla/service/service.cc:181]   StreamExecutor device (7): Tesla V100-SXM2-16GB, Compute Capability 7.0
-2025-05-01 13:20:36.613925: I tensorflow/compiler/mlir/tensorflow/utils/dump_mlir_util.cc:268] disabling MLIR crash reproducer, set env var `MLIR_CRASH_REPRODUCER_DIRECTORY` to enable.
-2025-05-01 13:20:36.733525: I tensorflow/compiler/jit/xla_compilation_cache.cc:477] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
-31198/31198 - 107s - loss: 27.4354 - mae: 3.6210 - mse: 27.4354 - 107s/epoch - 3ms/step
+2025-05-01 16:17:42.564884: I tensorflow/compiler/xla/service/service.cc:173] XLA service 0x1ec6ccc0 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
+2025-05-01 16:17:42.564979: I tensorflow/compiler/xla/service/service.cc:181]   StreamExecutor device (0): Tesla V100-SXM2-16GB, Compute Capability 7.0
+2025-05-01 16:17:42.564994: I tensorflow/compiler/xla/service/service.cc:181]   StreamExecutor device (1): Tesla V100-SXM2-16GB, Compute Capability 7.0
+2025-05-01 16:17:42.565005: I tensorflow/compiler/xla/service/service.cc:181]   StreamExecutor device (2): Tesla V100-SXM2-16GB, Compute Capability 7.0
+2025-05-01 16:17:42.565016: I tensorflow/compiler/xla/service/service.cc:181]   StreamExecutor device (3): Tesla V100-SXM2-16GB, Compute Capability 7.0
+2025-05-01 16:17:42.565026: I tensorflow/compiler/xla/service/service.cc:181]   StreamExecutor device (4): Tesla V100-SXM2-16GB, Compute Capability 7.0
+2025-05-01 16:17:42.565037: I tensorflow/compiler/xla/service/service.cc:181]   StreamExecutor device (5): Tesla V100-SXM2-16GB, Compute Capability 7.0
+2025-05-01 16:17:42.565047: I tensorflow/compiler/xla/service/service.cc:181]   StreamExecutor device (6): Tesla V100-SXM2-16GB, Compute Capability 7.0
+2025-05-01 16:17:42.565057: I tensorflow/compiler/xla/service/service.cc:181]   StreamExecutor device (7): Tesla V100-SXM2-16GB, Compute Capability 7.0
+2025-05-01 16:17:42.569662: I tensorflow/compiler/mlir/tensorflow/utils/dump_mlir_util.cc:268] disabling MLIR crash reproducer, set env var `MLIR_CRASH_REPRODUCER_DIRECTORY` to enable.
+2025-05-01 16:17:42.686570: I tensorflow/compiler/jit/xla_compilation_cache.cc:477] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+31198/31198 - 104s - loss: 217.7884 - mae: 11.3207 - mse: 217.7884 - 104s/epoch - 3ms/step
 Epoch 2/100
-31198/31198 - 109s - loss: 22.3037 - mae: 3.2944 - mse: 22.3037 - 109s/epoch - 3ms/step
+31198/31198 - 106s - loss: 41.7967 - mae: 4.7389 - mse: 41.7967 - 106s/epoch - 3ms/step
 Epoch 3/100
-31198/31198 - 110s - loss: 21.7470 - mae: 3.2478 - mse: 21.7470 - 110s/epoch - 4ms/step
+31198/31198 - 105s - loss: 30.0354 - mae: 3.8946 - mse: 30.0354 - 105s/epoch - 3ms/step
 Epoch 4/100
-31198/31198 - 104s - loss: 21.3973 - mae: 3.2205 - mse: 21.3973 - 104s/epoch - 3ms/step
+31198/31198 - 104s - loss: 28.9227 - mae: 3.8158 - mse: 28.9227 - 104s/epoch - 3ms/step
 Epoch 5/100
-31198/31198 - 105s - loss: 21.1306 - mae: 3.1993 - mse: 21.1306 - 105s/epoch - 3ms/step
+31198/31198 - 106s - loss: 27.7594 - mae: 3.7246 - mse: 27.7594 - 106s/epoch - 3ms/step
 Epoch 6/100
-31198/31198 - 107s - loss: 20.8403 - mae: 3.1740 - mse: 20.8403 - 107s/epoch - 3ms/step
+31198/31198 - 106s - loss: 27.5303 - mae: 3.7046 - mse: 27.5303 - 106s/epoch - 3ms/step
 Epoch 7/100
-31198/31198 - 108s - loss: 20.6380 - mae: 3.1578 - mse: 20.6380 - 108s/epoch - 3ms/step
+31198/31198 - 100s - loss: 27.3807 - mae: 3.6939 - mse: 27.3807 - 100s/epoch - 3ms/step
 Epoch 8/100
-31198/31198 - 109s - loss: 20.4766 - mae: 3.1440 - mse: 20.4766 - 109s/epoch - 4ms/step
+31198/31198 - 97s - loss: 27.1417 - mae: 3.6754 - mse: 27.1417 - 97s/epoch - 3ms/step
 Epoch 9/100
-31198/31198 - 106s - loss: 20.2545 - mae: 3.1256 - mse: 20.2545 - 106s/epoch - 3ms/step
+31198/31198 - 96s - loss: 26.4264 - mae: 3.6313 - mse: 26.4264 - 96s/epoch - 3ms/step
 Epoch 10/100
-31198/31198 - 103s - loss: 20.0507 - mae: 3.1095 - mse: 20.0507 - 103s/epoch - 3ms/step
+31198/31198 - 97s - loss: 25.7306 - mae: 3.5886 - mse: 25.7306 - 97s/epoch - 3ms/step
 Epoch 11/100
-31198/31198 - 101s - loss: 19.6471 - mae: 3.0817 - mse: 19.6471 - 101s/epoch - 3ms/step
+31198/31198 - 98s - loss: 25.5279 - mae: 3.5724 - mse: 25.5279 - 98s/epoch - 3ms/step
 Epoch 12/100
-31198/31198 - 100s - loss: 19.3755 - mae: 3.0611 - mse: 19.3755 - 100s/epoch - 3ms/step
+31198/31198 - 100s - loss: 25.3333 - mae: 3.5584 - mse: 25.3333 - 100s/epoch - 3ms/step
 Epoch 13/100
-31198/31198 - 101s - loss: 19.1898 - mae: 3.0457 - mse: 19.1898 - 101s/epoch - 3ms/step
+31198/31198 - 97s - loss: 25.0688 - mae: 3.5391 - mse: 25.0688 - 97s/epoch - 3ms/step
 Epoch 14/100
-31198/31198 - 100s - loss: 19.0862 - mae: 3.0372 - mse: 19.0862 - 100s/epoch - 3ms/step
+31198/31198 - 104s - loss: 27.4301 - mae: 3.6923 - mse: 27.4301 - 104s/epoch - 3ms/step
 Epoch 15/100
-31198/31198 - 101s - loss: 18.9602 - mae: 3.0270 - mse: 18.9602 - 101s/epoch - 3ms/step
+31198/31198 - 105s - loss: 28.7836 - mae: 3.7781 - mse: 28.7836 - 105s/epoch - 3ms/step
 Epoch 16/100
-31198/31198 - 102s - loss: 18.9590 - mae: 3.0261 - mse: 18.9590 - 102s/epoch - 3ms/step
+31198/31198 - 103s - loss: 28.6999 - mae: 3.7700 - mse: 28.6999 - 103s/epoch - 3ms/step
 Epoch 17/100
-31198/31198 - 101s - loss: 18.7934 - mae: 3.0141 - mse: 18.7934 - 101s/epoch - 3ms/step
+31198/31198 - 105s - loss: 28.6682 - mae: 3.7679 - mse: 28.6682 - 105s/epoch - 3ms/step
 Epoch 18/100
-31198/31198 - 102s - loss: 18.7684 - mae: 3.0115 - mse: 18.7684 - 102s/epoch - 3ms/step
+31198/31198 - 108s - loss: 28.6080 - mae: 3.7635 - mse: 28.6080 - 108s/epoch - 3ms/step
 Epoch 19/100
-31198/31198 - 101s - loss: 18.7056 - mae: 3.0073 - mse: 18.7056 - 101s/epoch - 3ms/step
+31198/31198 - 109s - loss: 28.5905 - mae: 3.7621 - mse: 28.5905 - 109s/epoch - 4ms/step
 Epoch 20/100
-31198/31198 - 101s - loss: 18.6707 - mae: 3.0045 - mse: 18.6707 - 101s/epoch - 3ms/step
+31198/31198 - 107s - loss: 28.5346 - mae: 3.7576 - mse: 28.5346 - 107s/epoch - 3ms/step
 Epoch 21/100
-31198/31198 - 101s - loss: 18.6250 - mae: 3.0009 - mse: 18.6250 - 101s/epoch - 3ms/step
+31198/31198 - 98s - loss: 36.5549 - mae: 4.3295 - mse: 36.5549 - 98s/epoch - 3ms/step
 Epoch 22/100
-31198/31198 - 101s - loss: 18.5823 - mae: 2.9976 - mse: 18.5823 - 101s/epoch - 3ms/step
+31198/31198 - 97s - loss: 30.5577 - mae: 3.9235 - mse: 30.5577 - 97s/epoch - 3ms/step
 Epoch 23/100
-31198/31198 - 100s - loss: 18.5665 - mae: 2.9966 - mse: 18.5665 - 100s/epoch - 3ms/step
+31198/31198 - 97s - loss: 30.1282 - mae: 3.8819 - mse: 30.1282 - 97s/epoch - 3ms/step
 Epoch 24/100
-31198/31198 - 100s - loss: 18.5372 - mae: 2.9946 - mse: 18.5372 - 100s/epoch - 3ms/step
-Epoch 25/100
-31198/31198 - 100s - loss: 18.4860 - mae: 2.9904 - mse: 18.4860 - 100s/epoch - 3ms/step
-Epoch 26/100
-31198/31198 - 101s - loss: 18.4797 - mae: 2.9899 - mse: 18.4797 - 101s/epoch - 3ms/step
-Epoch 27/100
-31198/31198 - 100s - loss: 18.4510 - mae: 2.9879 - mse: 18.4510 - 100s/epoch - 3ms/step
-Epoch 28/100
-31198/31198 - 101s - loss: 18.4490 - mae: 2.9881 - mse: 18.4490 - 101s/epoch - 3ms/step
-Epoch 29/100
-31198/31198 - 101s - loss: 18.4264 - mae: 2.9862 - mse: 18.4264 - 101s/epoch - 3ms/step
-Epoch 30/100
-31198/31198 - 101s - loss: 18.4014 - mae: 2.9828 - mse: 18.4014 - 101s/epoch - 3ms/step
-Epoch 31/100
-31198/31198 - 103s - loss: 18.3826 - mae: 2.9823 - mse: 18.3826 - 103s/epoch - 3ms/step
-Epoch 32/100
-31198/31198 - 105s - loss: 18.3670 - mae: 2.9811 - mse: 18.3670 - 105s/epoch - 3ms/step
-Epoch 33/100
-31198/31198 - 104s - loss: 18.3436 - mae: 2.9805 - mse: 18.3436 - 104s/epoch - 3ms/step
-Epoch 34/100
-31198/31198 - 110s - loss: 18.3396 - mae: 2.9797 - mse: 18.3396 - 110s/epoch - 4ms/step
-Epoch 35/100
-31198/31198 - 101s - loss: 18.2957 - mae: 2.9762 - mse: 18.2957 - 101s/epoch - 3ms/step
-Epoch 36/100
-31198/31198 - 100s - loss: 18.3112 - mae: 2.9776 - mse: 18.3112 - 100s/epoch - 3ms/step
-Epoch 37/100
-31198/31198 - 100s - loss: 18.2468 - mae: 2.9730 - mse: 18.2468 - 100s/epoch - 3ms/step
-Epoch 38/100
-31198/31198 - 100s - loss: 18.2387 - mae: 2.9717 - mse: 18.2387 - 100s/epoch - 3ms/step
-Epoch 39/100
-31198/31198 - 102s - loss: 18.2626 - mae: 2.9724 - mse: 18.2626 - 102s/epoch - 3ms/step
-Epoch 40/100
-31198/31198 - 100s - loss: 18.2328 - mae: 2.9703 - mse: 18.2328 - 100s/epoch - 3ms/step
-Epoch 41/100
-31198/31198 - 101s - loss: 18.2026 - mae: 2.9690 - mse: 18.2026 - 101s/epoch - 3ms/step
-Epoch 42/100
-31198/31198 - 100s - loss: 18.1619 - mae: 2.9658 - mse: 18.1619 - 100s/epoch - 3ms/step
-Epoch 43/100
-31198/31198 - 100s - loss: 18.1899 - mae: 2.9675 - mse: 18.1899 - 100s/epoch - 3ms/step
-Epoch 44/100
-31198/31198 - 101s - loss: 18.2031 - mae: 2.9685 - mse: 18.2031 - 101s/epoch - 3ms/step
-Epoch 45/100
-31198/31198 - 105s - loss: 18.1705 - mae: 2.9657 - mse: 18.1705 - 105s/epoch - 3ms/step
-Epoch 46/100
-31198/31198 - 112s - loss: 18.1424 - mae: 2.9638 - mse: 18.1424 - 112s/epoch - 4ms/step
-Epoch 47/100
-31198/31198 - 113s - loss: 18.1385 - mae: 2.9639 - mse: 18.1385 - 113s/epoch - 4ms/step
-Epoch 48/100
-31198/31198 - 105s - loss: 18.1670 - mae: 2.9656 - mse: 18.1670 - 105s/epoch - 3ms/step
-Epoch 49/100
-31198/31198 - 105s - loss: 18.1518 - mae: 2.9644 - mse: 18.1518 - 105s/epoch - 3ms/step
-Epoch 50/100
-31198/31198 - 108s - loss: 18.1723 - mae: 2.9656 - mse: 18.1723 - 108s/epoch - 3ms/step
-Epoch 51/100
-31198/31198 - 104s - loss: 18.1369 - mae: 2.9631 - mse: 18.1369 - 104s/epoch - 3ms/step
-Epoch 52/100
-31198/31198 - 99s - loss: 18.0793 - mae: 2.9592 - mse: 18.0793 - 99s/epoch - 3ms/step
-Epoch 53/100
-31198/31198 - 104s - loss: 18.0895 - mae: 2.9593 - mse: 18.0895 - 104s/epoch - 3ms/step
-Epoch 54/100
-31198/31198 - 102s - loss: 18.0988 - mae: 2.9597 - mse: 18.0988 - 102s/epoch - 3ms/step
-Epoch 55/100
-31198/31198 - 101s - loss: 18.1167 - mae: 2.9624 - mse: 18.1167 - 101s/epoch - 3ms/step
-Epoch 56/100
-31198/31198 - 93s - loss: 18.1281 - mae: 2.9626 - mse: 18.1281 - 93s/epoch - 3ms/step
-Epoch 57/100
-31198/31198 - 94s - loss: 18.0881 - mae: 2.9590 - mse: 18.0881 - 94s/epoch - 3ms/step
-Epoch 58/100
-31198/31198 - 93s - loss: 18.0929 - mae: 2.9599 - mse: 18.0929 - 93s/epoch - 3ms/step
-Epoch 59/100
-31198/31198 - 99s - loss: 18.0680 - mae: 2.9586 - mse: 18.0680 - 99s/epoch - 3ms/step
-Epoch 60/100
-31198/31198 - 95s - loss: 18.0550 - mae: 2.9567 - mse: 18.0550 - 95s/epoch - 3ms/step
-Epoch 61/100
-31198/31198 - 93s - loss: 18.0848 - mae: 2.9589 - mse: 18.0848 - 93s/epoch - 3ms/step
-Epoch 62/100
-31198/31198 - 93s - loss: 18.0563 - mae: 2.9572 - mse: 18.0563 - 93s/epoch - 3ms/step
-Epoch 63/100
-31198/31198 - 94s - loss: 18.0537 - mae: 2.9563 - mse: 18.0537 - 94s/epoch - 3ms/step
-Epoch 64/100
-31198/31198 - 93s - loss: 18.0603 - mae: 2.9566 - mse: 18.0603 - 93s/epoch - 3ms/step
-Epoch 65/100
-31198/31198 - 94s - loss: 18.0401 - mae: 2.9561 - mse: 18.0401 - 94s/epoch - 3ms/step
-Epoch 66/100
-31198/31198 - 94s - loss: 18.0583 - mae: 2.9573 - mse: 18.0583 - 94s/epoch - 3ms/step
-Epoch 67/100
-31198/31198 - 94s - loss: 18.0262 - mae: 2.9538 - mse: 18.0262 - 94s/epoch - 3ms/step
-Epoch 68/100
-31198/31198 - 94s - loss: 18.7722 - mae: 3.0128 - mse: 18.7722 - 94s/epoch - 3ms/step
-Epoch 69/100
-31198/31198 - 93s - loss: 18.5481 - mae: 3.0006 - mse: 18.5481 - 93s/epoch - 3ms/step
-Epoch 70/100
-31198/31198 - 93s - loss: 18.2873 - mae: 2.9780 - mse: 18.2873 - 93s/epoch - 3ms/step
-Epoch 71/100
-31198/31198 - 93s - loss: 18.2130 - mae: 2.9709 - mse: 18.2130 - 93s/epoch - 3ms/step
-Epoch 72/100
-31198/31198 - 94s - loss: 18.1837 - mae: 2.9673 - mse: 18.1837 - 94s/epoch - 3ms/step
-Epoch 73/100
-31198/31198 - 94s - loss: 18.7287 - mae: 3.0134 - mse: 18.7287 - 94s/epoch - 3ms/step
-Epoch 74/100
-31198/31198 - 94s - loss: 18.1037 - mae: 2.9623 - mse: 18.1037 - 94s/epoch - 3ms/step
-Epoch 75/100
-31198/31198 - 93s - loss: 18.0705 - mae: 2.9587 - mse: 18.0705 - 93s/epoch - 3ms/step
-Epoch 76/100
-31198/31198 - 94s - loss: 18.0685 - mae: 2.9584 - mse: 18.0685 - 94s/epoch - 3ms/step
-Epoch 77/100
-31198/31198 - 93s - loss: 20.4679 - mae: 3.1314 - mse: 20.4679 - 93s/epoch - 3ms/step
-Epoch 78/100
-31198/31198 - 94s - loss: 18.4307 - mae: 2.9883 - mse: 18.4307 - 94s/epoch - 3ms/step
-Epoch 79/100
-31198/31198 - 105s - loss: 18.9664 - mae: 3.0301 - mse: 18.9664 - 105s/epoch - 3ms/step
-Epoch 80/100
-31198/31198 - 102s - loss: 18.1561 - mae: 2.9664 - mse: 18.1561 - 102s/epoch - 3ms/step
-Epoch 81/100
-31198/31198 - 104s - loss: 18.0710 - mae: 2.9581 - mse: 18.0710 - 104s/epoch - 3ms/step
-Epoch 82/100
-31198/31198 - 106s - loss: 18.0044 - mae: 2.9527 - mse: 18.0044 - 106s/epoch - 3ms/step
-Epoch 83/100
-31198/31198 - 107s - loss: 17.9698 - mae: 2.9499 - mse: 17.9698 - 107s/epoch - 3ms/step
-Epoch 84/100
-31198/31198 - 105s - loss: 17.9473 - mae: 2.9492 - mse: 17.9473 - 105s/epoch - 3ms/step
-Epoch 85/100
-31198/31198 - 100s - loss: 17.9545 - mae: 2.9483 - mse: 17.9545 - 100s/epoch - 3ms/step
-Epoch 86/100
-31198/31198 - 94s - loss: 17.9231 - mae: 2.9463 - mse: 17.9231 - 94s/epoch - 3ms/step
-Epoch 87/100
-31198/31198 - 94s - loss: 17.9383 - mae: 2.9474 - mse: 17.9383 - 94s/epoch - 3ms/step
-Epoch 88/100
-31198/31198 - 94s - loss: 17.8897 - mae: 2.9441 - mse: 17.8897 - 94s/epoch - 3ms/step
-Epoch 89/100
-31198/31198 - 94s - loss: 17.8735 - mae: 2.9422 - mse: 17.8735 - 94s/epoch - 3ms/step
-Epoch 90/100
-31198/31198 - 94s - loss: 17.9440 - mae: 2.9478 - mse: 17.9440 - 94s/epoch - 3ms/step
-Epoch 91/100
-31198/31198 - 94s - loss: 17.8546 - mae: 2.9412 - mse: 17.8546 - 94s/epoch - 3ms/step
-Epoch 92/100
-31198/31198 - 94s - loss: 17.8580 - mae: 2.9409 - mse: 17.8580 - 94s/epoch - 3ms/step
-Epoch 93/100
-31198/31198 - 102s - loss: 17.8552 - mae: 2.9404 - mse: 17.8552 - 102s/epoch - 3ms/step
-Epoch 94/100
-31198/31198 - 101s - loss: 17.8795 - mae: 2.9407 - mse: 17.8795 - 101s/epoch - 3ms/step
-Epoch 95/100
-31198/31198 - 94s - loss: 17.9746 - mae: 2.9498 - mse: 17.9746 - 94s/epoch - 3ms/step
-Epoch 96/100
-31198/31198 - 93s - loss: 17.8688 - mae: 2.9419 - mse: 17.8688 - 93s/epoch - 3ms/step
-Epoch 97/100
-31198/31198 - 94s - loss: 17.8133 - mae: 2.9377 - mse: 17.8133 - 94s/epoch - 3ms/step
-Epoch 98/100
-31198/31198 - 94s - loss: 17.8018 - mae: 2.9361 - mse: 17.8018 - 94s/epoch - 3ms/step
-Epoch 99/100
-31198/31198 - 94s - loss: 17.7914 - mae: 2.9354 - mse: 17.7914 - 94s/epoch - 3ms/step
-Epoch 100/100
-31198/31198 - 93s - loss: 17.8248 - mae: 2.9382 - mse: 17.8248 - 93s/epoch - 3ms/step
-1/1 [==============================] - ETA: 0s1/1 [==============================] - 0s 199ms/step
-[364.831604   209.63122559 283.75598145 213.6882782   92.13726807
- 116.59565735 330.31747437 250.9989624  192.13087463 330.61257935]
-[266.12265 215.927   280.8379  247.81396 261.97427 112.7471  322.494
- 206.82248 203.4193  318.5195 ]
-SUCCESS
-
-real	166m45.040s
-user	235m58.283s
-sys	21m10.892s
-
-Job end: Thu May  1 04:06:53 PM CDT 2025

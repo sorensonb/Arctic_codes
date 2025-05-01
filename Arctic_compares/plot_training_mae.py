@@ -32,6 +32,7 @@ type_dict = {
     'noland109': 'Linear', 
     'noland112': 'ReLU', 
     'noland115': 'Softplus', 
+    'noland116': 'Tanh', 
 }
 
 fig = plt.figure()
@@ -46,6 +47,10 @@ for infile in sys.argv[1:]:
     xvals = np.arange(mae_lrelu.shape[0])
     
     ax.plot(xvals, mae_lrelu, label = type_dict[dtype])
+
+ax.set_xlabel('Training epochs')
+ax.set_ylabel('Mean Absolute Error [W/m2]')
+ax.grid(alpha = 0.5)
 
 ax.legend()
 

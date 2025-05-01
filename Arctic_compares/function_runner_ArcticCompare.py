@@ -257,7 +257,8 @@ sys.exit()
 #plot_NN_error_dist_bulk('noland109', num_bins = 500, astrofit = True, \
 #plot_NN_error_dist_bulk('noland110', num_bins = 500, astrofit = True, \
 #plot_NN_error_dist_bulk('noland112', num_bins = 500, astrofit = True, \
-plot_NN_error_dist_bulk('noland113', num_bins = 500, astrofit = True, \
+#plot_NN_error_dist_bulk('noland113', num_bins = 500, astrofit = True, \
+plot_NN_error_dist_bulk('noland115', num_bins = 500, astrofit = True, \
     use_correct_error_calc = True, xmin = -100, xmax = 100, save = False)
 sys.exit()
 #plot_NN_error_dist_bulk('noland74', num_bins = 500, astrofit = True, \
