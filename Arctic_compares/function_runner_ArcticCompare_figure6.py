@@ -392,9 +392,9 @@ else:
 
     # Compare the OMI, CERES, NN, and NN - CERES for two swaths
     # ---------------------------------------------------------
-    plot_compare_NN_output_double(sys.argv[1], \
-        sys.argv[2], \
-        save = True, include_scatter = False)
-    #plot_compare_NN_output_double(sys.argv[1], sys.argv[2], save = False, include_scatter = False)
+    #plot_compare_NN_output_double(sys.argv[1], \
+    #    sys.argv[2], \
+    #    save = True, include_scatter = False)
+    plot_compare_NN_output_double(sys.argv[1], sys.argv[2], save = False, include_scatter = False)
 
 

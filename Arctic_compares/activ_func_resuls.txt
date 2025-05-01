@@ -1,0 +1,9 @@
+Runs based on noland108
+- noland108: LeakyReLU
+    - Training results
+        - Mean error = -2.0 W/m2
+        - Std error  = 18.8 W/m2
+    - Plotting results
+        - Ending MSE = 16.8 W/m2
+        - Ending MAE = 2.85 W/m2
+- noland109: 

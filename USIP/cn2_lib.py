@@ -1462,8 +1462,8 @@ def plot_calibration_curves(date_str, save = False):
     ax2.set_title('Temperature Conversion')
     ax2.grid()
 
-    plot_subplot_label(ax1, '(a)', fontsize = 11)
-    plot_subplot_label(ax2, '(b)', fontsize = 11)
+    plot_subplot_label(ax1, '(a)', location = 'upper_upper_left', fontsize = 11)
+    plot_subplot_label(ax2, '(b)', location = 'upper_upper_left', fontsize = 11)
 
     plt.suptitle(dt_date_str.strftime('%Y-%m-%d'))
 

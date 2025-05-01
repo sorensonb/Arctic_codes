@@ -15,7 +15,7 @@ dest_dir = home_dir + "/Arctic_codes/"
 
 copy_raindrop = False
 copy_calipso  = False
-copy_jpss     = True
+copy_jpss     = False
 copy_talon    = False
 
 ## Add new stuff

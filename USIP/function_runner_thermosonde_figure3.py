@@ -15,5 +15,5 @@ from cn2_lib import *
 from compare_cn2 import *
 from datetime import datetime
 
-plot_calibration_curves('20171117', save = False)
+plot_calibration_curves('20171117', save = True)
 

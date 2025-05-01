@@ -12,7 +12,6 @@ import os
 import re
 import pandas as pd
 import matplotlib.pyplot as plt
-import h5py
 
 # 1  SOYB    "soybean"
 # 2  CO30    39.0    0.53    25.0     8.0     6.0    0.50   15.05   50.95    0.10
@@ -98,10 +97,6 @@ conv_dict = {
     'CORN': 15.93, \
 }
 
-crop_name_dict = {
-    11: 'WHET'
-}
-
 # Defaults:
 # - crop_type     = 11 (wheat)
 # - solar_units   = 1800 
@@ -109,17 +104,12 @@ crop_name_dict = {
 # - plant_day     = 10
 # - harvest_month = 9
 # - harvest_day   = 30
-# - unkn_var1     = 17
-# - unkn_var2     = 46
-# - crop_density  = 50
 # - output_unit   = 'TPH' (BPA = bushels per acre, \
 #                          TPH = metric tons per hectare)
 def run_MSPAM_yearly_yields(year = None, county = None, \
         crop_type = 11, solar_units = 1800, \
         plant_month = 4, plant_day = 10, \
         harvest_month = 9, harvest_day = 30, \
-        unkn_var1 = 17, unkn_var2 = 46, \
-        crop_density = 50, \
         output_unit = 'TPH'):
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -158,6 +148,8 @@ def run_MSPAM_yearly_yields(year = None, county = None, \
     crop_name = "XXXX"
     for year in years:
     
+        #output_dict[year] = {}    
+    
         # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
         #
         #                        Prep the almanac.input file
@@ -177,16 +169,14 @@ def run_MSPAM_yearly_yields(year = None, county = None, \
                         line = '    ' + str(year) + '   1   1    0   0   1\n'
                     elif(ii == 63):
                         # Line idx 63 : planting / solar line
-                        #'   4  10  17  11   0    1800       0      50'
-                        #line = '{0:4d}{1:4d}  17{2:4d}   0    {3:4d}       0      50\n'.format(\
-                        line = '{0:4d}{1:4d}{2:4d}{3:4d}   0    {4:4d}       0    {5:4d}\n'.format(\
-                            plant_month, plant_day, unkn_var1, crop_type,solar_units, crop_density)
+                        '   4  10  17  11   0    1800       0      50'
+                        line = '{0:4d}{1:4d}  17{2:4d}   0    {3:4d}       0      50\n'.format(\
+                            plant_month, plant_day, crop_type,solar_units)
                     elif(ii == 64):
                         # Line idx 64 : harvesting line
-                        #'   9  30  46  11   0       0       0       0'
-                        #line = '{0:4d}{1:4d}  46{2:4d}   0       0       0       0\n'.format(\
-                        line = '{0:4d}{1:4d}{2:4d}{3:4d}   0       0       0       0\n'.format(\
-                            harvest_month, harvest_day, unkn_var2, crop_type)
+                        '   9  30  46  11   0       0       0       0'
+                        line = '{0:4d}{1:4d}  46{2:4d}   0       0       0       0\n'.format(\
+                            harvest_month, harvest_day, crop_type)
         
         
                     fout.write(line)
@@ -204,9 +194,8 @@ def run_MSPAM_yearly_yields(year = None, county = None, \
         #
         # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
         for jj, cty in enumerate(counties):
-            print(cty)
             output_dict[cty][str(year)] = {}
-   
+    
             mukey   = obs_dict[obs_dict['County'] == cty]['MUKEY'].values[0]
             wx_file = obs_dict[obs_dict['County'] == cty]['WTH'].values[0]
     
@@ -323,15 +312,10 @@ def run_MSPAM_yearly_yields(year = None, county = None, \
     #                       Write yield data to output
     #
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-   
-    if(county is not None): 
-        county = re.sub(' ','_',county)
-        outfile_name = 'test_out_cty' + county + '_' + crop_name + '_HU' + str(solar_units) + '_CD' \
-            + str(crop_density) + '_' + output_unit + '.txt'
-    else:
-        outfile_name = 'test_out_' + crop_name + '_HU' + str(solar_units) + '_CD' \
-            + str(crop_density) + '_' + output_unit + '.txt'
-   
+    
+    outfile_name = 'test_out_' + crop_name + '_HU' + str(solar_units) + '_' \
+        + output_unit + '.txt'
+    
     fmt_str = '{0:15s}{1:<10d}{2:19s}{3:10.1f}{4:10.1f}{5:10.1f}{6:10.1f}' + \
         '{7:10.1f}{8:10.1f}{9:10.1f}{10:10.1f}{11:10.1f}{12:10.1f}' + \
         '{13:10.1f}{14:10.1f}{15:10.1f}{16:10.1f}{17:10.1f}\n'
@@ -385,91 +369,6 @@ def run_MSPAM_yearly_yields(year = None, county = None, \
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     os.system('rm -r ./tmp_outzip_dir')
 
-def run_MSPAM_yearly_auto_singlecounty(county, crop_type = 11, \
-        min_heat_unit = 1000, max_heat_unit = 2000, delta_heat_unit = 100, 
-        min_crop_density = 20, max_crop_density = 80, delta_crop_density = 10,
-        plant_month = 4, plant_day = 10, \
-        harvest_month = 9, harvest_day = 30, \
-        output_unit = 'BPA', \
-        REPROCESS = False):
-
-    # Set up arrays to hold all the heat unit and crop density values
-    # ----------------------------------------------------------------
-    heat_units   = np.arange(min_heat_unit, max_heat_unit + delta_heat_unit, \
-        delta_heat_unit)
-    crop_densities = np.arange(min_crop_density, \
-        max_crop_density + delta_crop_density, delta_crop_density)
-    years = np.arange(2001, 2016)
-
-    #county = re.sub(' ','_',county)
-
-    # Set up a dictionary to hold the output
-    # --------------------------------------
-    output_dict = {}
-    output_dict['heat_units'] = {}        
-    output_dict['crop_densities'] = {}        
-
-    output_arr = np.full( (len(heat_units), len(crop_densities), len(years)), \
-        np.nan)
-
-    for ii, hu in enumerate(heat_units):
-        for jj, cd in enumerate(crop_densities):
-       
-            # First, see if an output file exists with these specifications
-            # -------------------------------------------------------------
-            infile = 'test_out_cty' + re.sub(' ','_',county) + '_' + \
-                crop_name_dict[crop_type] + '_HU' + str(int(hu)) + \
-                '_CD' + str(int(cd)) + '_' + output_unit + '.txt'
-
-            if( (not os.path.exists(infile)) | (REPROCESS)):
- 
-                # Run the function to generate a yield output file for the 
-                # current heat unit and crop density
-                # --------------------------------------------------------
-                run_MSPAM_yearly_yields(year = None, county = re.sub('_',' ',county), \
-                    crop_type = crop_type, solar_units = hu, \
-                    plant_month = 4, plant_day = 10, \
-                    harvest_month = 9, harvest_day = 30, \
-                    crop_density = cd, 
-                    output_unit = output_unit)
-
-            # Read the current output file
-            # ----------------------------
-            print("Reading:", infile)
-            data = read_MSPAM_output(infile)
-           
-            # Extract the observed and modeled yields from 2001 - 2015 for 
-            # the current county
-            # ------------------------------------------------------------ 
-            yield_keys = data.keys()[3:]
-            yearly_model = np.array([data[data['County'] == \
-                re.sub('_',' ',county)][tkey].values for tkey in yield_keys]).squeeze()
-
-            # Insert the data into the array
-            # ------------------------------
-            output_arr[ii,jj,:] = yearly_model     
-
-    # Write the data to an HDF5 file
-    # ------------------------------
-    outfile = 'mspam_out_cty' + re.sub(' ','_',county) + '.hdf5'
-    if(os.path.exists(outfile)):
-        ii = 1
-        while(os.path.exists(outfile)):
-            outfile = 'mspam_out_cty' + re.sub(' ','_',county) + '_v' + str(ii) + '.hdf5'
-            ii += 1
-    print(outfile)
-
-    dset = h5py.File(outfile,'w')
-    cdt = dset.create_dataset('heat_units',  data = heat_units)
-    cdt = dset.create_dataset('crop_densities',  data = crop_densities)
-    cdt = dset.create_dataset('years', data = years)
-    cdt = dset.create_dataset('model_yields', data = output_arr)
-    #cdt = dset.create_dataset('dims', data = dims)
-
-    dset.close()
-
-    return output_arr
-
 #############################################################################
 #
 #                            Reading functions
@@ -506,7 +405,7 @@ def read_MSPAM_output(infile):
 
 # NOTE: Only set up to work with wheat yield output files now. Can modify
 # to work with corn or soybeans later
-def calc_model_errors_allcounties(crop_density = 50):
+def calc_model_errors():
 
     heat_units = np.arange(1000, 2100, 100)
     years = np.arange(2001, 2016)
@@ -531,18 +430,15 @@ def calc_model_errors_allcounties(crop_density = 50):
    
             # Read the MSPAM modeled wheat yields 
             # -----------------------------------
-            infile = 'test_out_WHET_HU' + str(int(hu)) + '_CD' + \
-                str(int(crop_density)) + '_BPA.txt'
+            infile = 'test_out_WHET_HU' + str(int(hu)) + '_BPA.txt'
             data = read_MSPAM_output(infile)
            
             # Extract the observed and modeled yields from 2001 - 2015 for 
             # the current county
             # ------------------------------------------------------------ 
             yield_keys = data.keys()[3:]
-            yearly_model = np.array([data[data['County'] == cty][tkey].values \
-                for tkey in yield_keys]).squeeze()
-            yearly_obs   = np.array([obs[obs['County'] == cty][tkey].values \
-                for tkey in yield_keys]).squeeze()
+            yearly_model = np.array([data[data['County'] == cty][tkey].values for tkey in yield_keys]).squeeze()
+            yearly_obs   = np.array([obs[obs['County'] == cty][tkey].values for tkey in yield_keys]).squeeze()
            
             # Calculate the percent errors between the modeled and observed
             # yields
@@ -553,8 +449,7 @@ def calc_model_errors_allcounties(crop_density = 50):
             # Mask percent errors for years, heat units, or counties 
             # with missing obs or modeled yields
             # ------------------------------------------------------
-            pcnt_err = np.where( (yearly_obs < 0) | (yearly_model < 0), \
-                np.nan, pcnt_err)
+            pcnt_err = np.where( (yearly_obs < 0) | (yearly_model < 0), np.nan, pcnt_err)
    
             # Insert the data into the arrays
             # ------------------------------- 
@@ -565,17 +460,14 @@ def calc_model_errors_allcounties(crop_density = 50):
     # Mask any invalid or missing values in the arrays
     # ------------------------------------------------    
     pcnt_errors = np.ma.masked_invalid(pcnt_errors)
-    obs_yields = np.ma.masked_where( (obs_yields < 0) | \
-        (np.isnan(obs_yields)), obs_yields)
-    model_yields = np.ma.masked_where( (model_yields < 0) | \
-        (np.isnan(model_yields)), model_yields)
+    obs_yields = np.ma.masked_where( (obs_yields < 0) | (np.isnan(obs_yields)), obs_yields)
+    model_yields = np.ma.masked_where( (model_yields < 0) | (np.isnan(model_yields)), model_yields)
 
     # Combine the observed yields, modeled yields, and percent errors
     # into a dictionary for output
     # ---------------------------------------------------------------
     out_dict = {}
     out_dict['dims'] = ['heat_units','counties','years']
-    out_dict['crop_density'] = crop_density
     out_dict['heat_units'] = heat_units
     out_dict['counties'] = counties
     out_dict['years'] = years
@@ -585,139 +477,14 @@ def calc_model_errors_allcounties(crop_density = 50):
 
     return out_dict 
 
-# NOTE: Only set up to work with wheat yield output files now. Can modify
-# to work with corn or soybeans later
-def calc_model_errors_singlecounty(infile):
-
-    # Read the HDF5 data
-    # ------------------
-    data = h5py.File(infile, 'r')
-    years = data['years'][:]
-    heat_units = data['heat_units'][:]
-    crop_densities = data['crop_densities'][:]
-    model_yields = data['model_yields'][:,:,:]
-    data.close()
-
-    # Extract the county from the file name
-    # -------------------------------------
-    county = infile.strip().split('.')[0].split('cty')[-1]
-
-    obs_file = "../run_batch/yearly_yield_2001_2015.csv"
-    obs = read_yield_observations(obs_file) 
-    yield_keys = ['Yield' + str(year) for year in np.arange(2001, 2016)]
- 
-    pcnt_errors = np.full( (len(heat_units), len(crop_densities), \
-        len(years)), np.nan)
-    obs_yields = np.full(len(years), np.nan)
-    #model_yields = np.full( (len(heat_units), len(crop_densities), len(years)), np.nan)
-   
-    # Loop over the heat units
-    # ------------------------ 
-    for ii, hu in enumerate(heat_units):
-
-        # Loop over the crop densities
-        # ----------------------------
-        for jj, cd in enumerate(crop_densities):
-    
-            print(hu, cd)
-   
-            # Extract the observed and modeled yields from 2001 - 2015 for 
-            # the current county
-            # ------------------------------------------------------------ 
-            yearly_model = model_yields[ii,jj,:]
-            yearly_obs   = np.array([obs[obs['County'] == \
-                re.sub('_',' ',county)][tkey].values \
-                for tkey in yield_keys]).squeeze()
-           
-            # Calculate the percent errors between the modeled and observed
-            # yields
-            # ------------------------------------------------------------- 
-            errors = yearly_obs - yearly_model
-            pcnt_err = (np.abs(errors) / yearly_obs) * 100.
-   
-            # Mask percent errors for years, heat units, or counties 
-            # with missing obs or modeled yields
-            # ------------------------------------------------------
-            pcnt_err = np.where( (yearly_obs < 0) | (yearly_model < 0), \
-                np.nan, pcnt_err)
-   
-            # Insert the data into the arrays
-            # ------------------------------- 
-            pcnt_errors[ii,jj,:] = pcnt_err
-            obs_yields[:]  = yearly_obs    
-            #model_yields[ii,jj,:]  = yearly_model  
-    
-    # Mask any invalid or missing values in the arrays
-    # ------------------------------------------------    
-    pcnt_errors = np.ma.masked_invalid(pcnt_errors)
-    obs_yields = np.ma.masked_where( (obs_yields < 0) | \
-        (np.isnan(obs_yields)), obs_yields)
-    model_yields = np.ma.masked_where( (model_yields < 0) | \
-        (np.isnan(model_yields)), model_yields)
-
-    # Combine the observed yields, modeled yields, and percent errors
-    # into a dictionary for output
-    # ---------------------------------------------------------------
-    out_dict = {}
-    out_dict['dims'] = ['heat_units','crop_densities','years']
-    out_dict['county'] = county
-    out_dict['heat_units'] = heat_units
-    out_dict['crop_densities'] = crop_densities
-    out_dict['years'] = years
-    out_dict['obs_yields']   = obs_yields
-    out_dict['model_yields'] = model_yields
-    out_dict['pcnt_errors']  = pcnt_errors   
-
-    return out_dict 
-
-
 #############################################################################
 #
 #                            Plotting functions
 #
 #############################################################################
 
-# Set up to work with the dictionary output from calc_model_errors_allcounties()
-def plot_yield_time_series(mspam_dict, county, heat_unit, ax = None, \
-        save = False):
-
-    # Extract the desired yields for the given county and heat
-    # unit.
-    # --------------------------------------------------------
-    cty_idx   = np.where(mspam_dict['counties'] == county)[0][0]
-    hu_idx    = np.where(mspam_dict['heat_units'] == heat_unit)[0][0]
-    cty_obs   = mspam_dict['obs_yields'][hu_idx,cty_idx,:]
-    cty_model = mspam_dict['model_yields'][hu_idx,cty_idx,:]
-
-    in_ax = True
-    if(ax is None):
-        in_ax = False
-        plt.close('all')
-        fig = plt.figure()
-        ax = fig.add_subplot(1,1,1)
-
-    ax.plot(mspam_dict['years'], cty_obs, label = 'Obs')
-    ax.plot(mspam_dict['years'], cty_model, label = 'Model')
-
-    ax.set_xlabel('Year')
-    ax.set_ylabel('Yield [Bushels Per Acre]')
-    ax.set_title(county + " County Wheat Yields\n" + \
-        "Heat units = " + str(heat_unit) + ', Crop Density = ' + str(mspam_dict['crop_density']))
-    ax.legend()
-
-    if(not in_ax):
-        fig.tight_layout()
-        if(save):
-            outname = 'mspam_yield_timeseries_cty' + county + '_HU' + \
-                str(heat_unit) + '_CD' + str(mspam_dict['crop_density']) + '.png' 
-            fig.savefig(outname, dpi = 200)
-            print("Saved image", outname)
-        else: 
-            plt.show()
-
 # Plot yearly-averaged errors for a single county as a function of
 # heat units
-# Set up to work with the dictionary output from calc_model_errors_allcounties()
 # -----------------------------------------------------------------
 def plot_MSPAM_errors_yearavg_single(mspam_dict, county, ax = None, \
         ptitle = None, save = False, show_xlabel = True, show_ylabel = True):
@@ -759,53 +526,6 @@ def plot_MSPAM_errors_yearavg_single(mspam_dict, county, ax = None, \
         else:
             plt.show()
 
-# Plot yearly-averaged errors for a single county as a function of
-# heat units
-# Set up to work with the dictionary output from calc_model_errors_singlecounty()
-# -----------------------------------------------------------------
-def plot_MSPAM_errors_yearavg_singlecounty(mspam_sc_dict, crop_density, ax = None, \
-        ptitle = None, save = False, show_xlabel = True, show_ylabel = True):
-
-    # Extract the desired errors for the given county
-    # -----------------------------------------------
-    cd_idx = np.where(mspam_dict['crop_densities'] == crop_density)[0][0]
-    cd_errs = mspam_dict['pcnt_errors'][:,cd_idx,:]
-
-    # Average the errors across the years
-    # -----------------------------------
-    avg_errs = np.nanmean(cty_errs, axis = 1)
-
-    # Plot the errors
-    # ---------------
-    in_ax = True
-    if(ax is None):
-        in_ax = False
-        plt.close('all')
-        fig = plt.figure()
-        ax = fig.add_subplot(1,1,1)
-
-    ax.plot(mspam_dict['heat_units'], avg_errs, color = 'k')
-    if(show_xlabel):
-        ax.set_xlabel('Heat units')
-    if(show_ylabel):
-        ax.set_ylabel('Yield Percent Error')
-    if(ptitle is None):
-        ptitle = 'M-SPAM Wheat Yield Errors: ' + mspam_sc_dict['county'] + '\nAveraged 2001-2015\n' + county
-    ax.set_title(ptitle)
-    
-    if(not in_ax):
-        fig.tight_layout()
-
-        if(save):
-            outname = re.sub(' ','_', 'mspam_errors_' + county + '.png')
-            fig.savefig(outname, dpi = 200)
-            print("Saved image", outname)
-        else:
-            plt.show()
-
-
-
-# Set up to work with the dictionary output from calc_model_errors_allcounties()
 def plot_MSPAM_errors_yearavg_fourpanel(mspam_dict, cty1, cty2, cty3, cty4, \
         save = False):
 
@@ -832,66 +552,6 @@ def plot_MSPAM_errors_yearavg_fourpanel(mspam_dict, cty1, cty2, cty3, cty4, \
     if(save):
         outname = re.sub(' ','_', 'mspam_errors_fourpanel_' + cty1 + \
             '_' + cty2 + '_' + cty3 + '_' + cty4 + '.png')
-        fig.savefig(outname, dpi = 200)
-        print("Saved image", outname)
-    else:
-        plt.show()
-
-# Set up to work with the dictionary output from calc_model_errors_allcounties()
-def plot_MSPAM_errors_yearavg_2D(mspam_dict, save = False):
-    
-    # Calculate the yearly averages of the percent errors
-    # ---------------------------------------------------
-    yearly_avg_errs = np.nanmean(mspam_dict['pcnt_errors'], axis = 2)
-
-    # Plot the yearly averaged errors
-    # -------------------------------
-    plt.close('all')
-    fig = plt.figure(figsize = (6, 8))
-    ax = fig.add_subplot(1,1,1)
-    mesh = ax.pcolormesh(mspam_dict['heat_units'], \
-        np.arange(len(mspam_dict['counties'])), \
-        yearly_avg_errs.T, \
-        cmap = 'viridis', vmin = 15, vmax = 75)
-    cbar = fig.colorbar(mesh, ax = ax, label = 'Pcnt Error')
-    ax.set_xlabel('Heat units')
-    ax.set_ylabel('County')
-    ax.set_title('M-SPAM Wheat Yield Errors\nAveraged 2001-2015')
-    fig.tight_layout()
-    if(save):
-        outname = 'mspam_errors_yearavg_2d.png'
-        fig.savefig(outname, dpi = 200)
-        print("Saved image", outname)
-    else:
-        plt.show()
-
-# Set up to work with the dictionary output from calc_model_errors_allcounties()
-def plot_MSPAM_errors_yearavg_singlecounty_2D(mspam_sc_dict, save = False):
-    
-    # Calculate the yearly averages of the percent errors
-    # ---------------------------------------------------
-    yearly_avg_errs = np.nanmean(mspam_sc_dict['pcnt_errors'], axis = 2)
-
-    # Plot the yearly averaged errors
-    # -------------------------------
-    plt.close('all')
-    fig = plt.figure(figsize = (6, 6))
-    ax = fig.add_subplot(1,1,1)
-    mesh = ax.pcolormesh(yearly_avg_errs, \
-        cmap = 'viridis', vmin = 15, vmax = 60)
-    ax.set_xticks(np.arange(0.5, len(mspam_sc_dict['crop_densities'])))
-    ax.set_xticklabels([str(cd) for cd in mspam_sc_dict['crop_densities']])
-    ax.set_yticks(np.arange(0.5, len(mspam_sc_dict['heat_units'])))
-    ax.set_yticklabels([str(hu) for hu in mspam_sc_dict['heat_units']])
-
-    cbar = fig.colorbar(mesh, ax = ax, label = 'Pcnt Error')
-    ax.set_xlabel('Heat units')
-    ax.set_ylabel('Crop Density')
-    ax.set_title('M-SPAM Wheat Yield Errors: ' + mspam_sc_dict['county'] + \
-        '\nAveraged 2001-2015')
-    fig.tight_layout()
-    if(save):
-        outname = 'mspam_errors_yearavg_sc_cty' + mspam_sc_dict['county'] + '_2d.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:

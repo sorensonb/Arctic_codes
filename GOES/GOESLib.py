@@ -1147,6 +1147,8 @@ def read_GOES_satpy(date_str, channel, scene_date = None, \
 
     data_dir = home_dir + '/data/GOES/' + sat + '_abi/'
 
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+
     # Extract the channel wavelength using the input string
     # -----------------------------------------------------
     if(channel != 'true_color'):
@@ -1163,7 +1165,7 @@ def read_GOES_satpy(date_str, channel, scene_date = None, \
         files = find_files_and_readers(start_time = dt_date_str, \
             end_time = dt_date_str_end, base_dir = data_dir, reader = 'abi_l1b')
     except ValueError:
-        print("ERROR: no files found for dtg",date_str)
+        print("ERROR: no files found for dtg",date_str,dt_date_str.strftime('%Y%j%H%M'))
         return
 
     # Extract the goes true-color plot limits
@@ -2291,11 +2293,14 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
         lats3, lons3)
     sw_idx_o = nearest_gridpoint(GOES_dict['plat'][idx2], GOES_dict['plon'][idx2],\
         lats3, lons3)
+    sw_idx_g = nearest_gridpoint(GOES_dict2['plat'][idx3], GOES_dict2['plon'][idx3],\
+        lats3, lons3)
     sw_idx_r = nearest_gridpoint(GOES_dict['plat'][idx4], GOES_dict['plon'][idx4],\
         lats3, lons3)
     print("SWIR")
     print("     Blue   - ", np.array(var3)[sw_idx_b])
     print("     Orange - ", np.array(var3)[sw_idx_o])
+    print("     Green  - ", np.array(var3)[sw_idx_g])
     print("     Red    - ", np.array(var3)[sw_idx_r])
 
     plot_point_on_map(ax5, GOES_dict['plat'][idx1], GOES_dict['plon'][idx1],\
@@ -2308,6 +2313,8 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
         lats2, lons2)
     lw_idx_o = nearest_gridpoint(GOES_dict['plat'][idx2], GOES_dict['plon'][idx2],\
         lats2, lons2)
+    lw_idx_g = nearest_gridpoint(GOES_dict2['plat'][idx3], GOES_dict2['plon'][idx3],\
+        lats2, lons2)
     lw_idx_r = nearest_gridpoint(GOES_dict['plat'][idx4], GOES_dict['plon'][idx4],\
         lats2, lons2)
     lw_idx_p = nearest_gridpoint(GOES_dict['plat'][idx5], GOES_dict['plon'][idx5],\
@@ -2315,6 +2322,7 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
     print("TIR")
     print("     Blue   - ", np.array(var4)[lw_idx_b])
     print("     Orange - ", np.array(var4)[lw_idx_o])
+    print("     Green  - ", np.array(var4)[lw_idx_g])
     print("     Red    - ", np.array(var4)[lw_idx_r])
     print("     Purple - ", np.array(var4)[lw_idx_p])
 
@@ -2327,6 +2335,7 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
     print("Upper WV")
     print("     Blue   - ", np.array(var5)[lw_idx_b])
     print("     Orange - ", np.array(var5)[lw_idx_o])
+    print("     Green  - ", np.array(var5)[lw_idx_g])
     print("     Red    - ", np.array(var5)[lw_idx_r])
     print("     Purple - ", np.array(var5)[lw_idx_p])
 
@@ -2339,6 +2348,7 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
     print("Mid WV")
     print("     Blue   - ", np.array(var6)[lw_idx_b])
     print("     Orange - ", np.array(var6)[lw_idx_o])
+    print("     Green  - ", np.array(var6)[lw_idx_g])
     print("     Red    - ", np.array(var6)[lw_idx_r])
     print("     Purple - ", np.array(var6)[lw_idx_p])
 
@@ -2351,6 +2361,7 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
     print("Lower WV")
     print("     Blue   - ", np.array(var7)[lw_idx_b])
     print("     Orange - ", np.array(var7)[lw_idx_o])
+    print("     Green  - ", np.array(var7)[lw_idx_g])
     print("     Red    - ", np.array(var7)[lw_idx_r])
     print("     Purple - ", np.array(var7)[lw_idx_p])
     plot_point_on_map(ax9, GOES_dict['plat'][idx1], GOES_dict['plon'][idx1],\
@@ -2359,6 +2370,11 @@ def plot_GOES_figure2_v2(date_str = '202107210000', \
         markersize = point_size)
     plot_point_on_map(ax9, GOES_dict2['plat'][idx3], GOES_dict2['plon'][idx3],\
         markersize = point_size)
+
+    print("COORDINATES")
+    print("Blue   - ", GOES_dict['plat'][idx1], GOES_dict['plon'][idx1])
+    print("Orange - ", GOES_dict['plat'][idx2], GOES_dict['plon'][idx2])
+    print("Green  - ", GOES_dict2['plat'][idx3], GOES_dict2['plon'][idx3])
 
     # Plot the two channel data for the first point
     # ---------------------------------------------

@@ -53,7 +53,7 @@ from scipy.stats import pearsonr,spearmanr
 from sklearn.linear_model import HuberRegressor
 from sklearn.preprocessing import StandardScaler
 import pandas as pd
-from scipy.signal import argrelextrema, find_peaks
+#from scipy.signal import argrelextrema, find_peaks
 from glob import glob
 import os
 import importlib

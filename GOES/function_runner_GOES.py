@@ -8,6 +8,8 @@
 from GOESLib import *
 import sys
 
+#download_GOES_bucket('202107210000', sat = 'goes17', channels = [1,2,3,6,8,9,10,13])
+#sys.exit()
 
 plot_GOES_figure2_v2(date_str = '202107210000', \
     goes_ch1 = 'true_color', goes_ch2 = 6, goes_ch3 = 13, \
@@ -19,7 +21,7 @@ plot_GOES_figure2_v2(date_str = '202107210000', \
     idx1 = 3, idx2 = 8, idx3 = 5,
     date_idx = 25, 
     show_smoke = False, composite = True, double_fig = False, \
-    zoom = True, save = True)
+    zoom = True, save = False)
 sys.exit()
 
 date_str = '202107222120'

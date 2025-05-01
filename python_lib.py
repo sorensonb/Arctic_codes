@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 import cartopy.crs as ccrs
 from glob import glob
 from PIL import Image
-import h5py
+#import h5py
 import matplotlib.pyplot as plt
 import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
@@ -551,11 +551,11 @@ def plot_lat_circles(pax, lat_circles):
             horizontalalignment = 'center', weight = 'bold', \
             color = colors[ii], transform = datacrs)
 
-def make_gif(frame_folder, gif_name):
-    frames = [Image.open(image) for image in glob(f"{frame_folder}/*.png")]
+def make_gif(frame_folder, gif_name, duration = 400):
+    frames = [Image.open(image) for image in sorted(glob(f"{frame_folder}/*.png"))]
     frame_one = frames[0]
     frame_one.save(gif_name, format = 'GIF', append_images = frames,\
-        save_all = True, duration = 400, loop = 0)
+        save_all = True, duration = duration, loop = 0)
     print("Saved gif",gif_name)
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
