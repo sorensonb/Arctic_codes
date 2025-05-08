@@ -33,6 +33,8 @@ type_dict = {
     'noland112': 'ReLU', 
     'noland115': 'Softplus', 
     'noland116': 'Tanh', 
+    'noland117': 'Softsign', 
+    'noland118': 'LeakyReLU 2',
 }
 
 fig = plt.figure()
@@ -48,6 +50,7 @@ for infile in sys.argv[1:]:
     
     ax.plot(xvals, mae_lrelu, label = type_dict[dtype])
 
+ax.set_ylim(2.8, 3.7)
 ax.set_xlabel('Training epochs')
 ax.set_ylabel('Mean Absolute Error [W/m2]')
 ax.grid(alpha = 0.5)

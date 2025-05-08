@@ -244,13 +244,137 @@ sys.exit()
 #plot_compare_NN_output_noaer(sys.argv[1], astrofit = True, save = False)
 #sys.exit()
 
+# PLot NN error distributions in aerosol-free conditions for multiple
+# lower boundary conditions 
+# -------------------------------------------------------------------
+ice_bin_edges = np.array([0, 20, 40, 60, 80, 100.2, 255])    # 20-deg bins, 60 center
+cod_bin_edges = np.array([0,0.5,2,4,8,12,20,30,50])
+
+mean_err_all = np.full( (ice_bin_edges.shape[0] - 1, cod_bin_edges.shape[0] - 1), np.nan)
+std_err_all  = np.full( (ice_bin_edges.shape[0] - 1, cod_bin_edges.shape[0] - 1), np.nan)
+
+test_dict = plot_NN_error_dist_bytype('noland105', num_bins = 500, \
+    astrofit = True, \
+    use_correct_error_calc = True, xmin = -100, xmax = 100, save = False)
+
+# Calculate the individual error stats first
+# ------------------------------------------
+for ii in range(len(ice_bin_edges) - 1):
+    for jj in range(len(cod_bin_edges) - 1):
+        sfc_idx = np.where( ((test_dict['nsidc_ice'] >= ice_bin_edges[ii]) & \
+                             (test_dict['nsidc_ice'] < ice_bin_edges[ii+1])) & \
+                            ((test_dict['modis_cod'] >= cod_bin_edges[jj]) & \
+                             (test_dict['modis_cod'] < cod_bin_edges[jj+1]) ) )
+
+        errors = test_dict['calc_swf'][sfc_idx] - test_dict['ceres_swf'][sfc_idx]
+        mean_err_all[ii,jj] = np.nanmean(errors)
+        std_err_all[ii,jj]  = np.nanstd(errors)
+
+fig = plt.figure(figsize = (9, 8))
+ax1 = fig.add_subplot(2,2,1)
+ax2 = fig.add_subplot(2,2,2)
+ax3 = fig.add_subplot(2,2,3)
+ax4 = fig.add_subplot(2,2,4)
+
+l_correct = False
+
+# Work on surface-type errors first
+# ---------------------------------
+for ii in range(len(ice_bin_edges) - 1):
+    sfc_idx = np.where( (test_dict['nsidc_ice'] >= ice_bin_edges[ii]) & \
+                        (test_dict['nsidc_ice'] < ice_bin_edges[ii+1]))
+    errors = test_dict['calc_swf'][sfc_idx] - test_dict['ceres_swf'][sfc_idx]
+   
+    if(l_correct): 
+        tmp_cod = test_dict['modis_cod'][sfc_idx]
+        for jj in range(len(cod_bin_edges) - 1):
+            cod_idx = np.where( (tmp_cod >= cod_bin_edges[jj]) & \
+                                (tmp_cod < cod_bin_edges[jj + 1]))
+            errors[cod_idx] += (1. - mean_err_all[ii,jj])
+ 
+    mean_err = np.nanmean(errors)
+    std_err  = np.nanstd(errors)
+    print(ice_bin_edges[ii], ice_bin_edges[ii+1], mean_err, std_err)
+
+    hist = ax1.hist(errors, bins = 250, histtype = 'step', \
+        label = str(int(ice_bin_edges[ii])) + '-' + \
+        str(int(ice_bin_edges[ii+1]))  )
+
+# Now work on cloud-based errors first
+# ------------------------------------
+for ii in range(len(cod_bin_edges) - 1):
+    sfc_idx = np.where( (test_dict['modis_cod'] >= cod_bin_edges[ii]) & \
+                        (test_dict['modis_cod'] < cod_bin_edges[ii+1]))
+    errors = test_dict['calc_swf'][sfc_idx] - test_dict['ceres_swf'][sfc_idx]
+   
+    if(l_correct): 
+        tmp_ice = test_dict['nsidc_ice'][sfc_idx]
+        for jj in range(len(ice_bin_edges) - 1):
+            ice_idx = np.where( (tmp_ice >= ice_bin_edges[jj]) & \
+                                (tmp_ice < ice_bin_edges[jj + 1]))
+            errors[ice_idx] += (1. - mean_err_all[jj,ii])
+ 
+    mean_err = np.nanmean(errors)
+    std_err  = np.nanstd(errors)
+    print(cod_bin_edges[ii], cod_bin_edges[ii+1], mean_err, std_err)
+
+    hist = ax2.hist(errors, bins = 250, histtype = 'step', \
+        label = str(int(cod_bin_edges[ii])) + '-' + \
+        str(int(cod_bin_edges[ii+1]))  )
+
+ax1.grid(alpha = 0.5)
+ax2.grid(alpha = 0.5)
+
+# Plot the mesh of mean errors
+# ----------------------------
+mesh = ax3.pcolormesh(mean_err_all, vmin = -10, vmax = 10, cmap = 'bwr')
+cbar = plt.colorbar(mesh, ax = ax3, label = 'SWF Error [W/m2]')
+ice_labels = [str(edge) for edge in ice_bin_edges]
+cod_labels = [str(edge) for edge in cod_bin_edges]
+
+# Plot a scatter of the data
+# --------------------------
+ax4.scatter(test_dict['ceres_swf'], test_dict['calc_swf'], s = 2, color = 'k')
+r2 = r2_score(test_dict['ceres_swf'], test_dict['calc_swf'])
+ax4.set_title('R2 = ' + str(np.round(r2, 3)))
+ax4.grid(alpha = 0.5) 
+#if(slope_dict['trend_type'] == 'theil-sen'): 
+#if((bin_dict['sza_bin_edges'][1] - bin_dict['sza_bin_edges'][0]) <= 5):
+#    xtick_setter = np.arange(0, len(bin_dict['sza_bin_means']) + 1, 2)
+#    label_setter = sza_labels[::2]
+#else:
+#    xtick_setter = np.arange(0, len(bin_dict['sza_bin_means']) + 1)
+#    label_setter = sza_labels[::1]
+#if(not plot_error): 
+#    ax5.set_xticks(xtick_setter)
+#    ax5.set_xticklabels(label_setter)
+#else:
+#    ax9.set_xticks(xtick_setter)
+#    ax9.set_xticklabels(label_setter)
+#ax1.set_yticks([0,1,2,3,4,5,6,7,8])
+ax3.set_xticklabels(cod_labels[::1])
+ax3.set_yticklabels(ice_labels[::1])
+#ax4.set_yticks([0,1,2,3,4,5,6,7,8])
+
+ax1.legend()
+ax2.legend()
+ax1.axvline(0, color = 'k', linestyle = ':')
+ax2.axvline(0, color = 'k', linestyle = ':')
+ax1.set_xlim(-100, 100)
+ax2.set_xlim(-100, 100)
+
+fig.tight_layout()
+plt.show()
+
+sys.exit()
+
 # Plot combined NN error distribution in clear-sky swaths
 # -------------------------------------------------------
 #plot_NN_error_dist_bulk('noland74', num_bins = 500, astrofit = True, \
 #plot_NN_error_dist_bulk('noland100', num_bins = 500, astrofit = True, \
 #plot_NN_error_dist_bulk('noland101', num_bins = 500, astrofit = True, \
 #plot_NN_error_dist_bulk('noland103', num_bins = 500, astrofit = True, \
-#plot_NN_error_dist_bulk('noland105', num_bins = 500, astrofit = True, \
+plot_NN_error_dist_bulk('noland105', num_bins = 500, astrofit = True, \
 #plot_NN_error_dist_bulk('noland106', num_bins = 500, astrofit = True, \
 #plot_NN_error_dist_bulk('noland107', num_bins = 500, astrofit = True, \
 #plot_NN_error_dist_bulk('noland108', num_bins = 500, astrofit = True, \
@@ -258,7 +382,7 @@ sys.exit()
 #plot_NN_error_dist_bulk('noland110', num_bins = 500, astrofit = True, \
 #plot_NN_error_dist_bulk('noland112', num_bins = 500, astrofit = True, \
 #plot_NN_error_dist_bulk('noland113', num_bins = 500, astrofit = True, \
-plot_NN_error_dist_bulk('noland115', num_bins = 500, astrofit = True, \
+#plot_NN_error_dist_bulk('noland115', num_bins = 500, astrofit = True, \
     use_correct_error_calc = True, xmin = -100, xmax = 100, save = False)
 sys.exit()
 #plot_NN_error_dist_bulk('noland74', num_bins = 500, astrofit = True, \

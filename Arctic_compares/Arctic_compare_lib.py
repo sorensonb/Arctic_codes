@@ -15732,6 +15732,181 @@ def compare_sza_bin_impact_on_slopes(test_dict, bin_dict, sfc_idx, \
     else:
         plt.show()        
 
+def plot_NN_error_dist_bytype(sim_name, num_bins = 100, xmin = None, \
+        xmax = None, ax = None, astrofit = False, \
+        use_correct_error_calc = False, save = False):
+
+    # Read in the desired files
+    # -------------------------
+    #if( (sim_name == 'noland103') | (sim_name == 'noland104') | \
+    #    (sim_name == 'noland105') | (sim_name == 'noland106') | |
+    #    (sim_name == 'noland107') ):
+    if( int(sim_name[6:]) >= 103) :
+        files = glob('neuralnet_output_clear_newfiles/test_calc_out_' + sim_name + '*.hdf5')
+    else:
+        files = glob('neuralnet_output_clear/test_calc_out_' + sim_name + '*.hdf5')
+
+    if(len(files) == 0):
+        print("ERROR: NO CLEAR FILES FOUND FOR SIM " + sim_name)
+        return
+
+    # Figure out the total size to insert the data
+    # ---------------------------------------------
+    #minlat = 70.
+    minlat = 65.    # 2024/01/10: changed to 65.
+    total_size = 0
+    for ff in files:
+        data = h5py.File(ff,'r')
+        #local_data = np.ma.masked_invalid(data['omi_uvai_raw'])
+        local_data = np.ma.masked_invalid(data['omi_uvai_pert'])
+        local_data = np.ma.masked_where((local_data < -12) | (local_data > 1.0), local_data)
+        local_data = np.ma.masked_where(data['omi_lat'][:,:] < minlat, \
+            local_data) 
+        local_data = np.ma.masked_where((data['ceres_swf'][:,:] < -200.) | \
+            (data['ceres_swf'][:,:] > 3000), \
+            local_data) 
+        local_data = np.ma.masked_where(np.isnan(data['calc_swf'][:,:]), local_data)
+        local_size = local_data.compressed().shape[0]
+        max_ai = np.max(local_data)
+        print(ff, local_size, np.round(max_ai, 3))
+        total_size += local_size
+    
+        data.close()
+    
+    
+    # Set up the data structure to hold all the data
+    # ----------------------------------------------
+    combined_data = {}
+    combined_data['calc_swf']      = np.full(total_size, np.nan)
+    combined_data['ceres_swf']     = np.full(total_size, np.nan)
+    combined_data['nsidc_ice']     = np.full(total_size, np.nan)
+    combined_data['modis_cod']     = np.full(total_size, np.nan)
+ 
+    print("Loading data")
+    
+    # Loop back over the files and insert the data into the structure
+    # ---------------------------------------------------------------
+    total_size = 0
+    beg_idx = 0
+    end_idx = 0
+    for ff in files:
+    
+        data = h5py.File(ff,'r')
+        # NOTE: Changed the omi variable here from "pert" to "raw" on 20230623.
+        #       This move should allow for coloc data to be read after 2020
+        #local_data = np.ma.masked_invalid(data['omi_uvai_raw'])
+        local_data = np.ma.masked_invalid(data['omi_uvai_pert'])
+        print("MAX AI FOR SWATH", ff, np.max(local_data))
+        local_data = np.ma.masked_where((local_data < -12) | (local_data > 1.0), local_data)
+        local_data = np.ma.masked_where(data['omi_lat'][:,:] < minlat, \
+            local_data) 
+        local_data = np.ma.masked_where((data['ceres_swf'][:,:] < -200.) | \
+            (data['ceres_swf'][:,:] > 3000), \
+            local_data) 
+        local_data = np.ma.masked_where(np.isnan(data['calc_swf'][:,:]), local_data)
+        local_size = local_data.compressed().shape[0]
+    
+        beg_idx = end_idx
+        end_idx = beg_idx + local_size
+    
+        for tkey in combined_data.keys():
+            combined_data[tkey][beg_idx:end_idx] = \
+                data[tkey][~local_data.mask]
+    
+        #print(local_size)
+        total_size += local_size
+    
+        data.close()
+
+    return combined_data
+
+    if(use_correct_error_calc):
+        print("Calculating NN errors using NN - CERES")
+        errors = combined_data['calc_swf'] - combined_data['ceres_swf']
+    else:
+        print("Calculating NN errors using CERES - NN")
+        errors = combined_data['ceres_swf'] - combined_data['calc_swf']
+
+    mean_err = np.mean(errors)
+    std_err  = np.std(errors)
+    median_err = np.median(errors)
+
+    print("Normal mean error:       ", np.round(mean_err, 1))
+    print("Normal std dev error:    ", np.round(std_err, 1))
+    print("Normal median dev error: ", np.round(median_err, 1))
+   
+    in_ax = True
+    if(ax is None):
+        in_ax = False 
+        plt.close('all')
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+
+    if(astrofit):
+        ax.hist(errors, bins = num_bins)
+        bin_heights,bin_borders = np.histogram(errors,bins=num_bins)
+        bin_widths = np.diff(bin_borders)
+        bin_centers = bin_borders[:-1] + bin_widths / 2
+        t_init = models.Gaussian1D()
+        fit_t = fitting.LevMarLSQFitter()
+        t = fit_t(t_init, bin_centers, bin_heights)
+        print('Amplitude: ',np.round(t.amplitude.value,3))
+        print('Mean:      ',np.round(t.mean.value,3))
+        print('StDev:     ',np.round(t.stddev.value,3))
+        x_interval_for_fit = np.linspace(bin_centers[0],bin_centers[-1],400)
+        ax.plot(x_interval_for_fit,t(x_interval_for_fit),label='fit',c='tab:red')
+        ax.set_xlim(xmin, xmax)
+
+        # Add statistics to plot
+        # ----------------------
+        xdiff = ax.get_xlim()[1] - ax.get_xlim()[0]
+        plot_xval = ax.get_xlim()[0]  + xdiff * 0.65
+        plot_yval = ax.get_ylim()[1] * 0.8
+        ptext = 'μ = ' + str(np.round(t.mean.value, 1)) + ' Wm$^{-2}$\n' + \
+            'σ = ' + str(np.round(t.stddev.value, 1)) + ' Wm$^{-2}$'
+
+
+        #plot_figure_text(ax3, ptext, location = 'lower_right', \
+        #ax5.set_title(ptext)
+        plot_figure_text(ax, ptext, xval = plot_xval, yval = plot_yval, \
+            fontsize = 10, color = 'black', weight = None, backgroundcolor = 'white')
+
+    else:
+        ax.hist(errors, bins = num_bins, density = True)
+        mu, std = statnorm.fit(errors)
+        plot_xmin, plot_xmax = ax.get_xlim()
+        xvals = np.linspace(plot_xmin, plot_xmax, 100)
+        p = statnorm.pdf(xvals, mu, std)
+        ax.plot(xvals, p, color = 'red')
+        ax.set_xlim(xmin, xmax)
+
+    ax.axvline(0, linestyle = '--', color = 'k', alpha = 0.5)
+
+    if(use_correct_error_calc):
+        ax.set_xlabel('TOA SWF Error (NN - CERES) [Wm$^{-2}$]')
+    else:
+        ax.set_xlabel('TOA SWF Error (CERES - NN) [Wm$^{-2}$]')
+    #ax.set_xlabel('Forcing Error (NN - CERES) [Wm$^{-2}$]')
+    ax.set_ylabel('Counts')
+    ax.set_title('Errors between L2 CERES & NN output\n' + \
+        'under aerosol-free conditions')
+
+    if(not in_ax):
+        fig.tight_layout()
+        if(save):
+            if(use_correct_error_calc):
+                err_calc_add = '_correct'
+            else:
+                err_calc_add = ''
+            outname = 'errors_aerfree_dist_' + sim_name + err_calc_add + \
+                '.png'
+            fig.savefig(outname, dpi = 200)
+            print("Saved image", outname)
+        else:
+            plt.show()
+
+
+
 def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
         xmax = None, ax = None, astrofit = False, \
         use_correct_error_calc = False, save = False):

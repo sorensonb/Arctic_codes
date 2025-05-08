@@ -648,19 +648,19 @@ os.system(cmnd)
 # --------------------------------
 
 # Change to Arctic codes directory
-#os.chdir(dest_dir)
-##os.chdir('home_dir + /Arctic_codes/')
-#
-## Add new stuff
-#os.system('git add .')
-#
-## Determine today's date for the command
-#today_str = datetime.today().strftime('%Y/%m/%d')
-#cmnd = 'git commit -m \"Backup '+today_str + '\"'
-#os.system(cmnd)
-#
-## Push
-#os.system('git push origin master')
+os.chdir(dest_dir)
+#os.chdir('home_dir + /Arctic_codes/')
+
+# Add new stuff
+os.system('git add .')
+
+# Determine today's date for the command
+today_str = datetime.today().strftime('%Y/%m/%d')
+cmnd = 'git commit -m \"Backup '+today_str + '\"'
+os.system(cmnd)
+
+# Push
+os.system('git push origin master')
 # Add new stuff
 #os.chdir(dest_dir)
 #os.system('git add .')
