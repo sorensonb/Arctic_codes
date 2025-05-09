@@ -48,7 +48,7 @@ import os
 from scipy.stats import pearsonr,spearmanr
 from sklearn.linear_model import HuberRegressor
 from sklearn.preprocessing import StandardScaler
-#from scipy.signal import argrelextrema, find_peaks
+from scipy.signal import find_peaks
 import h5py
 # The commands module was discontinued for Python 3, so if the user
 # is using python 2, import commands instead
