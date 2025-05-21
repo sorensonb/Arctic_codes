@@ -843,6 +843,7 @@ def write_CERES_hrly_grid_to_HDF5(CERES_grid_hrly, save_path = './', \
     dset.create_dataset('swf',       data = CERES_grid_hrly['swf'][keep_idxs,:].squeeze())
     dset.create_dataset('lwf',       data = CERES_grid_hrly['lwf'][keep_idxs,:].squeeze())
     dset.create_dataset('cld',       data = CERES_grid_hrly['cld'][keep_idxs,:].squeeze())
+    dset.create_dataset('alb',       data = CERES_grid_hrly['alb'][keep_idxs,:].squeeze())
     dset.create_dataset('time',      data = CERES_grid_hrly['time'][keep_idxs,:].squeeze())
 
     # Save, write, and close the HDF5 file

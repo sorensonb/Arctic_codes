@@ -228,6 +228,10 @@ sys.exit()
     
 """
 
+#combined_data = plot_NN_error_dist_bulk('noland105', num_bins = 500, astrofit = True, \
+#    use_correct_error_calc = True, add_spplmnt_files = True, \
+#    xmin = -100, xmax = 100, save = False)
+#sys.exit()
 
 
 
@@ -254,7 +258,9 @@ mean_err_all = np.full( (ice_bin_edges.shape[0] - 1, cod_bin_edges.shape[0] - 1)
 std_err_all  = np.full( (ice_bin_edges.shape[0] - 1, cod_bin_edges.shape[0] - 1), np.nan)
 
 test_dict = plot_NN_error_dist_bytype('noland105', num_bins = 500, \
-    astrofit = True, \
+    astrofit = True, add_spplmnt_files = False, \
+    excluded_months = None, \
+    #excluded_months = [4,5], \
     use_correct_error_calc = True, xmin = -100, xmax = 100, save = False)
 
 # Calculate the individual error stats first
@@ -334,8 +340,14 @@ cod_labels = [str(edge) for edge in cod_bin_edges]
 
 # Plot a scatter of the data
 # --------------------------
-ax4.scatter(test_dict['ceres_swf'], test_dict['calc_swf'], s = 2, color = 'k')
-r2 = r2_score(test_dict['ceres_swf'], test_dict['calc_swf'])
+mask_orig = np.ma.masked_invalid(test_dict['ceres_swf'])
+mask_calc = np.ma.masked_invalid(test_dict['calc_swf'])
+
+both_orig = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_orig).compressed()
+both_calc = np.ma.masked_where((mask_orig.mask == True) | (mask_calc.mask == True), mask_calc).compressed()
+ax4.scatter(both_orig, both_calc, s = 2, color = 'k')
+#ax4.scatter(test_dict['ceres_swf'], test_dict['calc_swf'], s = 2, color = 'k')
+r2 = r2_score(both_orig, both_calc)
 ax4.set_title('R2 = ' + str(np.round(r2, 3)))
 ax4.grid(alpha = 0.5) 
 #if(slope_dict['trend_type'] == 'theil-sen'): 

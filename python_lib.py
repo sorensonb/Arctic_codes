@@ -583,6 +583,7 @@ def listFD(url, ext=''):
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 with open(home_dir + '/Research/Arctic_compares/json_comp_files.txt') as fin:
+#with open(home_dir + '/Research/data_downloading/json_comp_files.txt') as fin:
     aerosol_event_dict = json.load(fin)
 ##!#aerosol_event_dict = {
 ##!#    "2008-04-22": {

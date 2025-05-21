@@ -16,6 +16,7 @@ import python_lib
 import importlib
 from matplotlib.cm import turbo
 import matplotlib.colors as mcolors
+import matplotlib.patches as mpatches
 #from scipy.stats import sem
 from scipy.stats import sem, norm as statnorm
 from astropy.modeling import models,fitting
@@ -15255,6 +15256,226 @@ def plot_NN_architecture(plot_lines = False, save = False):
     else:
         plt.show()
 
+
+def plot_NN_architecture_v2(plot_lines = False, save = False):
+
+    # Set up the figure
+    # -----------------
+    fig = plt.figure(figsize = (11, 4))
+    ax = fig.add_subplot(1,1,1)
+
+
+    # Set up the values for all the layers
+    # ------------------------------------
+    delta_x = 2.0
+    num_layers = 13
+    beg_layers = 3
+    end_idx = beg_layers + num_layers * delta_x
+    xvals = np.arange(beg_layers, end_idx, delta_x)
+    print(xvals)
+    #xvals = np.arange(beg_hidden, end_hidden, delta_x)
+    #yvals = np.array([8,12,16,24,32,64,32,24,16,12,8])
+
+
+    # Set up the first layer, which is the input layer
+    # ------------------------------------------------
+    layer1_x  = [xvals[0]] * 7
+    layer1_y  = list(np.arange(7))
+    ax.scatter(layer1_x, layer1_y, s = 30, color = 'green')
+    #ax.text(0,70,'input',color = 'tab:blue', weight = 'bold', horizontalalignment = 'center')
+    #ax.text(0,68,'n = 7',color = 'tab:blue', weight = 'bold', horizontalalignment = 'center')
+
+    radius = 0.3
+    for ii in range(len(layer1_y)):
+        center = (layer1_x[0],layer1_y[ii])
+        circle = mpatches.Circle(center, radius, facecolor = 'green', \
+            edgecolor = 'k', linewidth = 1, fill = True, \
+            zorder = 100)
+        ax.add_patch(circle)
+
+    ax.text(2.5,layer1_y[6] - 0.1,'  OMI SZA',color = 'k', weight = 'bold', horizontalalignment = 'right')
+    ax.text(2.5,layer1_y[5] - 0.1,'  OMI VZA',color = 'k', weight = 'bold', horizontalalignment = 'right')
+    ax.text(2.5,layer1_y[4] - 0.1,'MODIS CH7',color = 'k', weight = 'bold', horizontalalignment = 'right')
+    ax.text(2.5,layer1_y[3] - 0.1,'SSMIS SIC',color = 'k', weight = 'bold', horizontalalignment = 'right')
+    ax.text(2.5,layer1_y[2] - 0.1,'MODIS COD',color = 'k', weight = 'bold', horizontalalignment = 'right')
+    ax.text(2.5,layer1_y[1] - 0.1,'MODIS CTP',color = 'k', weight = 'bold', horizontalalignment = 'right')
+    ax.text(2.5,layer1_y[0] - 0.1,'CERES ALB',color = 'k', weight = 'bold', horizontalalignment = 'right')
+   
+    ax.text(xvals[0], 8, 'Input\nn = 7', color = 'g', horizontalalignment = 'center', weight = 'bold')
+ 
+    #### Set up the first hidden layer
+    #### -----------------------------
+    ###layer2_x  = [xvals[1]] * 4
+    ###layer2_y  = [-1,5,6,7]
+    ###ax.scatter(layer2_x, layer2_y, s = 30, color = 'green')
+    ####ax.text(0,70,'input',color = 'tab:blue', weight = 'bold', horizontalalignment = 'center')
+    ####ax.text(0,68,'n = 7',color = 'tab:blue', weight = 'bold', horizontalalignment = 'center')
+
+    ###radius = 0.3
+    ###for ii in range(len(layer2_y)):
+    ###    center = (layer2_x[0],layer2_y[ii])
+    ###    circle = mpatches.Circle(center, radius, facecolor = 'gray', \
+    ###        edgecolor = 'k', linewidth = 1, fill = True)
+    ###    ax.add_patch(circle)
+
+   
+    # Set up other hidden layers
+    # -------------------------- 
+    layerj_y  = [-1,0,5,6,7]
+    radius = 0.3
+    hidden_nums = [8,12,16,24,32,64,32,24,16,12,8]
+    for jj in range(11): 
+
+        layerj_x = [xvals[jj+1]] * len(layerj_y)
+        #layer1_x  = [7 + (jj*2)] * 4
+        ax.scatter(layerj_x, layerj_y, s = 30, color = 'green')
+        #ax.text(0,70,'input',color = 'tab:blue', weight = 'bold', horizontalalignment = 'center')
+        #ax.text(0,68,'n = 7',color = 'tab:blue', weight = 'bold', horizontalalignment = 'center')
+
+        for ii in range(len(layerj_y)):
+            center = (layerj_x[0],layerj_y[ii])
+            circle = mpatches.Circle(center, radius, facecolor = 'gray', \
+                edgecolor = 'k', linewidth = 1, fill = True, zorder = 100)
+            ax.add_patch(circle)
+
+        # Add ellipses 
+        # ------------
+        scat_y = [1.85,2.5,3.15]
+        scat_x = [layerj_x[0]] * 3
+        ax.scatter(scat_x, scat_y, color = 'k', s = 4, alpha = 0.75)
+
+        ax.text(xvals[jj+1], 8, 'h$_{' + str(jj + 1) + \
+            '}$\nn = ' + str(hidden_nums[jj]), color = 'gray', horizontalalignment = 'center', weight = 'bold')
+        if(jj == 0):
+            for ii in range(len(layer1_x)):
+                for kk in range(len(layerj_y)):
+                    print(layer1_x[ii], layer1_y[ii], layerj_x[kk], layerj_y[kk])
+                    ax.plot([layer1_x[ii], layerj_x[kk]], [layer1_y[ii], layerj_y[kk]], linewidth = 1, color = 'k', alpha = 0.5)
+      
+                    #!##angle = np.arctan2(layer1_y[ii] - layerj_y[kk], \
+                    #!##                   layer1_x[ii] - layerj_x[kk])
+                    #!##arrow_end_x = layerj_x[kk] + radius * np.cos(angle)
+                    #!##arrow_end_y = layerj_y[kk] + radius * np.sin(angle)
+                    #!##
+ 
+                    #!### Calculate stuff for arrow plotting
+                    #!### ----------------------------------
+                    #!###dx = (layerj_x[kk] - layer1_x[ii])
+                    #!###dy = (layerj_y[kk] - layer1_y[ii])
+                    #!##arrow = mpatches.Arrow(layer1_x[ii], layer1_y[ii], \
+                    #!##    arrow_end_x - layer1_x[ii], \
+                    #!##    arrow_end_y - layer1_y[ii], \
+                    #!##    width = 0.5,\
+                    #!##    fc = 'red', ec = 'black')
+                    #!##ax.add_patch(arrow)
+
+        else:
+            #prev_offset = int((64 - yvals[ii - 1]) / 2)
+            #prev_layerh_x = [xvals[ii - 1]] * yvals[ii - 1]
+            #prev_layerh_y = list(np.arange(yvals[ii - 1]) + prev_offset)
+
+            prev_layerj_x = [xvals[jj]]  * len(layerj_y)
+            #prev_layerj_y = list(np.arange(yvals[ii - 1]) + prev_offset)
+            for ii in range(len(prev_layerj_x)):
+                for kk in range(len(layerj_x)):
+                    #print(prev_layerh_x[jj], layer1_y[jj], prev_layerh_x[kk], layerh_y[kk])
+                    ax.plot([prev_layerj_x[ii], layerj_x[kk]], \
+                        [layerj_y[ii], layerj_y[kk]], linewidth = 1, color = 'black', alpha = 0.5)
+
+    #!### Set up the hidden layers
+    #!### ------------------------
+    #!##delta_x = 1.0
+    #!##num_hidden = 11
+    #!##beg_hidden = 0 + delta_x
+    #!##end_hidden = beg_hidden + num_hidden * delta_x
+    #!##xvals = np.arange(beg_hidden, end_hidden, delta_x)
+    #!##yvals = np.array([8,12,16,24,32,64,32,24,16,12,8])
+
+    #!##print(xvals, yvals)
+    #!##print(len(xvals), len(yvals))
+
+    #!##for ii in range(len(xvals)):
+    #!##    offset = int((64 - yvals[ii]) / 2)
+
+    #!##    layerh_x = [xvals[ii]] * yvals[ii]
+    #!##    layerh_y = list(np.arange(yvals[ii]) + offset)
+
+    #!##    if(plot_lines):
+    #!##        if(ii == 0):
+    #!##            for jj in range(len(layer1_x)):
+    #!##                for kk in range(len(layerh_x)):
+    #!##                    print(layer1_x[jj], layer1_y[jj], layerh_x[kk], layerh_y[kk])
+    #!##                    ax.plot([layer1_x[jj], layerh_x[kk]], [layer1_y[jj], layerh_y[kk]], linewidth = 1, color = 'black', alpha = 0.1)
+    #!##        else:
+    #!##            prev_offset = int((64 - yvals[ii - 1]) / 2)
+    #!##            prev_layerh_x = [xvals[ii - 1]] * yvals[ii - 1]
+    #!##            prev_layerh_y = list(np.arange(yvals[ii - 1]) + prev_offset)
+
+    #!##            for jj in range(len(prev_layerh_x)):
+    #!##                for kk in range(len(layerh_x)):
+    #!##                    #print(prev_layerh_x[jj], layer1_y[jj], prev_layerh_x[kk], layerh_y[kk])
+    #!##                    ax.plot([prev_layerh_x[jj], layerh_x[kk]], \
+    #!##                        [prev_layerh_y[jj], layerh_y[kk]], linewidth = 1, color = 'black', alpha = 0.1)
+
+    #!##    ax.scatter(layerh_x, layerh_y, color = 'tab:gray')
+
+    #!##    ax.text(xvals[ii],70,'hidden' + str(int(ii + 1)),\
+    #!##        color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    #!##    ax.text(xvals[ii],68,'n = ' + str(int(yvals[ii])),\
+    #!##        color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
+    
+
+    # Set up the final layer, which is the output layer
+    # -------------------------------------------------
+    layer13_x = [xvals[-1]]
+    layer13_y = [3]
+
+    #!##if(plot_lines):
+    #!##    for jj in range(len(layerh_x)):
+    #!##        for kk in range(len(layer13_x)):
+    #!##            #print(prev_layerh_x[jj], layer1_y[jj], prev_layerh_x[kk], layerh_y[kk])
+    #!##            ax.plot([layerh_x[jj], layer13_x[kk]], \
+    #!##                [layerh_y[jj], layer13_y[kk]], linewidth = 1, color = 'black', alpha = 0.1)
+
+    #ax.scatter(layer13_x, layer13_y, s = 30, color = 'tab:red')
+            
+    prev_layerj_x = [xvals[-2]] * len(layerj_y)
+    prev_layerj_y = layerj_y
+    #prev_layerj_y = list(np.arange(yvals[ii - 1]) + prev_offset)
+    for ii in range(len(prev_layerj_x)):
+        for kk in range(len(layer13_x)):
+            #print(prev_layerh_x[jj], layer1_y[jj], prev_layerh_x[kk], layerh_y[kk])
+            ax.plot([prev_layerj_x[ii], layer13_x[kk]], \
+                [prev_layerj_y[ii], layer13_y[kk]], linewidth = 1, color = 'black', alpha = 0.5)
+    
+    center = (layer13_x[0],layer13_y[0])
+    circle = mpatches.Circle(center, radius, facecolor = 'tab:red', \
+        edgecolor = 'k', linewidth = 1, fill = True)
+    ax.add_patch(circle)
+    #ax.text(xval,70,'output',color = 'tab:red', weight = 'bold', horizontalalignment = 'center')
+    #ax.text(xval,68,'n = 1',color = 'tab:red', weight = 'bold', horizontalalignment = 'center')
+
+    ax.text(xvals[-1] + 0.5,3 - 0.1,'CERES SWF',color = 'k', weight = 'bold', horizontalalignment = 'left')
+    
+    ax.set_xlim(-0.5, xvals[-1] + 3.5)
+    ax.set_ylim(-2, 9)   
+ 
+    #ax.axis('off')
+    fig.tight_layout()
+    if(save):
+        if(plot_lines):
+            line_add = '_lines'
+        else:
+            line_add = ''
+        outname = 'nn_architecture' + line_add + '_v2.png'
+        fig.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else:
+        plt.show()
+
+
+
+
 def plot_test_forcing_v4(OMI_daily_data, OMI_month_data, date_str, \
         coloc_dict, minlat = 65., maxlat = 87., ai_thresh = -0.15, \
         cld_idx = 0, maxerr = 2, min_cloud = 0.95, data_type = 'raw', \
@@ -15734,6 +15955,8 @@ def compare_sza_bin_impact_on_slopes(test_dict, bin_dict, sfc_idx, \
 
 def plot_NN_error_dist_bytype(sim_name, num_bins = 100, xmin = None, \
         xmax = None, ax = None, astrofit = False, \
+        add_spplmnt_files = False, \
+        excluded_months = None, \
         use_correct_error_calc = False, save = False):
 
     # Read in the desired files
@@ -15741,14 +15964,37 @@ def plot_NN_error_dist_bytype(sim_name, num_bins = 100, xmin = None, \
     #if( (sim_name == 'noland103') | (sim_name == 'noland104') | \
     #    (sim_name == 'noland105') | (sim_name == 'noland106') | |
     #    (sim_name == 'noland107') ):
+    #if( int(sim_name[6:]) >= 103) :
+    #    files = glob('neuralnet_output_clear_newfiles/test_calc_out_' + sim_name + '*.hdf5')
+    #else:
+    #    files = glob('neuralnet_output_clear/test_calc_out_' + sim_name + '*.hdf5')
+
     if( int(sim_name[6:]) >= 103) :
         files = glob('neuralnet_output_clear_newfiles/test_calc_out_' + sim_name + '*.hdf5')
+   
+        if(add_spplmnt_files):
+            sup_files = glob('neuralnet_output_clear_spplmnt/test_calc_out_' + sim_name + '*.hdf5')
+
+            files = files + sup_files 
+
     else:
         files = glob('neuralnet_output_clear/test_calc_out_' + sim_name + '*.hdf5')
+
+
 
     if(len(files) == 0):
         print("ERROR: NO CLEAR FILES FOUND FOR SIM " + sim_name)
         return
+    
+    # Remove certain months, if desired
+    # ---------------------------------
+    if(excluded_months is not None):
+
+        for em in excluded_months:
+            print("Removing data with months = ",em)
+            months = np.array([int(ffile.strip().split('/')[-1].split('_')[-1][4:6]) for ffile in files])
+            files = list(np.array(files)[np.where(months != int(em))])
+
 
     # Figure out the total size to insert the data
     # ---------------------------------------------
@@ -15909,6 +16155,8 @@ def plot_NN_error_dist_bytype(sim_name, num_bins = 100, xmin = None, \
 
 def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
         xmax = None, ax = None, astrofit = False, \
+        add_spplmnt_files = False, \
+        excluded_months = None, \
         use_correct_error_calc = False, save = False):
 
     # Read in the desired files
@@ -15918,12 +16166,26 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
     #    (sim_name == 'noland107') ):
     if( int(sim_name[6:]) >= 103) :
         files = glob('neuralnet_output_clear_newfiles/test_calc_out_' + sim_name + '*.hdf5')
+   
+        if(add_spplmnt_files):
+            sup_files = glob('neuralnet_output_clear_spplmnt/test_calc_out_' + sim_name + '*.hdf5')
+
+            files = files + sup_files 
+
     else:
         files = glob('neuralnet_output_clear/test_calc_out_' + sim_name + '*.hdf5')
 
     if(len(files) == 0):
         print("ERROR: NO CLEAR FILES FOUND FOR SIM " + sim_name)
         return
+
+    # Remove certain months, if desired
+    # ---------------------------------
+    if(excluded_months is not None):
+        for em in excluded_months:
+            print("Removing data with months = ",em)
+            months = np.array([int(ffile.strip().split('/')[-1].split('_')[-1][4:6]) for ffile in files])
+            files = list(np.array(files)[np.where(months != int(em))])
 
     # Figure out the total size to insert the data
     # ---------------------------------------------
@@ -15940,6 +16202,7 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
         local_data = np.ma.masked_where((data['ceres_swf'][:,:] < -200.) | \
             (data['ceres_swf'][:,:] > 3000), \
             local_data) 
+        local_data = np.ma.masked_where(np.isnan(data['ceres_swf'][:,:]), local_data)
         local_data = np.ma.masked_where(np.isnan(data['calc_swf'][:,:]), local_data)
         local_size = local_data.compressed().shape[0]
         max_ai = np.max(local_data)
@@ -15955,7 +16218,7 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
     combined_data['calc_swf']      = np.full(total_size, np.nan)
     combined_data['ceres_swf']     = np.full(total_size, np.nan)
  
-    print("Loading data")
+    print("Loading data for ",total_size," pixels")
     
     # Loop back over the files and insert the data into the structure
     # ---------------------------------------------------------------
@@ -15976,18 +16239,21 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
         local_data = np.ma.masked_where((data['ceres_swf'][:,:] < -200.) | \
             (data['ceres_swf'][:,:] > 3000), \
             local_data) 
+        local_data = np.ma.masked_where(np.isnan(data['ceres_swf'][:,:]), local_data)
         local_data = np.ma.masked_where(np.isnan(data['calc_swf'][:,:]), local_data)
         local_size = local_data.compressed().shape[0]
     
         beg_idx = end_idx
         end_idx = beg_idx + local_size
+  
+        if(local_size > 0):
+  
+            for tkey in combined_data.keys():
+                combined_data[tkey][beg_idx:end_idx] = \
+                    data[tkey][~local_data.mask]
     
-        for tkey in combined_data.keys():
-            combined_data[tkey][beg_idx:end_idx] = \
-                data[tkey][~local_data.mask]
-    
-        #print(local_size)
-        total_size += local_size
+            #print(local_size)
+            total_size += local_size
     
         data.close()
 
@@ -15997,6 +16263,8 @@ def plot_NN_error_dist_bulk(sim_name, num_bins = 100, xmin = None, \
     else:
         print("Calculating NN errors using CERES - NN")
         errors = combined_data['ceres_swf'] - combined_data['calc_swf']
+
+    print("New total size = ",total_size)
 
     mean_err = np.mean(errors)
     std_err  = np.std(errors)
