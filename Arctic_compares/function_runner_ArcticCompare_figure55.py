@@ -234,7 +234,16 @@ sys.exit()
 #    xmin = -100, xmax = 100, save = False)
 #sys.exit()
 
+ice_bin_edges = np.array([0, 20, 40, 60, 80, 100.2, 255])    # 20-deg bins, 60 center
+cod_bin_edges = np.array([0,0.5,2,4,8,12,20,30,50])
 
+plot_NN_error_dist_bytype('noland105', ice_bin_edges, cod_bin_edges, \
+    num_bins = 150, xmin = None, \
+    xmax = None, ax = None, astrofit = False, \
+    add_spplmnt_files = False, \
+    #excluded_months = [4,5], \
+    use_correct_error_calc = True, save = True)
+sys.exit()
 
 # Plot the NN architecture
 # ------------------------
@@ -252,8 +261,6 @@ sys.exit()
 # PLot NN error distributions in aerosol-free conditions for multiple
 # lower boundary conditions 
 # -------------------------------------------------------------------
-ice_bin_edges = np.array([0, 20, 40, 60, 80, 100.2, 255])    # 20-deg bins, 60 center
-cod_bin_edges = np.array([0,0.5,2,4,8,12,20,30,50])
 
 mean_err_all = np.full( (ice_bin_edges.shape[0] - 1, cod_bin_edges.shape[0] - 1), np.nan)
 std_err_all  = np.full( (ice_bin_edges.shape[0] - 1, cod_bin_edges.shape[0] - 1), np.nan)

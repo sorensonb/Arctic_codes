@@ -106,8 +106,8 @@ mask_cld = np.ma.masked_where(data['modis_cld'][:,:] == -999., data['modis_cld']
 mask_ch7 = np.ma.masked_where(data['modis_ch7'][:,:] == -999., data['modis_ch7'][:,:])
 
 mask_uvai = np.ma.masked_invalid(data['omi_uvai_pert'][:,:])
-mask_cld_allsmoke = np.ma.masked_where(mask_uvai < 0.5, mask_cld)
-mask_cld = np.ma.masked_where(mask_uvai < 0.5, mask_cld)
+mask_cld_allsmoke = np.ma.masked_where(mask_uvai < 1.5, mask_cld)
+mask_cld = np.ma.masked_where(mask_uvai < 1.5, mask_cld)
 
 
 # Get the count of misclassified smoke pixels over land

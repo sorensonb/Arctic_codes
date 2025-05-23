@@ -15257,21 +15257,26 @@ def plot_NN_architecture(plot_lines = False, save = False):
         plt.show()
 
 
-def plot_NN_architecture_v2(plot_lines = False, save = False):
+def plot_NN_architecture_v2(ax = None, plot_lines = False, save = False):
 
     # Set up the figure
     # -----------------
-    fig = plt.figure(figsize = (11, 4))
-    ax = fig.add_subplot(1,1,1)
+    in_ax = True
+    if(ax is None):
+        in_ax = False
+        fig = plt.figure(figsize = (11, 4.5))
+        ax = fig.add_subplot(1,1,1)
 
 
     # Set up the values for all the layers
     # ------------------------------------
     delta_x = 2.0
     num_layers = 13
-    beg_layers = 3
+    beg_layers = 4
     end_idx = beg_layers + num_layers * delta_x
     xvals = np.arange(beg_layers, end_idx, delta_x)
+    xvals[0] = 3
+    xvals[-1] += 1 
     print(xvals)
     #xvals = np.arange(beg_hidden, end_hidden, delta_x)
     #yvals = np.array([8,12,16,24,32,64,32,24,16,12,8])
@@ -15295,29 +15300,19 @@ def plot_NN_architecture_v2(plot_lines = False, save = False):
 
     ax.text(2.5,layer1_y[6] - 0.1,'  OMI SZA',color = 'k', weight = 'bold', horizontalalignment = 'right')
     ax.text(2.5,layer1_y[5] - 0.1,'  OMI VZA',color = 'k', weight = 'bold', horizontalalignment = 'right')
-    ax.text(2.5,layer1_y[4] - 0.1,'MODIS CH7',color = 'k', weight = 'bold', horizontalalignment = 'right')
-    ax.text(2.5,layer1_y[3] - 0.1,'SSMIS SIC',color = 'k', weight = 'bold', horizontalalignment = 'right')
+    ax.text(2.5,layer1_y[4] - 0.1,'SSMIS SIC',color = 'k', weight = 'bold', horizontalalignment = 'right')
+    ax.text(2.5,layer1_y[3] - 0.1,'MODIS CH7',color = 'k', weight = 'bold', horizontalalignment = 'right')
     ax.text(2.5,layer1_y[2] - 0.1,'MODIS COD',color = 'k', weight = 'bold', horizontalalignment = 'right')
     ax.text(2.5,layer1_y[1] - 0.1,'MODIS CTP',color = 'k', weight = 'bold', horizontalalignment = 'right')
     ax.text(2.5,layer1_y[0] - 0.1,'CERES ALB',color = 'k', weight = 'bold', horizontalalignment = 'right')
    
-    ax.text(xvals[0], 8, 'Input\nn = 7', color = 'g', horizontalalignment = 'center', weight = 'bold')
+    #ax.text(xvals[0], 7.5, 'Input\nn = 7', color = 'g', horizontalalignment = 'center', weight = 'bold')
+    ax.text(xvals[0], 7.5, 'n = 7', color = 'g', \
+        horizontalalignment = 'center', weight = 'bold')
+    ax.text(xvals[0], 9.0, 'Input', color = 'g', \
+        horizontalalignment = 'center', weight = 'bold', \
+        fontsize = 12)
  
-    #### Set up the first hidden layer
-    #### -----------------------------
-    ###layer2_x  = [xvals[1]] * 4
-    ###layer2_y  = [-1,5,6,7]
-    ###ax.scatter(layer2_x, layer2_y, s = 30, color = 'green')
-    ####ax.text(0,70,'input',color = 'tab:blue', weight = 'bold', horizontalalignment = 'center')
-    ####ax.text(0,68,'n = 7',color = 'tab:blue', weight = 'bold', horizontalalignment = 'center')
-
-    ###radius = 0.3
-    ###for ii in range(len(layer2_y)):
-    ###    center = (layer2_x[0],layer2_y[ii])
-    ###    circle = mpatches.Circle(center, radius, facecolor = 'gray', \
-    ###        edgecolor = 'k', linewidth = 1, fill = True)
-    ###    ax.add_patch(circle)
-
    
     # Set up other hidden layers
     # -------------------------- 
@@ -15327,10 +15322,7 @@ def plot_NN_architecture_v2(plot_lines = False, save = False):
     for jj in range(11): 
 
         layerj_x = [xvals[jj+1]] * len(layerj_y)
-        #layer1_x  = [7 + (jj*2)] * 4
         ax.scatter(layerj_x, layerj_y, s = 30, color = 'green')
-        #ax.text(0,70,'input',color = 'tab:blue', weight = 'bold', horizontalalignment = 'center')
-        #ax.text(0,68,'n = 7',color = 'tab:blue', weight = 'bold', horizontalalignment = 'center')
 
         for ii in range(len(layerj_y)):
             center = (layerj_x[0],layerj_y[ii])
@@ -15344,8 +15336,10 @@ def plot_NN_architecture_v2(plot_lines = False, save = False):
         scat_x = [layerj_x[0]] * 3
         ax.scatter(scat_x, scat_y, color = 'k', s = 4, alpha = 0.75)
 
-        ax.text(xvals[jj+1], 8, 'h$_{' + str(jj + 1) + \
-            '}$\nn = ' + str(hidden_nums[jj]), color = 'gray', horizontalalignment = 'center', weight = 'bold')
+        ax.text(xvals[jj+1], 7.5, 'h$_{' + str(jj + 1) + \
+            '}$\nn = ' + str(hidden_nums[jj]), color = 'black', \
+            horizontalalignment = 'center', weight = 'bold', \
+            fontsize = 9)
         if(jj == 0):
             for ii in range(len(layer1_x)):
                 for kk in range(len(layerj_y)):
@@ -15370,9 +15364,6 @@ def plot_NN_architecture_v2(plot_lines = False, save = False):
                     #!##ax.add_patch(arrow)
 
         else:
-            #prev_offset = int((64 - yvals[ii - 1]) / 2)
-            #prev_layerh_x = [xvals[ii - 1]] * yvals[ii - 1]
-            #prev_layerh_y = list(np.arange(yvals[ii - 1]) + prev_offset)
 
             prev_layerj_x = [xvals[jj]]  * len(layerj_y)
             #prev_layerj_y = list(np.arange(yvals[ii - 1]) + prev_offset)
@@ -15382,96 +15373,58 @@ def plot_NN_architecture_v2(plot_lines = False, save = False):
                     ax.plot([prev_layerj_x[ii], layerj_x[kk]], \
                         [layerj_y[ii], layerj_y[kk]], linewidth = 1, color = 'black', alpha = 0.5)
 
-    #!### Set up the hidden layers
-    #!### ------------------------
-    #!##delta_x = 1.0
-    #!##num_hidden = 11
-    #!##beg_hidden = 0 + delta_x
-    #!##end_hidden = beg_hidden + num_hidden * delta_x
-    #!##xvals = np.arange(beg_hidden, end_hidden, delta_x)
-    #!##yvals = np.array([8,12,16,24,32,64,32,24,16,12,8])
-
-    #!##print(xvals, yvals)
-    #!##print(len(xvals), len(yvals))
-
-    #!##for ii in range(len(xvals)):
-    #!##    offset = int((64 - yvals[ii]) / 2)
-
-    #!##    layerh_x = [xvals[ii]] * yvals[ii]
-    #!##    layerh_y = list(np.arange(yvals[ii]) + offset)
-
-    #!##    if(plot_lines):
-    #!##        if(ii == 0):
-    #!##            for jj in range(len(layer1_x)):
-    #!##                for kk in range(len(layerh_x)):
-    #!##                    print(layer1_x[jj], layer1_y[jj], layerh_x[kk], layerh_y[kk])
-    #!##                    ax.plot([layer1_x[jj], layerh_x[kk]], [layer1_y[jj], layerh_y[kk]], linewidth = 1, color = 'black', alpha = 0.1)
-    #!##        else:
-    #!##            prev_offset = int((64 - yvals[ii - 1]) / 2)
-    #!##            prev_layerh_x = [xvals[ii - 1]] * yvals[ii - 1]
-    #!##            prev_layerh_y = list(np.arange(yvals[ii - 1]) + prev_offset)
-
-    #!##            for jj in range(len(prev_layerh_x)):
-    #!##                for kk in range(len(layerh_x)):
-    #!##                    #print(prev_layerh_x[jj], layer1_y[jj], prev_layerh_x[kk], layerh_y[kk])
-    #!##                    ax.plot([prev_layerh_x[jj], layerh_x[kk]], \
-    #!##                        [prev_layerh_y[jj], layerh_y[kk]], linewidth = 1, color = 'black', alpha = 0.1)
-
-    #!##    ax.scatter(layerh_x, layerh_y, color = 'tab:gray')
-
-    #!##    ax.text(xvals[ii],70,'hidden' + str(int(ii + 1)),\
-    #!##        color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
-    #!##    ax.text(xvals[ii],68,'n = ' + str(int(yvals[ii])),\
-    #!##        color = 'tab:grey', weight = 'bold', horizontalalignment = 'center')
     
+    ax.text(xvals[6], 9.0, 'Hidden layers', color = 'k', \
+        horizontalalignment = 'center', weight = 'bold', \
+        fontsize = 12)
 
     # Set up the final layer, which is the output layer
     # -------------------------------------------------
     layer13_x = [xvals[-1]]
     layer13_y = [3]
 
-    #!##if(plot_lines):
-    #!##    for jj in range(len(layerh_x)):
-    #!##        for kk in range(len(layer13_x)):
-    #!##            #print(prev_layerh_x[jj], layer1_y[jj], prev_layerh_x[kk], layerh_y[kk])
-    #!##            ax.plot([layerh_x[jj], layer13_x[kk]], \
-    #!##                [layerh_y[jj], layer13_y[kk]], linewidth = 1, color = 'black', alpha = 0.1)
-
-    #ax.scatter(layer13_x, layer13_y, s = 30, color = 'tab:red')
-            
     prev_layerj_x = [xvals[-2]] * len(layerj_y)
     prev_layerj_y = layerj_y
-    #prev_layerj_y = list(np.arange(yvals[ii - 1]) + prev_offset)
     for ii in range(len(prev_layerj_x)):
         for kk in range(len(layer13_x)):
-            #print(prev_layerh_x[jj], layer1_y[jj], prev_layerh_x[kk], layerh_y[kk])
             ax.plot([prev_layerj_x[ii], layer13_x[kk]], \
                 [prev_layerj_y[ii], layer13_y[kk]], linewidth = 1, color = 'black', alpha = 0.5)
     
     center = (layer13_x[0],layer13_y[0])
     circle = mpatches.Circle(center, radius, facecolor = 'tab:red', \
-        edgecolor = 'k', linewidth = 1, fill = True)
+        edgecolor = 'k', linewidth = 1, fill = True, zorder = 100)
     ax.add_patch(circle)
-    #ax.text(xval,70,'output',color = 'tab:red', weight = 'bold', horizontalalignment = 'center')
-    #ax.text(xval,68,'n = 1',color = 'tab:red', weight = 'bold', horizontalalignment = 'center')
 
-    ax.text(xvals[-1] + 0.5,3 - 0.1,'CERES SWF',color = 'k', weight = 'bold', horizontalalignment = 'left')
+    ax.text(xvals[-1], 9.0, 'Output', color = 'r', \
+        horizontalalignment = 'center', weight = 'bold', \
+        fontsize = 12)
+    ax.text(xvals[-1], 7.5, 'n = 1', color = 'r', \
+        horizontalalignment = 'center', weight = 'bold')
+    
+    ax.text(xvals[-1] + 0.5,3 - 0.3,'Aerosol-free\nSWF',color = 'k', \
+        weight = 'bold', horizontalalignment = 'left')
+
+    ax.axvline( xvals[0] + (xvals[1] - xvals[0]) / 2., \
+        linestyle = ':', color = 'k')
+    ax.axvline( xvals[-2] + (xvals[-1] - xvals[-2]) / 2., \
+        linestyle = ':', color = 'k')
     
     ax.set_xlim(-0.5, xvals[-1] + 3.5)
-    ax.set_ylim(-2, 9)   
+    ax.set_ylim(-2, 10)   
  
-    #ax.axis('off')
-    fig.tight_layout()
-    if(save):
-        if(plot_lines):
-            line_add = '_lines'
+    ax.axis('off')
+    if(not in_ax):
+        fig.tight_layout()
+        if(save):
+            if(plot_lines):
+                line_add = '_lines'
+            else:
+                line_add = ''
+            outname = 'nn_architecture' + line_add + '_v2.png'
+            fig.savefig(outname, dpi = 300)
+            print("Saved image", outname)
         else:
-            line_add = ''
-        outname = 'nn_architecture' + line_add + '_v2.png'
-        fig.savefig(outname, dpi = 300)
-        print("Saved image", outname)
-    else:
-        plt.show()
+            plt.show()
 
 
 
@@ -15953,7 +15906,8 @@ def compare_sza_bin_impact_on_slopes(test_dict, bin_dict, sfc_idx, \
     else:
         plt.show()        
 
-def plot_NN_error_dist_bytype(sim_name, num_bins = 100, xmin = None, \
+def plot_NN_error_dist_bytype(sim_name, ice_bin_edges, cod_bin_edges, \
+        num_bins = 100, xmin = None, \
         xmax = None, ax = None, astrofit = False, \
         add_spplmnt_files = False, \
         excluded_months = None, \
@@ -16064,8 +16018,6 @@ def plot_NN_error_dist_bytype(sim_name, num_bins = 100, xmin = None, \
     
         data.close()
 
-    return combined_data
-
     if(use_correct_error_calc):
         print("Calculating NN errors using NN - CERES")
         errors = combined_data['calc_swf'] - combined_data['ceres_swf']
@@ -16073,83 +16025,127 @@ def plot_NN_error_dist_bytype(sim_name, num_bins = 100, xmin = None, \
         print("Calculating NN errors using CERES - NN")
         errors = combined_data['ceres_swf'] - combined_data['calc_swf']
 
-    mean_err = np.mean(errors)
-    std_err  = np.std(errors)
-    median_err = np.median(errors)
-
-    print("Normal mean error:       ", np.round(mean_err, 1))
-    print("Normal std dev error:    ", np.round(std_err, 1))
-    print("Normal median dev error: ", np.round(median_err, 1))
-   
-    in_ax = True
-    if(ax is None):
-        in_ax = False 
-        plt.close('all')
-        fig = plt.figure()
-        ax = fig.add_subplot(1,1,1)
-
-    if(astrofit):
-        ax.hist(errors, bins = num_bins)
-        bin_heights,bin_borders = np.histogram(errors,bins=num_bins)
-        bin_widths = np.diff(bin_borders)
-        bin_centers = bin_borders[:-1] + bin_widths / 2
-        t_init = models.Gaussian1D()
-        fit_t = fitting.LevMarLSQFitter()
-        t = fit_t(t_init, bin_centers, bin_heights)
-        print('Amplitude: ',np.round(t.amplitude.value,3))
-        print('Mean:      ',np.round(t.mean.value,3))
-        print('StDev:     ',np.round(t.stddev.value,3))
-        x_interval_for_fit = np.linspace(bin_centers[0],bin_centers[-1],400)
-        ax.plot(x_interval_for_fit,t(x_interval_for_fit),label='fit',c='tab:red')
-        ax.set_xlim(xmin, xmax)
-
-        # Add statistics to plot
-        # ----------------------
-        xdiff = ax.get_xlim()[1] - ax.get_xlim()[0]
-        plot_xval = ax.get_xlim()[0]  + xdiff * 0.65
-        plot_yval = ax.get_ylim()[1] * 0.8
-        ptext = 'μ = ' + str(np.round(t.mean.value, 1)) + ' Wm$^{-2}$\n' + \
-            'σ = ' + str(np.round(t.stddev.value, 1)) + ' Wm$^{-2}$'
-
-
-        #plot_figure_text(ax3, ptext, location = 'lower_right', \
-        #ax5.set_title(ptext)
-        plot_figure_text(ax, ptext, xval = plot_xval, yval = plot_yval, \
-            fontsize = 10, color = 'black', weight = None, backgroundcolor = 'white')
-
-    else:
-        ax.hist(errors, bins = num_bins, density = True)
-        mu, std = statnorm.fit(errors)
-        plot_xmin, plot_xmax = ax.get_xlim()
-        xvals = np.linspace(plot_xmin, plot_xmax, 100)
-        p = statnorm.pdf(xvals, mu, std)
-        ax.plot(xvals, p, color = 'red')
-        ax.set_xlim(xmin, xmax)
-
-    ax.axvline(0, linestyle = '--', color = 'k', alpha = 0.5)
-
-    if(use_correct_error_calc):
-        ax.set_xlabel('TOA SWF Error (NN - CERES) [Wm$^{-2}$]')
-    else:
-        ax.set_xlabel('TOA SWF Error (CERES - NN) [Wm$^{-2}$]')
-    #ax.set_xlabel('Forcing Error (NN - CERES) [Wm$^{-2}$]')
-    ax.set_ylabel('Counts')
-    ax.set_title('Errors between L2 CERES & NN output\n' + \
-        'under aerosol-free conditions')
-
-    if(not in_ax):
-        fig.tight_layout()
-        if(save):
-            if(use_correct_error_calc):
-                err_calc_add = '_correct'
-            else:
-                err_calc_add = ''
-            outname = 'errors_aerfree_dist_' + sim_name + err_calc_add + \
-                '.png'
-            fig.savefig(outname, dpi = 200)
-            print("Saved image", outname)
+    mean_err_all = np.full( (ice_bin_edges.shape[0] - 1, \
+        cod_bin_edges.shape[0] - 1), np.nan)
+    std_err_all  = np.full( (ice_bin_edges.shape[0] - 1, \
+        cod_bin_edges.shape[0] - 1), np.nan)
+    
+    # Calculate the individual error stats first
+    # ------------------------------------------
+    for ii in range(len(ice_bin_edges) - 1):
+        for jj in range(len(cod_bin_edges) - 1):
+            sfc_idx = np.where( \
+                ((combined_data['nsidc_ice'] >= ice_bin_edges[ii]) & \
+                 (combined_data['nsidc_ice'] < ice_bin_edges[ii+1])) & \
+                ((combined_data['modis_cod'] >= cod_bin_edges[jj]) & \
+                 (combined_data['modis_cod'] < cod_bin_edges[jj+1]) ) )
+    
+            errors = combined_data['calc_swf'][sfc_idx] - \
+                combined_data['ceres_swf'][sfc_idx]
+            mean_err_all[ii,jj] = np.nanmean(errors)
+            std_err_all[ii,jj]  = np.nanstd(errors)
+    
+    fig = plt.figure(figsize = (12, 5.5))
+    ax1 = fig.add_subplot(1,3,1)
+    ax2 = fig.add_subplot(1,3,2)
+    ax3 = fig.add_subplot(1,3,3)
+    
+    # Plot the bulk errors first
+    # --------------------------
+    errors_all = combined_data['calc_swf'] - combined_data['ceres_swf']
+    hist = ax1.hist(errors_all, bins = num_bins)
+    
+    # Work on surface-type errors first
+    # ---------------------------------
+    for ii in range(len(ice_bin_edges) - 1):
+        sfc_idx = np.where( (combined_data['nsidc_ice'] >= ice_bin_edges[ii]) & \
+                            (combined_data['nsidc_ice'] < ice_bin_edges[ii+1]))
+        errors = combined_data['calc_swf'][sfc_idx] - combined_data['ceres_swf'][sfc_idx]
+       
+        mean_err = np.nanmean(errors)
+        std_err  = np.nanstd(errors)
+        print('{0:5.1f} {1:5.1f} {2:7.3f} {3:7.3f}'.format(ice_bin_edges[ii], ice_bin_edges[ii+1], mean_err, std_err))
+    
+        if(ice_bin_edges[ii] == 0.):
+            label_text = 'Ocean (SIC < ' + \
+                str(int(ice_bin_edges[ii + 1])) + '%)'
+        elif( (ice_bin_edges[ii] >= 20.) & \
+                (ice_bin_edges[ii + 1] <= 80) ):
+            label_text = 'Mix (SIC ' + str(int(ice_bin_edges[ii])) + \
+                '% - ' + \
+                str(int(ice_bin_edges[ii + 1])) + '%)'
+        elif( (ice_bin_edges[ii] <= 80.) & \
+                (ice_bin_edges[ii + 1] <= 100.2) ):
+            label_text = 'Ice (SIC >= ' + \
+                str(int(ice_bin_edges[ii])) + '%)'
+        elif( (ice_bin_edges[ii + 1] > 150.) ):
+            label_text = 'Land'
+    
+        hist = ax2.hist(errors, bins = num_bins, histtype = 'step', \
+            label = label_text)
+    
+    # Now work on cloud-based errors first
+    # ------------------------------------
+    for ii in range(len(cod_bin_edges) - 1):
+        sfc_idx = np.where( (combined_data['modis_cod'] >= cod_bin_edges[ii]) & \
+                            (combined_data['modis_cod'] < cod_bin_edges[ii+1]))
+        errors = combined_data['calc_swf'][sfc_idx] - combined_data['ceres_swf'][sfc_idx]
+       
+        mean_err = np.nanmean(errors)
+        std_err  = np.nanstd(errors)
+        #print(cod_bin_edges[ii], cod_bin_edges[ii+1], mean_err, std_err)
+        print('{0:5.1f} {1:5.1f} {2:7.3f} {3:7.3f}'.format(cod_bin_edges[ii], cod_bin_edges[ii+1], mean_err, std_err))
+    
+        hist = ax3.hist(errors, bins = num_bins, histtype = 'step', \
+            label = 'COD ' + str(cod_bin_edges[ii]) + '-' + \
+            str(cod_bin_edges[ii+1])  )
+    
+    ax1.grid(alpha = 0.5)
+    ax2.grid(alpha = 0.5)
+    ax3.grid(alpha = 0.5)
+    
+    
+    #ax1.legend(fontsize = 8)
+    #ax2.legend(fontsize = 8)
+    ax1.set_xlim(-100, 100)
+    ax2.set_xlim(-100, 100)
+    ax3.set_xlim(-100, 100)
+    plot_subplot_label(ax1, 'a)', location = 'upper_left', backgroundcolor = None)
+    plot_subplot_label(ax2, 'b)', location = 'upper_left', backgroundcolor = None)
+    plot_subplot_label(ax3, 'c)', location = 'upper_left', backgroundcolor = None)
+    ax1.axvline(0, color = 'k', linestyle = ':')
+    ax2.axvline(0, color = 'k', linestyle = ':')
+    ax3.axvline(0, color = 'k', linestyle = ':')
+    ax1.set_xlabel('TOA SWF Error (NN - CERES) [Wm$^{-2}$]')
+    ax2.set_xlabel('TOA SWF Error (NN - CERES) [Wm$^{-2}$]')
+    ax3.set_xlabel('TOA SWF Error (NN - CERES) [Wm$^{-2}$]')
+    ax1.set_ylabel('Counts')
+    ax2.set_ylabel('Counts')
+    ax3.set_ylabel('Counts')
+    ax1.set_title('NN SWF Errors')
+    ax2.set_title('NN SWF Errors Per SSMIS Surface Type')
+    ax3.set_title('NN SWF Errors Per MODIS COD Range')
+    plt.suptitle('Errors in NN-estimated SWF against CERES SWF\nin aerosol-free conditions')
+    
+    plt.subplots_adjust(bottom = 0.25)
+    
+    ax2.legend(loc = 'lower center', bbox_to_anchor = (0.5, -0.35),\
+        ncol=2, fontsize = 8)
+    ax3.legend(loc = 'lower center', bbox_to_anchor = (0.5, -0.4),\
+        ncol=2, fontsize = 8)
+    
+    fig.tight_layout()
+    if(save):
+        if(use_correct_error_calc):
+            err_calc_add = '_correct'
         else:
-            plt.show()
+            err_calc_add = ''
+        outname = 'errors_aerfree_dist_bytype_' + sim_name + err_calc_add + \
+            '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname)
+    else:
+        plt.show()
 
 
 
