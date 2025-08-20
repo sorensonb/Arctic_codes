@@ -2,28 +2,68 @@
 
 """
   NAME:
-    auto_fuliou_runner_lidar.py
+    auto_fuliou_runner_combined.py
 
   PURPOSE:
     Automate the running of FuLiou for each unique point in a passed
-        CCPEXCV-HALO NAAPS/lidar file. This wrapper uses the
-        lidar extinction variables rather than the NAAPS data.
+        CCPEXCV-HALO NAAPS/lidar file. This wrapper allows the user to
+        use a combination of HALO or NAAPS water vapor or aerosol profiles 
+        as input for FuLiou.
 
   NOTES:
-    The script automatically generates the HDF5 output file. The user no
-        longer needs to add 'hdf' as a command-line argument.
+    This script runs FuLiou for each individual HALO time index in the file,
+        so it takes a while to run.  
+
+    This script automatically generates an HDF5 output file. Unlike previous
+        scripts, the user no longer needs to add a command line argument
+        to create the HDF5 file.
+
+    By default, the script uses the HALO water vapor and aerosol fields.
+        Thus, when running the script with no optional command line 
+        arguments, the output will contain heating rates calculated from
+        the HALO water vapor and aerosol fields. 
+
+    Running this script with NAAPS water vapor and aerosol should make 
+        output that looks very similar to the auto_fuliou_runner_naaps.py
+        output. The difference, though, is that this script performs the
+        calculations at each HALO time index, so there will be thousands
+        of calculations performed rather than the dozens performed in 
+        auto_fuliou_runner_naaps.py.
+
+    All NAAPS aerosol fields are currently applied when running the script
+        with NAAPS aerosols (ABF, dust, smoke, and sea salt). For a 
+        potentially better comparison with HALO, the code could be modified 
+        so that only NAAPS dust and sea salt aerosols are used.
+
+    When running with HALO water vapor, there are several things to note:
+        - HALO provides water vapor mixing ratio, but FuLiou takes specific
+            humidity and relative humidity as input. Specific humidity
+            is calculated from only the HALO mixing ratio. However, to
+            calculate relative humidity from mixing ratio, the NAAPS 
+            temperature and air pressure fields must be used.
+        - FuLiou crashes when there are input layers with no valid water
+            vapor values. Thus, when running the script with HALO water
+            vapor, if the script finds layers with missing HALO water 
+            vapor values, it uses the NAAPS water vapor fields at that
+            layer.
+        - In (at least) the 20220909 CPEX file, there are sub-zero HALO mixing
+            ratio values. These values are set to 0, and then are replaced
+            with NAAPS water vapor fields.
 
   SYNTAX:
-    python auto_fuliou_runner_lidar.py CPEXCV-HALO_file [noaer]
-        noaer: by adding this, no aerosols are included in RTM run
+    python auto_fuliou_runner_combined.py CPEXCV-HALO_file -wv={halo,naaps} -aer={halo,naaps,none}
+        wv : specifies which moisture variables to use in FuLiou")
+             "-wv=halo"  - use HALO moisture vars
+             "-wv=naaps" - use NAAPS moisture vars
+        aer : specifies which aerosol variables to use in FuLiou
+             "-aer=halo"  - use HALO aerosol vars
+             "-aer=naaps" - use NAAPS aerosol vars
+             "-aer=none"  - use no aerosol
+
 
   MODIFICATIONS:
-    Blake Sorenson <blake.sorenson@und.edu>     - 2023/10/03:
-      Written
-    Blake Sorenson <blake.sorenson@und.edu>     - 2024/05/03:
-      Added capability to run without aerosol
     Blake Sorenson <blake.sorenson@und.edu>     - 2024/05/17:
-      Modified so that the script automatically generates HDF5 output files
+      Written (based off of auto_fuliou_runner_lidar)
 
 """
 
@@ -125,6 +165,7 @@ def calc_regress_slope(field_var, h_idxs, idx1, xx = 0):
 # ---------------------------------------------------------------------
 def interp_NAAPS(ii, naaps_press, naaps_temp, naaps_relhum, naaps_spechum, \
         naaps_dust_mass, naaps_abf_mass, naaps_salt_mass, naaps_smoke_mass, \
+        naaps_dust_ext, naaps_abf_ext, naaps_salt_ext, naaps_smoke_ext, \
         ):
 
     # Identify the unique layer values
@@ -156,6 +197,11 @@ def interp_NAAPS(ii, naaps_press, naaps_temp, naaps_relhum, naaps_spechum, \
     salt_mass_slope  = 0.
     smoke_mass_slope = 0.
     
+    dust_ext_slope  = 0.
+    abf_ext_slope   = 0.
+    salt_ext_slope  = 0.
+    smoke_ext_slope = 0.
+    
     # This is just used to keep track of which h_idxs value to use
     kk = 0
     
@@ -168,6 +214,11 @@ def interp_NAAPS(ii, naaps_press, naaps_temp, naaps_relhum, naaps_spechum, \
     interp_abf_mass   = np.zeros(new_shape)
     interp_salt_mass  = np.zeros(new_shape)
     interp_smoke_mass = np.zeros(new_shape)
+   
+    interp_dust_ext   = np.zeros(new_shape)
+    interp_abf_ext    = np.zeros(new_shape)
+    interp_salt_ext   = np.zeros(new_shape)
+    interp_smoke_ext  = np.zeros(new_shape)
    
     # This loops over the vertical indices. Can use this inside the
     # wrapper below.
@@ -196,6 +247,15 @@ def interp_NAAPS(ii, naaps_press, naaps_temp, naaps_relhum, naaps_spechum, \
             smoke_mass_slope = calc_regress_slope(\
                 naaps_smoke_mass, h_idxs, kk, xx = ii)
     
+            dust_ext_slope = calc_regress_slope(\
+                naaps_dust_ext, h_idxs, kk, xx = ii)
+            abf_ext_slope = calc_regress_slope(\
+                naaps_abf_ext, h_idxs, kk, xx = ii)
+            salt_ext_slope = calc_regress_slope(\
+                naaps_salt_ext, h_idxs, kk, xx = ii)
+            smoke_ext_slope = calc_regress_slope(\
+                naaps_smoke_ext, h_idxs, kk, xx = ii)
+    
             kk += 1
     
         # Otherwise, if the index is not one of the bins, just use
@@ -219,8 +279,18 @@ def interp_NAAPS(ii, naaps_press, naaps_temp, naaps_relhum, naaps_spechum, \
         interp_smoke_mass[jj]   = smoke_mass_slope * (jj - h_idxs[kk-1]) + \
             naaps_smoke_mass[ii, h_idxs[kk-1]]
     
+        interp_dust_ext[jj]   = dust_ext_slope  * (jj - h_idxs[kk-1]) + \
+            naaps_dust_ext[ii, h_idxs[kk-1]]
+        interp_abf_ext[jj]   = abf_ext_slope    * (jj - h_idxs[kk-1]) + \
+            naaps_abf_ext[ii, h_idxs[kk-1]]
+        interp_salt_ext[jj]   = salt_ext_slope  * (jj - h_idxs[kk-1]) + \
+            naaps_salt_ext[ii, h_idxs[kk-1]]
+        interp_smoke_ext[jj]   = smoke_ext_slope * (jj - h_idxs[kk-1]) + \
+            naaps_smoke_ext[ii, h_idxs[kk-1]]
+    
     return interp_press, interp_temp, interp_relhum, interp_spechum, \
-        interp_dust_mass, interp_abf_mass, interp_salt_mass, interp_smoke_mass
+        interp_dust_mass, interp_abf_mass, interp_salt_mass, interp_smoke_mass,\
+        interp_dust_ext, interp_abf_ext, interp_salt_ext, interp_smoke_ext
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
@@ -263,17 +333,55 @@ l_NO_AEROSOL = False
 # ---------------------------------------------------------------------
 l_USE_HALO_WV = True
 
+# This switch determines if the NAAPS aerosol fields (at either the raw
+# or thinned lidar resolution) are used instead of the HALO aerosol fields.
+# Right now, when NAAPS aerosol fields are used, all species are included.
+# -------------------------------------------------------------------------
+l_USE_NAAPS_AER = False
+
 # Check command line arguments
 # ----------------------------
 if(len(sys.argv) < 2):
-    print("SYNTAX: python extract_naapslidar.py CPEXCV-HALO_file [noaer]")
-    print("        noaer: by adding this, no aerosols are included in RTM run")
+    print("SYNTAX: python auto_fuliou_runner_combined.py CPEXCV-HALO_file "+\
+            "-wv={halo,naaps} -aer={halo,naaps,none}")
+    print("        wv : specifies which moisture variables to use in FuLiou")
+    print("             \"-wv=halo\"   - use HALO moisture vars (DEFAULT)")
+    print("             \"-wv=naaps\"  - use NAAPS moisture vars")
+    print("        aer : specifies which aerosol variables to use in FuLiou")
+    print("             \"-aer=halo\"  - use HALO aerosol vars (DEFAULT)")
+    print("             \"-aer=naaps\" - use NAAPS aerosol vars")
+    print("             \"-aer=none\"  - use no aerosol")
     sys.exit(1)
 
-#if('hdf' in sys.argv):
-#    l_GEN_HDF5_OUTPUT = True
-if('noaer' in sys.argv):
-    l_NO_AEROSOL = True
+wv_adder  = '_wvHALO'
+aer_adder = '_aerHALO'
+for arg in sys.argv:
+    if(arg[1:3] == 'wv'):
+        arg_val = arg.strip().split('=')[1]
+        if(arg_val == 'halo'):
+            l_USE_HALO_WV = True
+        elif(arg_val == 'naaps'):
+            l_USE_HALO_WV = False
+            wv_adder = '_wvNAAPS'
+        else:
+            print("WARNING: Invalid water vapor argument")
+    elif(arg[1:4] == 'aer'):
+        arg_val = arg.strip().split('=')[1]
+        if(arg_val == 'halo'):
+            l_USE_NAAPS_AER = False
+        elif(arg_val == 'naaps'):
+            l_USE_NAAPS_AER = True
+            aer_adder = '_aerNAAPS'
+        elif(arg_val == 'none'):
+            l_USE_NAAPS_AER = False
+            l_NO_AEROSOL = True
+            aer_adder = '_aerNONE'
+        else:
+            print("WARNING: Invalid aerosol argument")
+
+print("HALO WV argument:    ", l_USE_HALO_WV)
+print("NAAPS AER argument:  ", l_USE_NAAPS_AER)
+print("NO AEROSOL argument: ", l_NO_AEROSOL)
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
@@ -282,6 +390,7 @@ if('noaer' in sys.argv):
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
 # base_dir points to the 
+# NOTE: Please modify this path accordingly for your system!!!
 base_dir = "/Research/fuliou_lidarflux/naaps_lidar_fuliou_package_v2/"
 mhome = base_dir + "test_run"
 output_dir = mhome + '/data'
@@ -364,18 +473,22 @@ naaps_relhum  = hdf_data['NAAPS_rh'][:,:]
 # -------------------------------
 naaps_tot_aot   = hdf_data['NAAPS_total_aot'][:]
 
+naaps_dust_ext  = hdf_data['NAAPS_dust_ext'][:,:]
 naaps_dust_aot  = hdf_data['NAAPS_dust_aot'][:]
 naaps_dust_mass = \
     hdf_data['NAAPS_dust_mass_concentration'][:,:] * 1e-9
 
+naaps_abf_ext   = hdf_data['NAAPS_ABF_ext'][:,:]
 naaps_abf_aot   = hdf_data['NAAPS_ABF_aot'][:]
 naaps_abf_mass  = \
     hdf_data['NAAPS_ABF_mass_concentration'][:,:] * 1e-9
 
+naaps_salt_ext  = hdf_data['NAAPS_SS_ext'][:,:]
 naaps_salt_aot  = hdf_data['NAAPS_SS_aot'][:]
 naaps_salt_mass = \
     hdf_data['NAAPS_SS_mass_concentration'][:,:] * 1e-9
 
+naaps_smoke_ext  = hdf_data['NAAPS_smoke_ext'][:,:]
 naaps_smoke_aot  = hdf_data['NAAPS_smoke_aot'][:]
 naaps_smoke_mass = \
     hdf_data['NAAPS_smoke_mass_concentration'][:,:] * 1e-9
@@ -397,15 +510,40 @@ naaps_smoke_mass = \
 #       with the hand-calculated AOT values listed above.
 #
 # NOTE: Convert the lidar exts from in units of km-1 to units of m-1
+#       Also, convert the HALO mixing ratio from g/kg to kg/kg by dividing by
+#           1e3
 # ---------------------------------------------------------------------------
 ext_532       = hdf_data['532_ext'][:,:] / 1e3
+if('h2o_mmr_v' in hdf_data.keys()):
+    lidar_mixrat  = hdf_data['h2o_mmr_v'][:,:] / 1e3
+elif('h2o_mass_mixing_ratio' in hdf_data.keys()):
+    lidar_mixrat  = hdf_data['h2o_mass_mixing_ratio'][:,:] / 1e3
+else:
+    print("ERROR: No recognized HALO mixing ratio value in the file.")
+    print("       Please check the variables in the file and modify ")
+    print("       the code here.")
+    hdf_data.close()
+    sys.exit(2)
+
 aot_532       = hdf_data['532_AOT_lo'][:]
 aer_id        = hdf_data['Aerosol_ID'][:,:]
 
-# Replace masked extinctions with 0
+# Convert the HALO mixing ratio to specific humidity
+# --------------------------------------------------
+lidar_q = lidar_mixrat / (1 + lidar_mixrat)
+
+# Replace masked extinctions or water vapors with 0
 # -------------------------------------------------
 ext_532 = np.ma.where(np.ma.masked_invalid(ext_532).mask == True, \
     0., ext_532)
+lidar_q = np.ma.where(np.ma.masked_invalid(lidar_q).mask == True, \
+    0., lidar_q)
+lidar_mixrat = np.ma.where(np.ma.masked_invalid(lidar_mixrat).mask == True, \
+    0., lidar_mixrat)
+
+# NOTE: There may be negative HALO mixing ratios. Set them to 0?
+# --------------------------------------------------------------
+lidar_q = np.where(lidar_q < 0, 0, lidar_q)
 
 # Close the file
 # --------------
@@ -492,10 +630,16 @@ if(l_BIN_LIDAR_VERTICAL):
         (len(lidar_dz) % num_layers)], num_layers), axis = 1)
     avg_z    = np.mean(np.array(np.split(lidar_z[:len(lidar_dz) - \
         (len(lidar_dz) % num_layers)], num_layers)), axis = 1)
+
+    # Save a variable to hold the number of HALO vertical bins
+    # in each of these split bins
+    # -------------------------------------------------------
+    num_layers_per_bin = split_dz.shape[1]
 else:
-    # NOT SURE IF THIS WORKS, BUT AM TESTING
-    # --------------------------------------
+    # Not sure yet if this works, but am inserting this line for now
+    # --------------------------------------------------------------
     num_layers = ext_532.shape[1]
+    num_layers_per_bin = 1
 
 # Prep the output HDF5 file, if desired
 # -------------------------------------
@@ -550,7 +694,7 @@ if(l_GEN_HDF5_OUTPUT):
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
-# Now, run the actual code over the real input
+# Now, run the FuLiou code for each point
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 for ii in range(0, time.shape[0]):
@@ -570,11 +714,15 @@ for ii in range(0, time.shape[0]):
         # ----------------------------
         interp_press, interp_temp, interp_relhum, interp_spechum, \
             interp_dust_mass, interp_abf_mass, interp_salt_mass, \
-            interp_smoke_mass = \
+            interp_smoke_mass, interp_dust_ext, interp_abf_ext, \
+            interp_salt_ext, interp_smoke_ext = \
             interp_NAAPS(ii, naaps_press, naaps_temp, naaps_relhum, \
                 naaps_spechum, \
                 naaps_dust_mass, naaps_abf_mass, \
-                naaps_salt_mass, naaps_smoke_mass)
+                naaps_salt_mass, naaps_smoke_mass, \
+                naaps_dust_ext, naaps_abf_ext, \
+                naaps_salt_ext, naaps_smoke_ext, \
+                )
 
         if(l_BIN_LIDAR_VERTICAL):
             # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
@@ -594,6 +742,7 @@ for ii in range(0, time.shape[0]):
             split_spechum     = np.mean(np.array(np.split(\
                 interp_spechum[:len(interp_press) - \
                 (len(interp_press) % num_layers)], num_layers)), axis = 1)
+
             split_dust_mass   = np.mean(np.array(np.split(\
                 interp_dust_mass[:len(interp_press) - \
                 (len(interp_press) % num_layers)], num_layers)), axis = 1)
@@ -605,6 +754,19 @@ for ii in range(0, time.shape[0]):
                 (len(interp_press) % num_layers)], num_layers)), axis = 1)
             split_smoke_mass  = np.mean(np.array(np.split(\
                 interp_smoke_mass[:len(interp_press) - \
+                (len(interp_press) % num_layers)], num_layers)), axis = 1)
+
+            split_dust_ext   = np.mean(np.array(np.split(\
+                interp_dust_ext[:len(interp_press) - \
+                (len(interp_press) % num_layers)], num_layers)), axis = 1)
+            split_abf_ext    = np.mean(np.array(np.split(\
+                interp_abf_ext[:len(interp_press) - \
+                (len(interp_press) % num_layers)], num_layers)), axis = 1)
+            split_salt_ext   = np.mean(np.array(np.split(\
+                interp_salt_ext[:len(interp_press) - \
+                (len(interp_press) % num_layers)], num_layers)), axis = 1)
+            split_smoke_ext  = np.mean(np.array(np.split(\
+                interp_smoke_ext[:len(interp_press) - \
                 (len(interp_press) % num_layers)], num_layers)), axis = 1)
 
         check_press = naaps_press[ii,0]
@@ -620,12 +782,69 @@ for ii in range(0, time.shape[0]):
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
     if(l_BIN_LIDAR_VERTICAL): 
+        # Divide the lidar extinction, specific humidity, mixing ratio, and
+        # aerosol IDs into even bins, depending on the number of layers
+        # specified by the user
+        # -----------------------------------------------------------------
         split_ext     = np.array(np.split(ext_532[ii,:len(interp_press) - \
+            (len(interp_press) % num_layers)], num_layers))
+        split_lidar_q = np.array(np.split(lidar_q[ii,:len(interp_press) - \
+            (len(interp_press) % num_layers)], num_layers))
+        split_lidar_mixrat = np.array(np.split(lidar_mixrat[ii,:len(interp_press) - \
             (len(interp_press) % num_layers)], num_layers))
         split_aerid   = np.array(np.split(aer_id[ii,:len(interp_press) - \
             (len(interp_press) % num_layers)], num_layers))
    
+        # Calculate the bin averages for extinction, specific humidity, 
+        # and mixing ratio
+        # -------------------------------------------------------------
         avg_exts   = np.average(split_ext, axis = 1)
+        avg_q      = np.average(split_lidar_q, axis = 1)
+        avg_mixrat = np.average(split_lidar_mixrat, axis = 1)
+
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    #
+    # Need to calculate RH based on the temp, press, and mixing ratio.
+    # The HALO mixing ratio (and derived RH) will then be used in FuLiou
+    #
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+    epsilon = 0.622   # molecular weight ratio of vapor to dry air
+    if(l_BIN_LIDAR_VERTICAL):
+        # First, calculate saturation vapor pressure from the NAAPS temp
+        # Output is in hPa, and air temperature must be in degrees Celsius. 
+        # NAAPS air temp is used here.
+        # -----------------------------------------------------------------
+        sat_vap_press = 6.112 * np.exp( (17.67 * (split_temp - 273.15)) / \
+            ((split_temp - 273.15) + 243.5))        
+
+        # Then, use the saturation vapor pressure and NAAPS air pressure to
+        # calculate the saturation mixing ratio
+        # ----------------------------------------------------------------- 
+        sat_mix_rat = epsilon * (sat_vap_press / (split_press - sat_vap_press))
+
+        # Finally, calculate the relative humidity given the HALO mixing
+        # ratio and the derived saturation mixing ratio
+        # -------------------------------------------------------------- 
+        avg_lidar_rh = ((avg_mixrat / (epsilon + avg_mixrat)) * \
+            ((epsilon + avg_mixrat) / sat_mix_rat)) * 100.
+    else:
+        # First, calculate saturation vapor pressure from the NAAPS temp
+        # Output is in Pascals, and air temperature must be in degrees Celsius
+        sat_vap_press = 6.112 * np.exp( (17.67 * (interp_temp - 273.15)) / \
+            ((interp_temp - 273.15) + 243.5))        
+
+        # Then, use the saturation vapor pressure and NAAPS air pressure to
+        # calculate the saturation mixing ratio
+        # ----------------------------------------------------------------- 
+        sat_mix_rat = epsilon * (sat_vap_press / (interp_press - sat_vap_press))
+   
+        # Finally, calculate the relative humidity given the HALO mixing
+        # ratio and the derived saturation mixing ratio
+        # -------------------------------------------------------------- 
+        lidar_rh = ((lidar_mixrat[ii,:interp_press.shape[0]] / \
+            (epsilon + lidar_mixrat[ii,:interp_press.shape[0]])) * \
+            ((epsilon + lidar_mixrat[ii,:interp_press.shape[0]]) / \
+            sat_mix_rat)) * 100.
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     #
@@ -633,11 +852,21 @@ for ii in range(0, time.shape[0]):
     #   'naaps_abf_aot'-like variables printed at the top of the output file
     #
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-    spec_aods, other_aods = \
-        calc_species_aod(ext_532, aer_id, lidar_z, lidar_dz, abf_ids, \
-            dust_ids, smoke_ids, salt_ids, ii)
+    if(l_USE_NAAPS_AER):
+        spec_aods = [0,0,0,0]
+        other_aods = [0,0]
+        spec_aods[0] = np.sum(split_abf_ext * (avg_dz * num_layers_per_bin))
+        spec_aods[1] = np.sum(split_dust_ext * (avg_dz * num_layers_per_bin))
+        spec_aods[2] = np.sum(split_smoke_ext * (avg_dz * num_layers_per_bin))
+        spec_aods[3] = np.sum(split_salt_ext * (avg_dz * num_layers_per_bin))
+
+    else:
+        spec_aods, other_aods = \
+            calc_species_aod(ext_532, aer_id, lidar_z, lidar_dz, abf_ids, \
+                dust_ids, smoke_ids, salt_ids, ii)
 
     calc_total_aot = np.sum(spec_aods)
+
 
     with open(foutname, 'w') as fout:
     
@@ -696,72 +925,95 @@ for ii in range(0, time.shape[0]):
             vert_dim = ext_532.shape[1] - 1
         for jj in range(vert_dim, -1, -1):
 
-            # Use the lidar aerosol classification to put the lidar
-            # extinction values into the correct type slot:
-            # abf, dust, smoke, or salt
-            #
-            # lidar class values:
-            #  1 = Ice
-            #  2 = Dusty Mix
-            #  3 = Marine
-            #  4 = Urban/Pollution
-            #  5 = Smoke
-            #  6 = Fresh Smoke
-            #  7 = Pol. Marine
-            #  8 = Dust
-            #
-            # The lidar values are binned to the NAAPS species
-            # following:
-            #
-            #   abf:   4
-            #   dust:  2, 8
-            #   smoke: 5, 6
-            #   salt:  3, 7
-            # -------------------------------------------------------
             local_abf = local_dust = local_smoke = local_salt = 0.
 
-            if(l_BIN_LIDAR_VERTICAL):
-                # In this section, account for lidar bins that do not contain
-                # classification. Classify as "sea salt" if the bin is less
-                # than 500 m MSL and the extinction is less than 0.05 km-1.
-                # For any other case (greater than 500 m MSL or extinction
-                # greater than 0.05 km-1), classify as dust.
-                local_ids = np.ma.masked_invalid(split_aerid[jj])
-                local_ids = np.where(local_ids.mask, -9, local_ids)
-                if(avg_z[jj] > 500):
-                    local_ids = np.where(local_ids == -9, 2, local_ids)
-                else:
-                    local_ids = np.where((local_ids == -9) & (split_ext[jj] <= 5e-5), 3, local_ids)
-                    local_ids = np.where((local_ids == -9) & (split_ext[jj] > 5e-5), 2, local_ids)
-
-                unique_ids = np.unique(local_ids)
-                work_id = unique_ids[np.argmax([\
-                    len(np.where(local_ids == uq)[0]) for uq in unique_ids])]
-                work_ext = avg_exts[jj]
+            if(l_USE_NAAPS_AER):
+                # If the "l_NO_AEROSOL" switch is True, then the 
+                # local_**** aerosol values will remain at 0
+                # ----------------------------------------------
+                if(not l_NO_AEROSOL):
+                    # ABF
+                    local_abf = split_abf_ext[jj]
+                    # Dust
+                    local_dust = split_dust_ext[jj]
+                    # Smoke
+                    local_smoke = split_smoke_ext[jj]
+                    # Salt 
+                    local_salt = split_salt_ext[jj]
+    
             else:
-                work_id = aer_id[ii,jj]
-                work_ext = ext_532[ii,jj]
 
-            # If the "l_NO_AEROSOL" switch is True, then the 
-            # local_**** aerosol values will remain at 0
-            # ----------------------------------------------
-            if(not l_NO_AEROSOL):
-                # ABF
-                if(work_id in abf_ids):
-                    local_abf = work_ext
-                # Dust
-                elif(work_id in dust_ids):
-                    local_dust = work_ext
-                # Smoke
-                elif(work_id in smoke_ids):
-                    local_smoke = work_ext
-                # Salt 
-                elif(work_id in salt_ids):
-                    local_salt = work_ext
+                # Use the lidar aerosol classification to put the lidar
+                # extinction values into the correct type slot:
+                # abf, dust, smoke, or salt
+                #
+                # lidar class values:
+                #  1 = Ice
+                #  2 = Dusty Mix
+                #  3 = Marine
+                #  4 = Urban/Pollution
+                #  5 = Smoke
+                #  6 = Fresh Smoke
+                #  7 = Pol. Marine
+                #  8 = Dust
+                #
+                # The lidar values are binned to the NAAPS species
+                # following:
+                #
+                #   abf:   4
+                #   dust:  2, 8
+                #   smoke: 5, 6
+                #   salt:  3, 7
+                # -------------------------------------------------------
 
+                if(l_BIN_LIDAR_VERTICAL):
+                    # In this section, account for lidar bins that do not contain
+                    # classification. Classify as "sea salt" if the bin is less
+                    # than 500 m MSL and the extinction is less than 0.05 km-1.
+                    # For any other case (greater than 500 m MSL or extinction
+                    # greater than 0.05 km-1), classify as dust.
+                    local_ids = np.ma.masked_invalid(split_aerid[jj])
+                    local_ids = np.where(local_ids.mask, -9, local_ids)
+                    if(avg_z[jj] > 500):
+                        local_ids = np.where(local_ids == -9, 2, local_ids)
+                    else:
+                        local_ids = np.where((local_ids == -9) & (split_ext[jj] <= 5e-5), 3, local_ids)
+                        local_ids = np.where((local_ids == -9) & (split_ext[jj] > 5e-5), 2, local_ids)
+
+                    unique_ids = np.unique(local_ids)
+                    work_id = unique_ids[np.argmax([\
+                        len(np.where(local_ids == uq)[0]) for uq in unique_ids])]
+                    work_ext = avg_exts[jj]
+                else:
+                    work_id = aer_id[ii,jj]
+                    work_ext = ext_532[ii,jj]
+
+                # If the "l_NO_AEROSOL" switch is True, then the 
+                # local_**** aerosol values will remain at 0
+                # ----------------------------------------------
+                if(not l_NO_AEROSOL):
+                    # ABF
+                    if(work_id in abf_ids):
+                        local_abf = work_ext
+                    # Dust
+                    elif(work_id in dust_ids):
+                        local_dust = work_ext
+                    # Smoke
+                    elif(work_id in smoke_ids):
+                        local_smoke = work_ext
+                    # Salt 
+                    elif(work_id in salt_ids):
+                        local_salt = work_ext
+
+            # 2024/05/14: Modifying the print statements to use the HALO
+            #       moisture variables rather than NAAPS
             if(l_BIN_LIDAR_VERTICAL):
-                local_relhum  = split_relhum[jj]
-                local_spechum = split_spechum[jj]
+                if( (l_USE_HALO_WV) and (avg_q[jj] != 0.)):
+                    local_relhum  = avg_lidar_rh[jj]
+                    local_spechum = avg_q[jj]
+                else:
+                    local_relhum  = split_relhum[jj]
+                    local_spechum = split_spechum[jj]
 
                 if(local_spechum != 0):
                     fout.write(fmt_str.format(\
@@ -773,8 +1025,12 @@ for ii in range(0, time.shape[0]):
                         split_smoke_mass[jj], split_salt_mass[jj], \
                     ))
             else:
-                local_relhum  = interp_relhum[jj]
-                local_spechum = interp_spechum[jj]
+                if( (l_USE_HALO_WV) and (lidar_q[jj] != 0.)):
+                    local_relhum  = lidar_rh[jj]
+                    local_spechum = lidar_q[jj]
+                else:
+                    local_relhum  = interp_relhum[jj]
+                    local_spechum = interp_spechum[jj]
 
                 if(local_spechum != 0):
                     fout.write(fmt_str.format(\
@@ -857,19 +1113,15 @@ for ii in range(0, time.shape[0]):
                     output_salt_ext[ii,:]   = indata[work_idx:,9]
                 else:
                     print("MISMATCH")
-   
+
             else:
                 print("WARNING: BAD fort.22 FILE AT INDEX",ii)
     
 # At the end, if desired, make the output HDF5 file
 if(l_GEN_HDF5_OUTPUT):
 
-    if(l_NO_AEROSOL):
-        out_name = 'fuliou_output_lidar_' + \
-            infile.strip().split('/')[-1].split('_')[2] + '_noaer.h5'
-    else:
-        out_name = 'fuliou_output_lidar_' + \
-            infile.strip().split('/')[-1].split('_')[2] + '.h5'
+    out_name = 'fuliou_output_lidar' + wv_adder + aer_adder + '_' + \
+        infile.strip().split('/')[-1].split('_')[2] + '.h5'
 
     # Here, remove the indices that contain missing values?
     # -----------------------------------------------------
@@ -913,7 +1165,7 @@ if(l_GEN_HDF5_OUTPUT):
     cdt = dset.create_dataset('rel_hum',          data = output_relhum[keep_idxs])
     if(l_USE_HALO_WV):
         cdt.attrs['long_name'] = 'HALO relative humidity (calculated using ' + \
-            'HALO mixing ratio and NAAPS air temperature)'
+            'HALO mixing ratio and NAAPS air pressure/temperature)'
     else:
         cdt.attrs['long_name'] = 'NAAPS relative humidity'
     cdt.attrs['units'] = '%'

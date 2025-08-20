@@ -8,6 +8,15 @@ import importlib, NEXRADLib
 from NEXRADLib import *
 import sys
 
+begin_date = '202107221000'
+end_date   = '202107230330'
+
+#plot_NEXRAD_ppi_auto(begin_date, end_date, 'KBBX', 'differential_reflectivity', \
+#    save_dir = './', angle_idx = 4, zoom = True, save = True)
+plot_NEXRAD_ppi_auto(begin_date, end_date, 'KRGX', 'reflectivity', \
+    save_dir = './', angle_idx = 0, zoom = True, save = True)
+sys.exit()
+
 
 #NEXRAD_dict = read_NEXRAD('202107222100', 'KRGX', angle = 4)
 #sys.exit()
@@ -339,15 +348,6 @@ plot_NEXRAD_GOES_4panel(date_str, radar, variable, channel, ax = None, \
     labelsize = 10, colorbar = True, counties = True, save_dir = './',\
     alpha = 1.0, mask_outside = True, zoom=True, save=False)
 #local_date = local_date + timedelta(minutes = 30)
-sys.exit()
-
-begin_date = '202107221430'
-end_date   = '202107230330'
-
-#plot_NEXRAD_ppi_auto(begin_date, end_date, 'KBBX', 'differential_reflectivity', \
-#    save_dir = './', angle_idx = 4, zoom = True, save = True)
-plot_NEXRAD_ppi_auto(begin_date, end_date, 'KRGX', 'reflectivity', \
-    save_dir = './', angle_idx = 2, zoom = True, save = True)
 sys.exit()
 
 

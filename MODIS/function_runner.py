@@ -9,6 +9,26 @@ from MODISLib import *
 
 #tester = identify_MODIS_MYD08(date_str, dest_dir = myd08_dir)
 
+#date_str = '201506011300'
+#date_str = '201807052305'
+#download_MODIS_file(date_str, dest_dir = modis_dir, download_cloud_mask = True)
+
+#plot_MODIS_satpy_6panel('202107222110', 'true_color', 1, 2, 5, 7, 31, \
+#    save = True)
+plot_MODIS_satpy_6panel('202108052125', 'true_color', 1, 2, 5, 7, 31, \
+    save = True, use_base_crs = True)
+
+sys.exit()
+
+plot_MODIS_satpy_2time('202107222110', '202108052125', \
+    'true_color', 7, 31, save = True)
+
+sys.exit()
+
+
+
+
+
 #base_date = datetime(2005,4,1)
 base_date = datetime(2007,4,1)
 end_date  = datetime(2020,9,30)

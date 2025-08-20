@@ -1742,6 +1742,278 @@ def plot_MODIS_satpy(date_str, channel, ax = None, var = None, crs = None, \
         else:
             plt.show()
 
+def plot_MODIS_satpy_6panel(date_str1, ch1, ch2, ch3, ch4, ch5, ch6, \
+        save = False, use_base_crs = False):
+    
+    dt_date_str = datetime.strptime(date_str1, '%Y%m%d%H%M')
+ 
+    # Make the overall figure
+    # -----------------------
+    var1, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel1 = \
+        read_MODIS_satpy(date_str1, ch1, swath = True)
+    var2, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel2 = \
+        read_MODIS_satpy(date_str1, ch2, swath = True)
+    var3, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel3 = \
+        read_MODIS_satpy(date_str1, ch3, swath = True)
+    var4, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel4 = \
+        read_MODIS_satpy(date_str1, ch4, swath = True)
+    var5, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel5 = \
+        read_MODIS_satpy(date_str1, ch5, swath = True)
+    var6, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel6 = \
+        read_MODIS_satpy(date_str1, ch6, swath = True)
+
+    if(use_base_crs):
+        _, crs1, _, _, _, _, _ = \
+            read_MODIS_satpy('202107222110', 1, swath = True)
+
+        
+    plt.close('all')
+    fig1 = plt.figure(figsize = (12, 8))
+    ax1 = fig1.add_subplot(2,3,1, projection = crs1)
+    ax2 = fig1.add_subplot(2,3,2, projection = crs1)
+    ax3 = fig1.add_subplot(2,3,3, projection = crs1)
+    ax4 = fig1.add_subplot(2,3,4, projection = crs1)
+    ax5 = fig1.add_subplot(2,3,5, projection = crs1)
+    ax6 = fig1.add_subplot(2,3,6, projection = crs1)
+   
+    if(ch1 == 'true_color'):
+        plot_MODIS_satpy(date_str1, ch1, ax = ax1, var = var1, crs = crs1, \
+            lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+            ptitle = '', plabel = plabel1, \
+            labelsize = 10, zoom=True, save=False)
+    else: 
+        plot_MODIS_satpy(date_str1, ch1, ax = ax1, var = var1, crs = crs1, \
+            lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+            ptitle = '', plabel = plabel1, \
+            vmin = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+                dt_date_str.strftime('%H%M')]['data_lim'][str(ch1)][0], \
+            vmax = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+                dt_date_str.strftime('%H%M')]['data_lim'][str(ch1)][1], \
+            labelsize = 10, zoom=True, save=False)
+    plot_MODIS_satpy(date_str1, ch2, ax = ax2, var = var2, crs = crs1, \
+        lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+        vmin = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+            dt_date_str.strftime('%H%M')]['data_lim'][str(ch2)][0], \
+        vmax = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+            dt_date_str.strftime('%H%M')]['data_lim'][str(ch2)][1], \
+        ptitle = '', plabel = plabel2, \
+        labelsize = 10, zoom=True, save=False)
+    plot_MODIS_satpy(date_str1, ch3, ax = ax3, var = var3, crs = crs1, \
+        lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+        vmin = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+            dt_date_str.strftime('%H%M')]['data_lim'][str(ch3)][0], \
+        vmax = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+            dt_date_str.strftime('%H%M')]['data_lim'][str(ch3)][1], \
+        ptitle = '', plabel = plabel3, \
+        labelsize = 10, zoom=True, save=False)
+    plot_MODIS_satpy(date_str1, ch4, ax = ax4, var = var4, crs = crs1, \
+        lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+        ptitle = '', plabel = plabel4, \
+        vmin = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+            dt_date_str.strftime('%H%M')]['data_lim'][str(ch4)][0], \
+        vmax = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+            dt_date_str.strftime('%H%M')]['data_lim'][str(ch4)][1], \
+        labelsize = 10, zoom=True, save=False)
+    plot_MODIS_satpy(date_str1, ch5, ax = ax5, var = var5, crs = crs1, \
+        lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+        vmin = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+            dt_date_str.strftime('%H%M')]['data_lim'][str(ch5)][0], \
+        vmax = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+            dt_date_str.strftime('%H%M')]['data_lim'][str(ch5)][1], \
+        ptitle = '', plabel = plabel5, \
+        labelsize = 10, zoom=True, save=False)
+    plot_MODIS_satpy(date_str1, ch6, ax = ax6, var = var6, crs = crs1, \
+        lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+        vmin = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+            dt_date_str.strftime('%H%M')]['data_lim'][str(ch6)][0], \
+        vmax = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+            dt_date_str.strftime('%H%M')]['data_lim'][str(ch6)][1], \
+        ptitle = '', plabel = plabel6, \
+        labelsize = 10, zoom=True, save=False)
+    
+    font_size = 9
+    if(ch1 == 'true_color'):
+        title_str = 'MODIS True Color'
+    else:
+        title_str = 'MODIS ' + \
+            str(np.round(np.mean(channel_dict[str(ch1)]['Bandwidth']), 2)) 
+    
+    plot_figure_text(ax1, title_str, \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax2, 'MODIS ' + \
+        str(np.round(np.mean(channel_dict[str(ch2)]['Bandwidth']), 2)) \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax3, 'MODIS ' + \
+        str(np.round(np.mean(channel_dict[str(ch3)]['Bandwidth']), 2)) \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax4, 'MODIS ' + \
+        str(np.round(np.mean(channel_dict[str(ch4)]['Bandwidth']), 2)) \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax5, 'MODIS ' + \
+        str(np.round(np.mean(channel_dict[str(ch5)]['Bandwidth']), 2)) \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax6, 'MODIS ' + \
+        str(np.round(np.mean(channel_dict[str(ch6)]['Bandwidth']), 2)) \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+
+    plt.suptitle(dt_date_str.strftime('%Y-%m-%d %H:%M UTC'))
+ 
+    fig1.tight_layout()
+    
+    if(save):
+        outname = 'modis_satpy_6panel_' + date_str1 + '.png'
+        fig1.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else: 
+        plt.show()
+
+
+
+
+# Plots MODIS satpy data for 2 times
+def plot_MODIS_satpy_2time(date_str1, date_str2, ch1, ch2, ch3, \
+        save = False):
+   
+    dt_date_str1 = datetime.strptime(date_str1, '%Y%m%d%H%M')
+    dt_date_str2 = datetime.strptime(date_str2, '%Y%m%d%H%M')
+ 
+    # Make the overall figure
+    # -----------------------
+    var1, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel1 = \
+        read_MODIS_satpy(date_str1, ch1, swath = True)
+    var2, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel2 = \
+        read_MODIS_satpy(date_str1, ch2, swath = True)
+    var3, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel3 = \
+        read_MODIS_satpy(date_str1, ch3, swath = True)
+    
+    var4, crs2, lons2, lats2, lat_lims2, lon_lims2, plabel4 = \
+        read_MODIS_satpy(date_str2, ch1, swath = True)
+    var5, crs2, lons2, lats2, lat_lims2, lon_lims2, plabel5 = \
+        read_MODIS_satpy(date_str2, ch2, swath = True)
+    var6, crs2, lons2, lats2, lat_lims2, lon_lims2, plabel6 = \
+        read_MODIS_satpy(date_str2, ch3, swath = True)
+    
+    plt.close('all')
+    fig1 = plt.figure(figsize = (12, 8))
+    ax1 = fig1.add_subplot(2,3,1, projection = crs1)
+    ax2 = fig1.add_subplot(2,3,2, projection = crs1)
+    ax3 = fig1.add_subplot(2,3,3, projection = crs1)
+    ax4 = fig1.add_subplot(2,3,4, projection = crs2)
+    ax5 = fig1.add_subplot(2,3,5, projection = crs2)
+    ax6 = fig1.add_subplot(2,3,6, projection = crs2)
+   
+    if(ch1 == 'true_color'):
+        plot_MODIS_satpy(date_str1, ch1, ax = ax1, var = var1, crs = crs1, \
+            lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+            ptitle = '', plabel = plabel1, \
+            labelsize = 10, zoom=True, save=False)
+    else: 
+        plot_MODIS_satpy(date_str1, ch1, ax = ax1, var = var1, crs = crs1, \
+            lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+            ptitle = '', plabel = plabel1, \
+            vmin = aerosol_event_dict[dt_date_str1.strftime('%Y-%m-%d')][\
+                dt_date_str1.strftime('%H%M')]['data_lim'][str(ch1)][0], \
+            vmax = aerosol_event_dict[dt_date_str1.strftime('%Y-%m-%d')][\
+                dt_date_str1.strftime('%H%M')]['data_lim'][str(ch1)][1], \
+            labelsize = 10, zoom=True, save=False)
+    plot_MODIS_satpy(date_str1, ch2, ax = ax2, var = var2, crs = crs1, \
+        lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+        ptitle = '', plabel = plabel2, \
+        vmin = aerosol_event_dict[dt_date_str1.strftime('%Y-%m-%d')][\
+            dt_date_str1.strftime('%H%M')]['data_lim'][str(ch2)][0], \
+        vmax = aerosol_event_dict[dt_date_str1.strftime('%Y-%m-%d')][\
+            dt_date_str1.strftime('%H%M')]['data_lim'][str(ch2)][1], \
+        labelsize = 10, zoom=True, save=False)
+    plot_MODIS_satpy(date_str1, ch3, ax = ax3, var = var3, crs = crs1, \
+        lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+        ptitle = '', plabel = plabel3, \
+        vmin = aerosol_event_dict[dt_date_str1.strftime('%Y-%m-%d')][\
+            dt_date_str1.strftime('%H%M')]['data_lim'][str(ch3)][0], \
+        vmax = aerosol_event_dict[dt_date_str1.strftime('%Y-%m-%d')][\
+            dt_date_str1.strftime('%H%M')]['data_lim'][str(ch3)][1], \
+        labelsize = 10, zoom=True, save=False)
+    
+    if(ch1 == 'true_color'):
+        plot_MODIS_satpy(date_str2, ch1, ax = ax4, var = var4, crs = crs2, \
+            lons = lons2, lats = lats2, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+            ptitle = '', plabel = plabel4, \
+            labelsize = 10, zoom=True, save=False)
+    else:
+        plot_MODIS_satpy(date_str2, ch1, ax = ax4, var = var4, crs = crs2, \
+            lons = lons2, lats = lats2, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+            ptitle = '', plabel = plabel4, \
+            vmin = aerosol_event_dict[dt_date_str2.strftime('%Y-%m-%d')][\
+                dt_date_str2.strftime('%H%M')]['data_lim'][str(ch1)][0], \
+            vmax = aerosol_event_dict[dt_date_str2.strftime('%Y-%m-%d')][\
+                dt_date_str2.strftime('%H%M')]['data_lim'][str(ch1)][1], \
+            labelsize = 10, zoom=True, save=False)
+    plot_MODIS_satpy(date_str2, ch2, ax = ax5, var = var5, crs = crs2, \
+        lons = lons2, lats = lats2, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+        ptitle = '', plabel = plabel5, \
+        vmin = aerosol_event_dict[dt_date_str2.strftime('%Y-%m-%d')][\
+            dt_date_str2.strftime('%H%M')]['data_lim'][str(ch2)][0], \
+        vmax = aerosol_event_dict[dt_date_str2.strftime('%Y-%m-%d')][\
+            dt_date_str2.strftime('%H%M')]['data_lim'][str(ch2)][1], \
+        labelsize = 10, zoom=True, save=False)
+    plot_MODIS_satpy(date_str2, ch3, ax = ax6, var = var6, crs = crs2, \
+        lons = lons2, lats = lats2, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+        vmin = aerosol_event_dict[dt_date_str2.strftime('%Y-%m-%d')][\
+            dt_date_str2.strftime('%H%M')]['data_lim'][str(ch3)][0], \
+        vmax = aerosol_event_dict[dt_date_str2.strftime('%Y-%m-%d')][\
+            dt_date_str2.strftime('%H%M')]['data_lim'][str(ch3)][1], \
+        ptitle = '', plabel = plabel6, \
+        labelsize = 10, zoom=True, save=False)
+    
+    font_size = 9
+    if(ch1 == 'true_color'):
+        title_str = 'MODIS True Color'
+    else:
+        title_str = 'MODIS ' + \
+            str(np.round(np.mean(channel_dict[str(ch1)]['Bandwidth']), 2)) 
+    
+    plot_figure_text(ax1, title_str, \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax2, 'MODIS ' + \
+        str(np.round(np.mean(channel_dict[str(ch2)]['Bandwidth']), 2)) \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax3, 'MODIS ' + \
+        str(np.round(np.mean(channel_dict[str(ch3)]['Bandwidth']), 2)) \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    
+    plot_figure_text(ax4, title_str, \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax5, 'MODIS ' + \
+        str(np.round(np.mean(channel_dict[str(ch2)]['Bandwidth']), 2)) \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax6, 'MODIS ' + \
+        str(np.round(np.mean(channel_dict[str(ch3)]['Bandwidth']), 2)) \
+        + ' μm', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
+
+    ax2.set_title(dt_date_str1.strftime('%Y-%m-%d %H:%M UTC'))
+    ax5.set_title(dt_date_str2.strftime('%Y-%m-%d %H:%M UTC'))
+ 
+    fig1.tight_layout()
+    
+    if(save):
+        outname = 'modis_satpy_comp_' + date_str1 + '_' + date_str2 + '.png'
+        fig1.savefig(outname, dpi = 300)
+        print("Saved image", outname)
+    else: 
+        plt.show()
+
+
 def plot_MODIS_satpy_point_test(date_str, channel1 = 1, \
         channel2 = 7, channel3 = 31, \
         plats = [40.750520, \

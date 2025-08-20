@@ -2,18 +2,27 @@
 
 """
   NAME:
-    auto_fuliou_runner.py
+    auto_fuliou_runner_naaps.py
 
   PURPOSE:
     Automate the running of FuLiou for each unique point in a passed
         CCPEXCV-HALO NAAPS/lidar file.
 
+  NOTES:
+    The script automatically generates the HDF5 output file. The user no
+        longer needs to add 'hdf' as a command-line argument.
+
   SYNTAX:
-    python extract_naapslidar.py CCPEXCV-HALO_file
+    python auto_fuliou_runner_naaps.py CPEXCV-HALO_file [noaer]
+        noaer: by adding this, no aerosols are included in RTM run
 
   MODIFICATIONS:
     Blake Sorenson <blake.sorenson@und.edu>     - 2023/10/03:
       Written
+    Blake Sorenson <blake.sorenson@und.edu>     - 2024/05/03:
+      Added capability to run without aerosol
+    Blake Sorenson <blake.sorenson@und.edu>     - 2024/05/17:
+      Modified so that the script automatically generates HDF5 output files
 
 """
 
@@ -28,66 +37,33 @@ from scipy.stats import mode
 # FuLiou output files, in addition to the text file. The 
 # HDF5 file is titled 'fuliou_out_YYYYMMDD.hdf5'
 # ----------------------------------------------------------------------
-l_GEN_HDF5_OUTPUT = False
+l_GEN_HDF5_OUTPUT = True
+
+# This switch runs the FuLiou RTM code without any aerosol (or just dust?).
+# Only water vapor is the key player then.
+# -------------------------------------------------------------------------
+l_NO_AEROSOL = False
 
 # Check command line arguments
 # ----------------------------
-if(len(sys.argv) != 2):
-    print("SYNTAX: python extract_naapslidar.py CCPEXCV-HALO_file")
+if(len(sys.argv) < 2):
+    print("SYNTAX: python auto_fuliou_runner_naaps.py CPEXCV-HALO_file [noaer]")
+    print("        noaer: by adding this, no aerosols are included in RTM run")
     sys.exit(1)
+
+if('noaer' in sys.argv):
+    l_NO_AEROSOL = True
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
 #  Set path variables
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-
-#base_dir = "/Research/for_blake_from_zhang/fuliou_package/
-#base_dir = "/Research/fuliou_lidarflux/fuliou_package/"
-base_dir = "/Research/fuliou_lidarflux/test_package/"
-data_dir = "/Research/NAAPS_NOGAPS_2023/"
-mhome = base_dir + "test_run"
-output_dir = mhome + '/data'
-
-homedir = mhome
-
-########################################################
-#Parameter Group 2
-
-########################################################
-#locations for executables
-#naaps_fuliou
-#setenv NAAPS_FULIOUCODE "/home/jzhang/fuliou_package/sourcecodes"
+base_dir = "/Research/fuliou_lidarflux/naaps_lidar_fuliou_package_v2/"
 naaps_fulioucode = base_dir + "sourcecodes"
 
 tabledir  = naaps_fulioucode + "/table"             ##place to store .txt files needed for the program
 srcdir  =  naaps_fulioucode 
-
-#tools
-mtools = naaps_fulioucode + "/tools"
-#setenv MTOOLS      "$NAAPS_FULIOUCODE/tools"
-
-
-########################################################
-#locations for data
-
-#NOGAPS data
-#setenv NOGAPS_SOURCE "/home/jzhang/fuliou_package/test_data/test_nogaps"
-#setenv NOGAPS_SOURCE "/Research/for_blake_from_zhang/fuliou_package/test_data/test_nogaps"
-#setenv NOGAPS_SOURCE "/Research/NAAPS_NOGAPS_2023/NAAPS/"
-
-#setenv NOGAPS_SOURCE "/Research/NAAPS_NOGAPS_2023/nog_cmorph"
-nogaps_source = data_dir + "nog_cmorph"
-
-#NAAPS DATA
-#setenv naapsdir  "/home/jzhang/fuliou_package/test_data/test_naaps"
-#setenv naapsdir  "/Research/for_blake_from_zhang/fuliou_package/test_run/test_naaps"
-
-#setenv naapsdir  "/Research/NAAPS_NOGAPS_2023/NAAPS"
-naapsdir = data_dir + "NAAPS"
-concdir = os.getcwd()
-nogapsdir = os.getcwd()
-predir = os.getcwd()
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
@@ -97,8 +73,6 @@ predir = os.getcwd()
 
 namelist_file = 'namelist'
 dtg = '2000010100'
-#set namelist = "${runhome}/namelist"
-#/bin/rm -r $namelist >& /dev/null
 with open(namelist_file, 'w') as fname:
     fname.write("    &nl\n" + \
                 "    tape        = '" + dtg + "',\n" + \
@@ -107,9 +81,6 @@ with open(namelist_file, 'w') as fname:
                 "    dustfile    = 'dust_farop_v3.txt',\n" + \
                 "    smokefile   = 'smoke_farop_v3.txt',\n" + \
                 "    saltfile    = 'salt_farop_v3.txt',\n" + \
-                "    concdir     = '" + concdir + "',\n" + \
-                "    nogapsdir   = '" + nogapsdir + "',\n" + \
-                "    predir      = '" + predir + "',\n" + \
                 "    sceneidfile =  'global_scene_id.map',\n" + \
                 "    &end\n")
 
@@ -129,20 +100,12 @@ naaps_press   = hdf_data['NAAPS_pressure'][:,:] / 100.
 l_remove_doubles = True
 if(l_remove_doubles):
     
-    # Figure out the vertical indices
-    # -------------------------------
-    ##!#unique_vert_press = np.unique(naaps_press[0,:])[::-1]
-    ##!#keep_vert_idxs = np.array([\
-    ##!#    np.where(naaps_press[0,:] == tup)[0][0] \
-    ##!#    for tup in unique_vert_press])
-
     # Figure out the horizontal indices
     # -------------------------------
     unique_horz_press = np.unique(naaps_press[:,0])
     res, ind = np.unique(naaps_press[:,0], return_index = True)
     keep_horz_idxs = ind[np.argsort(ind)]
 
-    #naaps_press   = naaps_press[keep_horz_idxs,:][:,keep_vert_idxs]
     naaps_press   = naaps_press[keep_horz_idxs,:]
 else:     
     keep_horz_idxs = np.arange(naaps_press.shape[0])
@@ -170,7 +133,7 @@ lon           = hdf_data['lon'][:][keep_horz_idxs]
 naaps_temp    = hdf_data['NAAPS_temperature'\
     ][keep_horz_idxs,:]
 naaps_sfcpres = hdf_data['NAAPS_ps'][:][keep_horz_idxs]
-naaps_spechum = hdf_data['NAAPS_q'][keep_horz_idxs,:]
+naaps_spechum = hdf_data['NAAPS_q'][keep_horz_idxs,:]   
 naaps_relhum  = hdf_data['NAAPS_rh'][keep_horz_idxs,:]
 
 # Extract NAAPS aerosol variables
@@ -215,7 +178,7 @@ hdf_data.close()
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 #
-#  Loop over the data and print the stuff
+#  Loop over the data and print the values to the FuLiou input file
 #
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
@@ -243,12 +206,8 @@ fmt_str = "{0:7.1f} {1:8.1f} {2:8.1f} {3:7.2f} " + \
 # totaod = [aod1, aod2, aod3, aod4, aod5]
 # totaod: [UNUSED, sulfate, dust, smoke, salt]
 
-#foutname = base_dir + \
-#            'test_data/test_naaps_new/test_naaps_file.txt' 
-foutname = 'test_naaps_file.txt' 
-
-#out_data_name = output_dir + '/test_output_file.txt'
-out_data_name = 'test_output_file.txt'
+foutname = 'fuliou_input_naaps_file.txt' 
+out_data_name = 'fuliou_output_file.txt'
 
 # If the outputfile exists in its current name, delete the old one
 # ----------------------------------------------------------------
@@ -257,23 +216,20 @@ if(os.path.exists(out_data_name)):
     cmnd = 'rm ' + out_data_name
     os.system(cmnd)
 
-##work_file = 'test_comp_work.txt'
-##if(os.path.exists(work_file)):
-##    print("Removing work file")
-##    cmnd = 'rm ' + work_file
-##    os.system(cmnd)
-
 # Prep the output HDF5 file, if desired
 # -------------------------------------
-num_layers = naaps_temp.shape[1]
+unique_vert_press = np.unique(naaps_press[0,:])[::-1]
+keep_vert_idxs = np.array([\
+    np.where(naaps_press[0,:] == tup)[0][0] \
+    for tup in unique_vert_press])
+num_layers = naaps_temp[:,keep_vert_idxs].shape[1]
+
 if(l_GEN_HDF5_OUTPUT):
     # NOTE: In the FuLiou code, the output printed to the screen begins at 
-    # index 7 of the arrays in the code. This is mirrored here
+    # index 2 of the arrays in the code. This is mirrored here
     # --------------------------------------------------------------------
-    #num_pres_layers = num_layers - 6
-    #num_heat_layers = num_layers - 7
-    num_pres_layers = num_layers - 1
-    num_heat_layers = num_layers - 2
+    num_pres_layers = num_layers - 2
+    num_heat_layers = num_layers - 3
 
     output_time           = np.zeros((time.shape[0]))
     output_lat            = np.zeros((time.shape[0]))
@@ -319,7 +275,11 @@ if(l_GEN_HDF5_OUTPUT):
 
 
 for ii in range(time.shape[0]):
-#for ii in range(18,19):
+
+    if(os.path.exists('fort.22')):
+        print("Removing fort.22 file")
+        cmnd = 'rm fort.22'
+        os.system(cmnd)
 
     # Figure out the vertical indices
     # -------------------------------
@@ -336,13 +296,27 @@ for ii in range(time.shape[0]):
     local_naaps_spechum = naaps_spechum[ii,:][keep_vert_idxs]
     local_naaps_relhum  = naaps_relhum[ii,:][keep_vert_idxs]
     local_naaps_dust_ext   = naaps_dust_ext[ii,:][keep_vert_idxs]
-    local_naaps_dust_mass  = naaps_dust_mass[ii,:][keep_vert_idxs] * 1e-9
+    local_naaps_dust_mass  = naaps_dust_mass[ii,:][keep_vert_idxs]
     local_naaps_abf_ext    = naaps_abf_ext[ii,:][keep_vert_idxs]
-    local_naaps_abf_mass   = naaps_abf_mass[ii,:][keep_vert_idxs] * 1e-9
+    local_naaps_abf_mass   = naaps_abf_mass[ii,:][keep_vert_idxs]
     local_naaps_smoke_ext  = naaps_smoke_ext[ii,:][keep_vert_idxs]
-    local_naaps_smoke_mass = naaps_smoke_mass[ii,:][keep_vert_idxs] * 1e-9
+    local_naaps_smoke_mass = naaps_smoke_mass[ii,:][keep_vert_idxs]
     local_naaps_salt_ext   = naaps_salt_ext[ii,:][keep_vert_idxs]
-    local_naaps_salt_mass  = naaps_salt_mass[ii,:][keep_vert_idxs] * 1e-9
+    local_naaps_salt_mass  = naaps_salt_mass[ii,:][keep_vert_idxs]
+
+    # If the l_NO_AEROSOL field is True, then set all these aerosol
+    # parameters to 0 so that no aerosols are used in RTM
+    # --------------------------------------------------------------
+    if(l_NO_AEROSOL):
+        local_naaps_dust_ext[:]   = 0.
+        local_naaps_dust_mass[:]  = 0.
+        local_naaps_abf_ext[:]    = 0.
+        local_naaps_abf_mass[:]   = 0.
+        local_naaps_smoke_ext[:]  = 0.
+        local_naaps_smoke_mass[:] = 0.
+        local_naaps_salt_ext[:]   = 0.
+        local_naaps_salt_mass[:]  = 0.
+        
 
     with open(foutname, 'w') as fout:
     
@@ -365,12 +339,20 @@ for ii in range(time.shape[0]):
         local_date = local_dt_date.strftime('%Y%m%d%H%M%S')
         print(ii, local_dt_date.strftime('%Y%m%d %H:%M:%S'), lat[ii])
 
-        fout.write("{0} {1:8.5f} {2:8.5f} {3:8.5f}\n".format(\
-            local_date, lat[ii], lon[ii], naaps_tot_aot[ii]))
-        
-        fout.write("{0:10.3e} {1:10.3e} {2:10.3e} {3:10.3e}\n".format(\
-            naaps_abf_aot[ii], naaps_dust_aot[ii], \
-            naaps_smoke_aot[ii], naaps_salt_aot[ii]))
+        if(l_NO_AEROSOL):
+            fout.write("{0} {1:8.5f} {2:8.5f} {3:8.5f}\n".format(\
+                local_date, lat[ii], lon[ii], 0.0))
+        else:
+            fout.write("{0} {1:8.5f} {2:8.5f} {3:8.5f}\n".format(\
+                local_date, lat[ii], lon[ii], naaps_tot_aot[ii]))
+       
+        if(l_NO_AEROSOL):
+            fout.write("{0:10.3e} {1:10.3e} {2:10.3e} {3:10.3e}\n".format(\
+                0.0, 0.0, 0.0, 0.0))
+        else: 
+            fout.write("{0:10.3e} {1:10.3e} {2:10.3e} {3:10.3e}\n".format(\
+                naaps_abf_aot[ii], naaps_dust_aot[ii], \
+                naaps_smoke_aot[ii], naaps_salt_aot[ii]))
         
         # Print the profile information in reverse order, with the lowest
         # data in the profile being at the last index.
@@ -388,30 +370,20 @@ for ii in range(time.shape[0]):
   
     
     mode_vals = mode(local_naaps_press[:])
-    if(mode_vals.count[0] != 1):
-        print(ii, "BAD PRESS", mode_vals.mode[0], mode_vals.count[0])
+    if(mode_vals[1][0] != 1):
+        print(ii, "BAD PRESS", mode_vals[0][0], mode_vals[1][0])
  
-    ##!#os.system('cp ' + foutname + ' ' + base_dir + \
-    #!#        'test_data/test_naaps_new/test_naaps_file_' + str(int(ii)) + '.txt')
-
-    #### Copy the first couple of lines to the work file 
-    #### -----------------------------------------------
-    ###cmnd = 'head -n 2 ' + foutname + ' >> ' + work_file
-    ###print(cmnd)
-    ###os.system(cmnd)
-
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     #
     #  Call the FuLiou code
     #
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-    """
     #print("Calling FuLiou code") 
     print(' Execute naaps_fuliou.exe')
-    cmnd = 'time ' + srcdir + '/bin/naaps_fuliou.exe'
+    cmnd = srcdir + '/bin/naaps_fuliou.exe'
     print(cmnd)
     os.system(cmnd)
-    """
+
     # Concatenate the temp output file to the end of the actual
     # output file. Only do this if the code generated an output file, 
     # which only happens if the code successfully runs.
@@ -432,46 +404,53 @@ for ii in range(time.shape[0]):
                 flines = fin.readlines()
 
             line1 = flines[0].strip().split()
-            output_lat[ii]            = float(line1[0])
-            output_lon[ii]            = float(line1[1])
-            output_aod[ii]            = float(line1[2])
-            output_sfc_dwn_sw_flx[ii] = float(line1[3])
-            output_toa_up_sw_flx[ii]  = float(line1[4])
-            output_sfc_dwn_lw_flx[ii] = float(line1[5])
-            output_toa_up_lw_flx[ii]  = float(line1[6])
-
-            # Figure out how to properly divide the file
-            # ------------------------------------------
-            num_data_lines = (len(flines) - 1) / 2
             
-            output_press[ii,:] = np.array([float(tvar) for tvar in \
-                ''.join(flines[1:num_data_lines+1]).strip().split()])
-            output_heat[ii,:] = np.array([float(tvar) for tvar in \
-                ''.join(flines[num_data_lines+1:]).strip().split()])
+            # Make sure the output file is properly formatted
+            # -----------------------------------------------
+            if(len(line1) == 7):
+                output_lat[ii]            = float(line1[0])
+                output_lon[ii]            = float(line1[1])
+                output_aod[ii]            = float(line1[2])
+                output_sfc_dwn_sw_flx[ii] = float(line1[3])
+                output_toa_up_sw_flx[ii]  = float(line1[4])
+                output_sfc_dwn_lw_flx[ii] = float(line1[5])
+                output_toa_up_lw_flx[ii]  = float(line1[6])
 
-            # Read in the input file data, containing met profiles and aerosol
-            # ----------------------------------------------------------------
-            indata = np.loadtxt('test_naaps_file.txt', skiprows = 2)
+                # Figure out how to properly divide the file
+                # ------------------------------------------
+                num_data_lines = (len(flines) - 1) / 2
+                
+                output_press[ii,:] = np.array([float(tvar) for tvar in \
+                    ''.join(flines[1:num_data_lines+1]).strip().split()])
+                output_heat[ii,:] = np.array([float(tvar) for tvar in \
+                    ''.join(flines[num_data_lines+1:]).strip().split()])
 
-            work_idx = num_layers - num_pres_layers
-            output_alt[:]           = indata[work_idx:,1]
-            output_tmp[ii,:]        = indata[work_idx:,3]
-            output_relhum[ii,:]     = indata[work_idx:,4]
-            output_spchum[ii,:]     = indata[work_idx:,5]
-            output_abf_ext[ii,:]    = indata[work_idx:,6]
-            output_dust_ext[ii,:]   = indata[work_idx:,7]
-            output_smoke_ext[ii,:]  = indata[work_idx:,8]
-            output_salt_ext[ii,:]   = indata[work_idx:,9]
+                # Read in the input file data, containing met profiles and aerosol
+                # ----------------------------------------------------------------
+                indata = np.loadtxt('fuliou_input_naaps_file.txt', skiprows = 2)
 
-    ###cmnd = 'head -n 1 fort.22 >> ' + work_file
-    ###print(cmnd)
-    ###os.system(cmnd)
+                work_idx = num_layers - num_pres_layers
+                output_alt[:]           = indata[work_idx:,1]
+                output_tmp[ii,:]        = indata[work_idx:,3]
+                output_relhum[ii,:]     = indata[work_idx:,4]
+                output_spchum[ii,:]     = indata[work_idx:,5]
+                output_abf_ext[ii,:]    = indata[work_idx:,6]
+                output_dust_ext[ii,:]   = indata[work_idx:,7]
+                output_smoke_ext[ii,:]  = indata[work_idx:,8]
+                output_salt_ext[ii,:]   = indata[work_idx:,9]
+
+            else:
+                print("WARNING: BAD fort.22 FILE AT INDEX",ii)
 
 # At the end, if desired, make the output HDF5 file
 if(l_GEN_HDF5_OUTPUT):
 
-    out_name = 'fuliou_output_naaps_' + \
-        infile.strip().split('/')[-1].split('_')[2] + '.h5'
+    if(l_NO_AEROSOL):
+        out_name = 'fuliou_output_naaps_' + \
+            infile.strip().split('/')[-1].split('_')[2] + '_noaer.h5'
+    else:
+        out_name = 'fuliou_output_naaps_' + \
+            infile.strip().split('/')[-1].split('_')[2] + '.h5'
 
     # Here, remove the indices that contain missing values?
     # -----------------------------------------------------
@@ -535,4 +514,4 @@ if(l_GEN_HDF5_OUTPUT):
     cdt.attrs['units'] = 'K/day'
 
     dset.close()
-    print("Saved HDF5 output file",out_name)
+    print("Saved HDF5 output file: "  + out_name)

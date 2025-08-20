@@ -16142,7 +16142,7 @@ def plot_NN_error_dist_bytype(sim_name, ice_bin_edges, cod_bin_edges, \
             err_calc_add = ''
         outname = 'errors_aerfree_dist_bytype_' + sim_name + err_calc_add + \
             '.png'
-        fig.savefig(outname, dpi = 200)
+        fig.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else:
         plt.show()

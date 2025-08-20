@@ -333,7 +333,7 @@ max_dict = {
         'rhi': 64, \
     },
     'reflectivity': {\
-        'ppi': 70,\
+        'ppi': 90,\
         'rhi': 70,\
     },
     'velocity':  {\
@@ -2181,10 +2181,10 @@ def plot_NEXRAD_ppi_auto(begin_date, end_date, radar, variable, save_dir = './',
     # Find all downloaded NEXRAD filenames that are between these
     # two dates
     # ---------------------------------------------------------
-    all_files = glob('/home/bsorenson/data/NEXRAD/' + radar + '/*')
+    all_files = sorted(glob('/home/bsorenson/data/NEXRAD/' + radar + '/*'))
     all_dates = [datetime.strptime(ffile.strip().split('/')[-1][4:19],\
         '%Y%m%d_%H%M%S') for ffile in all_files]
-   
+  
     # Get just the file dates, with only 1 date per channel
     # ----------------------------------------------------- 
     in_all = np.array([((tdate > begin_dt_date) & (tdate < end_dt_date)) \
