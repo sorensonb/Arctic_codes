@@ -10,15 +10,60 @@ from MODISLib import *
 #tester = identify_MODIS_MYD08(date_str, dest_dir = myd08_dir)
 
 #date_str = '201506011300'
-#date_str = '201807052305'
+#date_str = '201506291930'
 #download_MODIS_file(date_str, dest_dir = modis_dir, download_cloud_mask = True)
+#sys.exit()
 
 #plot_MODIS_satpy_6panel('202107222110', 'true_color', 1, 2, 5, 7, 31, \
 #    save = True)
-plot_MODIS_satpy_6panel('202108052125', 'true_color', 1, 2, 5, 7, 31, \
-    save = True, use_base_crs = True)
+#plot_MODIS_satpy_6panel('202108052125', 'true_color', 1, 2, 5, 7, 31, \
+plot_MODIS_satpy_6panel('201506291925', 'true_color', 1, 2, 5, 7, 31, \
+    save = True, plot_borders = True, use_base_crs = False)
 
 sys.exit()
+
+date_str1 = '201506291925'
+ch1 = 5
+var1, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel1 = \
+    read_MODIS_satpy(date_str1, ch1, swath = True)
+
+dt_date_str = datetime.strptime(date_str1, '%Y%m%d%H%M')
+
+plt.close('all')
+fig1 = plt.figure(figsize = (8, 8))
+ax1 = fig1.add_subplot(1,1,1, projection = crs1)
+
+if(ch1 == 'true_color'):
+    plot_MODIS_satpy(date_str1, ch1, ax = ax1, var = var1, crs = crs1, \
+        lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+        ptitle = '', plabel = plabel1, \
+        labelsize = 10, zoom=True, save=False)
+else: 
+    plot_MODIS_satpy(date_str1, ch1, ax = ax1, var = var1, crs = crs1, \
+        lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+        ptitle = '', plabel = plabel1, \
+        vmin = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+            dt_date_str.strftime('%H%M')]['data_lim'][str(ch1)][0], \
+        vmax = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+            dt_date_str.strftime('%H%M')]['data_lim'][str(ch1)][1], \
+        labelsize = 10, zoom=True, save=False)
+
+ax1.add_feature(cfeature.BORDERS)
+ax1.add_feature(cfeature.STATES)
+ax1.coastlines()
+
+fig1.tight_layout()
+plt.show()
+
+sys.exit()
+#plot_spatial_scatter('202107222110', zoom = True, composite = True,\
+#    avg_pixel = True, plume_only = False, save = False)
+#plot_MODIS_CERES_3panel('202107222110',zoom = True, \
+plot_MODIS_CERES_3panel('202108052125',zoom = True, \
+    show_smoke = False, composite = True, \
+        save=False)
+sys.exit()
+
 
 plot_MODIS_satpy_2time('202107222110', '202108052125', \
     'true_color', 7, 31, save = True)

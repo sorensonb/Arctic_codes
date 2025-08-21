@@ -1568,6 +1568,7 @@ def read_MODIS_satpy(date_str, channel,  composite = False, swath = False, \
 
     # Use satpy (Scene) to open the file
     # ----------------------------------
+    print("MODIS files found: ", day_filenames)
     scn = Scene(reader = 'modis_l1b', filenames = day_filenames)
 
     # Load true-color data
@@ -1646,7 +1647,7 @@ def read_MODIS_satpy(date_str, channel,  composite = False, swath = False, \
 def plot_MODIS_satpy(date_str, channel, ax = None, var = None, crs = None, \
         lons = None, lats = None, lat_lims = None, lon_lims = None, \
         vmin = None, vmax = None, ptitle = None, plabel = None, \
-        use_xy = False, 
+        use_xy = False, plot_borders = False, \
         labelsize = 10, colorbar = True, swath = False, zoom=True,save=False):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
@@ -1719,6 +1720,11 @@ def plot_MODIS_satpy(date_str, channel, ax = None, var = None, crs = None, \
     ##!#ax.coastlines(resolution = '50m')
     ##!#ax.add_feature(cfeature.STATES)
     ##!#ax.add_feature(cfeature.BORDERS)
+    if(plot_borders):
+        ax.add_feature(cfeature.BORDERS)
+        ax.add_feature(cfeature.STATES)
+        ax.coastlines()
+
     if(ptitle is None):
         if(channel == 'true_color'):
             ax.set_title('MODIS '+ dt_date_str.strftime('%Y-%m-%d %H:%M'))
@@ -1743,7 +1749,7 @@ def plot_MODIS_satpy(date_str, channel, ax = None, var = None, crs = None, \
             plt.show()
 
 def plot_MODIS_satpy_6panel(date_str1, ch1, ch2, ch3, ch4, ch5, ch6, \
-        save = False, use_base_crs = False):
+        save = False, plot_borders = False, use_base_crs = False):
     
     dt_date_str = datetime.strptime(date_str1, '%Y%m%d%H%M')
  
@@ -1751,40 +1757,40 @@ def plot_MODIS_satpy_6panel(date_str1, ch1, ch2, ch3, ch4, ch5, ch6, \
     # -----------------------
     var1, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel1 = \
         read_MODIS_satpy(date_str1, ch1, swath = True)
-    var2, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel2 = \
+    var2, crs2, lons1, lats1, lat_lims1, lon_lims1, plabel2 = \
         read_MODIS_satpy(date_str1, ch2, swath = True)
-    var3, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel3 = \
+    var3, crs2, lons1, lats1, lat_lims1, lon_lims1, plabel3 = \
         read_MODIS_satpy(date_str1, ch3, swath = True)
-    var4, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel4 = \
+    var4, crs2, lons1, lats1, lat_lims1, lon_lims1, plabel4 = \
         read_MODIS_satpy(date_str1, ch4, swath = True)
-    var5, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel5 = \
+    var5, crs2, lons1, lats1, lat_lims1, lon_lims1, plabel5 = \
         read_MODIS_satpy(date_str1, ch5, swath = True)
-    var6, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel6 = \
+    var6, crs2, lons1, lats1, lat_lims1, lon_lims1, plabel6 = \
         read_MODIS_satpy(date_str1, ch6, swath = True)
 
     if(use_base_crs):
-        _, crs1, _, _, _, _, _ = \
+        _, crs2, _, _, _, _, _ = \
             read_MODIS_satpy('202107222110', 1, swath = True)
 
         
     plt.close('all')
     fig1 = plt.figure(figsize = (12, 8))
     ax1 = fig1.add_subplot(2,3,1, projection = crs1)
-    ax2 = fig1.add_subplot(2,3,2, projection = crs1)
-    ax3 = fig1.add_subplot(2,3,3, projection = crs1)
-    ax4 = fig1.add_subplot(2,3,4, projection = crs1)
-    ax5 = fig1.add_subplot(2,3,5, projection = crs1)
-    ax6 = fig1.add_subplot(2,3,6, projection = crs1)
+    ax2 = fig1.add_subplot(2,3,2, projection = crs2)
+    ax3 = fig1.add_subplot(2,3,3, projection = crs2)
+    ax4 = fig1.add_subplot(2,3,4, projection = crs2)
+    ax5 = fig1.add_subplot(2,3,5, projection = crs2)
+    ax6 = fig1.add_subplot(2,3,6, projection = crs2)
    
     if(ch1 == 'true_color'):
         plot_MODIS_satpy(date_str1, ch1, ax = ax1, var = var1, crs = crs1, \
             lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
-            ptitle = '', plabel = plabel1, \
+            ptitle = '', plabel = plabel1, plot_borders = plot_borders, \
             labelsize = 10, zoom=True, save=False)
     else: 
         plot_MODIS_satpy(date_str1, ch1, ax = ax1, var = var1, crs = crs1, \
             lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
-            ptitle = '', plabel = plabel1, \
+            ptitle = '', plabel = plabel1, plot_borders = plot_borders, \
             vmin = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
                 dt_date_str.strftime('%H%M')]['data_lim'][str(ch1)][0], \
             vmax = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
@@ -1796,7 +1802,7 @@ def plot_MODIS_satpy_6panel(date_str1, ch1, ch2, ch3, ch4, ch5, ch6, \
             dt_date_str.strftime('%H%M')]['data_lim'][str(ch2)][0], \
         vmax = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
             dt_date_str.strftime('%H%M')]['data_lim'][str(ch2)][1], \
-        ptitle = '', plabel = plabel2, \
+        ptitle = '', plabel = plabel2, plot_borders = plot_borders, \
         labelsize = 10, zoom=True, save=False)
     plot_MODIS_satpy(date_str1, ch3, ax = ax3, var = var3, crs = crs1, \
         lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
@@ -1804,15 +1810,15 @@ def plot_MODIS_satpy_6panel(date_str1, ch1, ch2, ch3, ch4, ch5, ch6, \
             dt_date_str.strftime('%H%M')]['data_lim'][str(ch3)][0], \
         vmax = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
             dt_date_str.strftime('%H%M')]['data_lim'][str(ch3)][1], \
-        ptitle = '', plabel = plabel3, \
+        ptitle = '', plabel = plabel3, plot_borders = plot_borders, \
         labelsize = 10, zoom=True, save=False)
     plot_MODIS_satpy(date_str1, ch4, ax = ax4, var = var4, crs = crs1, \
         lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
-        ptitle = '', plabel = plabel4, \
         vmin = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
             dt_date_str.strftime('%H%M')]['data_lim'][str(ch4)][0], \
         vmax = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
             dt_date_str.strftime('%H%M')]['data_lim'][str(ch4)][1], \
+        ptitle = '', plabel = plabel4, plot_borders = plot_borders, \
         labelsize = 10, zoom=True, save=False)
     plot_MODIS_satpy(date_str1, ch5, ax = ax5, var = var5, crs = crs1, \
         lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
@@ -1820,7 +1826,7 @@ def plot_MODIS_satpy_6panel(date_str1, ch1, ch2, ch3, ch4, ch5, ch6, \
             dt_date_str.strftime('%H%M')]['data_lim'][str(ch5)][0], \
         vmax = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
             dt_date_str.strftime('%H%M')]['data_lim'][str(ch5)][1], \
-        ptitle = '', plabel = plabel5, \
+        ptitle = '', plabel = plabel5, plot_borders = plot_borders, \
         labelsize = 10, zoom=True, save=False)
     plot_MODIS_satpy(date_str1, ch6, ax = ax6, var = var6, crs = crs1, \
         lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
@@ -1828,7 +1834,7 @@ def plot_MODIS_satpy_6panel(date_str1, ch1, ch2, ch3, ch4, ch5, ch6, \
             dt_date_str.strftime('%H%M')]['data_lim'][str(ch6)][0], \
         vmax = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
             dt_date_str.strftime('%H%M')]['data_lim'][str(ch6)][1], \
-        ptitle = '', plabel = plabel6, \
+        ptitle = '', plabel = plabel6, plot_borders = plot_borders, \
         labelsize = 10, zoom=True, save=False)
     
     font_size = 9
@@ -10210,14 +10216,13 @@ def plot_MODIS_temporary(date_str, zoom = True, save = False):
     else:
         plt.show()
 
-def plot_MODIS_CERES_3panel(zoom = True, show_smoke = True, composite = True, \
+def plot_MODIS_CERES_3panel(date_str, zoom = True, show_smoke = True, composite = True, \
         save=False):
 
     if(home_dir + '/Research/CERES' not in sys.path):
         sys.path.append(home_dir + '/Research/CERES')
     from gridCERESLib import readgridCERES_hrly_grid, plotCERES_hrly
     
-    date_str = '202108062025'
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
 
     # ----------------------------------------------------------------------
@@ -10226,7 +10231,7 @@ def plot_MODIS_CERES_3panel(zoom = True, show_smoke = True, composite = True, \
     #
     # ----------------------------------------------------------------------
     CERES_data_hrly = readgridCERES_hrly_grid(date_str[:10], 'SWF', \
-        satellite = 'Aqua', minlat = 20.)
+        satellite = 'Aqua', minlat = 20., modis_comp = True)
 
     if(CERES_data_hrly is None):
         print("ERROR: no data returned from readgridCERES_hrly_grid")
@@ -10266,13 +10271,15 @@ def plot_MODIS_CERES_3panel(zoom = True, show_smoke = True, composite = True, \
     ##!#    ptitle = '', zoom = zoom)
 
     plotCERES_hrly(ax1, CERES_data_hrly, 'SWF', minlat = 20., \
-        vmin = 160, vmax = 325, title = ' ', label = '', \
+        vmin = 120, vmax = 250, title = ' ', label = '', \
         circle_bound = False, gridlines = False, grid_data = True)
     plotCERES_hrly(ax2, CERES_data_hrly, 'LWF', minlat = 20., \
         vmin = 300, vmax = 370, title = ' ', label = '', \
+        #vmin = 300, vmax = 370, title = ' ', label = '', \
         circle_bound = False, gridlines = False, grid_data = True)
     plotCERES_hrly(ax3, CERES_data_hrly, 'total', minlat = 20., \
-        vmin = 520, vmax = 625, title = ' ', label = '', \
+        vmin = 450, vmax = 560, title = ' ', label = '', \
+        #vmin = 520, vmax = 625, title = ' ', label = '', \
         circle_bound = False, gridlines = False, grid_data = True)
     if(zoom):
         ax1.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
@@ -10479,7 +10486,7 @@ def plot_CERES_swaths(date_str = '202107222110', \
         sys.path.append(home_dir + '/Research/CERES')
     from gridCERESLib import readgridCERES_hrly_grid, plotCERES_hrly
 
-    date_str = '202107222110'
+    #date_str = '202107222110'
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
 
     # ----------------------------------------------------------------------
