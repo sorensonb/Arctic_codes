@@ -81,6 +81,8 @@ home_dir = os.environ['HOME']
 
 sys.path.append(home_dir + '/')
 from python_lib import *
+sys.path.append(home_dir + '/Research/MODIS/obs_smoke_forcing/')
+from MODISLib import *
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 # Set up global variables
@@ -185,7 +187,7 @@ goes_channel_dict = {
         'wavelength': 9.61
     },\
     '13': {
-        'limits': [270, 330],\
+        'limits': [270, 310],\
         'name': 'Clean IR Longwave Window',
         'short_name': 'Clean TIR',
         'wavelength': 10.35
@@ -450,6 +452,19 @@ goes_area_dict = {
         'goes_Lat': [53.0, 60.0],
         'goes_Lon': [-114.0, -108.0]
     },
+    "2024-04-08": {
+        'Lat': [37.0, 41.0],
+        'Lon': [-87.0, -83.0],
+        'data_lim': {
+            1:  [0.05, 0.5],
+            5:  [None, None],
+            31: [270., 330.],
+            32: [270., 330.],
+            'wv_ir': [0.2, 1.5],
+        },
+        'goes_Lat': [37.0, 41.0],
+        'goes_Lon': [-87.0, -83.0],
+    },
 }
 
 min_dict = {
@@ -692,6 +707,14 @@ def auto_GOES_download(begin_date, end_date, interval, sat = 'goes17', \
     begin_dt_date = datetime.strptime(begin_date,"%Y%m%d%H%M")
     end_dt_date   = datetime.strptime(end_date,"%Y%m%d%H%M")
 
+    # Make sure the end date is not earlier than the begin date
+    # ---------------------------------------------------------
+    if(end_dt_date < begin_dt_date):
+        print("ERROR: End date is earlier than the beginning date")
+        print("       begin_date: ", begin_date)
+        print("       end_date:   ", end_date)
+        return
+ 
     # Using the interval, get the desired file times for each
     # GOES image
     # -------------------------------------------------------
@@ -1304,6 +1327,8 @@ def plot_GOES_satpy(date_str, channel, ax = None, var = None, crs = None, \
                 shading = 'auto')
         else:
             #im1 = ax.imshow(var, transform = crs, vmin = vmin, vmax = vmax, \
+            print("HERE:", np.nanmin(lons), np.nanmax(lons), \
+                np.nanmin(lats), np.nanmax(lats))
             im1 = ax.pcolormesh(lons, lats, var, transform = datacrs, \
                 vmin = vmin, vmax = vmax, \
                 cmap = cmap_dict[goes_channel_dict[str(channel)]['wavelength']], \
@@ -1370,6 +1395,25 @@ def plot_GOES_satpy(date_str, channel, ax = None, var = None, crs = None, \
     # Save the image
     # --------------
     """
+
+def get_GOES_data_regional(date_str, minlat, maxlat, minlon, maxlon, \
+        channel, min_max_use, sat = 'goes17'):
+
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+    var0, _, lons0, lats0, _, _, _ = read_GOES_satpy(date_str, channel, sat = sat)
+
+    # Grab data only within the specified lat/lon bounds
+    # --------------------------------------------------
+    good_idxs = np.where(  (lats0 >= minlat) & (lats0 < maxlat) & \
+                           (lons0 >= minlon) & (lons0 < maxlon))
+
+    if(min_max_use == 'min'):
+        return np.nanmin(np.array(var0)[good_idxs])
+    elif(min_max_use == 'max'):
+        return np.nanmax(np.array(var0)[good_idxs])
+    else:
+        print("ERROR: Invalid min_max_use value")
+        return np.nan 
 
 # This function gets the GOES data from a higher-resolution channel
 # and co-locates it with data from a lower-resolution channel.
@@ -1673,6 +1717,85 @@ def plot_GOES_satpy_5panel(date_str, ch1, ch2, ch3, ch4, ch5, \
 
 def plot_GOES_satpy_2panel(date_str, ch1, ch2, \
         zoom = True, save_dir = './', sat = 'goes17', save = False):
+    
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    plt.close('all')
+    fig1 = plt.figure(figsize = (10,6.5))
+    var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel0 = read_GOES_satpy(date_str, ch1, sat = sat)
+    var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel1 = read_GOES_satpy(date_str, ch2, sat = sat)
+
+    ax0 = fig1.add_subplot(1,2,1, projection = crs0)
+    ax1 = fig1.add_subplot(1,2,2, projection = crs1)
+
+    min_dict = {
+        2: 0,
+        6: 0,
+        8: 240, 
+        9: 245, 
+        10: 250, 
+        13: 270,
+    }
+    max_dict = {
+        2: 50,
+        6: 40, 
+        8: 250, 
+        9: 260, 
+        10: 270, 
+        13: 310,
+    }
+
+    ##!#ax1.set_title('GOES-17 Band ' + str(ch2) + '\n' + \
+    ##!#    goes_channel_dict[str(ch2)]['name'] + '\n' + \
+    labelsize = 11
+    font_size = 10
+    if(ch1 == 'true_color'):
+        plot_GOES_satpy(date_str, ch1, ax = ax0, var = var0, crs = crs0, \
+            lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
+            ptitle = '', plabel = plabel0, \
+            colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+    else:
+        plot_GOES_satpy(date_str, ch1, ax = ax0, var = var0, crs = crs0, \
+            lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
+            vmin = min_dict[ch1], vmax = max_dict[ch1], ptitle = '', plabel = plabel0, \
+            colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+    plot_GOES_satpy(date_str, ch2, ax = ax1, var = var1, crs = crs0, \
+        lons = lons1, lats = lats1, lat_lims = lat_lims, lon_lims = lon_lims, \
+        vmin = min_dict[ch2], vmax = max_dict[ch2], ptitle = '', plabel = plabel1, \
+        colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+
+    plot_subplot_label(ax0,  '(a)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax1,  '(b)', backgroundcolor = 'white', fontsize = font_size)
+
+    # Zoom in the figure if desired
+    # -----------------------------
+    if(zoom):
+        zoom_add = '_zoom'
+    else:
+        zoom_add = ''
+
+    if(sat == 'goes17'):
+        title_str = 'GOES-17\n'
+    else:
+        title_str = 'GOES-16\n'
+
+    fig1.suptitle(title_str + \
+        dt_date_str.strftime('%Y/%m/%d %H:%M UTC'))
+
+    fig1.tight_layout()
+
+    if(save):
+        outname = save_dir + sat + '_'+date_str+'_2panel.png'
+        fig1.savefig(outname, dpi = 300)
+        print('Saved image', outname)
+    else:
+        plt.show()
+   
+
+
+"""
+def plot_GOES_satpy_2panel(date_str, ch1, ch2, \
+        zoom = True, save_dir = './', sat = 'goes17', save = False):
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
 
     plt.close('all')
@@ -1796,6 +1919,7 @@ def plot_GOES_satpy_2panel(date_str, ch1, ch2, \
         print('Saved image', outname)
     else:
         plt.show()
+"""
 
 def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
         zoom = True, save_dir = './', sat = 'goes17', save = False):
@@ -3429,7 +3553,8 @@ def plot_GOES_time_series_points(GOES_dict, time_idx = 20, \
     print(GOES_dict['dt_dates'][time_idx])
     date_str = GOES_dict['dt_dates'][time_idx].strftime('%Y%m%d%H%M')
     var, crs, lons, lats, lat_lims, lon_lims, plabel = \
-        read_GOES_satpy(date_str, GOES_dict['channels'][ch_idx])
+        read_GOES_satpy(date_str, GOES_dict['channels'][ch_idx], \
+        sat = GOES_dict['satellite'])
 
     plt.close('all')
     fig = plt.figure(figsize = (11, 3.5))
@@ -3449,6 +3574,7 @@ def plot_GOES_time_series_points(GOES_dict, time_idx = 20, \
         vmax = goes_channel_dict[\
             str(GOES_dict['channels'][ch_idx])]['limits'][1], \
         ptitle = '', plabel = plabel, \
+        sat = GOES_dict['satellite'], \
         #vmin = 5, vmax = 80, ptitle = '', plabel = plabel0, \
         colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
 
@@ -3483,7 +3609,7 @@ def plot_GOES_time_series_points(GOES_dict, time_idx = 20, \
     ax2.xaxis.set_major_formatter(DateFormatter('%m/%d\n%H:%MZ'))
     ax2.tick_params(axis="x", labelsize = 9)
     ##!#    str(GOES_dict['channels'][ch_idx])]['wavelength']) + ' μm', \
-    ts_title = 'GOES-17 ' + \
+    ts_title = GOES_dict['satellite'].upper() + ' ' + \
         goes_channel_dict[\
         str(GOES_dict['channels'][ch_idx])]['name'] + \
         ' (' + \
@@ -3497,7 +3623,7 @@ def plot_GOES_time_series_points(GOES_dict, time_idx = 20, \
     fig.tight_layout()
 
     if(save):
-        outname = save_dir + 'goes_time_series_points_ch' + \
+        outname = save_dir + GOES_dict['satellite'] + '_time_series_points_ch' + \
             str(GOES_dict['channels'][ch_idx]) + '_' + \
             GOES_dict['dt_dates'][time_idx].strftime('%Y%m%d%H%M') + \
             '.png'
@@ -4793,12 +4919,134 @@ def read_GOES_time_series_auto(begin_date, end_date, \
 
     return out_dict
 
+# Loads time series data, but using either the min or max
+# of the GOES values across a given min/max lat/lon range
+# User provides the lat range and channels, as well as
+# a list of either 'min' or 'max' for each channel 
+# specified. This states whether to find the regional
+# min or regional max for the correponding channel. 
+# -------------------------------------------------------
+def read_GOES_time_series_auto_regional(begin_date, end_date, \
+        channels = [2, 13], save_dir = './', \
+        sat = 'goes17', minlat = 38.0, maxlat = 41.0, \
+        minlon = -87., maxlon = -83.0, \
+        min_max_use = ['min', 'max']):
+
+    # Convert the input date_str to datetime
+    # --------------------------------------
+    begin_dt_date = datetime.strptime(begin_date,"%Y%m%d%H%M")
+    end_dt_date   = datetime.strptime(end_date,"%Y%m%d%H%M")
+
+    # Find all downloaded GOES filenames that are between these
+    # two dates
+    # ---------------------------------------------------------
+    all_files = np.array(glob(home_dir + '/data/GOES/' + sat + '_abi/*.nc'))
+    all_dates = np.array([datetime.strptime(ffile.strip().split('/')[-1][27:40],\
+        '%Y%j%H%M%S') for ffile in all_files])
+    all_date_strs = np.array([tdate.strftime('%Y%m%d%H%M') for tdate in \
+        all_dates])
+
+    # Get rid of 202107202126 because it doesn't work for some reason
+    # ----------------------------------------------------------------
+    all_files = list(all_files[all_date_strs != '202107202126']) 
+    all_dates = list(all_dates[all_date_strs != '202107202126']) 
+   
+    # Get just the file dates, with only 1 date per channel
+    # ----------------------------------------------------- 
+    unique_dates = sorted(list(set(all_dates)))
+
+    in_all = np.array([((tdate > begin_dt_date) & (tdate < end_dt_date)) \
+        for tdate in all_dates])
+    in_unique = np.array([((tdate > begin_dt_date) & (tdate < end_dt_date)) \
+        for tdate in unique_dates])
+    
+    in_all_idx = np.where(in_all == True)
+    in_unique_idx = np.where(in_unique == True)
+
+    if(len(in_all_idx[0]) == 0):
+        print("ERROR: no data between",begin_date, end_date)
+        print("     Run auto_GOES_download to get the data")
+        return
+
+    # good_all_files contains the filenames for all files (including
+    # all channels) that have timestamps within the desired range
+    #
+    # good_unique_times contains just a single time for all channel
+    # files that are within the range
+    good_all_files    = np.array(all_files)[in_all_idx]
+    good_all_channels = np.array([int(\
+        tfile.strip().split('/')[-1][19:21]) for tfile in good_all_files])
+    good_unique_times = np.array(unique_dates)[in_unique_idx[0]]
+ 
+    # Check to make sure that there are channel files for all
+    # desired times.
+    # -------------------------------------------------------
+    for channel in channels:
+        if(not channel in good_all_channels):
+            print("ERROR: data for ",channel," not downloaded")
+            return
+
+    print("All data present")
+    
+    # Set up arrays to hold the data
+    # ------------------------------
+    channels = np.array(channels)
+
+    goes_data = np.full((len(good_unique_times), len(channels), \
+        1), \
+        np.nan)
+    #goes_lats = np.full((len(good_unique_times), len(channels), \
+    #    len(dlat)), \
+    #    np.nan)
+    #goes_lons = np.full((len(good_unique_times), len(channels), \
+    #    len(dlat)), \
+    #    np.nan)
+
+    for ii, ttime in enumerate(good_unique_times):
+        print(ttime.strftime('%Y%m%d%H%M'))
+        date_str = ttime.strftime('%Y%m%d%H%M')
+        #if(date_str == '202107202126'):
+        #    print("Not making image for this time")
+        #else:
+        for jj, tch in enumerate(channels):
+            # Extract the GOES values for the current time
+            # --------------------------------------------
+            #goes_vals, goes_lats_local, goes_lons_local  = \
+            #    get_GOES_data_lat_lon(date_str, dlat, dlon, tch, sat = sat)
+            goes_vals =  get_GOES_data_regional(date_str, minlat, maxlat, \
+                    minlon, maxlon, tch, min_max_use[jj], sat = sat)
+
+            goes_data[ii,jj,:] = goes_vals / 1.
+            #goes_lats[ii,jj,:] = goes_lats_local / 1.
+            #goes_lons[ii,jj,:] = goes_lons_local / 1.
+
+    # Put the data in a dictionary
+    # ----------------------------
+    out_dict = {}
+    out_dict['data'] = goes_data
+    out_dict['dt_dates'] = good_unique_times
+    out_dict['channels'] = channels
+    out_dict['lat_lims'] = [minlat, maxlat]
+    out_dict['lon_lims'] = [minlon, maxlon]
+    out_dict['min_max_use'] = min_max_use
+
+    return out_dict
+
+
+
 def read_GOES_time_series_NCDF(file_name):
 
     # Set up the output dictionary
     # ----------------------------
     GOES_dict = {}
 
+    # Parse the satellite name
+    # ------------------------
+    sat_name = file_name.strip().split('/')[-1].split('_')[0]
+
+    if(sat_name == 'goes'):
+        sat_name = 'goes17'
+    
     # Open the netCDF file
     # --------------------
     nc = Dataset(file_name, 'r')
@@ -4819,6 +5067,7 @@ def read_GOES_time_series_NCDF(file_name):
     GOES_dict['plat']      = nc['point_lat'][:].data
     GOES_dict['plon']      = nc['point_lon'][:].data
     GOES_dict['ptype']     = nc.ptype
+    GOES_dict['satellite'] = sat_name
 
     nc.close()
 
@@ -4826,7 +5075,9 @@ def read_GOES_time_series_NCDF(file_name):
  
 def write_GOES_time_series_NCDF(GOES_dict, save_dir = './'):
 
-    file_name_start = save_dir + 'goes16_cross_data_' + GOES_dict['ptype'] + \
+    #file_name_start = save_dir + 'goes16_cross_data_' + GOES_dict['ptype'] + \
+    file_name_start = save_dir + GOES_dict['satellite'] + \
+        '_cross_data_' + GOES_dict['ptype'] + \
         '_' + \
         GOES_dict['dt_dates'][0].strftime('%Y%m%d%H%M') + '_' + \
         GOES_dict['dt_dates'][-1].strftime('%Y%m%d%H%M')

@@ -8,6 +8,170 @@
 from GOESLib import *
 import sys
 
+begin_date = '202404081200'
+end_date   = '202404082330'
+
+GOES_dict_reg = read_GOES_time_series_auto_regional(begin_date, end_date, \
+        channels = [2, 13], save_dir = './', \
+        sat = 'goes16', minlat = 37.0, maxlat = 41.0, \
+        minlon = -87., maxlon = -83.0, \
+        min_max_use = ['min', 'max'])
+
+
+GOES_dict_reg['ptype'] = 'reg'
+
+base_dir = '/home/bsorenson/Research/GOES/'
+
+fig = plt.figure(figsize = (8, 4))
+ax = fig.add_subplot(1,1,1)
+ax.plot(GOES_dict_reg['dt_dates'], GOES_dict_reg['data'][:,1,0])
+ax.grid()
+ax.xaxis.set_major_formatter(DateFormatter('%m/%d\n%H:%MZ'))
+plt.show()
+
+#write_GOES_time_series_NCDF(GOES_dict_reg, save_dir = './')
+
+sys.exit()
+
+
+#goes_file = 'goes_cross_data_asos_202107201201_202107210331.nc'
+#goes_file = 'goes16_cross_data_asos_202404081201_202404082301_v2.nc'
+goes_file = 'goes16_cross_data_asos_202404081201_202404082301_v3.nc'
+GOES_dict1 = read_GOES_time_series_NCDF(goes_file)
+
+
+plot_GOES_time_series_points(GOES_dict1, time_idx = 25, \
+    ch_idx = 0, save_dir = './', save = False)
+
+sys.exit()
+
+
+
+
+# Make a file containing GOES values for the ASOS sites
+# These points are for the 2024 eclipse
+# 
+# - Batesville, IN ASOS:      39.3445, -85.2583
+# - My location, Brookeville: 39.4681, -84.9475
+# - other point 1           : 39.2551, -84.4600
+# - other point 2           : 38.5965, -85.2676
+# - other point 3           : 39.0130, -85.7749
+#
+# -----------------------------------------------------
+lats_asos = np.array([39.3445, 39.4681, 39.2551, 38.5965, 39.0130])
+lons_asos = np.array([-85.2583, -84.9475, -84.4600, -85.2676, -85.7749])
+
+begin_date = '202404081200'
+end_date   = '202404082330'
+GOES_dict1_asos = read_GOES_time_series_auto(begin_date, end_date, \
+    channels = [2, 13], dlat = list(lats_asos), \
+    dlon = list(lons_asos), \
+    sat = 'goes16')
+    ####channels = [2, 6, 13, 8, 9, 10], dlat = list(interp_lats_low), \
+    ####dlon = list(interp_lons_low))
+
+GOES_dict1_asos['ptype'] = 'asos'
+
+base_dir = '/home/bsorenson/Research/GOES/'
+
+write_GOES_time_series_NCDF(GOES_dict1_asos, save_dir = './')
+
+sys.exit()
+
+
+
+
+#begin_date = '202404081200'
+begin_date = '202404081640'
+end_date   = '202404082100'
+auto_GOES_download(begin_date, end_date, 5, sat = 'goes16', channels = [2,13])
+#auto_GOES_download(begin_date, end_date, 30, sat = 'goes17', channels = [2,6,13])
+sys.exit()
+
+
+
+date_str = '202404081700'
+plot_GOES_satpy_2panel(date_str, 2, 13, \
+    zoom = False, save_dir = './', sat = 'goes16', save = False)
+
+sys.exit()
+
+begin_dt_date = datetime(2024,4,8,17,0)
+end_dt_date   = datetime(2024,4,8,23,30)
+
+local_dt_date = begin_dt_date
+
+#date_str = '202404082100'
+while(local_dt_date <= end_dt_date):
+   
+    print(local_dt_date) 
+    date_str = local_dt_date.strftime('%Y%m%d%H%M')
+    plot_GOES_satpy_2panel(date_str, 2, 13, \
+        zoom = False, save_dir = './', sat = 'goes16', save = True)
+
+    local_dt_date = local_dt_date + timedelta(minutes = 30)
+
+
+sys.exit()
+
+
+asos_file = home_dir + '/Research/MODIS/obs_smoke_forcing/asos_data_20210722_4.csv'
+
+df = pd.read_csv(asos_file)
+df['tmpc'] = pd.to_numeric(df['tmpc'], errors = 'coerce').values + 273.15
+#time_df = df.set_index('valid')
+df['valid'] = pd.to_datetime(df['valid'])
+
+stations = ['O05','AAT']
+
+ch_idx = 2
+
+fig = plt.figure(figsize = (10, 5))
+ax1 = fig.add_subplot(1,1,1)
+
+for jj in range(GOES_dict1['data'].shape[2]):
+    ax1.plot(GOES_dict1['dt_dates'], GOES_dict1['data'][:,ch_idx,jj])
+
+    df_sub = df[df['station'] == stations[jj]]
+
+    good_idxs = np.where( (df_sub['valid'] >= GOES_dict1['dt_dates'][0]) & (df_sub['valid'] < GOES_dict1['dt_dates'][-1]))
+    
+    tmps  = df_sub['tmpc'].values[good_idxs]
+    times = df_sub['valid'].values[good_idxs]
+  
+    # Get rid of masked values
+    # ------------------------
+    good_idxs = np.where(~np.isnan(tmps))
+ 
+    ax1.plot(times[good_idxs], tmps[good_idxs], linestyle = ':', label = stations[jj])
+ 
+ax1.grid()
+ax1.legend()
+ax1.xaxis.set_major_formatter(DateFormatter('%m/%d\n%H:%MZ'))
+ax1.tick_params(axis="x", labelsize = 9)
+ax1.set_ylabel('Temperature [K]')
+
+plt.show()
+
+
+sys.exit()
+
+begin_date = '202107201200'
+end_date   = '202107210300'
+auto_GOES_download(begin_date, end_date, 30, sat = 'goes17', channels = [2,6,13])
+sys.exit()
+
+
+sys.exit()
+
+#goes_file = 'goes_cross_data_asos_202107201201_202107210331.nc'
+#GOES_dict1 = read_GOES_time_series_NCDF(goes_file)
+#
+#goes_file = 'goes_cross_data_asos_202107201201_202107210331_v2.nc'
+#GOES_dict2 = read_GOES_time_series_NCDF(goes_file)
+#
+#sys.exit()
+
 #download_GOES_bucket('202107210000', sat = 'goes17', channels = [1,2,3,6,8,9,10,13])
 #sys.exit()
 
@@ -175,6 +339,7 @@ interp_lons_up = np.linspace(lower_lon_up, upper_lon_up, num_points_up)
 ##!#plt.show()
 ##!#
 ##!#sys.exit()
+
 # Make a file containing GOES values for the ASOS sites
 # -----------------------------------------------------
 lats_asos = np.array([40.2824, 41.4914])
