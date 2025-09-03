@@ -8,13 +8,161 @@
 from GOESLib import *
 import sys
 
+#date_str = '202404081700'
+#date_str = '202108052130'
+date_str = '202107202100'
+plot_GOES_satpy_2panel(date_str, 2, 6, \
+    zoom = False, save_dir = './', sat = 'goes17', save = False)
+
+sys.exit()
+
+
+
+
+
+#begin_date = '202404081200'
+begin_date = '202108052100'
+end_date   = '202108052200'
+auto_GOES_download(begin_date, end_date, 30, sat = 'goes17', channels = [2,6,13])
+#auto_GOES_download(begin_date, end_date, 30, sat = 'goes17', channels = [2,6,13])
+sys.exit()
+
+
+
 begin_date = '202404081200'
 end_date   = '202404082330'
 
+# Coordinates for zoom area in AR area:
+#minlat = 34.0
+#maxlat = 36.0
+#minlon = -94.5
+#maxlon = -91.5
+
+# Coordinates for wide area in TX/OK/AR area:
+#minlat = 33.0
+#maxlat = 36.0
+#minlon = -95.0
+#maxlon = -91.0
+
+# Coordinates for zoom area in MO/AR/TN tri-state area:
+minlat = 36.0
+maxlat = 38.5
+minlon = -91.5
+maxlon = -89.0
+
+
+kmaw_asos_tmps = [\
+    8.00, \
+    9.00, \
+    10.00, \
+    11.00, \
+    13.00, \
+    15.00, \
+    16.00, \
+    18.00, \
+    19.00, \
+    20.00, \
+    21.00, \
+    22.00, \
+    23.00, \
+    25.00, \
+    25.00, \
+    25.00, \
+    25.00, \
+    26.00, \
+    26.00, \
+    26.00, \
+    26.00, \
+    25.00, \
+    23.00, \
+    24.00, \
+    26.00, \
+    27.00, \
+    27.00, \
+    27.00, \
+    28.00, \
+    27.00, \
+    28.00, \
+    27.00, \
+    27.00, \
+    27.00, \
+    27.00, \
+    26.00, \
+    25.00, \
+]
+
+kmaw_asos_tmps = np.array(kmaw_asos_tmps) + 273.15
+
+kmaw_asos_times = [
+    '2024-04-08 11:55',
+    '2024-04-08 12:15',
+    '2024-04-08 12:35',
+    '2024-04-08 12:55',
+    '2024-04-08 13:15',
+    '2024-04-08 13:35',
+    '2024-04-08 13:55',
+    '2024-04-08 14:15',
+    '2024-04-08 14:35',
+    '2024-04-08 14:55',
+    '2024-04-08 15:15',
+    '2024-04-08 15:35',
+    '2024-04-08 15:55',
+    '2024-04-08 16:15',
+    '2024-04-08 16:35',
+    '2024-04-08 16:55',
+    '2024-04-08 17:15',
+    '2024-04-08 17:35',
+    '2024-04-08 17:55',
+    '2024-04-08 18:15',
+    '2024-04-08 18:35',
+    '2024-04-08 18:55',
+    '2024-04-08 19:15',
+    '2024-04-08 19:35',
+    '2024-04-08 19:55',
+    '2024-04-08 20:15',
+    '2024-04-08 20:35',
+    '2024-04-08 20:55',
+    '2024-04-08 21:15',
+    '2024-04-08 21:35',
+    '2024-04-08 21:55',
+    '2024-04-08 22:15',
+    '2024-04-08 22:35',
+    '2024-04-08 22:55',
+    '2024-04-08 23:15',
+    '2024-04-08 23:35',
+    '2024-04-08 23:55']
+
+kmaw_asos_times = [datetime.strptime(ttime, '%Y-%m-%d %H:%M') \
+    for ttime in kmaw_asos_times]
+
+## Coordinates for wide area in MO/AR/TN tri-state area:
+#minlat = 35.0
+#maxlat = 38.0
+#minlon = -91.5
+#maxlon = -88.5
+
+# Coordinates for zoom area in IN tri-state area:
+#minlat = 38.5
+#maxlat = 41.0
+#minlon = -87.5
+#maxlon = -85.0
+
+# Coordinates for wide area in IN/OH/KY tri-state area:
+#minlat = 37.0
+#maxlat = 41.0
+#minlon = -87.0
+#maxlon = -83.0
+
+# Coordinates for area around points in IN/OH/KY tri-state area:
+#minlat = 38.5
+#maxlat = 39.5
+#minlon = -86.0
+#maxlon = -84.2
+
 GOES_dict_reg = read_GOES_time_series_auto_regional(begin_date, end_date, \
         channels = [2, 13], save_dir = './', \
-        sat = 'goes16', minlat = 37.0, maxlat = 41.0, \
-        minlon = -87., maxlon = -83.0, \
+        sat = 'goes16', minlat = minlat, maxlat = maxlat, \
+        minlon = minlon, maxlon = maxlon, \
         min_max_use = ['min', 'max'])
 
 
@@ -25,6 +173,7 @@ base_dir = '/home/bsorenson/Research/GOES/'
 fig = plt.figure(figsize = (8, 4))
 ax = fig.add_subplot(1,1,1)
 ax.plot(GOES_dict_reg['dt_dates'], GOES_dict_reg['data'][:,1,0])
+ax.plot(kmaw_asos_times, kmaw_asos_tmps)
 ax.grid()
 ax.xaxis.set_major_formatter(DateFormatter('%m/%d\n%H:%MZ'))
 plt.show()
@@ -32,6 +181,9 @@ plt.show()
 #write_GOES_time_series_NCDF(GOES_dict_reg, save_dir = './')
 
 sys.exit()
+
+
+
 
 
 #goes_file = 'goes_cross_data_asos_202107201201_202107210331.nc'
@@ -44,7 +196,6 @@ plot_GOES_time_series_points(GOES_dict1, time_idx = 25, \
     ch_idx = 0, save_dir = './', save = False)
 
 sys.exit()
-
 
 
 
@@ -80,21 +231,6 @@ sys.exit()
 
 
 
-
-#begin_date = '202404081200'
-begin_date = '202404081640'
-end_date   = '202404082100'
-auto_GOES_download(begin_date, end_date, 5, sat = 'goes16', channels = [2,13])
-#auto_GOES_download(begin_date, end_date, 30, sat = 'goes17', channels = [2,6,13])
-sys.exit()
-
-
-
-date_str = '202404081700'
-plot_GOES_satpy_2panel(date_str, 2, 13, \
-    zoom = False, save_dir = './', sat = 'goes16', save = False)
-
-sys.exit()
 
 begin_dt_date = datetime(2024,4,8,17,0)
 end_dt_date   = datetime(2024,4,8,23,30)

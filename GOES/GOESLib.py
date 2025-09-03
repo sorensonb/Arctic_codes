@@ -356,7 +356,16 @@ goes_area_dict = {
             'Lon': [-122.0, -119.0],
             'goes_Lat': [39.5, 42.0],
             'goes_Lon': [-122., -119.]
-        }
+        },
+        '2130': {
+            'asos': 'asos_california_20210805.csv',
+            'Lat': [39.5, 42.0],
+            'Lon': [-122.0, -119.0],
+            'goes_Lat': [39.5, 42.0],
+            'goes_Lon': [-122., -119.]
+        },
+        'goes_Lat': [39.5, 42.0],
+        'goes_Lon': [-122., -119.],
     },
     "2021-08-06": {
         '2025': {
@@ -462,8 +471,18 @@ goes_area_dict = {
             32: [270., 330.],
             'wv_ir': [0.2, 1.5],
         },
-        'goes_Lat': [37.0, 41.0],
-        'goes_Lon': [-87.0, -83.0],
+        #'goes_Lat': [34.0, 36.0],     # AR area zoom
+        #'goes_Lon': [-94.5, -91.5],
+        #'goes_Lat': [33.5, 36.5],     # TX/OK/AR area
+        #'goes_Lon': [-95.0, -91.0],
+        'goes_Lat': [36.0, 38.5],     # MO/AR/TN area zoom
+        'goes_Lon': [-91.5, -89.0],
+        #'goes_Lat': [35.0, 38.0],     # MO/AR/TN area wide
+        #'goes_Lon': [-91.5, -88.5],
+        #'goes_Lat': [38.5, 41.0],     # IN area zoom
+        #'goes_Lon': [-87.5, -85.0],
+        #'goes_Lat': [37.0, 41.0],     # IN/OH/KY area
+        #'goes_Lon': [-87.0, -83.0],
     },
 }
 
@@ -1193,6 +1212,7 @@ def read_GOES_satpy(date_str, channel, scene_date = None, \
 
     # Extract the goes true-color plot limits
     # ----------------------------------------
+    print("KEYS = ", goes_area_dict[dt_date_str.strftime('%Y-%m-%d')].keys()) 
     lat_lims = goes_area_dict[dt_date_str.strftime('%Y-%m-%d')]['goes_Lat']
     lon_lims = goes_area_dict[dt_date_str.strftime('%Y-%m-%d')]['goes_Lon']
 
@@ -1719,6 +1739,8 @@ def plot_GOES_satpy_2panel(date_str, ch1, ch2, \
         zoom = True, save_dir = './', sat = 'goes17', save = False):
     
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    print("TIME: ", dt_date_str)
 
     plt.close('all')
     fig1 = plt.figure(figsize = (10,6.5))
