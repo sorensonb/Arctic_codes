@@ -555,6 +555,31 @@ region_dict = {
             '5': [38.23313, -90.25400], \
         }
     },
+    'missouri_bootheel': {
+        'minlat_plot': 35.5, 
+        'maxlat_plot': 39.0, 
+        'minlon_plot': -92.5, 
+        'maxlon_plot': -88.0, 
+        'minlat_data': 36.0, 
+        'maxlat_data': 36.6, 
+        'minlon_data': -90.3, 
+        'maxlon_data': -89.5,
+        'min_dict': {
+            '2': 0., \
+            '13': 270.,
+        },
+        'max_dict': {
+            '2': 50., \
+            '13': 310.,
+        },
+        'point_coords': {
+            '1': [36.31683, -89.92361], \
+            '2': [37.36008, -91.07766], \
+            '3': [37.34885, -90.23254], \
+            '4': [37.30793, -89.30377], \
+            '5': [38.23313, -90.25400], \
+        }
+    },
     'arkansas': {
         'minlat_plot': 33.0, 
         'maxlat_plot': 37.5, 

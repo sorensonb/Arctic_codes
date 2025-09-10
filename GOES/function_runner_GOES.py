@@ -14,18 +14,19 @@ ch1 = 2
 ch2 = 13
 #region = 'indiana'
 #region = 'missouri'
-region = 'arkansas'
+region = 'missouri_bootheel'
+#region = 'arkansas'
 sat = 'goes16'
 begin_date = '202404081200'
 end_date = '202404082330'
 
-lats_points = np.array([region_dict[region]['point_coords'][str(pi)][0] for pi in range(1,6)])
-lons_points = np.array([region_dict[region]['point_coords'][str(pi)][1] for pi in range(1,6)])
-
-GOES_dict_points = read_GOES_time_series_auto(begin_date, end_date, \
-    channels = [2, 13], dlat = list(lats_points), \
-    dlon = list(lons_points), \
-    sat = sat, region = region)
+#lats_points = np.array([region_dict[region]['point_coords'][str(pi)][0] for pi in range(1,6)])
+#lons_points = np.array([region_dict[region]['point_coords'][str(pi)][1] for pi in range(1,6)])
+#
+#GOES_dict_points = read_GOES_time_series_auto(begin_date, end_date, \
+#    channels = [2, 13], dlat = list(lats_points), \
+#    dlon = list(lons_points), \
+#    sat = sat, region = region)
 
 GOES_dict_reg = \
         read_GOES_time_series_auto_regional(begin_date, end_date, \
@@ -36,6 +37,12 @@ GOES_dict_reg = \
         minlon = region_dict[region]['minlon_data'], \
         maxlon = region_dict[region]['maxlon_data'], \
         min_max_use = ['min', 'max'])
+
+#plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
+#    GOES_dict_reg, sat = sat, plot_asos = False, \
+#    GOES_dict_points = None, plot_point_BTs = False)
+#
+#sys.exit()
 
 begin_dt_date = datetime(2024,4,8,12,0)
 end_dt_date   = datetime(2024,4,8,23,30)
@@ -50,7 +57,8 @@ while(local_dt_date <= end_dt_date):
 
     plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
         GOES_dict_reg, sat = sat, plot_asos = False, \
-        GOES_dict_points = GOES_dict_points, \
+        GOES_dict_points = None, \
+        #GOES_dict_points = GOES_dict_points, \
         plot_point_BTs = False, save = True)
     local_dt_date = local_dt_date + timedelta(minutes = 30)
 
