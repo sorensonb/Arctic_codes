@@ -12,117 +12,55 @@ import sys
 date_str = '202404081800'
 ch1 = 2
 ch2 = 13
-region = 'missouri'
+#region = 'indiana'
+#region = 'missouri'
+region = 'arkansas'
 sat = 'goes16'
 begin_date = '202404081200'
 end_date = '202404082330'
-#plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
-#    sat = sat, plot_asos = False)
 
-dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+lats_points = np.array([region_dict[region]['point_coords'][str(pi)][0] for pi in range(1,6)])
+lons_points = np.array([region_dict[region]['point_coords'][str(pi)][1] for pi in range(1,6)])
 
-if(region == 'indiana'):
-    minlat_plot = 37.0
-    maxlat_plot = 41.0
-    minlon_plot = -87.0
-    maxlon_plot = -83.0
-    minlat_data = 38.5
-    maxlat_data = 41.0
-    minlon_data = -87.5
-    maxlon_data = -85.0
-elif(region == 'missouri'):
-    minlat_plot = 35.5
-    maxlat_plot = 39.0
-    minlon_plot = -92.5
-    maxlon_plot = -88.0
-    minlat_data = 36.0
-    maxlat_data = 38.5
-    minlon_data = -91.5
-    maxlon_data = -89.0
-elif(region == 'arkansas'):
-    minlat_plot = 33.0
-    maxlat_plot = 36.0
-    minlon_plot = -95.0
-    maxlon_plot = -91.0
-    minlat_data = 34.0
-    maxlat_data = 36.0
-    minlon_data = -94.5
-    maxlon_data = -91.5
+GOES_dict_points = read_GOES_time_series_auto(begin_date, end_date, \
+    channels = [2, 13], dlat = list(lats_points), \
+    dlon = list(lons_points), \
+    sat = sat, region = region)
 
-lat_lims = [minlat_plot, maxlat_plot]
-lon_lims = [minlon_plot, maxlon_plot] 
-
-var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel0 = \
-    read_GOES_satpy(date_str, ch1, sat = sat, lat_lims = lat_lims, \
-    lon_lims = lon_lims)
-var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel1 = \
-    read_GOES_satpy(date_str, ch2, sat = sat, lat_lims = lat_lims, \
-    lon_lims = lon_lims)
-
-# Load the time series data here
-# ------------------------------
-GOES_dict_reg = read_GOES_time_series_auto_regional(begin_date, end_date, \
+GOES_dict_reg = \
+        read_GOES_time_series_auto_regional(begin_date, end_date, \
         channels = [ch1, ch2], save_dir = './', \
-        sat = sat, minlat = minlat_data, maxlat = maxlat_data, \
-        minlon = minlon_data, maxlon = maxlon_data, \
+        sat = sat, \
+        minlat = region_dict[region]['minlat_data'], \
+        maxlat = region_dict[region]['maxlat_data'], \
+        minlon = region_dict[region]['minlon_data'], \
+        maxlon = region_dict[region]['maxlon_data'], \
         min_max_use = ['min', 'max'])
 
-plt.close('all')
-fig = plt.figure(figsize = (9, 8))
-gs    = fig.add_gridspec(nrows = 2, ncols = 2)
-ax1   = fig.add_subplot(gs[0,0],  projection = crs0)   # GOES VIS
-ax2   = fig.add_subplot(gs[0,1],  projection = crs1)   # GOES TIR
-ax3   = fig.add_subplot(gs[1,:])
+begin_dt_date = datetime(2024,4,8,12,0)
+end_dt_date   = datetime(2024,4,8,23,30)
 
-labelsize = 11
-font_size = 10
-plot_GOES_satpy(date_str, ch1, ax = ax1, var = var0, crs = crs0, \
-    lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
-    vmin = min_dict[ch1], vmax = max_dict[ch1], ptitle = '', plabel = plabel0, \
-    colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
-plot_GOES_satpy(date_str, ch2, ax = ax2, var = var1, crs = crs0, \
-    lons = lons1, lats = lats1, lat_lims = lat_lims, lon_lims = lon_lims, \
-    vmin = min_dict[ch2], vmax = max_dict[ch2], ptitle = '', plabel = plabel1, \
-    colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+local_dt_date = begin_dt_date
 
-rect = mpatches.Rectangle(\
-    (minlon_data, minlat_data), \
-    maxlon_data - minlon_data, \
-    maxlat_data - minlat_data, \
-    linewidth = 2, \
-    edgecolor = 'r', \
-    facecolor = 'none', \
-    transform = ccrs.PlateCarree())
-ax1.add_patch(rect)
-rect = mpatches.Rectangle(\
-    (minlon_data, minlat_data), \
-    maxlon_data - minlon_data, \
-    maxlat_data - minlat_data, \
-    linewidth = 2, \
-    edgecolor = 'k', \
-    facecolor = 'none', \
-    transform = ccrs.PlateCarree())
-ax2.add_patch(rect)
+#date_str = '202404082100'
+while(local_dt_date <= end_dt_date):
+   
+    print(local_dt_date) 
+    date_str = local_dt_date.strftime('%Y%m%d%H%M')
 
-# Plot a dot for the current value on the time series
-time_idx = np.argmin(np.abs(GOES_dict_reg['dt_dates'] - dt_date_str))
+    plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
+        GOES_dict_reg, sat = sat, plot_asos = False, \
+        GOES_dict_points = GOES_dict_points, \
+        plot_point_BTs = False, save = True)
+    local_dt_date = local_dt_date + timedelta(minutes = 30)
 
-
-ax3.plot(GOES_dict_reg['dt_dates'], GOES_dict_reg['data'][:,1,0], label = 'Region Max GOES16')
-ax3.plot(dt_date_str, \
-    GOES_dict_reg['data'][time_idx,1,0], marker = '.', markersize = 15, \
-    color = 'tab:blue')
-#ax.plot(kmaw_asos_times, kmaw_asos_tmps, label = 'KMAW ASOS 2-m')
-ax3.grid()
-ax3.legend()
-ax3.set_ylabel('Temperature [K]')
-ax3.xaxis.set_major_formatter(DateFormatter('%m/%d\n%H:%MZ'))
-ax3.set_title('GOES-16 vs ASOS Eclipse Comparison - ' + region.title())
-
-
-plt.show()
-
-
+sys.exit()
+#plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
+#    GOES_dict_reg, sat = sat, plot_asos = False, \
+#    GOES_dict_points = None, plot_point_BTs = False)
+plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
+    GOES_dict_reg, sat = sat, plot_asos = False, \
+    GOES_dict_points = GOES_dict_points, plot_point_BTs = False)
 
 
 

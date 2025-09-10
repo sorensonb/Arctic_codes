@@ -503,6 +503,86 @@ max_dict = {
     10: 270, 
     13: 330,
 }
+
+region_dict = {
+    'indiana': {
+        'minlat_plot': 37.5, 
+        'maxlat_plot': 41.5, 
+        'minlon_plot': -88.5, 
+        'maxlon_plot': -84.0, 
+        'minlat_data': 38.5, 
+        'maxlat_data': 41.0, 
+        'minlon_data': -87.5, 
+        'maxlon_data': -85.0,
+        'min_dict': {
+            '2': 0., \
+            '13': 270.,
+        },
+        'max_dict': {
+            '2': 50., \
+            '13': 310.,
+        },
+        'point_coords': {
+            '1': [38.76089, -86.16389], \
+            '2': [39.81246, -87.21491], \
+            '3': [39.84576, -86.17726], \
+            '4': [39.76566, -85.20507], \
+            '5': [40.71925, -86.24978], \
+        }
+    },
+    'missouri': {
+        'minlat_plot': 35.5, 
+        'maxlat_plot': 39.0, 
+        'minlon_plot': -92.5, 
+        'maxlon_plot': -88.0, 
+        'minlat_data': 36.0, 
+        'maxlat_data': 38.5, 
+        'minlon_data': -91.5, 
+        'maxlon_data': -89.0,
+        'min_dict': {
+            '2': 0., \
+            '13': 270.,
+        },
+        'max_dict': {
+            '2': 50., \
+            '13': 310.,
+        },
+        'point_coords': {
+            '1': [36.31683, -89.92361], \
+            '2': [37.36008, -91.07766], \
+            '3': [37.34885, -90.23254], \
+            '4': [37.30793, -89.30377], \
+            '5': [38.23313, -90.25400], \
+        }
+    },
+    'arkansas': {
+        'minlat_plot': 33.0, 
+        'maxlat_plot': 37.5, 
+        'minlon_plot': -95.5, 
+        'maxlon_plot': -90.5, 
+        'minlat_data': 34.0, 
+        'maxlat_data': 36.0, 
+        'minlon_data': -94.5, 
+        'maxlon_data': -91.5,
+        'min_dict': {
+            '2': 0., \
+            '13': 270.,
+        },
+        'max_dict': {
+            '2': 50., \
+            '13': 310.,
+        },
+        'point_coords': {
+            '1': [34.21191, -92.86024], \
+            '2': [35.00000, -94.08962], \
+            '3': [35.00000, -92.96544], \
+            '4': [35.00000, -91.73680], \
+            '5': [35.74512, -93.00000], \
+        }
+    }
+}
+
+
 ##!#def init_proj(date_str):
 ##!#    #mapcrs = Miller()
 ##!#    if(date_str == None):
@@ -1214,11 +1294,12 @@ def read_GOES_satpy(date_str, channel, scene_date = None, \
 
     # Extract the goes true-color plot limits
     # ----------------------------------------
-    print("KEYS = ", goes_area_dict[dt_date_str.strftime('%Y-%m-%d')].keys()) 
     if(lat_lims is None): 
         lat_lims = goes_area_dict[dt_date_str.strftime('%Y-%m-%d')]['goes_Lat']
     if(lon_lims is None): 
         lon_lims = goes_area_dict[dt_date_str.strftime('%Y-%m-%d')]['goes_Lon']
+    print("LAT LIMS: ", lat_lims)
+    print("LON LIMS: ", lon_lims)
 
     # Use satpy (Scene) to open the file
     # ----------------------------------
@@ -1434,23 +1515,44 @@ def get_GOES_data_regional(date_str, minlat, maxlat, minlon, maxlon, \
     good_idxs = np.where(  (lats0 >= minlat) & (lats0 < maxlat) & \
                            (lons0 >= minlon) & (lons0 < maxlon))
 
+    data_arr = np.array(var0)
     if(min_max_use == 'min'):
-        return np.nanmin(np.array(var0)[good_idxs])
+        minval = np.nanmin(data_arr[good_idxs])
+        goes_lat = np.array(lats0)[data_arr == minval]
+        goes_lon = np.array(lons0)[data_arr == minval]
+        return minval, goes_lat, goes_lon
     elif(min_max_use == 'max'):
-        return np.nanmax(np.array(var0)[good_idxs])
+        #return np.nanmax(np.array(var0)[good_idxs])
+        maxval = np.nanmax(data_arr[good_idxs])
+        goes_lat = np.array(lats0)[data_arr == maxval]
+        goes_lon = np.array(lons0)[data_arr == maxval]
+        return maxval, goes_lat, goes_lon
     elif(min_max_use == 'avg'):
-        return np.nanrean(np.array(var0)[good_idxs])
+        #return np.nanrean(np.array(var0)[good_idxs])
+        meanval = np.nanmean(data_arr[good_idxs])
+        goes_lat = np.array(lats0)[data_arr == meanval]
+        goes_lon = np.array(lons0)[data_arr == meanval]
+        return meanval, goes_lat, goes_lon
     else:
         print("ERROR: Invalid min_max_use value")
-        return np.nan 
+        return np.nan, np.nan, np.nan
 
 # This function gets the GOES data from a higher-resolution channel
 # and co-locates it with data from a lower-resolution channel.
 def get_GOES_data_lat_lon(date_str, dlat, dlon, channel, version = 0,\
+        minlat = None, maxlat = None, minlon = None, maxlon = None, \
         verbose = False, sat = 'goes17'):
 
+    lat_lims = None
+    lon_lims = None
+    if( (minlat is not None) & (maxlat is not None) ):
+        lat_lims = [minlat, maxlat]
+    if( (minlon is not None) & (maxlon is not None) ):
+        lon_lims = [minlon, maxlon]
+
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
-    var0, _, lons0, lats0, _, _, _ = read_GOES_satpy(date_str, channel, sat = sat)
+    var0, _, lons0, lats0, _, _, _ = read_GOES_satpy(date_str, channel, \
+        sat = sat, lat_lims = lat_lims, lon_lims = lon_lims)
 
     #cd_idx = nearest_gridpoint(dlat, dlon,lats0, lons0)
     #goes_val = np.array(var0)[cd_idx]
@@ -1957,78 +2059,170 @@ def plot_GOES_satpy_2panel(date_str, ch1, ch2, \
 # - missouri
 # - arkansas
 def plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
-        begin_date = '202404081200', end_date = '202404082330', \
-        sat = 'goes16', plot_asos = False):
+        GOES_dict_reg, begin_date = '202404081200', \
+        end_date = '202404082330', \
+        sat = 'goes16', GOES_dict_points = None, \
+        plot_point_BTs = False, plot_asos = False, \
+        save = False):
 
-    var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel0 = read_GOES_satpy(date_str, ch1, sat = sat)
-    var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel1 = read_GOES_satpy(date_str, ch2, sat = sat)
-
-    if(region == 'indiana'):
-        minlat_plot = 37.0
-        maxlat_plot = 41.0
-        minlon_plot = -87.0
-        maxlon_plot = -83.0
-        minlat_data = 38.5
-        maxlat_data = 41.0
-        minlon_data = -87.5
-        maxlon_data = -85.0
-    elif(region == 'missouri'):
-        minlat_plot = 35.0
-        maxlat_plot = 38.0
-        minlon_plot = -91.5
-        maxlon_plot = -88.5
-        minlat_data = 36.0
-        maxlat_data = 38.5
-        minlon_data = -91.5
-        maxlon_data = -89.0
-    elif(region == 'arkansas'):
-        minlat_plot = 33.0
-        maxlat_plot = 36.0
-        minlon_plot = -95.0
-        maxlon_plot = -91.0
-        minlat_data = 34.0
-        maxlat_data = 36.0
-        minlon_data = -94.5
-        maxlon_data = -91.5
-   
-    lat_lims = [minlat_plot, maxlat_plot]
-    lon_lims = [minlon_plot, maxlon_plot] 
-
+    dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+    
+    lat_lims = [region_dict[region]['minlat_plot'], \
+                region_dict[region]['maxlat_plot']]
+    lon_lims = [region_dict[region]['minlon_plot'], \
+                region_dict[region]['maxlon_plot']]
+    
+    var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel0 = \
+        read_GOES_satpy(date_str, ch1, sat = sat, lat_lims = lat_lims, \
+        lon_lims = lon_lims)
+    var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel1 = \
+        read_GOES_satpy(date_str, ch2, sat = sat, lat_lims = lat_lims, \
+        lon_lims = lon_lims)
+    
     # Load the time series data here
     # ------------------------------
-    GOES_dict_reg = read_GOES_time_series_auto_regional(begin_date, end_date, \
-            channels = [ch1, ch2], save_dir = './', \
-            sat = sat, minlat = minlat_data - 1.0, maxlat = maxlat_data + 1.0, \
-            minlon = minlon_data - 1.0, maxlon = maxlon_data + 1.0, \
-            min_max_use = ['min', 'max'])
-
+    #GOES_dict_reg = read_GOES_time_series_auto_regional(begin_date, end_date, \
+    #        channels = [ch1, ch2], save_dir = './', \
+    #        sat = sat, \
+    #        minlat = region_dict[region]['minlat_data'], \
+    #        maxlat = region_dict[region]['maxlat_data'], \
+    #        minlon = region_dict[region]['minlon_data'], \
+    #        maxlon = region_dict[region]['maxlon_data'], \
+    #        min_max_use = ['min', 'max'])
+    
+    
     plt.close('all')
     fig = plt.figure(figsize = (9, 8))
     gs    = fig.add_gridspec(nrows = 2, ncols = 2)
     ax1   = fig.add_subplot(gs[0,0],  projection = crs0)   # GOES VIS
     ax2   = fig.add_subplot(gs[0,1],  projection = crs1)   # GOES TIR
     ax3   = fig.add_subplot(gs[1,:])
-
+    
     labelsize = 11
     font_size = 10
     plot_GOES_satpy(date_str, ch1, ax = ax1, var = var0, crs = crs0, \
         lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
-        vmin = min_dict[ch1], vmax = max_dict[ch1], ptitle = '', plabel = plabel0, \
+        vmin = region_dict[region]['min_dict'][str(ch1)], \
+        vmax = region_dict[region]['max_dict'][str(ch1)], \
+        ptitle = '', plabel = plabel0, \
+        #vmin = min_dict[ch1], vmax = max_dict[ch1], ptitle = '', plabel = plabel0, \
         colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
     plot_GOES_satpy(date_str, ch2, ax = ax2, var = var1, crs = crs0, \
         lons = lons1, lats = lats1, lat_lims = lat_lims, lon_lims = lon_lims, \
-        vmin = min_dict[ch2], vmax = max_dict[ch2], ptitle = '', plabel = plabel1, \
+        vmin = region_dict[region]['min_dict'][str(ch2)], \
+        vmax = region_dict[region]['max_dict'][str(ch2)], \
+        ptitle = '', plabel = plabel1, \
         colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+    
+    plot_figure_text(ax1, \
+        sat.upper() + ' ' + \
+        goes_channel_dict[str(ch1)]['wavelength_label'], \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+        location = 'lower_right', halign = 'right')
+    plot_figure_text(ax2, \
+        sat.upper() + ' ' + \
+        goes_channel_dict[str(ch2)]['wavelength_label'], \
+        xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
+        location = 'lower_right', halign = 'right')
+   
+    ax1.set_title(dt_date_str.strftime('%Y%m%d %H:%M UTC'))
+    ax2.set_title(dt_date_str.strftime('%Y%m%d %H:%M UTC'))
+ 
+    rect = mpatches.Rectangle(\
+        (region_dict[region]['minlon_data'], region_dict[region]['minlat_data']), \
+        region_dict[region]['maxlon_data'] - region_dict[region]['minlon_data'], \
+        region_dict[region]['maxlat_data'] - region_dict[region]['minlat_data'], \
+        linewidth = 2, \
+        edgecolor = 'r', \
+        facecolor = 'none', \
+        transform = ccrs.PlateCarree())
+    ax1.add_patch(rect)
+    rect = mpatches.Rectangle(\
+        (region_dict[region]['minlon_data'], region_dict[region]['minlat_data']), \
+        region_dict[region]['maxlon_data'] - region_dict[region]['minlon_data'], \
+        region_dict[region]['maxlat_data'] - region_dict[region]['minlat_data'], \
+        linewidth = 2, \
+        edgecolor = 'k', \
+        facecolor = 'none', \
+        transform = ccrs.PlateCarree())
+    ax2.add_patch(rect)
+    
+    # Plot a dot for the current value on the time series
+    time_idx = np.argmin(np.abs(GOES_dict_reg['dt_dates'] - dt_date_str))
+    
+    minlat_data = region_dict[region]['minlat_data']
+    maxlat_data = region_dict[region]['maxlat_data']
+    minlon_data = region_dict[region]['minlon_data']
+    maxlon_data = region_dict[region]['maxlon_data']
 
-    ax3.plot(GOES_dict_reg['dt_dates'], GOES_dict_reg['data'][:,1,0], label = 'Region Max GOES16')
+    goes_vals, goes_lat, goes_lon = \
+            get_GOES_data_regional(date_str, minlat_data, \
+            maxlat_data, minlon_data, maxlon_data, '13', \
+            'max', sat = sat)
+  
+    print("GOES VALS: ", goes_lat / 1.0, goes_lon, goes_vals)
+
+    plot_point_on_map(ax2, goes_lat, goes_lon, \
+        markersize = 8, \
+        color = 'k')
+
+ 
+    if(GOES_dict_points is None): 
+        ax3.plot(GOES_dict_reg['dt_dates'], GOES_dict_reg['data'][:,1,0], label = 'Region Max GOES16')
+        ax3.plot(dt_date_str, \
+            GOES_dict_reg['data'][time_idx,1,0], marker = '.', markersize = 15, \
+            color = 'tab:blue')
+        ax3.set_ylabel('Temperature [K]')
+    else:
+        # Make a second y axis for the temperatures
+        ax4 = ax3.twinx() 
+
+        # Plot the point visible reflectance data on the first y axis
+        # -----------------------------------------------------------
+        for ii in range(GOES_dict_points['data'].shape[2]): 
+            line = ax3.plot(GOES_dict_points['dt_dates'], \
+                GOES_dict_points['data'][:,0,ii], linestyle = ':')
+        
+            if(plot_point_BTs):    
+                line = ax4.plot(GOES_dict_points['dt_dates'], \
+                    GOES_dict_points['data'][:,1,ii], \
+                    color = line[0].get_color(), alpha = 0.5)
+        
+            # Plot the points on the maps
+            # ---------------------------
+            plot_point_on_map(ax1, GOES_dict_points['goes_lats'][0,0,ii], \
+                GOES_dict_points['goes_lons'][0,0,ii], markersize = 5, \
+                color = line[0].get_color())
+            plot_point_on_map(ax2, GOES_dict_points['goes_lats'][0,1,ii], \
+                GOES_dict_points['goes_lons'][0,1,ii], markersize = 5, \
+                color = line[0].get_color())
+        
+        # Plot temperatures on the second y axis
+        # --------------------------------------
+        ax4.plot(GOES_dict_reg['dt_dates'], GOES_dict_reg['data'][:,1,0], \
+            label = 'Region Max GOES16', color = 'k')
+        ax4.plot(dt_date_str, \
+            GOES_dict_reg['data'][time_idx,1,0], marker = '.', markersize = 15, \
+            color = 'k')
+        ax3.set_ylabel('Reflectance [%]')
+        ax4.set_ylabel('Temperature [K]')
+        #ax4.set_ylim(280, 315)
+
     #ax.plot(kmaw_asos_times, kmaw_asos_tmps, label = 'KMAW ASOS 2-m')
     ax3.grid()
     ax3.legend()
-    ax3.set_ylabel('Temperature [K]')
     ax3.xaxis.set_major_formatter(DateFormatter('%m/%d\n%H:%MZ'))
     ax3.set_title('GOES-16 vs ASOS Eclipse Comparison - ' + region.title())
-
-    plt.show()
+   
+    fig.tight_layout()
+    if(save):
+        outname = sat + '_eclipse_comp_' + region + '_' + date_str + '.png'
+        fig.savefig(outname, dpi = 200)
+        print("Saved image", outname) 
+    else: 
+        plt.show()
 
 def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
         zoom = True, save_dir = './', sat = 'goes17', save = False):
@@ -4871,7 +5065,7 @@ def plot_GOES_cross_channels(GOES_dict, time_idx = 20, \
 
 def read_GOES_time_series_auto(begin_date, end_date, \
         channels = [2, 6, 13, 8, 9, 10], save_dir = './', \
-        sat = 'goes17', 
+        sat = 'goes17',  region = None, 
         dlat = [40.750520, \
                  40.672445,\
                  40.624068, \
@@ -5009,8 +5203,19 @@ def read_GOES_time_series_auto(begin_date, end_date, \
         for jj, tch in enumerate(channels):
             # Extract the GOES values for the current time
             # --------------------------------------------
-            goes_vals, goes_lats_local, goes_lons_local  = \
-                get_GOES_data_lat_lon(date_str, dlat, dlon, tch, sat = sat)
+            if(region is not None):
+                lat_lims = [region_dict[region]['minlat_plot'], \
+                            region_dict[region]['maxlat_plot']]
+                lon_lims = [region_dict[region]['minlon_plot'], \
+                            region_dict[region]['maxlon_plot']]
+                
+                goes_vals, goes_lats_local, goes_lons_local  = \
+                    get_GOES_data_lat_lon(date_str, dlat, dlon, tch, \
+                    sat = sat, minlat = lat_lims[0], maxlat = lat_lims[1], \
+                    minlon = lon_lims[0], maxlon = lon_lims[1])
+            else:
+                goes_vals, goes_lats_local, goes_lons_local  = \
+                    get_GOES_data_lat_lon(date_str, dlat, dlon, tch, sat = sat)
             goes_data[ii,jj,:] = goes_vals / 1.
             goes_lats[ii,jj,:] = goes_lats_local / 1.
             goes_lons[ii,jj,:] = goes_lons_local / 1.
@@ -5122,7 +5327,8 @@ def read_GOES_time_series_auto_regional(begin_date, end_date, \
             # --------------------------------------------
             #goes_vals, goes_lats_local, goes_lons_local  = \
             #    get_GOES_data_lat_lon(date_str, dlat, dlon, tch, sat = sat)
-            goes_vals =  get_GOES_data_regional(date_str, minlat, maxlat, \
+            goes_vals, _, _ =  \
+                    get_GOES_data_regional(date_str, minlat, maxlat, \
                     minlon, maxlon, tch, min_max_use[jj], sat = sat)
 
             goes_data[ii,jj,:] = goes_vals / 1.
