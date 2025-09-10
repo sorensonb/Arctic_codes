@@ -63,6 +63,7 @@ from shapely.geometry.polygon import Polygon
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colors as cm
+import matplotlib.patches as mpatches
 from matplotlib.dates import DateFormatter
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib.tri import Triangulation
@@ -475,12 +476,12 @@ goes_area_dict = {
         #'goes_Lon': [-94.5, -91.5],
         #'goes_Lat': [33.5, 36.5],     # TX/OK/AR area
         #'goes_Lon': [-95.0, -91.0],
-        'goes_Lat': [36.0, 38.5],     # MO/AR/TN area zoom
-        'goes_Lon': [-91.5, -89.0],
+        #'goes_Lat': [36.0, 38.5],     # MO/AR/TN area zoom
+        #'goes_Lon': [-91.5, -89.0],
         #'goes_Lat': [35.0, 38.0],     # MO/AR/TN area wide
         #'goes_Lon': [-91.5, -88.5],
-        #'goes_Lat': [38.5, 41.0],     # IN area zoom
-        #'goes_Lon': [-87.5, -85.0],
+        'goes_Lat': [38.5, 41.0],     # IN area zoom
+        'goes_Lon': [-87.5, -85.0],
         #'goes_Lat': [37.0, 41.0],     # IN/OH/KY area
         #'goes_Lon': [-87.0, -83.0],
     },
@@ -1185,7 +1186,8 @@ cmap_dict = {
 # - 7.34  (band 10, Lower-Level Water Vapor)
 # - 10.35 (band 13, Clean IR Longwave Window)
 def read_GOES_satpy(date_str, channel, scene_date = None, \
-        calibration = None, sat = 'goes17', zoom = True, return_xy = False):
+        calibration = None, sat = 'goes17', lat_lims = None, \
+        lon_lims = None, zoom = True, return_xy = False):
 
     data_dir = home_dir + '/data/GOES/' + sat + '_abi/'
 
@@ -1213,8 +1215,10 @@ def read_GOES_satpy(date_str, channel, scene_date = None, \
     # Extract the goes true-color plot limits
     # ----------------------------------------
     print("KEYS = ", goes_area_dict[dt_date_str.strftime('%Y-%m-%d')].keys()) 
-    lat_lims = goes_area_dict[dt_date_str.strftime('%Y-%m-%d')]['goes_Lat']
-    lon_lims = goes_area_dict[dt_date_str.strftime('%Y-%m-%d')]['goes_Lon']
+    if(lat_lims is None): 
+        lat_lims = goes_area_dict[dt_date_str.strftime('%Y-%m-%d')]['goes_Lat']
+    if(lon_lims is None): 
+        lon_lims = goes_area_dict[dt_date_str.strftime('%Y-%m-%d')]['goes_Lon']
 
     # Use satpy (Scene) to open the file
     # ----------------------------------
@@ -1420,7 +1424,10 @@ def get_GOES_data_regional(date_str, minlat, maxlat, minlon, maxlon, \
         channel, min_max_use, sat = 'goes17'):
 
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
-    var0, _, lons0, lats0, _, _, _ = read_GOES_satpy(date_str, channel, sat = sat)
+    lat_lims = [minlat, maxlat]
+    lon_lims = [minlon, maxlon]
+    var0, _, lons0, lats0, _, _, _ = read_GOES_satpy(date_str, channel, \
+        sat = sat, lat_lims = lat_lims, lon_lims = lon_lims)
 
     # Grab data only within the specified lat/lon bounds
     # --------------------------------------------------
@@ -1431,6 +1438,8 @@ def get_GOES_data_regional(date_str, minlat, maxlat, minlon, maxlon, \
         return np.nanmin(np.array(var0)[good_idxs])
     elif(min_max_use == 'max'):
         return np.nanmax(np.array(var0)[good_idxs])
+    elif(min_max_use == 'avg'):
+        return np.nanrean(np.array(var0)[good_idxs])
     else:
         print("ERROR: Invalid min_max_use value")
         return np.nan 
@@ -1942,6 +1951,84 @@ def plot_GOES_satpy_2panel(date_str, ch1, ch2, \
     else:
         plt.show()
 """
+
+# regions:
+# - indiana
+# - missouri
+# - arkansas
+def plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
+        begin_date = '202404081200', end_date = '202404082330', \
+        sat = 'goes16', plot_asos = False):
+
+    var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel0 = read_GOES_satpy(date_str, ch1, sat = sat)
+    var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel1 = read_GOES_satpy(date_str, ch2, sat = sat)
+
+    if(region == 'indiana'):
+        minlat_plot = 37.0
+        maxlat_plot = 41.0
+        minlon_plot = -87.0
+        maxlon_plot = -83.0
+        minlat_data = 38.5
+        maxlat_data = 41.0
+        minlon_data = -87.5
+        maxlon_data = -85.0
+    elif(region == 'missouri'):
+        minlat_plot = 35.0
+        maxlat_plot = 38.0
+        minlon_plot = -91.5
+        maxlon_plot = -88.5
+        minlat_data = 36.0
+        maxlat_data = 38.5
+        minlon_data = -91.5
+        maxlon_data = -89.0
+    elif(region == 'arkansas'):
+        minlat_plot = 33.0
+        maxlat_plot = 36.0
+        minlon_plot = -95.0
+        maxlon_plot = -91.0
+        minlat_data = 34.0
+        maxlat_data = 36.0
+        minlon_data = -94.5
+        maxlon_data = -91.5
+   
+    lat_lims = [minlat_plot, maxlat_plot]
+    lon_lims = [minlon_plot, maxlon_plot] 
+
+    # Load the time series data here
+    # ------------------------------
+    GOES_dict_reg = read_GOES_time_series_auto_regional(begin_date, end_date, \
+            channels = [ch1, ch2], save_dir = './', \
+            sat = sat, minlat = minlat_data - 1.0, maxlat = maxlat_data + 1.0, \
+            minlon = minlon_data - 1.0, maxlon = maxlon_data + 1.0, \
+            min_max_use = ['min', 'max'])
+
+    plt.close('all')
+    fig = plt.figure(figsize = (9, 8))
+    gs    = fig.add_gridspec(nrows = 2, ncols = 2)
+    ax1   = fig.add_subplot(gs[0,0],  projection = crs0)   # GOES VIS
+    ax2   = fig.add_subplot(gs[0,1],  projection = crs1)   # GOES TIR
+    ax3   = fig.add_subplot(gs[1,:])
+
+    labelsize = 11
+    font_size = 10
+    plot_GOES_satpy(date_str, ch1, ax = ax1, var = var0, crs = crs0, \
+        lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
+        vmin = min_dict[ch1], vmax = max_dict[ch1], ptitle = '', plabel = plabel0, \
+        colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+    plot_GOES_satpy(date_str, ch2, ax = ax2, var = var1, crs = crs0, \
+        lons = lons1, lats = lats1, lat_lims = lat_lims, lon_lims = lon_lims, \
+        vmin = min_dict[ch2], vmax = max_dict[ch2], ptitle = '', plabel = plabel1, \
+        colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+
+    ax3.plot(GOES_dict_reg['dt_dates'], GOES_dict_reg['data'][:,1,0], label = 'Region Max GOES16')
+    #ax.plot(kmaw_asos_times, kmaw_asos_tmps, label = 'KMAW ASOS 2-m')
+    ax3.grid()
+    ax3.legend()
+    ax3.set_ylabel('Temperature [K]')
+    ax3.xaxis.set_major_formatter(DateFormatter('%m/%d\n%H:%MZ'))
+    ax3.set_title('GOES-16 vs ASOS Eclipse Comparison - ' + region.title())
+
+    plt.show()
 
 def plot_GOES_satpy_6panel(date_str, ch1, ch2, ch3, ch4, ch5, ch6, \
         zoom = True, save_dir = './', sat = 'goes17', save = False):

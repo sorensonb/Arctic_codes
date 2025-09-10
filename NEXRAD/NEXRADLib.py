@@ -1054,7 +1054,7 @@ def plot_NEXRAD_GOES_4panel(date_str, radar, variable, channel, ax = None, \
 def plot_NEXRAD_GOES_5panel(date_str, ch1, ch2, ch3, \
         variable = 'composite_reflectivity', \
         ax = None, ptitle = None, plabel = None, \
-        vmin = -5, vmax = 90, \
+        vmin = -5, vmax = 90, angle1 = 0, angle2 = 0, \
         labelsize = 10, colorbar = True, counties = True, save_dir = './',\
         alpha = 1.0, mask_outside = True, zoom=True, save=False):
 
@@ -1066,8 +1066,8 @@ def plot_NEXRAD_GOES_5panel(date_str, ch1, ch2, ch3, \
 
     # Read the NEXRAD data
     # --------------------
-    NEXRAD_dict1 = read_NEXRAD(date_str, 'KBBX', angle = 0)
-    NEXRAD_dict2 = read_NEXRAD(date_str, 'KRGX', angle = 0) 
+    NEXRAD_dict1 = read_NEXRAD(date_str, 'KBBX', angle = angle1)
+    NEXRAD_dict2 = read_NEXRAD(date_str, 'KRGX', angle = angle2) 
 
     # Read the GOES data
     # ------------------
@@ -1103,10 +1103,10 @@ def plot_NEXRAD_GOES_5panel(date_str, ch1, ch2, ch3, \
         lon_lims = lon_lims, vmin = 270, vmax = 320, ptitle = '', \
         plabel = plabel_goes3, colorbar = True, labelsize = labelsize + 1, \
         counties = counties, zoom=True,save=False) 
-    plot_NEXRAD_ppi(NEXRAD_dict1, variable, ax = ax4, angle = 0, \
+    plot_NEXRAD_ppi(NEXRAD_dict1, variable, ax = ax4, angle = angle1, \
         counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
         mask_outside = mask_outside, crs = None)
-    plot_NEXRAD_ppi(NEXRAD_dict2, variable, ax = ax5, angle = 0, \
+    plot_NEXRAD_ppi(NEXRAD_dict2, variable, ax = ax5, angle = angle2, \
         counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
         mask_outside = mask_outside, crs = None)
         #mask_outside = mask_outside, crs = crs0)
@@ -1434,7 +1434,7 @@ def plot_azimuth_line(NEXRAD_dict, azimuth, range_min, range_max, ax, \
 
 def plot_NEXRAD_rhi_multipanel(date_str, radar, azimuth, \
         angle_idx = 0, range_min = 0, range_max = 150, \
-        save = True, save_dir = './'):
+        height_lim = 8, save = True, save_dir = './'):
 
     NEXRAD_dict = read_NEXRAD(date_str, radar)
     
@@ -1461,25 +1461,25 @@ def plot_NEXRAD_rhi_multipanel(date_str, radar, azimuth, \
     plot_my_rhi(NEXRAD_dict, 'reflectivity', azimuth, \
             az_tol = az_tol, vmin = None, vmax = None, \
             range_min = range_min, range_max = range_max,\
-            ax = ax4)
+            ax = ax4, height_lim = height_lim)
     plot_my_rhi(NEXRAD_dict, 'cross_correlation_ratio', azimuth, \
             az_tol = az_tol, vmin = None, vmax = None, \
             range_min = range_min, range_max = range_max,\
-            ax = ax5)
+            ax = ax5, height_lim = height_lim)
     plot_my_rhi(NEXRAD_dict, 'differential_reflectivity', azimuth, \
             az_tol = az_tol, vmin = None, vmax = None, \
             range_min = range_min, range_max = range_max,\
-            ax = ax6)
+            ax = ax6, height_lim = height_lim)
     
     plot_NEXRAD_rhi(NEXRAD_dict, 'reflectivity', azimuth, \
         vmin = None, vmax = None, range_min = range_min, \
-        range_max = range_max, ax = ax7)
+        range_max = range_max, ax = ax7, height_lim = height_lim)
     plot_NEXRAD_rhi(NEXRAD_dict, 'cross_correlation_ratio', azimuth, \
         vmin = None, vmax = None, range_min = range_min, \
-        range_max = range_max, ax = ax8)
+        range_max = range_max, ax = ax8, height_lim = height_lim)
     plot_NEXRAD_rhi(NEXRAD_dict, 'differential_reflectivity', azimuth, \
         vmin = None, vmax = None, range_min = range_min, \
-        range_max = range_max, ax = ax9)
+        range_max = range_max, ax = ax9, height_lim = height_lim)
     
     ##!#xsect = pyart.util.cross_section_ppi(NEXRAD_dict['radar'], [azimuth])
     ##!#test_lats = xsect.gate_latitude['data'][0][::30]

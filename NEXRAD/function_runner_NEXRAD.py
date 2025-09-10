@@ -8,6 +8,43 @@ import importlib, NEXRADLib
 from NEXRADLib import *
 import sys
 
+date_str = '202108052130'
+plot_NEXRAD_GOES_5panel(date_str, 2, 6, 13, \
+    variable = 'reflectivity', \
+    #variable = 'composite_reflectivity', \
+    ax = None, ptitle = None, plabel = None, \
+    vmin = -5, vmax = 90, angle1 = 6, angle2 = 2, \
+    labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+    alpha = 1.0, mask_outside = True, zoom=True, save=True)
+sys.exit()
+
+date_str = '202108052125'
+variable = 'reflectivity'
+#radar = 'KBBX'
+#azimuth = 25
+radar = 'KRGX'
+azimuth = 305
+
+plot_NEXRAD_rhi_multipanel(date_str, radar, azimuth, \
+    #angle_idx = 4, range_min = 75, range_max = 175, \
+    angle_idx = 4, range_min = 90, range_max = 200, \
+    #angle_idx = 4, range_min = 45, range_max = 120, \  # original
+    height_lim = 10, save = True, save_dir = './')
+sys.exit()
+
+## Every 5 minutes from 202107202100 to 202107210330
+begin_date = '202108051200'
+end_date = '202108060300'
+auto_NEXRAD_download(begin_date, end_date, 30, 'KRGX')
+sys.exit()
+
+
+home_dir = os.environ['HOME']
+frame_folder = home_dir + '/Research/NEXRAD/tmp_dir/'
+gif_name = 'nexrad_goes_KBBX_KRGX_20210720_20210721.gif'
+make_gif(frame_folder, gif_name, duration = 300)
+sys.exit()
+
 begin_date = '202107221000'
 end_date   = '202107230330'
 
@@ -45,12 +82,6 @@ plot_NEXRAD_GOES_12panel(date_str, 2, 6, 13, \
 #    save = False, save_dir = './')
 sys.exit()
 
-
-## Every 5 minutes from 202107202100 to 202107210330
-begin_date = '202107222000'
-end_date = '202107222200'
-auto_NEXRAD_download(begin_date, end_date, 30, 'KRGX')
-sys.exit()
 
 radar = 'KRGX'
 azimuth = 310.0      # 281.

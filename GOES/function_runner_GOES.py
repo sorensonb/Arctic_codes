@@ -8,25 +8,125 @@
 from GOESLib import *
 import sys
 
-#date_str = '202404081700'
-#date_str = '202108052130'
-date_str = '202107202100'
-plot_GOES_satpy_2panel(date_str, 2, 6, \
-    zoom = False, save_dir = './', sat = 'goes17', save = False)
+
+date_str = '202404081800'
+ch1 = 2
+ch2 = 13
+region = 'missouri'
+sat = 'goes16'
+begin_date = '202404081200'
+end_date = '202404082330'
+#plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
+#    sat = sat, plot_asos = False)
+
+dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
+
+if(region == 'indiana'):
+    minlat_plot = 37.0
+    maxlat_plot = 41.0
+    minlon_plot = -87.0
+    maxlon_plot = -83.0
+    minlat_data = 38.5
+    maxlat_data = 41.0
+    minlon_data = -87.5
+    maxlon_data = -85.0
+elif(region == 'missouri'):
+    minlat_plot = 35.5
+    maxlat_plot = 39.0
+    minlon_plot = -92.5
+    maxlon_plot = -88.0
+    minlat_data = 36.0
+    maxlat_data = 38.5
+    minlon_data = -91.5
+    maxlon_data = -89.0
+elif(region == 'arkansas'):
+    minlat_plot = 33.0
+    maxlat_plot = 36.0
+    minlon_plot = -95.0
+    maxlon_plot = -91.0
+    minlat_data = 34.0
+    maxlat_data = 36.0
+    minlon_data = -94.5
+    maxlon_data = -91.5
+
+lat_lims = [minlat_plot, maxlat_plot]
+lon_lims = [minlon_plot, maxlon_plot] 
+
+var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel0 = \
+    read_GOES_satpy(date_str, ch1, sat = sat, lat_lims = lat_lims, \
+    lon_lims = lon_lims)
+var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel1 = \
+    read_GOES_satpy(date_str, ch2, sat = sat, lat_lims = lat_lims, \
+    lon_lims = lon_lims)
+
+# Load the time series data here
+# ------------------------------
+GOES_dict_reg = read_GOES_time_series_auto_regional(begin_date, end_date, \
+        channels = [ch1, ch2], save_dir = './', \
+        sat = sat, minlat = minlat_data, maxlat = maxlat_data, \
+        minlon = minlon_data, maxlon = maxlon_data, \
+        min_max_use = ['min', 'max'])
+
+plt.close('all')
+fig = plt.figure(figsize = (9, 8))
+gs    = fig.add_gridspec(nrows = 2, ncols = 2)
+ax1   = fig.add_subplot(gs[0,0],  projection = crs0)   # GOES VIS
+ax2   = fig.add_subplot(gs[0,1],  projection = crs1)   # GOES TIR
+ax3   = fig.add_subplot(gs[1,:])
+
+labelsize = 11
+font_size = 10
+plot_GOES_satpy(date_str, ch1, ax = ax1, var = var0, crs = crs0, \
+    lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
+    vmin = min_dict[ch1], vmax = max_dict[ch1], ptitle = '', plabel = plabel0, \
+    colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+plot_GOES_satpy(date_str, ch2, ax = ax2, var = var1, crs = crs0, \
+    lons = lons1, lats = lats1, lat_lims = lat_lims, lon_lims = lon_lims, \
+    vmin = min_dict[ch2], vmax = max_dict[ch2], ptitle = '', plabel = plabel1, \
+    colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+
+rect = mpatches.Rectangle(\
+    (minlon_data, minlat_data), \
+    maxlon_data - minlon_data, \
+    maxlat_data - minlat_data, \
+    linewidth = 2, \
+    edgecolor = 'r', \
+    facecolor = 'none', \
+    transform = ccrs.PlateCarree())
+ax1.add_patch(rect)
+rect = mpatches.Rectangle(\
+    (minlon_data, minlat_data), \
+    maxlon_data - minlon_data, \
+    maxlat_data - minlat_data, \
+    linewidth = 2, \
+    edgecolor = 'k', \
+    facecolor = 'none', \
+    transform = ccrs.PlateCarree())
+ax2.add_patch(rect)
+
+# Plot a dot for the current value on the time series
+time_idx = np.argmin(np.abs(GOES_dict_reg['dt_dates'] - dt_date_str))
+
+
+ax3.plot(GOES_dict_reg['dt_dates'], GOES_dict_reg['data'][:,1,0], label = 'Region Max GOES16')
+ax3.plot(dt_date_str, \
+    GOES_dict_reg['data'][time_idx,1,0], marker = '.', markersize = 15, \
+    color = 'tab:blue')
+#ax.plot(kmaw_asos_times, kmaw_asos_tmps, label = 'KMAW ASOS 2-m')
+ax3.grid()
+ax3.legend()
+ax3.set_ylabel('Temperature [K]')
+ax3.xaxis.set_major_formatter(DateFormatter('%m/%d\n%H:%MZ'))
+ax3.set_title('GOES-16 vs ASOS Eclipse Comparison - ' + region.title())
+
+
+plt.show()
+
+
+
+
 
 sys.exit()
-
-
-
-
-
-#begin_date = '202404081200'
-begin_date = '202108052100'
-end_date   = '202108052200'
-auto_GOES_download(begin_date, end_date, 30, sat = 'goes17', channels = [2,6,13])
-#auto_GOES_download(begin_date, end_date, 30, sat = 'goes17', channels = [2,6,13])
-sys.exit()
-
 
 
 begin_date = '202404081200'
@@ -45,10 +145,10 @@ end_date   = '202404082330'
 #maxlon = -91.0
 
 # Coordinates for zoom area in MO/AR/TN tri-state area:
-minlat = 36.0
-maxlat = 38.5
-minlon = -91.5
-maxlon = -89.0
+#minlat = 36.0
+#maxlat = 38.5
+#minlon = -91.5
+#maxlon = -89.0
 
 
 kmaw_asos_tmps = [\
@@ -142,10 +242,10 @@ kmaw_asos_times = [datetime.strptime(ttime, '%Y-%m-%d %H:%M') \
 #maxlon = -88.5
 
 # Coordinates for zoom area in IN tri-state area:
-#minlat = 38.5
-#maxlat = 41.0
-#minlon = -87.5
-#maxlon = -85.0
+minlat = 38.5
+maxlat = 41.0
+minlon = -87.5
+maxlon = -85.0
 
 # Coordinates for wide area in IN/OH/KY tri-state area:
 #minlat = 37.0
@@ -172,10 +272,13 @@ base_dir = '/home/bsorenson/Research/GOES/'
 
 fig = plt.figure(figsize = (8, 4))
 ax = fig.add_subplot(1,1,1)
-ax.plot(GOES_dict_reg['dt_dates'], GOES_dict_reg['data'][:,1,0])
-ax.plot(kmaw_asos_times, kmaw_asos_tmps)
+ax.plot(GOES_dict_reg['dt_dates'], GOES_dict_reg['data'][:,1,0], label = 'Region Max GOES16')
+#ax.plot(kmaw_asos_times, kmaw_asos_tmps, label = 'KMAW ASOS 2-m')
 ax.grid()
+ax.legend()
+ax.set_ylabel('Temperature [K]')
 ax.xaxis.set_major_formatter(DateFormatter('%m/%d\n%H:%MZ'))
+ax.set_title('GOES-16 vs ASOS Eclipse Comparison - Indiana')
 plt.show()
 
 #write_GOES_time_series_NCDF(GOES_dict_reg, save_dir = './')
@@ -183,6 +286,27 @@ plt.show()
 sys.exit()
 
 
+
+
+
+date_str = '202404081700'
+#date_str = '202108052130'
+#date_str = '202107202100'
+plot_GOES_satpy_2panel(date_str, 2, 6, \
+    zoom = False, save_dir = './', sat = 'goes17', save = False)
+
+sys.exit()
+
+
+
+
+
+#begin_date = '202404081200'
+begin_date = '202108052100'
+end_date   = '202108052200'
+auto_GOES_download(begin_date, end_date, 30, sat = 'goes17', channels = [2,6,13])
+#auto_GOES_download(begin_date, end_date, 30, sat = 'goes17', channels = [2,6,13])
+sys.exit()
 
 
 
