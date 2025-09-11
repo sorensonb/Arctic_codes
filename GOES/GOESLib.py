@@ -382,7 +382,9 @@ goes_area_dict = {
             'Lon': [-118.0, -114.0],
             'goes_Lat': [36.0, 39.0],
             'goes_Lon': [-118., -114.]
-        }
+        },
+        'goes_Lat': [39.5, 42.0],
+        'goes_Lon': [-122., -119.],
     },
     "2021-08-07": {
         '2110': {
@@ -2182,24 +2184,46 @@ def plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
     minlon_data = region_dict[region]['minlon_data']
     maxlon_data = region_dict[region]['maxlon_data']
 
-    goes_vals, goes_lat, goes_lon = \
+    goes_vals1, goes_lat1, goes_lon1 = \
+            get_GOES_data_regional(date_str, minlat_data, \
+            maxlat_data, minlon_data, maxlon_data, '2', \
+            'max', sat = sat)
+    goes_vals2, goes_lat2, goes_lon2 = \
             get_GOES_data_regional(date_str, minlat_data, \
             maxlat_data, minlon_data, maxlon_data, '13', \
             'max', sat = sat)
   
-    print("GOES VALS: ", goes_lat / 1.0, goes_lon, goes_vals)
+    print("GOES VALS 1: ", goes_lat1 / 1.0, goes_lon1 / 1.0, goes_vals1)
+    print("GOES VALS 2: ", goes_lat2 / 1.0, goes_lon2 / 1.0, goes_vals2)
 
-    plot_point_on_map(ax2, goes_lat, goes_lon, \
+    plot_point_on_map(ax1, goes_lat1, goes_lon1, \
+        markersize = 8, \
+        color = 'r')
+    plot_point_on_map(ax2, goes_lat2, goes_lon2, \
         markersize = 8, \
         color = 'k')
 
  
     if(GOES_dict_points is None): 
-        ax3.plot(GOES_dict_reg['dt_dates'], GOES_dict_reg['data'][:,1,0], label = 'Region Max GOES16')
+        ax4 = ax3.twinx() 
+        line1, = ax3.plot(GOES_dict_reg['dt_dates'], \
+            GOES_dict_reg['data'][:,0,0], color = 'r', \
+            label = 'Region Max VIS')
+        line2, = ax4.plot(GOES_dict_reg['dt_dates'], \
+            GOES_dict_reg['data'][:,1,0], color = 'k', \
+            label = 'Region Max TIR')
         ax3.plot(dt_date_str, \
+            GOES_dict_reg['data'][time_idx,0,0], marker = '.', markersize = 15, \
+            color = 'r')
+        ax4.plot(dt_date_str, \
             GOES_dict_reg['data'][time_idx,1,0], marker = '.', markersize = 15, \
-            color = 'tab:blue')
-        ax3.set_ylabel('Temperature [K]')
+            color = 'k')
+        ax3.set_ylabel('Reflectance [%]', color = 'r')
+        ax4.set_ylabel('Temperature [K]')
+        handles = [line1, line2]
+        labels = [handle.get_label() for handle in handles]
+        ax3.legend(handles, labels)
+        
     else:
         # Make a second y axis for the temperatures
         ax4 = ax3.twinx() 
@@ -2234,12 +2258,16 @@ def plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
         ax3.set_ylabel('Reflectance [%]')
         ax4.set_ylabel('Temperature [K]')
         #ax4.set_ylim(280, 315)
+        ax3.legend()
 
     #ax.plot(kmaw_asos_times, kmaw_asos_tmps, label = 'KMAW ASOS 2-m')
     ax3.grid()
-    ax3.legend()
     ax3.xaxis.set_major_formatter(DateFormatter('%m/%d\n%H:%MZ'))
-    ax3.set_title('GOES-16 vs ASOS Eclipse Comparison - ' + region.title())
+    if(plot_asos): 
+        ptitle = 'GOES-16 vs ASOS Eclipse Comparison - ' + region.title()
+    else:
+        ptitle = 'GOES-16 Eclipse Analysis - ' + region.title()
+    ax3.set_title(ptitle)
    
     fig.tight_layout()
     if(save):

@@ -8,6 +8,11 @@
 from GOESLib import *
 import sys
 
+frame_folder = home_dir + '/Research/GOES/goes_eclipse_analysis/missouri_bootheel/'
+gif_name = 'goes16_eclipse_comp_gif_20240408.gif'
+make_gif(frame_folder, gif_name, duration = 250)
+
+sys.exit()
 
 date_str = '202404081800'
 ch1 = 2
@@ -36,7 +41,7 @@ GOES_dict_reg = \
         maxlat = region_dict[region]['maxlat_data'], \
         minlon = region_dict[region]['minlon_data'], \
         maxlon = region_dict[region]['maxlon_data'], \
-        min_max_use = ['min', 'max'])
+        min_max_use = ['max', 'max'])
 
 #plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
 #    GOES_dict_reg, sat = sat, plot_asos = False, \
@@ -45,22 +50,30 @@ GOES_dict_reg = \
 #sys.exit()
 
 begin_dt_date = datetime(2024,4,8,12,0)
-end_dt_date   = datetime(2024,4,8,23,30)
+end_dt_date   = datetime(2024,4,8,23,00)
 
 local_dt_date = begin_dt_date
 
 #date_str = '202404082100'
 while(local_dt_date <= end_dt_date):
-   
+  
     print(local_dt_date) 
     date_str = local_dt_date.strftime('%Y%m%d%H%M')
 
-    plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
-        GOES_dict_reg, sat = sat, plot_asos = False, \
-        GOES_dict_points = None, \
-        #GOES_dict_points = GOES_dict_points, \
-        plot_point_BTs = False, save = True)
-    local_dt_date = local_dt_date + timedelta(minutes = 30)
+    if( (local_dt_date != datetime(2024,4,8,16,30) ) & \
+        (local_dt_date != datetime(2024,4,8,16,35) ) ):
+
+        plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
+            GOES_dict_reg, sat = sat, plot_asos = False, \
+            GOES_dict_points = None, \
+            #GOES_dict_points = GOES_dict_points, \
+            plot_point_BTs = False, save = True)
+   
+    if( (local_dt_date >= datetime(2024,4,8,15,50) ) & \
+        (local_dt_date <= datetime(2024,4,8,20,55) ) ):
+        local_dt_date = local_dt_date + timedelta(minutes = 5)
+    else:
+        local_dt_date = local_dt_date + timedelta(minutes = 30)
 
 sys.exit()
 #plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \

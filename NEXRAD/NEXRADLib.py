@@ -1144,8 +1144,9 @@ def plot_NEXRAD_GOES_5panel(date_str, ch1, ch2, ch3, \
     del(var2)
 
     if(save):
-        outname = 'nexrad_goes_5panel_KBBX_KRGX_' + date_str + '.png'
-        fig.savefig(outname, dpi = 200)
+        outname = 'nexrad_goes_5panel_KBBX_KRGX_ang1' + str(angle1).zfill(2) + \
+            '_ang2' + str(angle2).zfill(2) + '_' + date_str + '.png'
+        fig.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else:
         plt.show()
