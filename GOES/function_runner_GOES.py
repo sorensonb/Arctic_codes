@@ -8,6 +8,15 @@
 from GOESLib import *
 import sys
 
+#begin_date = '202404081200'
+begin_date = '202107210300'
+end_date   = '202107220230'
+auto_GOES_download(begin_date, end_date, 30, sat = 'goes17', channels = [2,6,13])
+#auto_GOES_download(begin_date, end_date, 30, sat = 'goes17', channels = [2,6,13])
+sys.exit()
+
+
+
 frame_folder = home_dir + '/Research/GOES/goes_eclipse_analysis/missouri_bootheel/'
 gif_name = 'goes16_eclipse_comp_gif_20240408.gif'
 make_gif(frame_folder, gif_name, duration = 250)

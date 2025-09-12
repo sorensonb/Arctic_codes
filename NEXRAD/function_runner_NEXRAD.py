@@ -9,17 +9,45 @@ from NEXRADLib import *
 import sys
 
 
-#for date in dates:
+#begin_dt_date = datetime(2021,7,20,12,0)
+begin_dt_date = datetime(2021,7,21,5,0)
+end_dt_date   = datetime(2021,7,21,11,30)
+#date_str = '202108052100'
+
+local_dt_date = begin_dt_date
+
+#date_str = '202404082100'
+while(local_dt_date <= end_dt_date):
+ 
+    date_str = local_dt_date.strftime('%Y%m%d%H%M') 
+    plot_NEXRAD_GOES_5panel(date_str, 2, 6, 13, \
+        #variable = 'reflectivity', \
+        variable = 'composite_reflectivity', \
+        ax = None, ptitle = None, plabel = None, \
+        vmin = -5, vmax = 90, angle1 = 2, angle2 = 0, \
+        labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+        alpha = 1.0, mask_outside = True, zoom=True, save=True)
+    
+    local_dt_date = local_dt_date + timedelta(minutes = 30)
+
+sys.exit()
+
 
 #frame_folder = home_dir + '/Research/NEXRAD/nexrad_GOES_comps/vary_angle/' + date + '/'
 #gif_name = 'goes17_nexrad_comp_varyangle_' + date + '.gif'
-frame_folder = home_dir + '/Research/NEXRAD/nexrad_GOES_comps/vary_time/20210805/'
-gif_name = 'goes17_nexrad_comp_varytime_20210805.gif'
+frame_folder = home_dir + '/Research/NEXRAD/nexrad_GOES_comps/vary_time/20210721/'
+gif_name = 'goes17_nexrad_comp_varytime_20210721.gif'
 
 print(frame_folder)
 make_gif(frame_folder, gif_name, duration = 400)
 
 sys.exit()
+
+#begin_dt_date = datetime(2021,8,5,12,0)
+#end_dt_date   = datetime(2021,8,6,0,00)
+
+
+#for date in dates:
 
 #dates = ['202108052100', '202108052300', '202108060100']
 
@@ -34,28 +62,6 @@ sys.exit()
 #            alpha = 1.0, mask_outside = True, zoom=True, save=True)
 #
 #sys.exit()
-
-begin_dt_date = datetime(2021,8,5,12,0)
-end_dt_date   = datetime(2021,8,6,0,00)
-#date_str = '202108052100'
-
-local_dt_date = begin_dt_date
-
-#date_str = '202404082100'
-while(local_dt_date <= end_dt_date):
- 
-    date_str = local_dt_date.strftime('%Y%m%d%H%M') 
-    plot_NEXRAD_GOES_5panel(date_str, 2, 6, 13, \
-        variable = 'reflectivity', \
-        #variable = 'composite_reflectivity', \
-        ax = None, ptitle = None, plabel = None, \
-        vmin = -5, vmax = 90, angle1 = 6, angle2 = 2, \
-        labelsize = 10, colorbar = True, counties = True, save_dir = './',\
-        alpha = 1.0, mask_outside = True, zoom=True, save=True)
-    
-    local_dt_date = local_dt_date + timedelta(minutes = 30)
-
-sys.exit()
 
 date_str = '202108052125'
 variable = 'reflectivity'
