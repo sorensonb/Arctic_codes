@@ -822,7 +822,7 @@ def read_NEXRAD(date_str, radar, angle = 0):
     # ---------------------------------------------------------------
     if(np.min(time_diffs) > (15 * 60)):
         print("ERROR: No ",radar," swaths matching time",date_str)
-        return
+        return -1
 
     # Select those files. Should result in 2 files, with one being MDM
     # -----------------------------------------------------------------
@@ -1066,8 +1066,23 @@ def plot_NEXRAD_GOES_5panel(date_str, ch1, ch2, ch3, \
 
     # Read the NEXRAD data
     # --------------------
+   
+    #try: 
     NEXRAD_dict1 = read_NEXRAD(date_str, 'KBBX', angle = angle1)
+    if(NEXRAD_dict1 == -1): 
+        plot_radar_1 = False
+        print("WARNING: Error reading KBBX data for ", date_str)
+        print("         Continuing without the data") 
+    else:
+        plot_radar_1 = True
+
     NEXRAD_dict2 = read_NEXRAD(date_str, 'KRGX', angle = angle2) 
+    if(NEXRAD_dict2 == -1): 
+        print("WARNING: Error reading KRGX data for ", date_str)
+        print("         Continuing without the data") 
+        plot_radar_2 = False
+    else: 
+        plot_radar_2 = True 
 
     # Read the GOES data
     # ------------------
@@ -1103,13 +1118,17 @@ def plot_NEXRAD_GOES_5panel(date_str, ch1, ch2, ch3, \
         lon_lims = lon_lims, vmin = 270, vmax = 320, ptitle = '', \
         plabel = plabel_goes3, colorbar = True, labelsize = labelsize + 1, \
         counties = counties, zoom=True,save=False) 
-    plot_NEXRAD_ppi(NEXRAD_dict1, variable, ax = ax4, angle = angle1, \
-        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
-        mask_outside = mask_outside, crs = None)
-    plot_NEXRAD_ppi(NEXRAD_dict2, variable, ax = ax5, angle = angle2, \
-        counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
-        mask_outside = mask_outside, crs = None)
-        #mask_outside = mask_outside, crs = crs0)
+    if(plot_radar_1): 
+        plot_NEXRAD_ppi(NEXRAD_dict1, variable, ax = ax4, angle = angle1, \
+            counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+            mask_outside = mask_outside, crs = None)
+        del(NEXRAD_dict1)
+    if(plot_radar_2): 
+        plot_NEXRAD_ppi(NEXRAD_dict2, variable, ax = ax5, angle = angle2, \
+            counties = counties, vmin = vmin, vmax = vmax, alpha = alpha, \
+            mask_outside = mask_outside, crs = None)
+            #mask_outside = mask_outside, crs = crs0)
+        del(NEXRAD_dict2)
 
     font_size = 10
     plot_figure_text(ax1, \
@@ -1137,15 +1156,17 @@ def plot_NEXRAD_GOES_5panel(date_str, ch1, ch2, ch3, \
 
     fig.tight_layout()
 
-    del(NEXRAD_dict1)
-    del(NEXRAD_dict2)
     del(var0)
     del(var1)
     del(var2)
 
     if(save):
-        outname = 'nexrad_goes_5panel_KBBX_KRGX_ang1' + str(angle1).zfill(2) + \
-            '_ang2' + str(angle2).zfill(2) + '_' + date_str + '.png'
+        if(variable == 'composite_reflectivity'):
+            outname = 'nexrad_goes_5panel_KBBX_KRGX_ang1cr_ang2cr_' + \
+                date_str + '.png'
+        else:   
+            outname = 'nexrad_goes_5panel_KBBX_KRGX_ang1' + str(angle1).zfill(2) + \
+                '_ang2' + str(angle2).zfill(2) + '_' + date_str + '.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname)
     else:
@@ -1438,7 +1459,8 @@ def plot_NEXRAD_rhi_multipanel(date_str, radar, azimuth, \
         height_lim = 8, save = True, save_dir = './'):
 
     NEXRAD_dict = read_NEXRAD(date_str, radar)
-    
+   
+    plt.close('all') 
     mapcrs = init_proj(NEXRAD_dict)
     fig = plt.figure(figsize = (9, 10))
     ax1 = fig.add_subplot(3,3,1, projection = mapcrs)
@@ -1513,7 +1535,7 @@ def plot_NEXRAD_rhi_multipanel(date_str, radar, azimuth, \
 
 def plot_NEXRAD_rhi_multipanel_auto_varyazm(date_str, radar, min_azm, \
         max_azm, delta_azm = 3, angle_idx = 0, range_min = 0, range_max = 190, \
-        save_dir = './', save = True):
+        height_lim = 8, save_dir = './', save = True):
 
     # Convert the input date_str to datetime
     # --------------------------------------
@@ -1538,7 +1560,8 @@ def plot_NEXRAD_rhi_multipanel_auto_varyazm(date_str, radar, min_azm, \
         print(azm)
         plot_NEXRAD_rhi_multipanel(date_str, radar, azm, \
             angle_idx = angle_idx, range_min = range_min, range_max = range_max, \
-            save_dir = total_save_dir, save = True)
+            save_dir = total_save_dir, height_lim = height_lim, \
+            save = True)
 
 # delta_time : minutes
 def plot_NEXRAD_rhi_multipanel_auto_varytime(radar, azm, \

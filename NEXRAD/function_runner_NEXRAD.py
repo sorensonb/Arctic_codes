@@ -9,9 +9,73 @@ from NEXRADLib import *
 import sys
 
 
-#begin_dt_date = datetime(2021,7,20,12,0)
-begin_dt_date = datetime(2021,7,21,5,0)
-end_dt_date   = datetime(2021,7,21,11,30)
+#frame_folder = home_dir + '/Research/NEXRAD/nexrad_GOES_comps/vary_angle/' + date + '/'
+#gif_name = 'goes17_nexrad_comp_varyangle_' + date + '.gif'
+#frame_folder = home_dir + '/Research/NEXRAD/nexrad_GOES_comps/vary_time/20210721/'
+#frame_folder = home_dir + '/Research/NEXRAD/ppi_rhi/KBBX/vary_azm/202108052130/'
+frame_folder = home_dir + '/Research/NEXRAD/ppi_rhi/KRGX/vary_azm/202108060100/'
+
+#gif_name = 'goes17_nexrad_comp_varytime_20210721.gif'
+gif_name = 'nexrad_ppi_rhi_varyazm_202108060100.gif'
+
+print(frame_folder)
+make_gif(frame_folder, gif_name, duration = 300)
+
+sys.exit()
+
+
+
+radar = 'KRGX'
+#azimuth = 310.0      # 281.
+angle_idx = 0
+range_min = 45
+range_max = 200
+#radar = 'KBBX'
+#azimuth = 29.       # 25, 37
+#angle_idx = 4
+#range_min = 65
+#range_max = 120
+
+#radar = 'KBBX'
+#range_min = 75
+#range_max = 175
+#angle_idx = 6
+date_str = '202108052300'
+#plot_NEXRAD_rhi_multipanel_auto_varyazm(date_str, radar, 35, \
+plot_NEXRAD_rhi_multipanel_auto_varyazm(date_str, radar, 280, \
+    358, delta_azm = 3, angle_idx = angle_idx, \
+    range_min = range_min, range_max = range_max, \
+    height_lim = 12, save = True)
+
+#plot_NEXRAD_rhi_multipanel_auto_varytime(radar, 32, \
+#    '202107210215', '202107210400', delta_time = 15, \
+#    angle_idx = angle_idx, range_min = range_min, range_max = range_max, \
+#    save_dir = './', save = True)
+
+sys.exit()
+
+date_str = '202108052130'
+variable = 'reflectivity'
+radar = 'KRGX'
+azimuth = 340
+#radar = 'KRGX'
+#azimuth = 305
+
+plot_NEXRAD_rhi_multipanel(date_str, radar, azimuth, \
+    angle_idx = 0, range_min = 75, range_max = 200, \
+    #angle_idx = 4, range_min = 75, range_max = 175, \
+    #angle_idx = 4, range_min = 90, range_max = 200, \
+    #angle_idx = 4, range_min = 45, range_max = 120, \  # original
+    height_lim = 12, save = False, save_dir = './')
+sys.exit()
+
+
+
+#begin_dt_date = datetime(2021,7,20,17,30)
+#end_dt_date   = datetime(2021,7,20,20,30)
+#begin_dt_date = datetime(2021,7,21,23,0)
+begin_dt_date = datetime(2021,8,5,18,30)
+end_dt_date   = datetime(2021,8,6,6,0)
 #date_str = '202108052100'
 
 local_dt_date = begin_dt_date
@@ -24,7 +88,7 @@ while(local_dt_date <= end_dt_date):
         #variable = 'reflectivity', \
         variable = 'composite_reflectivity', \
         ax = None, ptitle = None, plabel = None, \
-        vmin = -5, vmax = 90, angle1 = 2, angle2 = 0, \
+        vmin = -5, vmax = 90, angle1 = 0, angle2 = 0, \
         labelsize = 10, colorbar = True, counties = True, save_dir = './',\
         alpha = 1.0, mask_outside = True, zoom=True, save=True)
     
@@ -32,16 +96,6 @@ while(local_dt_date <= end_dt_date):
 
 sys.exit()
 
-
-#frame_folder = home_dir + '/Research/NEXRAD/nexrad_GOES_comps/vary_angle/' + date + '/'
-#gif_name = 'goes17_nexrad_comp_varyangle_' + date + '.gif'
-frame_folder = home_dir + '/Research/NEXRAD/nexrad_GOES_comps/vary_time/20210721/'
-gif_name = 'goes17_nexrad_comp_varytime_20210721.gif'
-
-print(frame_folder)
-make_gif(frame_folder, gif_name, duration = 400)
-
-sys.exit()
 
 #begin_dt_date = datetime(2021,8,5,12,0)
 #end_dt_date   = datetime(2021,8,6,0,00)
@@ -62,20 +116,6 @@ sys.exit()
 #            alpha = 1.0, mask_outside = True, zoom=True, save=True)
 #
 #sys.exit()
-
-date_str = '202108052125'
-variable = 'reflectivity'
-#radar = 'KBBX'
-#azimuth = 25
-radar = 'KRGX'
-azimuth = 305
-
-plot_NEXRAD_rhi_multipanel(date_str, radar, azimuth, \
-    #angle_idx = 4, range_min = 75, range_max = 175, \
-    angle_idx = 4, range_min = 90, range_max = 200, \
-    #angle_idx = 4, range_min = 45, range_max = 120, \  # original
-    height_lim = 10, save = True, save_dir = './')
-sys.exit()
 
 ## Every 5 minutes from 202107202100 to 202107210330
 begin_date = '202108051200'
