@@ -14,11 +14,15 @@ from MODISLib import *
 #download_MODIS_file(date_str, dest_dir = modis_dir, download_cloud_mask = True)
 #sys.exit()
 
+plot_MODIS_satpy_6panel('202107202125', 'true_color', 1, 2, 5, 7, 31, \
+    save = True, plot_borders = True, use_base_crs = True)
+#plot_MODIS_satpy_6panel('202107212030', 'true_color', 1, 2, 5, 7, 31, \
+#    save = True, plot_borders = True, use_base_crs = True)
 #plot_MODIS_satpy_6panel('202107222110', 'true_color', 1, 2, 5, 7, 31, \
 #    save = True)
 #plot_MODIS_satpy_6panel('202108052125', 'true_color', 1, 2, 5, 7, 31, \
-plot_MODIS_satpy_6panel('201506291925', 'true_color', 1, 2, 5, 7, 31, \
-    save = True, plot_borders = True, use_base_crs = False)
+#plot_MODIS_satpy_6panel('201506291925', 'true_color', 1, 2, 5, 7, 31, \
+#    save = True, plot_borders = True, use_base_crs = False)
 
 sys.exit()
 

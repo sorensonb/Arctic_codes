@@ -25016,8 +25016,8 @@
             "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/modis_comp/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072010-2021072021.nc",
             "data_lim": {
                 "1": [
-                    null,
-                    null
+                    0.0,
+                    50.0
                 ],
                 "2": [
                     null,
@@ -25081,8 +25081,8 @@
             "ceres": "/home/bsorenson/data/CERES/SSF_Level2/Aqua/CERES_SSF_Aqua-XTRK_Edition4A_Subset_2021072109-2021072122.nc",
             "data_lim": {
                 "1": [
-                    null,
-                    null
+                    0.0,
+                    50.0
                 ],
                 "2": [
                     null,

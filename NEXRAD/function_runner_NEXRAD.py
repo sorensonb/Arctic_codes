@@ -13,10 +13,11 @@ import sys
 #gif_name = 'goes17_nexrad_comp_varyangle_' + date + '.gif'
 #frame_folder = home_dir + '/Research/NEXRAD/nexrad_GOES_comps/vary_time/20210721/'
 #frame_folder = home_dir + '/Research/NEXRAD/ppi_rhi/KBBX/vary_azm/202108052130/'
-frame_folder = home_dir + '/Research/NEXRAD/ppi_rhi/KRGX/vary_azm/202108060100/'
+#frame_folder = home_dir + '/Research/NEXRAD/ppi_rhi/KRGX/vary_azm/202108052130/'
+frame_folder = home_dir + '/Research/NEXRAD/ppi_rhi/KBBX/vary_azm/202107210200/'
 
 #gif_name = 'goes17_nexrad_comp_varytime_20210721.gif'
-gif_name = 'nexrad_ppi_rhi_varyazm_202108060100.gif'
+gif_name = 'nexrad_ppi_rhi_KBBX_varyazm_202107210200.gif'
 
 print(frame_folder)
 make_gif(frame_folder, gif_name, duration = 300)
@@ -28,7 +29,7 @@ sys.exit()
 radar = 'KRGX'
 #azimuth = 310.0      # 281.
 angle_idx = 0
-range_min = 45
+range_min = 100
 range_max = 200
 #radar = 'KBBX'
 #azimuth = 29.       # 25, 37
@@ -37,13 +38,13 @@ range_max = 200
 #range_max = 120
 
 #radar = 'KBBX'
-#range_min = 75
-#range_max = 175
+#range_min = 45
+#range_max = 130
 #angle_idx = 6
-date_str = '202108052300'
+date_str = '202107210200'
 #plot_NEXRAD_rhi_multipanel_auto_varyazm(date_str, radar, 35, \
-plot_NEXRAD_rhi_multipanel_auto_varyazm(date_str, radar, 280, \
-    358, delta_azm = 3, angle_idx = angle_idx, \
+plot_NEXRAD_rhi_multipanel_auto_varyazm(date_str, radar, 311, \
+    325, delta_azm = 2, angle_idx = angle_idx, \
     range_min = range_min, range_max = range_max, \
     height_lim = 12, save = True)
 
@@ -54,15 +55,17 @@ plot_NEXRAD_rhi_multipanel_auto_varyazm(date_str, radar, 280, \
 
 sys.exit()
 
-date_str = '202108052130'
+
+
+date_str = '202107202100'
 variable = 'reflectivity'
 radar = 'KRGX'
-azimuth = 340
+azimuth = 310
 #radar = 'KRGX'
 #azimuth = 305
 
 plot_NEXRAD_rhi_multipanel(date_str, radar, azimuth, \
-    angle_idx = 0, range_min = 75, range_max = 200, \
+    angle_idx = 0, range_min = 100, range_max = 200, \
     #angle_idx = 4, range_min = 75, range_max = 175, \
     #angle_idx = 4, range_min = 90, range_max = 200, \
     #angle_idx = 4, range_min = 45, range_max = 120, \  # original

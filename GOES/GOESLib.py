@@ -467,6 +467,7 @@ goes_area_dict = {
     "2024-04-08": {
         'Lat': [37.0, 41.0],
         'Lon': [-87.0, -83.0],
+        'asos': 'asos_data_20240408_mo.csv',
         'data_lim': {
             1:  [0.05, 0.5],
             5:  [None, None],
@@ -1953,133 +1954,133 @@ def plot_GOES_satpy_2panel(date_str, ch1, ch2, \
    
 
 
-"""
-def plot_GOES_satpy_2panel(date_str, ch1, ch2, \
-        zoom = True, save_dir = './', sat = 'goes17', save = False):
-    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
-
-    plt.close('all')
-    fig1 = plt.figure(figsize = (10,6.5))
-    var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel0 = \
-        read_GOES_satpy(date_str, ch1, sat = sat, zoom = zoom)
-    var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel1 = \
-        read_GOES_satpy(date_str, ch2, sat = sat, zoom = zoom)
-
-    ax0 = fig1.add_subplot(1,2,1, projection = crs0)
-    ax1 = fig1.add_subplot(1,2,2, projection = crs1)
-
-    min_dict = {
-        2: 5,
-        6: 0,
-        8: 240, 
-        9: 245, 
-        10: 250, 
-        13: 270,
-    }
-    max_dict = {
-        2: 80,
-        6: 40, 
-        8: 250, 
-        9: 260, 
-        10: 270, 
-        13: 330,
-    }
-
-    ##!#ax1.set_title('GOES-17 Band ' + str(ch2) + '\n' + \
-    ##!#    goes_channel_dict[str(ch2)]['name'] + '\n' + \
-    labelsize = 11
-    font_size = 10
-    if(ch1 == 'true_color'):
-        plot_GOES_satpy(date_str, ch1, ax = ax0, var = var0, crs = crs0, \
-            lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
-            ptitle = '', plabel = plabel0, \
-            colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
-    else:
-        plot_GOES_satpy(date_str, ch1, ax = ax0, var = var0, crs = crs0, \
-            lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
-            vmin = min_dict[ch1], vmax = max_dict[ch1], ptitle = '', plabel = plabel0, \
-            colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
-    plot_GOES_satpy(date_str, ch2, ax = ax1, var = var1, crs = crs0, \
-        lons = lons1, lats = lats1, lat_lims = lat_lims, lon_lims = lon_lims, \
-        vmin = min_dict[ch2], vmax = max_dict[ch2], ptitle = '', plabel = plabel1, \
-        colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
-
-    if(ch1 == 'true_color'):
-        plot_figure_text(ax0, 'True Color', \
-            xval = None, yval = None, transform = None, \
-            color = 'red', fontsize = font_size, backgroundcolor = 'white', \
-            halign = 'right')
-    else: 
-        plot_figure_text(ax0, \
-            str(goes_channel_dict[str(ch1)]['wavelength']) + ' μm', \
-            xval = None, yval = None, transform = None, \
-            color = 'red', fontsize = font_size, backgroundcolor = 'white', \
-            halign = 'right')
-        plot_figure_text(ax0, \
-            str(goes_channel_dict[str(ch1)]['short_name']), \
-            xval = None, yval = None, transform = None, \
-            color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
-            location = 'upper_right', halign = 'right')
-
-    # 2nd channel
-    # -----------
-    plot_figure_text(ax1, \
-        str(goes_channel_dict[str(ch2)]['wavelength']) + ' μm', \
-        xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
-        halign = 'right')
-    plot_figure_text(ax1, \
-        str(goes_channel_dict[str(ch2)]['short_name']), \
-        xval = None, yval = None, transform = None, \
-        color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
-        location = 'upper_right', halign = 'right')
-
-    plot_subplot_label(ax0,  '(a)', backgroundcolor = 'white', fontsize = font_size)
-    plot_subplot_label(ax1,  '(b)', backgroundcolor = 'white', fontsize = font_size)
-
-    ax0.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
-                   crs = ccrs.PlateCarree())
-    ax1.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
-                   crs = ccrs.PlateCarree())
-
-    # Zoom in the figure if desired
-    # -----------------------------
-    if(zoom):
-        ax0.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
-                       crs = ccrs.PlateCarree())
-        ax1.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
-                       crs = ccrs.PlateCarree())
-    ##!#    ax2.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
-    ##!#                   crs = ccrs.PlateCarree())
-    ##!#    ax3.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
-    ##!#                   crs = ccrs.PlateCarree())
-    ##!#    ax4.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
-    ##!#                   crs = ccrs.PlateCarree())
-    ##!#    ax5.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
-    ##!#                   crs = ccrs.PlateCarree())
-        zoom_add = '_zoom'
-    else:
-        zoom_add = ''
-
-    if(sat == 'goes17'):
-        title_str = 'GOES-17\n'
-    elif(sat == 'goes18'):
-        title_str = 'GOES-18\n'
-    else:
-        title_str = 'GOES-16\n'
-
-    fig1.suptitle(title_str + \
-        dt_date_str.strftime('%Y/%m/%d %H:%M UTC'))
-
-    fig1.tight_layout()
-
-    if(save):
-        outname = save_dir + sat + '_'+date_str+'_2panel.png'
-        fig1.savefig(outname, dpi = 300)
-        print('Saved image', outname)
-    else:
-        plt.show()
-"""
+##!#"""
+##!#def plot_GOES_satpy_2panel(date_str, ch1, ch2, \
+##!#        zoom = True, save_dir = './', sat = 'goes17', save = False):
+##!#    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+##!#
+##!#    plt.close('all')
+##!#    fig1 = plt.figure(figsize = (10,6.5))
+##!#    var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel0 = \
+##!#        read_GOES_satpy(date_str, ch1, sat = sat, zoom = zoom)
+##!#    var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel1 = \
+##!#        read_GOES_satpy(date_str, ch2, sat = sat, zoom = zoom)
+##!#
+##!#    ax0 = fig1.add_subplot(1,2,1, projection = crs0)
+##!#    ax1 = fig1.add_subplot(1,2,2, projection = crs1)
+##!#
+##!#    min_dict = {
+##!#        2: 5,
+##!#        6: 0,
+##!#        8: 240, 
+##!#        9: 245, 
+##!#        10: 250, 
+##!#        13: 270,
+##!#    }
+##!#    max_dict = {
+##!#        2: 80,
+##!#        6: 40, 
+##!#        8: 250, 
+##!#        9: 260, 
+##!#        10: 270, 
+##!#        13: 330,
+##!#    }
+##!#
+##!#    ##!#ax1.set_title('GOES-17 Band ' + str(ch2) + '\n' + \
+##!#    ##!#    goes_channel_dict[str(ch2)]['name'] + '\n' + \
+##!#    labelsize = 11
+##!#    font_size = 10
+##!#    if(ch1 == 'true_color'):
+##!#        plot_GOES_satpy(date_str, ch1, ax = ax0, var = var0, crs = crs0, \
+##!#            lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
+##!#            ptitle = '', plabel = plabel0, \
+##!#            colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+##!#    else:
+##!#        plot_GOES_satpy(date_str, ch1, ax = ax0, var = var0, crs = crs0, \
+##!#            lons = lons0, lats = lats0, lat_lims = lat_lims, lon_lims = lon_lims, \
+##!#            vmin = min_dict[ch1], vmax = max_dict[ch1], ptitle = '', plabel = plabel0, \
+##!#            colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+##!#    plot_GOES_satpy(date_str, ch2, ax = ax1, var = var1, crs = crs0, \
+##!#        lons = lons1, lats = lats1, lat_lims = lat_lims, lon_lims = lon_lims, \
+##!#        vmin = min_dict[ch2], vmax = max_dict[ch2], ptitle = '', plabel = plabel1, \
+##!#        colorbar = True, labelsize = labelsize + 1, zoom=True,save=False)
+##!#
+##!#    if(ch1 == 'true_color'):
+##!#        plot_figure_text(ax0, 'True Color', \
+##!#            xval = None, yval = None, transform = None, \
+##!#            color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+##!#            halign = 'right')
+##!#    else: 
+##!#        plot_figure_text(ax0, \
+##!#            str(goes_channel_dict[str(ch1)]['wavelength']) + ' μm', \
+##!#            xval = None, yval = None, transform = None, \
+##!#            color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+##!#            halign = 'right')
+##!#        plot_figure_text(ax0, \
+##!#            str(goes_channel_dict[str(ch1)]['short_name']), \
+##!#            xval = None, yval = None, transform = None, \
+##!#            color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
+##!#            location = 'upper_right', halign = 'right')
+##!#
+##!#    # 2nd channel
+##!#    # -----------
+##!#    plot_figure_text(ax1, \
+##!#        str(goes_channel_dict[str(ch2)]['wavelength']) + ' μm', \
+##!#        xval = None, yval = None, transform = None, \
+##!#        color = 'red', fontsize = font_size, backgroundcolor = 'white', \
+##!#        halign = 'right')
+##!#    plot_figure_text(ax1, \
+##!#        str(goes_channel_dict[str(ch2)]['short_name']), \
+##!#        xval = None, yval = None, transform = None, \
+##!#        color = 'red', fontsize = font_size - 1, backgroundcolor = 'white', \
+##!#        location = 'upper_right', halign = 'right')
+##!#
+##!#    plot_subplot_label(ax0,  '(a)', backgroundcolor = 'white', fontsize = font_size)
+##!#    plot_subplot_label(ax1,  '(b)', backgroundcolor = 'white', fontsize = font_size)
+##!#
+##!#    ax0.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+##!#                   crs = ccrs.PlateCarree())
+##!#    ax1.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+##!#                   crs = ccrs.PlateCarree())
+##!#
+##!#    # Zoom in the figure if desired
+##!#    # -----------------------------
+##!#    if(zoom):
+##!#        ax0.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+##!#                       crs = ccrs.PlateCarree())
+##!#        ax1.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+##!#                       crs = ccrs.PlateCarree())
+##!#    ##!#    ax2.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+##!#    ##!#                   crs = ccrs.PlateCarree())
+##!#    ##!#    ax3.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+##!#    ##!#                   crs = ccrs.PlateCarree())
+##!#    ##!#    ax4.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+##!#    ##!#                   crs = ccrs.PlateCarree())
+##!#    ##!#    ax5.set_extent([lon_lims[0],lon_lims[1],lat_lims[0],lat_lims[1]],\
+##!#    ##!#                   crs = ccrs.PlateCarree())
+##!#        zoom_add = '_zoom'
+##!#    else:
+##!#        zoom_add = ''
+##!#
+##!#    if(sat == 'goes17'):
+##!#        title_str = 'GOES-17\n'
+##!#    elif(sat == 'goes18'):
+##!#        title_str = 'GOES-18\n'
+##!#    else:
+##!#        title_str = 'GOES-16\n'
+##!#
+##!#    fig1.suptitle(title_str + \
+##!#        dt_date_str.strftime('%Y/%m/%d %H:%M UTC'))
+##!#
+##!#    fig1.tight_layout()
+##!#
+##!#    if(save):
+##!#        outname = save_dir + sat + '_'+date_str+'_2panel.png'
+##!#        fig1.savefig(outname, dpi = 300)
+##!#        print('Saved image', outname)
+##!#    else:
+##!#        plt.show()
+##!#"""
 
 # regions:
 # - indiana
@@ -2090,7 +2091,7 @@ def plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
         end_date = '202404082330', \
         sat = 'goes16', GOES_dict_points = None, \
         plot_point_BTs = False, plot_asos = False, \
-        save = False):
+        asos_site = 'MAW', save = False):
 
     dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M')
     
@@ -2105,6 +2106,20 @@ def plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
     var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel1 = \
         read_GOES_satpy(date_str, ch2, sat = sat, lat_lims = lat_lims, \
         lon_lims = lon_lims)
+
+    # If desired, load ASOS data here
+    # -------------------------------
+    if(plot_asos):
+        asos_file = goes_area_dict[dt_date_str.strftime('%Y-%m-%d')]['asos']
+        df = pd.read_csv(asos_file)
+        df['valid'] = pd.to_datetime(df['valid'])
+        df['tmpk']  = df['tmpc'] + 273.15 
+        
+        df = df[df['station'] == asos_site]
+        
+        df = df[ (df['valid'] >= GOES_dict_reg['dt_dates'][0]) & \
+                 (df['valid'] <= GOES_dict_reg['dt_dates'][-1]) ]
+        #df = df.set_index('valid')
     
     # Load the time series data here
     # ------------------------------
@@ -2203,6 +2218,10 @@ def plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
         markersize = 8, \
         color = 'k')
 
+    if(plot_asos):
+        plot_point_on_map(ax2, df['lat'].values[0], df['lon'].values[0], \
+            markersize = 8, \
+            color = 'tab:blue')
  
     if(GOES_dict_points is None): 
         ax4 = ax3.twinx() 
@@ -2218,9 +2237,27 @@ def plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
         ax4.plot(dt_date_str, \
             GOES_dict_reg['data'][time_idx,1,0], marker = '.', markersize = 15, \
             color = 'k')
+        
+        handles = [line1, line2]
+        if(plot_asos): 
+            line3, = ax4.plot(df['valid'], df['tmpk'], color = 'tab:blue', \
+                        label = asos_site + ' 2-m')
+            handles = [line1, line2, line3]
+
+            # Remove the data after the current time
+            # --------------------------------------
+            df = df[df['valid'] <= dt_date_str]
+
+            #time_idx = np.argmin(np.abs(GOES_dict_reg['dt_dates'] - dt_date_str))
+
+            if(len(df) > 0):
+
+                ax4.plot(df['valid'].values[-1], \
+                    df['tmpk'].values[-1], marker = '.', markersize = 15, \
+                    color = 'tab:blue')
+
         ax3.set_ylabel('Reflectance [%]', color = 'r')
         ax4.set_ylabel('Temperature [K]')
-        handles = [line1, line2]
         labels = [handle.get_label() for handle in handles]
         ax3.legend(handles, labels)
         
@@ -2271,7 +2308,12 @@ def plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
    
     fig.tight_layout()
     if(save):
-        outname = sat + '_eclipse_comp_' + region + '_' + date_str + '.png'
+        if(plot_asos):
+            asos_adder = '_asos' + asos_site
+        else:
+            asos_adder = ''
+        outname = sat + '_eclipse_comp_' + region + '_' + date_str + \
+            asos_adder + '.png'
         fig.savefig(outname, dpi = 200)
         print("Saved image", outname) 
     else: 

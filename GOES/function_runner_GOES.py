@@ -8,21 +8,6 @@
 from GOESLib import *
 import sys
 
-#begin_date = '202404081200'
-begin_date = '202107210300'
-end_date   = '202107220230'
-auto_GOES_download(begin_date, end_date, 30, sat = 'goes17', channels = [2,6,13])
-#auto_GOES_download(begin_date, end_date, 30, sat = 'goes17', channels = [2,6,13])
-sys.exit()
-
-
-
-frame_folder = home_dir + '/Research/GOES/goes_eclipse_analysis/missouri_bootheel/'
-gif_name = 'goes16_eclipse_comp_gif_20240408.gif'
-make_gif(frame_folder, gif_name, duration = 250)
-
-sys.exit()
-
 date_str = '202404081800'
 ch1 = 2
 ch2 = 13
@@ -52,12 +37,6 @@ GOES_dict_reg = \
         maxlon = region_dict[region]['maxlon_data'], \
         min_max_use = ['max', 'max'])
 
-#plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
-#    GOES_dict_reg, sat = sat, plot_asos = False, \
-#    GOES_dict_points = None, plot_point_BTs = False)
-#
-#sys.exit()
-
 begin_dt_date = datetime(2024,4,8,12,0)
 end_dt_date   = datetime(2024,4,8,23,00)
 
@@ -73,7 +52,8 @@ while(local_dt_date <= end_dt_date):
         (local_dt_date != datetime(2024,4,8,16,35) ) ):
 
         plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
-            GOES_dict_reg, sat = sat, plot_asos = False, \
+            GOES_dict_reg, sat = sat, plot_asos = True, \
+            asos_site = 'TKX', \
             GOES_dict_points = None, \
             #GOES_dict_points = GOES_dict_points, \
             plot_point_BTs = False, save = True)
@@ -85,6 +65,31 @@ while(local_dt_date <= end_dt_date):
         local_dt_date = local_dt_date + timedelta(minutes = 30)
 
 sys.exit()
+
+
+
+
+#plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
+#    GOES_dict_reg, sat = sat, plot_asos = False, \
+#    GOES_dict_points = None, plot_point_BTs = False)
+
+sys.exit()
+
+#begin_date = '202404081200'
+begin_date = '202107210300'
+end_date   = '202107220230'
+auto_GOES_download(begin_date, end_date, 30, sat = 'goes17', channels = [2,6,13])
+#auto_GOES_download(begin_date, end_date, 30, sat = 'goes17', channels = [2,6,13])
+sys.exit()
+
+
+
+frame_folder = home_dir + '/Research/GOES/goes_eclipse_analysis/missouri_bootheel/'
+gif_name = 'goes16_eclipse_comp_gif_20240408.gif'
+make_gif(frame_folder, gif_name, duration = 250)
+
+sys.exit()
+
 #plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
 #    GOES_dict_reg, sat = sat, plot_asos = False, \
 #    GOES_dict_points = None, plot_point_BTs = False)
