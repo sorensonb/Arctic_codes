@@ -8,6 +8,48 @@ import importlib, NEXRADLib
 from NEXRADLib import *
 import sys
 
+#date_str = '202107202125'
+date_str = '202107222110'
+radar1 = 'KBBX'
+radar2 = 'KRGX'
+variable = 'composite_reflectivity'
+channel = 'true_color'
+#plot_NEXRAD_MODIS_3panel(date_str, radar1, radar2, variable, channel, ax = None, \
+#    angle = 0, ptitle = None, plabel = None, vmin = -5, vmax = 90, \
+#    labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+#    alpha = 1.0, mask_outside = True, zoom=True, save=False)
+plot_NEXRAD_MODIS_5panel(date_str, 'true_color', 7, 31, \
+    variable = 'composite_reflectivity', \
+    ax = None, ptitle = None, plabel = None, \
+    vmin = -5, vmax = 90, angle1 = 0, angle2 = 0, \
+    labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+    alpha = 1.0, mask_outside = True, zoom=True, save=False)
+
+sys.exit()
+
+## Every 30 minutes from 202107202100 to 202107210330
+begin_date = '202107222110'
+end_date = '202107222140'
+auto_NEXRAD_download(begin_date, end_date, 30, 'KRGX')
+sys.exit()
+
+
+date_str = '202107222100'
+variable = 'reflectivity'
+#radar = 'KRGX'
+#azimuth = 280
+radar = 'KBBX'
+azimuth = 20
+
+plot_NEXRAD_rhi_multipanel(date_str, radar, azimuth, \
+    #angle_idx = 0, range_min = 100, range_max = 200, \
+    angle_idx = 4, range_min = 50, range_max = 150, \
+    #angle_idx = 4, range_min = 90, range_max = 200, \
+    #angle_idx = 4, range_min = 45, range_max = 120, \  # original
+    height_lim = 12, save = False, save_dir = './')
+sys.exit()
+
+
 
 #frame_folder = home_dir + '/Research/NEXRAD/nexrad_GOES_comps/vary_angle/' + date + '/'
 #gif_name = 'goes17_nexrad_comp_varyangle_' + date + '.gif'
@@ -57,23 +99,6 @@ sys.exit()
 
 
 
-date_str = '202107202100'
-variable = 'reflectivity'
-radar = 'KRGX'
-azimuth = 310
-#radar = 'KRGX'
-#azimuth = 305
-
-plot_NEXRAD_rhi_multipanel(date_str, radar, azimuth, \
-    angle_idx = 0, range_min = 100, range_max = 200, \
-    #angle_idx = 4, range_min = 75, range_max = 175, \
-    #angle_idx = 4, range_min = 90, range_max = 200, \
-    #angle_idx = 4, range_min = 45, range_max = 120, \  # original
-    height_lim = 12, save = False, save_dir = './')
-sys.exit()
-
-
-
 #begin_dt_date = datetime(2021,7,20,17,30)
 #end_dt_date   = datetime(2021,7,20,20,30)
 #begin_dt_date = datetime(2021,7,21,23,0)
@@ -119,13 +144,6 @@ sys.exit()
 #            alpha = 1.0, mask_outside = True, zoom=True, save=True)
 #
 #sys.exit()
-
-## Every 5 minutes from 202107202100 to 202107210330
-begin_date = '202108051200'
-end_date = '202108060300'
-auto_NEXRAD_download(begin_date, end_date, 30, 'KRGX')
-sys.exit()
-
 
 home_dir = os.environ['HOME']
 frame_folder = home_dir + '/Research/NEXRAD/tmp_dir/'

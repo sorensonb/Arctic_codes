@@ -8,6 +8,12 @@
 from GOESLib import *
 import sys
 
+frame_folder = home_dir + '/Research/GOES/goes_eclipse_analysis/missouri_bootheel/'
+gif_name = 'goes16_eclipse_comp_20240408_missouri_bootheel_asosTKX.gif'
+make_gif(frame_folder, gif_name, duration = 250)
+
+sys.exit()
+
 date_str = '202404081800'
 ch1 = 2
 ch2 = 13
@@ -83,12 +89,6 @@ auto_GOES_download(begin_date, end_date, 30, sat = 'goes17', channels = [2,6,13]
 sys.exit()
 
 
-
-frame_folder = home_dir + '/Research/GOES/goes_eclipse_analysis/missouri_bootheel/'
-gif_name = 'goes16_eclipse_comp_gif_20240408.gif'
-make_gif(frame_folder, gif_name, duration = 250)
-
-sys.exit()
 
 #plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
 #    GOES_dict_reg, sat = sat, plot_asos = False, \
