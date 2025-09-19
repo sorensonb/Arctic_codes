@@ -7,6 +7,12 @@
 
 from MODISLib import *
 
+plot_MODIS_CERES_3panel('202108052125',zoom = True, \
+#plot_MODIS_CERES_3panel('202107222110',zoom = True, \
+#plot_MODIS_CERES_3panel('201506291925',zoom = True, \
+    show_smoke = False, composite = True, \
+        save=True) 
+sys.exit()
 #tester = identify_MODIS_MYD08(date_str, dest_dir = myd08_dir)
 
 #date_str = '201506011300'
@@ -63,10 +69,6 @@ sys.exit()
 #plot_spatial_scatter('202107222110', zoom = True, composite = True,\
 #    avg_pixel = True, plume_only = False, save = False)
 #plot_MODIS_CERES_3panel('202107222110',zoom = True, \
-plot_MODIS_CERES_3panel('202108052125',zoom = True, \
-    show_smoke = False, composite = True, \
-        save=False)
-sys.exit()
 
 
 plot_MODIS_satpy_2time('202107222110', '202108052125', \

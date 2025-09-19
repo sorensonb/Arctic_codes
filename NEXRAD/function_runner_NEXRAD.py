@@ -8,9 +8,78 @@ import importlib, NEXRADLib
 from NEXRADLib import *
 import sys
 
+
+ezoom_lats = [39.910147, 40.458202]
+ezoom_lons = [-121.50285, -120.86839]
+date_str = '202107202125'
+plot_NEXRAD_MODIS_6panel(date_str, 'true_color', 7, 31, \
+    #variable = 'reflectivity', \
+    variable = 'composite_reflectivity', \
+    ax = None, ptitle = None, plabel = None, \
+    radar1 = 'KMAX', radar2 = 'KBBX', radar3 = 'KRGX', \
+    vmin = -5, vmax = 90, angle1 = 0, angle2 = 0, angle3 = 0, \
+    extra_zoom_lat_lims = ezoom_lats, extra_zoom_lon_lims = ezoom_lons, \
+    labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+    alpha = 1.0, mask_outside = True, zoom=True, save=True)
+sys.exit()
+
+
+#frame_folder = home_dir + '/Research/NEXRAD/nexrad_GOES_comps/vary_angle/' + date + '/'
+#gif_name = 'goes17_nexrad_comp_varyangle_' + date + '.gif'
+frame_folder = home_dir + '/Research/NEXRAD/nexrad_GOES_comps_6panel/vary_time/20210720/'
+#frame_folder = home_dir + '/Research/NEXRAD/ppi_rhi/KBBX/vary_azm/202108052130/'
+#frame_folder = home_dir + '/Research/NEXRAD/ppi_rhi/KRGX/vary_azm/202108052130/'
+#frame_folder = home_dir + '/Research/NEXRAD/ppi_rhi/KBBX/vary_azm/202107210200/'
+
+gif_name = 'goes17_nexrad_comp_6panel_varytime_20210720.gif'
+#gif_name = 'nexrad_ppi_rhi_KBBX_varyazm_202107210200.gif'
+
+print(frame_folder)
+make_gif(frame_folder, gif_name, duration = 350)
+
+sys.exit()
+
+
+
+#begin_dt_date = datetime(2021,7,21,22,30)
+#end_dt_date   = datetime(2021,7,22,3,0)
+#begin_dt_date = datetime(2021,7,21,23,0)
+begin_dt_date = datetime(2021,8,6,0,30)
+end_dt_date   = datetime(2021,8,6,2,0)
+#date_str = '202108052100'
+
+local_dt_date = begin_dt_date
+
+#date_str = '202404082100'
+while(local_dt_date <= end_dt_date):
+ 
+    date_str = local_dt_date.strftime('%Y%m%d%H%M') 
+    #plot_NEXRAD_GOES_5panel(date_str, 2, 6, 13, \
+    plot_NEXRAD_GOES_6panel(date_str, 2, 6, 13, \
+        #variable = 'reflectivity', \
+        variable = 'composite_reflectivity', \
+        ax = None, ptitle = None, plabel = None, \
+        radar1 = 'KMAX', radar2 = 'KBBX', radar3 = 'KRGX', \
+        vmin = -5, vmax = 90, angle1 = 0, angle2 = 0, angle3 = 0, \
+        labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+        alpha = 1.0, mask_outside = True, zoom=True, save=True)
+    
+    local_dt_date = local_dt_date + timedelta(minutes = 30)
+
+sys.exit()
+
+
+## Every 30 minutes from 202107202100 to 202107210330
+begin_date = '202107201200'
+end_date = '202107220300'
+auto_NEXRAD_download(begin_date, end_date, 30, 'KMAX')
+sys.exit()
+
+
 #date_str = '202107202125'
-date_str = '202107222110'
-radar1 = 'KBBX'
+#date_str = '202107222110'
+date_str = '202108051300'
+radar1 = 'KMAX'
 radar2 = 'KRGX'
 variable = 'composite_reflectivity'
 channel = 'true_color'
@@ -18,21 +87,25 @@ channel = 'true_color'
 #    angle = 0, ptitle = None, plabel = None, vmin = -5, vmax = 90, \
 #    labelsize = 10, colorbar = True, counties = True, save_dir = './',\
 #    alpha = 1.0, mask_outside = True, zoom=True, save=False)
-plot_NEXRAD_MODIS_5panel(date_str, 'true_color', 7, 31, \
+
+#plot_NEXRAD_MODIS_5panel(date_str, 'true_color', 7, 31, \
+#    variable = 'composite_reflectivity', \
+#    ax = None, ptitle = None, plabel = None, \
+#    radar1 = radar1, radar2 = radar2, \
+#    vmin = -5, vmax = 90, angle1 = 0, angle2 = 0, \
+#    labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+#    alpha = 1.0, mask_outside = True, zoom=True, save=False)
+
+plot_NEXRAD_GOES_5panel(date_str, 2, 6, 13, \
+    #variable = 'reflectivity', \
     variable = 'composite_reflectivity', \
+    radar1 = radar1, radar2 = radar2, \
     ax = None, ptitle = None, plabel = None, \
     vmin = -5, vmax = 90, angle1 = 0, angle2 = 0, \
     labelsize = 10, colorbar = True, counties = True, save_dir = './',\
-    alpha = 1.0, mask_outside = True, zoom=True, save=False)
+    alpha = 1.0, mask_outside = True, zoom=True, save=True)
 
 sys.exit()
-
-## Every 30 minutes from 202107202100 to 202107210330
-begin_date = '202107222110'
-end_date = '202107222140'
-auto_NEXRAD_download(begin_date, end_date, 30, 'KRGX')
-sys.exit()
-
 
 date_str = '202107222100'
 variable = 'reflectivity'
@@ -47,23 +120,6 @@ plot_NEXRAD_rhi_multipanel(date_str, radar, azimuth, \
     #angle_idx = 4, range_min = 90, range_max = 200, \
     #angle_idx = 4, range_min = 45, range_max = 120, \  # original
     height_lim = 12, save = False, save_dir = './')
-sys.exit()
-
-
-
-#frame_folder = home_dir + '/Research/NEXRAD/nexrad_GOES_comps/vary_angle/' + date + '/'
-#gif_name = 'goes17_nexrad_comp_varyangle_' + date + '.gif'
-#frame_folder = home_dir + '/Research/NEXRAD/nexrad_GOES_comps/vary_time/20210721/'
-#frame_folder = home_dir + '/Research/NEXRAD/ppi_rhi/KBBX/vary_azm/202108052130/'
-#frame_folder = home_dir + '/Research/NEXRAD/ppi_rhi/KRGX/vary_azm/202108052130/'
-frame_folder = home_dir + '/Research/NEXRAD/ppi_rhi/KBBX/vary_azm/202107210200/'
-
-#gif_name = 'goes17_nexrad_comp_varytime_20210721.gif'
-gif_name = 'nexrad_ppi_rhi_KBBX_varyazm_202107210200.gif'
-
-print(frame_folder)
-make_gif(frame_folder, gif_name, duration = 300)
-
 sys.exit()
 
 
@@ -97,32 +153,6 @@ plot_NEXRAD_rhi_multipanel_auto_varyazm(date_str, radar, 311, \
 
 sys.exit()
 
-
-
-#begin_dt_date = datetime(2021,7,20,17,30)
-#end_dt_date   = datetime(2021,7,20,20,30)
-#begin_dt_date = datetime(2021,7,21,23,0)
-begin_dt_date = datetime(2021,8,5,18,30)
-end_dt_date   = datetime(2021,8,6,6,0)
-#date_str = '202108052100'
-
-local_dt_date = begin_dt_date
-
-#date_str = '202404082100'
-while(local_dt_date <= end_dt_date):
- 
-    date_str = local_dt_date.strftime('%Y%m%d%H%M') 
-    plot_NEXRAD_GOES_5panel(date_str, 2, 6, 13, \
-        #variable = 'reflectivity', \
-        variable = 'composite_reflectivity', \
-        ax = None, ptitle = None, plabel = None, \
-        vmin = -5, vmax = 90, angle1 = 0, angle2 = 0, \
-        labelsize = 10, colorbar = True, counties = True, save_dir = './',\
-        alpha = 1.0, mask_outside = True, zoom=True, save=True)
-    
-    local_dt_date = local_dt_date + timedelta(minutes = 30)
-
-sys.exit()
 
 
 #begin_dt_date = datetime(2021,8,5,12,0)

@@ -8,6 +8,60 @@
 from GOESLib import *
 import sys
 
+goes_file = 'goes16_cross_data_asos_202107221201_202107230231.nc'
+GOES_dict1 = read_GOES_time_series_NCDF(goes_file)
+
+asos_file = home_dir + '/Research/MODIS/obs_smoke_forcing/asos_data_20210722_4.csv'
+
+df = pd.read_csv(asos_file)
+df['tmpc'] = pd.to_numeric(df['tmpc'], errors = 'coerce').values + 273.15
+#time_df = df.set_index('valid')
+df['valid'] = pd.to_datetime(df['valid'])
+
+stations = ['O05','AAT']
+
+ch_idx = 2
+
+fig = plt.figure(figsize = (8, 4))
+ax1 = fig.add_subplot(1,1,1)
+
+for jj in range(GOES_dict1['data'].shape[2]):
+
+    ax1.plot(GOES_dict1['dt_dates'], GOES_dict1['data'][:,ch_idx,jj], \
+        label = 'GOES16 TIR BT @ ' + stations[jj])
+
+    df_sub = df[df['station'] == stations[jj]]
+
+    good_idxs = np.where( (df_sub['valid'] >= GOES_dict1['dt_dates'][0]) & (df_sub['valid'] < GOES_dict1['dt_dates'][-1]))
+    
+    tmps  = df_sub['tmpc'].values[good_idxs]
+    times = df_sub['valid'].values[good_idxs]
+  
+    # Get rid of masked values
+    # ------------------------
+    good_idxs = np.where(~np.isnan(tmps))
+ 
+    ax1.plot(times[good_idxs], tmps[good_idxs], linestyle = ':', \
+        label = stations[jj] + ' 2-m temp')
+ 
+ax1.grid()
+ax1.legend()
+ax1.xaxis.set_major_formatter(DateFormatter('%m/%d\n%H:%MZ'))
+ax1.tick_params(axis="x", labelsize = 9)
+ax1.set_ylabel('Temperature [K]')
+ax1.set_title('GOES-16 vs ASOS\n20210722')
+
+fig.tight_layout()
+
+outname = 'goes16_asos_comp_20210722.png'
+fig.savefig(outname, dpi = 200)
+print("Saved image", outname)
+
+plt.show()
+
+
+sys.exit()
+
 frame_folder = home_dir + '/Research/GOES/goes_eclipse_analysis/missouri_bootheel/'
 gif_name = 'goes16_eclipse_comp_20240408_missouri_bootheel_asosTKX.gif'
 make_gif(frame_folder, gif_name, duration = 250)
@@ -347,47 +401,6 @@ while(local_dt_date <= end_dt_date):
 
 sys.exit()
 
-
-asos_file = home_dir + '/Research/MODIS/obs_smoke_forcing/asos_data_20210722_4.csv'
-
-df = pd.read_csv(asos_file)
-df['tmpc'] = pd.to_numeric(df['tmpc'], errors = 'coerce').values + 273.15
-#time_df = df.set_index('valid')
-df['valid'] = pd.to_datetime(df['valid'])
-
-stations = ['O05','AAT']
-
-ch_idx = 2
-
-fig = plt.figure(figsize = (10, 5))
-ax1 = fig.add_subplot(1,1,1)
-
-for jj in range(GOES_dict1['data'].shape[2]):
-    ax1.plot(GOES_dict1['dt_dates'], GOES_dict1['data'][:,ch_idx,jj])
-
-    df_sub = df[df['station'] == stations[jj]]
-
-    good_idxs = np.where( (df_sub['valid'] >= GOES_dict1['dt_dates'][0]) & (df_sub['valid'] < GOES_dict1['dt_dates'][-1]))
-    
-    tmps  = df_sub['tmpc'].values[good_idxs]
-    times = df_sub['valid'].values[good_idxs]
-  
-    # Get rid of masked values
-    # ------------------------
-    good_idxs = np.where(~np.isnan(tmps))
- 
-    ax1.plot(times[good_idxs], tmps[good_idxs], linestyle = ':', label = stations[jj])
- 
-ax1.grid()
-ax1.legend()
-ax1.xaxis.set_major_formatter(DateFormatter('%m/%d\n%H:%MZ'))
-ax1.tick_params(axis="x", labelsize = 9)
-ax1.set_ylabel('Temperature [K]')
-
-plt.show()
-
-
-sys.exit()
 
 begin_date = '202107201200'
 end_date   = '202107210300'
