@@ -7,6 +7,9 @@
 
 from VIIRSLib import *
 
+plot_VIIRS_sixpanel(satellite = 'SNPP', save = True)
+sys.exit()
+
 #lat_lims = [39., 41.5]
 #lon_lims = [-105.5, -102.]
 #lat_lims = [39.89, 41.4453]

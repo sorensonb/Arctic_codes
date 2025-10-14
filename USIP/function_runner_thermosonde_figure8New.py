@@ -19,5 +19,5 @@ date_str = '2019050403'
 #plot_combined_figure(date_str, save = True)
 #plot_combined_figure(date_str, save = True, show_synth_data = False)
 
-plot_combined_figure_v2(date_str, save = True)
+plot_combined_figure_v2(date_str, fourpanel = True, save = True)
 sys.exit()

@@ -8,6 +8,76 @@
 from GOESLib import *
 import sys
 
+date_str = '202404081745'
+ch1 = 2
+ch2 = 13
+#region = 'indiana'
+#region = 'missouri'
+region = 'missouri_bootheel'
+#region = 'arkansas'
+sat = 'goes16'
+begin_date = '202404081200'
+end_date = '202404082330'
+
+#lats_points = np.array([region_dict[region]['point_coords'][str(pi)][0] for pi in range(1,6)])
+#lons_points = np.array([region_dict[region]['point_coords'][str(pi)][1] for pi in range(1,6)])
+#
+#GOES_dict_points = read_GOES_time_series_auto(begin_date, end_date, \
+#    channels = [2, 13], dlat = list(lats_points), \
+#    dlon = list(lons_points), \
+#    sat = sat, region = region)
+
+GOES_dict_reg = \
+        read_GOES_time_series_auto_regional(begin_date, end_date, \
+        channels = [ch1, ch2], save_dir = './', \
+        sat = sat, \
+        minlat = region_dict[region]['minlat_data'], \
+        maxlat = region_dict[region]['maxlat_data'], \
+        minlon = region_dict[region]['minlon_data'], \
+        maxlon = region_dict[region]['maxlon_data'], \
+        min_max_use = ['max', 'max'])
+
+
+plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
+    GOES_dict_reg, sat = sat, plot_asos = True, \
+    asos_site = 'TKX', \
+    GOES_dict_points = None, \
+    #GOES_dict_points = GOES_dict_points, \
+    plot_point_BTs = False, save = False)
+sys.exit()
+
+begin_dt_date = datetime(2024,4,8,12,0)
+end_dt_date   = datetime(2024,4,8,23,00)
+
+local_dt_date = begin_dt_date
+
+#date_str = '202404082100'
+while(local_dt_date <= end_dt_date):
+  
+    print(local_dt_date) 
+    date_str = local_dt_date.strftime('%Y%m%d%H%M')
+
+    if( (local_dt_date != datetime(2024,4,8,16,30) ) & \
+        (local_dt_date != datetime(2024,4,8,16,35) ) ):
+
+        plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
+            GOES_dict_reg, sat = sat, plot_asos = True, \
+            asos_site = 'TKX', \
+            GOES_dict_points = None, \
+            #GOES_dict_points = GOES_dict_points, \
+            plot_point_BTs = False, save = True)
+   
+    if( (local_dt_date >= datetime(2024,4,8,15,50) ) & \
+        (local_dt_date <= datetime(2024,4,8,20,55) ) ):
+        local_dt_date = local_dt_date + timedelta(minutes = 5)
+    else:
+        local_dt_date = local_dt_date + timedelta(minutes = 30)
+
+sys.exit()
+
+
+
+
 goes_file = 'goes16_cross_data_asos_202107221201_202107230231.nc'
 GOES_dict1 = read_GOES_time_series_NCDF(goes_file)
 
@@ -67,67 +137,6 @@ gif_name = 'goes16_eclipse_comp_20240408_missouri_bootheel_asosTKX.gif'
 make_gif(frame_folder, gif_name, duration = 250)
 
 sys.exit()
-
-date_str = '202404081800'
-ch1 = 2
-ch2 = 13
-#region = 'indiana'
-#region = 'missouri'
-region = 'missouri_bootheel'
-#region = 'arkansas'
-sat = 'goes16'
-begin_date = '202404081200'
-end_date = '202404082330'
-
-#lats_points = np.array([region_dict[region]['point_coords'][str(pi)][0] for pi in range(1,6)])
-#lons_points = np.array([region_dict[region]['point_coords'][str(pi)][1] for pi in range(1,6)])
-#
-#GOES_dict_points = read_GOES_time_series_auto(begin_date, end_date, \
-#    channels = [2, 13], dlat = list(lats_points), \
-#    dlon = list(lons_points), \
-#    sat = sat, region = region)
-
-GOES_dict_reg = \
-        read_GOES_time_series_auto_regional(begin_date, end_date, \
-        channels = [ch1, ch2], save_dir = './', \
-        sat = sat, \
-        minlat = region_dict[region]['minlat_data'], \
-        maxlat = region_dict[region]['maxlat_data'], \
-        minlon = region_dict[region]['minlon_data'], \
-        maxlon = region_dict[region]['maxlon_data'], \
-        min_max_use = ['max', 'max'])
-
-begin_dt_date = datetime(2024,4,8,12,0)
-end_dt_date   = datetime(2024,4,8,23,00)
-
-local_dt_date = begin_dt_date
-
-#date_str = '202404082100'
-while(local_dt_date <= end_dt_date):
-  
-    print(local_dt_date) 
-    date_str = local_dt_date.strftime('%Y%m%d%H%M')
-
-    if( (local_dt_date != datetime(2024,4,8,16,30) ) & \
-        (local_dt_date != datetime(2024,4,8,16,35) ) ):
-
-        plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
-            GOES_dict_reg, sat = sat, plot_asos = True, \
-            asos_site = 'TKX', \
-            GOES_dict_points = None, \
-            #GOES_dict_points = GOES_dict_points, \
-            plot_point_BTs = False, save = True)
-   
-    if( (local_dt_date >= datetime(2024,4,8,15,50) ) & \
-        (local_dt_date <= datetime(2024,4,8,20,55) ) ):
-        local_dt_date = local_dt_date + timedelta(minutes = 5)
-    else:
-        local_dt_date = local_dt_date + timedelta(minutes = 30)
-
-sys.exit()
-
-
-
 
 #plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
 #    GOES_dict_reg, sat = sat, plot_asos = False, \

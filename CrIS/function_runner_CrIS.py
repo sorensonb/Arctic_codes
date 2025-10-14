@@ -18,13 +18,13 @@ row_strs = ['low','ml','md','mu']
 #CrIS_prof = readCrIS_retrieval_profile(date_strs[1], smoke_lat, smoke_lon)
 #sys.exit()
 
-date_str = date_strs[1]
-dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M%S')
-data = scipy.io.loadmat(dt_date_str.strftime(home_dir + '/Research/CrIS/PHSS_npp_%Y%m%d_%H%M%S_rtv_m3F.mat'))
-sys.exit()
+#date_str = date_strs[1]
+#dt_date_str = datetime.strptime(date_str, '%Y%m%d%H%M%S')
+#data = scipy.io.loadmat(dt_date_str.strftime(home_dir + '/Research/CrIS/PHSS_npp_%Y%m%d_%H%M%S_rtv_m3F.mat'))
+#sys.exit()
 
 plot_CrIS_retrieval_combined(date_strs[1], press = 500., pvar = 'wv',\
-    row_str = row_strs[1], plot_skin_temp = False, alpha = 1.0, dot_size = 300, save = True)
+    row_str = row_strs[2], plot_skin_temp = False, alpha = 1.0, dot_size = 300, save = False)
 sys.exit()
 
 for date_str in date_strs:

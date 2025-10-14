@@ -76,6 +76,7 @@ from satpy import find_files_and_readers
 from satpy.scene import Scene
 from satpy.writers import get_enhanced_image
 from glob import glob
+import re
 import os
 
 home_dir = os.environ['HOME']
@@ -2299,12 +2300,17 @@ def plot_GOES_eclipse_comp(date_str, ch1, ch2, region, \
 
     #ax.plot(kmaw_asos_times, kmaw_asos_tmps, label = 'KMAW ASOS 2-m')
     ax3.grid()
-    ax3.xaxis.set_major_formatter(DateFormatter('%m/%d\n%H:%MZ'))
+    ax3.xaxis.set_major_formatter(DateFormatter('%d-%b\n%H:%MZ'))
     if(plot_asos): 
-        ptitle = 'GOES-16 vs ASOS Eclipse Comparison - ' + region.title()
+        ptitle = 'GOES-16 vs ASOS Eclipse Comparison - ' + re.sub('_',' ',region.title())
     else:
-        ptitle = 'GOES-16 Eclipse Analysis - ' + region.title()
+        ptitle = 'GOES-16 Eclipse Analysis - ' + re.sub('_',' ',region.title())
     ax3.set_title(ptitle)
+   
+    fontsize = 10 
+    plot_subplot_label(ax1,  '(a)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax2,  '(b)', backgroundcolor = 'white', fontsize = font_size)
+    plot_subplot_label(ax3,  '(c)', backgroundcolor = 'white', fontsize = font_size)
    
     fig.tight_layout()
     if(save):

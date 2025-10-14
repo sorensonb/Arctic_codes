@@ -9,34 +9,110 @@ from NEXRADLib import *
 import sys
 
 
+
+date = '202108052300'
+plot_NEXRAD_GOES_6panel(date, 2, 6, 13, \
+    #variable = 'reflectivity', \
+    variable = 'composite_reflectivity', \
+    ax = None, ptitle = None, plabel = None, \
+    radar1 = 'KMAX', radar2 = 'KBBX', radar3 = 'KRGX', \
+    vmin = -5, vmax = 90, angle1 = 0, angle2 = 0, angle3 = 0, \
+    labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+    alpha = 1.0, mask_outside = True, zoom=True, save=True)
+sys.exit()
+
+
 ezoom_lats = [39.910147, 40.458202]
 ezoom_lons = [-121.50285, -120.86839]
-date_str = '202107202125'
+#date_str = '202107202125'
+date_str = '202107222110'
+#date_str = '202108052125'
+plot_NEXRAD_MODIS_9panel(date_str, 'true_color', 1, 2, 5, 7, 31, \
+    #variable = 'reflectivity', \
+    variable = 'composite_reflectivity', \
+    ax = None, ptitle = None, plabel = None, \
+    radar1 = 'KMAX', radar2 = 'KBBX', radar3 = 'KRGX', \
+    vmin = -5, vmax = 90, angle1 = 0, angle2 = 0, angle3 = 0, \
+    extra_zoom_lat_lims = None, extra_zoom_lon_lims = None, \
+    #extra_zoom_lat_lims = ezoom_lats, extra_zoom_lon_lims = ezoom_lons, \
+    lake_label = 'Both', \
+    labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+    alpha = 1.0, mask_outside = True, zoom=True, save=True)
+sys.exit()
+
+
+ezoom_lats = [39.910147, 40.458202]
+ezoom_lons = [-121.50285, -120.86839]
+#date_str = '202107202125'
+date_str = '202107222110'
 plot_NEXRAD_MODIS_6panel(date_str, 'true_color', 7, 31, \
     #variable = 'reflectivity', \
     variable = 'composite_reflectivity', \
     ax = None, ptitle = None, plabel = None, \
     radar1 = 'KMAX', radar2 = 'KBBX', radar3 = 'KRGX', \
     vmin = -5, vmax = 90, angle1 = 0, angle2 = 0, angle3 = 0, \
+    #extra_zoom_lat_lims = None, extra_zoom_lon_lims = None, \
     extra_zoom_lat_lims = ezoom_lats, extra_zoom_lon_lims = ezoom_lons, \
+    lake_label = 'Almanor', \
     labelsize = 10, colorbar = True, counties = True, save_dir = './',\
     alpha = 1.0, mask_outside = True, zoom=True, save=True)
 sys.exit()
 
 
+
+
+
 #frame_folder = home_dir + '/Research/NEXRAD/nexrad_GOES_comps/vary_angle/' + date + '/'
 #gif_name = 'goes17_nexrad_comp_varyangle_' + date + '.gif'
-frame_folder = home_dir + '/Research/NEXRAD/nexrad_GOES_comps_6panel/vary_time/20210720/'
+frame_folder = home_dir + '/Research/NEXRAD/nexrad_GOES_comps_6panel/vary_angle/202108060100/'
+#frame_folder = home_dir + '/Research/NEXRAD/nexrad_GOES_comps_6panel/vary_time/20210720/'
 #frame_folder = home_dir + '/Research/NEXRAD/ppi_rhi/KBBX/vary_azm/202108052130/'
 #frame_folder = home_dir + '/Research/NEXRAD/ppi_rhi/KRGX/vary_azm/202108052130/'
 #frame_folder = home_dir + '/Research/NEXRAD/ppi_rhi/KBBX/vary_azm/202107210200/'
 
-gif_name = 'goes17_nexrad_comp_6panel_varytime_20210720.gif'
+gif_name = 'goes17_nexrad_comp_6panel_varyangle_202108060100.gif'
+#gif_name = 'goes17_nexrad_comp_6panel_varytime_20210720.gif'
 #gif_name = 'nexrad_ppi_rhi_KBBX_varyazm_202107210200.gif'
 
 print(frame_folder)
 make_gif(frame_folder, gif_name, duration = 350)
 
+sys.exit()
+
+
+dates = ['202108052100', '202108052300', '202108060100']
+
+for date in dates[2:]:
+    for ii in range(0, 11):
+        #plot_NEXRAD_GOES_5panel(date, 2, 6, 13, \
+        #    variable = 'reflectivity', \
+        #    #variable = 'composite_reflectivity', \
+        #    ax = None, ptitle = None, plabel = None, \
+        #    vmin = -5, vmax = 90, angle1 = ii, angle2 = ii, \
+        #    labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+        #    alpha = 1.0, mask_outside = True, zoom=True, save=True)
+    
+        plot_NEXRAD_GOES_6panel(date, 2, 6, 13, \
+            variable = 'reflectivity', \
+            #variable = 'composite_reflectivity', \
+            ax = None, ptitle = None, plabel = None, \
+            radar1 = 'KMAX', radar2 = 'KBBX', radar3 = 'KRGX', \
+            vmin = -5, vmax = 90, angle1 = ii, angle2 = ii, angle3 = ii, \
+            labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+            alpha = 1.0, mask_outside = True, zoom=True, save=True)
+
+sys.exit()
+
+
+#date_str = '202107210000'
+date_str = '202108052100'
+radar = 'KMAX'
+#variable = 'reflectivity'
+variable = 'composite_reflectivity'
+angle = 0
+plot_NEXRAD_ppi_figure(date_str, radar, variable, angle = angle, \
+    save_dir = './', vmin = None, \
+    mask_outside = True, zoom = True, save = False)
 sys.exit()
 
 
@@ -160,20 +236,6 @@ sys.exit()
 
 
 #for date in dates:
-
-#dates = ['202108052100', '202108052300', '202108060100']
-
-#for date in dates:
-#    for ii in range(0, 11):
-#        plot_NEXRAD_GOES_5panel(date, 2, 6, 13, \
-#            variable = 'reflectivity', \
-#            #variable = 'composite_reflectivity', \
-#            ax = None, ptitle = None, plabel = None, \
-#            vmin = -5, vmax = 90, angle1 = ii, angle2 = ii, \
-#            labelsize = 10, colorbar = True, counties = True, save_dir = './',\
-#            alpha = 1.0, mask_outside = True, zoom=True, save=True)
-#
-#sys.exit()
 
 home_dir = os.environ['HOME']
 frame_folder = home_dir + '/Research/NEXRAD/tmp_dir/'

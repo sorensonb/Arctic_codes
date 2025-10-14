@@ -21,7 +21,7 @@ date_str = '2018050505'
 #plot_combined_figure(date_str, save = True, show_synth_data = False)
 #sys.exit()
 
-plot_combined_figure_v2(date_str, save = False)
+plot_combined_figure_v2(date_str, fourpanel = True, save = True)
 sys.exit()
 
 thermo_scn2 = read_temp_diffs(file_dict[date_str]['radio_file_orig'], \

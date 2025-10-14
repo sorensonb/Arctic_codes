@@ -1749,7 +1749,9 @@ def plot_MODIS_satpy(date_str, channel, ax = None, var = None, crs = None, \
             plt.show()
 
 def plot_MODIS_satpy_6panel(date_str1, ch1, ch2, ch3, ch4, ch5, ch6, \
-        save = False, plot_borders = False, use_base_crs = False):
+        save = False, plot_borders = False, use_base_crs = False, \
+        lat_min = None, lat_max = None, lon_min = None, \
+        lon_max = None):
     
     dt_date_str = datetime.strptime(date_str1, '%Y%m%d%H%M')
  
@@ -1772,6 +1774,13 @@ def plot_MODIS_satpy_6panel(date_str1, ch1, ch2, ch3, ch4, ch5, ch6, \
         _, crs2, _, _, _, _, _ = \
             read_MODIS_satpy('202107222110', 1, swath = True)
 
+    custom_zoom = False
+    if((lat_min is not None) and (lat_max is not None)):
+        lat_lims1 = [lat_min, lat_max]
+        custom_zoom = True
+    if((lon_min is not None) and (lon_max is not None)):
+        lon_lims1 = [lon_min, lon_max]
+        custom_zoom = True
         
     plt.close('all')
     fig1 = plt.figure(figsize = (12, 8))
@@ -1868,12 +1877,24 @@ def plot_MODIS_satpy_6panel(date_str1, ch1, ch2, ch3, ch4, ch5, ch6, \
         + ' μm', xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', halign = 'right')
 
+    font_size = 10
+    plot_subplot_label(ax1, '(a)', fontsize = font_size,  backgroundcolor = 'white')
+    plot_subplot_label(ax2, '(b)', fontsize = font_size,  backgroundcolor = 'white')
+    plot_subplot_label(ax3, '(c)', fontsize = font_size,  backgroundcolor = 'white')
+    plot_subplot_label(ax4, '(d)', fontsize = font_size,  backgroundcolor = 'white')
+    plot_subplot_label(ax5, '(e)', fontsize = font_size,  backgroundcolor = 'white')
+    plot_subplot_label(ax6, '(f)', fontsize = font_size,  backgroundcolor = 'white')
+    
     plt.suptitle(dt_date_str.strftime('%Y-%m-%d %H:%M UTC'))
  
     fig1.tight_layout()
     
     if(save):
-        outname = 'modis_satpy_6panel_' + date_str1 + '.png'
+        if(custom_zoom):
+            zoom_add = '_zoom'
+        else:
+            zoom_add = ''
+        outname = 'modis_satpy_6panel_' + date_str1 + zoom_add + '.png'
         fig1.savefig(outname, dpi = 300)
         print("Saved image", outname)
     else: 
@@ -10279,6 +10300,20 @@ def plot_MODIS_CERES_3panel(date_str, zoom = True, show_smoke = True, composite 
             'LWF': {
                 'min': 265, \
                 'max': 310, \
+            },
+            'total': {
+                'min': 450, \
+                'max': 560, \
+            },
+        },
+        '202107202125': {
+            'SWF': {
+                'min': 120, \
+                'max': 250, \
+            },
+            'LWF': {
+                'min': 300, \
+                'max': 370, \
             },
             'total': {
                 'min': 450, \

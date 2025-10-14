@@ -1118,7 +1118,7 @@ def plot_cn2_figure(date_str, ax = None, raw = False, old = False, \
             #       a['TITLE'].split(" ")[-1]
             olabel=data['LABEL'].split()[0]
             if(olabel == 'GRAW'):
-                olabel = 'RAOB'
+                olabel = 'Radiosonde'
             savename = data['NAME']+'_CN2.png'
             ax.plot(np.log10(data['CN2']),(data['ALT']/1000.),color=colors[ii],label=olabel)
 
@@ -1259,7 +1259,7 @@ def func(x, a, c):
     return a * np.log(x) + c
 
 def plot_combined_figure_v2(date_str, show_synth_data = False, \
-        save = False):
+        fourpanel = False, save = False):
 
     dt_date_str = datetime.strptime(date_str, '%Y%m%d%H')
 
@@ -1275,13 +1275,22 @@ def plot_combined_figure_v2(date_str, show_synth_data = False, \
     in_ax = True
     if(ax is None):
         in_ax = False
-        fig = plt.figure(figsize = (11, 4))
-        axs = fig.subplots(1, 4, sharey = True)
-        ax1 = axs[0]
-        ax2 = axs[1]
-        ax3 = axs[2]
-        ax4 = axs[3]
-        ax5 = ax2.twiny()
+        if(fourpanel):
+            fig = plt.figure(figsize = (7, 7))
+            axs = fig.subplots(2, 2, sharey = True)
+            ax1 = axs[0,0]
+            ax2 = axs[0,1]
+            ax3 = axs[1,0]
+            ax4 = axs[1,1]
+            ax5 = ax2.twiny()
+        else:
+            fig = plt.figure(figsize = (11, 4))
+            axs = fig.subplots(1, 4, sharey = True)
+            ax1 = axs[0]
+            ax2 = axs[1]
+            ax3 = axs[2]
+            ax4 = axs[3]
+            ax5 = ax2.twiny()
     
     # Plot wind data
     # --------------
@@ -1290,15 +1299,20 @@ def plot_combined_figure_v2(date_str, show_synth_data = False, \
         color = 'tab:blue')
     ax1.set_xlabel('Temperature [$^{o}$C]')
     ax1.set_ylabel('Altitude [km]')
-    ax2.plot(thermo_scn2['SPD'], \
+    #ax2.plot(thermo_scn2['SPD'], \
+    #    thermo_scn2['matchalt_thermo'][thermo_scn2['masked_indices']] / 1000., \
+    #    color = 'tab:blue')
+    #ax2.set_xlabel('Wind Speed [kts]', color = 'tab:blue')
+    ax2.plot(thermo_scn2['SPD'] * 0.51444, \
         thermo_scn2['matchalt_thermo'][thermo_scn2['masked_indices']] / 1000., \
         color = 'tab:blue')
-    ax2.set_xlabel('Wind Speed [kts]', color = 'tab:blue')
+    ax2.set_xlabel('Wind Speed [m/s]', color = 'tab:blue')
     ax5.scatter(thermo_scn2['DIR'], \
         thermo_scn2['matchalt_thermo'][thermo_scn2['masked_indices']] / 1000., \
         color = 'tab:orange', s = 3)
     ax5.set_xlabel('Wind Direction [degrees]', color = 'tab:orange')
-    
+    ax5.set_xticks([0,90,180,270,360])   
+ 
     if(date_str == '2018050505'):
         synth_date = '201805 00'
         ylim = [0, 30]
@@ -1323,13 +1337,16 @@ def plot_combined_figure_v2(date_str, show_synth_data = False, \
     ax3.set_xlabel('Thermosonde $\Delta$T [K]', fontsize = 10)
     #ax3.set_ylabel('Altitude [km]', fontsize = 9)
     ax3.tick_params(axis = 'both', labelsize=10)
-    
+   
+    if(fourpanel): 
+        ax3.set_ylabel('Altitude [km]')
     
     plot_cn2_figure(date_str, ax = ax4, raw = False, old = False, \
             save = False, no_3km = False, ymax = ylim[1], ptitle = '', show_ylabel = False)
     
     ax1.grid(alpha = 0.50)
-    ax2.grid(alpha = 0.50)
+    #ax2.grid(alpha = 0.50)
+    ax5.grid(alpha = 0.50)
     ax3.grid(alpha = 0.50)
     ax4.grid(alpha = 0.50)
     
@@ -1353,7 +1370,13 @@ def plot_combined_figure_v2(date_str, show_synth_data = False, \
             synth_add = '_synth'
         else:
             synth_add = ''
-        outname = 'combined_cn2_v2_'+date_str+'_singlerow' + synth_add + '.png'
+
+        if(fourpanel):
+            config_add = '_2x2'
+        else:
+            config_add = '_singlerow'
+
+        outname = 'combined_cn2_v2_'+date_str+ config_add + synth_add + '.png'
         #outname = 'combined_cn2_'+date_str+'.png'
         fig.savefig(outname, dpi = 300)
         print("Saved image", outname)
