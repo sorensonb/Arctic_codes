@@ -1262,6 +1262,7 @@ def plot_NEXRAD_GOES_5panel(date_str, ch1, ch2, ch3, \
 
 def plot_NEXRAD_GOES_6panel(date_str, ch1, ch2, ch3, \
         variable = 'composite_reflectivity', \
+        goes_sat = 'goes17', \
         ax = None, ptitle = None, plabel = None, \
         radar1 = 'KBBX', radar2 = 'KRGX', radar3 = 'KMAX', \
         vmin = -5, vmax = 90, angle1 = 0, angle2 = 0, angle3 = 0, \
@@ -1311,11 +1312,11 @@ def plot_NEXRAD_GOES_6panel(date_str, ch1, ch2, ch3, \
     # Read the GOES data
     # ------------------
     var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel_goes1 = \
-        read_GOES_satpy(date_str, ch1)
+        read_GOES_satpy(date_str, ch1, sat = goes_sat)
     var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel_goes2 = \
-        read_GOES_satpy(date_str, ch2)
+        read_GOES_satpy(date_str, ch2, sat = goes_sat)
     var2, crs2, lons2, lats2, lat_lims, lon_lims, plabel_goes3 = \
-        read_GOES_satpy(date_str, ch3)
+        read_GOES_satpy(date_str, ch3, sat = goes_sat)
 
     labelsize = 10
     # Set up the figure
@@ -1340,7 +1341,7 @@ def plot_NEXRAD_GOES_6panel(date_str, ch1, ch2, ch3, \
         counties = counties, zoom=True,save=False) 
     plot_GOES_satpy(NEXRAD_dict1['radar_date'], ch3, ax = ax3, var = var2, \
         crs = crs2, lons = lons2, lats = lats2, lat_lims = lat_lims, \
-        lon_lims = lon_lims, vmin = 270, vmax = 320, ptitle = '', \
+        lon_lims = lon_lims, vmin = 240, vmax = 320, ptitle = '', \
         plabel = plabel_goes3, colorbar = True, labelsize = labelsize + 1, \
         counties = counties, zoom=True,save=False) 
     if(plot_radar_1): 
@@ -1367,25 +1368,26 @@ def plot_NEXRAD_GOES_6panel(date_str, ch1, ch2, ch3, \
             #mask_outside = mask_outside, crs = crs0)
         del(NEXRAD_dict3)
 
-    font_size = 10
+    font_size = 11
     plot_figure_text(ax1, \
-        str(goes_channel_dict[str(ch1)]['wavelength']) + ' μm', \
+        goes_sat.upper() + ' ' + str(goes_channel_dict[str(ch1)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
     plot_figure_text(ax2, \
-        str(goes_channel_dict[str(ch2)]['wavelength']) + ' μm', \
+        goes_sat.upper() + ' ' + str(goes_channel_dict[str(ch2)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
     plot_figure_text(ax3, \
-        str(goes_channel_dict[str(ch3)]['wavelength']) + ' μm', \
+        goes_sat.upper() + ' ' + str(goes_channel_dict[str(ch3)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
 
     plt.suptitle(dt_date_str.strftime('%Y-%m-%d %H:%M UTC'))
    
+    font_size = 10
     plot_subplot_label(ax1, '(a)', backgroundcolor = 'white', \
         fontsize = font_size)
     plot_subplot_label(ax2, '(b)', backgroundcolor = 'white', \
@@ -2081,9 +2083,15 @@ def plot_NEXRAD_MODIS_9panel(date_str, ch1, ch2, ch3, \
             
             xloc = -120.905
             yloc = 40.088
+            x2 = -121.0378
+            y2 = 40.1000
         else: 
-            xloc = -120.8261
-            yloc = 39.4790
+            xloc = -119.8000
+            yloc = 40.5100
+            #xloc = -120.8261
+            #yloc = 39.4790
+            x2 = -120.9842
+            y2 = 40.2273
          
         plot_figure_text(ax5, 'L. Almanor', \
             xval = xloc, yval = yloc, transform = ccrs.PlateCarree(), \
@@ -2092,8 +2100,6 @@ def plot_NEXRAD_MODIS_9panel(date_str, ch1, ch2, ch3, \
 
         x1 = xloc
         y1 = yloc
-        x2 = -121.0378
-        y2 = 40.1000
         dx = x2 - x1
         dy = y2 - y1
         ax5.arrow(x1, y1, dx, dy, facecolor = 'red', \
@@ -2125,46 +2131,48 @@ def plot_NEXRAD_MODIS_9panel(date_str, ch1, ch2, ch3, \
             width = 0.01, head_width = 0.05, \
             edgecolor = 'red', transform = ccrs.PlateCarree())
         
-    
+   
+    font_size = 11 
     if(ch1 == 'true_color'):
-        plot_figure_text(ax1, 'True Color', \
+        plot_figure_text(ax1, 'MODIS True Color', \
             xval = None, yval = None, transform = None, \
             color = 'red', fontsize = font_size, backgroundcolor = 'white', \
             halign = 'right')
     else:
         plot_figure_text(ax1, \
-            str(np.round(np.mean(channel_dict[str(ch1)]['Bandwidth']), 2)) + ' μm', \
+            'MODIS ' + str(np.round(np.mean(channel_dict[str(ch1)]['Bandwidth']), 2)) + ' μm', \
             xval = None, yval = None, transform = None, \
             color = 'red', fontsize = font_size, backgroundcolor = 'white', \
             halign = 'right')
     plot_figure_text(ax2, \
-        str(np.round(np.mean(channel_dict[str(ch2)]['Bandwidth']), 2)) + ' μm', \
+        'MODIS ' + str(np.round(np.mean(channel_dict[str(ch2)]['Bandwidth']), 2)) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
     plot_figure_text(ax3, \
-        str(np.round(np.mean(channel_dict[str(ch3)]['Bandwidth']), 2)) + ' μm', \
+        'MODIS ' + str(np.round(np.mean(channel_dict[str(ch3)]['Bandwidth']), 2)) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
     plot_figure_text(ax4, \
-        str(np.round(np.mean(channel_dict[str(ch4)]['Bandwidth']), 2)) + ' μm', \
+        'MODIS ' + str(np.round(np.mean(channel_dict[str(ch4)]['Bandwidth']), 2)) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
     plot_figure_text(ax5, \
-        str(np.round(np.mean(channel_dict[str(ch5)]['Bandwidth']), 2)) + ' μm', \
+        'MODIS ' + str(np.round(np.mean(channel_dict[str(ch5)]['Bandwidth']), 2)) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
     plot_figure_text(ax6, \
-        str(np.round(np.mean(channel_dict[str(ch6)]['Bandwidth']), 2)) + ' μm', \
+        'MODIS ' + str(np.round(np.mean(channel_dict[str(ch6)]['Bandwidth']), 2)) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
 
     plt.suptitle(dt_date_str.strftime('%Y-%m-%d %H:%M UTC'))
-   
+  
+    font_size = 10 
     plot_subplot_label(ax1, '(a)', backgroundcolor = 'white', \
         fontsize = font_size)
     plot_subplot_label(ax2, '(b)', backgroundcolor = 'white', \
@@ -2208,8 +2216,10 @@ def plot_NEXRAD_MODIS_9panel(date_str, ch1, ch2, ch3, \
         plt.show()
 
 
-def plot_NEXRAD_MODIS_9panel(date_str, ch1, ch2, ch3, \
+
+def plot_NEXRAD_MODIS_GOES_9panel(date_str, goes_date_str, ch1, ch2, ch3, \
         ch4, ch5, ch6, variable = 'composite_reflectivity', \
+        goes_sat = 'goes17',  \
         ax = None, ptitle = None, plabel = None, \
         radar1 = 'KBBX', radar2 = 'KRGX', radar3 = 'KMAX', \
         vmin = -5, vmax = 90, angle1 = 0, angle2 = 0, angle3 = 0, \
@@ -2218,10 +2228,14 @@ def plot_NEXRAD_MODIS_9panel(date_str, ch1, ch2, ch3, \
         extra_zoom_lon_lims = None, lake_label = None, \
         alpha = 1.0, mask_outside = True, zoom=True, save=False):
 
+    if('/home/bsorenson/Research/GOES' not in sys.path):
+        sys.path.append('/home/bsorenson/Research/GOES')
+    from GOESLib import read_GOES_satpy, plot_GOES_satpy, goes_channel_dict
     if('/home/bsorenson/Research/MODIS' not in sys.path):
         sys.path.append('/home/bsorenson/Research/MODIS/obs_smoke_forcing/')
     from MODISLib import read_MODIS_satpy, plot_MODIS_satpy, channel_dict
     dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+    dt_goes_str = datetime.strptime(goes_date_str,"%Y%m%d%H%M")
     #dt_date_str = datetime.strptime(NEXRAD_dict['radar_date'],"%Y%m%d%H%M")
 
     # Read the NEXRAD data
@@ -2252,42 +2266,38 @@ def plot_NEXRAD_MODIS_9panel(date_str, ch1, ch2, ch3, \
     else: 
         plot_radar_3 = True 
 
-    # Read the GOES data
-    # ------------------
-    #var0, crs0, lons0, lats0, lat_lims, lon_lims, plabel_goes1 = \
-    #    read_GOES_satpy(date_str, ch1)
-    #var1, crs1, lons1, lats1, lat_lims, lon_lims, plabel_goes2 = \
-    #    read_GOES_satpy(date_str, ch2)
-    #var2, crs2, lons2, lats2, lat_lims, lon_lims, plabel_goes3 = \
-    #    read_GOES_satpy(date_str, ch3)
-    
+    # Read the MODIS data
+    # ------------------- 
     var1, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel1 = \
         read_MODIS_satpy(date_str, ch1, swath = True)
     var2, crs1, lons2, lats2, lat_lims1, lon_lims1, plabel2 = \
         read_MODIS_satpy(date_str, ch2, swath = True)
     var3, crs1, lons3, lats3, lat_lims1, lon_lims1, plabel3 = \
         read_MODIS_satpy(date_str, ch3, swath = True)
-    var4, crs1, lons4, lats4, lat_lims1, lon_lims1, plabel4 = \
-        read_MODIS_satpy(date_str, ch4, swath = True)
-    var5, crs1, lons5, lats5, lat_lims1, lon_lims1, plabel5 = \
-        read_MODIS_satpy(date_str, ch5, swath = True)
-    var6, crs1, lons6, lats6, lat_lims1, lon_lims1, plabel6 = \
-        read_MODIS_satpy(date_str, ch6, swath = True)
 
+    # Read the GOES data
+    # ------------------
+    var4, crs4, lons4, lats4, lat_lims2, lon_lims2, plabel_goes1 = \
+        read_GOES_satpy(goes_date_str, ch4, sat = goes_sat)
+    var5, crs5, lons5, lats5, lat_lims2, lon_lims2, plabel_goes2 = \
+        read_GOES_satpy(goes_date_str, ch5, sat = goes_sat)
+    var6, crs6, lons6, lats6, lat_lims2, lon_lims2, plabel_goes3 = \
+        read_GOES_satpy(goes_date_str, ch6, sat = goes_sat)
+   
     labelsize = 10
     # Set up the figure
     # -----------------
     plt.close('all')
-    fig = plt.figure(figsize = (10, 10))
-    ax1 = fig.add_subplot(3,3,1, projection = crs1)
-    ax2 = fig.add_subplot(3,3,2, projection = crs1)
-    ax3 = fig.add_subplot(3,3,3, projection = crs1)
-    ax4 = fig.add_subplot(3,3,4, projection = crs1)
-    ax5 = fig.add_subplot(3,3,5, projection = crs1)
-    ax6 = fig.add_subplot(3,3,6, projection = crs1)
-    ax7 = fig.add_subplot(3,3,7, projection = crs1)
-    ax8 = fig.add_subplot(3,3,8, projection = crs1)
-    ax9 = fig.add_subplot(3,3,9, projection = crs1)
+    fig = plt.figure(figsize = (11, 10))
+    ax1 = fig.add_subplot(3,3,1, projection = crs1) # MODIS True-color
+    ax2 = fig.add_subplot(3,3,2, projection = crs1) # MODIS SWIR
+    ax3 = fig.add_subplot(3,3,3, projection = crs1) # MODIS TIR
+    ax4 = fig.add_subplot(3,3,4, projection = crs4) # GOES True-color
+    ax5 = fig.add_subplot(3,3,5, projection = crs4) # GOES SWIR
+    ax6 = fig.add_subplot(3,3,6, projection = crs4) # GOES TIR
+    ax7 = fig.add_subplot(3,3,7, projection = crs4) # NEXRAD 1
+    ax8 = fig.add_subplot(3,3,8, projection = crs4) # NEXRAD 2
+    ax9 = fig.add_subplot(3,3,9, projection = crs4) # NEXRAD 3
 
     if(ch1 == 'true_color'):
         plot_MODIS_satpy(date_str, ch1, ax = ax1, var = var1, crs = crs1, \
@@ -2298,10 +2308,10 @@ def plot_NEXRAD_MODIS_9panel(date_str, ch1, ch2, ch3, \
         plot_MODIS_satpy(date_str, ch1, ax = ax1, var = var1, crs = crs1, \
             lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
             ptitle = '', plabel = plabel1, plot_borders = True, \
-            #vmin = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
-            #    dt_date_str.strftime('%H%M')]['data_lim'][str(ch1)][0], \
-            #vmax = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
-            #    dt_date_str.strftime('%H%M')]['data_lim'][str(ch1)][1], \
+            vmin = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+                dt_date_str.strftime('%H%M')]['data_lim'][str(ch1)][0], \
+            vmax = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
+                dt_date_str.strftime('%H%M')]['data_lim'][str(ch1)][1], \
             labelsize = 10, zoom=True, save=False)
 
     # Plot ch2
@@ -2324,36 +2334,23 @@ def plot_NEXRAD_MODIS_9panel(date_str, ch1, ch2, ch3, \
             dt_date_str.strftime('%H%M')]['data_lim'][str(ch3)][1], \
         ptitle = '', plabel = plabel3, plot_borders = True, \
         labelsize = 10, zoom=True, save=False)
-    # Plot ch4
-    # --------
-    plot_MODIS_satpy(date_str, ch4, ax = ax4, var = var4, crs = crs1, \
-        lons = lons4, lats = lats4, lat_lims = lat_lims1, lon_lims = lon_lims1, \
-        vmin = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
-            dt_date_str.strftime('%H%M')]['data_lim'][str(ch4)][0], \
-        vmax = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
-            dt_date_str.strftime('%H%M')]['data_lim'][str(ch4)][1], \
-        ptitle = '', plabel = plabel4, plot_borders = True, \
-        labelsize = 10, zoom=True, save=False)
-    # Plot ch5
-    # --------
-    plot_MODIS_satpy(date_str, ch5, ax = ax5, var = var5, crs = crs1, \
-        lons = lons5, lats = lats5, lat_lims = lat_lims1, lon_lims = lon_lims1, \
-        vmin = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
-            dt_date_str.strftime('%H%M')]['data_lim'][str(ch5)][0], \
-        vmax = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
-            dt_date_str.strftime('%H%M')]['data_lim'][str(ch5)][1], \
-        ptitle = '', plabel = plabel5, plot_borders = True, \
-        labelsize = 10, zoom=True, save=False)
-    # Plot ch6
-    # --------
-    plot_MODIS_satpy(date_str, ch6, ax = ax6, var = var6, crs = crs1, \
-        lons = lons6, lats = lats6, lat_lims = lat_lims1, lon_lims = lon_lims1, \
-        vmin = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
-            dt_date_str.strftime('%H%M')]['data_lim'][str(ch6)][0], \
-        vmax = aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][\
-            dt_date_str.strftime('%H%M')]['data_lim'][str(ch6)][1], \
-        ptitle = '', plabel = plabel6, plot_borders = True, \
-        labelsize = 10, zoom=True, save=False)
+
+
+    plot_GOES_satpy(goes_date_str, ch4, ax = ax4, var = var4, \
+        crs = crs4, lons = lons4, lats = lats4, lat_lims = lat_lims2, \
+        lon_lims = lon_lims2, vmin = 0, vmax = 60, ptitle = '', \
+        plabel = plabel_goes1, colorbar = True, labelsize = labelsize + 1, \
+        counties = counties, zoom=True,save=False) 
+    plot_GOES_satpy(goes_date_str, ch5, ax = ax5, var = var5, \
+        crs = crs5, lons = lons5, lats = lats5, lat_lims = lat_lims2, \
+        lon_lims = lon_lims2, vmin = 2.5, vmax = 40, ptitle = '', \
+        plabel = plabel_goes2, colorbar = True, labelsize = labelsize + 1, \
+        counties = counties, zoom=True,save=False) 
+    plot_GOES_satpy(goes_date_str, ch6, ax = ax6, var = var6, \
+        crs = crs6, lons = lons6, lats = lats6, lat_lims = lat_lims2, \
+        lon_lims = lon_lims2, vmin = 270, vmax = 320, ptitle = '', \
+        plabel = plabel_goes3, colorbar = True, labelsize = labelsize + 1, \
+        counties = counties, zoom=True,save=False) 
 
 
     if(plot_radar_1): 
@@ -2388,11 +2385,11 @@ def plot_NEXRAD_MODIS_9panel(date_str, ch1, ch2, ch3, \
         ax5.add_feature(USCOUNTIES.with_scale('5m'), alpha = 0.25)
         ax6.add_feature(USCOUNTIES.with_scale('5m'), alpha = 0.25)
         
-    if(ch1 == 'true_color'):
-        title_str = 'MODIS True Color'
-    else:
-        title_str = 'MODIS ' + \
-            str(np.round(np.mean(channel_dict[str(ch1)]['Bandwidth']), 2)) 
+    #if(ch1 == 'true_color'):
+    #    title_str = 'MODIS True Color'
+    #else:
+    #    title_str = 'MODIS ' + \
+    #        str(np.round(np.mean(channel_dict[str(ch1)]['Bandwidth']), 2)) 
       
 
     extra_zoom_adder = ''
@@ -2499,39 +2496,40 @@ def plot_NEXRAD_MODIS_9panel(date_str, ch1, ch2, ch3, \
             edgecolor = 'red', transform = ccrs.PlateCarree())
         
     
+    font_size = 12
     if(ch1 == 'true_color'):
-        plot_figure_text(ax1, 'True Color', \
+        plot_figure_text(ax1, 'MODIS True Color', \
             xval = None, yval = None, transform = None, \
             color = 'red', fontsize = font_size, backgroundcolor = 'white', \
             halign = 'right')
     else:
         plot_figure_text(ax1, \
-            str(np.round(np.mean(channel_dict[str(ch1)]['Bandwidth']), 2)) + ' μm', \
+            'MODIS ' + str(np.round(np.mean(channel_dict[str(ch1)]['Bandwidth']), 2)) + ' μm', \
             xval = None, yval = None, transform = None, \
             color = 'red', fontsize = font_size, backgroundcolor = 'white', \
             halign = 'right')
     plot_figure_text(ax2, \
-        str(np.round(np.mean(channel_dict[str(ch2)]['Bandwidth']), 2)) + ' μm', \
+        'MODIS ' + str(np.round(np.mean(channel_dict[str(ch2)]['Bandwidth']), 2)) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
     plot_figure_text(ax3, \
-        str(np.round(np.mean(channel_dict[str(ch3)]['Bandwidth']), 2)) + ' μm', \
+        'MODIS ' + str(np.round(np.mean(channel_dict[str(ch3)]['Bandwidth']), 2)) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
     plot_figure_text(ax4, \
-        str(np.round(np.mean(channel_dict[str(ch4)]['Bandwidth']), 2)) + ' μm', \
+        goes_sat.upper() + ' ' + str(goes_channel_dict[str(ch4)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
     plot_figure_text(ax5, \
-        str(np.round(np.mean(channel_dict[str(ch5)]['Bandwidth']), 2)) + ' μm', \
+        goes_sat.upper() + ' ' + str(goes_channel_dict[str(ch5)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
     plot_figure_text(ax6, \
-        str(np.round(np.mean(channel_dict[str(ch6)]['Bandwidth']), 2)) + ' μm', \
+        goes_sat.upper() + ' ' + str(goes_channel_dict[str(ch6)]['wavelength']) + ' μm', \
         xval = None, yval = None, transform = None, \
         color = 'red', fontsize = font_size, backgroundcolor = 'white', \
         halign = 'right')
@@ -2568,11 +2566,11 @@ def plot_NEXRAD_MODIS_9panel(date_str, ch1, ch2, ch3, \
 
     if(save):
         if(variable == 'composite_reflectivity'):
-            outname = 'nexrad_modis_9panel_' + radar1 + '_' + radar2 + \
+            outname = 'nexrad_modis_' + goes_sat + '_9panel_' + radar1 + '_' + radar2 + \
                 '_' + radar3 + '_ang1cr_ang2cr' + extra_zoom_adder + '_' + \
                 date_str + '.png'
         else:   
-            outname = 'nexrad_modis_9panel_' + radar1 + '_' + radar2 + \
+            outname = 'nexrad_modis_' + goes_sat + '_9panel_' + radar1 + '_' + radar2 + \
                 '_' + radar3 + '_ang1' + str(angle1).zfill(2) + \
                 '_ang2' + str(angle2).zfill(2) + extra_zoom_adder + '_' + date_str + '.png'
         fig.savefig(outname, dpi = 200)

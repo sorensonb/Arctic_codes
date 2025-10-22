@@ -7,6 +7,22 @@
 
 from MODISLib import *
 
+#plot_MODIS_CERES_3panel('202108052125',zoom = True, \
+#plot_MODIS_CERES_3panel('202107222110',zoom = True, \
+#plot_MODIS_CERES_3panel('201506291925',zoom = True, \
+#plot_CERES_3panel('202107202125',zoom = True, \
+#    show_smoke = False, composite = True, \
+#    save=True) 
+#plot_MODIS_CERES_3panel('202107222110',zoom = True, \
+#plot_MODIS_CERES_4panel('202107222110',zoom = True, \
+#plot_MODIS_CERES_3panel('202108052125',zoom = True, \
+#plot_MODIS_CERES_4panel('202108052125',zoom = True, \
+#plot_MODIS_CERES_3panel('201506291925',zoom = True, \
+plot_MODIS_CERES_4panel('201506291925',zoom = True, \
+    show_smoke = False, composite = True, \
+    save=True) 
+sys.exit()
+
 #plot_MODIS_satpy_6panel('202107202125', 'true_color', 1, 2, 5, 7, 31, \
 #    save = True, plot_borders = True, use_base_crs = True)
 #plot_MODIS_satpy_6panel('202107212030', 'true_color', 1, 2, 5, 7, 31, \
@@ -20,14 +36,6 @@ plot_MODIS_satpy_6panel('201506291925', 'true_color', 1, 2, 5, 7, 31, \
     lon_max = -96.60)
 #    save = True, plot_borders = True, use_base_crs = False)
 
-sys.exit()
-
-#plot_MODIS_CERES_3panel('202108052125',zoom = True, \
-#plot_MODIS_CERES_3panel('202107222110',zoom = True, \
-#plot_MODIS_CERES_3panel('201506291925',zoom = True, \
-plot_MODIS_CERES_3panel('202107202125',zoom = True, \
-    show_smoke = False, composite = True, \
-    save=True) 
 sys.exit()
 
 #tester = identify_MODIS_MYD08(date_str, dest_dir = myd08_dir)

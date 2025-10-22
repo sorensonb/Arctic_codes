@@ -1585,7 +1585,7 @@ def make_scatter(CERES_dict_alb_clr,CERES_dict_sw_clr,\
 
 def plotCERES_hrly(pax, CERES_data_hrly, param, minlat=65, \
         vmin = None, vmax = None, title = '', label = None, \
-        labelsize = 13, labelticksize = 11, circle_bound = False, \
+        labelsize = None, labelticksize = 11, circle_bound = False, \
         gridlines = True, grid_data = True, zoom = True):
 
     if(vmin is None):
@@ -1627,10 +1627,12 @@ def plotCERES_hrly(pax, CERES_data_hrly, param, minlat=65, \
     #plt.title('OMI Reflectivity - Surface Albedo '+plot_time)
     mesh = pax.pcolormesh(plot_lon, plot_lat,mask_flux,transform = datacrs,\
         cmap = colormap, vmin = vmin, vmax = vmax, shading = 'auto')
-    cbar = plt.colorbar(mesh,ax = pax, orientation='vertical',\
-        extend = 'both', fraction = 0.046, pad = 0.04)
-    cbar.set_label(label,fontsize = labelsize, weight='bold')
-    cbar.ax.tick_params(labelsize=labelticksize)
+    cbar = plt.colorbar(mesh,ax = pax, \
+        extend = 'both', label = label)
+    #cbar = plt.colorbar(mesh,ax = pax, orientation='vertical',\
+    #    extend = 'both', fraction = 0.046, pad = 0.04)
+    #cbar.set_label(label,fontsize = labelsize, weight='bold')
+    #cbar.ax.tick_params(labelsize=labelticksize)
 
     pax.coastlines(resolution = '50m')
     #pax.set_extent([-180,180,minlat,90],ccrs.PlateCarree())

@@ -10237,7 +10237,367 @@ def plot_MODIS_temporary(date_str, zoom = True, save = False):
     else:
         plt.show()
 
+
 def plot_MODIS_CERES_3panel(date_str, zoom = True, show_smoke = True, composite = True, \
+        save=False):
+
+    if(home_dir + '/Research/CERES' not in sys.path):
+        sys.path.append(home_dir + '/Research/CERES')
+    from gridCERESLib import readgridCERES_hrly_grid, plotCERES_hrly
+    
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    # Read the MODIS data
+    # -------------------
+    var1, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel1 = \
+        read_MODIS_satpy(date_str, 'true_color', swath = True)
+    
+    # ----------------------------------------------------------------------
+    #
+    # Read the CERES data
+    #
+    # ----------------------------------------------------------------------
+    CERES_data_hrly = readgridCERES_hrly_grid(date_str[:10], 'SWF', \
+        satellite = 'Aqua', minlat = 20., modis_comp = True)
+
+    if(CERES_data_hrly is None):
+        print("ERROR: no data returned from readgridCERES_hrly_grid")
+        print("Quitting")
+        return
+
+    # ----------------------------------------------------------------------
+    #
+    #  Set up the 3-panel figure
+    #
+    # ----------------------------------------------------------------------
+ 
+    mapcrs = init_proj(date_str)
+    plt.close('all')
+    if(date_str == '201506291925'):
+        fig = plt.figure(figsize=(11,3.5))
+    else:
+        fig = plt.figure(figsize=(10,3.5))
+    ax1 = fig.add_subplot(1, 3, 1, projection = crs1)   # MODIS true color
+    ax2 = fig.add_subplot(1, 3, 2, projection = crs1) # SW
+    ax3 = fig.add_subplot(1, 3, 3, projection = crs1) # LW
+
+    plot_MODIS_satpy(date_str, 'true_color', ax = ax1, var = var1, crs = crs1, \
+        lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+        ptitle = '', plabel = plabel1, plot_borders = True, \
+        labelsize = 10, zoom=True, save=False)
+    
+    # ----------------------------------------------------------------------
+    #
+    # Plot the data in the figure
+    #
+    # ----------------------------------------------------------------------
+    lim_dict = {
+        '201506291925': {
+            'SWF': {
+                'min': 130, \
+                'max': 275, \
+            },
+            'LWF': {
+                'min': 265, \
+                'max': 310, \
+            },
+            'total': {
+                'min': 450, \
+                'max': 560, \
+            },
+        },
+        '202107202125': {
+            'SWF': {
+                'min': 120, \
+                'max': 250, \
+            },
+            'LWF': {
+                'min': 300, \
+                'max': 370, \
+            },
+            'total': {
+                'min': 450, \
+                'max': 560, \
+            },
+        },
+        '202107222110': {
+            'SWF': {
+                'min': 120, \
+                'max': 250, \
+            },
+            'LWF': {
+                'min': 300, \
+                'max': 370, \
+            },
+            'total': {
+                'min': 450, \
+                'max': 560, \
+            },
+        },
+        '202108052125': {
+            'SWF': {
+                'min': 120, \
+                'max': 320, \
+            },
+            'LWF': {
+                'min': 250, \
+                'max': 360, \
+            },
+            'total': {
+                'min': 450, \
+                'max': 600, \
+            },
+        },
+    }   
+
+    plotCERES_hrly(ax2, CERES_data_hrly, 'SWF', minlat = 20., \
+        vmin = lim_dict[date_str]['SWF']['min'], \
+        vmax = lim_dict[date_str]['SWF']['max'], \
+        title = ' ', label = 'TOA SWF [Wm$^{-2}$]', \
+        #vmin = 120, vmax = 250, title = ' ', label = 'TOA SWF [Wm$^{-2}$]', \
+        circle_bound = False, gridlines = False, grid_data = True)
+    plotCERES_hrly(ax3, CERES_data_hrly, 'LWF', minlat = 20., \
+        vmin = lim_dict[date_str]['LWF']['min'], \
+        vmax = lim_dict[date_str]['LWF']['max'], \
+        title = ' ', label = 'TOA LWF [Wm$^{-2}$]', \
+        #vmin = 300, vmax = 370, title = ' ', label = 'TOA LWF [Wm$^{-2}$]', \
+        #vmin = 300, vmax = 370, title = ' ', label = '', \
+        circle_bound = False, gridlines = False, grid_data = True)
+    
+    if(zoom):
+        ax1.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
+                        datacrs)
+        ax2.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
+                        datacrs)
+        ax3.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
+                        datacrs)
+
+    # Add subplot labels
+    # ------------------
+    plot_subplot_label(ax1, '(a)', backgroundcolor = 'white')
+    plot_subplot_label(ax2, '(b)', backgroundcolor = 'white')
+    plot_subplot_label(ax3, '(c)', backgroundcolor = 'white')
+
+    # Add plot text
+    # -------------
+    plot_figure_text(ax1, 'MODIS true color', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax2, 'CERES SW', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax3, 'CERES LW', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
+
+    #ax2.set_title(dt_date_str.strftime(\
+    plt.suptitle(dt_date_str.strftime(\
+        'Aqua CERES TOA Fluxes\n%Y-%m-%d %H:%M UTC'))
+
+    fig.tight_layout()
+
+    if(save):
+        outname = 'modis_ceres_image_combined_' + date_str + '_3panel.png'
+        fig.savefig(outname, dpi=300)
+        print("Saved",outname)
+    else:
+        plt.show()
+
+
+def plot_MODIS_CERES_4panel(date_str, zoom = True, show_smoke = True, composite = True, \
+        save=False):
+
+    if(home_dir + '/Research/CERES' not in sys.path):
+        sys.path.append(home_dir + '/Research/CERES')
+    from gridCERESLib import readgridCERES_hrly_grid, plotCERES_hrly
+    
+    dt_date_str = datetime.strptime(date_str,"%Y%m%d%H%M")
+
+    # Read the MODIS data
+    # -------------------
+    var1, crs1, lons1, lats1, lat_lims1, lon_lims1, plabel1 = \
+        read_MODIS_satpy(date_str, 'true_color', swath = True)
+    
+    # ----------------------------------------------------------------------
+    #
+    # Read the CERES data
+    #
+    # ----------------------------------------------------------------------
+    CERES_data_hrly = readgridCERES_hrly_grid(date_str[:10], 'SWF', \
+        satellite = 'Aqua', minlat = 20., modis_comp = True)
+
+    if(CERES_data_hrly is None):
+        print("ERROR: no data returned from readgridCERES_hrly_grid")
+        print("Quitting")
+        return
+
+    # ----------------------------------------------------------------------
+    #
+    #  Set up the 3-panel figure
+    #
+    # ----------------------------------------------------------------------
+ 
+    mapcrs = init_proj(date_str)
+    plt.close('all')
+    fig = plt.figure(figsize=(7.5,7))
+    ax1 = fig.add_subplot(2, 2, 1, projection = crs1)   # MODIS true color
+    ax2 = fig.add_subplot(2, 2, 2, projection = crs1) # SW
+    ax3 = fig.add_subplot(2, 2, 3, projection = crs1) # LW
+    ax4 = fig.add_subplot(2, 2, 4, projection = crs1) # SW + LW
+
+    plot_MODIS_satpy(date_str, 'true_color', ax = ax1, var = var1, crs = crs1, \
+        lons = lons1, lats = lats1, lat_lims = lat_lims1, lon_lims = lon_lims1, \
+        ptitle = '', plabel = plabel1, \
+        labelsize = 10, zoom=True, save=False)
+    
+    # ----------------------------------------------------------------------
+    #
+    # Plot the data in the figure
+    #
+    # ----------------------------------------------------------------------
+    lim_dict = {
+        '201506291925': {
+            'SWF': {
+                'min': 130, \
+                'max': 275, \
+            },
+            'LWF': {
+                'min': 265, \
+                'max': 310, \
+            },
+            'total': {
+                'min': 450, \
+                'max': 560, \
+            },
+        },
+        '202107202125': {
+            'SWF': {
+                'min': 120, \
+                'max': 250, \
+            },
+            'LWF': {
+                'min': 300, \
+                'max': 370, \
+            },
+            'total': {
+                'min': 450, \
+                'max': 560, \
+            },
+        },
+        '202107222110': {
+            'SWF': {
+                'min': 120, \
+                'max': 250, \
+            },
+            'LWF': {
+                'min': 300, \
+                'max': 370, \
+            },
+            'total': {
+                'min': 450, \
+                'max': 560, \
+            },
+        },
+        '202108052125': {
+            'SWF': {
+                'min': 120, \
+                'max': 320, \
+            },
+            'LWF': {
+                'min': 250, \
+                'max': 360, \
+            },
+            'total': {
+                'min': 450, \
+                'max': 600, \
+            },
+        },
+    }   
+
+    plotCERES_hrly(ax2, CERES_data_hrly, 'SWF', minlat = 20., \
+        vmin = lim_dict[date_str]['SWF']['min'], \
+        vmax = lim_dict[date_str]['SWF']['max'], \
+        title = ' ', label = 'TOA SWF [Wm$^{-2}$]', \
+        #vmin = 120, vmax = 250, title = ' ', label = 'TOA SWF [Wm$^{-2}$]', \
+        circle_bound = False, gridlines = False, grid_data = True)
+    plotCERES_hrly(ax3, CERES_data_hrly, 'LWF', minlat = 20., \
+        vmin = lim_dict[date_str]['LWF']['min'], \
+        vmax = lim_dict[date_str]['LWF']['max'], \
+        title = ' ', label = 'TOA LWF [Wm$^{-2}$]', \
+        #vmin = 300, vmax = 370, title = ' ', label = 'TOA LWF [Wm$^{-2}$]', \
+        #vmin = 300, vmax = 370, title = ' ', label = '', \
+        circle_bound = False, gridlines = False, grid_data = True)
+    plotCERES_hrly(ax4, CERES_data_hrly, 'total', minlat = 20., \
+        vmin = lim_dict[date_str]['total']['min'], \
+        vmax = lim_dict[date_str]['total']['max'], \
+        title = ' ', label = 'TOA Net Flux [Wm$^{-2}$]', \
+        #vmin = 450, vmax = 560, title = ' ', label = 'TOA Net Flux [Wm$^{-2}$]', \
+        #vmin = 520, vmax = 625, title = ' ', label = '', \
+        circle_bound = False, gridlines = False, grid_data = True)
+    
+    if(zoom):
+        ax1.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
+                        datacrs)
+        ax2.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
+                        datacrs)
+        ax3.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
+                        datacrs)
+        ax4.set_extent([aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lon'][1], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][0], \
+                        aerosol_event_dict[dt_date_str.strftime('%Y-%m-%d')][date_str[8:]]['Lat'][1]],\
+                        datacrs)
+
+    # Add subplot labels
+    # ------------------
+    plot_subplot_label(ax1, '(a)', backgroundcolor = 'white')
+    plot_subplot_label(ax2, '(b)', backgroundcolor = 'white')
+    plot_subplot_label(ax3, '(c)', backgroundcolor = 'white')
+    plot_subplot_label(ax4, '(d)', backgroundcolor = 'white')
+
+    # Add plot text
+    # -------------
+    plot_figure_text(ax1, 'MODIS true color', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax2, 'CERES SW', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax3, 'CERES LW', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
+    plot_figure_text(ax4, 'CERES SW+LW', xval = None, yval = None, transform = None, \
+        color = 'red', fontsize = 12, backgroundcolor = 'white', halign = 'right')
+
+    #ax2.set_title(dt_date_str.strftime(\
+    plt.suptitle(dt_date_str.strftime(\
+        'Aqua CERES TOA Fluxes\n%Y-%m-%d %H:%M UTC'))
+
+    fig.tight_layout()
+
+    if(save):
+        outname = 'modis_ceres_image_combined_' + date_str + '_4panel.png'
+        fig.savefig(outname, dpi=300)
+        print("Saved",outname)
+    else:
+        plt.show()
+
+
+
+
+def plot_CERES_3panel(date_str, zoom = True, show_smoke = True, composite = True, \
         save=False):
 
     if(home_dir + '/Research/CERES' not in sys.path):
@@ -10412,7 +10772,7 @@ def plot_MODIS_CERES_3panel(date_str, zoom = True, show_smoke = True, composite 
     fig.tight_layout()
 
     if(save):
-        outname = 'modis_ceres_combined_' + date_str + '_3panel.png'
+        outname = 'ceres_combined_' + date_str + '_3panel.png'
         fig.savefig(outname, dpi=300)
         print("Saved",outname)
     else:

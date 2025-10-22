@@ -10,18 +10,6 @@ import sys
 
 
 
-date = '202108052300'
-plot_NEXRAD_GOES_6panel(date, 2, 6, 13, \
-    #variable = 'reflectivity', \
-    variable = 'composite_reflectivity', \
-    ax = None, ptitle = None, plabel = None, \
-    radar1 = 'KMAX', radar2 = 'KBBX', radar3 = 'KRGX', \
-    vmin = -5, vmax = 90, angle1 = 0, angle2 = 0, angle3 = 0, \
-    labelsize = 10, colorbar = True, counties = True, save_dir = './',\
-    alpha = 1.0, mask_outside = True, zoom=True, save=True)
-sys.exit()
-
-
 ezoom_lats = [39.910147, 40.458202]
 ezoom_lons = [-121.50285, -120.86839]
 #date_str = '202107202125'
@@ -38,6 +26,33 @@ plot_NEXRAD_MODIS_9panel(date_str, 'true_color', 1, 2, 5, 7, 31, \
     lake_label = 'Both', \
     labelsize = 10, colorbar = True, counties = True, save_dir = './',\
     alpha = 1.0, mask_outside = True, zoom=True, save=True)
+sys.exit()
+
+
+date_str = '202108052125'
+goes_date = '202108052130'
+plot_NEXRAD_MODIS_GOES_9panel(date_str, goes_date, 1, 7, 31, 2, 6, 13, \
+    variable = 'composite_reflectivity', \
+    goes_sat = 'goes17', \
+    ax = None, ptitle = None, plabel = None, \
+    radar1 = 'KMAX', radar2 = 'KBBX', radar3 = 'KRGX', \
+    vmin = -5, vmax = 90, angle1 = 0, angle2 = 0, angle3 = 0, \
+    extra_zoom_lat_lims = None, extra_zoom_lon_lims = None, \
+    #extra_zoom_lat_lims = ezoom_lats, extra_zoom_lon_lims = ezoom_lons, \
+    lake_label = None, \
+    labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+    alpha = 1.0, mask_outside = True, zoom=True, save=True)
+sys.exit()
+
+date = '202108052300'
+plot_NEXRAD_GOES_6panel(date, 2, 6, 13, \
+    #variable = 'reflectivity', \
+    variable = 'composite_reflectivity', \
+    ax = None, ptitle = None, plabel = None, \
+    radar1 = 'KMAX', radar2 = 'KBBX', radar3 = 'KRGX', \
+    vmin = -5, vmax = 90, angle1 = 0, angle2 = 0, angle3 = 0, \
+    labelsize = 10, colorbar = True, counties = True, save_dir = './',\
+    alpha = 1.0, mask_outside = True, zoom=True, save=False)
 sys.exit()
 
 
